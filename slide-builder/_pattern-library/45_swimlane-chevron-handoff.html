@@ -1,0 +1,341 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>45 · Swimlane with chevron steps and structured handoff bar</title>
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --lane1-tint: #F6ECFF;
+  --lane1-step-tint: #ECDCFF;
+  --lane2-tint: #F1E8FB;
+  --lane2-step-tint: #E4D2F4;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 1280px; height: 720px;
+  background: var(--slide-bg);
+  font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  color: var(--text-dark);
+  overflow: hidden;
+}
+body { position: relative; }
+
+/* ---- Top / bottom chrome (invariant zone) ---- */
+.draft-badge {
+  position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--draft-bg); color: var(--draft-text);
+  font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; z-index: 50;
+}
+.project-label {
+  position: absolute; top: 24px; left: 24px;
+  color: var(--text-faint);
+  font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; z-index: 50;
+}
+
+.footer-rule {
+  position: absolute; bottom: 32px; left: 56px; right: 56px;
+  height: 1px; background: #EFE6F6;
+}
+.footer-left {
+  position: absolute; bottom: 14px; left: 24px;
+  color: var(--text-faint); font-size: 11px; letter-spacing: 1px;
+}
+.footer-right {
+  position: absolute; bottom: 14px; right: 24px;
+  color: var(--text-faint); font-size: 11px;
+}
+
+/* ---- Title block ---- */
+.title-block { position: absolute; top: 28px; left: 56px; right: 56px; }
+.action-title { min-height: 56px; font-size: 26px; font-weight: 700; line-height: 1.2; max-width: 1100px; color: var(--text-dark); }
+.action-title strong { color: var(--brand-primary); }
+.subhead { position: absolute; left: 0; right: 0; top: 72px;
+  font-size: 14px; color: var(--brand-primary-mid); font-weight: 700;
+  text-transform: uppercase; letter-spacing: 1.2px;
+}
+.title-rule { position: absolute; left: 0; top: 98px; width: 40px; height: 3px; background: var(--brand-accent); }
+
+/* ---- Content zone: top=180, bottom=56 ---- */
+.content {
+  position: absolute;
+  left: 56px; right: 56px;
+  top: 180px; bottom: 56px;
+  display: flex; flex-direction: column; gap: 0;
+}
+
+/* ---- Lane row ---- */
+.lane { flex: 1; display: flex; gap: 0; min-height: 0; }
+
+.lane-label {
+  width: 96px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  writing-mode: vertical-rl; text-orientation: mixed;
+  transform: rotate(180deg);
+  font-family: 'Inter', sans-serif;
+  font-size: 14px; font-weight: 800;
+  letter-spacing: 2px; text-transform: uppercase;
+  color: #fff;
+}
+.lane-1 .lane-label { background: var(--brand-accent); }
+.lane-2 .lane-label { background: var(--brand-primary-mid); }
+
+.lane-body {
+  flex: 1; min-width: 0;
+  border: 1.5px solid;
+  border-left: none;
+  padding: 14px 14px 14px 18px;
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+.lane-1 .lane-body { background: var(--lane1-tint); border-color: var(--brand-accent); }
+.lane-2 .lane-body { background: var(--lane2-tint); border-color: var(--brand-primary-mid); }
+
+.lane-eyebrow {
+  font-size: 10px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.8px;
+  margin-bottom: 10px;
+}
+.lane-1 .lane-eyebrow { color: var(--brand-accent); }
+.lane-2 .lane-eyebrow { color: var(--brand-primary-mid); }
+
+/* ---- Steps row ---- */
+.steps {
+  flex: 1;
+  display: flex; align-items: center; gap: 4px;
+  min-width: 0;
+}
+
+.step { flex: 1; min-width: 0; }
+
+.step-head {
+  padding: 8px 10px 6px;
+  padding-right: 18px;
+}
+.step-head .num {
+  width: 20px; height: 20px;
+  border-radius: 50%;
+  font-size: 10px; font-weight: 800;
+  display: flex; align-items: center; justify-content: center;
+  margin-bottom: 4px;
+  background: #fff;
+}
+.step-head .label {
+  font-size: 10px; font-weight: 700;
+  line-height: 1.3; color: #fff;
+}
+
+.step-body {
+  padding: 6px 10px;
+  font-size: 9.5px; line-height: 1.35;
+  color: var(--text-dark);
+}
+
+/* Lane 1 colors */
+.lane-1 .step-head { background: var(--brand-accent); }
+.lane-1 .step-head .num { color: var(--brand-accent); }
+.lane-1 .step-body { background: var(--lane1-step-tint); }
+.lane-1 .chev { color: var(--brand-accent); }
+
+/* Lane 2 colors */
+.lane-2 .step-head { background: var(--brand-primary-mid); }
+.lane-2 .step-head .num { color: var(--brand-primary-mid); }
+.lane-2 .step-body { background: var(--lane2-step-tint); }
+.lane-2 .chev { color: var(--brand-primary-mid); }
+
+/* Final step in lane 2 (terminal) — brand-primary */
+.lane-2 .step.final .step-head { background: var(--brand-primary); }
+.lane-2 .step.final .step-head .num { color: var(--brand-primary); }
+.lane-2 .step.final .step-body { background: #E0D0F0; }
+
+/* Chevron shapes — first / middle / last */
+.step.first .step-head {
+  clip-path: polygon(0 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 0 100%);
+}
+.step.mid .step-head {
+  clip-path: polygon(10px 0, calc(100% - 10px) 0, 100% 50%, calc(100% - 10px) 100%, 10px 100%, 0 50%);
+  padding-left: 18px;
+}
+.step.last .step-head {
+  clip-path: polygon(10px 0, 100% 0, 100% 100%, 10px 100%, 0 50%);
+  padding-left: 18px;
+}
+
+.chev {
+  font-size: 14px; font-weight: 700;
+  flex-shrink: 0;
+  margin-top: -16px;
+}
+
+/* ---- Handoff bar ---- */
+.handoff {
+  height: 32px;
+  display: flex; align-items: center;
+  background: #fff;
+  border-left: 1.5px solid #ccc;
+  border-right: 1.5px solid #ccc;
+  position: relative;
+}
+.handoff-pill {
+  margin: 0 auto;
+  background: var(--brand-primary);
+  color: #fff;
+  font-size: 9.5px; font-weight: 700;
+  letter-spacing: 1px; text-transform: uppercase;
+  padding: 5px 20px;
+  border-radius: 20px;
+  display: flex; align-items: center; gap: 10px;
+}
+.handoff-pill .arrow-in { color: var(--brand-accent); font-size: 11px; }
+.handoff-pill .arrow-out { color: var(--brand-accent-soft); font-size: 11px; }
+</style>
+</head>
+<body>
+
+  <!-- Top chrome -->
+
+  <!-- Title -->
+  <div class="title-block">
+    <div class="action-title" data-shape-id="title">Two skills, one workflow — <strong>the thinking is locked before a single slide is designed.</strong></div>
+    <div class="subhead" data-shape-id="subtitle">How storyline-helper and slide-builder work in sequence</div>
+    <div class="title-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- Lane 1 — storyline-helper -->
+    <div class="lane lane-1">
+      <div class="lane-label" data-shape-id="lane-1-label">storyline-helper</div>
+      <div class="lane-body">
+        <div class="lane-eyebrow" data-shape-id="lane-1-eyebrow">Structures the thinking</div>
+        <div class="steps">
+
+          <div class="step first">
+            <div class="step-head">
+              <div class="num" data-shape-id="lane-1-step-1-num">1</div>
+              <div class="label" data-shape-id="lane-1-step-1-name">Template intake</div>
+            </div>
+            <div class="step-body" data-shape-id="lane-1-step-1-body">Reads fonts, colors &amp; layouts from your .pptx automatically</div>
+          </div>
+
+          <div class="chev">&rsaquo;</div>
+
+          <div class="step mid">
+            <div class="step-head">
+              <div class="num" data-shape-id="lane-1-step-2-num">2</div>
+              <div class="label" data-shape-id="lane-1-step-2-name">Opening question</div>
+            </div>
+            <div class="step-body" data-shape-id="lane-1-step-2-body">"What are you trying to communicate?" — starts the structured conversation</div>
+          </div>
+
+          <div class="chev">&rsaquo;</div>
+
+          <div class="step mid">
+            <div class="step-head">
+              <div class="num" data-shape-id="lane-1-step-3-num">3</div>
+              <div class="label" data-shape-id="lane-1-step-3-name">Audience + context</div>
+            </div>
+            <div class="step-body" data-shape-id="lane-1-step-3-body">Who sees this, what they already know, what they need to believe</div>
+          </div>
+
+          <div class="chev">&rsaquo;</div>
+
+          <div class="step mid">
+            <div class="step-head">
+              <div class="num" data-shape-id="lane-1-step-4-num">4</div>
+              <div class="label" data-shape-id="lane-1-step-4-name">Infer &amp; confirm</div>
+            </div>
+            <div class="step-body" data-shape-id="lane-1-step-4-body">Page type, mode and governing thought reflected back — confirmed before going deeper</div>
+          </div>
+
+          <div class="chev">&rsaquo;</div>
+
+          <div class="step last">
+            <div class="step-head">
+              <div class="num" data-shape-id="lane-1-step-5-num">5</div>
+              <div class="label" data-shape-id="lane-1-step-5-name">Sharpen structure &rarr; Brief</div>
+            </div>
+            <div class="step-body" data-shape-id="lane-1-step-5-body">2&ndash;4 supporting buckets, evidence, risks — structured brief produced</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+    <!-- Handoff bar -->
+    <div class="handoff">
+      <div class="handoff-pill" data-shape-id="handoff-pill">
+        <span class="arrow-in">&#9660;</span>
+        Structured brief handoff — governing thought &middot; audience &middot; supporting structure &middot; evidence &middot; risks confirmed
+        <span class="arrow-out">&#9660;</span>
+      </div>
+    </div>
+
+    <!-- Lane 2 — slide-builder -->
+    <div class="lane lane-2">
+      <div class="lane-label" data-shape-id="lane-2-label">slide-builder</div>
+      <div class="lane-body">
+        <div class="lane-eyebrow" data-shape-id="lane-2-eyebrow">Designs and builds the slide</div>
+        <div class="steps">
+
+          <div class="step first">
+            <div class="step-head">
+              <div class="num" data-shape-id="lane-2-step-1-num">6</div>
+              <div class="label" data-shape-id="lane-2-step-1-name">Read brief + rules</div>
+            </div>
+            <div class="step-body" data-shape-id="lane-2-step-1-body">Applies MBB slide rules and page-type conventions to the brief</div>
+          </div>
+
+          <div class="chev">&rsaquo;</div>
+
+          <div class="step mid">
+            <div class="step-head">
+              <div class="num" data-shape-id="lane-2-step-2-num">7</div>
+              <div class="label" data-shape-id="lane-2-step-2-name">Generate mockups</div>
+            </div>
+            <div class="step-body" data-shape-id="lane-2-step-2-body">3&ndash;4 structurally distinct HTML/SVG variations — each a different layout bet</div>
+          </div>
+
+          <div class="chev">&rsaquo;</div>
+
+          <div class="step mid">
+            <div class="step-head">
+              <div class="num" data-shape-id="lane-2-step-3-num">8</div>
+              <div class="label" data-shape-id="lane-2-step-3-name">Select + refine</div>
+            </div>
+            <div class="step-body" data-shape-id="lane-2-step-3-body">React, combine options or request changes — nothing locked until approved</div>
+          </div>
+
+          <div class="chev">&rsaquo;</div>
+
+          <div class="step last final">
+            <div class="step-head">
+              <div class="num" data-shape-id="lane-2-step-4-num">9</div>
+              <div class="label" data-shape-id="lane-2-step-4-name">Build + QA &rarr; .pptx &#10003;</div>
+            </div>
+            <div class="step-body" data-shape-id="lane-2-step-4-body">Built on client template, QA'd as PDF, delivered as clickable file link</div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer-left" data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+
+</body>
+</html>

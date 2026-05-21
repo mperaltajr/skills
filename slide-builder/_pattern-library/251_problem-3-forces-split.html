@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>251 — Problem + 3 Forces Split</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+    background: var(--slide-bg);
+    position: relative;
+  }
+
+  /* ── SLIDE LAYOUT ── */
+  .slide {
+    width: 1280px;
+    height: 720px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  /* ── CHROME: TOP BAR ── */
+  .top-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+  }
+
+  .label-internal {
+    position: absolute;
+    top: 14px;
+    left: 40px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: #FFFFFF;
+    font-weight: 500;
+    text-transform: uppercase;
+    z-index: 20;
+  }
+
+  .draft-badge {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 0;
+    z-index: 20;
+  }
+
+  /* ── MAIN BODY: LEFT + RIGHT PANELS ── */
+  .panels {
+    display: flex;
+    flex: 1;
+    height: 688px; /* 720 - 32px footer */
+  }
+
+  /* ── LEFT PANEL ── */
+  .left-panel {
+    width: 32%;
+    background: var(--brand-primary);
+    position: relative;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 48px 32px 40px 40px;
+  }
+
+  .problem-label {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--brand-accent-soft);
+    text-transform: uppercase;
+    font-weight: 600;
+
+    top: 18px; /* push below the "ACCENTURE INTERNAL" label at top:14px */
+  }
+
+  .headline {
+    font-size: 38px;
+    font-weight: 700;
+    color: #FFFFFF;
+    line-height: 1.2;
+
+    top: 16px;
+  }
+
+  .accent-rule {
+    width: 40px;
+    height: 3px;
+    background: var(--brand-accent);
+
+    top: 24px;
+    flex-shrink: 0;
+  }
+
+  .body-copy {
+    font-size: 15px;
+    color: rgba(255, 255, 255, 0.80);
+    line-height: 1.6;
+
+    top: 20px;
+  }
+
+  /* ── RIGHT PANEL ── */
+  .right-panel {
+    flex: 1;
+    background: var(--slide-bg);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    padding: 48px 40px 40px 40px;
+  }
+
+  .forces-label {
+    font-size: 9px;
+    letter-spacing: 0.2em;
+    color: var(--brand-accent);
+    text-transform: uppercase;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .cards-wrapper {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+
+    top: 16px;
+  }
+
+  /* ── ICON CARD ── */
+  .icon-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-left: 4px solid var(--brand-accent);
+    border-radius: 2px;
+    padding: 24px 24px;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 20px;
+    flex: 1;
+  }
+
+  .icon-circle {
+    width: 56px;
+    height: 56px;
+    background: var(--brand-accent);
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .icon-circle svg {
+    display: block;
+  }
+
+  .card-text {
+    flex: 1;
+  }
+
+  .card-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--brand-accent);
+    line-height: 1.2;
+
+    bottom: 6px;
+  }
+
+  .card-body {
+    font-size: 15px;
+    color: var(--text-dark);
+    line-height: 1.55;
+  }
+
+  /* ── FOOTER ── */
+  .footer {
+    height: 32px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 40px;
+    flex-shrink: 0;
+  }
+
+  .footer-left,
+  .footer-right {
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 0.04em;
+  }
+</style>
+</head>
+<body>
+<div class="slide">
+
+  <!-- ACCENTURE INTERNAL label — over left panel -->
+  <div class="label-internal" data-shape-id="accenture-tag">ACCENTURE INTERNAL</div>
+
+  <!-- DRAFT badge — top center -->
+
+  <!-- PANELS -->
+  <div class="panels">
+
+    <!-- LEFT PANEL -->
+    <div class="left-panel" data-shape-id="hero-panel">
+      <div class="problem-label" data-shape-id="eyebrow">The Problem</div>
+      <div class="headline" data-shape-id="hero-statement">Consultants rarely lack ideas — they struggle to cut through them.</div>
+      <div class="accent-rule" data-shape-id="hero-rule"></div>
+      <p class="body-copy" data-shape-id="hero-context">Not a knowledge gap. Not a skill deficit. A structural problem — and structural problems have structural solutions.</p>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+      <div class="forces-label" data-shape-id="forces-label">Three Compounding Forces</div>
+
+      <div class="cards-wrapper">
+
+        <!-- Card 1: Too much to say -->
+        <div class="icon-card" data-shape-id="card-1-body-bg">
+          <div class="icon-circle" data-shape-id="card-1-icon">
+            <!-- Document / lines icon -->
+            <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect x="3" y="2" width="14" height="16" rx="1" stroke="white" stroke-width="1.5" fill="none"/>
+              <line x1="6" y1="7" x2="14" y2="7" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+              <line x1="6" y1="10.5" x2="14" y2="10.5" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+              <line x1="6" y1="14" x2="11" y2="14" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+          </div>
+          <div class="card-text">
+            <div class="card-title" data-shape-id="card-1-heading">Too much to say</div>
+            <div class="card-body" data-shape-id="card-1-body">Knowing what to cut is harder than knowing what to include. Every workstream generates legitimate findings.</div>
+          </div>
+        </div>
+
+        <!-- Card 2: Too many cooks -->
+        <div class="icon-card" data-shape-id="card-2-body-bg">
+          <div class="icon-circle" data-shape-id="card-2-icon">
+            <!-- Two people / users icon -->
+            <svg width="22" height="18" viewBox="0 0 22 18" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <!-- Person 1 -->
+              <circle cx="8" cy="5" r="3" stroke="white" stroke-width="1.5" fill="none"/>
+              <path d="M1 17C1 13.686 4.134 11 8 11" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+              <!-- Person 2 -->
+              <circle cx="15" cy="5" r="3" stroke="white" stroke-width="1.5" fill="none"/>
+              <path d="M15 11C18.866 11 22 13.686 22 17" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+              <!-- Center join -->
+              <path d="M8 17C8 13.686 11 11 11 11C11 11 14 13.686 14 17" stroke="white" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+            </svg>
+          </div>
+          <div class="card-text">
+            <div class="card-title" data-shape-id="card-2-heading">Too many cooks</div>
+            <div class="card-body" data-shape-id="card-2-body">Every collaborator has a view on what belongs on the page — more opinions mean harder choices, not a richer argument.</div>
+          </div>
+        </div>
+
+        <!-- Card 3: The audience needs what's next -->
+        <div class="icon-card" data-shape-id="card-3-body-bg">
+          <div class="icon-circle" data-shape-id="card-3-icon">
+            <!-- Arrow right icon -->
+            <svg width="20" height="16" viewBox="0 0 20 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <line x1="1" y1="8" x2="17" y2="8" stroke="white" stroke-width="1.8" stroke-linecap="round"/>
+              <polyline points="11,2 17,8 11,14" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            </svg>
+          </div>
+          <div class="card-text">
+            <div class="card-title" data-shape-id="card-3-heading">The audience needs what's next</div>
+            <div class="card-body" data-shape-id="card-3-body">They don't need to understand all the work — they need to understand the next step.</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer" data-shape-id="footer-rule">
+    <span class="footer-left" data-shape-id="footer-left">CONFIDENTIAL — ACCENTURE INTERNAL</span>
+    <span class="footer-right" data-shape-id="footer-right">Slide Lab · 2026 · 251</span>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pattern 165 — Service Catalogue</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: Inter, system-ui, sans-serif;
+    background: var(--slide-bg);
+    position: relative;
+  }
+
+  /* Invariant chrome */
+  .project-label {
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    z-index: 10;
+  }
+
+  .draft-badge {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 16px;
+    border-radius: 0;
+    letter-spacing: 1px;
+    z-index: 10;
+  }
+
+  .title-block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+  .title-block h1 {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+  pointer-events: auto;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.15;
+  }
+
+  .title-block h1 strong {
+    color: var(--brand-accent);
+  }
+
+  .title-block p {
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+    margin-top: 4px;
+  }
+
+  .accent-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+  pointer-events: none;
+    
+    
+    background: var(--brand-accent);
+    }
+
+  /* Footer */
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+  }
+
+  .footer span {
+    font-size: 8px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+  }
+
+  /* Content area */
+  .content {
+    position: absolute;
+    top: 136px;
+    left: 48px;
+    right: 48px;
+    bottom: 64px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Table */
+  .catalogue-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: Inter, system-ui, sans-serif;
+    flex: 1;
+  }
+
+  /* Column header row */
+  .col-header th {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    text-align: left;
+    padding: 6px 12px;
+    border-bottom: 2px solid var(--card-border);
+    background: #FFFFFF;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .col-header th:first-child { width: 22%; }
+  .col-header th:nth-child(2) { width: 48%; }
+  .col-header th:last-child { width: 30%; }
+
+  /* Category header rows */
+  .cat-header td {
+    background: var(--brand-primary-mid);
+    color: #FFFFFF;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 5px 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border: none;
+  }
+
+  /* Service rows */
+  .service-row td {
+    padding: 7px 12px;
+    vertical-align: middle;
+    border-bottom: 1px solid var(--card-border);
+  }
+
+  .row-white td { background: #FFFFFF; }
+  .row-tinted td { background: var(--card-bg); }
+
+  .svc-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-dark);
+    line-height: 1.3;
+  }
+
+  .svc-desc {
+    font-size: 11px;
+    color: var(--text-mid);
+    line-height: 1.4;
+  }
+
+  .owner-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .owner-name {
+    font-size: 11px;
+    color: var(--text-dark);
+    white-space: nowrap;
+  }
+
+  .sla-badge {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 2px;
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .badge-active {
+    background: #D1FAE5;
+    color: #065F46;
+  }
+
+  .badge-review {
+    background: #FEF3C7;
+    color: #92400E;
+  }
+
+  .badge-deprecated {
+    background: #FEE2E2;
+    color: #991B1B;
+  }
+
+  /* DARK THEME */
+  :root {
+    --card-bg: rgba(255,255,255,0.07);
+    --card-border: rgba(255,255,255,0.12);
+    --text-dark: #FFFFFF;
+    --text-mid: rgba(255,255,255,0.6);
+    --slide-bg: #2D0A4E;
+  }
+  body { background: #2D0A4E; }
+  .project-label { color: rgba(255,255,255,0.4); }
+  .title-block h1 {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+  pointer-events: auto; color: #FFFFFF; }
+  .title-block h1 strong { color: #C780FF; }
+  .title-block p { color: rgba(255,255,255,0.6); }
+  .col-header th {
+    background: rgba(255,255,255,0.07);
+    color: rgba(255,255,255,0.85);
+    border-bottom-color: rgba(255,255,255,0.12);
+  }
+  .service-row td { border-bottom-color: rgba(255,255,255,0.12); }
+  .row-white td { background: rgba(255,255,255,0.04); }
+  .row-tinted td { background: rgba(255,255,255,0.07); }
+  .svc-name { color: rgba(255,255,255,0.85); }
+  .svc-desc { color: rgba(255,255,255,0.6); }
+  .owner-name { color: rgba(255,255,255,0.85); }
+  .sla-badge {
+    background: rgba(161,0,255,0.2);
+    color: #C780FF;
+    border: 1px solid rgba(161,0,255,0.3);
+  }
+  .badge-active   { background: rgba(161,0,255,0.2); color: #C780FF; border: 1px solid rgba(161,0,255,0.3); }
+  .badge-review   { background: rgba(161,0,255,0.2); color: #C780FF; border: 1px solid rgba(161,0,255,0.3); }
+  .badge-deprecated { background: rgba(220,38,38,0.2); color: #FCA5A5; border: 1px solid rgba(220,38,38,0.3); }
+  .footer { border-top-color: rgba(255,255,255,0.1); }
+  .footer span { color: rgba(255,255,255,0.4); }
+</style>
+</head>
+<body>
+
+  <!-- Invariant chrome -->
+
+  <!-- Title block -->
+  <div class="title-block">
+    <h1 data-shape-id="title">Enterprise <strong>Service Catalogue</strong></h1>
+    <p data-shape-id="subtitle">Consolidated view of active services, ownership, and operational status across all delivery domains</p>
+    <div class="accent-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+    <table class="catalogue-table">
+      <thead>
+        <tr class="col-header">
+          <th data-shape-id="table-col-1-header">Service Name</th>
+          <th data-shape-id="table-col-2-header">Description</th>
+          <th data-shape-id="table-col-3-header">Owner / SLA Status</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        <!-- Category 1 -->
+        <tr class="cat-header">
+          <td colspan="3" data-shape-id="cat-1-header">Infrastructure &amp; Platform Services</td>
+        </tr>
+
+        <tr class="service-row row-white">
+          <td><div class="svc-name" data-shape-id="svc-1-name">Cloud Provisioning</div></td>
+          <td><div class="svc-desc" data-shape-id="svc-1-desc">Automated VM and container provisioning across Azure and AWS environments</div></td>
+          <td>
+            <div class="owner-cell">
+              <span class="owner-name" data-shape-id="svc-1-owner">R. Santos</span>
+              <span class="sla-badge badge-active" data-shape-id="svc-1-status-pill">Active</span>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="service-row row-tinted">
+          <td><div class="svc-name" data-shape-id="svc-2-name">Network Operations</div></td>
+          <td><div class="svc-desc" data-shape-id="svc-2-desc">End-to-end network configuration, monitoring and incident management for all regions</div></td>
+          <td>
+            <div class="owner-cell">
+              <span class="owner-name" data-shape-id="svc-2-owner">T. Okonkwo</span>
+              <span class="sla-badge badge-active" data-shape-id="svc-2-status-pill">Active</span>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="service-row row-white">
+          <td><div class="svc-name" data-shape-id="svc-3-name">Identity &amp; Access Mgmt</div></td>
+          <td><div class="svc-desc" data-shape-id="svc-3-desc">SSO, MFA, and role-based access control for enterprise applications and data assets</div></td>
+          <td>
+            <div class="owner-cell">
+              <span class="owner-name" data-shape-id="svc-3-owner">A. Mehra</span>
+              <span class="sla-badge badge-review" data-shape-id="svc-3-status-pill">Review</span>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="service-row row-tinted">
+          <td><div class="svc-name" data-shape-id="svc-4-name">Storage &amp; Backup</div></td>
+          <td><div class="svc-desc" data-shape-id="svc-4-desc">Tiered object and block storage with automated daily backup and retention policies</div></td>
+          <td>
+            <div class="owner-cell">
+              <span class="owner-name" data-shape-id="svc-4-owner">L. Ferreira</span>
+              <span class="sla-badge badge-deprecated" data-shape-id="svc-4-status-pill">Deprecated</span>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Category 2 -->
+        <tr class="cat-header">
+          <td colspan="3" data-shape-id="cat-2-header">Application &amp; Data Services</td>
+        </tr>
+
+        <tr class="service-row row-white">
+          <td><div class="svc-name" data-shape-id="svc-5-name">API Gateway</div></td>
+          <td><div class="svc-desc" data-shape-id="svc-5-desc">Centralised API management, rate limiting, and analytics for internal and external consumers</div></td>
+          <td>
+            <div class="owner-cell">
+              <span class="owner-name" data-shape-id="svc-5-owner">P. Nguyen</span>
+              <span class="sla-badge badge-active" data-shape-id="svc-5-status-pill">Active</span>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="service-row row-tinted">
+          <td><div class="svc-name" data-shape-id="svc-6-name">Data Warehouse</div></td>
+          <td><div class="svc-desc" data-shape-id="svc-6-desc">Governed enterprise data lake and warehouse with self-service BI connectivity</div></td>
+          <td>
+            <div class="owner-cell">
+              <span class="owner-name" data-shape-id="svc-6-owner">C. Balogun</span>
+              <span class="sla-badge badge-active" data-shape-id="svc-6-status-pill">Active</span>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="service-row row-white">
+          <td><div class="svc-name" data-shape-id="svc-7-name">CI/CD Pipeline</div></td>
+          <td><div class="svc-desc" data-shape-id="svc-7-desc">Automated build, test, and deployment pipeline supporting microservices and monoliths</div></td>
+          <td>
+            <div class="owner-cell">
+              <span class="owner-name" data-shape-id="svc-7-owner">S. Johansson</span>
+              <span class="sla-badge badge-review" data-shape-id="svc-7-status-pill">Review</span>
+            </div>
+          </td>
+        </tr>
+
+        <tr class="service-row row-tinted">
+          <td><div class="svc-name" data-shape-id="svc-8-name">Observability Platform</div></td>
+          <td><div class="svc-desc" data-shape-id="svc-8-desc">Unified logging, tracing, and alerting stack across all production workloads</div></td>
+          <td>
+            <div class="owner-cell">
+              <span class="owner-name" data-shape-id="svc-8-owner">M. Al-Rashid</span>
+              <span class="sla-badge badge-active" data-shape-id="svc-8-status-pill">Active</span>
+            </div>
+          </td>
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span data-shape-id="footer-left">CONFIDENTIAL — ACCENTURE INTERNAL</span>
+    <span data-shape-id="footer-right">Slide Lab · 2026 · 165d</span>
+  </div>
+
+</body>
+</html>

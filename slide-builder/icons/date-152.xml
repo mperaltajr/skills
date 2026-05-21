@@ -1,0 +1,1334 @@
+<p:grpSp xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+  <p:nvGrpSpPr>
+    <p:cNvPr id="234" name="Group 66">
+      <a:extLst>
+        <a:ext uri="{FF2B5EF4-FFF2-40B4-BE49-F238E27FC236}">
+          <a16:creationId xmlns:a16="http://schemas.microsoft.com/office/drawing/2014/main" id="{75B1C5A7-2155-44DE-83A5-7A1EF796B9E1}"/>
+        </a:ext>
+      </a:extLst>
+    </p:cNvPr>
+    <p:cNvGrpSpPr>
+      <a:grpSpLocks noChangeAspect="1"/>
+    </p:cNvGrpSpPr>
+    <p:nvPr/>
+  </p:nvGrpSpPr>
+  <p:grpSpPr bwMode="auto">
+    <a:xfrm>
+      <a:off x="9545018" y="718156"/>
+      <a:ext cx="451909" cy="451909"/>
+      <a:chOff x="5505" y="439"/>
+      <a:chExt cx="427" cy="427"/>
+    </a:xfrm>
+    <a:solidFill>
+      <a:srgbClr val="000000"/>
+    </a:solidFill>
+  </p:grpSpPr>
+  <p:sp>
+    <p:nvSpPr>
+      <p:cNvPr id="235" name="Freeform 67">
+        <a:extLst>
+          <a:ext uri="{FF2B5EF4-FFF2-40B4-BE49-F238E27FC236}">
+            <a16:creationId xmlns:a16="http://schemas.microsoft.com/office/drawing/2014/main" id="{AEEF9832-8C5A-4E0E-9EF7-C9A8D35C11F8}"/>
+          </a:ext>
+        </a:extLst>
+      </p:cNvPr>
+      <p:cNvSpPr>
+        <a:spLocks noEditPoints="1"/>
+      </p:cNvSpPr>
+      <p:nvPr/>
+    </p:nvSpPr>
+    <p:spPr bwMode="auto">
+      <a:xfrm>
+        <a:off x="5505" y="439"/>
+        <a:ext cx="427" cy="427"/>
+      </a:xfrm>
+      <a:custGeom>
+        <a:avLst/>
+        <a:gdLst>
+          <a:gd name="T0" fmla="*/ 282 w 288"/>
+          <a:gd name="T1" fmla="*/ 24 h 288"/>
+          <a:gd name="T2" fmla="*/ 240 w 288"/>
+          <a:gd name="T3" fmla="*/ 24 h 288"/>
+          <a:gd name="T4" fmla="*/ 240 w 288"/>
+          <a:gd name="T5" fmla="*/ 6 h 288"/>
+          <a:gd name="T6" fmla="*/ 234 w 288"/>
+          <a:gd name="T7" fmla="*/ 0 h 288"/>
+          <a:gd name="T8" fmla="*/ 198 w 288"/>
+          <a:gd name="T9" fmla="*/ 0 h 288"/>
+          <a:gd name="T10" fmla="*/ 192 w 288"/>
+          <a:gd name="T11" fmla="*/ 6 h 288"/>
+          <a:gd name="T12" fmla="*/ 192 w 288"/>
+          <a:gd name="T13" fmla="*/ 24 h 288"/>
+          <a:gd name="T14" fmla="*/ 96 w 288"/>
+          <a:gd name="T15" fmla="*/ 24 h 288"/>
+          <a:gd name="T16" fmla="*/ 96 w 288"/>
+          <a:gd name="T17" fmla="*/ 6 h 288"/>
+          <a:gd name="T18" fmla="*/ 90 w 288"/>
+          <a:gd name="T19" fmla="*/ 0 h 288"/>
+          <a:gd name="T20" fmla="*/ 54 w 288"/>
+          <a:gd name="T21" fmla="*/ 0 h 288"/>
+          <a:gd name="T22" fmla="*/ 48 w 288"/>
+          <a:gd name="T23" fmla="*/ 6 h 288"/>
+          <a:gd name="T24" fmla="*/ 48 w 288"/>
+          <a:gd name="T25" fmla="*/ 24 h 288"/>
+          <a:gd name="T26" fmla="*/ 6 w 288"/>
+          <a:gd name="T27" fmla="*/ 24 h 288"/>
+          <a:gd name="T28" fmla="*/ 0 w 288"/>
+          <a:gd name="T29" fmla="*/ 30 h 288"/>
+          <a:gd name="T30" fmla="*/ 0 w 288"/>
+          <a:gd name="T31" fmla="*/ 282 h 288"/>
+          <a:gd name="T32" fmla="*/ 6 w 288"/>
+          <a:gd name="T33" fmla="*/ 288 h 288"/>
+          <a:gd name="T34" fmla="*/ 282 w 288"/>
+          <a:gd name="T35" fmla="*/ 288 h 288"/>
+          <a:gd name="T36" fmla="*/ 288 w 288"/>
+          <a:gd name="T37" fmla="*/ 282 h 288"/>
+          <a:gd name="T38" fmla="*/ 288 w 288"/>
+          <a:gd name="T39" fmla="*/ 30 h 288"/>
+          <a:gd name="T40" fmla="*/ 282 w 288"/>
+          <a:gd name="T41" fmla="*/ 24 h 288"/>
+          <a:gd name="T42" fmla="*/ 204 w 288"/>
+          <a:gd name="T43" fmla="*/ 12 h 288"/>
+          <a:gd name="T44" fmla="*/ 228 w 288"/>
+          <a:gd name="T45" fmla="*/ 12 h 288"/>
+          <a:gd name="T46" fmla="*/ 228 w 288"/>
+          <a:gd name="T47" fmla="*/ 48 h 288"/>
+          <a:gd name="T48" fmla="*/ 204 w 288"/>
+          <a:gd name="T49" fmla="*/ 48 h 288"/>
+          <a:gd name="T50" fmla="*/ 204 w 288"/>
+          <a:gd name="T51" fmla="*/ 12 h 288"/>
+          <a:gd name="T52" fmla="*/ 60 w 288"/>
+          <a:gd name="T53" fmla="*/ 12 h 288"/>
+          <a:gd name="T54" fmla="*/ 84 w 288"/>
+          <a:gd name="T55" fmla="*/ 12 h 288"/>
+          <a:gd name="T56" fmla="*/ 84 w 288"/>
+          <a:gd name="T57" fmla="*/ 48 h 288"/>
+          <a:gd name="T58" fmla="*/ 60 w 288"/>
+          <a:gd name="T59" fmla="*/ 48 h 288"/>
+          <a:gd name="T60" fmla="*/ 60 w 288"/>
+          <a:gd name="T61" fmla="*/ 12 h 288"/>
+          <a:gd name="T62" fmla="*/ 276 w 288"/>
+          <a:gd name="T63" fmla="*/ 276 h 288"/>
+          <a:gd name="T64" fmla="*/ 12 w 288"/>
+          <a:gd name="T65" fmla="*/ 276 h 288"/>
+          <a:gd name="T66" fmla="*/ 12 w 288"/>
+          <a:gd name="T67" fmla="*/ 96 h 288"/>
+          <a:gd name="T68" fmla="*/ 276 w 288"/>
+          <a:gd name="T69" fmla="*/ 96 h 288"/>
+          <a:gd name="T70" fmla="*/ 276 w 288"/>
+          <a:gd name="T71" fmla="*/ 276 h 288"/>
+          <a:gd name="T72" fmla="*/ 276 w 288"/>
+          <a:gd name="T73" fmla="*/ 84 h 288"/>
+          <a:gd name="T74" fmla="*/ 12 w 288"/>
+          <a:gd name="T75" fmla="*/ 84 h 288"/>
+          <a:gd name="T76" fmla="*/ 12 w 288"/>
+          <a:gd name="T77" fmla="*/ 36 h 288"/>
+          <a:gd name="T78" fmla="*/ 48 w 288"/>
+          <a:gd name="T79" fmla="*/ 36 h 288"/>
+          <a:gd name="T80" fmla="*/ 48 w 288"/>
+          <a:gd name="T81" fmla="*/ 54 h 288"/>
+          <a:gd name="T82" fmla="*/ 54 w 288"/>
+          <a:gd name="T83" fmla="*/ 60 h 288"/>
+          <a:gd name="T84" fmla="*/ 90 w 288"/>
+          <a:gd name="T85" fmla="*/ 60 h 288"/>
+          <a:gd name="T86" fmla="*/ 96 w 288"/>
+          <a:gd name="T87" fmla="*/ 54 h 288"/>
+          <a:gd name="T88" fmla="*/ 96 w 288"/>
+          <a:gd name="T89" fmla="*/ 36 h 288"/>
+          <a:gd name="T90" fmla="*/ 192 w 288"/>
+          <a:gd name="T91" fmla="*/ 36 h 288"/>
+          <a:gd name="T92" fmla="*/ 192 w 288"/>
+          <a:gd name="T93" fmla="*/ 54 h 288"/>
+          <a:gd name="T94" fmla="*/ 198 w 288"/>
+          <a:gd name="T95" fmla="*/ 60 h 288"/>
+          <a:gd name="T96" fmla="*/ 234 w 288"/>
+          <a:gd name="T97" fmla="*/ 60 h 288"/>
+          <a:gd name="T98" fmla="*/ 240 w 288"/>
+          <a:gd name="T99" fmla="*/ 54 h 288"/>
+          <a:gd name="T100" fmla="*/ 240 w 288"/>
+          <a:gd name="T101" fmla="*/ 36 h 288"/>
+          <a:gd name="T102" fmla="*/ 276 w 288"/>
+          <a:gd name="T103" fmla="*/ 36 h 288"/>
+          <a:gd name="T104" fmla="*/ 276 w 288"/>
+          <a:gd name="T105" fmla="*/ 84 h 288"/>
+        </a:gdLst>
+        <a:ahLst/>
+        <a:cxnLst>
+          <a:cxn ang="0">
+            <a:pos x="T0" y="T1"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T2" y="T3"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T4" y="T5"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T6" y="T7"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T8" y="T9"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T10" y="T11"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T12" y="T13"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T14" y="T15"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T16" y="T17"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T18" y="T19"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T20" y="T21"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T22" y="T23"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T24" y="T25"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T26" y="T27"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T28" y="T29"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T30" y="T31"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T32" y="T33"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T34" y="T35"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T36" y="T37"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T38" y="T39"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T40" y="T41"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T42" y="T43"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T44" y="T45"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T46" y="T47"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T48" y="T49"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T50" y="T51"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T52" y="T53"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T54" y="T55"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T56" y="T57"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T58" y="T59"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T60" y="T61"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T62" y="T63"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T64" y="T65"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T66" y="T67"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T68" y="T69"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T70" y="T71"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T72" y="T73"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T74" y="T75"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T76" y="T77"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T78" y="T79"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T80" y="T81"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T82" y="T83"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T84" y="T85"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T86" y="T87"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T88" y="T89"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T90" y="T91"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T92" y="T93"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T94" y="T95"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T96" y="T97"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T98" y="T99"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T100" y="T101"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T102" y="T103"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T104" y="T105"/>
+          </a:cxn>
+        </a:cxnLst>
+        <a:rect l="0" t="0" r="r" b="b"/>
+        <a:pathLst>
+          <a:path w="288" h="288">
+            <a:moveTo>
+              <a:pt x="282" y="24"/>
+            </a:moveTo>
+            <a:cubicBezTo>
+              <a:pt x="240" y="24"/>
+              <a:pt x="240" y="24"/>
+              <a:pt x="240" y="24"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="240" y="6"/>
+              <a:pt x="240" y="6"/>
+              <a:pt x="240" y="6"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="240" y="2"/>
+              <a:pt x="238" y="0"/>
+              <a:pt x="234" y="0"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="198" y="0"/>
+              <a:pt x="198" y="0"/>
+              <a:pt x="198" y="0"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="195" y="0"/>
+              <a:pt x="192" y="2"/>
+              <a:pt x="192" y="6"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="192" y="24"/>
+              <a:pt x="192" y="24"/>
+              <a:pt x="192" y="24"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="96" y="24"/>
+              <a:pt x="96" y="24"/>
+              <a:pt x="96" y="24"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="96" y="6"/>
+              <a:pt x="96" y="6"/>
+              <a:pt x="96" y="6"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="96" y="2"/>
+              <a:pt x="93" y="0"/>
+              <a:pt x="90" y="0"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="54" y="0"/>
+              <a:pt x="54" y="0"/>
+              <a:pt x="54" y="0"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="51" y="0"/>
+              <a:pt x="48" y="2"/>
+              <a:pt x="48" y="6"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="48" y="24"/>
+              <a:pt x="48" y="24"/>
+              <a:pt x="48" y="24"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="6" y="24"/>
+              <a:pt x="6" y="24"/>
+              <a:pt x="6" y="24"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="3" y="24"/>
+              <a:pt x="0" y="26"/>
+              <a:pt x="0" y="30"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="0" y="282"/>
+              <a:pt x="0" y="282"/>
+              <a:pt x="0" y="282"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="0" y="285"/>
+              <a:pt x="3" y="288"/>
+              <a:pt x="6" y="288"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="282" y="288"/>
+              <a:pt x="282" y="288"/>
+              <a:pt x="282" y="288"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="286" y="288"/>
+              <a:pt x="288" y="285"/>
+              <a:pt x="288" y="282"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="288" y="30"/>
+              <a:pt x="288" y="30"/>
+              <a:pt x="288" y="30"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="288" y="26"/>
+              <a:pt x="286" y="24"/>
+              <a:pt x="282" y="24"/>
+            </a:cubicBezTo>
+            <a:close/>
+            <a:moveTo>
+              <a:pt x="204" y="12"/>
+            </a:moveTo>
+            <a:cubicBezTo>
+              <a:pt x="228" y="12"/>
+              <a:pt x="228" y="12"/>
+              <a:pt x="228" y="12"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="228" y="48"/>
+              <a:pt x="228" y="48"/>
+              <a:pt x="228" y="48"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="204" y="48"/>
+              <a:pt x="204" y="48"/>
+              <a:pt x="204" y="48"/>
+            </a:cubicBezTo>
+            <a:lnTo>
+              <a:pt x="204" y="12"/>
+            </a:lnTo>
+            <a:close/>
+            <a:moveTo>
+              <a:pt x="60" y="12"/>
+            </a:moveTo>
+            <a:cubicBezTo>
+              <a:pt x="84" y="12"/>
+              <a:pt x="84" y="12"/>
+              <a:pt x="84" y="12"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="84" y="48"/>
+              <a:pt x="84" y="48"/>
+              <a:pt x="84" y="48"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="60" y="48"/>
+              <a:pt x="60" y="48"/>
+              <a:pt x="60" y="48"/>
+            </a:cubicBezTo>
+            <a:lnTo>
+              <a:pt x="60" y="12"/>
+            </a:lnTo>
+            <a:close/>
+            <a:moveTo>
+              <a:pt x="276" y="276"/>
+            </a:moveTo>
+            <a:cubicBezTo>
+              <a:pt x="12" y="276"/>
+              <a:pt x="12" y="276"/>
+              <a:pt x="12" y="276"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="12" y="96"/>
+              <a:pt x="12" y="96"/>
+              <a:pt x="12" y="96"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="276" y="96"/>
+              <a:pt x="276" y="96"/>
+              <a:pt x="276" y="96"/>
+            </a:cubicBezTo>
+            <a:lnTo>
+              <a:pt x="276" y="276"/>
+            </a:lnTo>
+            <a:close/>
+            <a:moveTo>
+              <a:pt x="276" y="84"/>
+            </a:moveTo>
+            <a:cubicBezTo>
+              <a:pt x="12" y="84"/>
+              <a:pt x="12" y="84"/>
+              <a:pt x="12" y="84"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="12" y="36"/>
+              <a:pt x="12" y="36"/>
+              <a:pt x="12" y="36"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="48" y="36"/>
+              <a:pt x="48" y="36"/>
+              <a:pt x="48" y="36"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="48" y="54"/>
+              <a:pt x="48" y="54"/>
+              <a:pt x="48" y="54"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="48" y="57"/>
+              <a:pt x="51" y="60"/>
+              <a:pt x="54" y="60"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="90" y="60"/>
+              <a:pt x="90" y="60"/>
+              <a:pt x="90" y="60"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="93" y="60"/>
+              <a:pt x="96" y="57"/>
+              <a:pt x="96" y="54"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="96" y="36"/>
+              <a:pt x="96" y="36"/>
+              <a:pt x="96" y="36"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="192" y="36"/>
+              <a:pt x="192" y="36"/>
+              <a:pt x="192" y="36"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="192" y="54"/>
+              <a:pt x="192" y="54"/>
+              <a:pt x="192" y="54"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="192" y="57"/>
+              <a:pt x="195" y="60"/>
+              <a:pt x="198" y="60"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="234" y="60"/>
+              <a:pt x="234" y="60"/>
+              <a:pt x="234" y="60"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="238" y="60"/>
+              <a:pt x="240" y="57"/>
+              <a:pt x="240" y="54"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="240" y="36"/>
+              <a:pt x="240" y="36"/>
+              <a:pt x="240" y="36"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="276" y="36"/>
+              <a:pt x="276" y="36"/>
+              <a:pt x="276" y="36"/>
+            </a:cubicBezTo>
+            <a:lnTo>
+              <a:pt x="276" y="84"/>
+            </a:lnTo>
+            <a:close/>
+          </a:path>
+        </a:pathLst>
+      </a:custGeom>
+      <a:grpFill/>
+      <a:ln>
+        <a:noFill/>
+      </a:ln>
+      <a:extLst>
+        <a:ext uri="{91240B29-F687-4F45-9708-019B960494DF}">
+          <a14:hiddenLine xmlns:a14="http://schemas.microsoft.com/office/drawing/2010/main" w="9525">
+            <a:solidFill>
+              <a:srgbClr val="000000"/>
+            </a:solidFill>
+            <a:round/>
+            <a:headEnd/>
+            <a:tailEnd/>
+          </a14:hiddenLine>
+        </a:ext>
+      </a:extLst>
+    </p:spPr>
+    <p:txBody>
+      <a:bodyPr vert="horz" wrap="square" lIns="91440" tIns="45720" rIns="91440" bIns="45720" numCol="1" anchor="t" anchorCtr="0" compatLnSpc="1">
+        <a:prstTxWarp prst="textNoShape">
+          <a:avLst/>
+        </a:prstTxWarp>
+      </a:bodyPr>
+      <a:lstStyle/>
+      <a:p>
+        <a:pPr marL="0" marR="0" lvl="0" indent="0" defTabSz="914400" eaLnBrk="1" fontAlgn="base" latinLnBrk="0" hangingPunct="1">
+          <a:lnSpc>
+            <a:spcPct val="100000"/>
+          </a:lnSpc>
+          <a:spcBef>
+            <a:spcPct val="0"/>
+          </a:spcBef>
+          <a:spcAft>
+            <a:spcPct val="0"/>
+          </a:spcAft>
+          <a:buClrTx/>
+          <a:buSzTx/>
+          <a:buFontTx/>
+          <a:buNone/>
+          <a:tabLst/>
+          <a:defRPr/>
+        </a:pPr>
+        <a:endParaRPr kumimoji="0" lang="en-US" sz="1800" b="0" i="0" u="none" strike="noStrike" kern="0" cap="none" spc="0" normalizeH="0" baseline="0" noProof="0">
+          <a:ln>
+            <a:noFill/>
+          </a:ln>
+          <a:solidFill>
+            <a:schemeClr val="tx2"/>
+          </a:solidFill>
+          <a:effectLst/>
+          <a:uLnTx/>
+          <a:uFillTx/>
+          <a:latin typeface="Graphik" charset="0"/>
+          <a:cs typeface="Arial" charset="0"/>
+        </a:endParaRPr>
+      </a:p>
+    </p:txBody>
+  </p:sp>
+  <p:sp>
+    <p:nvSpPr>
+      <p:cNvPr id="236" name="Freeform 68">
+        <a:extLst>
+          <a:ext uri="{FF2B5EF4-FFF2-40B4-BE49-F238E27FC236}">
+            <a16:creationId xmlns:a16="http://schemas.microsoft.com/office/drawing/2014/main" id="{94CCD937-F374-4D9F-9307-889F289BD524}"/>
+          </a:ext>
+        </a:extLst>
+      </p:cNvPr>
+      <p:cNvSpPr>
+        <a:spLocks noEditPoints="1"/>
+      </p:cNvSpPr>
+      <p:nvPr/>
+    </p:nvSpPr>
+    <p:spPr bwMode="auto">
+      <a:xfrm>
+        <a:off x="5622" y="615"/>
+        <a:ext cx="194" cy="197"/>
+      </a:xfrm>
+      <a:custGeom>
+        <a:avLst/>
+        <a:gdLst>
+          <a:gd name="T0" fmla="*/ 65 w 131"/>
+          <a:gd name="T1" fmla="*/ 133 h 133"/>
+          <a:gd name="T2" fmla="*/ 131 w 131"/>
+          <a:gd name="T3" fmla="*/ 67 h 133"/>
+          <a:gd name="T4" fmla="*/ 62 w 131"/>
+          <a:gd name="T5" fmla="*/ 2 h 133"/>
+          <a:gd name="T6" fmla="*/ 0 w 131"/>
+          <a:gd name="T7" fmla="*/ 66 h 133"/>
+          <a:gd name="T8" fmla="*/ 65 w 131"/>
+          <a:gd name="T9" fmla="*/ 133 h 133"/>
+          <a:gd name="T10" fmla="*/ 24 w 131"/>
+          <a:gd name="T11" fmla="*/ 105 h 133"/>
+          <a:gd name="T12" fmla="*/ 43 w 131"/>
+          <a:gd name="T13" fmla="*/ 105 h 133"/>
+          <a:gd name="T14" fmla="*/ 53 w 131"/>
+          <a:gd name="T15" fmla="*/ 122 h 133"/>
+          <a:gd name="T16" fmla="*/ 24 w 131"/>
+          <a:gd name="T17" fmla="*/ 105 h 133"/>
+          <a:gd name="T18" fmla="*/ 87 w 131"/>
+          <a:gd name="T19" fmla="*/ 67 h 133"/>
+          <a:gd name="T20" fmla="*/ 81 w 131"/>
+          <a:gd name="T21" fmla="*/ 96 h 133"/>
+          <a:gd name="T22" fmla="*/ 50 w 131"/>
+          <a:gd name="T23" fmla="*/ 96 h 133"/>
+          <a:gd name="T24" fmla="*/ 43 w 131"/>
+          <a:gd name="T25" fmla="*/ 67 h 133"/>
+          <a:gd name="T26" fmla="*/ 87 w 131"/>
+          <a:gd name="T27" fmla="*/ 67 h 133"/>
+          <a:gd name="T28" fmla="*/ 44 w 131"/>
+          <a:gd name="T29" fmla="*/ 58 h 133"/>
+          <a:gd name="T30" fmla="*/ 48 w 131"/>
+          <a:gd name="T31" fmla="*/ 39 h 133"/>
+          <a:gd name="T32" fmla="*/ 83 w 131"/>
+          <a:gd name="T33" fmla="*/ 39 h 133"/>
+          <a:gd name="T34" fmla="*/ 87 w 131"/>
+          <a:gd name="T35" fmla="*/ 58 h 133"/>
+          <a:gd name="T36" fmla="*/ 44 w 131"/>
+          <a:gd name="T37" fmla="*/ 58 h 133"/>
+          <a:gd name="T38" fmla="*/ 65 w 131"/>
+          <a:gd name="T39" fmla="*/ 123 h 133"/>
+          <a:gd name="T40" fmla="*/ 65 w 131"/>
+          <a:gd name="T41" fmla="*/ 123 h 133"/>
+          <a:gd name="T42" fmla="*/ 65 w 131"/>
+          <a:gd name="T43" fmla="*/ 123 h 133"/>
+          <a:gd name="T44" fmla="*/ 54 w 131"/>
+          <a:gd name="T45" fmla="*/ 105 h 133"/>
+          <a:gd name="T46" fmla="*/ 77 w 131"/>
+          <a:gd name="T47" fmla="*/ 105 h 133"/>
+          <a:gd name="T48" fmla="*/ 65 w 131"/>
+          <a:gd name="T49" fmla="*/ 123 h 133"/>
+          <a:gd name="T50" fmla="*/ 78 w 131"/>
+          <a:gd name="T51" fmla="*/ 122 h 133"/>
+          <a:gd name="T52" fmla="*/ 87 w 131"/>
+          <a:gd name="T53" fmla="*/ 105 h 133"/>
+          <a:gd name="T54" fmla="*/ 106 w 131"/>
+          <a:gd name="T55" fmla="*/ 105 h 133"/>
+          <a:gd name="T56" fmla="*/ 78 w 131"/>
+          <a:gd name="T57" fmla="*/ 122 h 133"/>
+          <a:gd name="T58" fmla="*/ 113 w 131"/>
+          <a:gd name="T59" fmla="*/ 96 h 133"/>
+          <a:gd name="T60" fmla="*/ 91 w 131"/>
+          <a:gd name="T61" fmla="*/ 96 h 133"/>
+          <a:gd name="T62" fmla="*/ 96 w 131"/>
+          <a:gd name="T63" fmla="*/ 67 h 133"/>
+          <a:gd name="T64" fmla="*/ 121 w 131"/>
+          <a:gd name="T65" fmla="*/ 67 h 133"/>
+          <a:gd name="T66" fmla="*/ 113 w 131"/>
+          <a:gd name="T67" fmla="*/ 96 h 133"/>
+          <a:gd name="T68" fmla="*/ 114 w 131"/>
+          <a:gd name="T69" fmla="*/ 39 h 133"/>
+          <a:gd name="T70" fmla="*/ 121 w 131"/>
+          <a:gd name="T71" fmla="*/ 58 h 133"/>
+          <a:gd name="T72" fmla="*/ 96 w 131"/>
+          <a:gd name="T73" fmla="*/ 58 h 133"/>
+          <a:gd name="T74" fmla="*/ 93 w 131"/>
+          <a:gd name="T75" fmla="*/ 39 h 133"/>
+          <a:gd name="T76" fmla="*/ 114 w 131"/>
+          <a:gd name="T77" fmla="*/ 39 h 133"/>
+          <a:gd name="T78" fmla="*/ 107 w 131"/>
+          <a:gd name="T79" fmla="*/ 30 h 133"/>
+          <a:gd name="T80" fmla="*/ 89 w 131"/>
+          <a:gd name="T81" fmla="*/ 30 h 133"/>
+          <a:gd name="T82" fmla="*/ 79 w 131"/>
+          <a:gd name="T83" fmla="*/ 13 h 133"/>
+          <a:gd name="T84" fmla="*/ 107 w 131"/>
+          <a:gd name="T85" fmla="*/ 30 h 133"/>
+          <a:gd name="T86" fmla="*/ 65 w 131"/>
+          <a:gd name="T87" fmla="*/ 11 h 133"/>
+          <a:gd name="T88" fmla="*/ 65 w 131"/>
+          <a:gd name="T89" fmla="*/ 11 h 133"/>
+          <a:gd name="T90" fmla="*/ 66 w 131"/>
+          <a:gd name="T91" fmla="*/ 11 h 133"/>
+          <a:gd name="T92" fmla="*/ 79 w 131"/>
+          <a:gd name="T93" fmla="*/ 30 h 133"/>
+          <a:gd name="T94" fmla="*/ 52 w 131"/>
+          <a:gd name="T95" fmla="*/ 30 h 133"/>
+          <a:gd name="T96" fmla="*/ 65 w 131"/>
+          <a:gd name="T97" fmla="*/ 11 h 133"/>
+          <a:gd name="T98" fmla="*/ 51 w 131"/>
+          <a:gd name="T99" fmla="*/ 12 h 133"/>
+          <a:gd name="T100" fmla="*/ 41 w 131"/>
+          <a:gd name="T101" fmla="*/ 30 h 133"/>
+          <a:gd name="T102" fmla="*/ 22 w 131"/>
+          <a:gd name="T103" fmla="*/ 30 h 133"/>
+          <a:gd name="T104" fmla="*/ 51 w 131"/>
+          <a:gd name="T105" fmla="*/ 12 h 133"/>
+          <a:gd name="T106" fmla="*/ 16 w 131"/>
+          <a:gd name="T107" fmla="*/ 39 h 133"/>
+          <a:gd name="T108" fmla="*/ 38 w 131"/>
+          <a:gd name="T109" fmla="*/ 39 h 133"/>
+          <a:gd name="T110" fmla="*/ 34 w 131"/>
+          <a:gd name="T111" fmla="*/ 58 h 133"/>
+          <a:gd name="T112" fmla="*/ 10 w 131"/>
+          <a:gd name="T113" fmla="*/ 58 h 133"/>
+          <a:gd name="T114" fmla="*/ 16 w 131"/>
+          <a:gd name="T115" fmla="*/ 39 h 133"/>
+          <a:gd name="T116" fmla="*/ 9 w 131"/>
+          <a:gd name="T117" fmla="*/ 67 h 133"/>
+          <a:gd name="T118" fmla="*/ 34 w 131"/>
+          <a:gd name="T119" fmla="*/ 67 h 133"/>
+          <a:gd name="T120" fmla="*/ 40 w 131"/>
+          <a:gd name="T121" fmla="*/ 96 h 133"/>
+          <a:gd name="T122" fmla="*/ 17 w 131"/>
+          <a:gd name="T123" fmla="*/ 96 h 133"/>
+          <a:gd name="T124" fmla="*/ 9 w 131"/>
+          <a:gd name="T125" fmla="*/ 67 h 133"/>
+        </a:gdLst>
+        <a:ahLst/>
+        <a:cxnLst>
+          <a:cxn ang="0">
+            <a:pos x="T0" y="T1"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T2" y="T3"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T4" y="T5"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T6" y="T7"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T8" y="T9"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T10" y="T11"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T12" y="T13"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T14" y="T15"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T16" y="T17"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T18" y="T19"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T20" y="T21"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T22" y="T23"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T24" y="T25"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T26" y="T27"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T28" y="T29"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T30" y="T31"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T32" y="T33"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T34" y="T35"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T36" y="T37"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T38" y="T39"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T40" y="T41"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T42" y="T43"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T44" y="T45"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T46" y="T47"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T48" y="T49"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T50" y="T51"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T52" y="T53"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T54" y="T55"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T56" y="T57"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T58" y="T59"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T60" y="T61"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T62" y="T63"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T64" y="T65"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T66" y="T67"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T68" y="T69"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T70" y="T71"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T72" y="T73"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T74" y="T75"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T76" y="T77"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T78" y="T79"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T80" y="T81"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T82" y="T83"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T84" y="T85"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T86" y="T87"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T88" y="T89"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T90" y="T91"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T92" y="T93"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T94" y="T95"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T96" y="T97"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T98" y="T99"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T100" y="T101"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T102" y="T103"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T104" y="T105"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T106" y="T107"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T108" y="T109"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T110" y="T111"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T112" y="T113"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T114" y="T115"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T116" y="T117"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T118" y="T119"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T120" y="T121"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T122" y="T123"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T124" y="T125"/>
+          </a:cxn>
+        </a:cxnLst>
+        <a:rect l="0" t="0" r="r" b="b"/>
+        <a:pathLst>
+          <a:path w="131" h="133">
+            <a:moveTo>
+              <a:pt x="65" y="133"/>
+            </a:moveTo>
+            <a:cubicBezTo>
+              <a:pt x="101" y="133"/>
+              <a:pt x="131" y="103"/>
+              <a:pt x="131" y="67"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="131" y="30"/>
+              <a:pt x="100" y="0"/>
+              <a:pt x="62" y="2"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="27" y="3"/>
+              <a:pt x="0" y="31"/>
+              <a:pt x="0" y="66"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="0" y="103"/>
+              <a:pt x="29" y="133"/>
+              <a:pt x="65" y="133"/>
+            </a:cubicBezTo>
+            <a:close/>
+            <a:moveTo>
+              <a:pt x="24" y="105"/>
+            </a:moveTo>
+            <a:cubicBezTo>
+              <a:pt x="43" y="105"/>
+              <a:pt x="43" y="105"/>
+              <a:pt x="43" y="105"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="46" y="111"/>
+              <a:pt x="49" y="116"/>
+              <a:pt x="53" y="122"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="42" y="119"/>
+              <a:pt x="32" y="113"/>
+              <a:pt x="24" y="105"/>
+            </a:cubicBezTo>
+            <a:close/>
+            <a:moveTo>
+              <a:pt x="87" y="67"/>
+            </a:moveTo>
+            <a:cubicBezTo>
+              <a:pt x="87" y="77"/>
+              <a:pt x="85" y="86"/>
+              <a:pt x="81" y="96"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="50" y="96"/>
+              <a:pt x="50" y="96"/>
+              <a:pt x="50" y="96"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="46" y="86"/>
+              <a:pt x="44" y="77"/>
+              <a:pt x="43" y="67"/>
+            </a:cubicBezTo>
+            <a:lnTo>
+              <a:pt x="87" y="67"/>
+            </a:lnTo>
+            <a:close/>
+            <a:moveTo>
+              <a:pt x="44" y="58"/>
+            </a:moveTo>
+            <a:cubicBezTo>
+              <a:pt x="44" y="52"/>
+              <a:pt x="45" y="45"/>
+              <a:pt x="48" y="39"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="83" y="39"/>
+              <a:pt x="83" y="39"/>
+              <a:pt x="83" y="39"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="85" y="45"/>
+              <a:pt x="86" y="52"/>
+              <a:pt x="87" y="58"/>
+            </a:cubicBezTo>
+            <a:lnTo>
+              <a:pt x="44" y="58"/>
+            </a:lnTo>
+            <a:close/>
+            <a:moveTo>
+              <a:pt x="65" y="123"/>
+            </a:moveTo>
+            <a:cubicBezTo>
+              <a:pt x="65" y="123"/>
+              <a:pt x="65" y="123"/>
+              <a:pt x="65" y="123"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="65" y="123"/>
+              <a:pt x="65" y="123"/>
+              <a:pt x="65" y="123"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="61" y="117"/>
+              <a:pt x="57" y="111"/>
+              <a:pt x="54" y="105"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="77" y="105"/>
+              <a:pt x="77" y="105"/>
+              <a:pt x="77" y="105"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="74" y="111"/>
+              <a:pt x="70" y="117"/>
+              <a:pt x="65" y="123"/>
+            </a:cubicBezTo>
+            <a:close/>
+            <a:moveTo>
+              <a:pt x="78" y="122"/>
+            </a:moveTo>
+            <a:cubicBezTo>
+              <a:pt x="81" y="116"/>
+              <a:pt x="84" y="111"/>
+              <a:pt x="87" y="105"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="106" y="105"/>
+              <a:pt x="106" y="105"/>
+              <a:pt x="106" y="105"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="99" y="113"/>
+              <a:pt x="89" y="119"/>
+              <a:pt x="78" y="122"/>
+            </a:cubicBezTo>
+            <a:close/>
+            <a:moveTo>
+              <a:pt x="113" y="96"/>
+            </a:moveTo>
+            <a:cubicBezTo>
+              <a:pt x="91" y="96"/>
+              <a:pt x="91" y="96"/>
+              <a:pt x="91" y="96"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="94" y="86"/>
+              <a:pt x="96" y="77"/>
+              <a:pt x="96" y="67"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="121" y="67"/>
+              <a:pt x="121" y="67"/>
+              <a:pt x="121" y="67"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="121" y="78"/>
+              <a:pt x="118" y="87"/>
+              <a:pt x="113" y="96"/>
+            </a:cubicBezTo>
+            <a:close/>
+            <a:moveTo>
+              <a:pt x="114" y="39"/>
+            </a:moveTo>
+            <a:cubicBezTo>
+              <a:pt x="117" y="45"/>
+              <a:pt x="120" y="51"/>
+              <a:pt x="121" y="58"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="96" y="58"/>
+              <a:pt x="96" y="58"/>
+              <a:pt x="96" y="58"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="96" y="52"/>
+              <a:pt x="94" y="45"/>
+              <a:pt x="93" y="39"/>
+            </a:cubicBezTo>
+            <a:lnTo>
+              <a:pt x="114" y="39"/>
+            </a:lnTo>
+            <a:close/>
+            <a:moveTo>
+              <a:pt x="107" y="30"/>
+            </a:moveTo>
+            <a:cubicBezTo>
+              <a:pt x="89" y="30"/>
+              <a:pt x="89" y="30"/>
+              <a:pt x="89" y="30"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="87" y="24"/>
+              <a:pt x="83" y="18"/>
+              <a:pt x="79" y="13"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="90" y="15"/>
+              <a:pt x="100" y="22"/>
+              <a:pt x="107" y="30"/>
+            </a:cubicBezTo>
+            <a:close/>
+            <a:moveTo>
+              <a:pt x="65" y="11"/>
+            </a:moveTo>
+            <a:cubicBezTo>
+              <a:pt x="65" y="11"/>
+              <a:pt x="65" y="11"/>
+              <a:pt x="65" y="11"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="65" y="11"/>
+              <a:pt x="66" y="11"/>
+              <a:pt x="66" y="11"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="71" y="17"/>
+              <a:pt x="76" y="23"/>
+              <a:pt x="79" y="30"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="52" y="30"/>
+              <a:pt x="52" y="30"/>
+              <a:pt x="52" y="30"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="55" y="23"/>
+              <a:pt x="59" y="17"/>
+              <a:pt x="65" y="11"/>
+            </a:cubicBezTo>
+            <a:close/>
+            <a:moveTo>
+              <a:pt x="51" y="12"/>
+            </a:moveTo>
+            <a:cubicBezTo>
+              <a:pt x="47" y="18"/>
+              <a:pt x="44" y="24"/>
+              <a:pt x="41" y="30"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="22" y="30"/>
+              <a:pt x="22" y="30"/>
+              <a:pt x="22" y="30"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="30" y="21"/>
+              <a:pt x="40" y="15"/>
+              <a:pt x="51" y="12"/>
+            </a:cubicBezTo>
+            <a:close/>
+            <a:moveTo>
+              <a:pt x="16" y="39"/>
+            </a:moveTo>
+            <a:cubicBezTo>
+              <a:pt x="38" y="39"/>
+              <a:pt x="38" y="39"/>
+              <a:pt x="38" y="39"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="36" y="45"/>
+              <a:pt x="35" y="52"/>
+              <a:pt x="34" y="58"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="10" y="58"/>
+              <a:pt x="10" y="58"/>
+              <a:pt x="10" y="58"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="10" y="51"/>
+              <a:pt x="13" y="45"/>
+              <a:pt x="16" y="39"/>
+            </a:cubicBezTo>
+            <a:close/>
+            <a:moveTo>
+              <a:pt x="9" y="67"/>
+            </a:moveTo>
+            <a:cubicBezTo>
+              <a:pt x="34" y="67"/>
+              <a:pt x="34" y="67"/>
+              <a:pt x="34" y="67"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="35" y="77"/>
+              <a:pt x="36" y="86"/>
+              <a:pt x="40" y="96"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="17" y="96"/>
+              <a:pt x="17" y="96"/>
+              <a:pt x="17" y="96"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="12" y="87"/>
+              <a:pt x="9" y="78"/>
+              <a:pt x="9" y="67"/>
+            </a:cubicBezTo>
+            <a:close/>
+          </a:path>
+        </a:pathLst>
+      </a:custGeom>
+      <a:grpFill/>
+      <a:ln>
+        <a:noFill/>
+      </a:ln>
+      <a:extLst>
+        <a:ext uri="{91240B29-F687-4F45-9708-019B960494DF}">
+          <a14:hiddenLine xmlns:a14="http://schemas.microsoft.com/office/drawing/2010/main" w="9525">
+            <a:solidFill>
+              <a:srgbClr val="000000"/>
+            </a:solidFill>
+            <a:round/>
+            <a:headEnd/>
+            <a:tailEnd/>
+          </a14:hiddenLine>
+        </a:ext>
+      </a:extLst>
+    </p:spPr>
+    <p:txBody>
+      <a:bodyPr vert="horz" wrap="square" lIns="91440" tIns="45720" rIns="91440" bIns="45720" numCol="1" anchor="t" anchorCtr="0" compatLnSpc="1">
+        <a:prstTxWarp prst="textNoShape">
+          <a:avLst/>
+        </a:prstTxWarp>
+      </a:bodyPr>
+      <a:lstStyle/>
+      <a:p>
+        <a:pPr marL="0" marR="0" lvl="0" indent="0" defTabSz="914400" eaLnBrk="1" fontAlgn="base" latinLnBrk="0" hangingPunct="1">
+          <a:lnSpc>
+            <a:spcPct val="100000"/>
+          </a:lnSpc>
+          <a:spcBef>
+            <a:spcPct val="0"/>
+          </a:spcBef>
+          <a:spcAft>
+            <a:spcPct val="0"/>
+          </a:spcAft>
+          <a:buClrTx/>
+          <a:buSzTx/>
+          <a:buFontTx/>
+          <a:buNone/>
+          <a:tabLst/>
+          <a:defRPr/>
+        </a:pPr>
+        <a:endParaRPr kumimoji="0" lang="en-US" sz="1800" b="0" i="0" u="none" strike="noStrike" kern="0" cap="none" spc="0" normalizeH="0" baseline="0" noProof="0">
+          <a:ln>
+            <a:noFill/>
+          </a:ln>
+          <a:solidFill>
+            <a:schemeClr val="tx2"/>
+          </a:solidFill>
+          <a:effectLst/>
+          <a:uLnTx/>
+          <a:uFillTx/>
+          <a:latin typeface="Graphik" charset="0"/>
+          <a:cs typeface="Arial" charset="0"/>
+        </a:endParaRPr>
+      </a:p>
+    </p:txBody>
+  </p:sp>
+</p:grpSp>

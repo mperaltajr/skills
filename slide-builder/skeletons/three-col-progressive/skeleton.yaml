@@ -1,0 +1,29 @@
+id: three-col-progressive
+category: three
+page_types:
+  - executive-summary
+  - SCQA-summary
+  - problem-solution-recommendation
+  - three-column-pillars
+best_for: Three vertical pillars with progressive emphasis (dashed border → gray → dark), classic Problem / Solution / Recommendation hierarchy where the recommendation is the headline. Use when you want visual emphasis directing the eye to the answer (rightmost column), and each column carries rich bullet content. Different from anchor-with-cards-4 (no anchored thesis line) and three-state-progression (no SCQA hierarchy implied).
+num_columns: 3
+visual_structure: 3-column-pillars
+source_pptx: 01_Executive Summary.pptx
+source_slide_num: 5
+source_layout_name: Default
+tokens:
+  ACTION_TITLE: '[Executive summary]'
+  COL_A_HEADING: '[Problem]'
+  COL_B_HEADING: '[Solution]'
+  COL_C_HEADING: '[Recommendation and next steps]'
+  COL_A_BODY: "[[Insert background/reasons for starting project]\v \n[Insert bullet\
+    \ points on busi]"
+  COL_B_BODY: "[We have identified three possible options:\v\n[Insert option 1]:\n\
+    [Insert descripti]"
+  COL_C_BODY: '[We recommend option [insert]
+
+    [Insert reason(s) why]
+
+    [Insert reason(s) why]
+
+    [Inse]'

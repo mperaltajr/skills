@@ -1,0 +1,24 @@
+{
+  "id": "06_process_journey__slide_5",
+  "layout_pattern": "process-flow",
+  "page_types": [
+    "Process/How",
+    "Competitive & Market Analysis"
+  ],
+  "title": {
+    "x": 58,
+    "y": 37,
+    "w": 1164,
+    "h": 76,
+    "slot": "action_title"
+  },
+  "body": {
+    "x": 58,
+    "y": 151,
+    "w": 1164,
+    "h": 481,
+    "kind": "process_flow",
+    "phases_slot": "phases"
+  },
+  "invariant": true
+}

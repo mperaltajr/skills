@@ -1,0 +1,428 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>275 — Jobs-to-be-done canvas</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary:     #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent:      #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark:         #1A1A2E;
+  --text-mid:          #64748B;
+  --text-faint:        #94A3B8;
+  --slide-bg:          #FFFFFF;
+  --card-bg:           #F8F4FC;
+  --card-border:       #E5D5F0;
+  --draft-bg:          #FFD600;
+  --draft-text:        #B71C1C;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body {
+  width: 1280px;
+  height: 720px;
+  overflow: hidden;
+  background: var(--slide-bg);
+  font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  color: var(--text-dark);
+}
+
+body { position: relative; }
+
+/* ===== Top chrome ===== */
+.accenture-label {
+  position: absolute;
+  top: 9px;
+  left: 20px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  z-index: 10;
+}
+
+.draft-badge {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--draft-bg);
+  color: var(--draft-text);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 5px 20px 4px;
+  z-index: 10;
+  /* flat rectangle — no border-radius */
+}
+
+/* ===== Title block ===== */
+.title-block {
+  position: absolute; top: 0; left: 0; right: 0; height: 160px;
+}
+
+.title-main {
+  font-size: 29px;
+  font-weight: 700;
+  color: var(--brand-primary);
+  letter-spacing: -0.5px;
+  line-height: 1.15;
+}
+
+.title-main strong {
+  color: var(--brand-accent);
+}
+
+.subhead {
+  position: absolute; top: 108px; left: 64px; right: 64px;
+
+    font-size: 14px;
+  font-style: italic;
+  color: var(--text-mid);
+  font-weight: 400;
+  line-height: 1.4;
+}
+
+.accent-rule {
+  position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+  /* flat — no border-radius per spec */
+}
+
+/* ===== Canvas table wrap ===== */
+.canvas-wrap {
+  position: absolute;
+  top: 126px;
+  left: 40px;
+  right: 40px;
+  bottom: 32px;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+table.jtbd {
+  width: 100%;
+  height: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 11.5px;
+  color: var(--text-dark);
+}
+
+/* Column widths: row-label col + 3 equal segment cols */
+col.col-label   { width: 112px; }
+col.col-seg     { width: calc((100% - 112px) / 3); }
+
+/* ===== Column header row ===== */
+thead th {
+  background: var(--brand-primary);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  padding: 13px 16px;
+  text-align: left;
+  vertical-align: middle;
+  border-right: 1px solid rgba(255,255,255,0.1);
+  line-height: 1.3;
+}
+thead th:last-child { border-right: none; }
+
+/* label corner cell */
+thead th.corner {
+  background: #1E0638;
+  font-size: 8.5px;
+  letter-spacing: 1.8px;
+  color: rgba(255,255,255,0.5);
+  font-weight: 600;
+  vertical-align: bottom;
+  padding-bottom: 10px;
+}
+
+thead th .seg-sub {
+  display: block;
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+  opacity: 0.75;
+
+    top: 2px;
+  text-transform: none;
+}
+
+/* ===== Body rows ===== */
+tbody td {
+  border-top: 1px solid var(--card-border);
+  border-right: 1px solid var(--card-border);
+  vertical-align: middle;
+  padding: 14px 16px;
+  line-height: 1.5;
+  font-size: 12.5px;
+}
+tbody td:last-child { border-right: none; }
+
+/* ===== Row label cells ===== */
+td.row-label {
+  background: var(--card-bg);
+  border-right: 1px solid var(--card-border) !important;
+  vertical-align: middle;
+  padding: 10px 10px 10px 0;
+}
+
+.row-label-inner {
+  display: flex;
+  align-items: stretch;
+  height: 100%;
+  gap: 0;
+}
+
+.row-label-bar {
+  width: 4px;
+  flex-shrink: 0;
+  border-radius: 0;
+  align-self: stretch;
+  min-height: 40px;
+}
+
+.row-label-text {
+  padding-left: 9px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 2px;
+}
+
+.row-label-tag {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.row-label-desc {
+  font-size: 9px;
+  font-weight: 400;
+  color: var(--text-faint);
+  letter-spacing: 0.2px;
+  line-height: 1.3;
+}
+
+/* Row accent bar colours */
+.bar-functional   { background: var(--brand-accent); }
+.bar-emotional    { background: var(--brand-primary-mid); }
+.bar-social       { background: var(--text-mid); }
+.bar-outcome      { background: #22C55E; }
+
+/* Row label tag colours */
+.tag-functional   { color: var(--brand-accent); }
+.tag-emotional    { color: var(--brand-primary-mid); }
+.tag-social       { color: var(--text-mid); }
+.tag-outcome      { color: #16A34A; }
+
+/* ===== Content cells ===== */
+td.cell-functional,
+td.cell-emotional,
+td.cell-social {
+  background: #fff;
+  color: var(--text-dark);
+  font-weight: 400;
+}
+
+/* Desired outcome cells — light green tint */
+td.cell-outcome {
+  background: #F0FDF4;
+  border-top: 1px solid #BBFBD0 !important;
+}
+
+td.cell-outcome p {
+  color: #166534;
+  font-weight: 600;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+/* Functional job — slightly bolder */
+td.cell-functional p {
+  font-weight: 500;
+}
+
+/* ===== Pain point chips not used — plain text ===== */
+tbody td p {
+  margin: 0;
+}
+
+/* ===== Footer ===== */
+.footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  padding: 0 40px;
+  font-size: 9px;
+  color: var(--text-faint);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-top: 1px solid var(--card-border);
+  background: var(--slide-bg);
+  z-index: 10;
+}
+
+.footer .footer-right {
+
+    left: auto;
+}
+</style>
+</head>
+<body>
+
+<!-- Top chrome -->
+<div class="accenture-label">Accenture Internal</div>
+
+<!-- Title block -->
+<div class="title-block">
+  <div class="title-main">Jobs-to-be-done canvas &mdash; <strong>three customer segments</strong></div>
+  <div class="subhead">Functional, emotional, and social jobs mapped to pain points and desired outcomes by persona</div>
+  <div class="accent-rule"></div>
+</div>
+
+<!-- Canvas -->
+<div class="canvas-wrap">
+  <table class="jtbd">
+    <colgroup>
+      <col class="col-label">
+      <col class="col-seg">
+      <col class="col-seg">
+      <col class="col-seg">
+    </colgroup>
+
+    <thead>
+      <tr>
+        <th class="corner">Job type</th>
+        <th>
+          Segment A
+          <span class="seg-sub">CFO / Finance</span>
+        </th>
+        <th>
+          Segment B
+          <span class="seg-sub">CTO / IT</span>
+        </th>
+        <th>
+          Segment C
+          <span class="seg-sub">COO / Operations</span>
+        </th>
+      </tr>
+    </thead>
+
+    <tbody>
+
+      <!-- Row 1: Functional Job -->
+      <tr>
+        <td class="row-label">
+          <div class="row-label-inner">
+            <div class="row-label-bar bar-functional"></div>
+            <div class="row-label-text">
+              <span class="row-label-tag tag-functional">Functional</span>
+              <span class="row-label-desc">What they need<br>to get done</span>
+            </div>
+          </div>
+        </td>
+        <td class="cell-functional">
+          <p>Reduce cost base by 20% without headcount impact</p>
+        </td>
+        <td class="cell-functional">
+          <p>Migrate legacy systems to cloud with zero downtime</p>
+        </td>
+        <td class="cell-functional">
+          <p>Standardize processes across 14 business units</p>
+        </td>
+      </tr>
+
+      <!-- Row 2: Emotional Job -->
+      <tr>
+        <td class="row-label">
+          <div class="row-label-inner">
+            <div class="row-label-bar bar-emotional"></div>
+            <div class="row-label-text">
+              <span class="row-label-tag tag-emotional">Emotional</span>
+              <span class="row-label-desc">How they want<br>to feel</span>
+            </div>
+          </div>
+        </td>
+        <td class="cell-emotional">
+          <p>Be seen as the leader who fixed the margin problem</p>
+        </td>
+        <td class="cell-emotional">
+          <p>Avoid being responsible for a failed transformation</p>
+        </td>
+        <td class="cell-emotional">
+          <p>Gain control over fragmented operations</p>
+        </td>
+      </tr>
+
+      <!-- Row 3: Social Job -->
+      <tr>
+        <td class="row-label">
+          <div class="row-label-inner">
+            <div class="row-label-bar bar-social"></div>
+            <div class="row-label-text">
+              <span class="row-label-tag tag-social">Social</span>
+              <span class="row-label-desc">How they want<br>to be perceived</span>
+            </div>
+          </div>
+        </td>
+        <td class="cell-social">
+          <p>Demonstrate ROI discipline to the board</p>
+        </td>
+        <td class="cell-social">
+          <p>Build credibility as a forward-thinking CTO</p>
+        </td>
+        <td class="cell-social">
+          <p>Earn trust of BU heads to adopt central standards</p>
+        </td>
+      </tr>
+
+      <!-- Row 4: Desired Outcome -->
+      <tr>
+        <td class="row-label">
+          <div class="row-label-inner">
+            <div class="row-label-bar bar-outcome"></div>
+            <div class="row-label-text">
+              <span class="row-label-tag tag-outcome">Outcome</span>
+              <span class="row-label-desc">Desired end<br>state</span>
+            </div>
+          </div>
+        </td>
+        <td class="cell-outcome">
+          <p>Approved 3-year efficiency program by Q2</p>
+        </td>
+        <td class="cell-outcome">
+          <p>Cloud migration roadmap signed off by end of year</p>
+        </td>
+        <td class="cell-outcome">
+          <p>Unified operating model live in 3 pilot BUs</p>
+        </td>
+      </tr>
+
+    </tbody>
+  </table>
+</div>
+
+<!-- Footer -->
+<div class="footer">
+  <span>Confidential</span>
+  <span class="footer-right">Slide Lab &middot; 2026 &middot; 275</span>
+</div>
+
+</body>
+</html>

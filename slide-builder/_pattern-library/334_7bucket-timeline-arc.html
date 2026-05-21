@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>334 · 7-Bucket Timeline Arc</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 1280px;
+  height: 720px;
+  background: var(--slide-bg);
+  font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  color: var(--text-dark);
+  overflow: hidden;
+}
+
+/* ── Top chrome ─────────────────────────────────────────── */
+.accenture-tag {
+  position: absolute;
+  top: 22px;
+  left: 48px;
+  color: var(--text-faint);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+
+.draft-badge {
+  position: absolute;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--draft-bg);
+  color: var(--draft-text);
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 0;
+}
+
+/* ── Title block ────────────────────────────────────────── */
+.title-block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 0;
+  overflow: visible;
+
+}
+
+.slide-title {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--brand-primary);
+}
+
+.slide-title strong {
+  color: var(--brand-accent);
+}
+
+.slide-subhead {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 108px;
+  font-size: 14px;
+  font-style: italic;
+  color: var(--text-mid);
+}
+
+.title-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+
+
+  background: var(--brand-accent);
+}
+
+/* ── Arc SVG container ──────────────────────────────────── */
+.arc-container {
+  position: absolute;
+  top: 136px;
+  left: 48px;
+  right: 48px;
+  bottom: 44px;
+}
+
+.arc-container svg {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+/* ── Node label boxes ───────────────────────────────────── */
+.node-label {
+  pointer-events: none;
+}
+
+.node-label .label-title {
+  font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  font-size: 11px;
+  font-weight: 700;
+  fill: var(--brand-primary);
+}
+
+.node-label .label-desc {
+  font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  font-size: 10px;
+  font-weight: 400;
+  fill: var(--text-mid);
+}
+
+/* ── Footer ─────────────────────────────────────────────── */
+.footer-rule {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 32px;
+  height: 1px;
+  background: var(--card-border);
+}
+
+.footer-left {
+  position: absolute;
+  bottom: 14px;
+  left: 24px;
+  color: var(--text-faint);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.footer-right {
+  position: absolute;
+  bottom: 14px;
+  right: 24px;
+  color: var(--text-faint);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+}
+</style>
+</head>
+<body>
+
+  <!-- Top chrome -->
+  <div class="accenture-tag" data-shape-id="accenture-tag">ACCENTURE INTERNAL</div>
+
+  <!-- Title block -->
+  <div class="title-block" data-shape-id="title-block">
+    <div class="slide-title" data-shape-id="title">Seven milestones that define <strong>the transformation arc</strong>.</div>
+    <div class="slide-subhead" data-shape-id="subtitle">Each bucket represents a distinct phase gate — progress is sequential and momentum compounds across all seven stages.</div>
+    <div class="title-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- Arc SVG -->
+  <div class="arc-container" data-shape-id="arc-container">
+    <!--
+      Canvas inside the container is ~1184 wide × ~516 tall (1280 - 2×48 wide; 720 - 148 - 56 tall)
+      We draw in a 1184×516 viewBox.
+      Arc: large gentle upward bow from (42, 370) to (1142, 370), bow peak at ~y=220.
+      SVG arc parameters: rx=900 ry=900 x-rotation=0 large-arc=0 sweep=1
+      The 7 nodes are evenly spaced at t = 0/6 .. 6/6 along the arc.
+      We compute (x,y) for each node analytically from the arc geometry.
+
+      Arc is drawn as a quadratic bezier for simplicity:
+        start: (42, 370)  end: (1142, 370)  control: (592, 180)
+      That gives a gentle upward bow.
+
+      Node positions along quadratic bezier B(t) = (1-t)^2*P0 + 2t(1-t)*P1 + t^2*P2
+        P0=(42,370), P1=(592,180), P2=(1142,370)
+        t = 0, 1/6, 2/6, 3/6, 4/6, 5/6, 1
+    -->
+    <svg viewBox="0 0 1184 540" xmlns="http://www.w3.org/2000/svg" data-shape-id="arc-svg">
+
+      <!-- Arc path — endpoints at y=400, peak at y=200, giving a 200px bow across a 540px-tall canvas -->
+      <path
+        data-shape-id="arc-path"
+        d="M 42,400 Q 592,200 1142,400"
+        fill="none"
+        stroke="#5C2D87"
+        stroke-width="2"
+        stroke-linecap="round"
+      />
+
+      <!-- Arrowhead at right end -->
+      <polygon
+        data-shape-id="arc-arrow"
+        points="1148,403 1134,394 1137,404 1134,413"
+        fill="#5C2D87"
+      />
+
+      <!-- "Future" label near arrowhead -->
+      <text
+        data-shape-id="arc-future-label"
+        x="1154"
+        y="399"
+        font-family="Inter, -apple-system, Segoe UI, sans-serif"
+        font-size="9"
+        font-weight="600"
+        letter-spacing="0.08em"
+        fill="#94A3B8"
+        text-transform="uppercase"
+      >FUTURE</text>
+
+      <!--
+        Arc: M 42,400 Q 592,200 1142,400
+        B(t) = (1-t)^2*(42,400) + 2t(1-t)*(592,200) + t^2*(1142,400)
+
+        Node x positions unchanged; y values shift +30 (370→400, 317→347, 286→316, 275→305):
+          N1: (42,  400)
+          N2: (225, 347)
+          N3: (409, 316)
+          N4: (592, 305)
+          N5: (775, 316)
+          N6: (959, 347)
+          N7: (1142,400)
+      -->
+
+      <!-- NODE 1  (42, 400)  — ODD → label ABOVE -->
+      <line data-shape-id="node-1-connector"
+        x1="42" y1="388" x2="42" y2="296"
+        stroke="#E5D5F0" stroke-width="1" stroke-dasharray="3,3"
+      />
+      <g data-shape-id="node-1-label" transform="translate(-65, 240)">
+        <text class="label-title" x="0" y="0" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="#2D0A4E">Discovery</text>
+        <text class="label-desc" x="0" y="18" font-family="Inter, sans-serif" font-size="11" fill="#64748B">Baseline &amp; stakeholder</text>
+        <text class="label-desc" x="0" y="32" font-family="Inter, sans-serif" font-size="11" fill="#64748B">assessment complete</text>
+      </g>
+      <circle data-shape-id="node-1-circle" cx="42" cy="400" r="12" fill="#5C2D87" />
+      <text data-shape-id="node-1-number" x="42" y="404" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#FFFFFF">1</text>
+
+      <!-- NODE 2  (225, 347)  — EVEN → label BELOW -->
+      <line data-shape-id="node-2-connector"
+        x1="225" y1="359" x2="225" y2="455"
+        stroke="#E5D5F0" stroke-width="1" stroke-dasharray="3,3"
+      />
+      <g data-shape-id="node-2-label" transform="translate(160, 458)">
+        <text class="label-title" x="0" y="0" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="#2D0A4E">Design</text>
+        <text class="label-desc" x="0" y="18" font-family="Inter, sans-serif" font-size="11" fill="#64748B">Future-state blueprint</text>
+        <text class="label-desc" x="0" y="32" font-family="Inter, sans-serif" font-size="11" fill="#64748B">signed off</text>
+      </g>
+      <circle data-shape-id="node-2-circle" cx="225" cy="347" r="12" fill="#5C2D87" />
+      <text data-shape-id="node-2-number" x="225" y="351" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#FFFFFF">2</text>
+
+      <!-- NODE 3  (409, 316)  — ODD → label ABOVE -->
+      <line data-shape-id="node-3-connector"
+        x1="409" y1="304" x2="409" y2="220"
+        stroke="#E5D5F0" stroke-width="1" stroke-dasharray="3,3"
+      />
+      <g data-shape-id="node-3-label" transform="translate(344, 162)">
+        <text class="label-title" x="0" y="0" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="#2D0A4E">Pilot</text>
+        <text class="label-desc" x="0" y="18" font-family="Inter, sans-serif" font-size="11" fill="#64748B">MVP tested in one</text>
+        <text class="label-desc" x="0" y="32" font-family="Inter, sans-serif" font-size="11" fill="#64748B">business unit</text>
+      </g>
+      <circle data-shape-id="node-3-circle" cx="409" cy="316" r="12" fill="#5C2D87" />
+      <text data-shape-id="node-3-number" x="409" y="320" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#FFFFFF">3</text>
+
+      <!-- NODE 4  (592, 305)  — EVEN → label BELOW -->
+      <line data-shape-id="node-4-connector"
+        x1="592" y1="317" x2="592" y2="413"
+        stroke="#E5D5F0" stroke-width="1" stroke-dasharray="3,3"
+      />
+      <g data-shape-id="node-4-label" transform="translate(527, 416)">
+        <text class="label-title" x="0" y="0" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="#2D0A4E">Build</text>
+        <text class="label-desc" x="0" y="18" font-family="Inter, sans-serif" font-size="11" fill="#64748B">Core platform &amp; data</text>
+        <text class="label-desc" x="0" y="32" font-family="Inter, sans-serif" font-size="11" fill="#64748B">infrastructure live</text>
+      </g>
+      <circle data-shape-id="node-4-circle" cx="592" cy="305" r="12" fill="#5C2D87" />
+      <text data-shape-id="node-4-number" x="592" y="309" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#FFFFFF">4</text>
+
+      <!-- NODE 5  (775, 316)  — ODD → label ABOVE -->
+      <line data-shape-id="node-5-connector"
+        x1="775" y1="304" x2="775" y2="220"
+        stroke="#E5D5F0" stroke-width="1" stroke-dasharray="3,3"
+      />
+      <g data-shape-id="node-5-label" transform="translate(710, 162)">
+        <text class="label-title" x="0" y="0" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="#2D0A4E">Scale</text>
+        <text class="label-desc" x="0" y="18" font-family="Inter, sans-serif" font-size="11" fill="#64748B">Rollout to all regions</text>
+        <text class="label-desc" x="0" y="32" font-family="Inter, sans-serif" font-size="11" fill="#64748B">and functions</text>
+      </g>
+      <circle data-shape-id="node-5-circle" cx="775" cy="316" r="12" fill="#5C2D87" />
+      <text data-shape-id="node-5-number" x="775" y="320" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#FFFFFF">5</text>
+
+      <!-- NODE 6  (959, 347)  — EVEN → label BELOW -->
+      <line data-shape-id="node-6-connector"
+        x1="959" y1="359" x2="959" y2="455"
+        stroke="#E5D5F0" stroke-width="1" stroke-dasharray="3,3"
+      />
+      <g data-shape-id="node-6-label" transform="translate(894, 458)">
+        <text class="label-title" x="0" y="0" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="#2D0A4E">Optimise</text>
+        <text class="label-desc" x="0" y="18" font-family="Inter, sans-serif" font-size="11" fill="#64748B">Value realisation &amp;</text>
+        <text class="label-desc" x="0" y="32" font-family="Inter, sans-serif" font-size="11" fill="#64748B">continuous improvement</text>
+      </g>
+      <circle data-shape-id="node-6-circle" cx="959" cy="347" r="12" fill="#5C2D87" />
+      <text data-shape-id="node-6-number" x="959" y="351" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#FFFFFF">6</text>
+
+      <!-- NODE 7  (1142, 400)  — ODD → label ABOVE -->
+      <line data-shape-id="node-7-connector"
+        x1="1142" y1="388" x2="1142" y2="296"
+        stroke="#E5D5F0" stroke-width="1" stroke-dasharray="3,3"
+      />
+      <g data-shape-id="node-7-label" transform="translate(1077, 240)">
+        <text class="label-title" x="0" y="0" font-family="Inter, sans-serif" font-size="12" font-weight="700" fill="#2D0A4E">Embed</text>
+        <text class="label-desc" x="0" y="18" font-family="Inter, sans-serif" font-size="11" fill="#64748B">New operating model</text>
+        <text class="label-desc" x="0" y="32" font-family="Inter, sans-serif" font-size="11" fill="#64748B">fully sustained</text>
+      </g>
+      <circle data-shape-id="node-7-circle" cx="1142" cy="400" r="12" fill="#5C2D87" />
+      <text data-shape-id="node-7-number" x="1142" y="404" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#FFFFFF">7</text>
+
+    </svg>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer-left" data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+
+</body>
+</html>

@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pattern 228 — Cost Breakdown (Donut + Table Hybrid)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+
+    /* Donut segment colors */
+    --seg1: #2D0A4E;
+    --seg2: #5C2D87;
+    --seg3: #7B3FA8;
+    --seg4: #A100FF;
+    --seg5: #C780FF;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: Inter, system-ui, sans-serif;
+    background: var(--slide-bg);
+    position: relative;
+  }
+
+  /* ── Invariant chrome ── */
+
+  .label-internal {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .badge-draft {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 0;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .title-block {
+    position: absolute; top: 0; left: 0; right: 0; height: 160px;
+  }
+
+  .title-block h1 {
+    position: absolute; top: 28px; left: 64px; right: 64px; min-height: 36px;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.15;
+  }
+
+  .title-block h1 strong {
+    color: var(--brand-accent);
+    font-weight: 700;
+  }
+
+  .title-block .sub {
+    position: absolute; top: 108px; left: 64px; right: 64px;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+
+}
+
+  .title-block .accent-rule {
+  position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+
+  }
+
+  footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 20px 10px;
+  }
+
+  footer .left {
+    font-size: 8px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+    font-weight: 500;
+  }
+
+  footer .right {
+    font-size: 8px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+  }
+
+  /* ── Content area ── */
+
+  .content-area {
+    position: absolute;
+    top: 128px;
+    left: 48px;
+    right: 48px;
+    bottom: 64px;
+    display: flex;
+    gap: 32px;
+    align-items: stretch;
+  }
+
+  /* ── Left: Donut ── */
+
+  .donut-panel {
+    width: 45%;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    height: 100%;
+  }
+
+  .donut-wrap {
+    position: relative;
+    width: 260px;
+    height: 260px;
+    flex-shrink: 0;
+  }
+
+  .donut-center {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    pointer-events: none;
+  }
+
+  .donut-center .total-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-mid);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .donut-center .total-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.1;
+
+    top: 2px;
+  }
+
+  /* Donut legend — now beside the donut, not inside it */
+  .donut-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 12px;
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .legend-name {
+    color: var(--text-dark);
+    font-weight: 500;
+    flex: 1;
+    min-width: 80px;
+  }
+
+  .legend-pct {
+    color: var(--text-mid);
+    font-weight: 600;
+    font-size: 12px;
+    min-width: 36px;
+    text-align: right;
+  }
+
+  /* ── Right: Table + callouts ── */
+
+  .table-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    justify-content: space-between;
+  }
+
+  .breakdown-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+  }
+
+  .breakdown-table thead tr {
+    background: var(--card-bg);
+  }
+
+  .breakdown-table thead th {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-mid);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 8px 10px;
+    text-align: left;
+    border-bottom: 2px solid var(--card-border);
+  }
+
+  .breakdown-table thead th:not(:first-child) {
+    text-align: right;
+  }
+
+  .breakdown-table tbody tr {
+    border-bottom: 1px solid var(--card-border);
+    transition: background 0.15s;
+  }
+
+  .breakdown-table tbody tr:hover {
+    background: var(--card-bg);
+  }
+
+  .breakdown-table tbody td {
+    padding: 9px 10px;
+    color: var(--text-dark);
+    font-size: 14px;
+    vertical-align: middle;
+  }
+
+  .breakdown-table tbody td:not(:first-child) {
+    text-align: right;
+  }
+
+  /* Color-coded left border per row via a ::before trick on first td */
+  .breakdown-table tbody tr td.cat-cell {
+    padding-left: 14px;
+    border-left: 4px solid transparent;
+    font-weight: 600;
+    color: var(--text-dark);
+  }
+
+  .row-1 td.cat-cell { border-left-color: var(--seg1); }
+  .row-2 td.cat-cell { border-left-color: var(--seg2); }
+  .row-3 td.cat-cell { border-left-color: var(--seg3); }
+  .row-4 td.cat-cell { border-left-color: var(--seg4); }
+  .row-5 td.cat-cell { border-left-color: var(--seg5); }
+
+  .amount-cell {
+    font-weight: 700;
+    color: var(--brand-primary);
+  }
+
+  .pct-cell {
+    color: var(--text-mid);
+  }
+
+  .yoy-pos {
+    color: #16A34A;
+    font-weight: 600;
+    font-size: 11px;
+  }
+
+  .yoy-neg {
+    color: #DC2626;
+    font-weight: 600;
+    font-size: 11px;
+  }
+
+  .yoy-flat {
+    color: var(--text-faint);
+    font-weight: 600;
+    font-size: 11px;
+  }
+
+  /* Totals row */
+  .totals-row td {
+    font-weight: 700;
+    font-size: 14px;
+    color: var(--brand-primary);
+    background: var(--card-bg);
+    border-top: 2px solid var(--card-border);
+    padding: 9px 10px;
+  }
+
+  .totals-row td:not(:first-child) {
+    text-align: right;
+  }
+
+  .totals-row td.cat-cell {
+    border-left: 4px solid var(--brand-accent);
+    font-size: 14px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  /* Insight callouts */
+  .callouts {
+    display: flex;
+    gap: 12px;
+
+    top: 4px;
+  }
+
+  .callout {
+    flex: 1;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    padding: 16px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .callout .callout-num {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--brand-accent);
+    line-height: 1;
+  }
+
+  .callout .callout-label {
+    font-size: 11px;
+    color: var(--text-mid);
+    font-weight: 500;
+    line-height: 1.35;
+  }
+
+  .callout .callout-sub {
+    font-size: 10px;
+    color: var(--text-faint);
+
+    top: 2px;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Invariant chrome -->
+  <span class="label-internal">Accenture Internal</span>
+  <span class="badge-draft">Draft</span>
+
+  <div class="title-block">
+    <h1>FY2026 Cost Structure: <strong>Labor</strong> Dominates at 42% of Total Spend</h1>
+    <p class="sub">Full-year actuals vs. prior year — enterprise-wide cost breakdown by category</p>
+    <div class="accent-rule"></div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <!-- Left: Donut -->
+    <div class="donut-panel">
+      <div class="donut-wrap">
+        <!--
+          Segments (clockwise from top, -90° offset):
+          1. Labor        42%  → 151.2°
+          2. Technology   24%  →  86.4°
+          3. Operations   16%  →  57.6°
+          4. Facilities    11%  →  39.6°
+          5. Other         7%  →  25.2°
+
+          SVG donut via stroke-dasharray on circles.
+          r = 100, circumference = 2π×100 ≈ 628.318
+          Each segment dasharray = (pct/100)*628.318 gap = rest
+
+          Rotate each circle so its start aligns after previous segments.
+          Base rotation = -90deg (start at top).
+
+          Offsets (cumulative):
+          seg1 start:   0%     → rotate -90°
+          seg2 start:  42%     → rotate -90 + 42*3.6 = -90+151.2 = 61.2°
+          seg3 start:  66%     → rotate -90 + 66*3.6 = -90+237.6 = 147.6°
+          seg4 start:  82%     → rotate -90 + 82*3.6 = -90+295.2 = 205.2°
+          seg5 start:  93%     → rotate -90 + 93*3.6 = -90+334.8 = 244.8°
+
+          dasharray values (circumference = 628.318):
+          42% → 263.893   24% → 150.796   16% → 100.531   11% → 69.115   7% → 43.982
+        -->
+        <svg width="260" height="260" viewBox="0 0 260 260" xmlns="http://www.w3.org/2000/svg">
+          <!-- Background track -->
+          <circle cx="130" cy="130" r="100" fill="none" stroke="#EDE8F5" stroke-width="36"/>
+
+          <!-- Seg 1: Labor 42% -->
+          <circle cx="130" cy="130" r="100"
+            fill="none"
+            stroke="var(--seg1)"
+            stroke-width="36"
+            stroke-dasharray="263.893 364.425"
+            stroke-dashoffset="0"
+            transform="rotate(-90 130 130)"/>
+
+          <!-- Seg 2: Technology 24% -->
+          <circle cx="130" cy="130" r="100"
+            fill="none"
+            stroke="var(--seg2)"
+            stroke-width="36"
+            stroke-dasharray="150.796 477.522"
+            stroke-dashoffset="-263.893"
+            transform="rotate(-90 130 130)"/>
+
+          <!-- Seg 3: Operations 16% -->
+          <circle cx="130" cy="130" r="100"
+            fill="none"
+            stroke="var(--seg3)"
+            stroke-width="36"
+            stroke-dasharray="100.531 527.787"
+            stroke-dashoffset="-414.690"
+            transform="rotate(-90 130 130)"/>
+
+          <!-- Seg 4: Facilities 11% -->
+          <circle cx="130" cy="130" r="100"
+            fill="none"
+            stroke="var(--seg4)"
+            stroke-width="36"
+            stroke-dasharray="69.115 559.203"
+            stroke-dashoffset="-515.221"
+            transform="rotate(-90 130 130)"/>
+
+          <!-- Seg 5: Other 7% -->
+          <circle cx="130" cy="130" r="100"
+            fill="none"
+            stroke="var(--seg5)"
+            stroke-width="36"
+            stroke-dasharray="43.982 584.336"
+            stroke-dashoffset="-584.336"
+            transform="rotate(-90 130 130)"/>
+
+          <!-- Inner white circle to make donut hole -->
+          <circle cx="130" cy="130" r="82" fill="white"/>
+        </svg>
+
+        <div class="donut-center">
+          <div class="total-label">Total</div>
+          <div class="total-value">$2.4B</div>
+        </div>
+      </div>
+
+      <!-- Legend beside the donut -->
+      <div class="donut-legend">
+        <div class="legend-item">
+          <span class="legend-dot" style="background:var(--seg1)"></span>
+          <span class="legend-name">Labor</span>
+          <span class="legend-pct">42%</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot" style="background:var(--seg2)"></span>
+          <span class="legend-name">Technology</span>
+          <span class="legend-pct">24%</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot" style="background:var(--seg3)"></span>
+          <span class="legend-name">Operations</span>
+          <span class="legend-pct">16%</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot" style="background:var(--seg4)"></span>
+          <span class="legend-name">Facilities</span>
+          <span class="legend-pct">11%</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-dot" style="background:var(--seg5)"></span>
+          <span class="legend-name">Other</span>
+          <span class="legend-pct">7%</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Table + callouts -->
+    <div class="table-panel">
+      <table class="breakdown-table">
+        <thead>
+          <tr>
+            <th style="width:38%">Cost Category</th>
+            <th>Amount</th>
+            <th>% of Total</th>
+            <th>YoY Change</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="row-1">
+            <td class="cat-cell">Labor</td>
+            <td class="amount-cell">$1,008M</td>
+            <td class="pct-cell">42%</td>
+            <td class="yoy-neg">▲ +5.2%</td>
+          </tr>
+          <tr class="row-2">
+            <td class="cat-cell">Technology</td>
+            <td class="amount-cell">$576M</td>
+            <td class="pct-cell">24%</td>
+            <td class="yoy-neg">▲ +12.1%</td>
+          </tr>
+          <tr class="row-3">
+            <td class="cat-cell">Operations</td>
+            <td class="amount-cell">$384M</td>
+            <td class="pct-cell">16%</td>
+            <td class="yoy-pos">▼ −3.4%</td>
+          </tr>
+          <tr class="row-4">
+            <td class="cat-cell">Facilities</td>
+            <td class="amount-cell">$264M</td>
+            <td class="pct-cell">11%</td>
+            <td class="yoy-pos">▼ −8.7%</td>
+          </tr>
+          <tr class="row-5">
+            <td class="cat-cell">Other</td>
+            <td class="amount-cell">$168M</td>
+            <td class="pct-cell">7%</td>
+            <td class="yoy-flat">— 0.0%</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr class="totals-row">
+            <td class="cat-cell">Total</td>
+            <td>$2,400M</td>
+            <td>100%</td>
+            <td class="yoy-neg">▲ +3.8%</td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <!-- Insight callouts -->
+      <div class="callouts">
+        <div class="callout">
+          <div class="callout-num">42%</div>
+          <div class="callout-label">Labor is the largest cost driver</div>
+          <div class="callout-sub">+5.2% YoY — headcount growth outpacing productivity gains</div>
+        </div>
+        <div class="callout">
+          <div class="callout-num">+12%</div>
+          <div class="callout-label">Technology costs fastest-growing</div>
+          <div class="callout-sub">Cloud migration and AI tooling drove $62M incremental spend</div>
+        </div>
+        <div class="callout">
+          <div class="callout-num">−8.7%</div>
+          <div class="callout-label">Facilities savings on track</div>
+          <div class="callout-sub">Hybrid-work consolidation delivering against $30M target</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <span class="left">CONFIDENTIAL — ACCENTURE INTERNAL</span>
+    <span class="right">Slide Lab · 2026 · 228</span>
+  </footer>
+
+</body>
+</html>

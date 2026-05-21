@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>120 · Sequence Diagram — Auth Flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #4a4a4a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 24px;
+  box-sizing: border-box;
+}
+.slide {
+  width: 1280px;
+  height: 720px;
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.35);
+}
+
+/* Chrome */
+.chrome-label {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  font-size: 10px;
+  color: var(--text-faint);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  z-index: 5;
+  font-weight: 600;
+}
+.draft-badge {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--draft-bg);
+  color: var(--draft-text);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 16px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  z-index: 5;
+}
+
+/* Title block */
+.title-block {
+  position: absolute;
+  top: 48px;
+  left: 48px;
+  right: 48px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+}
+.title-block-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.action-title {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--text-dark);
+  max-width: 900px;
+}
+.action-title strong {
+  color: var(--brand-primary);
+}
+.subhead { position: absolute; left: 48px; right: 48px; top: 108px; font-size: 11.5px;
+  color: var(--text-mid);
+  font-style: italic;
+}
+.title-rule { position: absolute; left: 48px; top: 136px; width: 40px;
+  height: 3px;
+  background: var(--brand-accent);
+}
+
+/* Diagram area */
+.diagram-area {
+  position: absolute;
+  top: 140px;
+  left: 48px;
+  right: 48px;
+  bottom: 56px;
+}
+.diagram-area svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+/* Legend */
+.legend {
+  flex-shrink: 0;
+  width: 148px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  padding: 10px 12px;
+  align-self: flex-end;
+}
+.legend-title {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--brand-primary);
+  margin-bottom: 8px;
+}
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 10px;
+  color: var(--text-dark);
+  margin-bottom: 5px;
+  line-height: 1.3;
+}
+.legend-row:last-child { margin-bottom: 0; }
+.leg-swatch {
+  flex-shrink: 0;
+  width: 24px;
+  height: 3px;
+}
+
+/* Convergence bar */
+.convergence-bar {
+  position: absolute;
+  bottom: 56px;
+  left: 48px;
+  right: 48px;
+  height: 1px;
+  background: var(--card-border);
+}
+
+/* Footer */
+footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  padding: 0 48px;
+  font-size: 9.5px;
+  color: var(--text-faint);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-top: 1px solid var(--card-border);
+  background: #FBFAFD;
+}
+footer .right { margin-left: auto; }
+</style>
+</head>
+<body>
+<div class="slide">
+
+  <!-- Chrome -->
+  <div class="chrome-label">Accenture Internal</div>
+
+  <!-- Title block -->
+  <div class="title-block">
+    <div class="title-block-text">
+      <div class="action-title"><strong>Auth adds 3 hops</strong> — database query in step 4 is the latency bottleneck; cache to fix</div>
+      <div class="subhead">User authentication sequence · Login request to dashboard load</div>
+      <div class="title-rule"></div>
+    </div>
+    <div class="legend">
+      <div class="legend-title">Legend</div>
+      <div class="legend-row">
+        <div class="leg-swatch" style="background:#A100FF; height:2px; margin-top:1px;"></div>
+        <span>User action</span>
+      </div>
+      <div class="legend-row">
+        <div class="leg-swatch" style="background:#0078D4; height:2px; margin-top:1px;"></div>
+        <span>System response</span>
+      </div>
+      <div class="legend-row">
+        <div class="leg-swatch" style="background:#0078D4; height:2px; margin-top:1px; border-top: 2px dashed #0078D4; height:0px; background:none;"></div>
+        <span>Return message</span>
+      </div>
+      <div class="legend-row">
+        <div class="leg-swatch" style="background:#F59E0B; height:8px; margin-top:-3px;"></div>
+        <span>Bottleneck step</span>
+      </div>
+      <div class="legend-row">
+        <div class="leg-swatch" style="background:#2D0A4E; opacity:0.2; height:8px; margin-top:-3px;"></div>
+        <span>Active processing</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Diagram -->
+  <div class="diagram-area">
+    <!--
+      SVG coordinate space: viewBox matches div size dynamically via 100%/100%.
+      We use a fixed internal coordinate system: 1184 × 524 (1280-48-48 wide, 720-140-56 tall approx).
+      Actors: 5 columns, evenly spaced.
+      Col centers at: 118, 355, 592, 829, 1066   (spacing = 237)
+      Actor box: width=110, height=36, centered on col
+      Lifeline top: y=36, lifeline bottom: y=490 (above bottom actor boxes)
+      Bottom actor boxes at y=490 (height 36 => bottom edge y=526)
+      Messages: y positions starting at ~80, spaced ~48px apart (8 messages)
+      Activation boxes: 8px wide, centered on col lifeline, from first msg to last in that span
+    -->
+    <svg viewBox="0 0 1184 524" xmlns="http://www.w3.org/2000/svg" font-family="Inter,sans-serif">
+      <defs>
+        <!-- Arrow markers -->
+        <!-- Solid right arrow — user actions (accent) -->
+        <marker id="arrow-accent" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+          <polygon points="0 0, 7 3.5, 0 7" fill="#A100FF"/>
+        </marker>
+        <!-- Solid right arrow — system responses (blue) -->
+        <marker id="arrow-blue" markerWidth="7" markerHeight="7" refX="6" refY="3.5" orient="auto">
+          <polygon points="0 0, 7 3.5, 0 7" fill="#0078D4"/>
+        </marker>
+        <!-- Left-pointing arrow — returns (blue) -->
+        <marker id="arrow-blue-left" markerWidth="7" markerHeight="7" refX="1" refY="3.5" orient="auto">
+          <polygon points="7 0, 0 3.5, 7 7" fill="#0078D4"/>
+        </marker>
+        <!-- Dashed lifeline pattern -->
+      </defs>
+
+      <!-- ===================== LIFELINES (dashed, behind everything) ===================== -->
+      <!-- Col 1: User  x=118 -->
+      <line x1="118" y1="36" x2="118" y2="490" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="5,4"/>
+      <!-- Col 2: Browser  x=355 -->
+      <line x1="355" y1="36" x2="355" y2="490" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="5,4"/>
+      <!-- Col 3: API Gateway  x=592 -->
+      <line x1="592" y1="36" x2="592" y2="490" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="5,4"/>
+      <!-- Col 4: Auth Service  x=829 -->
+      <line x1="829" y1="36" x2="829" y2="490" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="5,4"/>
+      <!-- Col 5: Database  x=1066 -->
+      <line x1="1066" y1="36" x2="1066" y2="490" stroke="#CBD5E1" stroke-width="1.5" stroke-dasharray="5,4"/>
+
+      <!-- ===================== TOP ACTOR BOXES ===================== -->
+      <!-- User -->
+      <rect x="63" y="0" width="110" height="34" rx="0" fill="#2D0A4E" stroke="none"/>
+      <text x="118" y="21" text-anchor="middle" fill="#FFFFFF" font-size="11" font-weight="700" letter-spacing="0.3">User</text>
+
+      <!-- Browser -->
+      <rect x="300" y="0" width="110" height="34" rx="0" fill="#2D0A4E" stroke="none"/>
+      <text x="355" y="21" text-anchor="middle" fill="#FFFFFF" font-size="11" font-weight="700" letter-spacing="0.3">Browser</text>
+
+      <!-- API Gateway -->
+      <rect x="537" y="0" width="110" height="34" rx="0" fill="#2D0A4E" stroke="none"/>
+      <text x="592" y="17" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="700" letter-spacing="0.3">API</text>
+      <text x="592" y="28" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="700" letter-spacing="0.3">Gateway</text>
+
+      <!-- Auth Service -->
+      <rect x="774" y="0" width="110" height="34" rx="0" fill="#2D0A4E" stroke="none"/>
+      <text x="829" y="17" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="700" letter-spacing="0.3">Auth</text>
+      <text x="829" y="28" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="700" letter-spacing="0.3">Service</text>
+
+      <!-- Database -->
+      <rect x="1011" y="0" width="110" height="34" rx="0" fill="#2D0A4E" stroke="none"/>
+      <text x="1066" y="17" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="700" letter-spacing="0.3">Data-</text>
+      <text x="1066" y="28" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="700" letter-spacing="0.3">base</text>
+
+      <!-- ===================== ACTIVATION BOXES =====================
+           Thin filled rectangles on lifelines during processing.
+           Width = 8px, centered on lifeline.
+           Spans derived from message timing below (y positions):
+           Msg1: y=78   Msg2: y=118  Msg3: y=158  Msg4: y=198
+           Msg5: y=248  Msg6: y=298  Msg7: y=348  Msg8: y=398
+
+           User active: Msg1 → Msg8  (78 → 418)
+           Browser active: Msg2 → Msg7  (118 → 368)
+           API active: Msg3 → Msg6  (158 → 318)
+           Auth active: Msg4 → Msg5  (198 → 268)
+           DB active: Msg4 (incoming) → Msg5 (outgoing) short (208 → 258)
+      -->
+      <!-- User activation (accent purple) -->
+      <rect x="114" y="78" width="8" height="340" fill="#A100FF" opacity="0.25"/>
+
+      <!-- Browser activation (brand primary) -->
+      <rect x="351" y="118" width="8" height="250" fill="#2D0A4E" opacity="0.2"/>
+
+      <!-- API Gateway activation (blue) -->
+      <rect x="588" y="158" width="8" height="160" fill="#0078D4" opacity="0.2"/>
+
+      <!-- Auth Service activation (blue) -->
+      <rect x="825" y="198" width="8" height="120" fill="#0078D4" opacity="0.2"/>
+
+      <!-- Database activation (blue, brief) -->
+      <rect x="1062" y="208" width="8" height="50" fill="#0078D4" opacity="0.25"/>
+
+      <!-- ===================== MESSAGES ===================== -->
+
+      <!-- MSG 1: User → Browser  "Login request"  y=78  (user action = accent) -->
+      <line x1="122" y1="78" x2="350" y2="78" stroke="#A100FF" stroke-width="1.8" marker-end="url(#arrow-accent)"/>
+      <text x="235" y="72" text-anchor="middle" fill="#A100FF" font-size="10" font-weight="600">Login request</text>
+      <text x="82" y="84" text-anchor="middle" fill="#94A3B8" font-size="9">①</text>
+
+      <!-- MSG 2: Browser → API Gateway  "POST /auth"  y=118  (system = blue) -->
+      <line x1="359" y1="118" x2="587" y2="118" stroke="#0078D4" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+      <text x="473" y="112" text-anchor="middle" fill="#0078D4" font-size="10" font-weight="600">POST /auth</text>
+      <text x="319" y="124" text-anchor="middle" fill="#94A3B8" font-size="9">②</text>
+
+      <!-- MSG 3: API Gateway → Auth Service  "Validate token"  y=158  (system = blue) -->
+      <line x1="596" y1="158" x2="824" y2="158" stroke="#0078D4" stroke-width="1.8" marker-end="url(#arrow-blue)"/>
+      <text x="710" y="152" text-anchor="middle" fill="#0078D4" font-size="10" font-weight="600">Validate token</text>
+      <text x="556" y="164" text-anchor="middle" fill="#94A3B8" font-size="9">③</text>
+
+      <!-- MSG 4: Auth Service → Database  "Query user record"  y=198  BOTTLENECK (amber highlight) -->
+      <!-- Amber annotation box behind the arrow -->
+      <rect x="830" y="184" width="224" height="28" fill="#FFF8E1" stroke="#F59E0B" stroke-width="1.2"/>
+      <line x1="833" y1="198" x2="1061" y2="198" stroke="#F59E0B" stroke-width="2" marker-end="url(#arrow-blue)"/>
+      <text x="947" y="193" text-anchor="middle" fill="#92400E" font-size="10" font-weight="700">Query user record</text>
+      <text x="793" y="204" text-anchor="middle" fill="#94A3B8" font-size="9">④</text>
+      <!-- Bottleneck callout -->
+      <rect x="952" y="165" width="112" height="16" rx="2" fill="#F59E0B"/>
+      <text x="1008" y="176" text-anchor="middle" fill="#1A1A2E" font-size="9" font-weight="700" letter-spacing="0.5">⚠ LATENCY BOTTLENECK</text>
+
+      <!-- MSG 5: Database → Auth Service  "User found + hash"  y=248  (system = blue, return left) -->
+      <line x1="1062" y1="258" x2="834" y2="258" stroke="#0078D4" stroke-width="1.8" stroke-dasharray="5,3" marker-end="url(#arrow-blue-left)"/>
+      <text x="947" y="252" text-anchor="middle" fill="#0078D4" font-size="10" font-weight="600">User found + hash</text>
+      <text x="1106" y="264" text-anchor="middle" fill="#94A3B8" font-size="9">⑤</text>
+
+      <!-- MSG 6: Auth Service → API Gateway  "JWT token"  y=308  (system = blue, return left) -->
+      <line x1="825" y1="308" x2="597" y2="308" stroke="#0078D4" stroke-width="1.8" stroke-dasharray="5,3" marker-end="url(#arrow-blue-left)"/>
+      <text x="711" y="302" text-anchor="middle" fill="#0078D4" font-size="10" font-weight="600">JWT token</text>
+      <text x="865" y="314" text-anchor="middle" fill="#94A3B8" font-size="9">⑥</text>
+
+      <!-- MSG 7: API Gateway → Browser  "200 OK + token"  y=358  (system = blue, return left) -->
+      <line x1="588" y1="358" x2="360" y2="358" stroke="#0078D4" stroke-width="1.8" stroke-dasharray="5,3" marker-end="url(#arrow-blue-left)"/>
+      <text x="474" y="352" text-anchor="middle" fill="#0078D4" font-size="10" font-weight="600">200 OK + token</text>
+      <text x="628" y="364" text-anchor="middle" fill="#94A3B8" font-size="9">⑦</text>
+
+      <!-- MSG 8: Browser → User  "Dashboard loaded"  y=408  (system response = blue, return left) -->
+      <line x1="351" y1="408" x2="123" y2="408" stroke="#0078D4" stroke-width="1.8" stroke-dasharray="5,3" marker-end="url(#arrow-blue-left)"/>
+      <text x="237" y="402" text-anchor="middle" fill="#0078D4" font-size="10" font-weight="600">Dashboard loaded</text>
+      <text x="391" y="414" text-anchor="middle" fill="#94A3B8" font-size="9">⑧</text>
+
+      <!-- ===================== BOTTOM ACTOR BOXES ===================== -->
+      <!-- User -->
+      <rect x="63" y="490" width="110" height="34" rx="0" fill="#2D0A4E" stroke="none"/>
+      <text x="118" y="511" text-anchor="middle" fill="#FFFFFF" font-size="11" font-weight="700" letter-spacing="0.3">User</text>
+
+      <!-- Browser -->
+      <rect x="300" y="490" width="110" height="34" rx="0" fill="#2D0A4E" stroke="none"/>
+      <text x="355" y="511" text-anchor="middle" fill="#FFFFFF" font-size="11" font-weight="700" letter-spacing="0.3">Browser</text>
+
+      <!-- API Gateway -->
+      <rect x="537" y="490" width="110" height="34" rx="0" fill="#2D0A4E" stroke="none"/>
+      <text x="592" y="504" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="700" letter-spacing="0.3">API</text>
+      <text x="592" y="518" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="700" letter-spacing="0.3">Gateway</text>
+
+      <!-- Auth Service -->
+      <rect x="774" y="490" width="110" height="34" rx="0" fill="#2D0A4E" stroke="none"/>
+      <text x="829" y="504" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="700" letter-spacing="0.3">Auth</text>
+      <text x="829" y="518" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="700" letter-spacing="0.3">Service</text>
+
+      <!-- Database -->
+      <rect x="1011" y="490" width="110" height="34" rx="0" fill="#2D0A4E" stroke="none"/>
+      <text x="1066" y="504" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="700" letter-spacing="0.3">Data-</text>
+      <text x="1066" y="518" text-anchor="middle" fill="#FFFFFF" font-size="10" font-weight="700" letter-spacing="0.3">base</text>
+
+      <!-- ===================== TIME AXIS LABEL ===================== -->
+      <!-- Vertical "Time" label on far left with downward arrow -->
+      <text x="18" y="270" text-anchor="middle" fill="#94A3B8" font-size="9" font-weight="600" letter-spacing="2" transform="rotate(-90,18,270)">TIME</text>
+      <line x1="18" y1="80" x2="18" y2="450" stroke="#CBD5E1" stroke-width="1.2"/>
+      <polygon points="14,450 18,460 22,450" fill="#CBD5E1"/>
+
+    </svg>
+  </div>
+
+  <!-- Convergence bar -->
+  <div class="convergence-bar"></div>
+
+  <!-- Footer -->
+  <footer>
+    <span>Slide Lab · Confidential · System design</span>
+    <span class="right">120 / 200</span>
+  </footer>
+
+</div>
+</body>
+</html>

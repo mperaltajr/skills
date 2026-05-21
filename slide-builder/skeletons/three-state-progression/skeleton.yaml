@@ -1,0 +1,27 @@
+id: three-state-progression
+category: three
+page_types:
+  - as-is-to-be
+  - three-state-progression
+  - past-present-future
+  - transformation
+  - three-pillars-rich
+best_for: Three vertical pillars with progressive emphasis (gray → dark → blue) and rich body content per pillar (4-5 bullets each). Use for as-is/to-be transformation stories or any three-state narrative where each state has substantial supporting detail. Different from three-column which is a row-table; this one is true vertical pillars.
+num_columns: 3
+visual_structure: 3-column-pillars
+source_pptx: 06_Process Journey.pptx
+source_slide_num: 2
+source_layout_name: Default
+tokens:
+  ACTION_TITLE: '[[Three state process slide / Insert action title]]'
+  COL_C_HEADING: '[Where we aspire to be]'
+  COL_B_HEADING: '[Where we are]'
+  COL_A_HEADING: '[Where we were]'
+  COL_A_BODY: "[[Main description]\v\n[Key facts and data points]\n[Key facts and\
+    \ data points]\n[Key]"
+  COL_B_BODY: "[[Main description]\v\n[Key facts and data points]\n[Key facts and\
+    \ data points]\n[Key]"
+  COL_C_BODY: "[[Main description]\v\n[Key facts and data points]\n[Key facts and\
+    \ data points]\n[Key]"
+  COL_A_ITEM_2: '[Footnote: 1. xx]'
+  SOURCE: '[Source: xx]'

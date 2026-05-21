@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>237 · Executive briefing memo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 1280px;
+  height: 720px;
+  background: var(--slide-bg);
+  font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  color: var(--text-dark);
+  overflow: hidden;
+}
+body { position: relative; }
+
+/* ---- Top chrome ---- */
+.accenture-tag {
+  position: absolute;
+  top: 11px;
+  left: 48px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  z-index: 10;
+}
+.draft-badge {
+  position: absolute;
+  top: 7px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--draft-bg);
+  color: var(--draft-text);
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 4px 14px;
+  border-radius: 0;
+  z-index: 10;
+}
+
+/* ---- Title block ---- */
+.title-block {
+  position: absolute; top: 0; left: 0; right: 0; height: 160px;
+}
+.title-text {
+  font-size: 29px;
+  font-weight: 700;
+  color: var(--brand-primary);
+  line-height: 1.2;
+  letter-spacing: -0.3px;
+}
+.title-text strong {
+  color: var(--brand-accent);
+  font-weight: 700;
+}
+.title-subhead {
+  font-size: 14px;
+  font-style: italic;
+  color: var(--text-mid);
+
+    top: 5px;
+  line-height: 1.4;
+}
+.title-rule {
+  position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+
+}
+
+/* ---- Memo header row ---- */
+.memo-header {
+  position: absolute;
+  top: 138px;
+  left: 48px;
+  right: 48px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  display: flex; flex-wrap: wrap;
+  gap: 0;
+}
+.memo-field {
+  padding: 10px 16px 10px 16px;
+  border-right: 1px solid var(--card-border);
+}
+.memo-field:last-child {
+  border-right: none;
+}
+.memo-field-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+
+    bottom: 3px;
+}
+.memo-field-value {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-dark);
+  line-height: 1.3;
+}
+.memo-field-value.re {
+  color: var(--brand-primary);
+  font-weight: 700;
+}
+
+/* ---- Divider ---- */
+.memo-divider {
+  position: absolute;
+  top: 212px;
+  left: 48px;
+  right: 48px;
+  height: 1px;
+  background: var(--card-border);
+}
+
+/* ---- Situation ---- */
+.situation-block {
+  position: absolute;
+  top: 224px;
+  left: 48px;
+  right: 48px;
+}
+.section-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--brand-accent);
+
+    bottom: 6px;
+}
+.situation-text {
+  font-size: 13.5px;
+  color: var(--text-dark);
+  line-height: 1.65;
+  max-width: 1120px;
+}
+.situation-text strong {
+  color: var(--brand-primary);
+  font-weight: 600;
+}
+
+/* ---- Recommendation box ---- */
+.recommendation-box {
+  position: absolute;
+  top: 320px;
+  left: 48px;
+  right: 48px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-left: 4px solid var(--brand-accent);
+  padding: 18px 20px;
+}
+.recommendation-box .section-label {
+
+    bottom: 6px;
+}
+.recommendation-text {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--brand-primary);
+  line-height: 1.45;
+}
+.recommendation-text strong {
+  color: var(--brand-accent);
+}
+
+/* ---- Supporting rationale ---- */
+.rationale-block {
+  position: absolute;
+  top: 420px;
+  left: 48px;
+  right: 48px;
+}
+.rationale-bullets {
+
+    top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.rationale-bullet {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.bullet-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--brand-accent);
+  flex-shrink: 0;
+
+    top: 5px;
+}
+.bullet-text {
+  font-size: 12.5px;
+  color: var(--text-dark);
+  line-height: 1.5;
+}
+.bullet-text strong {
+  color: var(--brand-primary);
+  font-weight: 600;
+}
+
+/* ---- Decision strip ---- */
+.decision-strip {
+  position: absolute;
+  bottom: 36px;
+  left: 0;
+  right: 0;
+  background: var(--brand-primary);
+  color: #FFFFFF;
+  padding: 13px 48px;
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+.decision-label {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--brand-accent-soft);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.decision-text {
+  font-size: 13.5px;
+  font-weight: 600;
+  line-height: 1.35;
+  letter-spacing: 0.1px;
+}
+.decision-options {
+
+    left: auto;
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.decision-option {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 5px 14px;
+  border: 1.5px solid rgba(255,255,255,0.35);
+  color: #FFFFFF;
+}
+.decision-option.approve {
+  border-color: var(--brand-accent-soft);
+  color: var(--brand-accent-soft);
+}
+
+/* ---- Footer ---- */
+.footer-rule {
+  position: absolute;
+  bottom: 36px;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: var(--card-border);
+}
+.footer-left {
+  position: absolute;
+  bottom: 22px;
+  left: 48px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: var(--text-faint);
+}
+.footer-right {
+  position: absolute;
+  bottom: 22px;
+  right: 48px;
+  font-size: 11px;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+}
+</style>
+</head>
+<body>
+
+  <!-- Top chrome -->
+  <div class="accenture-tag" data-shape-id="accenture-tag">ACCENTURE INTERNAL</div>
+
+  <!-- Title block -->
+  <div class="title-block" data-shape-id="title-block">
+    <div class="title-text" data-shape-id="title">Executive briefing &mdash; <strong>decision required.</strong></div>
+    <div class="title-subhead" data-shape-id="subtitle">Prepared for: Office of the Managing Director &middot; Global Operations Program &middot; 19 May 2026</div>
+    <div class="title-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- Memo header row -->
+  <div class="memo-header" data-shape-id="memo-header">
+    <div class="memo-field" data-shape-id="memo-field-to">
+      <div class="memo-field-label">TO</div>
+      <div class="memo-field-value">Sarah Chen, Managing Director</div>
+    </div>
+    <div class="memo-field" data-shape-id="memo-field-from">
+      <div class="memo-field-label">FROM</div>
+      <div class="memo-field-value">Global Operations Program Team</div>
+    </div>
+    <div class="memo-field" data-shape-id="memo-field-date">
+      <div class="memo-field-label">DATE</div>
+      <div class="memo-field-value">19 May 2026</div>
+    </div>
+    <div class="memo-field" data-shape-id="memo-field-re">
+      <div class="memo-field-label">RE</div>
+      <div class="memo-field-value re">Phase 2 Go / No-Go Approval</div>
+    </div>
+  </div>
+
+  <!-- Divider -->
+  <div class="memo-divider" data-shape-id="memo-divider"></div>
+
+  <!-- Situation -->
+  <div class="situation-block" data-shape-id="situation-block">
+    <div class="section-label" data-shape-id="situation-label">Situation</div>
+    <div class="situation-text" data-shape-id="situation-text">
+      The Phase 1 diagnostic confirmed that <strong>three core back-office processes are operating at 40–55% of benchmark efficiency</strong>, contributing an estimated $2.4M in annual avoidable cost. The root cause is fragmented tooling across six legacy platforms with no unified data layer. Phase 2 proposes a targeted consolidation of accounts payable, procurement intake, and vendor onboarding onto a single orchestration layer, with go-live targeted for Q4 2026.
+    </div>
+  </div>
+
+  <!-- Recommendation box -->
+  <div class="recommendation-box" data-shape-id="recommendation-box">
+    <div class="section-label" data-shape-id="recommendation-label">Recommendation</div>
+    <div class="recommendation-text" data-shape-id="recommendation-text">
+      Approve <strong>Phase 2 consolidation</strong> with a budget of $1.8M and a 28-week delivery window. Appoint a dedicated Program Director by 2 June 2026 to maintain momentum from the Phase 1 team.
+    </div>
+  </div>
+
+  <!-- Supporting rationale -->
+  <div class="rationale-block" data-shape-id="rationale-block">
+    <div class="section-label" data-shape-id="rationale-label">Supporting Rationale</div>
+    <div class="rationale-bullets" data-shape-id="rationale-bullets">
+      <div class="rationale-bullet" data-shape-id="bullet-1">
+        <div class="bullet-dot"></div>
+        <div class="bullet-text"><strong>ROI positive in Month 14:</strong> projected $2.4M annual savings against $1.8M investment yields a 14-month payback — within the board-approved threshold of 18 months.</div>
+      </div>
+      <div class="rationale-bullet" data-shape-id="bullet-2">
+        <div class="bullet-dot"></div>
+        <div class="bullet-text"><strong>Risk of delay is quantified:</strong> each quarter of deferral adds ~$600K in avoidable cost and increases integration complexity as legacy contract renewals lock in for 2027.</div>
+      </div>
+      <div class="rationale-bullet" data-shape-id="bullet-3">
+        <div class="bullet-dot"></div>
+        <div class="bullet-text"><strong>Delivery team is ready:</strong> Phase 1 squad retains full institutional knowledge; re-mobilising after a gap of more than 6 weeks would require a partial re-scoping effort and adds 4–6 weeks to timeline.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer rule (sits above decision strip) -->
+  <div class="footer-left" data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+
+  <!-- Decision strip -->
+  <div class="decision-strip" data-shape-id="decision-strip">
+    <div class="decision-label" data-shape-id="decision-label">Decision Requested</div>
+    <div class="decision-text" data-shape-id="decision-text">DECISION REQUESTED BY 26 MAY 2026 &mdash; Approve Phase 2 budget and Program Director appointment</div>
+    <div class="decision-options" data-shape-id="decision-options">
+      <div class="decision-option approve" data-shape-id="option-approve">APPROVE</div>
+      <div class="decision-option" data-shape-id="option-reject">REJECT</div>
+      <div class="decision-option" data-shape-id="option-defer">DEFER</div>
+    </div>
+  </div>
+
+</body>
+</html>

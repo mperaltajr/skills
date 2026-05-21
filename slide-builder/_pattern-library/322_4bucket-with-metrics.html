@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>322 – 4-Bucket with Metrics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    background: var(--slide-bg);
+    font-family: 'Inter', sans-serif;
+    color: var(--text-dark);
+  }
+
+  .slide {
+    width: 1280px;
+    height: 720px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    background: var(--slide-bg);
+  }
+
+  /* ── TOP CHROME ── */
+  .chrome-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 48px 0;
+    flex-shrink: 0;
+  }
+
+  .chrome-internal {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .draft-badge {
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 0;
+    line-height: 1.4;
+  }
+
+  /* spacer to balance the 3-column top row */
+  .chrome-top-right {
+    width: 140px;
+  }
+
+  /* ── HEADER ── */
+  .header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 0;
+  overflow: visible;
+
+  }
+
+  .title {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+  }
+
+  .title strong {
+    color: var(--brand-accent);
+    font-weight: 700;
+  }
+
+  .subheadline {
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+}
+
+  .accent-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+
+
+    background: var(--brand-accent);
+    border: none;
+  }
+
+  /* ── CONTENT BODY ── */
+  .content-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 20px 48px 0;
+    gap: 12px;
+    min-height: 0;
+  }
+
+  /* ── KPI STRIP ── */
+  .kpi-strip {
+    display: flex; flex-wrap: wrap;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  .kpi-tile {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-bottom: 3px solid var(--brand-accent);
+    padding: 14px 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .kpi-name {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+  }
+
+  .kpi-number {
+    font-size: 34px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.1;
+  }
+
+  .kpi-delta {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1;
+  }
+
+  .kpi-delta.up {
+    color: #16A34A;
+  }
+
+  .kpi-delta.down {
+    color: #DC2626;
+  }
+
+  /* ── CONNECTOR STRIPE ── */
+  .connector {
+    display: flex; flex-wrap: wrap;
+    gap: 12px;
+    flex-shrink: 0;
+    padding: 0;
+  }
+
+  .connector-line {
+    height: 2px;
+    background: linear-gradient(to bottom, var(--card-border) 0%, transparent 100%);
+    margin: 0 32px;
+  }
+
+  /* ── CONTENT COLUMNS ── */
+  .column-strip {
+    display: flex; flex-wrap: wrap;
+    gap: 12px;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .col-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-top: none;
+    padding: 14px 16px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 0;
+  }
+
+  .col-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .col-bullets {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+    flex: 1;
+  }
+
+  .col-bullets li {
+    font-size: 14px;
+    color: var(--text-mid);
+    line-height: 1.5;
+}
+
+  .col-bullets li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 6px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--brand-accent-soft);
+  }
+
+  .status-pill {
+    align-self: flex-start;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    padding: 3px 10px;
+    border-radius: 100px;
+    line-height: 1.4;
+}
+
+  .pill-green {
+    background: #DCFCE7;
+    color: #15803D;
+  }
+
+  .pill-amber {
+    background: #FEF9C3;
+    color: #A16207;
+  }
+
+  .pill-red {
+    background: #FEE2E2;
+    color: #B91C1C;
+  }
+
+  .pill-blue {
+    background: #EFF6FF;
+    color: #1D4ED8;
+  }
+
+  /* ── FOOTER ── */
+  .footer {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    height: 36px;
+    border-top: 1px solid var(--card-border);
+}
+
+  .footer-left,
+  .footer-right {
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+</style>
+</head>
+<body>
+<div class="slide">
+
+  <!-- TOP CHROME -->
+  <div class="chrome-top">
+    <span class="chrome-internal">Accenture Internal</span>
+    <div class="chrome-top-right"></div>
+  </div>
+
+  <!-- HEADER -->
+  <div class="header">
+    <h1 class="title">Program health at a glance — <strong>four critical dimensions</strong></h1>
+    <p class="subheadline">KPI snapshot with supporting evidence by workstream · as of May 2026</p>
+    <div class="accent-rule"></div>
+  </div>
+
+  <!-- CONTENT BODY -->
+  <div class="content-body">
+
+    <!-- KPI STRIP -->
+    <div class="kpi-strip">
+      <div class="kpi-tile">
+        <span class="kpi-name">Delivery Velocity</span>
+        <span class="kpi-number">94%</span>
+        <span class="kpi-delta up">▲ 6pp vs. prior period</span>
+      </div>
+      <div class="kpi-tile">
+        <span class="kpi-name">Budget Utilisation</span>
+        <span class="kpi-number">$8.2M</span>
+        <span class="kpi-delta down">▼ $0.4M over forecast</span>
+      </div>
+      <div class="kpi-tile">
+        <span class="kpi-name">Adoption Rate</span>
+        <span class="kpi-number">71%</span>
+        <span class="kpi-delta up">▲ 12pp month-on-month</span>
+      </div>
+      <div class="kpi-tile">
+        <span class="kpi-name">Risk Exposure</span>
+        <span class="kpi-number">3</span>
+        <span class="kpi-delta down">▼ 2 open critical items</span>
+      </div>
+    </div>
+
+    <!-- CONTENT COLUMNS — aligned 1:1 under KPI tiles -->
+    <div class="column-strip">
+
+      <div class="col-card">
+        <span class="col-label">Delivery</span>
+        <ul class="col-bullets">
+          <li>Sprint 18 closed with zero carryover stories; velocity stable at 42 pts</li>
+          <li>CI/CD pipeline mean lead time reduced from 4.1 to 2.8 days this quarter</li>
+          <li>UAT sign-off achieved for three of four modules ahead of schedule</li>
+        </ul>
+        <span class="status-pill pill-green">On Track</span>
+      </div>
+
+      <div class="col-card">
+        <span class="col-label">Finance</span>
+        <ul class="col-bullets">
+          <li>Infrastructure overspend driven by unplanned DR environment provisioning</li>
+          <li>Change request #CR-041 submitted to baseline; approval pending steering</li>
+          <li>Remaining contingency buffer: $1.1M against $12M total programme budget</li>
+        </ul>
+        <span class="status-pill pill-amber">Needs Attention</span>
+      </div>
+
+      <div class="col-card">
+        <span class="col-label">Adoption</span>
+        <ul class="col-bullets">
+          <li>Wave 2 rollout covers 1,800 end-users across EMEA and North America</li>
+          <li>Hypercare desk resolving 87% of tickets within 4 business hours</li>
+          <li>Targeted coaching sessions scheduled for three low-engagement cohorts</li>
+        </ul>
+        <span class="status-pill pill-green">On Track</span>
+      </div>
+
+      <div class="col-card">
+        <span class="col-label">Risk &amp; Issues</span>
+        <ul class="col-bullets">
+          <li>Integration dependency on legacy ERP API remains unresolved — owner: TechOps</li>
+          <li>Data privacy review for EU region requested; DPO response due 30 May</li>
+          <li>Vendor SLA breach escalated; penalty clause review underway with Legal</li>
+        </ul>
+        <span class="status-pill pill-red">At Risk</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <span class="footer-left">Confidential</span>
+    <span class="footer-right">Slide Lab · 2026 · 322</span>
+  </div>
+
+</div>
+</body>
+</html>

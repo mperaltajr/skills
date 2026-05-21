@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<title>280 — Customer Onboarding Journey</title>
+<style>
+  :root {
+    --brand-primary:     #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent:      #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark:         #1A1A2E;
+    --text-mid:          #64748B;
+    --text-faint:        #94A3B8;
+    --slide-bg:          #FFFFFF;
+    --card-bg:           #F8F4FC;
+    --card-border:       #E5D5F0;
+    --draft-bg:          #FFD600;
+    --draft-text:        #B71C1C;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: #E8E8EC;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: var(--text-dark);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  /* ── Slide canvas ── */
+  .slide {
+    width: 1280px;
+    height: 720px;
+    background: var(--slide-bg);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  }
+
+  /* ── Top chrome ── */
+  .project-label {
+    position: absolute;
+    top: 14px; left: 24px;
+    color: var(--text-faint);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    z-index: 5;
+  }
+  .draft-badge {
+    position: absolute;
+    top: 10px; left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 10px;
+    font-weight: 800;
+    padding: 3px 14px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    z-index: 5;
+  }
+
+  /* ── Title block ── */
+  .title-block {
+    position: absolute; top: 0; left: 0; right: 0; height: 160px;
+  }
+  .title-main {
+    font-size: 29px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.15;
+    letter-spacing: -0.3px;
+  }
+  .title-main strong { color: var(--brand-accent); font-weight: 700; }
+  .title-sub {
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+
+    top: 5px;
+    letter-spacing: 0.1px;
+  }
+  .brand-rule {
+    position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+
+}
+
+  /* ── Journey body ── */
+  .journey-body {
+    position: absolute;
+    top: 142px;
+    left: 56px;
+    right: 56px;
+    bottom: 38px;          /* above footer rule */
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  /* ── ROW 1: Stage headers ── */
+  .stage-headers {
+    display: flex; flex-wrap: wrap;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .stage-header {
+    background: var(--brand-primary);
+    color: #fff;
+    border-radius: 4px;
+    padding: 10px 10px 9px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .stage-num {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    color: var(--brand-accent-soft);
+    flex-shrink: 0;
+  }
+  .stage-name {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    line-height: 1.2;
+    text-transform: uppercase;
+    font-size: 11px;
+  }
+
+  /* ── ROW 2: Touchpoints ── */
+  .touchpoints-row {
+    display: flex; flex-wrap: wrap;
+    gap: 6px;
+    flex: 1 1 0;
+    min-height: 0;
+  }
+  .stage-touchpoints {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .touchpoint {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 4px;
+    padding: 8px 9px;
+    font-size: 11px;
+    color: var(--text-dark);
+    line-height: 1.3;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex: 1;
+  }
+  .tp-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--brand-accent-soft);
+    flex-shrink: 0;
+  }
+
+  /* ── ROW 3: Emotion line (SVG container) ── */
+  .emotion-row {
+    flex-shrink: 0;
+    position: relative;
+    height: 108px;
+  }
+  .emotion-svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    overflow: visible;
+  }
+
+  /* Pain point callout */
+  .pain-callout {
+    position: absolute;
+    bottom: 2px;
+    /* positioned via JS-equivalent inline style */
+    transform: translateX(-50%);
+    background: #FFF3F3;
+    border: 1.5px solid #F87171;
+    border-radius: 4px;
+    padding: 4px 9px;
+    font-size: 10px;
+    font-weight: 600;
+    color: #B91C1C;
+    white-space: nowrap;
+    z-index: 3;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    box-shadow: 0 2px 6px rgba(185,28,28,0.12);
+  }
+  .pain-callout::before {
+    content: '';
+    position: absolute;
+    top: -6px;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 6px solid #F87171;
+  }
+
+  /* ── ROW 4: Opportunities ── */
+  .opps-row {
+    display: flex; flex-wrap: wrap;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .opp-cell {
+    background: #F0FDF4;
+    border: 1px solid #A7E5BF;
+    border-radius: 4px;
+    padding: 9px 9px;
+    font-size: 11px;
+    font-style: italic;
+    color: var(--text-mid);
+    line-height: 1.4;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+  .opp-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
+  }
+  .opp-check {
+    color: #16A34A;
+    font-size: 10px;
+    font-weight: 700;
+    font-style: normal;
+    flex-shrink: 0;
+
+    top: 1px;
+  }
+
+  /* ── Row label strip (left of rows 2–4) ── */
+  /* No sidebar in this pattern — labels are implied by visual treatment */
+
+  /* ── Footer ── */
+  .footer-rule  { position: absolute; left: 0; right: 0; bottom: 28px; height: 1px; background: var(--card-border); }
+  .footer-left  { position: absolute; bottom: 12px; left: 24px; color: var(--text-faint); font-size: 11px; letter-spacing: 1px; text-transform: uppercase; }
+  .footer-right { position: absolute; bottom: 12px; right: 24px; color: var(--text-faint); font-size: 11px; letter-spacing: 0.5px; }
+</style>
+</head>
+<body>
+<div class="slide">
+
+  <!-- Top chrome -->
+
+  <!-- Title block -->
+  <div class="title-block" data-shape-id="title-block">
+    <div class="title-main" data-shape-id="title">
+      Customer <strong>Onboarding Journey</strong> — Five Stages to Advocacy
+    </div>
+    <div class="title-sub" data-shape-id="subtitle">Touchpoints, emotional arc, and improvement opportunities across the full onboarding lifecycle.</div>
+    <div class="brand-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- Journey body -->
+  <div class="journey-body">
+
+    <!-- ROW 1: Stage headers -->
+    <div class="stage-headers" data-shape-id="stage-headers">
+      <div class="stage-header" data-shape-id="stage-1-header">
+        <span class="stage-num">01</span>
+        <span class="stage-name">Sign-Up</span>
+      </div>
+      <div class="stage-header" data-shape-id="stage-2-header">
+        <span class="stage-num">02</span>
+        <span class="stage-name">Welcome &amp; Setup</span>
+      </div>
+      <div class="stage-header" data-shape-id="stage-3-header">
+        <span class="stage-num">03</span>
+        <span class="stage-name">First Use</span>
+      </div>
+      <div class="stage-header" data-shape-id="stage-4-header">
+        <span class="stage-num">04</span>
+        <span class="stage-name">Habit Formation</span>
+      </div>
+      <div class="stage-header" data-shape-id="stage-5-header">
+        <span class="stage-num">05</span>
+        <span class="stage-name">Advocacy</span>
+      </div>
+    </div>
+
+    <!-- ROW 2: Touchpoints (3 per stage) -->
+    <div class="touchpoints-row" data-shape-id="touchpoints-row">
+      <!-- Stage 1 -->
+      <div class="stage-touchpoints" data-shape-id="stage-1-touchpoints">
+        <div class="touchpoint" data-shape-id="tp-1-1"><span class="tp-dot"></span>Signup page</div>
+        <div class="touchpoint" data-shape-id="tp-1-2"><span class="tp-dot"></span>Email confirmation</div>
+        <div class="touchpoint" data-shape-id="tp-1-3"><span class="tp-dot"></span>Welcome email</div>
+      </div>
+      <!-- Stage 2 -->
+      <div class="stage-touchpoints" data-shape-id="stage-2-touchpoints">
+        <div class="touchpoint" data-shape-id="tp-2-1"><span class="tp-dot"></span>Setup wizard</div>
+        <div class="touchpoint" data-shape-id="tp-2-2"><span class="tp-dot"></span>Configuration call</div>
+        <div class="touchpoint" data-shape-id="tp-2-3"><span class="tp-dot"></span>Resource portal</div>
+      </div>
+      <!-- Stage 3 -->
+      <div class="stage-touchpoints" data-shape-id="stage-3-touchpoints">
+        <div class="touchpoint" data-shape-id="tp-3-1"><span class="tp-dot"></span>Tutorial</div>
+        <div class="touchpoint" data-shape-id="tp-3-2"><span class="tp-dot"></span>Support chat</div>
+        <div class="touchpoint" data-shape-id="tp-3-3"><span class="tp-dot"></span>Check-in email</div>
+      </div>
+      <!-- Stage 4 -->
+      <div class="stage-touchpoints" data-shape-id="stage-4-touchpoints">
+        <div class="touchpoint" data-shape-id="tp-4-1"><span class="tp-dot"></span>Weekly digest</div>
+        <div class="touchpoint" data-shape-id="tp-4-2"><span class="tp-dot"></span>Usage tips</div>
+        <div class="touchpoint" data-shape-id="tp-4-3"><span class="tp-dot"></span>Success team call</div>
+      </div>
+      <!-- Stage 5 -->
+      <div class="stage-touchpoints" data-shape-id="stage-5-touchpoints">
+        <div class="touchpoint" data-shape-id="tp-5-1"><span class="tp-dot"></span>NPS survey</div>
+        <div class="touchpoint" data-shape-id="tp-5-2"><span class="tp-dot"></span>Case study ask</div>
+        <div class="touchpoint" data-shape-id="tp-5-3"><span class="tp-dot"></span>Referral program</div>
+      </div>
+    </div>
+
+    <!-- ROW 3: Emotion line (SVG) -->
+    <!--
+      5 stage columns, evenly spaced across the 1168px content width.
+      Column centers at x = 10%, 30%, 50%, 70%, 90% of SVG width.
+      Emotion Y values (0=top, 100=bottom of SVG viewBox):
+        Stage 1 neutral  → score 40 → y = 60  (lower = happier = higher score, invert: y = 100-score)
+        Stage 2 positive → score 55 → y = 45
+        Stage 3 frustrated → score 35 → y = 65  ← lowest (pain point)
+        Stage 4 satisfied → score 65 → y = 35
+        Stage 5 delighted → score 80 → y = 20
+
+      SVG viewBox="0 0 100 100", preserveAspectRatio="none" but we use absolute positions
+      for faces (emoji) — so we render the SVG in a fixed-px container and compute px coords.
+
+      Container: 100% wide × 90px tall.
+      Points: x at 10%,30%,50%,70%,90% = 116.8, 350.4, 584, 817.6, 1051.2 px (of 1168px)
+      Simplified fractions: 1/10, 3/10, 5/10, 7/10, 9/10 of viewBox width.
+
+      Emotion line Y within SVG (viewBox 0 0 1000 90):
+        score 40 → neutral  → y=54
+        score 55 → positive → y=40
+        score 35 → frustrated → y=58
+        score 65 → satisfied → y=30
+        score 80 → delighted → y=16
+      Dots at these coords. Emoji faces sit ~12px above each dot.
+    -->
+    <div class="emotion-row" data-shape-id="emotion-row">
+      <svg class="emotion-svg" viewBox="0 0 1000 90" preserveAspectRatio="none" data-shape-id="emotion-svg">
+
+        <!-- Subtle guide baseline -->
+        <line x1="80" y1="70" x2="920" y2="70" stroke="#E5D5F0" stroke-width="1" stroke-dasharray="3 3"/>
+
+        <!-- Emotion polyline -->
+        <polyline
+          points="100,54 300,40 500,58 700,30 900,16"
+          fill="none"
+          stroke="#A100FF"
+          stroke-width="2.5"
+          stroke-linejoin="round"
+          stroke-linecap="round"
+          data-shape-id="emotion-line"
+        />
+
+        <!-- Dots at each point -->
+        <circle cx="100" cy="54" r="6" fill="#A100FF" data-shape-id="emotion-dot-1"/>
+        <circle cx="300" cy="40" r="6" fill="#A100FF" data-shape-id="emotion-dot-2"/>
+        <!-- Stage 3 dot: red to signal pain -->
+        <circle cx="500" cy="58" r="7" fill="#EF4444" stroke="#fff" stroke-width="1.5" data-shape-id="emotion-dot-3"/>
+        <circle cx="700" cy="30" r="6" fill="#A100FF" data-shape-id="emotion-dot-4"/>
+        <circle cx="900" cy="16" r="6" fill="#A100FF" data-shape-id="emotion-dot-5"/>
+
+        <!-- Emotion face labels (above each dot) -->
+        <!-- Stage 1: neutral 😐 -->
+        <text x="100" y="42" text-anchor="middle" font-size="14" font-family="Segoe UI Emoji, Apple Color Emoji, sans-serif" data-shape-id="emotion-face-1">😐</text>
+        <!-- Stage 2: positive 😊 -->
+        <text x="300" y="28" text-anchor="middle" font-size="14" font-family="Segoe UI Emoji, Apple Color Emoji, sans-serif" data-shape-id="emotion-face-2">😊</text>
+        <!-- Stage 3: frustrated 😤 -->
+        <text x="500" y="46" text-anchor="middle" font-size="14" font-family="Segoe UI Emoji, Apple Color Emoji, sans-serif" data-shape-id="emotion-face-3">😤</text>
+        <!-- Stage 4: satisfied 😌 -->
+        <text x="700" y="18" text-anchor="middle" font-size="14" font-family="Segoe UI Emoji, Apple Color Emoji, sans-serif" data-shape-id="emotion-face-4">😌</text>
+        <!-- Stage 5: delighted 🤩 -->
+        <text x="900" y="4" text-anchor="middle" font-size="14" font-family="Segoe UI Emoji, Apple Color Emoji, sans-serif" data-shape-id="emotion-face-5">🤩</text>
+
+        <!-- Score labels beneath each dot -->
+        <text x="100" y="68" text-anchor="middle" font-size="7" font-family="Inter, sans-serif" fill="#94A3B8" data-shape-id="score-1">40</text>
+        <text x="300" y="54" text-anchor="middle" font-size="7" font-family="Inter, sans-serif" fill="#94A3B8" data-shape-id="score-2">55</text>
+        <text x="500" y="73" text-anchor="middle" font-size="7" font-family="Inter, sans-serif" fill="#94A3B8" data-shape-id="score-3">35</text>
+        <text x="700" y="44" text-anchor="middle" font-size="7" font-family="Inter, sans-serif" fill="#94A3B8" data-shape-id="score-4">65</text>
+        <text x="900" y="30" text-anchor="middle" font-size="7" font-family="Inter, sans-serif" fill="#94A3B8" data-shape-id="score-5">80</text>
+
+      </svg>
+
+      <!-- Pain point callout pinned above stage 3 column centre (≈50% of container) -->
+      <div class="pain-callout" style="left:50%; bottom:4px;" data-shape-id="pain-callout">
+        <span>&#9888;</span> 42% of users drop off at first complex configuration step
+      </div>
+
+    </div>
+
+    <!-- ROW 4: Opportunities (2 per stage) -->
+    <div class="opps-row" data-shape-id="opps-row">
+      <!-- Stage 1 -->
+      <div class="opp-cell" data-shape-id="opp-1">
+        <div class="opp-item"><span class="opp-check">&#10003;</span><span>Simplify form fields &amp; reduce friction at registration</span></div>
+        <div class="opp-item"><span class="opp-check">&#10003;</span><span>A/B test confirm email subject lines</span></div>
+      </div>
+      <!-- Stage 2 -->
+      <div class="opp-cell" data-shape-id="opp-2">
+        <div class="opp-item"><span class="opp-check">&#10003;</span><span>Personalise wizard steps by use case</span></div>
+        <div class="opp-item"><span class="opp-check">&#10003;</span><span>Offer self-serve config as alternative to call</span></div>
+      </div>
+      <!-- Stage 3 -->
+      <div class="opp-cell" style="background:#FEF2F2; border-color:#FECACA;" data-shape-id="opp-3">
+        <div class="opp-item"><span class="opp-check" style="color:#DC2626;">&#10003;</span><span>Break complex config into guided micro-steps</span></div>
+        <div class="opp-item"><span class="opp-check" style="color:#DC2626;">&#10003;</span><span>Trigger proactive chat at drop-off point</span></div>
+      </div>
+      <!-- Stage 4 -->
+      <div class="opp-cell" data-shape-id="opp-4">
+        <div class="opp-item"><span class="opp-check">&#10003;</span><span>Tailor digest to usage patterns per segment</span></div>
+        <div class="opp-item"><span class="opp-check">&#10003;</span><span>Gamify milestones to reinforce habit loops</span></div>
+      </div>
+      <!-- Stage 5 -->
+      <div class="opp-cell" data-shape-id="opp-5">
+        <div class="opp-item"><span class="opp-check">&#10003;</span><span>Automate referral rewards at NPS &#8805;9</span></div>
+        <div class="opp-item"><span class="opp-check">&#10003;</span><span>Co-create case studies with champions</span></div>
+      </div>
+    </div>
+
+  </div><!-- /journey-body -->
+
+  <!-- Footer -->
+  <div class="footer-left" data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+
+</div>
+</body>
+</html>

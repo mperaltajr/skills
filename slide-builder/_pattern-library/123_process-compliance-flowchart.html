@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>123 &middot; Process compliance / governance flowchart</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #4a4a4a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.slide {
+  width: 1280px;
+  height: 720px;
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.35);
+}
+
+/* ── Chrome ─────────────────────────────────────────── */
+.accenture-tag {
+  position: absolute;
+  top: 24px; left: 24px;
+  font-size: 10px;
+  color: var(--text-faint);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  z-index: 5;
+}
+
+.draft-badge {
+  position: absolute;
+  top: 20px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--draft-bg);
+  color: var(--draft-text);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 16px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  z-index: 5;
+  /* NO border-radius */
+}
+
+/* ── Title block ─────────────────────────────────────── */
+.title-block {
+  position: absolute;
+  top: 48px; left: 48px; right: 48px;
+}
+.action-title {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-dark);
+  line-height: 1.2;
+}
+.action-title strong {
+  color: var(--brand-primary);
+}
+.subheadline {
+  font-size: 14px;
+  font-style: italic;
+  color: var(--text-mid);
+  margin-top: 5px;
+}
+.accent-rule {
+  width: 64px;
+  height: 3px;
+  background: var(--brand-accent);
+  margin-top: 12px;
+}
+
+/* ── Diagram area ────────────────────────────────────── */
+.diagram-area {
+  position: absolute;
+  top: 140px; left: 48px; right: 48px; bottom: 28px;
+}
+
+/* ── Legend ───────────────────────────────────────────── */
+.legend {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 9.5px;
+  font-weight: 600;
+  color: var(--text-mid);
+  white-space: nowrap;
+}
+.legend-line {
+  width: 20px;
+  height: 3px;
+  flex-shrink: 0;
+  border-radius: 1px;
+}
+.legend-line-green  { background: #16A34A; }
+.legend-line-amber  { background: #D97706; }
+.legend-line-red    { background: #DC2626; }
+
+/* ── Footer ───────────────────────────────────────────── */
+.footer {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  padding: 0 48px;
+  font-size: 9.5px;
+  color: var(--text-faint);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-top: 1px solid var(--card-border);
+  background: #FBFAFD;
+}
+.footer-right {
+  margin-left: auto;
+}
+</style>
+</head>
+<body>
+<div class="slide" data-shape-id="slide">
+
+  <!-- Chrome -->
+  <div class="accenture-tag" data-shape-id="accenture-tag">Accenture Internal</div>
+
+  <!-- Title -->
+  <div class="title-block" data-shape-id="title-block">
+    <div class="action-title" data-shape-id="title">
+      <strong>Steering committee required above $50K</strong> &mdash; two rework loops add average 4-day delay
+    </div>
+    <div class="subheadline" data-shape-id="subtitle">
+      Procurement approval governance flow with yes/no decision gates &middot; role and SLA shown per step
+    </div>
+    <div class="accent-rule" data-shape-id="accent-rule"></div>
+    <!-- Legend — right-aligned in title zone (PRIMARY placement) -->
+    <div class="legend" data-shape-id="legend">
+      <div class="legend-item" data-shape-id="legend-green">
+        <div class="legend-line legend-line-green"></div>Compliant path
+      </div>
+      <div class="legend-item" data-shape-id="legend-amber">
+        <div class="legend-line legend-line-amber"></div>Exception path (&lt;$50K)
+      </div>
+      <div class="legend-item" data-shape-id="legend-red">
+        <div class="legend-line legend-line-red"></div>Rejection / rework
+      </div>
+    </div>
+  </div>
+
+  <!-- Diagram area -->
+  <div class="diagram-area" data-shape-id="diagram-area">
+
+    <!--
+      SVG viewport: 1184 × 524  (slide 1280 - 2×48 margins = 1184; 720 - 140 title - 28 footer - 28 legend = 524)
+
+      LAYOUT PLAN (all coords in SVG units = px):
+      ──────────────────────────────────────────────────────────────────────────────
+      Columns (x-centres):
+        Col A (Start/End left):     x = 80
+        Col B (Request submitted?): x = 220
+        Col C (Value > $50K?):      x = 440
+        Col D (Mgr approval):       x = 640   (low-value branch, drops from Col C)
+        Col E (Steering Cttee):     x = 700   (high-value branch, continues right)
+        Col F (Approved?):          x = 880
+        Col G (PO Issued):          x = 1050
+        Col H (End):                x = 1140
+
+      Rows (y-centres):
+        Row 1 (main flow):          y = 140   — Start → Request? → Value? → Steering → Approved? → PO → End
+        Row 2 (rejection):          y = 300   — Return to requester (below Request?)
+        Row 3 (mgr-only path):      y = 300   — Manager approval only (below Value?)
+        Row 4 (rework loop):        y = 380   — Revise and resubmit (below Approved?)
+
+      Shape dimensions:
+        Process box (rounded rect):  w=130, h=54, rx=8
+        Decision diamond:            half-w=52, half-h=36
+        Start/End circle:            r=26
+        Rejection oval (pill):       w=110, h=44, rx=22
+
+      Colours:
+        Process box fill:    #5C2D87 (brand-primary-mid), text white
+        Decision diamond:    #D97706 (amber), text #1A1A2E
+        Start circle:        #1A1A2E, text white
+        End circle:          #16A34A (green), text white
+        Rework box:          #DC2626 (red), text white
+        Rejection pill:      #DC2626, text white
+
+        Green arrow:  #16A34A (compliant path)
+        Amber arrow:  #D97706 (exception / alternative path)
+        Red arrow:    #DC2626 (rejection / rework)
+
+      ──────────────────────────────────────────────────────────────────────────────
+      REVISED LAYOUT — fitting all shapes in 1184×524:
+      ──────────────────────────────────────────────────────────────────────────────
+
+      Shapes (x=centre, y=centre):
+        S1  Start circle            x=68,   y=130   r=26
+        D1  "Request submitted?"    x=205,  y=130   diamond hw=56 hh=38
+        D2  "Is value > $50K?"      x=390,  y=130   diamond hw=56 hh=38
+        P1  "Steering Cttee appr."  x=590,  y=130   process w=140 h=56
+        D3  "Approved?"             x=790,  y=130   diamond hw=52 hh=36
+        P3  "PO Issued"             x=970,  y=130   process w=110 h=52
+        S2  End circle              x=1105, y=130   r=26
+
+        R1  "Return to requester"   x=205,  y=310   rejection r=22 w=118 h=44
+        P2  "Manager approval only" x=390,  y=310   process w=140 h=56
+        P4  "PO Issued (mgr)"       x=970,  y=310   process w=110 h=52   (merges into P3)
+        P5  "Revise & resubmit"     x=790,  y=340   process w=130 h=52   (rework)
+
+      Arrowhead markers defined below.
+    -->
+
+    <svg
+      data-shape-id="flowchart-svg"
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="0 0 1184 524"
+      width="1184"
+      height="524"
+      style="position:absolute;top:0;left:0;"
+    >
+      <defs>
+        <!-- Arrowhead markers -->
+        <marker id="arrow-green" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#16A34A"/>
+        </marker>
+        <marker id="arrow-amber" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#D97706"/>
+        </marker>
+        <marker id="arrow-red" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L0,6 L8,3 z" fill="#DC2626"/>
+        </marker>
+        <!-- Filtered drop shadow for shapes -->
+        <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+          <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0003"/>
+        </filter>
+      </defs>
+
+      <!-- ═══════════════════════════════════════════════════════════════
+           CONNECTORS (drawn first so shapes sit on top)
+           ═══════════════════════════════════════════════════════════════ -->
+
+      <!-- S1 Start → D1 Request submitted? (green) -->
+      <line x1="94" y1="130" x2="146" y2="130"
+            stroke="#16A34A" stroke-width="2.5" marker-end="url(#arrow-green)"/>
+
+      <!-- D1 → right → D2  (YES, green) -->
+      <line x1="261" y1="130" x2="331" y2="130"
+            stroke="#16A34A" stroke-width="2.5" marker-end="url(#arrow-green)"/>
+
+      <!-- D2 → right → P1 Steering Cttee  (YES, green, high-value path) -->
+      <line x1="446" y1="130" x2="516" y2="130"
+            stroke="#16A34A" stroke-width="2.5" marker-end="url(#arrow-green)"/>
+
+      <!-- P1 → D3 Approved?  (green) -->
+      <line x1="660" y1="130" x2="735" y2="130"
+            stroke="#16A34A" stroke-width="2.5" marker-end="url(#arrow-green)"/>
+
+      <!-- D3 → right → P3 PO Issued  (YES, green) -->
+      <line x1="842" y1="130" x2="911" y2="130"
+            stroke="#16A34A" stroke-width="2.5" marker-end="url(#arrow-green)"/>
+
+      <!-- P3 → S2 End  (green) -->
+      <line x1="1025" y1="130" x2="1076" y2="130"
+            stroke="#16A34A" stroke-width="2.5" marker-end="url(#arrow-green)"/>
+
+      <!-- D1 → down → R1 Return to requester  (NO, red) -->
+      <line x1="205" y1="168" x2="205" y2="285"
+            stroke="#DC2626" stroke-width="2.5" marker-end="url(#arrow-red)"/>
+
+      <!-- D2 → down → P2 Manager approval only  (NO, amber) -->
+      <line x1="390" y1="168" x2="390" y2="280"
+            stroke="#D97706" stroke-width="2.5" marker-end="url(#arrow-amber)"/>
+
+      <!-- P2 Manager approval → right → merges into PO Issued row
+           Goes right to x=970, then up to y=130 via a corner path -->
+      <!-- P2 right edge → horizontal to x=920, then up to join P3/End flow -->
+      <polyline points="460,310 970,310 970,157"
+                fill="none" stroke="#D97706" stroke-width="2.5" marker-end="url(#arrow-amber)"/>
+
+      <!-- D3 → down → P5 Revise & resubmit  (NO, red) -->
+      <line x1="790" y1="166" x2="790" y2="312"
+            stroke="#DC2626" stroke-width="2.5" marker-end="url(#arrow-red)"/>
+
+      <!-- P5 Revise → loop back to P1 Steering Cttee via path:
+           left from P5, up to row 1, right back to P1 left edge at x=520, y=130 -->
+      <polyline points="725,340 498,340 498,130 519,130"
+                fill="none" stroke="#DC2626" stroke-width="2.5" marker-end="url(#arrow-red)"/>
+
+      <!-- ═══════════════════════════════════════════════════════════════
+           SHAPES
+           ═══════════════════════════════════════════════════════════════ -->
+
+      <!-- ── S1: Start circle ── -->
+      <circle cx="68" cy="130" r="26" fill="#1A1A2E" filter="url(#shadow)" data-shape-id="start-circle"/>
+      <text x="68" y="126" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#fff">START</text>
+      <text x="68" y="138" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" fill="#94A3B8">Day 0</text>
+
+      <!-- ── D1: "Request submitted?" decision diamond ── -->
+      <!-- Diamond centred at 205,130, half-w=56, half-h=38 -->
+      <polygon points="205,92 261,130 205,168 149,130"
+               fill="#D97706" filter="url(#shadow)" data-shape-id="diamond-request"/>
+      <text x="205" y="126" text-anchor="middle" font-family="Inter,sans-serif" font-size="9.5" font-weight="700" fill="#1A1A2E">Request</text>
+      <text x="205" y="138" text-anchor="middle" font-family="Inter,sans-serif" font-size="9.5" font-weight="700" fill="#1A1A2E">submitted?</text>
+
+      <!-- YES label on right branch of D1 -->
+      <text x="290" y="124" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="#16A34A">YES</text>
+      <!-- NO label on down branch of D1 -->
+      <text x="220" y="192" text-anchor="start" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="#DC2626">NO</text>
+
+      <!-- ── D2: "Is value > $50K?" decision diamond ── -->
+      <!-- Diamond centred at 390,130, half-w=56, half-h=38 -->
+      <polygon points="390,92 446,130 390,168 334,130"
+               fill="#D97706" filter="url(#shadow)" data-shape-id="diamond-value"/>
+      <text x="390" y="123" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="#1A1A2E">Value</text>
+      <text x="390" y="133" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="#1A1A2E">&gt; $50K?</text>
+      <text x="390" y="143" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#78350F">Procurement</text>
+
+      <!-- YES label on right branch of D2 -->
+      <text x="478" y="124" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="#16A34A">YES</text>
+      <!-- NO label on down branch of D2 -->
+      <text x="404" y="192" text-anchor="start" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="#D97706">NO</text>
+
+      <!-- ── P1: Steering Committee approval process box ── -->
+      <!-- Centred at 590,130, w=140, h=56 → x=520, y=102 -->
+      <rect x="520" y="102" width="140" height="56" rx="8"
+            fill="#5C2D87" filter="url(#shadow)" data-shape-id="box-steering"/>
+      <!-- Role badge -->
+      <rect x="521" y="103" width="138" height="14" rx="7" fill="rgba(255,255,255,0.18)"/>
+      <text x="590" y="113" text-anchor="middle" font-family="Inter,sans-serif" font-size="8.5" font-weight="700" fill="#C780FF" letter-spacing="0.5">STEERING COMMITTEE</text>
+      <text x="590" y="127" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="#fff">SC Approval</text>
+      <!-- SLA -->
+      <text x="590" y="141" text-anchor="middle" font-family="Inter,sans-serif" font-size="8.5" fill="#C780FF">SLA: 5 days</text>
+      <!-- Bottom accent line -->
+      <rect x="520" y="150" width="140" height="8" rx="0" fill="rgba(161,0,255,0.25)"/>
+      <text x="590" y="157" text-anchor="middle" font-family="Inter,sans-serif" font-size="7.5" fill="#fff">High-value path</text>
+
+      <!-- ── D3: "Approved?" decision diamond ── -->
+      <!-- Diamond centred at 790,130, half-w=52, half-h=36 -->
+      <polygon points="790,94 842,130 790,166 738,130"
+               fill="#D97706" filter="url(#shadow)" data-shape-id="diamond-approved"/>
+      <text x="790" y="126" text-anchor="middle" font-family="Inter,sans-serif" font-size="9.5" font-weight="700" fill="#1A1A2E">Approved</text>
+      <text x="790" y="138" text-anchor="middle" font-family="Inter,sans-serif" font-size="9.5" font-weight="700" fill="#1A1A2E">?</text>
+
+      <!-- YES label on right branch of D3 -->
+      <text x="873" y="124" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="#16A34A">YES</text>
+      <!-- NO label on down branch of D3 -->
+      <text x="805" y="189" text-anchor="start" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="#DC2626">NO</text>
+
+      <!-- ── P3: PO Issued (main, green) ── -->
+      <!-- Centred at 970,130, w=110, h=52 → x=915, y=104 -->
+      <rect x="915" y="104" width="110" height="52" rx="8"
+            fill="#5C2D87" filter="url(#shadow)" data-shape-id="box-po-main"/>
+      <rect x="916" y="105" width="108" height="13" rx="6" fill="rgba(255,255,255,0.18)"/>
+      <text x="970" y="115" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" font-weight="700" fill="#C780FF" letter-spacing="0.5">FINANCE</text>
+      <text x="970" y="129" text-anchor="middle" font-family="Inter,sans-serif" font-size="10.5" font-weight="700" fill="#fff">PO Issued</text>
+      <text x="970" y="143" text-anchor="middle" font-family="Inter,sans-serif" font-size="8.5" fill="#A7F3D0">SLA: 1 day</text>
+      <!-- green left accent -->
+      <rect x="915" y="104" width="6" height="52" rx="3" fill="#16A34A"/>
+
+      <!-- ── S2: End circle (green) ── -->
+      <circle cx="1105" cy="130" r="26" fill="#16A34A" filter="url(#shadow)" data-shape-id="end-circle"/>
+      <text x="1105" y="126" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#fff">END</text>
+      <text x="1105" y="138" text-anchor="middle" font-family="Inter,sans-serif" font-size="8.5" fill="#D1FAE5">Compliant</text>
+
+      <!-- ── R1: Return to requester (red pill) ── -->
+      <!-- Centred at 205,310, w=118, h=44, rx=22 → x=146, y=288 -->
+      <rect x="146" y="288" width="118" height="44" rx="22"
+            fill="#DC2626" filter="url(#shadow)" data-shape-id="box-return"/>
+      <text x="205" y="305" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="#fff">Return to</text>
+      <text x="205" y="317" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="#fff">Requester</text>
+      <text x="205" y="328" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#FCA5A5">Immediate</text>
+
+      <!-- ── P2: Manager approval only (amber path) ── -->
+      <!-- Centred at 390,310, w=140, h=56 → x=320, y=282 -->
+      <rect x="320" y="282" width="140" height="56" rx="8"
+            fill="#5C2D87" filter="url(#shadow)" data-shape-id="box-manager"/>
+      <rect x="321" y="283" width="138" height="14" rx="7" fill="rgba(255,255,255,0.18)"/>
+      <text x="390" y="293" text-anchor="middle" font-family="Inter,sans-serif" font-size="8.5" font-weight="700" fill="#C780FF" letter-spacing="0.5">LINE MANAGER</text>
+      <text x="390" y="307" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="#fff">Manager Approval</text>
+      <text x="390" y="320" text-anchor="middle" font-family="Inter,sans-serif" font-size="8.5" fill="#C780FF">SLA: 2 days</text>
+      <!-- amber left accent -->
+      <rect x="320" y="282" width="6" height="56" rx="3" fill="#D97706"/>
+
+      <!-- ── P5: Revise and resubmit (rework, red) ── -->
+      <!-- Centred at 790,340, w=130, h=52 → x=725, y=314 -->
+      <rect x="725" y="314" width="130" height="52" rx="8"
+            fill="#DC2626" filter="url(#shadow)" data-shape-id="box-revise"/>
+      <rect x="726" y="315" width="128" height="14" rx="7" fill="rgba(255,255,255,0.18)"/>
+      <text x="790" y="325" text-anchor="middle" font-family="Inter,sans-serif" font-size="8.5" font-weight="700" fill="#FCA5A5" letter-spacing="0.5">REQUESTER</text>
+      <text x="790" y="339" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="#fff">Revise &amp; Resubmit</text>
+      <text x="790" y="353" text-anchor="middle" font-family="Inter,sans-serif" font-size="8.5" fill="#FCA5A5">SLA: +4 days avg</text>
+      <!-- rework loop label -->
+      <text x="635" y="356" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="#DC2626">REWORK LOOP</text>
+
+      <!-- ── Branch labels on amber path ── -->
+      <!-- "Low value" label near D2→P2 arrow -->
+      <text x="404" y="245" text-anchor="start" font-family="Inter,sans-serif" font-size="9" fill="#D97706" font-weight="600">&lt;$50K</text>
+
+      <!-- "Manager only" path label mid-arrow -->
+      <text x="695" y="327" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" fill="#D97706" font-weight="600">→ PO</text>
+
+      <!-- ── Compliant path indicator line (subtle background band) ── -->
+      <!-- Horizontal guideline for main flow — just a faint dashed line behind everything (decorative) -->
+
+    </svg>
+
+
+  </div><!-- /diagram-area -->
+
+  <!-- Footer -->
+  <div class="footer" data-shape-id="footer">
+    <span data-shape-id="footer-left">Slide Lab &middot; Confidential &middot; Procurement governance</span>
+    <span class="footer-right" data-shape-id="footer-right">123 / 200</span>
+  </div>
+
+</div><!-- /slide -->
+</body>
+</html>

@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>320 · 4-Bucket 2×2 Grid</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #E0E0E0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+  }
+
+  .slide {
+    width: 1280px;
+    height: 720px;
+    background: var(--slide-bg);
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  /* ── Chrome: top bar ── */
+  .chrome-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+  }
+
+  .label-internal {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .badge-draft {
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 7px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 2px 8px;
+    border-radius: 0;
+    line-height: 1.4;
+  }
+
+  /* placeholder for right-side symmetry */
+  .chrome-top-right {
+    width: 130px;
+  }
+
+  /* ── Header block ── */
+  .header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 0;
+  overflow: visible;
+
+  }
+
+  .header-title {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+  }
+
+  .header-title strong {
+    color: var(--brand-accent);
+    font-weight: 700;
+  }
+
+  .header-sub {
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+}
+
+  .accent-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+
+
+    background: var(--brand-accent);
+    border: none;
+  }
+
+  /* ── 2×2 Grid ── */
+  .grid {
+    position: absolute;
+    top: 172px;
+    left: 48px;
+    right: 48px;
+    bottom: 52px;
+    display: flex; flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  /* ── Quadrant card ── */
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    padding: 22px 24px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    position: relative;
+  }
+
+  /* Top-left accent: 4px radius indicator on top-left corner */
+  .card--accent {
+    border-top-left-radius: 4px;
+  }
+
+  .card--accent::before {
+    content: '';
+    position: absolute;
+    top: -1px;
+    left: -1px;
+    width: 4px;
+    height: 36px;
+    background: var(--brand-accent);
+    border-top-left-radius: 4px;
+  }
+
+  .bucket-number {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--brand-accent);
+    letter-spacing: 0.04em;
+}
+
+  .bucket-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.25;
+}
+
+  .card-rule {
+    width: 100%;
+    height: 3px;
+    background: var(--card-border);
+    border: none;
+}
+
+  .card--accent .card-rule {
+    background: var(--brand-accent-soft);
+  }
+
+  .bullets {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+  }
+
+  .bullets li {
+    font-size: 14px;
+    color: var(--text-mid);
+    line-height: 1.5;
+}
+
+  .bullets li::before {
+    content: '·';
+    position: absolute;
+    left: 0;
+    color: var(--brand-accent-soft);
+    font-size: 14px;
+    line-height: 1.2;
+  }
+
+  .metric-chip {
+    display: inline-flex;
+    align-items: center;
+    background: var(--card-border);
+    border: none;
+    padding: 4px 12px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--brand-primary-mid);
+    letter-spacing: 0.01em;
+}
+
+  /* ── Footer ── */
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+  }
+
+  .footer-left,
+  .footer-right {
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    font-weight: 400;
+  }
+</style>
+</head>
+<body>
+<div class="slide">
+
+  <!-- Chrome: Top bar -->
+  <div class="chrome-top">
+    <span class="label-internal">Accenture Internal</span>
+    <span class="badge-draft">Draft</span>
+    <div class="chrome-top-right"></div>
+  </div>
+
+  <!-- Header -->
+  <div class="header">
+    <h1 class="header-title">Four pillars of <strong>operational excellence</strong> demand equal investment</h1>
+    <p class="header-sub">Each quadrant represents a distinct capability bucket — gaps in any one area will constrain overall programme performance</p>
+    <hr class="accent-rule">
+  </div>
+
+  <!-- 2×2 Grid -->
+  <div class="grid">
+
+    <!-- Q1: Top-Left (accented) -->
+    <div class="card card--accent">
+      <div class="bucket-number">01</div>
+      <div class="bucket-title">Strategy &amp; Governance</div>
+      <hr class="card-rule">
+      <ul class="bullets">
+        <li>Align executive sponsorship with programme KPIs</li>
+        <li>Establish decision-rights matrix across workstreams</li>
+        <li>Conduct quarterly strategic fit reviews</li>
+      </ul>
+      <span class="metric-chip">Maturity target: Level 4</span>
+    </div>
+
+    <!-- Q2: Top-Right -->
+    <div class="card">
+      <div class="bucket-number">02</div>
+      <div class="bucket-title">Talent &amp; Capability</div>
+      <hr class="card-rule">
+      <ul class="bullets">
+        <li>Map skills gaps against future-state operating model</li>
+        <li>Deploy targeted upskilling pathways by role cluster</li>
+        <li>Embed change champions in each business unit</li>
+      </ul>
+      <span class="metric-chip">~340 FTE affected</span>
+    </div>
+
+    <!-- Q3: Bottom-Left -->
+    <div class="card">
+      <div class="bucket-number">03</div>
+      <div class="bucket-title">Process &amp; Automation</div>
+      <hr class="card-rule">
+      <ul class="bullets">
+        <li>Prioritise high-volume, rule-based tasks for RPA</li>
+        <li>Re-engineer end-to-end flows before automating</li>
+        <li>Measure cycle-time reduction at each release gate</li>
+      </ul>
+      <span class="metric-chip">Est. 30% efficiency gain</span>
+    </div>
+
+    <!-- Q4: Bottom-Right -->
+    <div class="card">
+      <div class="bucket-number">04</div>
+      <div class="bucket-title">Data &amp; Technology</div>
+      <hr class="card-rule">
+      <ul class="bullets">
+        <li>Consolidate data sources into a single source of truth</li>
+        <li>Enforce API-first integration standards across platforms</li>
+        <li>Build real-time dashboards for operational visibility</li>
+      </ul>
+      <span class="metric-chip">12 systems in scope</span>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span class="footer-left">Confidential</span>
+    <span class="footer-right">Slide Lab · 2026 · 320</span>
+  </div>
+
+</div>
+</body>
+</html>

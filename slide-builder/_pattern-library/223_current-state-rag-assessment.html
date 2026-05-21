@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pattern 223 – Current State RAG Assessment</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --brand-primary:#2D0A4E; --brand-primary-mid:#5C2D87; --brand-accent:#A100FF;
+    --brand-accent-soft:#C780FF; --text-dark:#1A1A2E; --text-mid:#64748B;
+    --text-faint:#94A3B8; --slide-bg:#FFFFFF; --card-bg:#F8F4FC;
+    --card-border:#E5D5F0; --draft-bg:#FFD600; --draft-text:#B71C1C;
+    --rag-green:#22C55E; --rag-amber:#F59E0B; --rag-red:#EF4444;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: Inter, system-ui, sans-serif;
+    background: var(--slide-bg);
+    position: relative;
+  }
+
+  /* ── Invariant chrome ── */
+
+  .label-internal {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+  }
+
+  .draft-badge {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 0;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .title-block {
+    position: absolute; top: 0; left: 0; right: 0; height: 160px;
+  }
+
+  .title-block h1 {
+    position: absolute; top: 28px; left: 64px; right: 64px; min-height: 36px;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.2;
+  }
+
+  .title-block h1 strong {
+    color: var(--brand-accent);
+    font-weight: 700;
+  }
+
+  .title-block .sub {
+    position: absolute; top: 108px; left: 64px; right: 64px;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+
+}
+
+  .accent-rule {
+    position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+
+}
+
+  footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 20px 10px;
+  }
+
+  footer span {
+    font-size: 8px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* ── Legend ── */
+
+  .legend {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: flex-end;
+
+    top: 6px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    color: var(--text-mid);
+    font-weight: 500;
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ── Grid container ── */
+
+  .grid-wrap {
+    position: absolute;
+    top: 120px;
+    left: 48px;
+    right: 48px;
+    bottom: 68px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+
+  /* Column widths */
+  col.col-domain   { width: 14%; }
+  col.col-status   { width: 16%; }
+  col.col-finding  { width: 42%; }
+  col.col-action   { width: 28%; }
+
+  /* Header row */
+  thead th {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 0 10px 7px;
+    border-bottom: 2px solid var(--brand-primary);
+    text-align: left;
+    vertical-align: bottom;
+  }
+
+  /* Data rows */
+  tbody tr {
+    height: 64px;
+  }
+
+  tbody tr:nth-child(odd) {
+    background: var(--card-bg);
+  }
+
+  tbody tr:nth-child(even) {
+    background: var(--slide-bg);
+  }
+
+  tbody td {
+    padding: 0 10px;
+    vertical-align: middle;
+    font-size: 11px;
+    color: var(--text-dark);
+    border-bottom: 1px solid var(--card-border);
+  }
+
+  /* Domain cell */
+  .cell-domain {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--brand-primary-mid);
+    letter-spacing: 0.02em;
+  }
+
+  /* Status cell */
+  .rag-wrap {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+  }
+
+  .rag-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .rag-label {
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .rag-green  { background: var(--rag-green); }
+  .rag-amber  { background: var(--rag-amber); }
+  .rag-red    { background: var(--rag-red); }
+
+  .lbl-green  { color: #15803D; }
+  .lbl-amber  { color: #B45309; }
+  .lbl-red    { color: #B91C1C; }
+
+  /* Finding cell */
+  .cell-finding {
+    font-size: 11px;
+    color: var(--text-dark);
+    line-height: 1.45;
+  }
+
+  /* Action cell */
+  .action-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .action-text {
+    font-size: 11px;
+    color: var(--text-dark);
+    line-height: 1.4;
+  }
+
+  .owner-chip {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--brand-primary-mid);
+    background: #EDE0FA;
+    border: 1px solid var(--brand-accent-soft);
+    border-radius: 3px;
+    padding: 1px 6px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    width: fit-content;
+  }
+
+  /* Summary row */
+  .summary-row td {
+    background: var(--brand-primary);
+    padding: 0 14px;
+    border-bottom: none;
+    height: 44px;
+  }
+
+  .summary-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: #FFFFFF;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .summary-pills {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: nowrap;
+  }
+
+  .summary-pill {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #FFFFFF;
+    background: rgba(255,255,255,0.12);
+    border-radius: 3px;
+    padding: 2px 8px;
+    white-space: nowrap;
+  }
+
+  .pill-dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Invariant chrome -->
+  <div class="label-internal">Accenture Internal</div>
+
+  <!-- Title block -->
+  <div class="title-block">
+    <h1>Current State <strong>Assessment</strong></h1>
+    <p class="sub">RAG health snapshot across seven strategic domains — as of May 2026</p>
+    <div class="accent-rule"></div>
+    <!-- Legend — PRIMARY placement: right-aligned below accent rule -->
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot rag-green"></div>On Track</div>
+      <div class="legend-item"><div class="legend-dot rag-amber"></div>At Risk</div>
+      <div class="legend-item"><div class="legend-dot rag-red"></div>Critical</div>
+    </div>
+  </div>
+
+  <!-- RAG Grid -->
+  <div class="grid-wrap">
+    <table>
+      <colgroup>
+        <col class="col-domain">
+        <col class="col-status">
+        <col class="col-finding">
+        <col class="col-action">
+      </colgroup>
+      <thead>
+        <tr>
+          <th>Domain</th>
+          <th>Status</th>
+          <th>Key Finding</th>
+          <th>Priority Action</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        <!-- Strategy -->
+        <tr>
+          <td class="cell-domain">Strategy</td>
+          <td>
+            <div class="rag-wrap">
+              <div class="rag-dot rag-green"></div>
+              <span class="rag-label lbl-green">On Track</span>
+            </div>
+          </td>
+          <td class="cell-finding">Vision and OKRs are aligned to board mandate; roadmap milestones are fully funded through Q3 2026.</td>
+          <td>
+            <div class="action-wrap">
+              <span class="action-text">Refresh strategic KPIs for FY27 planning cycle</span>
+              <span class="owner-chip">Strategy Office</span>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Technology -->
+        <tr>
+          <td class="cell-domain">Technology</td>
+          <td>
+            <div class="rag-wrap">
+              <div class="rag-dot rag-amber"></div>
+              <span class="rag-label lbl-amber">At Risk</span>
+            </div>
+          </td>
+          <td class="cell-finding">Core platform migration is 6 weeks behind schedule; legacy API dependencies unresolved in 3 service modules.</td>
+          <td>
+            <div class="action-wrap">
+              <span class="action-text">Escalate API dependency blockers and add sprint buffer</span>
+              <span class="owner-chip">CTO / Engineering</span>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Operations -->
+        <tr>
+          <td class="cell-domain">Operations</td>
+          <td>
+            <div class="rag-wrap">
+              <div class="rag-dot rag-green"></div>
+              <span class="rag-label lbl-green">On Track</span>
+            </div>
+          </td>
+          <td class="cell-finding">Process automation targets met; SLA compliance at 97.4% against 95% threshold for the last two quarters.</td>
+          <td>
+            <div class="action-wrap">
+              <span class="action-text">Pilot end-to-end automation in fulfilment lane 3</span>
+              <span class="owner-chip">COO</span>
+            </div>
+          </td>
+        </tr>
+
+        <!-- People -->
+        <tr>
+          <td class="cell-domain">People</td>
+          <td>
+            <div class="rag-wrap">
+              <div class="rag-dot rag-red"></div>
+              <span class="rag-label lbl-red">Critical</span>
+            </div>
+          </td>
+          <td class="cell-finding">Voluntary attrition at 22% (target ≤15%); critical capability gaps in AI/ML and cloud engineering roles unfilled for 90+ days.</td>
+          <td>
+            <div class="action-wrap">
+              <span class="action-text">Launch targeted retention plan and accelerate hiring for AI roles</span>
+              <span class="owner-chip">CHRO</span>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Data -->
+        <tr>
+          <td class="cell-domain">Data</td>
+          <td>
+            <div class="rag-wrap">
+              <div class="rag-dot rag-amber"></div>
+              <span class="rag-label lbl-amber">At Risk</span>
+            </div>
+          </td>
+          <td class="cell-finding">Data quality index at 71% vs. 85% target; three critical data pipelines lack lineage documentation and ownership.</td>
+          <td>
+            <div class="action-wrap">
+              <span class="action-text">Assign data stewards and remediate top 10 quality failures</span>
+              <span class="owner-chip">CDO</span>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Governance -->
+        <tr>
+          <td class="cell-domain">Governance</td>
+          <td>
+            <div class="rag-wrap">
+              <div class="rag-dot rag-green"></div>
+              <span class="rag-label lbl-green">On Track</span>
+            </div>
+          </td>
+          <td class="cell-finding">Risk register current; all Tier-1 controls tested and passing. Audit findings from FY25 fully remediated and closed.</td>
+          <td>
+            <div class="action-wrap">
+              <span class="action-text">Extend AI governance framework to cover generative AI use cases</span>
+              <span class="owner-chip">Risk &amp; Compliance</span>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Customer -->
+        <tr>
+          <td class="cell-domain">Customer</td>
+          <td>
+            <div class="rag-wrap">
+              <div class="rag-dot rag-red"></div>
+              <span class="rag-label lbl-red">Critical</span>
+            </div>
+          </td>
+          <td class="cell-finding">NPS dropped 14 points to 32 in Q1 2026; three enterprise accounts flagged as churn risk due to support backlog and unresolved escalations.</td>
+          <td>
+            <div class="action-wrap">
+              <span class="action-text">Activate executive outreach programme for at-risk accounts</span>
+              <span class="owner-chip">CCO / CX Lead</span>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Summary row -->
+        <tr class="summary-row">
+          <td colspan="1">
+            <span class="summary-label">Overall Health</span>
+          </td>
+          <td colspan="3">
+            <div class="summary-pills">
+              <div class="summary-pill"><div class="pill-dot" style="background:var(--rag-green)"></div>3 Green</div>
+              <div class="summary-pill"><div class="pill-dot" style="background:var(--rag-amber)"></div>2 Amber</div>
+              <div class="summary-pill"><div class="pill-dot" style="background:var(--rag-red)"></div>2 Red</div>
+            </div>
+          </td>
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <span>Confidential — Accenture Internal</span>
+    <span>Slide Lab · 2026 · 223</span>
+  </footer>
+
+</body>
+</html>

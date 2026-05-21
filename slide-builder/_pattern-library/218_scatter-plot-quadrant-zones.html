@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1280" />
+<title>Pattern 218 — Scatter Plot with Quadrant Zones</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+  :root {
+    --brand-primary:#2D0A4E;
+    --brand-primary-mid:#5C2D87;
+    --brand-accent:#A100FF;
+    --brand-accent-soft:#C780FF;
+    --text-dark:#1A1A2E;
+    --text-mid:#64748B;
+    --text-faint:#94A3B8;
+    --slide-bg:#FFFFFF;
+    --card-bg:#F8F4FC;
+    --card-border:#E5D5F0;
+    --draft-bg:#FFD600;
+    --draft-text:#B71C1C;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    background: var(--slide-bg);
+    font-family: Inter, system-ui, sans-serif;
+    position: relative;
+  }
+
+  /* ── Invariant chrome ── */
+
+  .label-internal {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    font-weight: 400;
+  }
+
+  .badge-draft {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 0;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .title-block {
+    position: absolute; top: 0; left: 0; right: 0; height: 160px;
+  }
+
+  .title-block h1 {
+    position: absolute; top: 28px; left: 64px; right: 64px; min-height: 36px;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.15;
+  }
+
+  .title-block h1 strong {
+    color: var(--brand-accent);
+    font-weight: 700;
+  }
+
+  .title-block .sub {
+    position: absolute; top: 108px; left: 64px; right: 64px;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+
+}
+
+  .accent-rule {
+    position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+
+}
+
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 20px 10px;
+  }
+
+  .footer span {
+    font-size: 8px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* ── Chart container ── */
+
+  .chart-area {
+    position: absolute;
+    top: 128px;
+    left: 48px;
+    right: 48px;
+    bottom: 56px;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Invariant chrome -->
+  <span class="label-internal" data-shape-id="accenture-tag">Accenture Internal</span>
+  <span class="badge-draft" data-shape-id="draft-badge">Draft</span>
+
+  <div class="title-block">
+    <h1 data-shape-id="title">Prioritize initiatives by <strong>impact vs. effort</strong></h1>
+    <p class="sub" data-shape-id="subtitle">Quadrant analysis reveals quick wins and strategic investments across the portfolio</p>
+    <div class="accent-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- Chart -->
+  <div class="chart-area">
+    <svg id="scatter" data-shape-id="chart-canvas" width="100%" height="100%" viewBox="0 0 1184 520" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <!-- Quadrant fills -->
+        <pattern id="none" width="1" height="1" patternUnits="userSpaceOnUse"/>
+      </defs>
+
+      <!-- Plot area bounds: x 60–1140, y 10–480 -->
+      <!-- Mid x = 600, mid y = 245 -->
+
+      <!-- Q1 top-right: High Impact / Low Effort — green tint -->
+      <rect x="600" y="10" width="540" height="235" fill="#D1FAE5" opacity="0.55"/>
+      <!-- Q2 top-left: High Impact / High Effort — amber tint -->
+      <rect x="60" y="10" width="540" height="235" fill="#FEF3C7" opacity="0.55"/>
+      <!-- Q3 bottom-left: Low Impact / High Effort — red tint -->
+      <rect x="60" y="245" width="540" height="235" fill="#FEE2E2" opacity="0.55"/>
+      <!-- Q4 bottom-right: Low Impact / Low Effort — light purple tint -->
+      <rect x="600" y="245" width="540" height="235" fill="#EDE9FE" opacity="0.55"/>
+
+      <!-- Zone border outlines (subtle) -->
+      <rect x="60" y="10" width="1080" height="470" fill="none" stroke="#E2E8F0" stroke-width="1"/>
+
+      <!-- Crosshair dotted lines at midpoints -->
+      <line x1="600" y1="10" x2="600" y2="480" stroke="#94A3B8" stroke-width="1.5" stroke-dasharray="5 4"/>
+      <line x1="60" y1="245" x2="1140" y2="245" stroke="#94A3B8" stroke-width="1.5" stroke-dasharray="5 4"/>
+
+      <!-- Zone labels -->
+      <!-- top-right -->
+      <text x="1130" y="28" text-anchor="end" font-size="11" font-style="italic" fill="#059669" font-family="Inter,system-ui,sans-serif">High Impact / Low Effort</text>
+      <!-- top-left -->
+      <text x="70" y="28" text-anchor="start" font-size="11" font-style="italic" fill="#D97706" font-family="Inter,system-ui,sans-serif">High Impact / High Effort</text>
+      <!-- bottom-left -->
+      <text x="70" y="472" text-anchor="start" font-size="11" font-style="italic" fill="#DC2626" font-family="Inter,system-ui,sans-serif">Low Impact / High Effort</text>
+      <!-- bottom-right -->
+      <text x="1130" y="472" text-anchor="end" font-size="11" font-style="italic" fill="#7C3AED" font-family="Inter,system-ui,sans-serif">Low Impact / Low Effort</text>
+
+      <!-- X axis -->
+      <line x1="60" y1="480" x2="1140" y2="480" stroke="#CBD5E1" stroke-width="1.5"/>
+      <!-- Y axis -->
+      <line x1="60" y1="10" x2="60" y2="480" stroke="#CBD5E1" stroke-width="1.5"/>
+
+      <!-- X axis label -->
+      <text x="600" y="510" text-anchor="middle" font-size="12" fill="#64748B" font-weight="600" font-family="Inter,system-ui,sans-serif">Implementation Complexity →</text>
+      <text x="68" y="510" text-anchor="start" font-size="10" fill="#94A3B8" font-family="Inter,system-ui,sans-serif">Low</text>
+      <text x="1132" y="510" text-anchor="end" font-size="10" fill="#94A3B8" font-family="Inter,system-ui,sans-serif">High</text>
+
+      <!-- Y axis label (rotated) -->
+      <text transform="translate(22,245) rotate(-90)" text-anchor="middle" font-size="12" fill="#64748B" font-weight="600" font-family="Inter,system-ui,sans-serif">Business Impact →</text>
+      <text transform="translate(44,475) rotate(-90)" text-anchor="start" font-size="10" fill="#94A3B8" font-family="Inter,system-ui,sans-serif">Low</text>
+      <text transform="translate(44,25) rotate(-90)" text-anchor="start" font-size="10" fill="#94A3B8" font-family="Inter,system-ui,sans-serif">High</text>
+
+      <!--
+        Data dots: cx,cy within plot area x:[60-1140], y:[10-480]
+        High Impact / Low Effort  (top-right)  → cx:600-1140, cy:10-245
+        High Impact / High Effort (top-left)   → cx:60-600,   cy:10-245
+        Low Impact  / High Effort (bottom-left) → cx:60-600,  cy:245-480
+        Low Impact  / Low Effort  (bottom-right)→ cx:600-1140,cy:245-480
+      -->
+
+      <!-- 1 — Dot: AI-Driven Reporting (top-right, quick win) -->
+      <circle cx="780" cy="90" r="9" fill="#A100FF" stroke="#fff" stroke-width="2"/>
+      <line x1="780" y1="101" x2="780" y2="118" stroke="#A100FF" stroke-width="1" stroke-dasharray="2 2"/>
+      <rect x="702" y="119" width="157" height="20" rx="3" fill="#F8F4FC" stroke="#E5D5F0" stroke-width="1"/>
+      <text x="780" y="132" text-anchor="middle" font-size="10" fill="#2D0A4E" font-weight="600" font-family="Inter,system-ui,sans-serif">AI-Driven Reporting</text>
+
+      <!-- 2 — Dot: Customer 360 Platform (top-right, high up) -->
+      <circle cx="950" cy="55" r="9" fill="#A100FF" stroke="#fff" stroke-width="2"/>
+      <line x1="950" y1="66" x2="950" y2="83" stroke="#A100FF" stroke-width="1" stroke-dasharray="2 2"/>
+      <rect x="876" y="84" width="148" height="20" rx="3" fill="#F8F4FC" stroke="#E5D5F0" stroke-width="1"/>
+      <text x="950" y="97" text-anchor="middle" font-size="10" fill="#2D0A4E" font-weight="600" font-family="Inter,system-ui,sans-serif">Customer 360 Platform</text>
+
+      <!-- 3 — Dot: Data Lake Migration (top-left, high impact high effort) -->
+      <circle cx="200" cy="80" r="9" fill="#5C2D87" stroke="#fff" stroke-width="2"/>
+      <line x1="200" y1="91" x2="200" y2="108" stroke="#5C2D87" stroke-width="1" stroke-dasharray="2 2"/>
+      <rect x="126" y="109" width="148" height="20" rx="3" fill="#F8F4FC" stroke="#E5D5F0" stroke-width="1"/>
+      <text x="200" y="122" text-anchor="middle" font-size="10" fill="#2D0A4E" font-weight="600" font-family="Inter,system-ui,sans-serif">Data Lake Migration</text>
+
+      <!-- 4 — Dot: Process Automation (top-left) -->
+      <circle cx="390" cy="150" r="9" fill="#5C2D87" stroke="#fff" stroke-width="2"/>
+      <line x1="390" y1="161" x2="390" y2="178" stroke="#5C2D87" stroke-width="1" stroke-dasharray="2 2"/>
+      <rect x="312" y="179" width="156" height="20" rx="3" fill="#F8F4FC" stroke="#E5D5F0" stroke-width="1"/>
+      <text x="390" y="192" text-anchor="middle" font-size="10" fill="#2D0A4E" font-weight="600" font-family="Inter,system-ui,sans-serif">Process Automation</text>
+
+      <!-- 5 — Dot: API Gateway Upgrade (top-right, lower) -->
+      <circle cx="680" cy="195" r="9" fill="#A100FF" stroke="#fff" stroke-width="2"/>
+      <!-- label above dot -->
+      <line x1="680" y1="186" x2="680" y2="169" stroke="#A100FF" stroke-width="1" stroke-dasharray="2 2"/>
+      <rect x="602" y="149" width="156" height="20" rx="3" fill="#F8F4FC" stroke="#E5D5F0" stroke-width="1"/>
+      <text x="680" y="162" text-anchor="middle" font-size="10" fill="#2D0A4E" font-weight="600" font-family="Inter,system-ui,sans-serif">API Gateway Upgrade</text>
+
+      <!-- 6 — Dot: Legacy Decommission (bottom-left, low impact high effort) -->
+      <circle cx="280" cy="370" r="9" fill="#5C2D87" stroke="#fff" stroke-width="2"/>
+      <line x1="280" y1="381" x2="280" y2="398" stroke="#5C2D87" stroke-width="1" stroke-dasharray="2 2"/>
+      <rect x="196" y="399" width="168" height="20" rx="3" fill="#F8F4FC" stroke="#E5D5F0" stroke-width="1"/>
+      <text x="280" y="412" text-anchor="middle" font-size="10" fill="#2D0A4E" font-weight="600" font-family="Inter,system-ui,sans-serif">Legacy Decommission</text>
+
+      <!-- 7 — Dot: Dashboard Refresh (bottom-right, low impact low effort) -->
+      <circle cx="840" cy="340" r="9" fill="#A100FF" stroke="#fff" stroke-width="2"/>
+      <line x1="840" y1="351" x2="840" y2="368" stroke="#A100FF" stroke-width="1" stroke-dasharray="2 2"/>
+      <rect x="762" y="369" width="156" height="20" rx="3" fill="#F8F4FC" stroke="#E5D5F0" stroke-width="1"/>
+      <text x="840" y="382" text-anchor="middle" font-size="10" fill="#2D0A4E" font-weight="600" font-family="Inter,system-ui,sans-serif">Dashboard Refresh</text>
+
+      <!-- 8 — Dot: Vendor Portal (bottom-right) -->
+      <circle cx="1030" cy="400" r="9" fill="#5C2D87" stroke="#fff" stroke-width="2"/>
+      <!-- label above dot -->
+      <line x1="1030" y1="391" x2="1030" y2="374" stroke="#5C2D87" stroke-width="1" stroke-dasharray="2 2"/>
+      <rect x="952" y="354" width="156" height="20" rx="3" fill="#F8F4FC" stroke="#E5D5F0" stroke-width="1"/>
+      <text x="1030" y="367" text-anchor="middle" font-size="10" fill="#2D0A4E" font-weight="600" font-family="Inter,system-ui,sans-serif">Vendor Portal v2</text>
+
+      <!-- Axis tick marks -->
+      <!-- X ticks -->
+      <line x1="60"   y1="480" x2="60"   y2="487" stroke="#CBD5E1" stroke-width="1"/>
+      <line x1="600"  y1="480" x2="600"  y2="487" stroke="#CBD5E1" stroke-width="1"/>
+      <line x1="1140" y1="480" x2="1140" y2="487" stroke="#CBD5E1" stroke-width="1"/>
+      <!-- Y ticks -->
+      <line x1="60" y1="10"  x2="53" y2="10"  stroke="#CBD5E1" stroke-width="1"/>
+      <line x1="60" y1="245" x2="53" y2="245" stroke="#CBD5E1" stroke-width="1"/>
+      <line x1="60" y1="480" x2="53" y2="480" stroke="#CBD5E1" stroke-width="1"/>
+
+    </svg>
+  </div>
+
+  <!-- Footer -->
+  <footer class="footer" data-shape-id="footer-rule">
+    <span data-shape-id="footer-left">Confidential — Accenture Internal</span>
+    <span data-shape-id="footer-right">Slide Lab · 2026 · 218</span>
+  </footer>
+
+</body>
+</html>

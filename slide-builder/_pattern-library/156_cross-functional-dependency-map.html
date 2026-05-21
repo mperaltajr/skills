@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>156 — Cross-functional dependency map</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary:      #2D0A4E;
+  --brand-primary-mid:  #5C2D87;
+  --brand-accent:       #A100FF;
+  --brand-accent-soft:  #C780FF;
+  --text-dark:          #1A1A2E;
+  --text-mid:           #64748B;
+  --text-faint:         #94A3B8;
+  --slide-bg:           #FFFFFF;
+  --card-bg:            #F8F4FC;
+  --card-border:        #E5D5F0;
+  --draft-bg:           #FFD600;
+  --draft-text:         #B71C1C;
+
+  /* dependency badge colours */
+  --blocks-bg:   #FEE2E2;
+  --blocks-border: #DC2626;
+  --blocks-text: #991B1B;
+  --enables-bg:  #DCFCE7;
+  --enables-border: #16A34A;
+  --enables-text: #166534;
+  --shares-bg:   #DBEAFE;
+  --shares-border: #2563EB;
+  --shares-text: #1E40AF;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #4a4a4a;
+  font-family: 'Inter', -apple-system, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.slide {
+  width: 1280px;
+  height: 720px;
+  background: var(--slide-bg);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.35);
+}
+
+/* ===== Top chrome ===== */
+.draft-badge {
+  position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--draft-bg); color: var(--draft-text);
+  font-size: 11px; font-weight: 700; padding: 4px 16px;
+  letter-spacing: 1px; z-index: 5;
+}
+.project-label {
+  position: absolute; top: 24px; left: 24px;
+  color: var(--text-faint); font-size: 10px; font-weight: 600;
+  letter-spacing: 1.5px; text-transform: uppercase; z-index: 5;
+}
+
+/* ===== Title block ===== */
+.title-block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+.title-text {
+  flex: 1 1 0; min-width: 0;
+}
+.eyebrow {
+  font-size: 10.5px; font-weight: 600; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--brand-accent); margin-bottom: 6px;
+}
+.title {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+  pointer-events: auto;
+  font-size: 22px; font-weight: 700; color: var(--text-dark);
+  letter-spacing: -0.3px; line-height: 1.25;
+}
+.subhead {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 108px;
+  pointer-events: auto;
+  font-size: 11.5px; color: var(--text-mid);
+  font-weight: 400; line-height: 1.4;
+}
+.accent-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+  pointer-events: none;
+   
+  background: var(--brand-accent); border-radius: 2px;
+}
+
+/* ===== Legend — PRIMARY placement: right-pushed flex child in title zone ===== */
+.dep-legend {
+  flex: 0 0 260px; width: 260px;
+  display: flex; flex-direction: column; gap: 6px;
+  padding: 10px 14px;
+  border: 1px solid var(--card-border); border-radius: 6px;
+  background: #FBFAFD;
+}
+.dep-legend .legend-title {
+  font-size: 8.5px; font-weight: 700; letter-spacing: 1.4px;
+  text-transform: uppercase; color: var(--text-mid);
+  padding-bottom: 6px; border-bottom: 1px solid var(--card-border);
+  margin-bottom: 2px;
+}
+.dep-legend .legend-row {
+  display: flex; align-items: center; gap: 8px;
+}
+.dep-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 2px 7px; border-radius: 3px;
+  font-size: 9px; font-weight: 700; letter-spacing: 0.8px;
+  text-transform: uppercase; white-space: nowrap; flex-shrink: 0;
+  width: 62px;
+}
+.dep-badge.blocks  { background: var(--blocks-bg);  border: 1.5px solid var(--blocks-border);  color: var(--blocks-text); }
+.dep-badge.enables { background: var(--enables-bg); border: 1.5px solid var(--enables-border); color: var(--enables-text); }
+.dep-badge.shares  { background: var(--shares-bg);  border: 1.5px solid var(--shares-border);  color: var(--shares-text); }
+.dep-legend .legend-desc {
+  font-size: 9.5px; font-weight: 400; color: var(--text-mid);
+  line-height: 1.35;
+}
+
+/* ===== Summary stat strip ===== */
+.stat-strip {
+  position: absolute; top: 172px; right: 48px;
+  display: flex; gap: 6px; width: 260px;
+}
+.stat-chip {
+  flex: 1; padding: 5px 6px; border-radius: 4px;
+  text-align: center;
+}
+.stat-chip .s-num {
+  font-size: 16px; font-weight: 800; display: block; line-height: 1;
+}
+.stat-chip .s-label {
+  font-size: 8px; font-weight: 600; letter-spacing: 0.8px;
+  text-transform: uppercase; display: block; margin-top: 2px;
+}
+.stat-chip.blocks  { background: var(--blocks-bg);  border: 1.5px solid var(--blocks-border); }
+.stat-chip.blocks .s-num   { color: var(--blocks-text); }
+.stat-chip.blocks .s-label { color: var(--blocks-text); opacity: 0.75; }
+.stat-chip.enables { background: var(--enables-bg); border: 1.5px solid var(--enables-border); }
+.stat-chip.enables .s-num   { color: var(--enables-text); }
+.stat-chip.enables .s-label { color: var(--enables-text); opacity: 0.75; }
+.stat-chip.shares  { background: var(--shares-bg);  border: 1.5px solid var(--shares-border); }
+.stat-chip.shares .s-num   { color: var(--shares-text); }
+.stat-chip.shares .s-label { color: var(--shares-text); opacity: 0.75; }
+
+/* ===== Matrix ===== */
+.matrix-wrap {
+  position: absolute;
+  top: 220px; left: 48px; right: 48px; bottom: 100px;
+  overflow: hidden;
+}
+
+table.dep-matrix {
+  width: 100%; height: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 10.5px;
+  color: var(--text-dark);
+}
+
+/* Column widths: corner + 7 workstream cols */
+table.dep-matrix col.corner-col { width: 132px; }
+table.dep-matrix col.ws-col     { width: calc((100% - 132px) / 7); }
+
+/* ---- Header row ---- */
+table.dep-matrix thead th {
+  background: var(--brand-primary);
+  color: #fff;
+  font-size: 9px; font-weight: 600; letter-spacing: 0.8px;
+  text-transform: uppercase;
+  padding: 0 6px;
+  text-align: center; vertical-align: middle;
+  border-right: 1px solid rgba(255,255,255,0.1);
+  line-height: 1.25; height: 52px;
+}
+table.dep-matrix thead th:last-child { border-right: none; }
+table.dep-matrix thead th.corner-head {
+  text-align: center;
+  background: var(--brand-primary);
+  color: var(--brand-accent-soft);
+  font-size: 8px; font-weight: 700;
+  letter-spacing: 0.6px; line-height: 1.4;
+}
+
+/* ---- Body rows ---- */
+table.dep-matrix tbody td {
+  border: 1px solid var(--card-border);
+  vertical-align: middle; text-align: center;
+  padding: 4px 3px;
+  height: 58px;
+}
+
+/* Row header cell */
+td.row-head {
+  background: var(--card-bg);
+  text-align: left; padding: 6px 10px;
+  font-size: 10px; font-weight: 700;
+  color: var(--brand-primary);
+  letter-spacing: 0.2px;
+  border-right: 2px solid var(--card-border) !important;
+  line-height: 1.3;
+}
+
+/* Diagonal — gray hatch */
+td.diagonal {
+  background:
+    repeating-linear-gradient(
+      45deg,
+      #E2E8F0 0px, #E2E8F0 2px,
+      #F1F5F9 2px, #F1F5F9 8px
+    );
+}
+
+/* Dependency cell tints */
+td.cell-blocks  { background: var(--blocks-bg);  border: 2px solid var(--blocks-border) !important; }
+td.cell-enables { background: var(--enables-bg); }
+td.cell-shares  { background: var(--shares-bg); }
+
+/* Cell badge */
+.cell-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 3px 6px; border-radius: 3px;
+  font-size: 8px; font-weight: 700; letter-spacing: 0.6px;
+  text-transform: uppercase; white-space: nowrap;
+}
+.cell-badge.blocks  { background: var(--blocks-bg);  border: 1.5px solid var(--blocks-border);  color: var(--blocks-text); }
+.cell-badge.enables { background: var(--enables-bg); border: 1.5px solid var(--enables-border); color: var(--enables-text); }
+.cell-badge.shares  { background: var(--shares-bg);  border: 1.5px solid var(--shares-border);  color: var(--shares-text); }
+
+/* ===== Convergence bar ===== */
+.convergence {
+  position: absolute;
+  bottom: 28px; left: 48px; right: 48px;
+  height: 42px;
+  padding: 0 18px;
+  background: linear-gradient(90deg, var(--brand-primary) 0%, var(--brand-primary-mid) 100%);
+  border-radius: 6px;
+  display: flex; align-items: center; gap: 14px;
+}
+.convergence .conv-tag {
+  font-size: 9px; font-weight: 700; letter-spacing: 1.5px;
+  color: var(--brand-accent-soft); text-transform: uppercase;
+  padding: 3px 8px; border: 1px solid rgba(199,128,255,0.4);
+  border-radius: 3px; flex-shrink: 0;
+}
+.convergence .conv-text {
+  font-size: 14px; color: #fff; font-weight: 500;
+  letter-spacing: 0.1px; line-height: 1.35;
+}
+.convergence .conv-text strong {
+  color: var(--brand-accent-soft); font-weight: 700;
+}
+
+/* ===== Footer ===== */
+.footer {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 28px;
+  display: flex; align-items: center; padding: 0 48px;
+  font-size: 9.5px; color: var(--text-faint);
+  letter-spacing: 1px; text-transform: uppercase;
+  border-top: 1px solid #F0EAF6; background: #FBFAFD;
+}
+.footer .pg { margin-left: auto; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+
+<div class="slide">
+
+  <!-- Title block -->
+  <div class="title-block">
+    <div class="title-text">
+      <div class="eyebrow" data-shape-id="eyebrow">Workstream dependencies</div>
+      <div class="title" data-shape-id="title"><strong>Technology is the single upstream dependency</strong> &mdash; six workstreams blocked until API design complete in Week&nbsp;3</div>
+      <div class="subhead" data-shape-id="subtitle">Read row&nbsp;&rarr;&nbsp;column: FROM workstream impacts TO workstream. BLOCKS = hard gate; ENABLES = accelerates; SHARES = shared data or resource.</div>
+      <div class="accent-rule" data-shape-id="brand-rule"></div>
+    </div>
+
+    <!-- Legend — PRIMARY: right-pushed flex child in title zone -->
+    <div class="dep-legend" data-shape-id="legend">
+    <div class="legend-title" data-shape-id="legend-title">Dependency key &mdash; FROM &darr; impacts TO &rarr;</div>
+    <div class="legend-row">
+      <span class="dep-badge blocks" data-shape-id="legend-blocks-badge">BLOCKS</span>
+      <span class="legend-desc" data-shape-id="legend-blocks-desc">Hard gate — downstream cannot start until upstream delivers</span>
+    </div>
+    <div class="legend-row">
+      <span class="dep-badge enables" data-shape-id="legend-enables-badge">ENABLES</span>
+      <span class="legend-desc" data-shape-id="legend-enables-desc">Accelerates or unlocks — downstream progresses faster with input</span>
+    </div>
+    <div class="legend-row">
+      <span class="dep-badge shares" data-shape-id="legend-shares-badge">SHARES</span>
+      <span class="legend-desc" data-shape-id="legend-shares-desc">Shared data, resource, or artefact between workstreams</span>
+    </div>
+    </div><!-- /.dep-legend -->
+  </div><!-- /.title-block -->
+
+  <!-- Summary stat strip -->
+  <div class="stat-strip" data-shape-id="stat-strip">
+    <div class="stat-chip blocks">
+      <span class="s-num">4</span>
+      <span class="s-label">Blocks</span>
+    </div>
+    <div class="stat-chip enables">
+      <span class="s-num">6</span>
+      <span class="s-label">Enables</span>
+    </div>
+    <div class="stat-chip shares">
+      <span class="s-num">3</span>
+      <span class="s-label">Shares</span>
+    </div>
+  </div>
+
+  <!-- Matrix -->
+  <div class="matrix-wrap" data-shape-id="matrix-wrap">
+    <table class="dep-matrix">
+      <colgroup>
+        <col class="corner-col">
+        <col class="ws-col"><!-- Technology -->
+        <col class="ws-col"><!-- Data -->
+        <col class="ws-col"><!-- Change Mgmt -->
+        <col class="ws-col"><!-- Testing -->
+        <col class="ws-col"><!-- Finance -->
+        <col class="ws-col"><!-- HR -->
+        <col class="ws-col"><!-- PMO -->
+      </colgroup>
+      <thead>
+        <tr>
+          <th class="corner-head" data-shape-id="matrix-corner">FROM &darr; &nbsp;/&nbsp; TO &rarr;</th>
+          <th data-shape-id="col-tech">Technology</th>
+          <th data-shape-id="col-data">Data</th>
+          <th data-shape-id="col-change">Change<br>Mgmt</th>
+          <th data-shape-id="col-test">Testing</th>
+          <th data-shape-id="col-finance">Finance</th>
+          <th data-shape-id="col-hr">HR</th>
+          <th data-shape-id="col-pmo">PMO</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        <!-- Row 1: FROM Technology -->
+        <tr>
+          <td class="row-head" data-shape-id="row-tech">Technology</td>
+          <td class="diagonal" data-shape-id="r1c1"></td>
+          <td class="cell-blocks" data-shape-id="r1c2"><span class="cell-badge blocks">BLOCKS</span></td>
+          <td class="cell-blocks" data-shape-id="r1c3"><span class="cell-badge blocks">BLOCKS</span></td>
+          <td class="cell-blocks" data-shape-id="r1c4"><span class="cell-badge blocks">BLOCKS</span></td>
+          <td data-shape-id="r1c5"></td>
+          <td data-shape-id="r1c6"></td>
+          <td data-shape-id="r1c7"></td>
+        </tr>
+
+        <!-- Row 2: FROM Data -->
+        <tr>
+          <td class="row-head" data-shape-id="row-data">Data</td>
+          <td data-shape-id="r2c1"></td>
+          <td class="diagonal" data-shape-id="r2c2"></td>
+          <td data-shape-id="r2c3"></td>
+          <td class="cell-blocks" data-shape-id="r2c4"><span class="cell-badge blocks">BLOCKS</span></td>
+          <td class="cell-enables" data-shape-id="r2c5"><span class="cell-badge enables">ENABLES</span></td>
+          <td data-shape-id="r2c6"></td>
+          <td data-shape-id="r2c7"></td>
+        </tr>
+
+        <!-- Row 3: FROM Change Mgmt -->
+        <tr>
+          <td class="row-head" data-shape-id="row-change">Change Mgmt</td>
+          <td data-shape-id="r3c1"></td>
+          <td data-shape-id="r3c2"></td>
+          <td class="diagonal" data-shape-id="r3c3"></td>
+          <td data-shape-id="r3c4"></td>
+          <td data-shape-id="r3c5"></td>
+          <td class="cell-shares" data-shape-id="r3c6"><span class="cell-badge shares">SHARES</span></td>
+          <td data-shape-id="r3c7"></td>
+        </tr>
+
+        <!-- Row 4: FROM Testing -->
+        <tr>
+          <td class="row-head" data-shape-id="row-testing">Testing</td>
+          <td data-shape-id="r4c1"></td>
+          <td data-shape-id="r4c2"></td>
+          <td data-shape-id="r4c3"></td>
+          <td class="diagonal" data-shape-id="r4c4"></td>
+          <td data-shape-id="r4c5"></td>
+          <td data-shape-id="r4c6"></td>
+          <td data-shape-id="r4c7"></td>
+        </tr>
+
+        <!-- Row 5: FROM Finance -->
+        <tr>
+          <td class="row-head" data-shape-id="row-finance">Finance</td>
+          <td data-shape-id="r5c1"></td>
+          <td data-shape-id="r5c2"></td>
+          <td data-shape-id="r5c3"></td>
+          <td data-shape-id="r5c4"></td>
+          <td class="diagonal" data-shape-id="r5c5"></td>
+          <td data-shape-id="r5c6"></td>
+          <td class="cell-enables" data-shape-id="r5c7"><span class="cell-badge enables">ENABLES</span></td>
+        </tr>
+
+        <!-- Row 6: FROM HR -->
+        <tr>
+          <td class="row-head" data-shape-id="row-hr">HR</td>
+          <td data-shape-id="r6c1"></td>
+          <td data-shape-id="r6c2"></td>
+          <td data-shape-id="r6c3"></td>
+          <td data-shape-id="r6c4"></td>
+          <td data-shape-id="r6c5"></td>
+          <td class="diagonal" data-shape-id="r6c6"></td>
+          <td data-shape-id="r6c7"></td>
+        </tr>
+
+        <!-- Row 7: FROM PMO (enables Technology, Data, Change Mgmt, Testing; shares Finance, HR; diagonal for PMO) -->
+        <tr>
+          <td class="row-head" data-shape-id="row-pmo">PMO</td>
+          <td class="cell-enables" data-shape-id="r7c1"><span class="cell-badge enables">ENABLES</span></td>
+          <td class="cell-enables" data-shape-id="r7c2"><span class="cell-badge enables">ENABLES</span></td>
+          <td class="cell-enables" data-shape-id="r7c3"><span class="cell-badge enables">ENABLES</span></td>
+          <td class="cell-enables" data-shape-id="r7c4"><span class="cell-badge enables">ENABLES</span></td>
+          <td class="cell-shares" data-shape-id="r7c5"><span class="cell-badge shares">SHARES</span></td>
+          <td class="cell-shares" data-shape-id="r7c6"><span class="cell-badge shares">SHARES</span></td>
+          <td class="diagonal" data-shape-id="r7c7"></td>
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Convergence bar -->
+  <div class="convergence" data-shape-id="convergence">
+    <div class="conv-tag" data-shape-id="convergence-mark">Critical path</div>
+    <div class="conv-text" data-shape-id="convergence-text"><strong>Technology unblocks six workstreams</strong> &mdash; API schema sign-off by Week&nbsp;3 is the single highest-leverage action. PMO governance is the secondary enabler across all streams.</div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer" data-shape-id="footer-rule">
+    <span data-shape-id="footer-left">Slide Lab &middot; Confidential &middot; Program steering</span>
+    <span class="pg" data-shape-id="footer-right">156 / 200</span>
+  </div>
+
+</div>
+
+</body>
+</html>

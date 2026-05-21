@@ -1,0 +1,95 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>05 · Screenshot hero with caption + step strip + takeaway</title>
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --image-placeholder-bg: #F1F5F9;
+  --image-placeholder-border: #CBD5E1;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1280px; height: 720px; background: var(--slide-bg); font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; color: var(--text-dark); overflow: hidden; }
+body { padding: 50px 64px; position: relative; }
+.draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; }
+.project-label { position: absolute; top: 24px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
+
+.section-label { color: var(--brand-accent); font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+.action-title { position: absolute; left: 64px; right: 64px; top: 28px; min-height: 72px; font-size: 26px; font-weight: 700; line-height: 1.2; max-width: 1050px; }
+.action-title strong { color: var(--brand-primary); }
+.subhead { position: absolute; left: 64px; right: 64px; top: 100px; font-size: 14px; color: var(--text-mid); font-style: italic; }
+.title-rule { position: absolute; left: 64px; top: 128px; width: 64px; height: 3px; background: var(--brand-accent); }
+
+/* Screenshot zone — tightened to ~55% vertical, no longer dominates */
+.screenshot-zone { margin-top: 14px; height: 300px; background: var(--image-placeholder-bg); border: 2px dashed var(--image-placeholder-border); display: flex; align-items: center; justify-content: center; position: relative; }
+.screenshot-label { color: var(--text-faint); font-size: 14px; font-weight: 600; letter-spacing: 1px; }
+.screenshot-corner { position: absolute; top: 12px; left: 14px; color: var(--brand-accent); font-size: 10px; font-weight: 700; letter-spacing: 1.5px; background: white; padding: 4px 10px; }
+
+/* Step strip — 3 numbered captions, breathing room above, grid-aligned */
+.step-strip { display: flex; flex-wrap: wrap; gap: 28px; margin-top: 28px; align-items: start; }
+.step { display: flex; flex-wrap: wrap; gap: 12px; align-items: start; }
+.step-num { width: 30px; height: 30px; border-radius: 50%; background: var(--brand-accent); color: white; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; line-height: 1; }
+.step-text { font-size: 14px; line-height: 1.5; color: var(--text-dark); padding-top: 2px; }
+.step-text strong { color: var(--brand-primary); display: block; font-size: 14px; margin-bottom: 3px; }
+
+/* Takeaway — convergence-line style, brand-primary fill, bold italic */
+.takeaway { position: absolute; left: 64px; right: 64px; bottom: 70px; background: var(--brand-primary); color: white; padding: 14px 22px; font-size: 14px; font-style: italic; font-weight: 600; border-left: 4px solid var(--brand-accent); }
+
+.footer-rule { position: absolute; left: 0; right: 0; bottom: 32px; height: 1px; background: var(--card-border); }
+.footer-left { position: absolute; bottom: 14px; left: 24px; color: var(--text-faint); font-size: 11px; letter-spacing: 1px; }
+.footer-right { position: absolute; bottom: 14px; right: 24px; color: var(--text-faint); font-size: 11px; }
+</style>
+</head>
+<body>
+
+  <div class="section-label" data-shape-id="eyebrow">Demo · Think & Argue in action</div>
+  <div class="action-title" data-shape-id="title">A 30-second sequence — from <strong>governing thought to argued structure</strong>.</div>
+  <div class="subhead" data-shape-id="subtitle">Captured from a recent build session. Real input, real output, no scripted demo.</div>
+  <div class="title-rule" data-shape-id="brand-rule"></div>
+
+  <div class="screenshot-zone" data-shape-id="photo-zone">
+    <div class="screenshot-corner" data-shape-id="photo-corner-tag">SCREENSHOT</div>
+    <div class="screenshot-label" data-shape-id="photo-label">[ Demo capture — Slide Lab Think &amp; Argue panel ]</div>
+  </div>
+
+  <div class="step-strip">
+    <div class="step">
+      <div class="step-num" data-shape-id="step-1-num">1</div>
+      <div class="step-text" data-shape-id="step-1-body">
+        <strong>Governing thought entered</strong>
+        The user states the one sentence the whole deck has to prove.
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num" data-shape-id="step-2-num">2</div>
+      <div class="step-text" data-shape-id="step-2-body">
+        <strong>Structure proposed</strong>
+        Slide Lab returns a 6-slide outline with a so-what per slide.
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num" data-shape-id="step-3-num">3</div>
+      <div class="step-text" data-shape-id="step-3-body">
+        <strong>Argument tested</strong>
+        The model surfaces three counterexamples and asks how to respond.
+      </div>
+    </div>
+  </div>
+
+  <div class="takeaway" data-shape-id="convergence">Twelve minutes from problem statement to a defensible structure — start of the deck, not the end.</div>
+  <div class="footer-left" data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+</body>
+</html>

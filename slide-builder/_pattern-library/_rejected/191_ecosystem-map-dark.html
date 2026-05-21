@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pattern 191 — Ecosystem Map</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+
+    /* Sector colors */
+    --sector-tech: #A100FF;
+    --sector-regulatory: #2D0A4E;
+    --sector-channel: #5C2D87;
+    --sector-capital: #C780FF;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    background: var(--slide-bg);
+    font-family: Inter, system-ui, sans-serif;
+    position: relative;
+  }
+
+  /* ── Chrome: top-left label ── */
+  .label-internal {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    font-weight: 600;
+    z-index: 10;
+  }
+
+  /* ── Chrome: DRAFT badge ── */
+  .draft-badge {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 0;
+    letter-spacing: 0.08em;
+    z-index: 10;
+  }
+
+  /* ── Title block ── */
+  .title-block {
+    position: absolute;
+    top: 36px;
+    left: 48px;
+    right: 48px;
+    z-index: 10;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+
+  .title-text {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .title-text h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.15;
+  }
+
+  .title-text h1 strong {
+    color: var(--brand-accent);
+    font-weight: 800;
+  }
+
+  .title-text p {
+    font-size: 13px;
+    font-style: italic;
+    color: var(--text-mid);
+    margin-top: 4px;
+  }
+
+  .accent-rule {
+    width: 64px;
+    height: 3px;
+    background: var(--brand-accent);
+    margin-top: 6px;
+  }
+
+  /* ── Legend ── */
+  .legend {
+    flex-shrink: 0;
+    margin-left: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    align-items: flex-start;
+    padding-top: 4px;
+  }
+
+  .legend-title {
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    margin-bottom: 2px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 9px;
+    color: var(--text-mid);
+    font-weight: 600;
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .legend-line-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 6px;
+    border-top: 1px solid var(--card-border);
+    padding-top: 6px;
+  }
+
+  .legend-line-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 9px;
+    color: var(--text-mid);
+  }
+
+  .legend-line-solid {
+    width: 20px;
+    height: 2px;
+    background: var(--brand-primary-mid);
+  }
+
+  .legend-line-dashed {
+    width: 20px;
+    height: 0;
+    border-top: 2px dashed var(--text-faint);
+  }
+
+  /* ── Map canvas (SVG) ── */
+  .map-canvas {
+    position: absolute;
+    top: 130px;
+    left: 48px;
+    right: 48px;
+    bottom: 66px;
+  }
+
+  .map-canvas svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+  }
+
+  .footer span {
+    font-size: 8px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* DARK THEME */
+  :root {
+    --card-bg: rgba(255,255,255,0.07);
+    --card-border: rgba(255,255,255,0.12);
+    --text-dark: #FFFFFF;
+    --text-mid: rgba(255,255,255,0.6);
+    --slide-bg: #2D0A4E;
+  }
+
+  body, .slide { background: #2D0A4E; }
+
+  .label-internal { color: rgba(255,255,255,0.4); }
+
+  .title-text h1 { color: #FFFFFF; }
+  .title-text h1 strong { color: #C780FF; }
+  .title-text p { color: rgba(255,255,255,0.6); }
+
+  .accent-rule { background: #A100FF; }
+
+  .legend-title { color: rgba(255,255,255,0.5); }
+  .legend-item { color: rgba(255,255,255,0.6); }
+  .legend-line-item { color: rgba(255,255,255,0.6); }
+  .legend-line-wrap { border-top: 1px solid rgba(255,255,255,0.12); }
+  .legend-line-solid { background: rgba(255,255,255,0.5); }
+  .legend-line-dashed { border-top: 2px dashed rgba(255,255,255,0.3); }
+
+  .footer { border-top: 1px solid rgba(255,255,255,0.1); }
+  .footer span { color: rgba(255,255,255,0.4); }
+</style>
+</head>
+<body>
+
+  <!-- Chrome: top-left label -->
+  <div class="label-internal" data-shape-id="accenture-tag">Accenture Internal</div>
+
+  <!-- Chrome: DRAFT badge -->
+  <div class="draft-badge" data-shape-id="draft-badge">DRAFT</div>
+
+  <!-- Title block with legend -->
+  <div class="title-block">
+    <div class="title-text">
+      <h1 data-shape-id="title">Our <strong>Ecosystem</strong> at a Glance</h1>
+      <p data-shape-id="subtitle">Strategic partners, channels, and indirect players mapped by sector and relationship type</p>
+      <div class="accent-rule" data-shape-id="brand-rule"></div>
+    </div>
+
+    <!-- Legend -->
+    <div class="legend">
+      <div class="legend-title" data-shape-id="legend-title">Sector</div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#A100FF;" data-shape-id="legend-1-swatch"></div><span data-shape-id="legend-1-label">Tech</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#C780FF;" data-shape-id="legend-2-swatch"></div><span data-shape-id="legend-2-label">Regulatory</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#7B3FBF;" data-shape-id="legend-3-swatch"></div><span data-shape-id="legend-3-label">Channel</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-dot" style="background:#C780FF;" data-shape-id="legend-4-swatch"></div><span data-shape-id="legend-4-label">Capital</span>
+      </div>
+      <div class="legend-line-wrap">
+        <div class="legend-line-item">
+          <div class="legend-line-solid" data-shape-id="legend-5-swatch"></div><span data-shape-id="legend-5-label">Strategic</span>
+        </div>
+        <div class="legend-line-item">
+          <div class="legend-line-dashed" data-shape-id="legend-6-swatch"></div><span data-shape-id="legend-6-label">Indirect</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Map SVG -->
+  <div class="map-canvas">
+    <svg viewBox="0 0 1184 524" xmlns="http://www.w3.org/2000/svg" data-shape-id="chart-canvas">
+      <defs>
+        <!-- Arrow markers — dark theme: use accent colors -->
+        <marker id="arrow-bidir-start" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto-start-reverse">
+          <path d="M0,3 L6,0 L6,6 Z" fill="#C780FF" opacity="0.8"/>
+        </marker>
+        <marker id="arrow-bidir-end" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 Z" fill="#C780FF" opacity="0.8"/>
+        </marker>
+        <marker id="arrow-oneway-end" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 Z" fill="rgba(255,255,255,0.4)" opacity="0.8"/>
+        </marker>
+
+        <!-- Glow filter for hub -->
+        <filter id="hub-glow" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="6" result="blur"/>
+          <feMerge>
+            <feMergeNode in="blur"/>
+            <feMergeNode in="SourceGraphic"/>
+          </feMerge>
+        </filter>
+
+        <!-- Soft shadow for outer nodes -->
+        <filter id="card-shadow" x="-10%" y="-10%" width="120%" height="140%">
+          <feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="#000000" flood-opacity="0.3"/>
+        </filter>
+      </defs>
+
+      <!-- Ring guide circles -->
+      <circle cx="592" cy="262" r="140" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="1" stroke-dasharray="4 6" opacity="0.6"/>
+      <circle cx="592" cy="262" r="240" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1" stroke-dasharray="2 8" opacity="0.4"/>
+
+      <!-- Strategic partner lines (solid, bi-dir) -->
+      <line x1="592" y1="262" x2="510" y2="180"
+            stroke="#C780FF" stroke-width="2.5" opacity="0.75"
+            marker-start="url(#arrow-bidir-start)"
+            marker-end="url(#arrow-bidir-end)"/>
+      <line x1="592" y1="262" x2="674" y2="180"
+            stroke="#C780FF" stroke-width="2.5" opacity="0.75"
+            marker-start="url(#arrow-bidir-start)"
+            marker-end="url(#arrow-bidir-end)"/>
+      <line x1="592" y1="262" x2="674" y2="344"
+            stroke="#C780FF" stroke-width="2.5" opacity="0.75"
+            marker-start="url(#arrow-bidir-start)"
+            marker-end="url(#arrow-bidir-end)"/>
+      <line x1="592" y1="262" x2="510" y2="344"
+            stroke="#C780FF" stroke-width="2.5" opacity="0.75"
+            marker-start="url(#arrow-bidir-start)"
+            marker-end="url(#arrow-bidir-end)"/>
+
+      <!-- Outer ring lines (dashed, one-way) -->
+      <line x1="592" y1="262" x2="800" y2="262"
+            stroke="rgba(255,255,255,0.3)" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.6"
+            marker-end="url(#arrow-oneway-end)"/>
+      <line x1="592" y1="262" x2="732" y2="122"
+            stroke="rgba(255,255,255,0.3)" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.6"
+            marker-end="url(#arrow-oneway-end)"/>
+      <line x1="592" y1="262" x2="592" y2="50"
+            stroke="rgba(255,255,255,0.3)" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.6"
+            marker-end="url(#arrow-oneway-end)"/>
+      <line x1="592" y1="262" x2="452" y2="122"
+            stroke="rgba(255,255,255,0.3)" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.6"
+            marker-end="url(#arrow-oneway-end)"/>
+      <line x1="592" y1="262" x2="384" y2="262"
+            stroke="rgba(255,255,255,0.3)" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.6"
+            marker-end="url(#arrow-oneway-end)"/>
+      <line x1="592" y1="262" x2="452" y2="402"
+            stroke="rgba(255,255,255,0.3)" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.6"
+            marker-end="url(#arrow-oneway-end)"/>
+      <line x1="592" y1="262" x2="592" y2="474"
+            stroke="rgba(255,255,255,0.3)" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.6"
+            marker-end="url(#arrow-oneway-end)"/>
+      <line x1="592" y1="262" x2="732" y2="402"
+            stroke="rgba(255,255,255,0.3)" stroke-width="1.5" stroke-dasharray="6 4" opacity="0.6"
+            marker-end="url(#arrow-oneway-end)"/>
+
+      <!-- Center hub -->
+      <circle cx="592" cy="262" r="48" fill="#A100FF" filter="url(#hub-glow)"/>
+      <circle cx="592" cy="262" r="44" fill="#A100FF"/>
+      <text x="592" y="257" text-anchor="middle" font-family="Inter,system-ui,sans-serif"
+            font-size="10" font-weight="700" fill="white">Our</text>
+      <text x="592" y="271" text-anchor="middle" font-family="Inter,system-ui,sans-serif"
+            font-size="10" font-weight="700" fill="white">Organization</text>
+
+      <!-- Inner ring — strategic partners -->
+      <!-- NW: Tech Partner -->
+      <circle cx="510" cy="180" r="32" fill="#A100FF" filter="url(#card-shadow)"/>
+      <circle cx="510" cy="180" r="30" fill="#A100FF"/>
+      <text x="510" y="175" text-anchor="middle" font-family="Inter,system-ui,sans-serif"
+            font-size="8" font-weight="700" fill="white" letter-spacing="0.05em">TECH</text>
+      <text x="510" y="188" text-anchor="middle" font-family="Inter,system-ui,sans-serif"
+            font-size="9" font-weight="600" fill="white">CloudCo</text>
+
+      <!-- NE: Regulatory Partner -->
+      <circle cx="674" cy="180" r="32" fill="#5C2D87" filter="url(#card-shadow)"/>
+      <circle cx="674" cy="180" r="30" fill="#5C2D87"/>
+      <text x="674" y="175" text-anchor="middle" font-family="Inter,system-ui,sans-serif"
+            font-size="8" font-weight="700" fill="#C780FF" letter-spacing="0.05em">REGULATORY</text>
+      <text x="674" y="188" text-anchor="middle" font-family="Inter,system-ui,sans-serif"
+            font-size="9" font-weight="600" fill="white">GovLink</text>
+
+      <!-- SE: Channel Partner -->
+      <circle cx="674" cy="344" r="32" fill="#7B3FBF" filter="url(#card-shadow)"/>
+      <circle cx="674" cy="344" r="30" fill="#7B3FBF"/>
+      <text x="674" y="339" text-anchor="middle" font-family="Inter,system-ui,sans-serif"
+            font-size="8" font-weight="700" fill="#C780FF" letter-spacing="0.05em">CHANNEL</text>
+      <text x="674" y="352" text-anchor="middle" font-family="Inter,system-ui,sans-serif"
+            font-size="9" font-weight="600" fill="white">RetailNet</text>
+
+      <!-- SW: Capital Partner -->
+      <circle cx="510" cy="344" r="32" fill="#C780FF" filter="url(#card-shadow)"/>
+      <circle cx="510" cy="344" r="30" fill="#C780FF"/>
+      <text x="510" y="339" text-anchor="middle" font-family="Inter,system-ui,sans-serif"
+            font-size="8" font-weight="700" fill="#2D0A4E" letter-spacing="0.05em">CAPITAL</text>
+      <text x="510" y="352" text-anchor="middle" font-family="Inter,system-ui,sans-serif"
+            font-size="9" font-weight="600" fill="#2D0A4E">VentureX</text>
+
+      <!-- Outer ring — ecosystem players (dark cards) -->
+      <!-- 0° right -->
+      <g filter="url(#card-shadow)">
+        <rect x="832" y="242" width="80" height="40" rx="5" ry="5"
+              fill="rgba(255,255,255,0.07)" stroke="#A100FF" stroke-width="1.5"/>
+        <text x="872" y="257" text-anchor="middle" font-family="Inter,system-ui,sans-serif"
+              font-size="8" font-weight="700" fill="#C780FF" letter-spacing="0.08em">TECH</text>
+        <text x="872" y="270" text-anchor="middle" font-family="Inter,system-ui,sans-serif"
+              font-size="9" font-weight="500" fill="rgba(255,255,255,0.85)">DataStream</text>
+      </g>
+
+      <!-- 45° NE -->
+      <g filter="url(#card-shadow)">
+        <rect x="732" y="72" width="80" height="40" rx="5" ry="5"
+              fill="rgba(255,255,255,0.07)" stroke="#A100FF" stroke-width="1.5"/>
+        <text x="772" y="87" text-anchor="middle" font-family="Inter,system-ui,sans-serif"
+              font-size="8" font-weight="700" fill="#C780FF" letter-spacing="0.08em">TECH</text>
+        <text x="772" y="100" text-anchor="middle" font-family="Inter,system-ui,sans-serif"
+              font-size="9" font-weight="500" fill="rgba(255,255,255,0.85)">AILabs</text>
+      </g>
+
+      <!-- 90° top -->
+      <g filter="url(#card-shadow)">
+        <rect x="552" y="10" width="80" height="40" rx="5" ry="5"
+              fill="rgba(255,255,255,0.07)" stroke="#C780FF" stroke-width="1.5"/>
+        <text x="592" y="25" text-anchor="middle" font-family="Inter,system-ui,sans-serif"
+              font-size="8" font-weight="700" fill="#C780FF" letter-spacing="0.08em">REGULATORY</text>
+        <text x="592" y="38" text-anchor="middle" font-family="Inter,system-ui,sans-serif"
+              font-size="9" font-weight="500" fill="rgba(255,255,255,0.85)">ComplianceHQ</text>
+      </g>
+
+      <!-- 135° NW -->
+      <g filter="url(#card-shadow)">
+        <rect x="372" y="72" width="80" height="40" rx="5" ry="5"
+              fill="rgba(255,255,255,0.07)" stroke="#C780FF" stroke-width="1.5"/>
+        <text x="412" y="87" text-anchor="middle" font-family="Inter,system-ui,sans-serif"
+              font-size="8" font-weight="700" fill="#C780FF" letter-spacing="0.08em">REGULATORY</text>
+        <text x="412" y="100" text-anchor="middle" font-family="Inter,system-ui,sans-serif"
+              font-size="9" font-weight="500" fill="rgba(255,255,255,0.85)">PolicyGroup</text>
+      </g>
+
+      <!-- 180° left -->
+      <g filter="url(#card-shadow)">
+        <rect x="272" y="242" width="80" height="40" rx="5" ry="5"
+              fill="rgba(255,255,255,0.07)" stroke="#7B3FBF" stroke-width="1.5"/>
+        <text x="312" y="257" text-anchor="middle" font-family="Inter,system-ui,sans-serif"
+              font-size="8" font-weight="700" fill="#C780FF" letter-spacing="0.08em">CHANNEL</text>
+        <text x="312" y="270" text-anchor="middle" font-family="Inter,system-ui,sans-serif"
+              font-size="9" font-weight="500" fill="rgba(255,255,255,0.85)">DistribCo</text>
+      </g>
+
+      <!-- 225° SW -->
+      <g filter="url(#card-shadow)">
+        <rect x="372" y="382" width="80" height="40" rx="5" ry="5"
+              fill="rgba(255,255,255,0.07)" stroke="#7B3FBF" stroke-width="1.5"/>
+        <text x="412" y="397" text-anchor="middle" font-family="Inter,system-ui,sans-serif"
+              font-size="8" font-weight="700" fill="#C780FF" letter-spacing="0.08em">CHANNEL</text>
+        <text x="412" y="410" text-anchor="middle" font-family="Inter,system-ui,sans-serif"
+              font-size="9" font-weight="500" fill="rgba(255,255,255,0.85)">AgencyNet</text>
+      </g>
+
+      <!-- 270° bottom -->
+      <g filter="url(#card-shadow)">
+        <rect x="552" y="474" width="80" height="40" rx="5" ry="5"
+              fill="rgba(255,255,255,0.07)" stroke="#C780FF" stroke-width="1.5"/>
+        <text x="592" y="489" text-anchor="middle" font-family="Inter,system-ui,sans-serif"
+              font-size="8" font-weight="700" fill="#C780FF" letter-spacing="0.08em">CAPITAL</text>
+        <text x="592" y="502" text-anchor="middle" font-family="Inter,system-ui,sans-serif"
+              font-size="9" font-weight="500" fill="rgba(255,255,255,0.85)">GrowthFund</text>
+      </g>
+
+      <!-- 315° SE -->
+      <g filter="url(#card-shadow)">
+        <rect x="732" y="382" width="80" height="40" rx="5" ry="5"
+              fill="rgba(255,255,255,0.07)" stroke="#C780FF" stroke-width="1.5"/>
+        <text x="772" y="397" text-anchor="middle" font-family="Inter,system-ui,sans-serif"
+              font-size="8" font-weight="700" fill="#C780FF" letter-spacing="0.08em">CAPITAL</text>
+        <text x="772" y="410" text-anchor="middle" font-family="Inter,system-ui,sans-serif"
+              font-size="9" font-weight="500" fill="rgba(255,255,255,0.85)">SeedBridge</text>
+      </g>
+
+    </svg>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer" data-shape-id="footer-rule">
+    <span data-shape-id="footer-left">Confidential — Accenture Internal</span>
+    <span data-shape-id="footer-right">Slide Lab · 2026 · 191d</span>
+  </div>
+
+</body>
+</html>

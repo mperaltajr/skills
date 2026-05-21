@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>21 · Stakeholder map (Mendelow)</title>
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1280px; height: 720px; background: var(--slide-bg); font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; color: var(--text-dark); overflow: hidden; }
+body { padding: 50px 64px; position: relative; }
+.draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; }
+.project-label { position: absolute; top: 24px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
+
+.action-title { font-size: 28px; font-weight: 700; line-height: 1.2; }
+.action-title strong { color: var(--brand-primary); }
+.subhead { font-size: 14px; color: var(--text-mid); margin-top: 10px; font-style: italic; }
+.title-rule { width: 56px; height: 3px; background: var(--brand-accent); margin: 18px 0 24px 0; }
+
+/* Matrix layout: y-axis label column + grid column */
+.matrix-wrap { display: grid; grid-template-columns: 40px 1fr; gap: 0; }
+
+.y-axis { position: relative; height: 380px; }
+.y-axis-title { position: absolute; top: 50%; left: 0; transform: rotate(-90deg) translateX(50%); transform-origin: left center; font-size: 10px; font-weight: 700; letter-spacing: 2px; color: var(--text-mid); text-transform: uppercase; white-space: nowrap; }
+.y-high { position: absolute; top: 6px; right: 4px; font-size: 9px; font-weight: 700; color: var(--text-faint); letter-spacing: 1.5px; }
+.y-low { position: absolute; bottom: 6px; right: 4px; font-size: 9px; font-weight: 700; color: var(--text-faint); letter-spacing: 1.5px; }
+
+.grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 6px; height: 380px; }
+
+.quad { padding: 14px 16px; position: relative; display: flex; flex-direction: column; }
+.quad-label { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 4px; opacity: 0.85; }
+.quad-treatment { font-size: 17px; font-weight: 800; line-height: 1.1; margin-bottom: 12px; letter-spacing: 0.3px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; align-content: flex-start; }
+.chip { font-size: 11px; font-weight: 600; padding: 5px 10px; border-radius: 999px; line-height: 1.2; }
+
+/* Top-left: Keep Satisfied */
+.quad.keep-satisfied { background: var(--brand-primary-mid); color: white; }
+.quad.keep-satisfied .chip { background: rgba(255,255,255,0.18); color: white; border: 1px solid rgba(255,255,255,0.28); }
+
+/* Top-right: Manage Closely — FOCAL */
+.quad.manage-closely { background: var(--brand-primary); color: white; box-shadow: 0 4px 18px rgba(45,10,78,0.35); position: relative; }
+.quad.manage-closely::after { content: "FOCUS"; position: absolute; top: 10px; right: 12px; font-size: 9px; font-weight: 800; letter-spacing: 1.5px; background: var(--brand-accent); color: white; padding: 3px 7px; border-radius: 3px; }
+.quad.manage-closely .chip { background: var(--brand-accent); color: white; border: 1px solid var(--brand-accent); }
+
+/* Bottom-left: Monitor */
+.quad.monitor { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.12); }
+.quad.monitor .chip { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.5); border: 1px solid rgba(255,255,255,0.12); }
+
+/* Bottom-right: Keep Informed */
+.quad.keep-informed { background: rgba(161,0,255,0.2); color: #C780FF; border: 1px solid rgba(161,0,255,0.3); }
+.quad.keep-informed .chip { background: rgba(161,0,255,0.2); color: #C780FF; border: 1px solid rgba(161,0,255,0.3); }
+
+/* X-axis row */
+.x-axis-row { display: grid; grid-template-columns: 40px 1fr; margin-top: 8px; }
+.x-axis { position: relative; height: 22px; }
+.x-axis-title { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); font-size: 10px; font-weight: 700; letter-spacing: 2px; color: var(--text-mid); text-transform: uppercase; }
+.x-low { position: absolute; top: 6px; left: 4px; font-size: 9px; font-weight: 700; color: var(--text-faint); letter-spacing: 1.5px; }
+.x-high { position: absolute; top: 6px; right: 4px; font-size: 9px; font-weight: 700; color: var(--text-faint); letter-spacing: 1.5px; }
+
+.convergence { margin-top: 20px; background: var(--brand-primary); color: white; padding: 14px 22px; font-size: 14px; font-style: italic; font-weight: 500; }
+
+.footer-rule { position: absolute; left: 0; right: 0; bottom: 32px; height: 1px; background: var(--card-border); }
+.footer-left { position: absolute; bottom: 14px; left: 24px; color: var(--text-faint); font-size: 10px; letter-spacing: 1px; }
+.footer-right { position: absolute; bottom: 14px; right: 24px; color: var(--text-faint); font-size: 11px; }
+
+/* DARK THEME */
+:root {
+  --card-bg: rgba(255,255,255,0.07);
+  --card-border: rgba(255,255,255,0.12);
+  --text-dark: #FFFFFF;
+  --text-mid: rgba(255,255,255,0.6);
+  --text-faint: rgba(255,255,255,0.4);
+  --slide-bg: #2D0A4E;
+}
+body, .slide { background: #2D0A4E; }
+.project-label { color: rgba(255,255,255,0.4); }
+.action-title { color: #FFFFFF; }
+.action-title strong { color: #C780FF; }
+.subhead { color: rgba(255,255,255,0.6); }
+.y-axis-title { color: rgba(255,255,255,0.6); }
+.y-high, .y-low { color: rgba(255,255,255,0.4); }
+.x-axis-title { color: rgba(255,255,255,0.6); }
+.x-low, .x-high { color: rgba(255,255,255,0.4); }
+.footer-rule { background: rgba(255,255,255,0.1); }
+.footer-left, .footer-right { color: rgba(255,255,255,0.4); }
+</style>
+</head>
+<body>
+  <div class="project-label" data-shape-id="accenture-tag">ACCENTURE INTERNAL</div>
+  <div class="draft-badge" data-shape-id="draft-badge">DRAFT</div>
+
+  <div class="action-title" data-shape-id="title">Stakeholder map — <strong>who needs what, when.</strong></div>
+  <div class="subhead" data-shape-id="subtitle">Mendelow's influence-by-interest grid, applied to the pilot's named stakeholders.</div>
+  <div class="title-rule" data-shape-id="brand-rule"></div>
+
+  <div class="matrix-wrap">
+    <div class="y-axis">
+      <div class="y-axis-title" data-shape-id="quadrant-y-axis-label">Influence</div>
+      <div class="y-high" data-shape-id="quadrant-y-high">HIGH</div>
+      <div class="y-low" data-shape-id="quadrant-y-low">LOW</div>
+    </div>
+    <div class="grid">
+      <div class="quad keep-satisfied">
+        <div class="quad-label" data-shape-id="quadrant-tl-label">High influence · Low interest</div>
+        <div class="quad-treatment" data-shape-id="quadrant-tl-name">KEEP SATISFIED</div>
+        <div class="chips">
+          <span class="chip" data-shape-id="quadrant-tl-chip-1">Steering Committee</span>
+          <span class="chip" data-shape-id="quadrant-tl-chip-2">IT Security</span>
+          <span class="chip" data-shape-id="quadrant-tl-chip-3">Legal</span>
+        </div>
+      </div>
+      <div class="quad manage-closely">
+        <div class="quad-label" data-shape-id="quadrant-tr-label">High influence · High interest</div>
+        <div class="quad-treatment" data-shape-id="quadrant-tr-name">MANAGE CLOSELY</div>
+        <div class="chips">
+          <span class="chip" data-shape-id="quadrant-tr-chip-1">Program MD</span>
+          <span class="chip" data-shape-id="quadrant-tr-chip-2">Practice Lead</span>
+          <span class="chip" data-shape-id="quadrant-tr-chip-3">Client Engagement Partner</span>
+          <span class="chip" data-shape-id="quadrant-tr-chip-4">CFO</span>
+        </div>
+      </div>
+      <div class="quad monitor">
+        <div class="quad-label" data-shape-id="quadrant-bl-label">Low influence · Low interest</div>
+        <div class="quad-treatment" data-shape-id="quadrant-bl-name">MONITOR</div>
+        <div class="chips">
+          <span class="chip" data-shape-id="quadrant-bl-chip-1">Vendor PMs</span>
+          <span class="chip" data-shape-id="quadrant-bl-chip-2">External advisors</span>
+        </div>
+      </div>
+      <div class="quad keep-informed">
+        <div class="quad-label" data-shape-id="quadrant-br-label">Low influence · High interest</div>
+        <div class="quad-treatment" data-shape-id="quadrant-br-name">KEEP INFORMED</div>
+        <div class="chips">
+          <span class="chip" data-shape-id="quadrant-br-chip-1">Workstream analysts</span>
+          <span class="chip" data-shape-id="quadrant-br-chip-2">Adjacent project leads</span>
+          <span class="chip" data-shape-id="quadrant-br-chip-3">HR</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="x-axis-row">
+    <div></div>
+    <div class="x-axis">
+      <div class="x-low" data-shape-id="quadrant-x-low">LOW</div>
+      <div class="x-axis-title" data-shape-id="quadrant-x-axis-label">Interest</div>
+      <div class="x-high" data-shape-id="quadrant-x-high">HIGH</div>
+    </div>
+  </div>
+
+  <div class="convergence" data-shape-id="convergence">The pilot stands or falls on the four "Manage Closely" stakeholders — own those relationships personally.</div>
+
+  <div class="footer-rule" data-shape-id="footer-rule"></div>
+  <div class="footer-left" data-shape-id="footer-left">CONFIDENTIAL — ACCENTURE INTERNAL</div>
+  <div class="footer-right" data-shape-id="footer-right">Slide Lab · 2026 · 21d</div>
+</body>
+</html>

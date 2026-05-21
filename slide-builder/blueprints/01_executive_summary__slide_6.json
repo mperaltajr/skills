@@ -1,0 +1,32 @@
+{
+  "id": "01_executive_summary__slide_6",
+  "layout_pattern": "comparison-table",
+  "page_types": [
+    "Recommendation",
+    "Comparison"
+  ],
+  "title": {
+    "x": 58,
+    "y": 37,
+    "w": 1164,
+    "h": 76,
+    "slot": "action_title"
+  },
+  "body": {
+    "x": 58,
+    "y": 151,
+    "w": 1164,
+    "h": 429,
+    "kind": "comparison_table",
+    "has_row_labels": false,
+    "table_slot": "table"
+  },
+  "bottom_takeaway": {
+    "x": 58,
+    "y": 596,
+    "w": 1164,
+    "h": 36,
+    "slot": "bottom_takeaway"
+  },
+  "invariant": true
+}

@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>26 · Hero stat with delta</title>
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --up-good: #16A34A;
+  --down-good: #16A34A;
+  --down-bad: #DC2626;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1280px; height: 720px; background: var(--slide-bg); font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; color: var(--text-dark); overflow: hidden; }
+body { padding: 50px 64px; position: relative; }
+.draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; }
+.project-label { position: absolute; top: 24px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
+
+.action-title { font-size: 28px; font-weight: 700; line-height: 1.2; }
+.action-title strong { color: var(--brand-primary); }
+.subhead { font-size: 14px; color: var(--text-mid); margin-top: 10px; font-style: italic; }
+.title-rule { width: 56px; height: 3px; background: var(--brand-accent); margin: 18px 0 36px 0; }
+
+/* Body grid — hero stat left ~58%, supporting context right ~42% */
+.body-grid { display: grid; grid-template-columns: 58fr 42fr; gap: 36px; align-items: stretch; }
+
+/* LEFT — hero stat zone */
+.hero { padding: 18px 0 0 0; display: flex; flex-direction: column; justify-content: center; min-height: 420px; }
+.pre-label { font-size: 11px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--brand-primary-mid); margin-bottom: 28px; }
+.pre-label .sep { color: var(--brand-accent); margin: 0 6px; }
+.stat { font-size: 190px; font-weight: 800; line-height: 0.9; color: var(--brand-primary); font-feature-settings: "tnum"; letter-spacing: -6px; }
+.stat .unit { font-size: 88px; font-weight: 700; color: var(--brand-primary-mid); letter-spacing: -2px; margin-left: 8px; }
+.delta { margin-top: 28px; display: flex; align-items: center; gap: 14px; }
+.delta-arrow { font-size: 40px; line-height: 1; color: var(--down-good); font-weight: 800; }
+.delta-text { font-size: 26px; font-weight: 600; color: var(--text-dark); line-height: 1.2; }
+.delta-text strong { color: var(--down-good); font-weight: 800; }
+.delta-text .arrow-sep { color: var(--text-faint); margin: 0 8px; font-weight: 500; }
+.source { margin-top: 24px; font-size: 11px; font-style: italic; color: var(--text-faint); }
+
+/* RIGHT — supporting context panel */
+.context { background: var(--brand-primary); color: white; padding: 32px 30px; min-height: 420px; display: flex; flex-direction: column; }
+.context-label { font-size: 11px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--brand-accent-soft); margin-bottom: 22px; }
+.context-heading { font-size: 22px; font-weight: 700; line-height: 1.25; color: white; margin-bottom: 26px; }
+.context ul { list-style: none; flex: 1; }
+.context li { font-size: 14.5px; line-height: 1.5; padding-left: 24px; position: relative; margin-bottom: 20px; color: white; }
+.context li::before { content: "▸"; position: absolute; left: 0; top: 0; color: var(--brand-accent); font-size: 16px; font-weight: 700; line-height: 1.4; }
+.context li strong { display: block; font-weight: 700; color: white; margin-bottom: 2px; }
+.context li span { color: var(--brand-accent-soft); font-size: 13px; }
+
+.footer-rule { position: absolute; left: 0; right: 0; bottom: 32px; height: 1px; background: var(--card-border); }
+.footer-left { position: absolute; bottom: 14px; left: 24px; color: var(--text-faint); font-size: 10px; letter-spacing: 1px; }
+.footer-right { position: absolute; bottom: 14px; right: 24px; color: var(--text-faint); font-size: 11px; }
+</style>
+</head>
+<body>
+  <div class="project-label">ACCENTURE INTERNAL</div>
+  <div class="draft-badge">DRAFT</div>
+
+  <div class="action-title">From two weeks to five days — <strong>what the pilot data shows</strong>.</div>
+  <div class="subhead">A single number carries the finding. Everything else is why it matters.</div>
+  <div class="title-rule"></div>
+
+  <div class="body-grid">
+    <div class="hero">
+      <div class="pre-label">Cycle time<span class="sep">·</span>Pilot vs Baseline</div>
+      <div class="stat">5<span class="unit">days</span></div>
+      <div class="delta">
+        <div class="delta-arrow">&#9660;</div>
+        <div class="delta-text"><strong>-64%</strong> vs baseline<span class="arrow-sep">·</span>14d &rarr; 5d</div>
+      </div>
+      <div class="source">Based on 12 pilot decks &middot; Apr&ndash;May 2026</div>
+    </div>
+
+    <div class="context">
+      <div class="context-label">Why this matters</div>
+      <div class="context-heading">Five days isn't just faster &mdash; it changes what we can commit to.</div>
+      <ul>
+        <li><strong>Saves ~3 senior hours per deck</strong><span>Partner-level review time freed for client-facing work</span></li>
+        <li><strong>Compounds across the workstream</strong><span>Faster drafts mean more iteration cycles before the room</span></li>
+        <li><strong>Trigger for Q3 rollout decision</strong><span>Clears the threshold the steering committee set in February</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer-rule"></div>
+  <div class="footer-left">CONFIDENTIAL &mdash; ACCENTURE INTERNAL</div>
+  <div class="footer-right">Slide Lab &middot; 2026 &middot; 26</div>
+</body>
+</html>

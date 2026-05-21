@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>96 · Concept intro with visual</title>
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1280px; height: 720px; background: var(--slide-bg); font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; color: var(--text-dark); overflow: hidden; }
+body { padding: 0px 64px 56px 64px; position: relative; display: flex; flex-direction: column; }
+
+.draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; }
+.project-label { position: absolute; top: 24px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
+
+/* ---- Title block ---- */
+.title-block { flex: 0 0 auto; }
+.action-title { position: absolute; left: 64px; right: 64px; top: 28px; min-height: 36px; font-size: 28px; font-weight: 700; line-height: 1.2; color: var(--text-dark); max-width: 1050px; }
+.action-title strong { color: var(--brand-primary); }
+.subhead { position: absolute; left: 64px; right: 64px; top: 108px; font-size: 14px; color: var(--text-mid); font-style: italic; }
+.title-rule { position: absolute; left: 64px; top: 136px; width: 40px; height: 3px; background: var(--brand-accent); }
+
+/* ---- Body region: two columns ---- */
+.body-region { flex: 1 1 auto; display: flex; flex-direction: column; min-height: 0; margin-top: 22px; }
+.two-col { display: flex; flex-wrap: wrap; gap: 56px; flex: 1 1 auto; align-items: start; }
+
+/* LEFT — term + definition + example */
+.term-col { display: flex; flex-direction: column; padding-top: 4px; }
+.term-label { font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--brand-primary-mid); margin-bottom: 10px; }
+.term-word { font-size: 44px; font-weight: 800; line-height: 1.05; color: var(--brand-primary); letter-spacing: -0.5px; }
+.term-rule { width: 72px; height: 4px; background: var(--brand-accent); margin: 18px 0 22px 0; }
+.term-def { font-size: 17px; line-height: 1.55; color: var(--text-dark); }
+.term-def strong { color: var(--brand-primary); font-weight: 600; }
+.term-example { margin-top: 20px; padding: 14px 16px; background: var(--card-bg); border-left: 3px solid var(--brand-accent-soft); }
+.example-label { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--brand-primary-mid); margin-bottom: 6px; }
+.example-text { font-size: 13.5px; line-height: 1.5; color: var(--text-dark); font-style: italic; }
+
+/* RIGHT — visual (hub-and-spoke SVG) */
+.visual-col { display: flex; flex-direction: column; align-items: center; justify-content: flex-start; padding-top: 8px; }
+.visual-caption-top { font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--brand-primary-mid); margin-bottom: 12px; align-self: center; }
+.visual-svg { width: 100%; max-width: 460px; height: 340px; display: block; }
+.visual-caption-bottom { font-size: 14px; color: var(--text-mid); margin-top: 12px; text-align: center; line-height: 1.45; font-style: italic; max-width: 380px; }
+
+/* ---- Convergence line ---- */
+.convergence { flex: 0 0 auto; margin-top: 18px; background: var(--brand-primary); color: white; padding: 14px 22px; font-size: 14px; font-style: italic; font-weight: 500; border-left: 4px solid var(--brand-accent); }
+
+/* ---- Footer invariant ---- */
+.footer-rule { position: absolute; left: 0; right: 0; bottom: 32px; height: 1px; background: var(--card-border); }
+.footer-left { position: absolute; bottom: 14px; left: 24px; color: var(--text-faint); font-size: 11px; letter-spacing: 1px; }
+.footer-right { position: absolute; bottom: 14px; right: 24px; color: var(--text-faint); font-size: 11px; }
+
+/* DARK THEME */
+:root {
+  --card-bg: rgba(255,255,255,0.07);
+  --card-border: rgba(255,255,255,0.12);
+  --text-dark: #FFFFFF;
+  --text-mid: rgba(255,255,255,0.6);
+  --slide-bg: #2D0A4E;
+}
+html, body { background: #2D0A4E; color: #FFFFFF; }
+.project-label { color: rgba(255,255,255,0.4); }
+.action-title { color: #FFFFFF; }
+.action-title strong { color: #C780FF; }
+.subhead { color: rgba(255,255,255,0.6); }
+.term-label { color: #C780FF; }
+.term-word { color: #FFFFFF; }
+.term-def { color: rgba(255,255,255,0.85); }
+.term-def strong { color: #C780FF; }
+.term-example { background: rgba(255,255,255,0.07); border-left: 3px solid rgba(199,128,255,0.5); }
+.example-label { color: #C780FF; }
+.example-text { color: rgba(255,255,255,0.85); }
+.visual-caption-top { color: #C780FF; }
+.visual-caption-bottom { color: rgba(255,255,255,0.6); }
+.footer-rule { background: rgba(255,255,255,0.1); }
+.footer-left, .footer-right { color: rgba(255,255,255,0.4); }
+</style>
+</head>
+<body>
+
+  <div class="title-block">
+    <div class="action-title" data-shape-id="title">What is a <strong>governing thought</strong> &mdash; and why every deck needs one.</div>
+    <div class="subhead" data-shape-id="subtitle">One sentence the deck has to prove &mdash; everything else either supports it or doesn't belong.</div>
+    <div class="title-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <div class="body-region">
+    <div class="two-col">
+
+      <div class="term-col">
+        <div class="term-label" data-shape-id="term-1-label">Term</div>
+        <div class="term-word" data-shape-id="term-1-word">Governing<br>thought</div>
+        <div class="term-rule" data-shape-id="term-1-rule"></div>
+        <div class="term-def" data-shape-id="term-1-def">The single sentence the entire deck has to prove. <strong>If the deck were one sentence, it's this one.</strong> Every slide either supports it &mdash; or it doesn't belong.</div>
+        <div class="term-example" data-shape-id="term-1-example">
+          <div class="example-label" data-shape-id="term-1-example-label">Example</div>
+          <div class="example-text" data-shape-id="term-1-example-text">&ldquo;Our strategy practice will lead Q3 sign-off rates by 30 points.&rdquo;</div>
+        </div>
+      </div>
+
+      <div class="visual-col">
+        <div class="visual-caption-top" data-shape-id="visual-caption-top">How it holds the deck together</div>
+        <svg class="visual-svg" viewBox="0 0 460 340" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet" data-shape-id="chart-canvas">
+          <defs>
+            <radialGradient id="hubGrad" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#5C2D87"/>
+              <stop offset="100%" stop-color="#2D0A4E"/>
+            </radialGradient>
+          </defs>
+
+          <!-- Spoke lines -->
+          <line x1="230" y1="170" x2="80"  y2="60"  stroke="#A100FF" stroke-width="2" stroke-linecap="round" opacity="0.75"/>
+          <line x1="230" y1="170" x2="380" y2="60"  stroke="#A100FF" stroke-width="2" stroke-linecap="round" opacity="0.75"/>
+          <line x1="230" y1="170" x2="80"  y2="280" stroke="#A100FF" stroke-width="2" stroke-linecap="round" opacity="0.75"/>
+          <line x1="230" y1="170" x2="380" y2="280" stroke="#A100FF" stroke-width="2" stroke-linecap="round" opacity="0.75"/>
+
+          <!-- Spoke nodes -->
+          <g>
+            <circle cx="80"  cy="60"  r="32" fill="rgba(255,255,255,0.07)" stroke="#A100FF" stroke-width="2"/>
+            <text x="80"  y="56"  text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#C780FF" letter-spacing="1">SLIDE</text>
+            <text x="80"  y="72"  text-anchor="middle" font-family="Inter, sans-serif" font-size="16" font-weight="800" fill="#FFFFFF">1</text>
+          </g>
+          <g>
+            <circle cx="380" cy="60"  r="32" fill="rgba(255,255,255,0.07)" stroke="#A100FF" stroke-width="2"/>
+            <text x="380" y="56"  text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#C780FF" letter-spacing="1">SLIDE</text>
+            <text x="380" y="72"  text-anchor="middle" font-family="Inter, sans-serif" font-size="16" font-weight="800" fill="#FFFFFF">2</text>
+          </g>
+          <g>
+            <circle cx="80"  cy="280" r="32" fill="rgba(255,255,255,0.07)" stroke="#A100FF" stroke-width="2"/>
+            <text x="80"  y="276" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#C780FF" letter-spacing="1">SLIDE</text>
+            <text x="80"  y="292" text-anchor="middle" font-family="Inter, sans-serif" font-size="16" font-weight="800" fill="#FFFFFF">3</text>
+          </g>
+          <g>
+            <circle cx="380" cy="280" r="32" fill="rgba(255,255,255,0.07)" stroke="#A100FF" stroke-width="2"/>
+            <text x="380" y="276" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#C780FF" letter-spacing="1">SLIDE</text>
+            <text x="380" y="292" text-anchor="middle" font-family="Inter, sans-serif" font-size="16" font-weight="800" fill="#FFFFFF">4</text>
+          </g>
+
+          <!-- Hub: governing thought -->
+          <circle cx="230" cy="170" r="74" fill="url(#hubGrad)"/>
+          <circle cx="230" cy="170" r="74" fill="none" stroke="#A100FF" stroke-width="2.5"/>
+          <text x="230" y="158" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#C780FF" letter-spacing="2">GOVERNING</text>
+          <text x="230" y="174" text-anchor="middle" font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#C780FF" letter-spacing="2">THOUGHT</text>
+          <line x1="200" y1="184" x2="260" y2="184" stroke="#A100FF" stroke-width="2"/>
+          <text x="230" y="202" text-anchor="middle" font-family="Inter, sans-serif" font-size="11" font-weight="600" fill="#FFFFFF" font-style="italic">one sentence</text>
+        </svg>
+        <div class="visual-caption-bottom" data-shape-id="visual-caption-bottom">Hub-and-spoke &mdash; one thought at the center, every supporting slide pointed back at it.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="convergence" data-shape-id="convergence">If a slide doesn't trace back to the hub, it doesn't belong in the deck.</div>
+  <div class="footer-left" data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+</body>
+</html>

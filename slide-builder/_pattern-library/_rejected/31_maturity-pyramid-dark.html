@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>31 · Maturity pyramid</title>
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1280px; height: 720px; background: var(--slide-bg); font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; color: var(--text-dark); overflow: hidden; }
+body { padding: 50px 64px; position: relative; }
+.draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; }
+.project-label { position: absolute; top: 24px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
+
+.action-title { font-size: 28px; font-weight: 700; line-height: 1.2; }
+.action-title strong { color: var(--brand-primary); }
+.subhead { font-size: 14px; color: var(--text-mid); margin-top: 10px; font-style: italic; }
+.title-rule { width: 56px; height: 3px; background: var(--brand-accent); margin: 18px 0 0 0; }
+
+.content-block {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 160px;
+  bottom: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stage {
+  position: relative;
+  width: 1080px;
+  height: 390px;
+}
+
+.pyramid-svg { position: absolute; left: 50%; top: 0; transform: translateX(-50%); }
+
+.tier-row {
+  position: absolute;
+  left: 0; right: 0;
+  height: 70px;
+  display: flex;
+  align-items: center;
+}
+
+.row-5 { top: 0px; }
+.row-4 { top: 76px; }
+.row-3 { top: 152px; }
+.row-2 { top: 228px; }
+.row-1 { top: 304px; }
+
+.tier-label {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  color: white;
+  pointer-events: none;
+  width: 240px;
+}
+.tier-label .num {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  opacity: 0.75;
+  display: block;
+}
+.tier-label .name {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  line-height: 1.1;
+  margin-top: 2px;
+}
+
+.row-1 .tier-label,
+.row-2 .tier-label { color: var(--brand-primary); }
+.row-1 .tier-label .num,
+.row-2 .tier-label .num { opacity: 0.55; }
+
+.tier-desc {
+  position: absolute;
+  left: 920px;
+  width: 160px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 11px;
+  color: var(--text-mid);
+  line-height: 1.4;
+}
+.tier-desc strong { color: var(--text-dark); font-weight: 600; }
+
+.tier-desc::before {
+  content: "";
+  position: absolute;
+  left: -22px;
+  top: 50%;
+  width: 16px;
+  height: 1px;
+  background: var(--card-border);
+}
+
+.current-chip {
+  position: absolute;
+  left: 0;
+  width: 150px;
+  top: 263px;
+  transform: translateY(-50%);
+  text-align: right;
+}
+.current-chip .pill {
+  display: inline-block;
+  background: var(--brand-accent);
+  color: white;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  padding: 5px 12px;
+  border-radius: 14px;
+  text-transform: uppercase;
+}
+.current-chip .note {
+  margin-top: 6px;
+  font-size: 11px;
+  color: var(--brand-primary);
+  font-weight: 600;
+  font-style: italic;
+}
+.current-arrow {
+  position: absolute;
+  left: 168px;
+  top: 263px;
+  transform: translateY(-50%);
+  width: 0; height: 0;
+  border-top: 9px solid transparent;
+  border-bottom: 9px solid transparent;
+  border-left: 14px solid var(--brand-accent);
+}
+
+.row-2 .tier-desc {
+  background: var(--card-bg);
+  border-left: 3px solid var(--brand-accent);
+  padding: 7px 8px 7px 10px;
+  color: var(--text-dark);
+}
+.row-2 .tier-desc strong { color: var(--brand-primary); }
+
+.convergence { position: absolute; left: 64px; right: 64px; bottom: 56px; text-align: center; font-size: 13px; font-style: italic; color: var(--brand-primary); font-weight: 500; }
+.convergence strong { color: var(--brand-accent); font-style: normal; font-weight: 700; }
+
+.footer-rule { position: absolute; left: 0; right: 0; bottom: 32px; height: 1px; background: var(--card-border); }
+.footer-left { position: absolute; bottom: 14px; left: 24px; color: var(--text-faint); font-size: 10px; letter-spacing: 1px; }
+.footer-right { position: absolute; bottom: 14px; right: 24px; color: var(--text-faint); font-size: 11px; }
+
+/* DARK THEME */
+:root {
+  --card-bg: rgba(255,255,255,0.07);
+  --card-border: rgba(255,255,255,0.12);
+  --text-dark: #FFFFFF;
+  --text-mid: rgba(255,255,255,0.6);
+  --slide-bg: #2D0A4E;
+}
+body, .slide { background: #2D0A4E; }
+.project-label { color: rgba(255,255,255,0.4); }
+.action-title { color: #FFFFFF; }
+.action-title strong { color: #C780FF; }
+.subhead { color: rgba(255,255,255,0.6); }
+/* Bottom two tiers had dark text — override to white on dark bg */
+.row-1 .tier-label,
+.row-2 .tier-label { color: #FFFFFF; }
+.tier-desc { color: rgba(255,255,255,0.6); }
+.tier-desc strong { color: #FFFFFF; }
+.tier-desc::before { background: rgba(255,255,255,0.12); }
+.row-2 .tier-desc { background: rgba(255,255,255,0.07); border-left-color: #A100FF; color: rgba(255,255,255,0.85); }
+.row-2 .tier-desc strong { color: #C780FF; }
+.current-chip .note { color: rgba(255,255,255,0.6); }
+.convergence { color: rgba(255,255,255,0.85); }
+.footer-rule { background: rgba(255,255,255,0.1); }
+.footer-left, .footer-right { color: rgba(255,255,255,0.4); }
+</style>
+</head>
+<body>
+  <div class="project-label" data-shape-id="accenture-tag">ACCENTURE INTERNAL</div>
+  <div class="draft-badge" data-shape-id="draft-badge">DRAFT</div>
+
+  <div class="action-title" data-shape-id="title">Maturity model — <strong>where the practice is today and where it could go.</strong></div>
+  <div class="subhead" data-shape-id="subtitle">CMMI-style assessment of deck quality discipline across the team.</div>
+  <div class="title-rule" data-shape-id="brand-rule"></div>
+
+  <div class="content-block">
+    <div class="stage">
+      <svg class="pyramid-svg" width="820" height="384" viewBox="0 0 820 384" xmlns="http://www.w3.org/2000/svg">
+        <!-- Tier 5 (top, narrowest, darkest) -->
+        <polygon points="300,0 520,0 496,66 324,66" fill="#A100FF" data-shape-id="tier-5-shape"/>
+        <!-- Tier 4 -->
+        <polygon points="240,76 580,76 556,142 264,142" fill="rgba(161,0,255,0.7)" data-shape-id="tier-4-shape"/>
+        <!-- Tier 3 -->
+        <polygon points="180,152 640,152 616,218 204,218" fill="rgba(161,0,255,0.45)" data-shape-id="tier-3-shape"/>
+        <!-- Tier 2 — CURRENT STATE -->
+        <polygon points="120,228 700,228 676,294 144,294" fill="rgba(161,0,255,0.25)" data-shape-id="tier-2-shape"/>
+        <!-- Tier 1 — base -->
+        <polygon points="60,304 760,304 736,370 84,370" fill="rgba(255,255,255,0.08)" data-shape-id="tier-1-shape"/>
+
+        <!-- Highlight ring around current-state tier -->
+        <polygon points="120,228 700,228 676,294 144,294" fill="none" stroke="#A100FF" stroke-width="3" data-shape-id="tier-2-highlight-ring"/>
+      </svg>
+
+      <!-- Tier 5 — OPTIMIZING -->
+      <div class="tier-row row-5">
+        <div class="tier-label">
+          <span class="num" data-shape-id="tier-5-label">LEVEL 5</span>
+          <span class="name" data-shape-id="tier-5-name">OPTIMIZING</span>
+        </div>
+        <div class="tier-desc" data-shape-id="tier-5-desc">
+          <strong>Continuous improvement.</strong> Patterns harvested across teams and folded into the standard.
+        </div>
+      </div>
+
+      <!-- Tier 4 — QUANTITATIVELY MANAGED -->
+      <div class="tier-row row-4">
+        <div class="tier-label">
+          <span class="num" data-shape-id="tier-4-label">LEVEL 4</span>
+          <span class="name" data-shape-id="tier-4-name">QUANTITATIVELY MANAGED</span>
+        </div>
+        <div class="tier-desc" data-shape-id="tier-4-desc">
+          <strong>Measured.</strong> Cycle time, edits per deck, and quality scores tracked.
+        </div>
+      </div>
+
+      <!-- Tier 3 — DEFINED -->
+      <div class="tier-row row-3">
+        <div class="tier-label">
+          <span class="num" data-shape-id="tier-3-label">LEVEL 3</span>
+          <span class="name" data-shape-id="tier-3-name">DEFINED</span>
+        </div>
+        <div class="tier-desc" data-shape-id="tier-3-desc">
+          <strong>Standard process followed.</strong> Predictable quality across authors and engagements.
+        </div>
+      </div>
+
+      <!-- Tier 2 — MANAGED (CURRENT STATE) -->
+      <div class="tier-row row-2">
+        <div class="tier-label">
+          <span class="num" data-shape-id="tier-2-label">LEVEL 2</span>
+          <span class="name" data-shape-id="tier-2-name">MANAGED</span>
+        </div>
+        <div class="tier-desc" data-shape-id="tier-2-desc">
+          <strong>Templates exist; usage inconsistent.</strong> Some teams adopt, others freelance.
+        </div>
+      </div>
+
+      <!-- Tier 1 — INITIAL -->
+      <div class="tier-row row-1">
+        <div class="tier-label">
+          <span class="num" data-shape-id="tier-1-label">LEVEL 1</span>
+          <span class="name" data-shape-id="tier-1-name">INITIAL</span>
+        </div>
+        <div class="tier-desc" data-shape-id="tier-1-desc">
+          <strong>Ad-hoc.</strong> No standard. Quality varies by author. Each deck is a one-off build.
+        </div>
+      </div>
+
+      <!-- Focal point — current state callout -->
+      <div class="current-chip">
+        <div class="pill" data-shape-id="tier-current-chip">Current state</div>
+        <div class="note" data-shape-id="tier-current-note">We're here today</div>
+      </div>
+      <div class="current-arrow" data-shape-id="tier-current-arrow"></div>
+    </div>
+  </div>
+
+  <div class="convergence" data-shape-id="convergence">We're at <strong>Level 2</strong> today. The pilot moves us to <strong>Level 3</strong> in four weeks.</div>
+
+  <div class="footer-rule" data-shape-id="footer-rule"></div>
+  <div class="footer-left" data-shape-id="footer-left">CONFIDENTIAL — ACCENTURE INTERNAL</div>
+  <div class="footer-right" data-shape-id="footer-right">Slide Lab · 2026 · 31d</div>
+</body>
+</html>

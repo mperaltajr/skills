@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>292 · Pull Quote Interstitial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    background: var(--slide-bg);
+    position: relative;
+  }
+
+  /* ── Chrome ── */
+  .chrome-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    z-index: 10;
+  }
+
+  .label-internal {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .badge-draft {
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 7px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 2px 8px;
+    border-radius: 0;
+    line-height: 1.4;
+  }
+
+  /* spacer so badge stays centered and internal label is left */
+  .chrome-top-right-spacer {
+    width: 140px; /* matches approximate width of left label to balance center */
+  }
+
+  .chrome-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    z-index: 10;
+  }
+
+  .footer-label {
+    font-size: 9px;
+    color: var(--text-faint);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 400;
+  }
+
+  /* ── Background decoration ── */
+  .bg-circle {
+    position: absolute;
+    width: 560px;
+    height: 560px;
+    border-radius: 50%;
+    background: rgba(199, 128, 255, 0.05);
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 0;
+    pointer-events: none;
+  }
+
+  /* ── Content area ── */
+  .content {
+    position: absolute;
+    top: 40px;
+    bottom: 36px;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 48px;
+    z-index: 1;
+  }
+
+  .quote-mark {
+    font-size: 120px;
+    line-height: 1;
+    color: var(--brand-accent);
+    font-family: Georgia, 'Times New Roman', serif;
+}
+
+  .quote-text {
+    font-size: 32px;
+    font-style: italic;
+    font-weight: 400;
+    color: var(--brand-primary);
+    text-align: center;
+    max-width: 820px;
+    line-height: 1.5;
+    letter-spacing: -0.01em;
+  }
+
+  .quote-rule {
+    width: 80px;
+    height: 4px;
+    background: var(--brand-accent);
+    margin: 36px auto 0;
+    border: none;
+    flex-shrink: 0;
+  }
+
+  .quote-attribution {
+}
+</style>
+</head>
+<body>
+
+  <!-- Top chrome -->
+  <div class="chrome-top">
+    <span class="label-internal">Accenture Internal</span>
+    <span class="badge-draft">Draft</span>
+    <span class="chrome-top-right-spacer"></span>
+  </div>
+
+  <!-- Background circle decoration -->
+  <div class="bg-circle"></div>
+
+  <!-- Pull quote content -->
+  <div class="content">
+    <div class="quote-mark">&#8220;</div>
+    <p class="quote-text">
+      The organizations that will lead the next decade are not the ones with the most data — they are the ones that act on it faster than anyone else.
+    </p>
+    <div class="quote-rule"></div>
+    <p class="quote-attribution">&#8212;&thinsp;Jane Smith, Chief Strategy Officer, Accenture</p>
+  </div>
+
+  <!-- Footer chrome -->
+  <div class="chrome-footer">
+    <span class="footer-label">Confidential</span>
+    <span class="footer-label">Slide Lab &middot; 2026 &middot; 292</span>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pattern 210 — Two-Column Compare with Icon Headers</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: Inter, system-ui, sans-serif;
+    background: var(--slide-bg);
+    position: relative;
+  }
+
+  /* ── Invariant Chrome ── */
+
+  .internal-label {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .draft-badge {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 0;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .title-block {
+    position: absolute; top: 0; left: 0; right: 0; height: 160px;
+  }
+
+  .title-block h1 {
+    position: absolute; top: 28px; left: 64px; right: 64px; min-height: 36px;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.15;
+  }
+
+  .title-block h1 strong {
+    color: var(--brand-accent);
+    font-weight: 700;
+  }
+
+  .title-block .sub-headline {
+    position: absolute; top: 108px; left: 64px; right: 64px;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+
+}
+
+  .accent-rule {
+    position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+
+}
+
+  footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+  }
+
+  footer span {
+    font-size: 8px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* ── Pattern Content ── */
+
+  .content-area {
+    position: absolute;
+    top: 128px;
+    left: 48px;
+    right: 48px;
+    bottom: 76px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .columns-wrapper {
+    display: flex;
+    gap: 0;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* Column */
+  .col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .col-left {
+    padding-right: 16px;
+    border-right: 1.5px solid var(--card-border);
+  }
+
+  .col-right {
+    padding-left: 16px;
+  }
+
+  /* Column header */
+  .col-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--card-border);
+
+    bottom: 0;
+  }
+
+  .col-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .col-icon.bad {
+    background: #FEE2E2;
+    color: #DC2626;
+  }
+
+  .col-icon.good {
+    background: #DCFCE7;
+    color: #16A34A;
+  }
+
+  .col-header-text {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .col-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-dark);
+    letter-spacing: 0.01em;
+  }
+
+  .col-pill {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    padding: 1px 7px;
+    border-radius: 2px;
+    text-transform: uppercase;
+    width: fit-content;
+  }
+
+  .col-pill.bad {
+    background: #FEE2E2;
+    color: #DC2626;
+  }
+
+  .col-pill.good {
+    background: #DCFCE7;
+    color: #16A34A;
+  }
+
+  /* Rows */
+  .rows-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .compare-row {
+    display: flex;
+    align-items: stretch;
+    flex: 1;
+  }
+
+  .row-cell {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--card-border);
+    font-size: 14px;
+    color: var(--text-dark);
+    line-height: 1.4;
+    gap: 8px;
+  }
+
+  .row-cell .dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .row-cell.left-cell .dot {
+    background: #DC2626;
+    opacity: 0.6;
+  }
+
+  .row-cell.right-cell .dot {
+    background: #16A34A;
+    opacity: 0.7;
+  }
+
+  /* Right cell: separated from left by divider */
+  .right-cell-wrapper {
+    flex: 1;
+    display: flex;
+  }
+
+  .right-cell-wrapper .row-cell {
+    padding-left: 16px;
+    border-left: 1.5px solid var(--card-border);
+  }
+
+  /* Critical row highlight */
+  .compare-row.critical .row-cell {
+    background: var(--card-bg);
+    border-top: 1.5px solid var(--brand-accent);
+    border-bottom: 1.5px solid var(--brand-accent);
+    padding-left: 8px;
+    padding-right: 8px;
+    font-weight: 600;
+    color: var(--brand-primary);
+  }
+
+  .compare-row.critical .row-cell.left-cell {
+    padding-left: 8px;
+    border-radius: 0;
+  }
+
+  .compare-row.critical .right-cell-wrapper .row-cell {
+    padding-left: 16px;
+  }
+
+  .compare-row.critical .critical-tag {
+    display: inline-block;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--brand-accent);
+    background: rgba(161,0,255,0.08);
+    padding: 1px 6px;
+    border-radius: 2px;
+    white-space: nowrap;
+
+    left: auto;
+    text-transform: uppercase;
+    flex-shrink: 0;
+  }
+
+  /* Convergence bar */
+  .convergence-bar {
+
+    top: 12px;
+    background: var(--brand-primary);
+    color: #FFFFFF;
+    border-radius: 4px;
+    padding: 12px 18px;
+    font-size: 14px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  .convergence-bar .bar-icon {
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  .convergence-bar .bar-text em {
+    font-style: normal;
+    color: var(--brand-accent-soft);
+    font-weight: 700;
+  }
+
+  /* Row layout: left + right side by side within compare-row */
+  .row-pair {
+    display: flex;
+    flex: 1;
+    width: 100%;
+  }
+
+  .row-pair .left-side {
+    flex: 1;
+    padding-right: 16px;
+    border-right: 1.5px solid var(--card-border);
+  }
+
+  .row-pair .right-side {
+    flex: 1;
+    padding-left: 16px;
+  }
+
+  /* Restructure: rows as a grid under both headers together */
+  .dual-col-rows {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+
+    top: 0;
+  }
+
+  .dual-row {
+    display: flex;
+    flex: 1;
+    align-items: stretch;
+  }
+
+  .dual-row.critical-row {
+    position: relative;
+  }
+
+  .dual-row.critical-row .left-cell,
+  .dual-row.critical-row .right-cell {
+    background: var(--card-bg);
+    border-top: 1.5px solid var(--brand-accent);
+    border-bottom: 1.5px solid var(--brand-accent);
+    font-weight: 600;
+    color: var(--brand-primary);
+  }
+
+  .left-cell {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px 12px 0;
+    border-bottom: 1px solid var(--card-border);
+    font-size: 14px;
+    color: var(--text-dark);
+    line-height: 1.4;
+    border-right: 1.5px solid var(--card-border);
+  }
+
+  .right-cell {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 0 12px 16px;
+    border-bottom: 1px solid var(--card-border);
+    font-size: 14px;
+    color: var(--text-dark);
+    line-height: 1.4;
+  }
+
+  .dot-bad {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #DC2626;
+    opacity: 0.65;
+    flex-shrink: 0;
+  }
+
+  .dot-good {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #16A34A;
+    opacity: 0.7;
+    flex-shrink: 0;
+  }
+
+  .critical-chip {
+
+    left: auto;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--brand-accent);
+    background: rgba(161,0,255,0.1);
+    padding: 2px 7px;
+    border-radius: 2px;
+    text-transform: uppercase;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Invariant Chrome -->
+  <div class="internal-label" data-shape-id="accenture-tag">Accenture Internal</div>
+
+  <div class="title-block">
+    <h1 data-shape-id="title">Bridging the gap between <strong>today's constraints</strong> and tomorrow's potential</h1>
+    <div class="sub-headline" data-shape-id="subtitle">A structured view of current pain points versus the improved future state — with a clear path forward</div>
+    <div class="accent-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <!-- Headers -->
+    <div style="display:flex; gap:0;
+    bottom:0;">
+      <!-- Left header -->
+      <div style="flex:1; padding-right:16px; border-right:1.5px solid var(--card-border);">
+        <div class="col-header">
+          <div class="col-icon bad" data-shape-id="panel-1-icon">✗</div>
+          <div class="col-header-text">
+            <span class="col-title" data-shape-id="panel-1-heading">Current State</span>
+            <span class="col-pill bad" data-shape-id="panel-1-label">AS IS</span>
+          </div>
+        </div>
+      </div>
+      <!-- Right header -->
+      <div style="flex:1; padding-left:16px;">
+        <div class="col-header">
+          <div class="col-icon good" data-shape-id="panel-2-icon">✓</div>
+          <div class="col-header-text">
+            <span class="col-title" data-shape-id="panel-2-heading">Future State</span>
+            <span class="col-pill good" data-shape-id="panel-2-label">TO BE</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Rows -->
+    <div class="dual-col-rows">
+
+      <!-- Row 1 -->
+      <div class="dual-row">
+        <div class="left-cell" data-shape-id="panel-1-row-1">
+          <span class="dot-bad"></span>
+          Manual reporting cycles take 3–5 days and require significant analyst effort
+        </div>
+        <div class="right-cell" data-shape-id="panel-2-row-1">
+          <span class="dot-good"></span>
+          Automated pipelines deliver real-time dashboards with zero manual intervention
+        </div>
+      </div>
+
+      <!-- Row 2 -->
+      <div class="dual-row">
+        <div class="left-cell" data-shape-id="panel-1-row-2">
+          <span class="dot-bad"></span>
+          Data siloed across 6+ systems with no single source of truth
+        </div>
+        <div class="right-cell" data-shape-id="panel-2-row-2">
+          <span class="dot-good"></span>
+          Unified data platform provides a governed, enterprise-wide source of truth
+        </div>
+      </div>
+
+      <!-- Row 3 — Critical -->
+      <div class="dual-row critical-row">
+        <div class="left-cell" data-shape-id="panel-1-row-3" style="padding-left:8px; background:var(--card-bg); border-top:1.5px solid var(--brand-accent); border-bottom:1.5px solid var(--brand-accent); font-weight:600; color:var(--brand-primary);">
+          <span class="dot-bad"></span>
+          Decisions delayed by 2+ weeks due to lack of integrated customer insight
+          <span class="critical-chip" data-shape-id="panel-1-row-3-tag">Critical</span>
+        </div>
+        <div class="right-cell" data-shape-id="panel-2-row-3" style="background:var(--card-bg); border-top:1.5px solid var(--brand-accent); border-bottom:1.5px solid var(--brand-accent); font-weight:600; color:var(--brand-primary);">
+          <span class="dot-good"></span>
+          AI-driven insight layer surfaces actionable recommendations within hours
+        </div>
+      </div>
+
+      <!-- Row 4 -->
+      <div class="dual-row">
+        <div class="left-cell" data-shape-id="panel-1-row-4">
+          <span class="dot-bad"></span>
+          High operational cost from duplicated processes and redundant tooling
+        </div>
+        <div class="right-cell" data-shape-id="panel-2-row-4">
+          <span class="dot-good"></span>
+          Consolidated toolchain reduces operational overhead by an estimated 35%
+        </div>
+      </div>
+
+      <!-- Row 5 -->
+      <div class="dual-row">
+        <div class="left-cell" data-shape-id="panel-1-row-5" style="border-bottom:none;">
+          <span class="dot-bad"></span>
+          Teams operate reactively, unable to anticipate demand or capacity needs
+        </div>
+        <div class="right-cell" data-shape-id="panel-2-row-5" style="border-bottom:none;">
+          <span class="dot-good"></span>
+          Predictive models enable proactive planning with 90-day forward visibility
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Convergence bar -->
+    <div class="convergence-bar" data-shape-id="convergence-bg">
+      <span class="bar-icon" data-shape-id="convergence-mark">→</span>
+      <span class="bar-text" data-shape-id="convergence">
+        Closing this gap requires <em>a unified data and AI platform with phased adoption</em> — achievable in <em>9 months</em>.
+      </span>
+    </div>
+
+  </div>
+
+  <footer data-shape-id="footer-rule">
+    <span data-shape-id="footer-left">Confidential — Accenture Internal</span>
+    <span data-shape-id="footer-right">Slide Lab · 2026 · 210</span>
+  </footer>
+
+</body>
+</html>

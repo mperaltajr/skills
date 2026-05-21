@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pattern 200 — Now / Next / Later Roadmap</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+
+    --ws-delivery: #2D0A4E;
+    --ws-data: #A100FF;
+    --ws-change: #5C2D87;
+    --ws-tech: #0EA5E9;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: Inter, system-ui, sans-serif;
+    background: #888;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+  }
+
+  .slide {
+    width: 1280px;
+    height: 720px;
+    background: var(--slide-bg);
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  /* ── Invariant chrome ── */
+
+  .chrome-internal {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    z-index: 10;
+  }
+
+  .chrome-draft {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 0;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    z-index: 10;
+  }
+
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 20px 10px 20px;
+    z-index: 10;
+  }
+
+  .footer-left,
+  .footer-right {
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* ── Title block ── */
+
+  .title-block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+  .title-row {
+    display: flex;
+    align-items: flex-start;
+  }
+
+  .title-text {
+    flex: 1;
+  }
+
+  .legend-row {
+    display: flex;
+    justify-content: flex-end;
+
+    top: 6px;
+  }
+
+  .title-main {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+  pointer-events: auto;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.15;
+  }
+
+  .title-main strong {
+    color: var(--brand-accent);
+    font-weight: 700;
+  }
+
+  .title-sub {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 108px;
+  pointer-events: auto;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+    }
+
+  .title-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+  pointer-events: none;
+    
+    
+    background: var(--brand-accent);
+    }
+
+  /* ── Status legend ── */
+
+  .legend {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex-shrink: 0;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    color: var(--text-mid);
+    font-weight: 500;
+  }
+
+  .legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .dot-inflight  { background: #16A34A; }
+  .dot-planned   { background: #2563EB; }
+  .dot-exploring { background: var(--text-faint); }
+
+  /* ── Columns area ── */
+
+  .columns-area {
+    position: absolute;
+    top: 140px;
+    left: 48px;
+    right: 48px;
+    bottom: 88px;
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+  }
+
+  /* chevron connector between columns */
+  .chevron-connector {
+    width: 32px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: flex-start;
+    padding-top: 0;
+  }
+
+  .chevron-svg {
+    width: 32px;
+    height: 40px;
+
+    top: 0;
+  }
+
+  /* ── Column ── */
+
+  .column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .col-header {
+    border-radius: 4px 4px 0 0;
+    padding: 8px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  .col-header-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: #FFFFFF;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .col-header-period {
+    font-size: 10px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.75);
+    letter-spacing: 0.06em;
+  }
+
+  .col-header.now   { background: var(--brand-primary); }
+  .col-header.next  { background: var(--brand-primary-mid); }
+  .col-header.later { background: var(--brand-accent-soft); }
+
+  .col-header.later .col-header-label,
+  .col-header.later .col-header-period {
+    color: var(--brand-primary);
+  }
+
+  .col-header.later .col-header-period {
+    color: rgba(45,10,78,0.65);
+  }
+
+  .cards-stack {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 8px 0 0 0;
+  }
+
+  /* ── Initiative card ── */
+
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 0 0 4px 4px;
+    padding: 10px 12px 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+  }
+
+  .card:not(:last-child) {
+    border-radius: 4px;
+  }
+
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 6px;
+  }
+
+  .card-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-dark);
+    line-height: 1.3;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .status-tag {
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 20px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    letter-spacing: 0.04em;
+  }
+
+  .status-inflight  { background: #DCFCE7; color: #15803D; }
+  .status-planned   { background: #DBEAFE; color: #1D4ED8; }
+  .status-exploring { background: #F1F5F9; color: #475569; }
+
+  .workstream-chip {
+    font-size: 9px;
+    font-weight: 600;
+    padding: 1px 7px;
+    border-radius: 3px;
+    display: inline-flex;
+    align-items: center;
+    width: fit-content;
+    letter-spacing: 0.03em;
+  }
+
+  .ws-delivery { background: rgba(45,10,78,0.10);  color: var(--ws-delivery); }
+  .ws-data     { background: rgba(161,0,255,0.10); color: var(--ws-data); }
+  .ws-change   { background: rgba(92,45,135,0.12); color: var(--ws-change); }
+  .ws-tech     { background: rgba(14,165,233,0.12); color: #0369A1; }
+
+  /* ── Theme strip ── */
+
+  .theme-strip {
+    position: absolute;
+    bottom: 56px;
+    left: 48px;
+    right: 48px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    border-top: 1px solid var(--card-border);
+    padding-top: 6px;
+    z-index: 5;
+  }
+
+  .theme-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-mid);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .theme-dots {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .theme-dot-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    color: var(--text-mid);
+    font-weight: 500;
+  }
+
+  .theme-circle {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .tc-delivery { background: var(--brand-primary); }
+  .tc-data     { background: var(--brand-accent); }
+  .tc-change   { background: var(--brand-accent-soft); }
+  .tc-tech     { background: #0EA5E9; }
+</style>
+</head>
+<body>
+<div class="slide">
+
+  <!-- Chrome: internal label -->
+  <div class="chrome-internal">Accenture Internal</div>
+
+  <!-- Chrome: DRAFT badge -->
+  <div class="chrome-draft">DRAFT</div>
+
+  <!-- Title block -->
+  <div class="title-block">
+    <div class="title-row">
+      <div class="title-text">
+        <div class="title-main">Our <strong>Now / Next / Later</strong> Roadmap</div>
+        <div class="title-sub">Sequencing initiatives across three planning horizons — Q2 2026 through 2027+</div>
+        <div class="title-rule"></div>
+      </div>
+    </div>
+
+    <!-- Status legend — PRIMARY placement: right-aligned below title block -->
+    <div class="legend-row">
+      <div class="legend">
+        <div class="legend-item"><span class="legend-dot dot-inflight"></span>In Flight</div>
+        <div class="legend-item"><span class="legend-dot dot-planned"></span>Planned</div>
+        <div class="legend-item"><span class="legend-dot dot-exploring"></span>Exploring</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Columns area -->
+  <div class="columns-area">
+
+    <!-- NOW column -->
+    <div class="column">
+      <div class="col-header now">
+        <div class="col-header-label">Now</div>
+        <div class="col-header-period">Q2 2026</div>
+      </div>
+      <div class="cards-stack">
+
+        <div class="card">
+          <div class="card-top">
+            <div class="card-name">Operating Model Blueprint</div>
+            <div class="status-tag status-inflight">In Flight</div>
+          </div>
+          <div class="workstream-chip ws-delivery">Delivery</div>
+        </div>
+
+        <div class="card">
+          <div class="card-top">
+            <div class="card-name">Data Foundation &amp; Governance Framework</div>
+            <div class="status-tag status-inflight">In Flight</div>
+          </div>
+          <div class="workstream-chip ws-data">Data &amp; AI</div>
+        </div>
+
+        <div class="card">
+          <div class="card-top">
+            <div class="card-name">Stakeholder Alignment Workshops</div>
+            <div class="status-tag status-inflight">In Flight</div>
+          </div>
+          <div class="workstream-chip ws-change">Change</div>
+        </div>
+
+        <div class="card">
+          <div class="card-top">
+            <div class="card-name">Legacy System Audit &amp; Decommission Plan</div>
+            <div class="status-tag status-planned">Planned</div>
+          </div>
+          <div class="workstream-chip ws-tech">Technology</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Chevron between NOW and NEXT -->
+    <div class="chevron-connector">
+      <svg class="chevron-svg" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 8 L24 20 L8 32" stroke="var(--brand-primary-mid)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <!-- NEXT column -->
+    <div class="column">
+      <div class="col-header next">
+        <div class="col-header-label">Next</div>
+        <div class="col-header-period">Q3–Q4 2026</div>
+      </div>
+      <div class="cards-stack">
+
+        <div class="card">
+          <div class="card-top">
+            <div class="card-name">Agile Delivery Capability Build</div>
+            <div class="status-tag status-planned">Planned</div>
+          </div>
+          <div class="workstream-chip ws-delivery">Delivery</div>
+        </div>
+
+        <div class="card">
+          <div class="card-top">
+            <div class="card-name">AI / ML Pilot — Demand Forecasting</div>
+            <div class="status-tag status-planned">Planned</div>
+          </div>
+          <div class="workstream-chip ws-data">Data &amp; AI</div>
+        </div>
+
+        <div class="card">
+          <div class="card-top">
+            <div class="card-name">Change Champion Network Launch</div>
+            <div class="status-tag status-planned">Planned</div>
+          </div>
+          <div class="workstream-chip ws-change">Change</div>
+        </div>
+
+        <div class="card">
+          <div class="card-top">
+            <div class="card-name">Cloud Migration — Wave 1</div>
+            <div class="status-tag status-planned">Planned</div>
+          </div>
+          <div class="workstream-chip ws-tech">Technology</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Chevron between NEXT and LATER -->
+    <div class="chevron-connector">
+      <svg class="chevron-svg" viewBox="0 0 32 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M8 8 L24 20 L8 32" stroke="var(--brand-accent-soft)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <!-- LATER column -->
+    <div class="column">
+      <div class="col-header later">
+        <div class="col-header-label">Later</div>
+        <div class="col-header-period">2027+</div>
+      </div>
+      <div class="cards-stack">
+
+        <div class="card">
+          <div class="card-top">
+            <div class="card-name">Scaled Product Operating Model</div>
+            <div class="status-tag status-exploring">Exploring</div>
+          </div>
+          <div class="workstream-chip ws-delivery">Delivery</div>
+        </div>
+
+        <div class="card">
+          <div class="card-top">
+            <div class="card-name">Enterprise AI Platform Rollout</div>
+            <div class="status-tag status-exploring">Exploring</div>
+          </div>
+          <div class="workstream-chip ws-data">Data &amp; AI</div>
+        </div>
+
+        <div class="card">
+          <div class="card-top">
+            <div class="card-name">Culture &amp; Capability Measurement</div>
+            <div class="status-tag status-exploring">Exploring</div>
+          </div>
+          <div class="workstream-chip ws-change">Change</div>
+        </div>
+
+        <div class="card">
+          <div class="card-top">
+            <div class="card-name">Full Cloud-Native Architecture</div>
+            <div class="status-tag status-exploring">Exploring</div>
+          </div>
+          <div class="workstream-chip ws-tech">Technology</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div><!-- /columns-area -->
+
+  <!-- Theme strip -->
+  <div class="theme-strip">
+    <div class="theme-label">Organizing around 3 themes</div>
+    <div class="theme-dots">
+      <div class="theme-dot-item">
+        <div class="theme-circle tc-delivery"></div>
+        Delivery Excellence
+      </div>
+      <div class="theme-dot-item">
+        <div class="theme-circle tc-data"></div>
+        Data &amp; AI
+      </div>
+      <div class="theme-dot-item">
+        <div class="theme-circle tc-change"></div>
+        People &amp; Change
+      </div>
+      <div class="theme-dot-item">
+        <div class="theme-circle" style="background:#0EA5E9;"></div>
+        Technology Modernisation
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div class="footer-left"></div>
+    <div class="footer-right"></div>
+  </div>
+
+</div><!-- /slide -->
+</body>
+</html>

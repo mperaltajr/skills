@@ -1,0 +1,172 @@
+{
+  "_source_pptx": "<set SLIDE_LAB_ICON_LIBRARY env var to your icon-library PPTX>",
+  "_extraction": "position-based — source_x_pct/source_y_pct point to the center of the gray outline icon as seen in the exported PNG. Use extract_icons.py --inspect <slide> <x> <y> to verify before changing coordinates.",
+  "_layout_notes": "Each icon slide has a 6% header, then 3 rows of icon sections. Within each section, 4 icons are arranged 2x2: top-left=gray outline (this one), top-right=purple filled, bottom-left=alt-gray, bottom-right=black outline. Coordinates target the top-left gray icon.",
+  "icons": [
+    {
+      "name": "chart-bar",
+      "concept": "Data / analytics / reporting",
+      "source_slide": 13,
+      "source_x_pct": 0.32,
+      "source_y_pct": 0.14,
+      "concept_label": "bar; graph; chart; performance",
+      "visual": "Clean vertical bar chart (3 bars of varying heights)",
+      "slide_category": "BUSINESS",
+      "grid_position": "row 1, col 3 of 7"
+    },
+    {
+      "name": "diamond",
+      "concept": "Decision / approval / governance",
+      "source_slide": 13,
+      "source_x_pct": 0.04,
+      "source_y_pct": 0.76,
+      "concept_label": "value; diamond; care; vip; attain; reach; achieve; quality",
+      "visual": "Hands cupping/holding a diamond gem upward",
+      "slide_category": "BUSINESS",
+      "grid_position": "row 3, col 1 of 7"
+    },
+    {
+      "name": "shield-warning",
+      "concept": "Risk / escalation / controls",
+      "source_slide": 14,
+      "source_x_pct": 0.75,
+      "source_y_pct": 0.76,
+      "concept_label": "safe; protected",
+      "visual": "Round vault/safe with combination dial — security/protection",
+      "slide_category": "BUSINESS",
+      "grid_position": "row 3, col 6 of 7"
+    },
+    {
+      "name": "speech",
+      "concept": "Communication / engagement / change",
+      "source_slide": 15,
+      "source_x_pct": 0.18,
+      "source_y_pct": 0.14,
+      "concept_label": "speech; presentation; present",
+      "visual": "Lectern / presentation podium",
+      "slide_category": "BUSINESS",
+      "grid_position": "row 1, col 2 of 7"
+    },
+    {
+      "name": "coins",
+      "concept": "Cost / budget / finance",
+      "source_slide": 15,
+      "source_x_pct": 0.04,
+      "source_y_pct": 0.76,
+      "concept_label": "coins; savings; budget",
+      "visual": "Stacked coin cylinders (two heights)",
+      "slide_category": "BUSINESS",
+      "grid_position": "row 3, col 1 of 7"
+    },
+    {
+      "name": "chip",
+      "concept": "Technology / systems / digital",
+      "source_slide": 33,
+      "source_x_pct": 0.04,
+      "source_y_pct": 0.45,
+      "concept_label": "user; head; digital; think; person; customer; consumer; code; binary",
+      "visual": "Human head silhouette with binary code (0/1) overlay — digital thinking",
+      "slide_category": "PEOPLE",
+      "grid_position": "row 2, col 1 of 7"
+    },
+    {
+      "name": "people",
+      "concept": "People / team / workforce",
+      "source_slide": 35,
+      "source_x_pct": 0.46,
+      "source_y_pct": 0.45,
+      "concept_label": "team; organization; hierarchy; group",
+      "visual": "Org chart hierarchy with 3-tier structure and person icons",
+      "slide_category": "PEOPLE",
+      "grid_position": "row 2, col 4 of 7"
+    },
+    {
+      "name": "lightbulb",
+      "concept": "Insight / finding / innovation",
+      "source_slide": 36,
+      "source_x_pct": 0.18,
+      "source_y_pct": 0.14,
+      "concept_label": "insight; lightbulb; idea",
+      "visual": "Person silhouette with glowing lightbulb above — insight/idea",
+      "slide_category": "PEOPLE",
+      "grid_position": "row 1, col 2 of 7"
+    },
+    {
+      "name": "globe",
+      "concept": "External / market / global",
+      "source_slide": 50,
+      "source_x_pct": 0.46,
+      "source_y_pct": 0.76,
+      "concept_label": "globe; planet; world; global; earth",
+      "visual": "Globe with continent outlines (no grid lines) — clean world icon",
+      "slide_category": "TRAVEL",
+      "grid_position": "row 3, col 4 of 7"
+    },
+    {
+      "name": "compass",
+      "concept": "Strategy / direction / vision",
+      "source_slide": 51,
+      "source_x_pct": 0.71,
+      "source_y_pct": 0.14,
+      "concept_label": "lighthouse; beacon; vision; light; guide; guided; navigate",
+      "visual": "Lighthouse with light beam — vision/direction/strategy",
+      "slide_category": "TRAVEL",
+      "grid_position": "row 1, col 5 of 6"
+    },
+    {
+      "name": "clipboard-check",
+      "concept": "Compliance / audit / quality",
+      "source_slide": 75,
+      "source_x_pct": 0.32,
+      "source_y_pct": 0.45,
+      "concept_label": "clipboard; task; tasks; todo; list",
+      "visual": "Clipboard with checkmark and task items — assessment/audit",
+      "slide_category": "CONTENT",
+      "grid_position": "row 2, col 3 of 7"
+    },
+    {
+      "name": "package",
+      "concept": "Delivery / output / milestones",
+      "source_slide": 78,
+      "source_x_pct": 0.46,
+      "source_y_pct": 0.45,
+      "concept_label": "box; cube; product",
+      "visual": "Open box / cube outline — deliverable / product",
+      "slide_category": "CONTENT",
+      "grid_position": "row 2, col 4 of 7"
+    },
+    {
+      "name": "wrench",
+      "concept": "Work in progress / tools / fix",
+      "source_slide": 131,
+      "source_x_pct": 0.32,
+      "source_y_pct": 0.14,
+      "concept_label": "tool; tools; wrench",
+      "visual": "Single standalone wrench — tools/fix/WIP",
+      "slide_category": "OPERATIONS & TOOLS",
+      "grid_position": "row 1, col 3 of 7"
+    },
+    {
+      "name": "gear",
+      "concept": "Process / operations / workflow",
+      "source_slide": 131,
+      "source_x_pct": 0.60,
+      "source_y_pct": 0.73,
+      "concept_label": "agile engineering",
+      "visual": "Two interlocking gears with rotation arrows — process/operations",
+      "slide_category": "OPERATIONS & TOOLS",
+      "grid_position": "row 3, col 4 of 6 (left/gray icon)"
+    },
+    {
+      "name": "calendar",
+      "concept": "Timeline / schedule / planning",
+      "source_slide": 152,
+      "source_x_pct": 0.18,
+      "source_y_pct": 0.45,
+      "concept_label": "month; date; calendar; deadline; on-time; schedule; diary; expire; expiration; week; events; event",
+      "visual": "Classic calendar grid with all date cells visible",
+      "slide_category": "TIME",
+      "grid_position": "row 2, col 2 of 7"
+    }
+  ]
+}

@@ -1,0 +1,507 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1280" />
+<title>242 · Competitive Battlecard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    background: var(--slide-bg);
+    font-family: 'Inter', sans-serif;
+    color: var(--text-dark);
+    position: relative;
+  }
+
+  /* ── Chrome: top-left label ── */
+  .chrome-internal {
+    position: absolute;
+    top: 12px;
+    left: 18px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  /* ── Chrome: DRAFT badge ── */
+  .chrome-draft {
+    position: absolute;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 0;
+    line-height: 1;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 28px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 18px;
+  }
+
+  .footer-left,
+  .footer-right {
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  /* ── Main content area ── */
+  .content {
+    position: absolute;
+    top: 30px;
+    left: 18px;
+    right: 18px;
+    bottom: 28px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Title block ── */
+  .title-block {
+    position: absolute; top: 0; left: 0; right: 0; height: 160px;
+  }
+
+  .title-block h1 {
+    position: absolute; top: 28px; left: 64px; right: 64px; min-height: 36px;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.15;
+
+    bottom: 4px;
+  }
+
+  .title-block h1 strong {
+    color: var(--brand-accent);
+    font-weight: 800;
+  }
+
+  .title-block .sub {
+    position: absolute; top: 108px; left: 64px; right: 64px;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+
+    bottom: 8px;
+  }
+
+  .title-rule {
+  position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+  }
+
+  /* ── Table area ── */
+  .table-wrap {
+    flex: 1;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+
+    top: 8px;
+  }
+
+  table {
+    width: 100%;
+    height: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+
+  /* Column widths */
+  col.col-criteria { width: 22%; }
+  col.col-us       { width: 26%; }
+  col.col-a        { width: 26%; }
+  col.col-b        { width: 26%; }
+
+  /* ── Header row ── */
+  thead th {
+    padding: 10px 10px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    border: 1px solid var(--card-border);
+  }
+
+  thead th.th-criteria {
+    background: var(--brand-primary);
+    color: #FFFFFF;
+    text-align: left;
+  }
+
+  thead th.th-us {
+    background: var(--brand-primary);
+    color: #FFFFFF;
+    text-align: center;
+  }
+
+  thead th.th-comp {
+    background: var(--card-bg);
+    color: var(--brand-primary-mid);
+    text-align: center;
+  }
+
+  /* ── Body rows ── */
+  tbody tr:nth-child(even) td {
+    background: #FDFBFF;
+  }
+
+  tbody tr:nth-child(odd) td {
+    background: var(--slide-bg);
+  }
+
+  tbody td {
+    padding: 12px 10px;
+    border: 1px solid var(--card-border);
+    vertical-align: top;
+    font-size: 11px;
+    line-height: 1.35;
+  }
+
+  td.td-criteria {
+    font-weight: 600;
+    color: var(--brand-primary);
+    font-size: 11px;
+    vertical-align: middle;
+  }
+
+  td.td-us {
+    background: var(--card-bg) !important;
+    text-align: center;
+  }
+
+  td.td-comp {
+    text-align: center;
+    color: var(--text-mid);
+  }
+
+  .dots {
+    font-size: 14px;
+    display: block;
+
+    bottom: 2px;
+    letter-spacing: 1px;
+  }
+
+  .dots .filled {
+    color: var(--brand-accent);
+  }
+
+  .dots .empty {
+    color: var(--card-border);
+  }
+
+  td.td-us .dots .filled {
+    color: var(--brand-accent);
+  }
+
+  .descriptor {
+    font-size: 11px;
+    color: var(--text-mid);
+    line-height: 1.35;
+  }
+
+  td.td-us .descriptor {
+    color: var(--brand-primary-mid);
+    font-weight: 500;
+    font-size: 11px;
+  }
+
+  /* ── Why We Win strip ── */
+  .win-strip {
+    flex-shrink: 0;
+    background: var(--brand-primary);
+    display: flex;
+    align-items: stretch;
+
+    top: 0;
+    border-radius: 0;
+  }
+
+  .win-label {
+    background: var(--brand-accent);
+    color: #FFFFFF;
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    padding: 0 16px;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .win-items {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex: 1;
+  }
+
+  .win-item {
+    flex: 1;
+    padding: 14px 16px;
+    border-left: 1px solid rgba(255,255,255,0.15);
+  }
+
+  .win-item-title {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--brand-accent-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+
+    bottom: 2px;
+  }
+
+  .win-item-body {
+    font-size: 14px;
+    color: #FFFFFF;
+    line-height: 1.4;
+    font-weight: 400;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Chrome: top-left label -->
+  <div class="chrome-internal">Accenture Internal</div>
+
+  <!-- Chrome: DRAFT badge -->
+  <div class="chrome-draft">Draft</div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span class="footer-left">Confidential</span>
+    <span class="footer-right">Slide Lab · 2026 · 242</span>
+  </div>
+
+  <!-- Main content -->
+  <div class="content">
+
+    <!-- Title block -->
+    <div class="title-block">
+      <h1>Competitive <strong>Battlecard</strong></h1>
+      <p class="sub">Head-to-head assessment across eight decision criteria — why our platform leads</p>
+      <div class="title-rule"></div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <table>
+        <colgroup>
+          <col class="col-criteria" />
+          <col class="col-us" />
+          <col class="col-a" />
+          <col class="col-b" />
+        </colgroup>
+        <thead>
+          <tr>
+            <th class="th-criteria">Criteria</th>
+            <th class="th-us">Our Brand</th>
+            <th class="th-comp">Competitor A</th>
+            <th class="th-comp">Competitor B</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Row 1: Implementation Speed -->
+          <tr>
+            <td class="td-criteria">Implementation Speed</td>
+            <td class="td-us">
+              <span class="dots"><span class="filled">●●●●●</span></span>
+              <span class="descriptor">Avg. 6-week onboarding, dedicated delivery pod</span>
+            </td>
+            <td class="td-comp">
+              <span class="dots"><span class="filled">●●●</span><span class="empty">○○</span></span>
+              <span class="descriptor">12–16 weeks, heavy SI dependency required</span>
+            </td>
+            <td class="td-comp">
+              <span class="dots"><span class="filled">●●</span><span class="empty">○○○</span></span>
+              <span class="descriptor">20+ week timelines, limited local resources</span>
+            </td>
+          </tr>
+          <!-- Row 2: Global Scale -->
+          <tr>
+            <td class="td-criteria">Global Scale</td>
+            <td class="td-us">
+              <span class="dots"><span class="filled">●●●●●</span></span>
+              <span class="descriptor">50+ country data residency, 99.99% SLA</span>
+            </td>
+            <td class="td-comp">
+              <span class="dots"><span class="filled">●●●●</span><span class="empty">○</span></span>
+              <span class="descriptor">30 regions, some gaps in APAC latency</span>
+            </td>
+            <td class="td-comp">
+              <span class="dots"><span class="filled">●●●</span><span class="empty">○○</span></span>
+              <span class="descriptor">Primarily US/EU footprint, limited EM reach</span>
+            </td>
+          </tr>
+          <!-- Row 3: Price Point -->
+          <tr>
+            <td class="td-criteria">Price Point</td>
+            <td class="td-us">
+              <span class="dots"><span class="filled">●●●●</span><span class="empty">○</span></span>
+              <span class="descriptor">Modular pricing; 15% lower TCO at enterprise scale</span>
+            </td>
+            <td class="td-comp">
+              <span class="dots"><span class="filled">●●●</span><span class="empty">○○</span></span>
+              <span class="descriptor">Bundled licensing; overage charges add up quickly</span>
+            </td>
+            <td class="td-comp">
+              <span class="dots"><span class="filled">●●●●</span><span class="empty">○</span></span>
+              <span class="descriptor">Low entry cost; steep tier jumps above 500 seats</span>
+            </td>
+          </tr>
+          <!-- Row 4: Technical Support -->
+          <tr>
+            <td class="td-criteria">Technical Support</td>
+            <td class="td-us">
+              <span class="dots"><span class="filled">●●●●●</span></span>
+              <span class="descriptor">24/7 named CSM, P1 response under 15 minutes</span>
+            </td>
+            <td class="td-comp">
+              <span class="dots"><span class="filled">●●●</span><span class="empty">○○</span></span>
+              <span class="descriptor">Business-hours support; escalation lag in EMEA</span>
+            </td>
+            <td class="td-comp">
+              <span class="dots"><span class="filled">●●</span><span class="empty">○○○</span></span>
+              <span class="descriptor">Ticket-only model; avg 4-hour P1 acknowledgment</span>
+            </td>
+          </tr>
+          <!-- Row 5: Integration Ease -->
+          <tr>
+            <td class="td-criteria">Integration Ease</td>
+            <td class="td-us">
+              <span class="dots"><span class="filled">●●●●●</span></span>
+              <span class="descriptor">300+ native connectors, no-code config wizard</span>
+            </td>
+            <td class="td-comp">
+              <span class="dots"><span class="filled">●●●●</span><span class="empty">○</span></span>
+              <span class="descriptor">Strong SAP/Oracle; custom APIs need dev effort</span>
+            </td>
+            <td class="td-comp">
+              <span class="dots"><span class="filled">●●●</span><span class="empty">○○</span></span>
+              <span class="descriptor">REST-only; iPaaS middleware typically required</span>
+            </td>
+          </tr>
+          <!-- Row 6: Analytics Depth -->
+          <tr>
+            <td class="td-criteria">Analytics Depth</td>
+            <td class="td-us">
+              <span class="dots"><span class="filled">●●●●●</span></span>
+              <span class="descriptor">Embedded AI forecasting, real-time anomaly alerts</span>
+            </td>
+            <td class="td-comp">
+              <span class="dots"><span class="filled">●●●</span><span class="empty">○○</span></span>
+              <span class="descriptor">Canned dashboards; custom reports need BI tool</span>
+            </td>
+            <td class="td-comp">
+              <span class="dots"><span class="filled">●●●</span><span class="empty">○○</span></span>
+              <span class="descriptor">Good visualization; limited predictive capability</span>
+            </td>
+          </tr>
+          <!-- Row 7: Security Posture -->
+          <tr>
+            <td class="td-criteria">Security Posture</td>
+            <td class="td-us">
+              <span class="dots"><span class="filled">●●●●●</span></span>
+              <span class="descriptor">ISO 27001, SOC 2 Type II, FedRAMP Moderate</span>
+            </td>
+            <td class="td-comp">
+              <span class="dots"><span class="filled">●●●●</span><span class="empty">○</span></span>
+              <span class="descriptor">SOC 2 Type II; FedRAMP in progress, not certified</span>
+            </td>
+            <td class="td-comp">
+              <span class="dots"><span class="filled">●●●</span><span class="empty">○○</span></span>
+              <span class="descriptor">SOC 2 Type I only; no government cloud offering</span>
+            </td>
+          </tr>
+          <!-- Row 8: Industry Expertise -->
+          <tr>
+            <td class="td-criteria">Industry Expertise</td>
+            <td class="td-us">
+              <span class="dots"><span class="filled">●●●●●</span></span>
+              <span class="descriptor">Dedicated verticals in FSI, Health, Public Sector</span>
+            </td>
+            <td class="td-comp">
+              <span class="dots"><span class="filled">●●</span><span class="empty">○○○</span></span>
+              <span class="descriptor">Horizontal focus; limited vertical accelerators</span>
+            </td>
+            <td class="td-comp">
+              <span class="dots"><span class="filled">●●●</span><span class="empty">○○</span></span>
+              <span class="descriptor">Retail and CPG depth; thin in regulated industries</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Why We Win strip -->
+    <div class="win-strip">
+      <div class="win-label">Why We Win</div>
+      <div class="win-items">
+        <div class="win-item">
+          <div class="win-item-title">Fastest Time to Value</div>
+          <div class="win-item-body">6-week implementation is 2× faster than the nearest competitor, accelerating ROI from day one</div>
+        </div>
+        <div class="win-item">
+          <div class="win-item-title">AI-Native Analytics</div>
+          <div class="win-item-body">Embedded forecasting and anomaly detection — no bolt-on BI tool or extra license required</div>
+        </div>
+        <div class="win-item">
+          <div class="win-item-title">Enterprise-Grade Compliance</div>
+          <div class="win-item-body">Only vendor with FedRAMP Moderate and ISO 27001 combined, covering regulated industries end-to-end</div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+</body>
+</html>

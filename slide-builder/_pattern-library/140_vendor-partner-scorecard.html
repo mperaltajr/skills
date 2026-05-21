@@ -1,0 +1,752 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>140 &mdash; Vendor / partner scorecard</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #4a4a4a;
+  font-family: 'Inter', -apple-system, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.slide {
+  width: 1280px;
+  height: 720px;
+  background: var(--slide-bg);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.35);
+}
+
+/* ===== DRAFT badge ===== */
+.draft-badge {
+  position: absolute;
+  top: 44px;
+  right: 48px;
+  background: var(--draft-bg);
+  color: var(--draft-text);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  z-index: 10;
+}
+
+/* ===== Top chrome ===== */
+.top-chrome {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 36px;
+  background: var(--brand-primary);
+  display: flex;
+  align-items: center;
+  padding: 0 48px;
+  color: rgba(255,255,255,0.78);
+  font-size: 11px;
+  letter-spacing: 1.2px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+.top-chrome .left { display: flex; align-items: center; gap: 14px; }
+.top-chrome .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--brand-accent);
+}
+.top-chrome .right {
+  margin-left: auto;
+  font-weight: 400;
+  letter-spacing: 0.6px;
+  text-transform: none;
+  color: rgba(255,255,255,0.62);
+  font-size: 10.5px;
+}
+
+/* ===== Title block ===== */
+.title-block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+.title-block .title-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.eyebrow {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--brand-accent);
+  margin-bottom: 6px;
+}
+.title {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+  pointer-events: auto;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-dark);
+  letter-spacing: -0.3px;
+  line-height: 1.25;
+}
+.title strong { color: var(--brand-accent); }
+.subhead {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 108px;
+  pointer-events: auto;
+  font-size: 14px;
+  color: var(--text-mid);
+  font-weight: 400;
+  line-height: 1.4;
+}
+.accent-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+  pointer-events: none;
+  
+  
+  background: var(--brand-accent);
+  border-radius: 2px;
+}
+
+/* ===== Score legend — PRIMARY: right-aligned in title/header zone ===== */
+.score-legend {
+  flex: 0 0 auto;
+  align-self: flex-end;
+  width: 210px;
+  padding: 9px 12px 8px;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  background: #FBFAFD;
+}
+.score-legend .legend-title {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--text-mid);
+  margin-bottom: 6px;
+}
+.score-legend .scale-row {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+.score-legend .pip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  background: var(--card-bg);
+  color: var(--brand-primary);
+  font-size: 11px;
+  font-weight: 800;
+  border: 1px solid var(--card-border);
+  flex-shrink: 0;
+}
+.score-legend .pip.active {
+  background: var(--brand-accent);
+  color: #fff;
+  border-color: var(--brand-accent);
+}
+.score-legend .label-row {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 4px;
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--text-faint);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+}
+
+/* ===== Table area ===== */
+.table-wrap {
+  position: absolute;
+  top: 152px;
+  left: 48px;
+  right: 48px;
+  bottom: 100px;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+table.scorecard {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  color: var(--text-dark);
+  table-layout: fixed;
+  flex-shrink: 0;
+}
+
+/* Column widths: vendor name | 6 criteria | total */
+table.scorecard col.col-vendor  { width: 148px; }
+table.scorecard col.col-crit    { width: 133px; }
+table.scorecard col.col-total   { width: 100px; }
+
+/* ===== Header row ===== */
+table.scorecard thead th {
+  background: var(--brand-primary);
+  color: #fff;
+  padding: 9px 10px 8px;
+  text-align: center;
+  border-right: 1px solid rgba(255,255,255,0.08);
+  vertical-align: middle;
+  line-height: 1.25;
+}
+table.scorecard thead th:last-child { border-right: none; }
+table.scorecard thead th.th-vendor {
+  text-align: left;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.65);
+}
+table.scorecard thead th.th-crit {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: none;
+  color: #fff;
+}
+table.scorecard thead th.th-crit .wt {
+  display: block;
+  font-size: 9px;
+  font-weight: 500;
+  color: var(--brand-accent-soft);
+  letter-spacing: 0.2px;
+  margin-top: 2px;
+}
+table.scorecard thead th.th-total {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--brand-accent-soft);
+  background: rgba(161,0,255,0.25);
+}
+
+/* ===== Body rows ===== */
+table.scorecard tbody td {
+  padding: 0 10px;
+  height: 82px;
+  border-top: 1px solid var(--card-border);
+  border-right: 1px solid var(--card-border);
+  vertical-align: middle;
+}
+table.scorecard tbody td:last-child { border-right: none; }
+table.scorecard tbody tr:first-child td { border-top: none; }
+
+/* Vendor name cell */
+.td-vendor {
+  background: var(--card-bg);
+  text-align: left;
+  border-right: 2px solid var(--card-border) !important;
+}
+.td-vendor .v-name {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--brand-primary);
+  letter-spacing: -0.1px;
+  line-height: 1.2;
+}
+.td-vendor .v-sub {
+  display: block;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-mid);
+  margin-top: 2px;
+  letter-spacing: 0.1px;
+}
+
+/* Score cell */
+.td-score {
+  text-align: center;
+  padding: 0 8px !important;
+}
+.td-score .score-num {
+  display: block;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-dark);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  margin-bottom: 5px;
+}
+.td-score .score-bar-track {
+  width: 100%;
+  height: 5px;
+  background: #EDE8F5;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.td-score .score-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--brand-primary-mid);
+}
+
+/* Total cell */
+.td-total {
+  text-align: center;
+  background: var(--card-bg);
+  border-left: 1px solid var(--card-border);
+  padding: 0 10px !important;
+}
+.td-total .t-num {
+  display: block;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--brand-primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.td-total .t-of {
+  display: block;
+  font-size: 9.5px;
+  font-weight: 500;
+  color: var(--text-faint);
+  letter-spacing: 0.3px;
+  margin-top: 3px;
+}
+
+/* ===== Recommended row (Vendor B) ===== */
+tr.rec-row td {
+  background: rgba(161,0,255,0.05);
+  border-top: 1px solid rgba(161,0,255,0.2) !important;
+}
+tr.rec-row td:last-child {
+  border-bottom: 1px solid rgba(161,0,255,0.2);
+}
+tr.rec-row td.td-vendor {
+  border-left: 4px solid var(--brand-accent) !important;
+  background: rgba(161,0,255,0.08);
+}
+tr.rec-row td.td-score .score-num { color: var(--brand-primary); }
+tr.rec-row td.td-score .score-bar-fill { background: var(--brand-accent); }
+tr.rec-row td.td-total {
+  background: var(--brand-accent);
+}
+tr.rec-row td.td-total .t-num { color: #fff; }
+tr.rec-row td.td-total .t-of  { color: rgba(255,255,255,0.65); }
+
+/* RECOMMENDED badge inside vendor cell */
+.rec-badge {
+  display: inline-block;
+  margin-top: 5px;
+  font-size: 8px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--brand-accent);
+  padding: 2px 7px;
+  border-radius: 2px;
+}
+
+/* ===== Note row below table ===== */
+.note-bar {
+  position: absolute;
+  left: 48px;
+  right: 48px;
+  bottom: 56px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  background: linear-gradient(90deg, var(--brand-primary) 0%, var(--brand-primary-mid) 100%);
+  border-radius: 6px;
+}
+.note-bar .nb-tag {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  color: var(--brand-accent-soft);
+  text-transform: uppercase;
+  padding: 3px 7px;
+  border: 1px solid rgba(199,128,255,0.4);
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.note-bar .nb-text {
+  font-size: 12.5px;
+  color: #fff;
+  font-weight: 400;
+  letter-spacing: 0.1px;
+  line-height: 1.4;
+}
+.note-bar .nb-text strong {
+  color: var(--brand-accent-soft);
+  font-weight: 700;
+}
+
+/* ===== Footer ===== */
+.footer {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  padding: 0 48px;
+  font-size: 9.5px;
+  color: var(--text-faint);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-top: 1px solid #F0EAF6;
+  background: #FBFAFD;
+}
+.footer .pg { margin-left: auto; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+
+<div class="slide">
+
+  <!-- DRAFT badge -->
+
+  <!-- Top chrome -->
+  <div class="top-chrome">
+    <div class="left">
+      <span class="dot"></span>
+      <span>Slide Lab</span>
+      <span style="opacity:0.4;">|</span>
+      <span>Vendor evaluation</span>
+    </div>
+    <div class="right">2026-05-18</div>
+  </div>
+
+  <!-- Title block -->
+  <div class="title-block">
+    <div class="title-text">
+      <div class="eyebrow">Vendor / partner scorecard &mdash; weighted criteria</div>
+      <div class="title"><strong>Vendor B recommended</strong> &mdash; highest weighted score driven by superior integration capability and competitive pricing</div>
+      <div class="subhead">Five vendors evaluated across six weighted criteria. Scores 1&ndash;5; weighted total = &sum;(score &times; weight).</div>
+      <div class="accent-rule"></div>
+    </div>
+    <!-- Score legend — PRIMARY placement: right-aligned in header zone -->
+    <div class="score-legend" aria-label="Score scale legend">
+      <div class="legend-title">Score scale</div>
+      <div class="scale-row">
+        <span class="pip">1</span>
+        <span class="pip">2</span>
+        <span class="pip">3</span>
+        <span class="pip">4</span>
+        <span class="pip active">5</span>
+      </div>
+      <div class="label-row">
+        <span>Poor fit</span>
+        <span>Excellent</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table class="scorecard">
+      <colgroup>
+        <col class="col-vendor">
+        <!-- 6 criteria columns -->
+        <col class="col-crit">
+        <col class="col-crit">
+        <col class="col-crit">
+        <col class="col-crit">
+        <col class="col-crit">
+        <col class="col-crit">
+        <col class="col-total">
+      </colgroup>
+      <thead>
+        <tr>
+          <th class="th-vendor">Vendor</th>
+          <th class="th-crit">Technical Fit<span class="wt">25%</span></th>
+          <th class="th-crit">Integration Capability<span class="wt">20%</span></th>
+          <th class="th-crit">Cost / Value<span class="wt">20%</span></th>
+          <th class="th-crit">Support Model<span class="wt">15%</span></th>
+          <th class="th-crit">Security &amp; Compliance<span class="wt">15%</span></th>
+          <th class="th-crit">Partnership History<span class="wt">5%</span></th>
+          <th class="th-total">Weighted Total</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        <!-- Vendor A — Acme Corp -->
+        <tr>
+          <td class="td-vendor">
+            <span class="v-name">Vendor A</span>
+            <span class="v-sub">Acme Corp</span>
+          </td>
+          <!-- Tech 4 -->
+          <td class="td-score">
+            <span class="score-num">4</span>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:80%"></div></div>
+          </td>
+          <!-- Integ 3 -->
+          <td class="td-score">
+            <span class="score-num">3</span>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:60%"></div></div>
+          </td>
+          <!-- Cost 4 -->
+          <td class="td-score">
+            <span class="score-num">4</span>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:80%"></div></div>
+          </td>
+          <!-- Support 3 -->
+          <td class="td-score">
+            <span class="score-num">3</span>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:60%"></div></div>
+          </td>
+          <!-- Security 4 -->
+          <td class="td-score">
+            <span class="score-num">4</span>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:80%"></div></div>
+          </td>
+          <!-- Partner 3 -->
+          <td class="td-score">
+            <span class="score-num">3</span>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:60%"></div></div>
+          </td>
+          <!-- Total: 4×.25+3×.20+4×.20+3×.15+4×.15+3×.05 = 1.00+0.60+0.80+0.45+0.60+0.15 = 3.60 -->
+          <td class="td-total">
+            <span class="t-num">3.60</span>
+            <span class="t-of">out of 5.00</span>
+          </td>
+        </tr>
+
+        <!-- Vendor B — DataCo (RECOMMENDED) -->
+        <tr class="rec-row">
+          <td class="td-vendor">
+            <span class="v-name">Vendor B</span>
+            <span class="v-sub">DataCo</span>
+            <span class="rec-badge">Recommended</span>
+          </td>
+          <!-- Tech 4 -->
+          <td class="td-score">
+            <span class="score-num">4</span>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:80%"></div></div>
+          </td>
+          <!-- Integ 5 -->
+          <td class="td-score">
+            <span class="score-num">5</span>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:100%"></div></div>
+          </td>
+          <!-- Cost 5 -->
+          <td class="td-score">
+            <span class="score-num">5</span>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:100%"></div></div>
+          </td>
+          <!-- Support 4 -->
+          <td class="td-score">
+            <span class="score-num">4</span>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:80%"></div></div>
+          </td>
+          <!-- Security 4 -->
+          <td class="td-score">
+            <span class="score-num">4</span>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:80%"></div></div>
+          </td>
+          <!-- Partner 4 -->
+          <td class="td-score">
+            <span class="score-num">4</span>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:80%"></div></div>
+          </td>
+          <!-- Total: 4×.25+5×.20+5×.20+4×.15+4×.15+4×.05 = 1.00+1.00+1.00+0.60+0.60+0.20 = 4.40 -->
+          <td class="td-total">
+            <span class="t-num">4.40</span>
+            <span class="t-of">out of 5.00</span>
+          </td>
+        </tr>
+
+        <!-- Vendor C — TechBase -->
+        <tr>
+          <td class="td-vendor">
+            <span class="v-name">Vendor C</span>
+            <span class="v-sub">TechBase</span>
+          </td>
+          <!-- Tech 3 -->
+          <td class="td-score">
+            <span class="score-num">3</span>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:60%"></div></div>
+          </td>
+          <!-- Integ 3 -->
+          <td class="td-score">
+            <span class="score-num">3</span>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:60%"></div></div>
+          </td>
+          <!-- Cost 3 -->
+          <td class="td-score">
+            <span class="score-num">3</span>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:60%"></div></div>
+          </td>
+          <!-- Support 4 -->
+          <td class="td-score">
+            <span class="score-num">4</span>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:80%"></div></div>
+          </td>
+          <!-- Security 5 -->
+          <td class="td-score">
+            <span class="score-num">5</span>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:100%"></div></div>
+          </td>
+          <!-- Partner 2 -->
+          <td class="td-score">
+            <span class="score-num">2</span>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:40%"></div></div>
+          </td>
+          <!-- Total: 3×.25+3×.20+3×.20+4×.15+5×.15+2×.05 = 0.75+0.60+0.60+0.60+0.75+0.10 = 3.40 -->
+          <td class="td-total">
+            <span class="t-num">3.40</span>
+            <span class="t-of">out of 5.00</span>
+          </td>
+        </tr>
+
+        <!-- Vendor D — NovaSys -->
+        <tr>
+          <td class="td-vendor">
+            <span class="v-name">Vendor D</span>
+            <span class="v-sub">NovaSys</span>
+          </td>
+          <!-- Tech 5 -->
+          <td class="td-score">
+            <span class="score-num">5</span>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:100%"></div></div>
+          </td>
+          <!-- Integ 3 -->
+          <td class="td-score">
+            <span class="score-num">3</span>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:60%"></div></div>
+          </td>
+          <!-- Cost 3 -->
+          <td class="td-score">
+            <span class="score-num">3</span>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:60%"></div></div>
+          </td>
+          <!-- Support 3 -->
+          <td class="td-score">
+            <span class="score-num">3</span>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:60%"></div></div>
+          </td>
+          <!-- Security 3 -->
+          <td class="td-score">
+            <span class="score-num">3</span>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:60%"></div></div>
+          </td>
+          <!-- Partner 2 -->
+          <td class="td-score">
+            <span class="score-num">2</span>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:40%"></div></div>
+          </td>
+          <!-- Total: 5×.25+3×.20+3×.20+3×.15+3×.15+2×.05 = 1.25+0.60+0.60+0.45+0.45+0.10 = 3.45 -->
+          <td class="td-total">
+            <span class="t-num">3.45</span>
+            <span class="t-of">out of 5.00</span>
+          </td>
+        </tr>
+
+        <!-- Vendor E — FutureTech -->
+        <tr>
+          <td class="td-vendor">
+            <span class="v-name">Vendor E</span>
+            <span class="v-sub">FutureTech</span>
+          </td>
+          <!-- Tech 3 -->
+          <td class="td-score">
+            <span class="score-num">3</span>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:60%"></div></div>
+          </td>
+          <!-- Integ 4 -->
+          <td class="td-score">
+            <span class="score-num">4</span>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:80%"></div></div>
+          </td>
+          <!-- Cost 4 -->
+          <td class="td-score">
+            <span class="score-num">4</span>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:80%"></div></div>
+          </td>
+          <!-- Support 3 -->
+          <td class="td-score">
+            <span class="score-num">3</span>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:60%"></div></div>
+          </td>
+          <!-- Security 3 -->
+          <td class="td-score">
+            <span class="score-num">3</span>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:60%"></div></div>
+          </td>
+          <!-- Partner 2 -->
+          <td class="td-score">
+            <span class="score-num">2</span>
+            <div class="score-bar-track"><div class="score-bar-fill" style="width:40%"></div></div>
+          </td>
+          <!-- Total: 3×.25+4×.20+4×.20+3×.15+3×.15+2×.05 = 0.75+0.80+0.80+0.45+0.45+0.10 = 3.35 -->
+          <td class="td-total">
+            <span class="t-num">3.35</span>
+            <span class="t-of">out of 5.00</span>
+          </td>
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Note / convergence bar -->
+  <div class="note-bar">
+    <div class="nb-tag">Decision rationale</div>
+    <div class="nb-text">
+      <strong>DataCo (Vendor B)</strong> leads on weighted total (4.40/5.00) — driven by best-in-class integration (5) and cost/value (5), outweighing NovaSys&rsquo;s technical edge and TechBase&rsquo;s compliance strength.
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span>Slide Lab &middot; Confidential &middot; Vendor evaluation</span>
+    <span class="pg">140 / 200</span>
+  </div>
+
+</div>
+
+</body>
+</html>

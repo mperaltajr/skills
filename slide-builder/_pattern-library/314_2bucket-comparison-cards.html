@@ -1,0 +1,579 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>314 · 2-Bucket Comparison Cards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    background: var(--slide-bg);
+    font-family: 'Inter', sans-serif;
+    color: var(--text-dark);
+    position: relative;
+  }
+
+  /* ── Chrome ── */
+  .chrome-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    z-index: 10;
+  }
+
+  .chrome-internal {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    font-weight: 500;
+    text-transform: uppercase;
+  }
+
+  .chrome-draft {
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 7px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 2px 8px;
+    border-radius: 0;
+    line-height: 1.4;
+  }
+
+  /* spacer to keep draft centered */
+  .chrome-spacer {
+    width: 160px; /* mirrors the width of chrome-internal */
+  }
+
+  /* ── Header / Title block ── */
+  .title-block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 0;
+  overflow: visible;
+
+  }
+
+  .title-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+
+
+    background: var(--brand-accent);
+  }
+
+  .title-text {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-
+}
+
+  .title-text strong {
+    color: var(--brand-accent);
+    font-weight: 700;
+  }
+
+  .subtitle-text {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 108px;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+    font-weight: 400;
+  }
+
+  /* ── Cards area ── */
+  .cards-area {
+    position: absolute;
+    top: 152px;
+    left: 48px;
+    right: 48px;
+    bottom: 92px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0;
+  }
+
+  .card {
+    width: calc(44%);
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--card-border);
+    border-radius: 4px;
+    overflow: hidden;
+    background: var(--slide-bg);
+    height: 100%;
+  }
+
+  .card-header {
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .card-header-a {
+    background: var(--brand-primary);
+  }
+
+  .card-header-b {
+    background: var(--brand-primary-mid);
+  }
+
+  .card-header-label {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #fff;
+    opacity: 0.85;
+  }
+
+  .card-header-divider {
+    width: 1px;
+    height: 14px;
+    background: rgba(255,255,255,0.3);
+  }
+
+  .card-header-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+  }
+
+  .card-icon-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 18px 20px 14px;
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--card-border);
+    gap: 6px;
+  }
+
+  .card-icon-letter {
+    font-size: 72px;
+    font-weight: 800;
+    color: var(--brand-primary-mid);
+    line-height: 1;
+    opacity: 0.18;
+    position: absolute;
+  }
+
+  .card-icon-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 80px;
+    height: 80px;
+  }
+
+  .card-icon-svg {
+    position: relative;
+    z-index: 1;
+  }
+
+  .card-option-name {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    text-align: center;
+  }
+
+  .card-option-tagline {
+    font-size: 11px;
+    color: var(--text-mid);
+    text-align: center;
+    font-style: italic;
+    font-weight: 400;
+  }
+
+  /* Comparison rows */
+  .comparison-rows {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  .comparison-row {
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    height: 52px;
+    gap: 12px;
+  }
+
+  .comparison-row:nth-child(odd) {
+    background: var(--card-bg);
+  }
+
+  .comparison-row:nth-child(even) {
+    background: var(--slide-bg);
+  }
+
+  .row-label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-mid);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    flex: 0 0 110px;
+    white-space: nowrap;
+  }
+
+  .row-value {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-dark);
+    flex: 1;
+    line-height: 1.3;
+  }
+
+  .row-indicator {
+    flex: 0 0 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .dot-good {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #22C55E;
+  }
+
+  .dot-warn {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #F59E0B;
+  }
+
+  .dot-bad {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #EF4444;
+  }
+
+  /* Recommended badge at card bottom */
+  .card-footer-recommend {
+    padding: 10px 20px;
+    background: var(--brand-accent);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-footer-recommend-icon {
+    font-size: 14px;
+    line-height: 1;
+  }
+
+  .card-footer-recommend-text {
+    font-size: 11px;
+    font-weight: 700;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  .card-footer-none {
+    padding: 10px 20px;
+    background: var(--card-bg);
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+  }
+
+  .card-footer-none-text {
+    font-size: 11px;
+    color: var(--text-faint);
+    font-style: italic;
+  }
+
+  /* VS circle */
+  .vs-wrapper {
+    flex: 0 0 32px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+}
+
+  .vs-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 800;
+    color: var(--brand-primary-mid);
+    letter-spacing: 0.02em;
+    flex-shrink: 0;
+    border: 2px solid var(--slide-bg);
+    box-shadow: 0 0 0 1px var(--card-border);
+  }
+
+  /* Decision strip */
+  .decision-strip {
+    position: absolute;
+    left: 48px;
+    right: 48px;
+    bottom: 46px;
+    height: 36px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    padding: 0 20px;
+    gap: 10px;
+  }
+
+  .decision-label {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--brand-accent);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .decision-divider {
+    width: 1px;
+    height: 16px;
+    background: var(--card-border);
+    flex-shrink: 0;
+  }
+
+  .decision-text {
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+    font-weight: 400;
+  }
+
+  /* ── Footer ── */
+  .chrome-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+  }
+
+  .footer-left {
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    color: var(--text-faint);
+    font-weight: 500;
+    text-transform: uppercase;
+  }
+
+  .footer-right {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+    font-weight: 400;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Top chrome -->
+  <div class="chrome-top">
+    <span class="chrome-internal">Accenture Internal</span>
+    <span class="chrome-draft">Draft</span>
+    <span class="chrome-spacer"></span>
+  </div>
+
+  <!-- Title block -->
+  <div class="title-block">
+    <div class="title-rule"></div>
+    <div class="title-text">Choose the right path: <strong>two options evaluated</strong></div>
+    <div class="subtitle-text">A structured side-by-side comparison across cost, speed, risk, and fit</div>
+  </div>
+
+  <!-- Cards area -->
+  <div class="cards-area">
+
+    <!-- Option A card -->
+    <div class="card">
+      <div class="card-header card-header-a">
+        <span class="card-header-label">Option A</span>
+        <span class="card-header-divider"></span>
+        <span class="card-header-name">Build In-House</span>
+      </div>
+
+      <div class="card-icon-zone">
+        <div class="card-icon-wrapper">
+          <span class="card-icon-letter">A</span>
+          <svg class="card-icon-svg" width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="6" y="14" width="36" height="26" rx="2" stroke="#5C2D87" stroke-width="2.5" fill="none"/>
+            <path d="M16 14V10C16 8.9 16.9 8 18 8H30C31.1 8 32 8.9 32 10V14" stroke="#5C2D87" stroke-width="2.5" fill="none"/>
+            <circle cx="24" cy="27" r="5" stroke="#A100FF" stroke-width="2" fill="none"/>
+            <path d="M24 22V24M24 30V32M19 27H21M27 27H29" stroke="#A100FF" stroke-width="1.5"/>
+          </svg>
+        </div>
+        <div class="card-option-name">Internal Development</div>
+        <div class="card-option-tagline">Full ownership, custom-built by our team</div>
+      </div>
+
+      <div class="comparison-rows">
+        <div class="comparison-row">
+          <span class="row-label">Cost</span>
+          <span class="row-value">$1.2M – $1.8M initial investment</span>
+          <span class="row-indicator"><span class="dot-warn"></span></span>
+        </div>
+        <div class="comparison-row">
+          <span class="row-label">Timeline</span>
+          <span class="row-value">14 – 18 months to first release</span>
+          <span class="row-indicator"><span class="dot-bad"></span></span>
+        </div>
+        <div class="comparison-row">
+          <span class="row-label">Risk</span>
+          <span class="row-value">High — talent dependency, scope creep</span>
+          <span class="row-indicator"><span class="dot-bad"></span></span>
+        </div>
+        <div class="comparison-row">
+          <span class="row-label">Fit</span>
+          <span class="row-value">Fully tailored to our process &amp; data</span>
+          <span class="row-indicator"><span class="dot-good"></span></span>
+        </div>
+      </div>
+
+      <div class="card-footer-none">
+        <span class="card-footer-none-text">Not recommended for current cycle</span>
+      </div>
+    </div>
+
+    <!-- VS spacer -->
+    <div class="vs-wrapper">
+      <div class="vs-circle">VS</div>
+    </div>
+
+    <!-- Option B card -->
+    <div class="card">
+      <div class="card-header card-header-b">
+        <span class="card-header-label">Option B</span>
+        <span class="card-header-divider"></span>
+        <span class="card-header-name">SaaS Platform</span>
+      </div>
+
+      <div class="card-icon-zone">
+        <div class="card-icon-wrapper">
+          <span class="card-icon-letter">B</span>
+          <svg class="card-icon-svg" width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M38 22C38 16.48 33.52 12 28 12C23.76 12 20.14 14.56 18.6 18.2C14.84 18.72 12 21.96 12 26C12 30.42 15.58 34 20 34H37C40.31 34 43 31.31 43 28C43 24.96 40.72 22.44 38 22Z" stroke="#5C2D87" stroke-width="2.5" fill="none"/>
+            <path d="M22 28L25 31L32 24" stroke="#A100FF" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="card-option-name">Off-the-Shelf SaaS</div>
+        <div class="card-option-tagline">Configure &amp; launch with proven vendor platform</div>
+      </div>
+
+      <div class="comparison-rows">
+        <div class="comparison-row">
+          <span class="row-label">Cost</span>
+          <span class="row-value">$280K/yr subscription + $120K setup</span>
+          <span class="row-indicator"><span class="dot-good"></span></span>
+        </div>
+        <div class="comparison-row">
+          <span class="row-label">Timeline</span>
+          <span class="row-value">3 – 4 months to production</span>
+          <span class="row-indicator"><span class="dot-good"></span></span>
+        </div>
+        <div class="comparison-row">
+          <span class="row-label">Risk</span>
+          <span class="row-value">Low — proven stack, SLA-backed support</span>
+          <span class="row-indicator"><span class="dot-good"></span></span>
+        </div>
+        <div class="comparison-row">
+          <span class="row-label">Fit</span>
+          <span class="row-value">80% fit; some workflow adaptation needed</span>
+          <span class="row-indicator"><span class="dot-warn"></span></span>
+        </div>
+      </div>
+
+      <div class="card-footer-recommend">
+        <span class="card-footer-recommend-icon">★</span>
+        <span class="card-footer-recommend-text">Recommended — best value &amp; speed</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Decision strip -->
+  <div class="decision-strip">
+    <span class="decision-label">Recommendation</span>
+    <span class="decision-divider"></span>
+    <span class="decision-text">Proceed with Option B (SaaS): lower risk, 4× faster to market, and frees internal capacity for higher-value differentiation work.</span>
+  </div>
+
+  <!-- Footer chrome -->
+  <div class="chrome-footer">
+    <span class="footer-left">Confidential</span>
+    <span class="footer-right">Slide Lab · 2026 · 314</span>
+  </div>
+
+</body>
+</html>

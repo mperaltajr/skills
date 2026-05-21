@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>351 – Dark Closing CTA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+    background: var(--brand-primary);
+    position: relative;
+  }
+
+  /* ── Radial glow behind main statement ── */
+  .glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -52%);
+    width: 600px;
+    height: 600px;
+    background: radial-gradient(circle 300px at center, rgba(161,0,255,0.06) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ── Chrome: top bar ── */
+  .chrome-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    z-index: 10;
+  }
+
+  .chrome-label {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: rgba(255,255,255,0.5);
+    font-weight: 500;
+    text-transform: uppercase;
+  }
+
+  .draft-badge {
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 7px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 3px 8px;
+    border-radius: 0;
+    line-height: 1;
+  }
+
+  /* spacer so badge sits center via flexbox justify-between + third phantom */
+  .chrome-top-phantom {
+    width: 160px; /* matches label width area */
+    visibility: hidden;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    z-index: 10;
+  }
+
+  .footer-text {
+    font-size: 9px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.05em;
+  }
+
+  /* ── Main content wrapper ── */
+  .content {
+    position: absolute;
+    top: 36px;
+    bottom: 36px;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 48px;
+    gap: 0;
+    z-index: 1;
+  }
+
+  /* ── Section label ── */
+  .section-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--brand-accent-soft);
+}
+
+  /* ── Central statement ── */
+  .main-statement {
+    font-size: 40px;
+    font-weight: 700;
+    color: #FFFFFF;
+    text-align: center;
+    max-width: 780px;
+    line-height: 1.2;
+}
+
+  /* ── Accent rule ── */
+  .accent-rule {
+    width: 80px;
+    height: 4px;
+    background: var(--brand-accent);
+}
+
+  /* ── Cards row ── */
+  .cards-row {
+    display: flex;
+    gap: 20px;
+    width: 100%;
+    max-width: 980px;
+}
+
+  .step-card {
+    flex: 1;
+    background: rgba(255,255,255,0.1);
+    border-top: 3px solid var(--brand-accent);
+    padding: 22px 20px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .step-number {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--brand-accent);
+    color: #FFFFFF;
+    font-size: 14px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .step-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: #FFFFFF;
+    line-height: 1.2;
+  }
+
+  .timeframe-chip {
+    display: inline-block;
+    background: rgba(251,191,36,0.18);
+    color: #FCD34D;
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 4px 10px;
+    border-radius: 99px;
+    align-self: flex-start;
+  }
+
+  .step-action {
+    font-size: 14px;
+    color: rgba(255,255,255,0.75);
+    line-height: 1.5;
+  }
+
+  /* ── Ready headline ── */
+  .ready-headline {
+    font-size: 22px;
+    font-style: italic;
+    font-weight: 400;
+    color: rgba(255,255,255,0.7);
+}
+
+  /* ── Contact strip ── */
+  .contact-strip {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+
+  .contact-email {
+    font-size: 14px;
+    color: var(--brand-accent-soft);
+    font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+
+  .contact-divider {
+    width: 1px;
+    height: 16px;
+    background: rgba(255,255,255,0.2);
+  }
+
+  .profile-pill {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 99px;
+    padding: 5px 14px 5px 5px;
+  }
+
+  .profile-avatar {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--brand-accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: #FFFFFF;
+    flex-shrink: 0;
+  }
+
+  .profile-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.85);
+  }
+
+  .profile-role {
+    font-size: 10px;
+    color: rgba(255,255,255,0.5);
+}
+
+  .linkedin-icon {
+    width: 14px;
+    height: 14px;
+}
+</style>
+</head>
+<body>
+
+  <!-- Radial glow -->
+  <div class="glow"></div>
+
+  <!-- Chrome: top -->
+  <div class="chrome-top">
+    <span class="chrome-label">Accenture Internal</span>
+    <span class="chrome-top-phantom"></span>
+  </div>
+
+  <!-- Main content -->
+  <div class="content">
+
+    <div class="section-label">Next Steps</div>
+
+    <div class="main-statement">We recommend moving forward</div>
+
+    <div class="accent-rule"></div>
+
+    <!-- Step cards -->
+    <div class="cards-row">
+
+      <div class="step-card">
+        <div class="card-header">
+          <div class="step-number">1</div>
+          <div class="step-title">Align Stakeholders</div>
+        </div>
+        <span class="timeframe-chip">This Week</span>
+        <div class="step-action">Schedule executive sponsor review and confirm decision authority for program go-ahead.</div>
+      </div>
+
+      <div class="step-card">
+        <div class="card-header">
+          <div class="step-number">2</div>
+          <div class="step-title">Finalize Scope &amp; Team</div>
+        </div>
+        <span class="timeframe-chip">Next Sprint</span>
+        <div class="step-action">Lock MVP scope, confirm resourcing, and issue statements of work for Wave 1 delivery.</div>
+      </div>
+
+      <div class="step-card">
+        <div class="card-header">
+          <div class="step-number">3</div>
+          <div class="step-title">Launch &amp; Measure</div>
+        </div>
+        <span class="timeframe-chip">Q3</span>
+        <div class="step-action">Begin Sprint 1, establish baseline KPIs, and set cadence for bi-weekly steering updates.</div>
+      </div>
+
+    </div>
+
+    <div class="ready-headline">Ready to begin?</div>
+
+    <!-- Contact strip -->
+    <div class="contact-strip">
+      <span class="contact-email">presenter@example.com</span>
+      <div class="contact-divider"></div>
+      <div class="profile-pill">
+        <div class="profile-avatar">MP</div>
+        <div>
+          <div class="profile-name">Mario Peralta</div>
+          <div class="profile-role">Managing Director · Strategy &amp; Consulting</div>
+        </div>
+        <!-- LinkedIn icon (inline SVG, no external dep) -->
+        <svg class="linkedin-icon" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <rect width="24" height="24" rx="3" fill="rgba(255,255,255,0.25)"/>
+          <path d="M7 9.5H5V18H7V9.5Z" fill="white"/>
+          <circle cx="6" cy="7" r="1.2" fill="white"/>
+          <path d="M13 12.1c0-.8.6-1.4 1.5-1.4s1.5.6 1.5 1.4V18H18v-5.9c0-2.1-1.3-3.1-3-3.1-1 0-1.8.5-2 1.2V9.5h-2V18h2v-5.9Z" fill="white"/>
+        </svg>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span class="footer-text">Accenture Confidential · For Client Use Only</span>
+    <span class="footer-text">© 2026 Accenture. All rights reserved.</span>
+  </div>
+
+</body>
+</html>

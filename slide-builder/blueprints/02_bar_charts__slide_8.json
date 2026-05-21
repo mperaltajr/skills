@@ -1,0 +1,24 @@
+{
+  "id": "02_bar_charts__slide_8",
+  "layout_pattern": "dual-section",
+  "page_types": [
+    "Comparison",
+    "Data Deep-Dive"
+  ],
+  "title": {
+    "x": 58,
+    "y": 37,
+    "w": 1164,
+    "h": 76,
+    "slot": "action_title"
+  },
+  "body": {
+    "x": 58,
+    "y": 151,
+    "w": 1164,
+    "h": 481,
+    "kind": "dual_section",
+    "halves_slot": "halves"
+  },
+  "invariant": true
+}

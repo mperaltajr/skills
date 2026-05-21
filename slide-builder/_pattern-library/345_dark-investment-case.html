@@ -1,0 +1,470 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>345 – Dark Investment Case One-Pager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+    background: var(--brand-primary);
+    position: relative;
+  }
+
+  /* ── CHROME ── */
+  .chrome-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    padding: 0 48px;
+    z-index: 10;
+  }
+
+  .label-internal {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+    font-weight: 500;
+    flex: 1;
+  }
+
+  .badge-draft {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 7px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    padding: 3px 10px;
+    border-radius: 0;
+    line-height: 1;
+  }
+
+  /* ── MAIN CANVAS ── */
+  .slide {
+    position: absolute;
+    top: 32px;
+    left: 48px;
+    right: 48px;
+    bottom: 36px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* ── TITLE BLOCK ── */
+  .title-block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 0;
+  overflow: visible;
+}
+
+  .accent-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+
+
+    background: var(--brand-accent);
+  }
+
+  .title-text {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+    font-size: 28px;
+    font-weight: 700;
+    color: #ffffff;
+    line-
+    letter-spacing: -0.01em;
+  }
+
+  .title-text strong {
+    color: var(--brand-accent-soft);
+  }
+
+  .sub-headline {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 108px;
+    font-size: 14px;
+    font-style: italic;
+    color: rgba(255,255,255,0.6);
+    font-weight: 400;
+  }
+
+  /* ── KPI TILES ROW ── */
+  .kpi-row {
+    display: flex; flex-wrap: wrap;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  .kpi-tile {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 4px;
+    padding: 18px 18px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .kpi-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.45);
+  }
+
+  .kpi-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+
+  .kpi-value.accent {
+    color: var(--brand-accent-soft);
+  }
+
+  .kpi-delta {
+    font-size: 14px;
+    font-weight: 600;
+    color: #4ADE80;
+}
+
+  .kpi-sub {
+    font-size: 10px;
+    color: rgba(255,255,255,0.4);
+}
+
+  /* ── MIDDLE ROW ── */
+  .middle-row {
+    display: flex; flex-wrap: wrap;
+    gap: 12px;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .card {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 4px;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .card-heading {
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: rgba(255,255,255,0.45);
+}
+
+  /* ── VALUE DRIVERS ── */
+  .drivers-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .driver-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    gap: 16px;
+  }
+
+  .driver-row:last-child {
+    border-bottom: none;
+  }
+
+  .driver-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .driver-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.2;
+}
+
+  .driver-desc {
+    font-size: 14px;
+    color: rgba(255,255,255,0.7);
+    line-height: 1.4;
+  }
+
+  .driver-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--brand-accent-soft);
+    white-space: nowrap;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  /* ── RISKS & MITIGATIONS ── */
+  .risks-list {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    gap: 0;
+  }
+
+  .risk-row {
+    padding: 9px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+  }
+
+  .risk-row:last-child {
+    border-bottom: none;
+  }
+
+  .risk-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255,100,100,0.9);
+}
+
+  .risk-mitigation {
+    font-size: 11px;
+    color: rgba(255,255,255,0.65);
+    line-height: 1.4;
+  }
+
+  /* ── RECOMMENDED ACTION STRIP ── */
+  .action-strip {
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+    padding: 16px 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    flex-shrink: 0;
+  }
+
+  .action-text {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+    text-align: center;
+    letter-spacing: 0.01em;
+  }
+
+  .action-text strong {
+    color: var(--brand-accent-soft);
+  }
+
+  .action-approval {
+    font-size: 10px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.45);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+
+  /* ── FOOTER ── */
+  .chrome-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    padding: 0 48px;
+    justify-content: space-between;
+  }
+
+  .footer-text {
+    font-size: 9px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.06em;
+  }
+</style>
+</head>
+<body>
+
+  <!-- TOP CHROME -->
+  <div class="chrome-top">
+    <span class="label-internal">Accenture Internal</span>
+    <span class="badge-draft">Draft</span>
+  </div>
+
+  <!-- SLIDE CANVAS -->
+  <div class="slide">
+
+    <!-- TITLE BLOCK -->
+    <div class="title-block">
+      <div class="accent-rule"></div>
+      <div class="title-text">Digital Operations Transformation — <strong>Investment Case</strong></div>
+      <div class="sub-headline">Financial summary and value proposition for board review, FY 2026–2028</div>
+    </div>
+
+    <!-- KPI TILES -->
+    <div class="kpi-row">
+
+      <div class="kpi-tile">
+        <div class="kpi-label">Investment Required</div>
+        <div class="kpi-value">$14.2M</div>
+        <div class="kpi-sub">Over 24-month programme</div>
+      </div>
+
+      <div class="kpi-tile">
+        <div class="kpi-label">Expected ROI</div>
+        <div class="kpi-value accent">
+          312%<span class="kpi-delta">▲</span>
+        </div>
+        <div class="kpi-sub">vs. 180% industry benchmark</div>
+      </div>
+
+      <div class="kpi-tile">
+        <div class="kpi-label">Payback Period</div>
+        <div class="kpi-value">18 mo</div>
+        <div class="kpi-sub">Break-even Q2 FY 2028</div>
+      </div>
+
+      <div class="kpi-tile">
+        <div class="kpi-label">NPV (5-year)</div>
+        <div class="kpi-value accent">$38.7M</div>
+        <div class="kpi-sub">Discount rate 8%</div>
+      </div>
+
+    </div>
+
+    <!-- MIDDLE ROW -->
+    <div class="middle-row">
+
+      <!-- VALUE DRIVERS -->
+      <div class="card">
+        <div class="card-heading">Value Drivers</div>
+        <div class="drivers-list">
+
+          <div class="driver-row">
+            <div class="driver-info">
+              <div class="driver-title">Operational Cost Reduction</div>
+              <div class="driver-desc">Automated order-to-cash and procure-to-pay cycles cut FTE hours by 40% across back-office functions</div>
+            </div>
+            <div class="driver-value">$8.4M</div>
+          </div>
+
+          <div class="driver-row">
+            <div class="driver-info">
+              <div class="driver-title">Revenue Uplift — Cross-Sell Enablement</div>
+              <div class="driver-desc">Real-time propensity models surface $220M in addressable cross-sell annually; 12% conversion improvement</div>
+            </div>
+            <div class="driver-value">$26.4M</div>
+          </div>
+
+          <div class="driver-row">
+            <div class="driver-info">
+              <div class="driver-title">Risk & Compliance Cost Avoidance</div>
+              <div class="driver-desc">Automated controls monitoring reduces audit findings and regulatory penalty exposure by 65%</div>
+            </div>
+            <div class="driver-value">$3.9M</div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- RISKS & MITIGATIONS -->
+      <div class="card">
+        <div class="card-heading">Risks &amp; Mitigations</div>
+        <div class="risks-list">
+
+          <div class="risk-row">
+            <div class="risk-label">Change Resistance — Adoption Shortfall</div>
+            <div class="risk-mitigation">Dedicated OCM workstream with embedded change champions; adoption KPIs gated at each phase milestone</div>
+          </div>
+
+          <div class="risk-row">
+            <div class="risk-label">Integration Complexity with Legacy ERP</div>
+            <div class="risk-mitigation">API-first middleware layer; phased cutover with parallel-run period; rollback playbook maintained per release</div>
+          </div>
+
+          <div class="risk-row">
+            <div class="risk-label">Benefit Realisation Slippage</div>
+            <div class="risk-mitigation">Benefits locked in value-tracking register; quarterly steering review with go/no-go gates tied to disbursement</div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- RECOMMENDED ACTION STRIP -->
+    <div class="action-strip">
+      <div class="action-text">Recommended: <strong>Approve Phase 1 ($5.8M) at July board</strong> — initiate vendor selection and OCM mobilisation immediately</div>
+      <div class="action-approval">Requires board approval · Sponsor: Chief Operating Officer</div>
+    </div>
+
+  </div>
+
+  <!-- FOOTER CHROME -->
+  <div class="chrome-footer">
+    <span class="footer-text">Accenture Confidential — For internal discussion only</span>
+    <span class="footer-text">Digital Operations · Strategic Investment Review · May 2026</span>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>75 · Quote stack (3 voices)</title>
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 1280px; height: 720px;
+  background: var(--slide-bg);
+  font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  color: var(--text-dark);
+  overflow: hidden;
+}
+body { padding: 0px 64px 80px 64px; position: relative; }
+
+/* ---- Top chrome ---- */
+.draft-badge {
+  position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--draft-bg); color: var(--draft-text);
+  font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px;
+}
+.project-label {
+  position: absolute; top: 24px; left: 24px;
+  color: var(--text-faint);
+  font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase;
+}
+
+/* ---- Title block ---- */
+.action-title { position: absolute; left: 64px; right: 64px; top: 28px; min-height: 36px; font-size: 26px; font-weight: 700; line-height: 1.2; max-width: 1100px; color: var(--text-dark); }
+.action-title strong { color: var(--brand-primary); }
+.subhead { position: absolute; left: 64px; right: 64px; top: 108px; font-size: 14px; color: var(--text-mid); font-style: italic; max-width: 980px; }
+.title-rule { position: absolute; left: 64px; top: 136px; width: 40px; height: 3px; background: var(--brand-accent); }
+
+/* ---- Cards grid ---- */
+.cards {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 188px;
+  height: 388px;
+  display: flex; flex-wrap: wrap;
+  column-gap: 20px;
+}
+
+.card {
+  background: var(--card-bg);
+  box-shadow: 0 0 0 1px var(--card-border);
+  height: 388px;
+  padding: 28px 24px 22px 24px;
+  position: relative;
+  display: flex; flex-wrap: wrap;
+  row-gap: 14px;
+}
+
+/* Small brand-accent quotation mark, top-left of each card */
+.quote-mark {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 56px;
+  font-weight: 400;
+  line-height: 0.6;
+  color: var(--brand-accent);
+  letter-spacing: -2px;
+  user-select: none;
+}
+
+.quote-body {
+  font-size: 17px;
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1.42;
+  color: var(--brand-primary);
+  letter-spacing: -0.1px;
+  align-self: start;
+}
+
+.quote-rule {
+  width: 48px;
+  height: 3px;
+  background: var(--brand-accent);
+  align-self: end;
+}
+
+.attribution { align-self: end; }
+.attribution-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--brand-primary);
+  letter-spacing: 0.1px;
+}
+.attribution-role {
+  font-size: 14px;
+  font-style: italic;
+  color: var(--text-mid);
+  margin-top: 3px;
+}
+
+/* ---- Convergence strip ---- */
+.convergence {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  bottom: 70px;
+  background: var(--brand-primary);
+  color: white;
+  padding: 12px 22px;
+  font-size: 14px;
+  font-style: italic;
+  font-weight: 500;
+}
+
+/* ---- Footer invariant ---- */
+.footer-rule { position: absolute; left: 0; right: 0; bottom: 32px; height: 1px; background: var(--card-border); }
+.footer-left { position: absolute; bottom: 14px; left: 24px; color: var(--text-faint); font-size: 11px; letter-spacing: 1px; }
+.footer-right { position: absolute; bottom: 14px; right: 24px; color: var(--text-faint); font-size: 11px; }
+
+/* DARK THEME */
+:root {
+  --card-bg: rgba(255,255,255,0.07);
+  --card-border: rgba(255,255,255,0.12);
+  --text-dark: #FFFFFF;
+  --text-mid: rgba(255,255,255,0.6);
+  --slide-bg: #2D0A4E;
+}
+body, .slide { background: #2D0A4E; }
+.project-label { color: rgba(255,255,255,0.4); }
+.action-title { color: #FFFFFF; }
+.action-title strong { color: #C780FF; }
+.subhead { color: rgba(255,255,255,0.6); }
+.title-rule { background: #A100FF; }
+.card { background: rgba(255,255,255,0.07); box-shadow: 0 0 0 1px rgba(255,255,255,0.12); }
+.quote-body { color: rgba(255,255,255,0.85); }
+.attribution-name { color: #FFFFFF; }
+.attribution-role { color: rgba(255,255,255,0.6); }
+.footer-rule { background: rgba(255,255,255,0.1); }
+.footer-left, .footer-right { color: rgba(255,255,255,0.4); }
+</style>
+</head>
+<body>
+
+  <div class="action-title" data-shape-id="title">What the pilot team is saying &mdash; <strong>three voices, one pattern.</strong></div>
+  <div class="subhead" data-shape-id="subtitle">Different roles, different decks, same shift: the unlock was sharper thinking before building, not faster building.</div>
+  <div class="title-rule" data-shape-id="brand-rule"></div>
+
+  <div class="cards">
+
+    <!-- ===== QUOTE 1 ===== -->
+    <div class="card" data-shape-id="quote-1-card">
+      <div class="quote-mark" data-shape-id="quote-1-mark">&ldquo;</div>
+      <div class="quote-body" data-shape-id="quote-1-text">I spend more time on slide structure than slide content. That&rsquo;s backwards.</div>
+      <div class="quote-rule" data-shape-id="quote-1-rule"></div>
+      <div class="attribution">
+        <div class="attribution-name" data-shape-id="quote-1-attribution-name">Sarah Kim</div>
+        <div class="attribution-role" data-shape-id="quote-1-attribution-role">Senior Manager</div>
+      </div>
+    </div>
+
+    <!-- ===== QUOTE 2 ===== -->
+    <div class="card" data-shape-id="quote-2-card">
+      <div class="quote-mark" data-shape-id="quote-2-mark">&ldquo;</div>
+      <div class="quote-body" data-shape-id="quote-2-text">The first time the model pushed back on my own thinking. That moment was the unlock.</div>
+      <div class="quote-rule" data-shape-id="quote-2-rule"></div>
+      <div class="attribution">
+        <div class="attribution-name" data-shape-id="quote-2-attribution-name">David Chen</div>
+        <div class="attribution-role" data-shape-id="quote-2-attribution-role">Partner</div>
+      </div>
+    </div>
+
+    <!-- ===== QUOTE 3 ===== -->
+    <div class="card" data-shape-id="quote-3-card">
+      <div class="quote-mark" data-shape-id="quote-3-mark">&ldquo;</div>
+      <div class="quote-body" data-shape-id="quote-3-text">My junior built a partner-ready deck in week 2 &mdash; that didn&rsquo;t used to happen.</div>
+      <div class="quote-rule" data-shape-id="quote-3-rule"></div>
+      <div class="attribution">
+        <div class="attribution-name" data-shape-id="quote-3-attribution-name">Maria Rivera</div>
+        <div class="attribution-role" data-shape-id="quote-3-attribution-role">Director</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="convergence" data-shape-id="convergence">The pattern across all three: structure-first work is what the tool unlocked &mdash; speed is the side effect.</div>
+  <div class="footer-left" data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+</body>
+</html>

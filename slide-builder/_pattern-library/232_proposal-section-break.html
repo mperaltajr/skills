@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pattern 232 — Proposal Section Break</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: Inter, system-ui, sans-serif;
+    background: var(--slide-bg);
+    position: relative;
+  }
+
+  /* ── Invariant chrome ── */
+  .chrome-internal {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    z-index: 20;
+  }
+
+  .chrome-draft {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 0;
+    z-index: 20;
+    white-space: nowrap;
+  }
+
+  .chrome-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    border-top: 1px solid var(--card-border);
+    z-index: 20;
+    background: var(--slide-bg);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 20px 10px;
+  }
+
+  .chrome-footer span {
+    font-size: 8px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+  }
+
+  /* ── Layout: left/right halves ── */
+  .slide-left {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 560px;
+    height: 720px;
+    background: var(--brand-primary);
+    overflow: hidden;
+  }
+
+  .slide-right {
+    position: absolute;
+    top: 0;
+    left: 560px;
+    width: 720px;
+    height: 720px;
+    background: var(--slide-bg);
+    overflow: hidden;
+  }
+
+  /* ── Diagonal accent stripe at boundary ── */
+  .diagonal-stripe {
+    position: absolute;
+    top: 0;
+    left: 548px;
+    width: 24px;
+    height: 664px; /* stops above footer */
+    z-index: 10;
+    overflow: hidden;
+    pointer-events: none;
+  }
+
+  .diagonal-stripe::before {
+    content: '';
+    position: absolute;
+    top: -40px;
+    left: 0;
+    width: 6px;
+    height: 800px;
+    background: var(--brand-accent);
+    transform: rotate(4deg);
+    transform-origin: top center;
+  }
+
+  /* ── ACCENTURE wordmark (top-left of dark area) ── */
+  .wordmark {
+    position: absolute;
+    top: 38px;
+    left: 28px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #FFFFFF;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    z-index: 5;
+  }
+
+  /* ── Left half content ── */
+  .left-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 664px; /* above footer */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: flex-end;
+    padding: 80px 44px 40px 28px;
+  }
+
+  .section-number {
+    font-size: 120px;
+    font-weight: 700;
+    color: var(--brand-accent-soft);
+    line-height: 1;
+    text-align: right;
+
+    bottom: 24px;
+    letter-spacing: -0.02em;
+  }
+
+  .section-rule {
+    width: 100%;
+    height: 1px;
+    background: rgba(255, 255, 255, 0.4);
+
+    bottom: 28px;
+  }
+
+  .section-title {
+    font-size: 38px;
+    font-weight: 700;
+    color: #FFFFFF;
+    text-align: left;
+    line-height: 1.2;
+    width: 100%;
+  }
+
+  /* ── Right half content ── */
+  .right-content {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 664px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: 80px 60px 40px 72px;
+  }
+
+  .in-this-section-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+
+    bottom: 36px;
+  }
+
+  .section-items {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+
+    bottom: 52px;
+  }
+
+  .section-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+  }
+
+  .item-number {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--brand-accent);
+    letter-spacing: 0.08em;
+    min-width: 20px;
+    padding-top: 1px;
+  }
+
+  .item-body {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .item-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-dark);
+    line-height: 1.4;
+  }
+
+  .item-sub {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-mid);
+    line-height: 1.4;
+  }
+
+  .value-tagline {
+    font-size: 14px;
+    font-style: italic;
+    color: var(--brand-primary-mid);
+    line-height: 1.6;
+    padding-top: 20px;
+    border-top: 1px solid var(--card-border);
+    max-width: 460px;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Invariant chrome -->
+  <div class="chrome-internal" data-shape-id="accenture-tag">ACCENTURE INTERNAL</div>
+  <div class="chrome-draft" data-shape-id="draft-badge">DRAFT</div>
+
+  <!-- Left dark half -->
+  <div class="slide-left" data-shape-id="cover-left-panel">
+    <div class="wordmark" data-shape-id="wordmark">ACCENTURE</div>
+    <div class="left-content">
+      <div class="section-number" data-shape-id="divider-numeral">03</div>
+      <div class="section-rule" data-shape-id="divider-rule"></div>
+      <div class="section-title" data-shape-id="divider-title">Our Proposed<br>Solution</div>
+    </div>
+  </div>
+
+  <!-- Diagonal accent stripe at boundary -->
+  <div class="diagonal-stripe" data-shape-id="diagonal-stripe"></div>
+
+  <!-- Right light half -->
+  <div class="slide-right">
+    <div class="right-content">
+      <div class="in-this-section-label" data-shape-id="toc-label">In this section:</div>
+      <ol class="section-items">
+        <li class="section-item">
+          <span class="item-number" data-shape-id="toc-1-num">01</span>
+          <div class="item-body">
+            <span class="item-title" data-shape-id="toc-1-title">Solution Architecture Overview</span>
+            <span class="item-sub" data-shape-id="toc-1-desc">End-to-end platform design and integration model</span>
+          </div>
+        </li>
+        <li class="section-item">
+          <span class="item-number" data-shape-id="toc-2-num">02</span>
+          <div class="item-body">
+            <span class="item-title" data-shape-id="toc-2-title">Implementation Approach &amp; Phases</span>
+            <span class="item-sub" data-shape-id="toc-2-desc">Phased delivery plan with milestones and decision gates</span>
+          </div>
+        </li>
+        <li class="section-item">
+          <span class="item-number" data-shape-id="toc-3-num">03</span>
+          <div class="item-body">
+            <span class="item-title" data-shape-id="toc-3-title">Team Structure &amp; Governance</span>
+            <span class="item-sub" data-shape-id="toc-3-desc">Roles, responsibilities, and escalation pathways</span>
+          </div>
+        </li>
+        <li class="section-item">
+          <span class="item-number" data-shape-id="toc-4-num">04</span>
+          <div class="item-body">
+            <span class="item-title" data-shape-id="toc-4-title">Risk Management Framework</span>
+            <span class="item-sub" data-shape-id="toc-4-desc">Identified risks, mitigations, and contingency planning</span>
+          </div>
+        </li>
+      </ol>
+      <div class="value-tagline" data-shape-id="value-tagline">
+        Delivering measurable outcomes through proven methodology, deep industry expertise, and a commitment to your long-term success.
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="chrome-footer" data-shape-id="footer-rule">
+    <span data-shape-id="footer-left">CONFIDENTIAL — ACCENTURE INTERNAL</span>
+    <span data-shape-id="footer-right">Slide Lab · 2026 · 232</span>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,615 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>113 · Bowman's Strategy Clock</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 1280px;
+  height: 720px;
+  background: #4a4a4a;
+  font-family: 'Inter', sans-serif;
+  color: var(--text-dark);
+  overflow: hidden;
+}
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+/* ---- Slide shell ---- */
+.slide {
+  width: 1280px;
+  height: 720px;
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.35);
+}
+
+/* ---- Chrome ---- */
+.project-label {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  font-size: 10px;
+  color: var(--text-faint);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  z-index: 5;
+  font-weight: 600;
+}
+.draft-badge {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--draft-bg);
+  color: var(--draft-text);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 16px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  z-index: 5;
+}
+
+/* ---- Title block ---- */
+.title-block {
+  position: absolute;
+  top: 48px;
+  left: 48px;
+  right: 48px;
+  z-index: 4;
+}
+.action-title {
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--text-dark);
+  max-width: 900px;
+}
+.action-title strong { color: var(--brand-primary); }
+.subhead { position: absolute; left: 48px; right: 48px; top: 108px; font-size: 12.5px;
+  color: var(--text-mid);
+  font-style: italic;
+  max-width: 860px;
+}
+.title-rule { position: absolute; left: 48px; top: 136px; width: 40px;
+  height: 3px;
+  background: var(--brand-accent);
+}
+
+/* ---- Main content area ---- */
+.content-area {
+  position: absolute;
+  left: 48px;
+  right: 48px;
+  top: 168px;
+  bottom: 56px;
+  display: flex;
+  gap: 20px;
+  align-items: stretch;
+}
+
+/* ---- Clock SVG panel ---- */
+.clock-panel {
+  flex: 0 0 530px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* ---- Right panel ---- */
+.right-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+}
+
+/* ---- Legend ---- */
+.legend-block {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  padding: 10px 14px;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  z-index: 4;
+}
+.legend-title {
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--brand-primary);
+  margin-bottom: 8px;
+}
+.legend-items {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-dark);
+  line-height: 1.3;
+}
+.legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.dot-current { background: var(--brand-accent); }
+.dot-target  { background: var(--brand-primary); }
+.dot-other   { background: var(--text-faint); }
+.dot-uncompetitive { background: #FCA5A5; border: 1.5px solid #EF4444; }
+
+/* ---- Positions table ---- */
+.positions-block {
+  flex: 1;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  padding: 10px 14px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.positions-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  flex: 1;
+}
+.pos-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--card-border);
+  font-size: 10.5px;
+  line-height: 1.3;
+}
+.pos-row:last-child { border-bottom: none; }
+.pos-num {
+  flex: 0 0 20px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--brand-primary);
+  color: white;
+  font-size: 9.5px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.pos-num.accent { background: var(--brand-accent); }
+.pos-num.target { background: var(--brand-primary); box-shadow: 0 0 0 2.5px var(--brand-accent); }
+.pos-num.uncompetitive { background: #EF4444; }
+.pos-name { font-weight: 700; color: var(--brand-primary); }
+.pos-name.accent { color: var(--brand-accent); }
+.pos-name.target { color: var(--brand-primary); }
+.pos-name.uncompetitive { color: #DC2626; }
+.pos-desc { color: var(--text-mid); font-size: 10px; }
+
+/* ---- Move arrow insight ---- */
+.move-block {
+  background: var(--brand-primary);
+  color: white;
+  padding: 10px 14px;
+  border-left: 3px solid var(--brand-accent);
+  font-size: 11.5px;
+  font-weight: 600;
+  line-height: 1.4;
+}
+.move-block span { color: var(--brand-accent-soft); }
+
+/* ---- Convergence bar ---- */
+.convergence {
+  position: absolute;
+  left: 48px;
+  right: 48px;
+  bottom: 56px;
+  background: var(--brand-primary);
+  color: white;
+  padding: 9px 18px;
+  font-size: 14px;
+  font-style: italic;
+  font-weight: 600;
+  border-left: 3px solid var(--brand-accent);
+  z-index: 3;
+}
+
+/* ---- Footer ---- */
+.footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  padding: 0 48px;
+  font-size: 9.5px;
+  color: var(--text-faint);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-top: 1px solid var(--card-border);
+  background: #FBFAFD;
+  z-index: 5;
+}
+.footer-right { margin-left: auto; }
+
+/* ---- Pulse animation on current position ---- */
+@keyframes pulse-ring {
+  0%   { r: 14; opacity: 0.7; }
+  60%  { r: 22; opacity: 0; }
+  100% { r: 22; opacity: 0; }
+}
+.pulse-ring {
+  animation: pulse-ring 2s ease-out infinite;
+  fill: none;
+  stroke: #A100FF;
+  stroke-width: 2;
+}
+</style>
+</head>
+<body>
+<div class="slide">
+
+  <!-- Chrome -->
+
+  <!-- Title block -->
+  <div class="title-block">
+    <div class="action-title"><strong>Move from position 2 to 4</strong> &mdash; price competition unsustainable; differentiation through service quality is the path.</div>
+    <div class="subhead">Bowman's Strategy Clock &middot; 8 competitive positions mapped by perceived value and price; current state and target state highlighted.</div>
+    <div class="title-rule"></div>
+  </div>
+
+  <!-- Main content -->
+  <div class="content-area">
+
+    <!-- Clock diagram -->
+    <div class="clock-panel">
+      <!--
+        Clock coordinate system: 530 x 468 SVG
+        Center: cx=265, cy=230
+        Outer radius R=188, inner reference circles at R*0.45=85, R*0.72=135
+        8 positions at clock angles:
+          1=SW  = 225°  →  pos1
+          2=W   = 270°  →  pos2  (current)
+          3=NW  = 315°  →  pos3
+          4=N   = 0°    →  pos4  (target)
+          5=NE  = 45°   →  pos5
+          6=E   = 90°   →  pos6  (uncompetitive)
+          7=SE  = 135°  →  pos7  (uncompetitive)
+          8=S   = 180°  →  pos8  (uncompetitive)
+
+        dot radial distance = R * 0.80 = 150
+        Angle: clock angle → SVG angle = (clock_deg - 90) in trig
+        Position angles in SVG trig (subtract 90):
+          1: 225-90=135°  sin(135°)=0.707,  cos(135°)=-0.707
+          2: 270-90=180°  sin(180°)=0,      cos(180°)=-1
+          3: 315-90=225°  sin(225°)=-0.707, cos(225°)=-0.707
+          4:   0-90=-90°  sin(-90°)=-1,     cos(-90°)=0
+          5:  45-90=-45°  sin(-45°)=-0.707, cos(-45°)=0.707
+          6:  90-90=0°    sin(0°)=0,        cos(0°)=1
+          7: 135-90=45°   sin(45°)=0.707,   cos(45°)=0.707
+          8: 180-90=90°   sin(90°)=1,       cos(90°)=0
+
+        dot x = cx + r * cos(svgAngle),  dot y = cy + r * sin(svgAngle)
+        cx=265, cy=230, r=150:
+          1: x=265+150*(-0.707)=265-106=159,  y=230+150*0.707=230+106=336
+          2: x=265+150*(-1)=265-150=115,      y=230+150*0=230
+          3: x=265+150*(-0.707)=159,           y=230+150*(-0.707)=230-106=124
+          4: x=265+150*0=265,                  y=230+150*(-1)=230-150=80
+          5: x=265+150*0.707=265+106=371,      y=230+150*(-0.707)=124
+          6: x=265+150*1=265+150=415,          y=230+150*0=230
+          7: x=265+150*0.707=371,              y=230+150*0.707=336
+          8: x=265+150*0=265,                  y=230+150*1=230+150=380
+
+        Label positions at r=210 from center:
+          1: x=265-148=117, y=230+148=378  → SW label
+          2: x=265-210=55,  y=230       → W label
+          3: x=265-148=117, y=230-148=82 → NW label
+          4: x=265,         y=230-210=20  → N label
+          5: x=265+148=413, y=230-148=82 → NE label
+          6: x=265+210=475, y=230       → E label
+          7: x=265+148=413, y=230+148=378 → SE label
+          8: x=265,         y=230+210=440  → S label
+
+        Axis arrows: Y axis vertical (price), X axis horizontal (value)
+        Uncompetitive zone (pos 6,7,8): shaded arc sector
+      -->
+      <svg viewBox="0 0 530 468" width="530" height="468" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <!-- Arrow markers -->
+          <marker id="arrow-x" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0,1 L9,5 L0,9 z" fill="#64748B"/>
+          </marker>
+          <marker id="arrow-y" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="6" markerHeight="6" orient="auto">
+            <path d="M0,1 L9,5 L0,9 z" fill="#64748B"/>
+          </marker>
+          <marker id="arrow-move" viewBox="0 0 10 10" refX="9" refY="5"
+                  markerWidth="7" markerHeight="7" orient="auto">
+            <path d="M0,0 L10,5 L0,10 z" fill="#A100FF"/>
+          </marker>
+        </defs>
+
+        <!-- ==================== UNCOMPETITIVE ZONE ARC (pos 6-8: 90°→180° clock = 0°→90° SVG trig) ==================== -->
+        <!-- Arc sector from SVG angle 0° to 90° (clock E→S direction), positions 6,7,8 -->
+        <!-- Sector path: center(265,230), from angle 0° to 90°, radius 200 -->
+        <path d="M265,230 L465,230 A200,200 0 0,1 265,430 Z"
+              fill="#FEE2E2" fill-opacity="0.55" stroke="none"/>
+        <!-- Subtle border on sector -->
+        <path d="M265,230 L465,230 A200,200 0 0,1 265,430 Z"
+              fill="none" stroke="#FECACA" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+        <!-- ==================== GRID CIRCLES ==================== -->
+        <circle cx="265" cy="230" r="188" fill="none" stroke="#E5D5F0" stroke-width="1.2"/>
+        <circle cx="265" cy="230" r="135" fill="none" stroke="#E5D5F0" stroke-width="0.8" stroke-dasharray="4,3"/>
+        <circle cx="265" cy="230" r="85"  fill="none" stroke="#E5D5F0" stroke-width="0.8" stroke-dasharray="3,3"/>
+
+        <!-- ==================== SPOKE LINES ==================== -->
+        <!-- 8 spokes at 45° increments, from center to edge -->
+        <!-- Angle: each spoke at clock angle 0°,45°,90°,...315° → SVG: -90°,-45°,0°,...270° -->
+        <!-- 12 o'clock = straight up = SVG angle -90° = (0,-1) direction -->
+        <!-- Spoke 1: 225° clock → 135° SVG: dir(-0.707, 0.707) -->
+        <line x1="265" y1="230" x2="132" y2="363" stroke="#E5D5F0" stroke-width="0.9"/>
+        <!-- Spoke 2: 270° clock → 180° SVG: dir(-1,0) -->
+        <line x1="265" y1="230" x2="77"  y2="230" stroke="#E5D5F0" stroke-width="0.9"/>
+        <!-- Spoke 3: 315° clock → 225° SVG: dir(-0.707,-0.707) -->
+        <line x1="265" y1="230" x2="132" y2="97"  stroke="#E5D5F0" stroke-width="0.9"/>
+        <!-- Spoke 4: 0° clock → -90° SVG: dir(0,-1) -->
+        <line x1="265" y1="230" x2="265" y2="42"  stroke="#E5D5F0" stroke-width="0.9"/>
+        <!-- Spoke 5: 45° clock → -45° SVG: dir(0.707,-0.707) -->
+        <line x1="265" y1="230" x2="398" y2="97"  stroke="#E5D5F0" stroke-width="0.9"/>
+        <!-- Spoke 6: 90° clock → 0° SVG: dir(1,0) -->
+        <line x1="265" y1="230" x2="453" y2="230" stroke="#FECACA" stroke-width="0.9"/>
+        <!-- Spoke 7: 135° clock → 45° SVG: dir(0.707,0.707) -->
+        <line x1="265" y1="230" x2="398" y2="363" stroke="#FECACA" stroke-width="0.9"/>
+        <!-- Spoke 8: 180° clock → 90° SVG: dir(0,1) -->
+        <line x1="265" y1="230" x2="265" y2="418" stroke="#FECACA" stroke-width="0.9"/>
+
+        <!-- ==================== AXIS ARROWS ==================== -->
+        <!-- X axis: left to right (perceived value) -->
+        <line x1="24" y1="432" x2="510" y2="432"
+              stroke="#94A3B8" stroke-width="1.5" marker-end="url(#arrow-x)"/>
+        <!-- Y axis: bottom to top (price) -->
+        <line x1="24" y1="444" x2="24" y2="30"
+              stroke="#94A3B8" stroke-width="1.5" marker-end="url(#arrow-y)"/>
+
+        <!-- Axis labels -->
+        <text x="268" y="452" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#64748B" letter-spacing="0.5">Perceived added value →</text>
+        <text x="14" y="240" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#64748B" letter-spacing="0.5" transform="rotate(-90,14,240)">Price →</text>
+
+        <!-- ==================== CENTER CIRCLE ==================== -->
+        <circle cx="265" cy="230" r="46" fill="#2D0A4E" stroke="none"/>
+        <text x="265" y="226" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="white" letter-spacing="0.5">Strategy</text>
+        <text x="265" y="240" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#C780FF" letter-spacing="0.5">Clock</text>
+
+        <!-- ==================== STRATEGIC MOVE ARROW (pos2 → pos4) ==================== -->
+        <!-- From pos2 dot (115,230) to pos4 dot (265,80) with curved path -->
+        <path d="M121,218 Q175,130 257,88"
+              fill="none" stroke="#A100FF" stroke-width="2.5" stroke-dasharray="6,4"
+              marker-end="url(#arrow-move)"/>
+
+        <!-- ==================== POSITION DOTS ==================== -->
+
+        <!-- Pos 1: SW (159, 336) — regular -->
+        <circle cx="159" cy="336" r="8" fill="#94A3B8" stroke="white" stroke-width="2"/>
+
+        <!-- Pos 2: W (115, 230) — CURRENT POSITION (brand accent + pulse ring) -->
+        <circle class="pulse-ring" cx="115" cy="230" r="14" stroke="#A100FF" stroke-width="2.5" fill="none"/>
+        <circle cx="115" cy="230" r="10" fill="#A100FF" stroke="white" stroke-width="2.5"/>
+
+        <!-- Pos 3: NW (159, 124) — regular -->
+        <circle cx="159" cy="124" r="8" fill="#94A3B8" stroke="white" stroke-width="2"/>
+
+        <!-- Pos 4: N (265, 80) — TARGET POSITION (brand primary, accent ring) -->
+        <circle cx="265" cy="80" r="11" fill="#2D0A4E" stroke="#A100FF" stroke-width="3"/>
+        <!-- Target star indicator -->
+        <circle cx="265" cy="80" r="5" fill="#A100FF" stroke="none"/>
+
+        <!-- Pos 5: NE (371, 124) — regular -->
+        <circle cx="371" cy="124" r="8" fill="#94A3B8" stroke="white" stroke-width="2"/>
+
+        <!-- Pos 6: E (415, 230) — uncompetitive -->
+        <circle cx="415" cy="230" r="8" fill="#EF4444" stroke="white" stroke-width="2"/>
+
+        <!-- Pos 7: SE (371, 336) — uncompetitive -->
+        <circle cx="371" cy="336" r="8" fill="#EF4444" stroke="white" stroke-width="2"/>
+
+        <!-- Pos 8: S (265, 380) — uncompetitive -->
+        <circle cx="265" cy="380" r="8" fill="#EF4444" stroke="white" stroke-width="2"/>
+
+        <!-- ==================== NUMBERED BADGES ==================== -->
+        <!-- Badge: circle + number, offset slightly from dot toward outside -->
+
+        <!-- Pos 1 badge at ~(130,358) -->
+        <circle cx="131" cy="358" r="9.5" fill="#64748B"/>
+        <text x="131" y="362" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="800" fill="white">1</text>
+
+        <!-- Pos 2 badge at ~(85,253) -->
+        <circle cx="87" cy="253" r="9.5" fill="#A100FF"/>
+        <text x="87" y="257" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="800" fill="white">2</text>
+
+        <!-- Pos 3 badge at ~(131,103) -->
+        <circle cx="131" cy="102" r="9.5" fill="#64748B"/>
+        <text x="131" y="106" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="800" fill="white">3</text>
+
+        <!-- Pos 4 badge at ~(289,58) -->
+        <circle cx="289" cy="57" r="9.5" fill="#2D0A4E"/>
+        <text x="289" y="61" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="800" fill="#A100FF">4</text>
+
+        <!-- Pos 5 badge at ~(395,104) -->
+        <circle cx="395" cy="102" r="9.5" fill="#64748B"/>
+        <text x="395" y="106" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="800" fill="white">5</text>
+
+        <!-- Pos 6 badge at ~(439,253) -->
+        <circle cx="439" cy="253" r="9.5" fill="#EF4444"/>
+        <text x="439" y="257" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="800" fill="white">6</text>
+
+        <!-- Pos 7 badge at ~(396,358) -->
+        <circle cx="396" cy="358" r="9.5" fill="#EF4444"/>
+        <text x="396" y="362" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="800" fill="white">7</text>
+
+        <!-- Pos 8 badge at ~(285,404) -->
+        <circle cx="285" cy="404" r="9.5" fill="#EF4444"/>
+        <text x="285" y="408" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="800" fill="white">8</text>
+
+        <!-- ==================== POSITION LABELS ==================== -->
+        <!-- Short labels near each dot, outside the dot -->
+
+        <!-- Pos 1 (159,336): SW — label lower-left -->
+        <text x="118" y="377" text-anchor="middle" font-family="Inter,sans-serif" font-size="9.5" font-weight="700" fill="#64748B">No Frills</text>
+
+        <!-- Pos 2 (115,230): W — label far left -->
+        <text x="54" y="224" text-anchor="middle" font-family="Inter,sans-serif" font-size="9.5" font-weight="800" fill="#A100FF">Low Price</text>
+        <text x="54" y="236" text-anchor="middle" font-family="Inter,sans-serif" font-size="8.5" font-weight="600" fill="#A100FF">(current)</text>
+
+        <!-- Pos 3 (159,124): NW — label upper-left -->
+        <text x="107" y="90" text-anchor="middle" font-family="Inter,sans-serif" font-size="9.5" font-weight="700" fill="#64748B">Hybrid</text>
+
+        <!-- Pos 4 (265,80): N — label above -->
+        <text x="265" y="32" text-anchor="middle" font-family="Inter,sans-serif" font-size="9.5" font-weight="800" fill="#2D0A4E">Differentiation</text>
+        <text x="265" y="44" text-anchor="middle" font-family="Inter,sans-serif" font-size="8.5" font-weight="700" fill="#A100FF">(target)</text>
+
+        <!-- Pos 5 (371,124): NE — label upper-right -->
+        <text x="413" y="90" text-anchor="middle" font-family="Inter,sans-serif" font-size="9.5" font-weight="700" fill="#64748B">Focused</text>
+        <text x="413" y="102" text-anchor="middle" font-family="Inter,sans-serif" font-size="9.5" font-weight="700" fill="#64748B">Diff.</text>
+
+        <!-- Pos 6 (415,230): E — label right -->
+        <text x="477" y="224" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="#DC2626">Inc. Price /</text>
+        <text x="477" y="235" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="#DC2626">Low Value</text>
+
+        <!-- Pos 7 (371,336): SE — label lower-right -->
+        <text x="416" y="372" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="#DC2626">Monopoly</text>
+        <text x="416" y="383" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="#DC2626">Pricing</text>
+
+        <!-- Pos 8 (265,380): S — label below -->
+        <text x="265" y="422" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="#DC2626">Loss of Market</text>
+        <text x="265" y="433" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="#DC2626">Share</text>
+
+        <!-- Uncompetitive zone label inside sector -->
+        <text x="382" y="325" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="#DC2626" opacity="0.7">UNCOMPETITIVE</text>
+        <text x="382" y="337" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="#DC2626" opacity="0.7">ZONE</text>
+
+      </svg>
+
+      <!-- Legend (FALLBACK: inside chart container, top-right) -->
+      <div class="legend-block">
+        <div class="legend-title">Key</div>
+        <div class="legend-items">
+          <div class="legend-row">
+            <div class="legend-dot dot-current"></div>
+            <div><strong>Position 2</strong> &mdash; current state (Low Price)</div>
+          </div>
+          <div class="legend-row">
+            <div class="legend-dot dot-target"></div>
+            <div><strong>Position 4</strong> &mdash; target state (Differentiation)</div>
+          </div>
+          <div class="legend-row">
+            <div class="legend-dot dot-other"></div>
+            <div>Other positions (not current or target)</div>
+          </div>
+          <div class="legend-row">
+            <div class="legend-dot dot-uncompetitive"></div>
+            <div>Positions 6&ndash;8: uncompetitive zone</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right panel -->
+    <div class="right-panel">
+
+      <!-- Positions reference -->
+      <div class="positions-block">
+        <div class="legend-title" style="margin-bottom:6px;">All 8 Positions</div>
+        <div class="positions-table">
+          <div class="pos-row">
+            <div class="pos-num">1</div>
+            <div><div class="pos-name">No Frills</div><div class="pos-desc">Low price &amp; low perceived value</div></div>
+          </div>
+          <div class="pos-row">
+            <div class="pos-num accent">2</div>
+            <div><div class="pos-name accent">Low Price &nbsp;<span style="background:#A100FF;color:white;font-size:8px;padding:1px 5px;font-weight:700;letter-spacing:0.5px;">NOW</span></div><div class="pos-desc">Competing on price; unsustainable at scale</div></div>
+          </div>
+          <div class="pos-row">
+            <div class="pos-num">3</div>
+            <div><div class="pos-name">Hybrid</div><div class="pos-desc">Moderate price &amp; moderate value</div></div>
+          </div>
+          <div class="pos-row">
+            <div class="pos-num target">4</div>
+            <div><div class="pos-name target">Differentiation &nbsp;<span style="background:#2D0A4E;color:#A100FF;font-size:8px;padding:1px 5px;font-weight:700;letter-spacing:0.5px;">TARGET</span></div><div class="pos-desc">High perceived value; sustainable margins</div></div>
+          </div>
+          <div class="pos-row">
+            <div class="pos-num">5</div>
+            <div><div class="pos-name">Focused Differentiation</div><div class="pos-desc">Premium value for niche segment</div></div>
+          </div>
+          <div class="pos-row">
+            <div class="pos-num uncompetitive">6</div>
+            <div><div class="pos-name uncompetitive">Increased Price / Low Value</div><div class="pos-desc">Losing proposition; erodes share</div></div>
+          </div>
+          <div class="pos-row">
+            <div class="pos-num uncompetitive">7</div>
+            <div><div class="pos-name uncompetitive">Monopoly Pricing</div><div class="pos-desc">Only viable without competitors</div></div>
+          </div>
+          <div class="pos-row">
+            <div class="pos-num uncompetitive">8</div>
+            <div><div class="pos-name uncompetitive">Loss of Market Share</div><div class="pos-desc">Standard price for low value — exit risk</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Move insight -->
+      <div class="move-block">
+        Strategic move: <span>2 &rarr; 4</span> &mdash; raise perceived value through service quality; decouple pricing from competitors.
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span>Slide Lab &middot; Confidential &middot; Competitive positioning</span>
+    <span class="footer-right">113 / 200</span>
+  </div>
+
+</div>
+</body>
+</html>

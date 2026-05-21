@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>22 · Photo hero with editorial caption</title>
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 1280px; height: 720px;
+  background: var(--slide-bg);
+  font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  color: var(--text-dark);
+  overflow: hidden;
+}
+body { position: relative; }
+
+/* Top chrome */
+.top-rule { position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--brand-accent); z-index: 5; }
+.project-label {
+  position: absolute; top: 18px; left: 24px;
+  color: var(--text-faint); font-size: 10px; font-weight: 600;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  z-index: 5;
+}
+.draft-badge {
+  position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+  background: var(--draft-bg); color: var(--draft-text);
+  font-size: 11px; font-weight: 700;
+  padding: 4px 16px; letter-spacing: 1px;
+  z-index: 5;
+}
+
+/* Two-zone grid: 58% photo / 42% caption */
+.hero-grid {
+  position: absolute;
+  top: 56px; left: 0; right: 0; bottom: 48px;
+  display: flex; flex-wrap: wrap;
+}
+
+/* LEFT — photo placeholder zone */
+.photo-zone {
+  position: relative;
+  margin: 16px 0 16px 40px;
+  background:
+    linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-primary-mid) 100%);
+  border: 2px dashed rgba(255,255,255,0.35);
+  border-radius: 4px;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+}
+/* Subtle diagonal texture overlay so the placeholder reads intentional */
+.photo-zone::before {
+  content: "";
+  position: absolute; inset: 0;
+  background:
+    repeating-linear-gradient(45deg,
+      rgba(255,255,255,0.04) 0px,
+      rgba(255,255,255,0.04) 2px,
+      transparent 2px,
+      transparent 16px);
+  pointer-events: none;
+}
+/* Soft radial glow upper-left */
+.photo-zone::after {
+  content: "";
+  position: absolute; inset: 0;
+  background: radial-gradient(circle at 25% 30%, rgba(193,128,255,0.25) 0%, transparent 55%);
+  pointer-events: none;
+}
+.corner-tag {
+  position: absolute; top: 16px; left: 16px;
+  background: rgba(0,0,0,0.45);
+  color: var(--brand-accent-soft);
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 2px; text-transform: uppercase;
+  padding: 6px 12px;
+  border: 1px solid rgba(199,128,255,0.5);
+  z-index: 2;
+}
+.photo-meta {
+  position: relative; z-index: 2;
+  padding: 24px 28px;
+  color: rgba(255,255,255,0.75);
+  font-size: 11px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.photo-meta .filename {
+  display: block;
+  color: rgba(255,255,255,0.5);
+  font-family: 'Consolas', 'Menlo', monospace;
+  font-size: 10px;
+  letter-spacing: 0.5px;
+  text-transform: none;
+  margin-top: 6px;
+  font-weight: 400;
+}
+
+/* RIGHT — editorial caption block */
+.caption-zone {
+  padding: 40px 56px 32px 44px;
+  display: flex;
+  flex-direction: column;
+}
+.section-label {
+  color: var(--brand-accent);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+.editorial-headline {
+  color: var(--brand-primary);
+  font-size: 30px;
+  font-weight: 700;
+  line-height: 1.18;
+  letter-spacing: -0.4px;
+  margin-bottom: 18px;
+}
+.sub-line {
+  color: var(--text-mid);
+  font-size: 14px;
+  font-style: italic;
+  line-height: 1.5;
+  margin-bottom: 22px;
+  max-width: 420px;
+}
+.accent-rule {
+  width: 40px;
+  height: 3px;
+  background: var(--brand-accent);
+  margin-bottom: 22px;
+}
+.looks-like-label {
+  color: var(--text-faint);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.bullets {
+  list-style: none;
+  margin-bottom: auto;
+}
+.bullets li {
+  position: relative;
+  padding-left: 18px;
+  color: var(--text-dark);
+  font-size: 14px;
+  line-height: 1.5;
+  margin-bottom: 8px;
+  max-width: 400px;
+}
+.bullets li::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 9px;
+  width: 6px; height: 6px;
+  background: var(--brand-accent);
+  border-radius: 50%;
+}
+.attribution {
+  color: var(--text-faint);
+  font-size: 11px;
+  font-style: italic;
+  padding-top: 16px;
+  border-top: 1px solid var(--card-border);
+}
+
+/* Footer */
+.bottom-rule { position: absolute; bottom: 32px; left: 24px; right: 24px; height: 1px; background: var(--card-border); }
+.footer-left {
+  position: absolute; bottom: 12px; left: 24px;
+  color: var(--text-faint); font-size: 11px;
+  letter-spacing: 1px;
+}
+.footer-right {
+  position: absolute; bottom: 12px; right: 24px;
+  color: var(--text-faint); font-size: 11px;
+}
+
+/* DARK THEME */
+:root {
+  --card-bg: rgba(255,255,255,0.07);
+  --card-border: rgba(255,255,255,0.12);
+  --text-dark: #FFFFFF;
+  --text-mid: rgba(255,255,255,0.6);
+  --slide-bg: #2D0A4E;
+}
+body, .slide { background: #2D0A4E; }
+.project-label { color: rgba(255,255,255,0.4); }
+.action-title, .title { color: #FFFFFF; }
+.action-title strong, .title strong { color: #C780FF; }
+.editorial-headline { color: #FFFFFF; }
+.sub-line { color: rgba(255,255,255,0.6); }
+.accent-rule { background: #A100FF; }
+.bullets li { color: rgba(255,255,255,0.85); }
+.looks-like-label { color: rgba(255,255,255,0.5); }
+.attribution { color: rgba(255,255,255,0.5); border-top-color: rgba(255,255,255,0.12); }
+.bottom-rule { background: rgba(255,255,255,0.1); }
+.footer-left, .footer-right { color: rgba(255,255,255,0.4); }
+</style>
+</head>
+<body>
+  <div class="top-rule" data-shape-id="top-rule"></div>
+
+  <div class="hero-grid">
+    <!-- LEFT: photo placeholder -->
+    <div class="photo-zone" data-shape-id="photo-zone">
+      <div class="corner-tag" data-shape-id="photo-corner-tag">Photo placeholder</div>
+      <div class="photo-meta" data-shape-id="photo-meta">
+        Scenario image
+        <span class="filename">replace · scene-01_review-cycle.jpg</span>
+      </div>
+    </div>
+
+    <!-- RIGHT: editorial caption -->
+    <div class="caption-zone">
+      <div class="section-label" data-shape-id="eyebrow">Scene 1</div>
+      <div class="editorial-headline" data-shape-id="title">The deck got 40% longer in the last review cycle.</div>
+      <div class="sub-line" data-shape-id="subtitle">Every reviewer added something. Nobody removed anything.</div>
+      <div class="accent-rule" data-shape-id="brand-rule"></div>
+
+      <div class="looks-like-label" data-shape-id="caption-list-label">What this looks like</div>
+      <ul class="bullets" data-shape-id="photo-caption">
+        <li>Slide 6 spawned a backup appendix, then the appendix spawned its own backup.</li>
+        <li>Three logos got bigger; the argument did not.</li>
+        <li>The exec read the first page and the last page — same as always.</li>
+      </ul>
+
+      <div class="attribution" data-shape-id="photo-attribution">Composite scenario  ·  based on 12 pilot conversations</div>
+    </div>
+  </div>
+
+  <div class="bottom-rule" data-shape-id="footer-rule"></div>
+  <div class="footer-left" data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+</body>
+</html>

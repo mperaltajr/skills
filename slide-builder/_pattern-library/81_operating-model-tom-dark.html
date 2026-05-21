@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>81 · Target Operating Model (TOM)</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --focal-bg: #FFFFFF;
+    --focal-border: #A100FF;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #2A2A2A;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  .slide {
+    width: 1280px;
+    height: 720px;
+    background: var(--slide-bg);
+    position: relative;
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+    color: var(--text-dark);
+  }
+
+  /* ===== TOP CHROME (Style A invariant) ===== */
+  .draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; z-index: 5; }
+  .project-label { position: absolute; top: 24px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; z-index: 5; }
+
+  /* ===== HEADER ZONE ===== */
+  .header {
+    position: absolute;
+    top: 48px;
+    left: 48px;
+    right: 48px;
+  }
+
+  .title {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    margin-bottom: 8px;
+  }
+
+  .subhead {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-mid);
+    line-height: 1.5;
+    max-width: 880px;
+  }
+
+  .accent-rule {
+    width: 40px;
+    height: 3px;
+    background: var(--brand-accent);
+    margin-top: 14px;
+  }
+
+  /* ===== TOM GRID — 3 cols x 2 rows ===== */
+  .tom-grid {
+    position: absolute;
+    top: 176px;
+    left: 48px;
+    right: 48px;
+    display: flex; flex-wrap: wrap;
+    gap: 14px;
+    height: 410px;
+  }
+
+  .tom-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-top: 3px solid var(--brand-accent-soft);
+    padding: 16px 18px 16px 18px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    min-width: 0;
+  }
+
+  .tom-card.focal {
+    background: var(--focal-bg);
+    border: 1px solid var(--card-border);
+    border-top: 3px solid var(--focal-border);
+    box-shadow: 0 4px 16px rgba(161, 0, 255, 0.12);
+  }
+
+  .tom-card.focal::after {
+    content: "FOCUS";
+    position: absolute;
+    top: 10px;
+    right: 14px;
+    font-size: 8px;
+    font-weight: 700;
+    color: var(--brand-accent);
+    letter-spacing: 0.15em;
+    background: rgba(161, 0, 255, 0.08);
+    padding: 2px 6px;
+  }
+
+  .tom-head {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .tom-num {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--brand-accent);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.04em;
+    width: 26px;
+  }
+
+  .tom-icon {
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .tom-icon svg {
+    width: 22px;
+    height: 22px;
+    stroke: var(--brand-accent);
+    fill: none;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .tom-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .tom-tagline {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-mid);
+    line-height: 1.4;
+    margin-bottom: 10px;
+    font-style: italic;
+  }
+
+  .tom-components {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .tom-components li {
+    font-size: 11.5px;
+    font-weight: 400;
+    color: var(--text-dark);
+    line-height: 1.4;
+    padding-left: 12px;
+    position: relative;
+  }
+
+  .tom-components li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 7px;
+    width: 4px;
+    height: 4px;
+    background: var(--brand-accent);
+    border-radius: 50%;
+  }
+
+  .tom-components li strong {
+    color: var(--brand-primary);
+    font-weight: 600;
+  }
+
+  /* ===== CONVERGENCE LINE ===== */
+  .convergence {
+    position: absolute;
+    bottom: 48px;
+    left: 48px;
+    right: 48px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--brand-primary-mid);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* ===== FOOTER (invariant) ===== */
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 48px;
+    font-size: 9px;
+    color: var(--text-faint);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .footer-rule {
+    position: absolute;
+    bottom: 32px;
+    left: 48px;
+    right: 48px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, var(--card-border) 20%, var(--card-border) 80%, transparent 100%);
+  }
+
+  .page-num {
+    color: var(--text-mid);
+    font-weight: 600;
+  }
+
+  /* DARK THEME */
+  :root {
+    --card-bg: rgba(255,255,255,0.07);
+    --card-border: rgba(255,255,255,0.12);
+    --text-dark: #FFFFFF;
+    --text-mid: rgba(255,255,255,0.6);
+    --slide-bg: #2D0A4E;
+    --focal-bg: rgba(161,0,255,0.1);
+  }
+  body { background: #1a1a1a; }
+  .slide { background: #2D0A4E; }
+  .project-label { color: rgba(255,255,255,0.4); }
+  .title { color: #FFFFFF; }
+  .subhead { color: rgba(255,255,255,0.6); }
+  .accent-rule { background: #A100FF; }
+  .tom-card { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); border-top: 3px solid #A100FF; }
+  .tom-card.focal { background: rgba(161,0,255,0.1); border: 1px solid rgba(255,255,255,0.12); border-top: 3px solid #A100FF; box-shadow: 0 4px 16px rgba(161,0,255,0.2); }
+  .tom-card.focal::after { background: rgba(161,0,255,0.2); }
+  .tom-name { color: rgba(255,255,255,0.85); }
+  .tom-tagline { color: rgba(255,255,255,0.5); }
+  .tom-components li { color: rgba(255,255,255,0.85); }
+  .tom-components li strong { color: #FFFFFF; }
+  .convergence { color: rgba(255,255,255,0.6); }
+  .footer-rule { background: rgba(255,255,255,0.1); }
+  .footer { color: rgba(255,255,255,0.4); }
+  .page-num { color: rgba(255,255,255,0.4); }
+</style>
+</head>
+<body>
+
+<div class="slide">
+
+  <!-- Top chrome (Style A) -->
+
+  <!-- Header -->
+  <div class="header">
+    <h1 class="title" data-shape-id="title">Slide Lab target operating model &mdash; six dimensions, one method.</h1>
+    <p class="subhead" data-shape-id="subtitle">A TOM is only useful when every dimension reinforces the others. Six dimensions, each with three to four components, define how Slide Lab runs as the default deck-building method across the practice.</p>
+    <div class="accent-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- TOM grid -->
+  <div class="tom-grid">
+
+    <!-- 1. STRATEGY -->
+    <div class="tom-card" data-shape-id="card-1-shape">
+      <div class="tom-head">
+        <div class="tom-num" data-shape-id="card-1-num">01</div>
+        <div class="tom-icon" data-shape-id="card-1-icon">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1.6"/></svg>
+        </div>
+        <div class="tom-name" data-shape-id="card-1-heading">Strategy</div>
+      </div>
+      <div class="tom-tagline" data-shape-id="card-1-tagline">Vision, priorities, value bundles</div>
+      <ul class="tom-components">
+        <li data-shape-id="card-1-component-1">Slide Lab as <strong>default method</strong> for client work</li>
+        <li data-shape-id="card-1-component-2">Pattern library as <strong>practice IP</strong></li>
+        <li data-shape-id="card-1-component-3">Brand portability across client templates</li>
+      </ul>
+    </div>
+
+    <!-- 2. PROCESS -->
+    <div class="tom-card" data-shape-id="card-2-shape">
+      <div class="tom-head">
+        <div class="tom-num" data-shape-id="card-2-num">02</div>
+        <div class="tom-icon" data-shape-id="card-2-icon">
+          <svg viewBox="0 0 24 24"><path d="M3 7h14"/><path d="M13 3l4 4-4 4"/><path d="M21 17H7"/><path d="M11 21l-4-4 4-4"/></svg>
+        </div>
+        <div class="tom-name" data-shape-id="card-2-heading">Process</div>
+      </div>
+      <div class="tom-tagline" data-shape-id="card-2-tagline">How work flows, gates, hand-offs</div>
+      <ul class="tom-components">
+        <li data-shape-id="card-2-component-1">Storyline session <strong>before</strong> drafting</li>
+        <li data-shape-id="card-2-component-2">Gated by QC checklist before delivery</li>
+        <li data-shape-id="card-2-component-3">Coach pairing on first three decks</li>
+      </ul>
+    </div>
+
+    <!-- 3. ORGANIZATION (focal) -->
+    <div class="tom-card focal" data-shape-id="card-3-shape">
+      <div class="tom-head">
+        <div class="tom-num" data-shape-id="card-3-num">03</div>
+        <div class="tom-icon" data-shape-id="card-3-icon">
+          <svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="5"/><rect x="3" y="15" width="6" height="5"/><rect x="15" y="15" width="6" height="5"/><path d="M12 8v4M6 15v-3h12v3"/></svg>
+        </div>
+        <div class="tom-name" data-shape-id="card-3-heading">Organization</div>
+      </div>
+      <div class="tom-tagline" data-shape-id="card-3-tagline">Roles, structure, decision rights</div>
+      <ul class="tom-components">
+        <li data-shape-id="card-3-component-1"><strong>Coach</strong> role &mdash; embedded per practice</li>
+        <li data-shape-id="card-3-component-2"><strong>Pattern librarian</strong> &mdash; owns the catalog</li>
+        <li data-shape-id="card-3-component-3">Practice champions &mdash; one per team</li>
+      </ul>
+    </div>
+
+    <!-- 4. PEOPLE -->
+    <div class="tom-card" data-shape-id="card-4-shape">
+      <div class="tom-head">
+        <div class="tom-num" data-shape-id="card-4-num">04</div>
+        <div class="tom-icon" data-shape-id="card-4-icon">
+          <svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><circle cx="17" cy="9" r="2.4"/><path d="M3 19c0-3.4 2.7-6 6-6s6 2.6 6 6"/><path d="M15 19c0-2.7 2-5 4.5-5"/></svg>
+        </div>
+        <div class="tom-name" data-shape-id="card-4-heading">People</div>
+      </div>
+      <div class="tom-tagline" data-shape-id="card-4-tagline">Skills, learning, performance</div>
+      <ul class="tom-components">
+        <li data-shape-id="card-4-component-1">90-min onboarding for every consultant</li>
+        <li data-shape-id="card-4-component-2">Practice champion <strong>certification</strong></li>
+        <li data-shape-id="card-4-component-3">Coach development track &mdash; quarterly</li>
+      </ul>
+    </div>
+
+    <!-- 5. TECHNOLOGY -->
+    <div class="tom-card" data-shape-id="card-5-shape">
+      <div class="tom-head">
+        <div class="tom-num" data-shape-id="card-5-num">05</div>
+        <div class="tom-icon" data-shape-id="card-5-icon">
+          <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="12" rx="1"/><path d="M3 10h18"/><path d="M8 20h8"/><path d="M12 16v4"/></svg>
+        </div>
+        <div class="tom-name" data-shape-id="card-5-heading">Technology</div>
+      </div>
+      <div class="tom-tagline" data-shape-id="card-5-tagline">Platforms, tools, integration</div>
+      <ul class="tom-components">
+        <li data-shape-id="card-5-component-1">Claude Code as the substrate</li>
+        <li data-shape-id="card-5-component-2">HTML &rarr; PPTX render engine</li>
+        <li data-shape-id="card-5-component-3">Pattern library &mdash; versioned, shared</li>
+      </ul>
+    </div>
+
+    <!-- 6. GOVERNANCE -->
+    <div class="tom-card" data-shape-id="card-6-shape">
+      <div class="tom-head">
+        <div class="tom-num" data-shape-id="card-6-num">06</div>
+        <div class="tom-icon" data-shape-id="card-6-icon">
+          <svg viewBox="0 0 24 24"><path d="M12 3l8 4v5c0 5-3.5 8.5-8 9-4.5-.5-8-4-8-9V7l8-4z"/><path d="M9 12l2 2 4-4"/></svg>
+        </div>
+        <div class="tom-name" data-shape-id="card-6-heading">Governance</div>
+      </div>
+      <div class="tom-tagline" data-shape-id="card-6-tagline">Cadence, escalation, decision forums</div>
+      <ul class="tom-components">
+        <li data-shape-id="card-6-component-1"><strong>Weekly</strong> pilot review</li>
+        <li data-shape-id="card-6-component-2"><strong>Monthly</strong> practice forum</li>
+        <li data-shape-id="card-6-component-3"><strong>Quarterly</strong> evolution &amp; roadmap</li>
+      </ul>
+    </div>
+
+  </div>
+
+  <!-- Convergence -->
+  <div class="convergence" data-shape-id="convergence">Six dimensions &middot; one operating model &middot; one method.</div>
+
+  <!-- Footer rule -->
+
+  <!-- Footer -->
+  <div class="footer">
+    <span data-shape-id="footer-left">Source: Slide Lab TOM v1 / internal practice design / 2026</span>
+    <span class="page-num" data-shape-id="footer-right">81d</span>
+  </div>
+
+</div>
+
+</body>
+</html>

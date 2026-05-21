@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>91 · North star metric — the one number the team optimizes for</title>
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #2D0A4E;            /* dark mode override */
+  --text-on-dark: #FFFFFF;
+  --text-on-dark-mid: #C780FF;
+  --text-on-dark-faint: #B8A5D9;
+  --card-bg-dark: rgba(255,255,255,0.05);
+  --card-border-dark: rgba(199,128,255,0.22);
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 1280px; height: 720px;
+  background: var(--slide-bg);
+  font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  color: var(--text-on-dark);
+  overflow: hidden;
+}
+body { position: relative; padding: 0px 64px 80px 64px; }
+
+/* Top chrome — dark variant */
+.project-label {
+  position: absolute; top: 24px; left: 24px;
+  color: var(--text-on-dark-mid); font-size: 10px; font-weight: 600;
+  letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.7;
+}
+.draft-badge {
+  position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--draft-bg); color: var(--draft-text);
+  font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px;
+}
+
+/* Title block */
+.title-block { }
+.section-label {
+  font-size: 11px; font-weight: 700;
+  color: var(--brand-accent-soft);
+  letter-spacing: 3px; text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.action-title { position: absolute; left: 64px; right: 64px; top: 28px; min-height: 36px; font-size: 26px; font-weight: 700; line-height: 1.25;
+  color: var(--text-on-dark); max-width: 1000px;
+}
+.action-title strong { color: var(--brand-accent-soft); font-weight: 700; }
+.subhead { position: absolute; left: 64px; right: 64px; top: 108px; font-size: 14px; color: var(--text-on-dark-faint); font-style: italic; opacity: 0.85;
+}
+.title-rule { position: absolute; left: 64px; top: 136px; width: 40px; height: 3px;
+  background: var(--brand-accent);
+}
+
+/* Content band — between title-rule (~y=210) and footer-rule (~y=688) */
+.content-block {
+  position: absolute;
+  left: 64px; right: 64px;
+  top: 215px; bottom: 64px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+/* Hero — the ONE metric */
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding-top: 8px;
+}
+.pre-label {
+  font-size: 14px; font-weight: 700;
+  letter-spacing: 5px; text-transform: uppercase;
+  color: var(--brand-accent-soft);
+  margin-bottom: 18px;
+}
+.north-metric {
+  font-size: 168px;
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -6px;
+  color: var(--text-on-dark);
+  margin: 0;
+}
+.caption {
+  font-size: 19px;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--brand-accent-soft);
+  margin-top: 14px;
+  max-width: 760px;
+  line-height: 1.35;
+}
+.hero-rule {
+  width: 96px; height: 3px;
+  background: var(--brand-accent);
+  margin-top: 22px;
+}
+
+/* Input metrics row — 4 small cards */
+.inputs-block { }
+.inputs-header {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 2.5px; text-transform: uppercase;
+  color: var(--text-on-dark-faint);
+  text-align: center;
+  margin-bottom: 12px;
+  opacity: 0.75;
+}
+.inputs {
+  display: flex; flex-wrap: wrap;
+  gap: 16px;
+}
+.input-card {
+  background: var(--card-bg-dark);
+  border: 1px solid var(--card-border-dark);
+  border-top: 2px solid var(--brand-accent);
+  padding: 16px 18px 18px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 96px;
+}
+.input-value {
+  font-size: 32px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--text-on-dark);
+  letter-spacing: -0.5px;
+}
+.input-value .unit {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-on-dark-mid);
+  margin-left: 4px;
+  letter-spacing: 0;
+}
+.input-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-on-dark-faint);
+  letter-spacing: 0.5px;
+  line-height: 1.35;
+  text-transform: none;
+}
+
+/* Convergence line */
+.convergence {
+  margin-top: 14px;
+  font-size: 14px;
+  color: var(--text-on-dark-faint);
+  font-style: italic;
+  text-align: center;
+  line-height: 1.5;
+  opacity: 0.85;
+}
+
+/* Footer — dark variant */
+.footer-rule {
+  position: absolute; left: 0; right: 0; bottom: 32px;
+  height: 1px; background: var(--brand-accent-soft);
+  opacity: 0.22;
+}
+.footer-left {
+  position: absolute; bottom: 14px; left: 24px;
+  color: var(--text-on-dark-faint); font-size: 11px;
+  letter-spacing: 1px; opacity: 0.6;
+}
+.footer-right {
+  position: absolute; bottom: 14px; right: 24px;
+  color: var(--text-on-dark-faint); font-size: 11px;
+  opacity: 0.6;
+}
+</style>
+</head>
+<body>
+
+  <div class="title-block">
+    <div class="section-label" data-shape-id="eyebrow">Slide Lab &middot; Operating metric</div>
+    <div class="action-title" data-shape-id="title">Our north star &mdash; <strong>partner-ready deck sign-off rate</strong>.</div>
+    <div class="subhead" data-shape-id="subtitle">One number we optimize for. Everything else is an input that moves it.</div>
+    <div class="title-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <div class="content-block">
+
+    <div class="hero">
+      <div class="pre-label" data-shape-id="hero-stat-label">Our north star</div>
+      <div class="north-metric" data-shape-id="hero-stat-value">94%</div>
+      <div class="caption" data-shape-id="hero-stat-caption">Decks that pass first partner review without rework.</div>
+      <div class="hero-rule" data-shape-id="hero-rule"></div>
+    </div>
+
+    <div class="inputs-block">
+      <div class="inputs-header" data-shape-id="inputs-header">Input metrics &mdash; what we actually move week to week</div>
+      <div class="inputs">
+        <div class="input-card" data-shape-id="input-1">
+          <div class="input-value" data-shape-id="input-1-value">5<span class="unit" data-shape-id="input-1-unit">days</span></div>
+          <div class="input-label" data-shape-id="input-1-label">Median cycle time, brief to final deck</div>
+        </div>
+        <div class="input-card" data-shape-id="input-2">
+          <div class="input-value" data-shape-id="input-2-value">80<span class="unit" data-shape-id="input-2-unit">%</span></div>
+          <div class="input-label" data-shape-id="input-2-label">Decks with pre-build storyline coaching</div>
+        </div>
+        <div class="input-card" data-shape-id="input-3">
+          <div class="input-value" data-shape-id="input-3-value">100<span class="unit" data-shape-id="input-3-unit">patterns</span></div>
+          <div class="input-label" data-shape-id="input-3-label">Live in the slide pattern library</div>
+        </div>
+        <div class="input-card" data-shape-id="input-4">
+          <div class="input-value" data-shape-id="input-4-value">4<span class="unit" data-shape-id="input-4-unit">coaches</span></div>
+          <div class="input-label" data-shape-id="input-4-label">Senior reviewers certified on the method</div>
+        </div>
+      </div>
+      <div class="convergence" data-shape-id="convergence">Move the input metrics; the north star moves.</div>
+    </div>
+
+  </div>
+  <div class="footer-left" data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+</body>
+</html>

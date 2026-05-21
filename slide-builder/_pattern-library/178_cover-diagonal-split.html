@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pattern 178 — Cover: Diagonal Split</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: Inter, system-ui, sans-serif;
+    background: var(--slide-bg);
+    position: relative;
+  }
+
+  /* ── Dark triangle: top-left ── */
+  .bg-dark {
+    position: absolute;
+    inset: 0;
+    background: var(--brand-primary);
+    clip-path: polygon(0 0, 100% 0, 55% 100%, 0 100%);
+    z-index: 1;
+  }
+
+  /* ── Light triangle: right-bottom — white base already from body ── */
+  /* No extra element needed; white is the body background */
+
+  /* ── Diagonal accent line ── */
+  .diagonal-line {
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    pointer-events: none;
+  }
+  .diagonal-line svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  /* ── Left content area ── */
+  .left-content {
+    position: absolute;
+    top: 50%;
+    left: 60px;
+    transform: translateY(-50%);
+    z-index: 3;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    /* constrain so text stays in dark triangle; dark side is ~55% wide at bottom, ~100% at top */
+    max-width: 440px;
+  }
+
+  .brand-label {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    color: rgba(255,255,255,0.95);
+    text-transform: uppercase;
+  }
+
+  .accent-rule {
+    width: 80px;
+    height: 3px;
+    background: var(--brand-accent);
+    border-radius: 0;
+  }
+
+  .tagline {
+    font-size: 14px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.55);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* ── Right content area ── */
+  .right-content {
+    position: absolute;
+    top: 50%;
+    right: 60px;
+    transform: translateY(-50%);
+    z-index: 3;
+    max-width: 460px;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .slide-title {
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+
+  .slide-title strong {
+    color: var(--brand-accent);
+    font-weight: 800;
+  }
+
+  .slide-subtitle {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-mid);
+    line-height: 1.6;
+    max-width: 400px;
+  }
+
+  .slide-meta {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-faint);
+    letter-spacing: 0.04em;
+  }
+
+  /* ── Invariant chrome ── */
+
+  /* Top-left: ACCENTURE INTERNAL label */
+  .chrome-internal {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    z-index: 10;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: #FFFFFF;
+    font-family: Inter, system-ui, sans-serif;
+  }
+
+  /* Top-center: DRAFT badge */
+  .chrome-draft {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 10;
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    font-family: Inter, system-ui, sans-serif;
+    padding: 2px 10px;
+    border-radius: 0;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  /* Footer */
+  .chrome-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    background: rgba(15, 5, 30, 0.72);
+    z-index: 10;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 20px 10px;
+    font-family: Inter, system-ui, sans-serif;
+  }
+
+  .chrome-footer .footer-left,
+  .chrome-footer .footer-right {
+    font-size: 11px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.6);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Dark triangle fill -->
+  <div class="bg-dark"></div>
+
+  <!-- Diagonal accent line (SVG) -->
+  <div class="diagonal-line">
+    <svg viewBox="0 0 1280 720" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- clip-path polygon(0 0, 100% 0, 55% 100%, 0 100%)
+           Dark edge points at top: (1280,0) and at bottom: (0.55×1280, 720) = (704, 720)
+           Draw the 3px accent line along this boundary -->
+      <line x1="1280" y1="0" x2="704" y2="720" stroke="#A100FF" stroke-width="3"/>
+    </svg>
+  </div>
+
+  <!-- Left content (dark area) -->
+  <div class="left-content">
+    <div class="brand-label">Accenture</div>
+    <div class="accent-rule"></div>
+    <div class="tagline">Strategy &amp; Consulting</div>
+  </div>
+
+  <!-- Right content (white area) -->
+  <div class="right-content">
+    <div class="slide-title">Transforming<br><strong>Tomorrow</strong><br>Together</div>
+    <div class="slide-subtitle">A strategic roadmap for accelerating growth, unlocking new value, and delivering lasting impact across the enterprise.</div>
+    <div class="slide-meta">Client Name · May 2026 · Confidential</div>
+  </div>
+
+  <!-- Invariant chrome: top-left label -->
+  <div class="chrome-internal">Accenture Internal</div>
+
+  <!-- Invariant chrome: DRAFT badge -->
+  <div class="chrome-draft">Draft</div>
+
+  <!-- Invariant chrome: footer -->
+  <div class="chrome-footer">
+    <span class="footer-left">Confidential — Accenture Internal</span>
+    <span class="footer-right">Slide Lab · 2026 · 178</span>
+  </div>
+
+</body>
+</html>

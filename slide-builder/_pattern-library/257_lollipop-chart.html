@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>257 · Lollipop chart — ranked horizontal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 1280px;
+  height: 720px;
+  background: var(--slide-bg);
+  font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  color: var(--text-dark);
+  overflow: hidden;
+}
+body { position: relative; }
+
+/* ── Chrome ── */
+.project-label {
+  position: absolute;
+  top: 20px;
+  left: 24px;
+  color: var(--text-faint);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+}
+.draft-badge {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--draft-bg);
+  color: var(--draft-text);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 18px;
+  letter-spacing: 1px;
+}
+
+/* ── Title block ── */
+.title-block {
+  position: absolute; top: 0; left: 0; right: 0; height: 160px;
+}
+.title-line {
+  font-size: 29px;
+  font-weight: 700;
+  color: var(--brand-primary);
+  line-height: 1.2;
+}
+.title-line strong { color: var(--brand-accent); }
+.subhead {
+  position: absolute; top: 108px; left: 64px; right: 64px;
+  font-size: 14px;
+  font-style: italic;
+  color: var(--text-mid);
+
+}
+.title-rule {
+  position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+
+}
+
+/* ── Body grid ── */
+.body-grid {
+  position: absolute;
+  top: 130px;
+  left: 64px;
+  right: 64px;
+  bottom: 44px;
+  display: flex; flex-wrap: wrap;
+  gap: 0;
+}
+
+/* ── Left: chart zone ── */
+.chart-zone {
+  display: flex;
+  flex-direction: column;
+  padding-right: 28px;
+}
+.chart-svg { display: block; width: 100%; height: 100%; }
+
+/* ── Right: annotation panel ── */
+.annotation {
+  border-left: 2px dashed var(--card-border);
+  padding: 20px 20px 16px 28px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+.annotation-tag {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--brand-accent);
+
+    bottom: 14px;
+}
+.annotation ul { list-style: none;
+    bottom: 0; }
+.annotation li {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--text-dark);
+  padding-left: 16px;
+  position: relative;
+
+    bottom: 24px;
+}
+.annotation li::before {
+  content: "▸";
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--brand-accent);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.5;
+}
+.annotation li strong { color: var(--brand-primary); font-weight: 700; }
+.annotation-source {
+
+    top: auto;
+  padding-top: 12px;
+  font-size: 10px;
+  font-style: italic;
+  color: var(--text-faint);
+  border-top: 1px solid var(--card-border);
+}
+
+/* ── Footer chrome ── */
+.footer-rule {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 32px;
+  height: 1px;
+  background: var(--card-border);
+}
+.footer-left {
+  position: absolute;
+  bottom: 14px;
+  left: 24px;
+  color: var(--text-faint);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.footer-right {
+  position: absolute;
+  bottom: 14px;
+  right: 24px;
+  color: var(--text-faint);
+  font-size: 11px;
+  letter-spacing: 0.05em;
+}
+</style>
+</head>
+<body>
+
+  <div class="title-block">
+    <div class="title-line">Channel engagement scores — <strong>digital leads by a wide margin.</strong></div>
+    <div class="subhead">Composite engagement index by channel, current period · ranked descending · top 3 highlighted</div>
+    <div class="title-rule"></div>
+  </div>
+
+  <div class="body-grid">
+
+    <!-- ═══════════════ LEFT — SVG lollipop chart ═══════════════
+         ViewBox: 0 0 760 490
+         Plot area:
+           X: label zone 0–165, axis origin x=170, right edge x=740 → plot width=570
+           Y: rows 0–9 (10 items). Row height=46. First row center y=28, last y=28+9×46=442.
+         X scale: 0% → x=170, 100% → x=740. 1% = 5.7px. gridlines at 25/50/75%.
+         Circle radius = 7. Value label at circle_x+14.
+    ═══════════════════════════════════════════════════════════ -->
+    <div class="chart-zone">
+      <svg class="chart-svg" viewBox="0 0 760 490" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+
+        <!-- ── X-axis gridlines at 25/50/75/100% ── -->
+        <!-- x for 25% = 170 + 0.25*570 = 312.5 -->
+        <!-- x for 50% = 170 + 0.50*570 = 455.0 -->
+        <!-- x for 75% = 170 + 0.75*570 = 597.5 -->
+        <!-- x for 100%= 170 + 1.00*570 = 740.0 -->
+        <line x1="312.5" y1="8"  x2="312.5" y2="455" stroke="#E5D5F0" stroke-width="1" stroke-dasharray="3 3"/>
+        <line x1="455"   y1="8"  x2="455"   y2="455" stroke="#E5D5F0" stroke-width="1" stroke-dasharray="3 3"/>
+        <line x1="597.5" y1="8"  x2="597.5" y2="455" stroke="#E5D5F0" stroke-width="1" stroke-dasharray="3 3"/>
+        <line x1="740"   y1="8"  x2="740"   y2="455" stroke="#E5D5F0" stroke-width="1"/>
+
+        <!-- X-axis labels -->
+        <text x="312.5" y="472" text-anchor="middle" font-size="10" font-family="Inter, sans-serif" fill="#94A3B8">25%</text>
+        <text x="455"   y="472" text-anchor="middle" font-size="10" font-family="Inter, sans-serif" fill="#94A3B8">50%</text>
+        <text x="597.5" y="472" text-anchor="middle" font-size="10" font-family="Inter, sans-serif" fill="#94A3B8">75%</text>
+        <text x="740"   y="472" text-anchor="middle" font-size="10" font-family="Inter, sans-serif" fill="#94A3B8">100%</text>
+        <!-- X axis baseline -->
+        <line x1="170" y1="455" x2="740" y2="455" stroke="#E5D5F0" stroke-width="1"/>
+
+        <!-- ══ Row helper: row_cy = 28 + row_index * 46
+             cx_val = 170 + (value/100) * 570
+             TOP 3 (rank 0,1,2 — value ≥71%): line stroke=#A100FF, circle fill=#A100FF
+             Others: line stroke=#94A3B8, circle fill=#64748B ══ -->
+
+        <!-- ── ROW 0: Digital Channels 87% — cy=28, cx=170+0.87*570=665.9 ── -->
+        <text x="162" y="33" text-anchor="end" font-size="11.5" font-weight="600" font-family="Inter, sans-serif" fill="#1A1A2E">Digital Channels</text>
+        <line x1="170" y1="28" x2="665.9" y2="28" stroke="#A100FF" stroke-width="1.5"/>
+        <circle cx="665.9" cy="28" r="7" fill="#A100FF"/>
+        <text x="680" y="32" font-size="11" font-family="Inter, sans-serif" fill="#64748B" font-weight="500">87%</text>
+
+        <!-- ── ROW 1: Mobile App 79% — cy=74, cx=170+0.79*570=620.3 ── -->
+        <text x="162" y="79" text-anchor="end" font-size="11.5" font-weight="600" font-family="Inter, sans-serif" fill="#1A1A2E">Mobile App</text>
+        <line x1="170" y1="74" x2="620.3" y2="74" stroke="#A100FF" stroke-width="1.5"/>
+        <circle cx="620.3" cy="74" r="7" fill="#A100FF"/>
+        <text x="634" y="78" font-size="11" font-family="Inter, sans-serif" fill="#64748B" font-weight="500">79%</text>
+
+        <!-- ── ROW 2: Self-Service 71% — cy=120, cx=170+0.71*570=574.7 ── -->
+        <text x="162" y="125" text-anchor="end" font-size="11.5" font-weight="600" font-family="Inter, sans-serif" fill="#1A1A2E">Self-Service</text>
+        <line x1="170" y1="120" x2="574.7" y2="120" stroke="#A100FF" stroke-width="1.5"/>
+        <circle cx="574.7" cy="120" r="7" fill="#A100FF"/>
+        <text x="588" y="124" font-size="11" font-family="Inter, sans-serif" fill="#64748B" font-weight="500">71%</text>
+
+        <!-- ── ROW 3: Email 64% — cy=166, cx=170+0.64*570=534.8 ── -->
+        <text x="162" y="171" text-anchor="end" font-size="11.5" font-family="Inter, sans-serif" fill="#1A1A2E">Email</text>
+        <line x1="170" y1="166" x2="534.8" y2="166" stroke="#94A3B8" stroke-width="1"/>
+        <circle cx="534.8" cy="166" r="7" fill="#64748B"/>
+        <text x="548" y="170" font-size="11" font-family="Inter, sans-serif" fill="#64748B" font-weight="500">64%</text>
+
+        <!-- ── ROW 4: Branch 58% — cy=212, cx=170+0.58*570=500.6 ── -->
+        <text x="162" y="217" text-anchor="end" font-size="11.5" font-family="Inter, sans-serif" fill="#1A1A2E">Branch</text>
+        <line x1="170" y1="212" x2="500.6" y2="212" stroke="#94A3B8" stroke-width="1"/>
+        <circle cx="500.6" cy="212" r="7" fill="#64748B"/>
+        <text x="514" y="216" font-size="11" font-family="Inter, sans-serif" fill="#64748B" font-weight="500">58%</text>
+
+        <!-- ── ROW 5: Call Center 52% — cy=258, cx=170+0.52*570=466.4 ── -->
+        <text x="162" y="263" text-anchor="end" font-size="11.5" font-family="Inter, sans-serif" fill="#1A1A2E">Call Center</text>
+        <line x1="170" y1="258" x2="466.4" y2="258" stroke="#94A3B8" stroke-width="1"/>
+        <circle cx="466.4" cy="258" r="7" fill="#64748B"/>
+        <text x="480" y="262" font-size="11" font-family="Inter, sans-serif" fill="#64748B" font-weight="500">52%</text>
+
+        <!-- ── ROW 6: Chat Bot 44% — cy=304, cx=170+0.44*570=420.8 ── -->
+        <text x="162" y="309" text-anchor="end" font-size="11.5" font-family="Inter, sans-serif" fill="#1A1A2E">Chat Bot</text>
+        <line x1="170" y1="304" x2="420.8" y2="304" stroke="#94A3B8" stroke-width="1"/>
+        <circle cx="420.8" cy="304" r="7" fill="#64748B"/>
+        <text x="434" y="308" font-size="11" font-family="Inter, sans-serif" fill="#64748B" font-weight="500">44%</text>
+
+        <!-- ── ROW 7: Partner Network 38% — cy=350, cx=170+0.38*570=386.6 ── -->
+        <text x="162" y="355" text-anchor="end" font-size="11.5" font-family="Inter, sans-serif" fill="#1A1A2E">Partner Network</text>
+        <line x1="170" y1="350" x2="386.6" y2="350" stroke="#94A3B8" stroke-width="1"/>
+        <circle cx="386.6" cy="350" r="7" fill="#64748B"/>
+        <text x="400" y="354" font-size="11" font-family="Inter, sans-serif" fill="#64748B" font-weight="500">38%</text>
+
+        <!-- ── ROW 8: Postal 24% — cy=396, cx=170+0.24*570=306.8 ── -->
+        <text x="162" y="401" text-anchor="end" font-size="11.5" font-family="Inter, sans-serif" fill="#1A1A2E">Postal</text>
+        <line x1="170" y1="396" x2="306.8" y2="396" stroke="#94A3B8" stroke-width="1"/>
+        <circle cx="306.8" cy="396" r="7" fill="#64748B"/>
+        <text x="320" y="400" font-size="11" font-family="Inter, sans-serif" fill="#64748B" font-weight="500">24%</text>
+
+        <!-- ── ROW 9: Fax 8% — cy=442, cx=170+0.08*570=215.6 ── -->
+        <text x="162" y="447" text-anchor="end" font-size="11.5" font-family="Inter, sans-serif" fill="#1A1A2E">Fax</text>
+        <line x1="170" y1="442" x2="215.6" y2="442" stroke="#94A3B8" stroke-width="1"/>
+        <circle cx="215.6" cy="442" r="7" fill="#64748B"/>
+        <text x="229" y="446" font-size="11" font-family="Inter, sans-serif" fill="#64748B" font-weight="500">8%</text>
+
+        <!-- Legend — top 3 accent marker -->
+        <circle cx="178" cy="480" r="5" fill="#A100FF"/>
+        <text x="190" y="484" font-size="10" font-family="Inter, sans-serif" fill="#64748B">Top 3 channels</text>
+        <circle cx="305" cy="480" r="5" fill="#64748B"/>
+        <text x="317" y="484" font-size="10" font-family="Inter, sans-serif" fill="#94A3B8">All others</text>
+
+      </svg>
+    </div>
+
+    <!-- ═══════════════ RIGHT — annotation panel ═══════════════ -->
+    <div class="annotation">
+      <div class="annotation-tag">Key Findings</div>
+      <ul>
+        <li><strong>Digital channels dominate:</strong> the top 3 ranked channels are all digital — signalling a decisive shift in customer preference away from human-staffed touchpoints.</li>
+        <li><strong>Legacy channels trail sharply:</strong> Postal (24%) and Fax (8%) score below a quarter of the leading channel, indicating these serve only residual edge-case needs.</li>
+        <li><strong>Mid-tier gap is actionable:</strong> Call Center and Chat Bot cluster between 44–52% — targeted investment in conversational AI could close the gap to digital in one investment cycle.</li>
+      </ul>
+      <div class="annotation-source">Source: Customer Engagement Survey, Q1 2026 · n = 4,200 respondents · composite index (reach × depth × satisfaction)</div>
+    </div>
+
+  </div><!-- /.body-grid -->
+  <div class="footer-left"></div>
+  <div class="footer-right"></div>
+
+</body>
+</html>

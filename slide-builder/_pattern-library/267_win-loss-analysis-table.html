@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>267 – Win/Loss Analysis Table</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+    background: var(--slide-bg);
+    color: var(--text-dark);
+    position: relative;
+  }
+
+  /* ── CHROME: top bar ── */
+  .chrome-top {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    z-index: 10;
+  }
+  .chrome-internal {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .draft-badge {
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    line-height: 1;
+  }
+  .chrome-spacer { width: 120px; }
+
+  /* ── HEADER BLOCK ── */
+  .header-block {
+    position: absolute; top: 0; left: 0; right: 0; height: 160px;
+  }
+  .slide-title {
+    position: absolute; top: 28px; left: 64px; right: 64px; min-height: 36px;
+    font-size: 29px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.1;
+    letter-spacing: -0.01em;
+  }
+  .slide-title strong {
+    color: var(--brand-accent);
+  }
+  .slide-subtitle {
+    position: absolute; top: 108px; left: 64px; right: 64px;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+
+}
+  .accent-rule {
+    position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+
+    border-radius: 0;
+  }
+
+  /* ── MAIN CONTENT ── */
+  .main-content {
+    position: absolute;
+    top: 118px;
+    left: 0; right: 0;
+    bottom: 34px;
+    display: flex;
+    gap: 0;
+    padding: 0 24px 0 32px;
+  }
+
+  /* ── LEFT PANEL ── */
+  .left-panel {
+    width: 30%;
+    flex-shrink: 0;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    padding: 22px 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+
+    right: 16px;
+    justify-content: space-between;
+  }
+
+  .win-rate-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: var(--text-mid);
+    text-transform: uppercase;
+    align-self: flex-start;
+
+    bottom: 2px;
+  }
+  .win-rate-number {
+    font-size: 48px;
+    font-weight: 800;
+    color: var(--brand-accent);
+    line-height: 1;
+    align-self: flex-start;
+    letter-spacing: -0.02em;
+  }
+
+  /* Donut SVG */
+  .donut-wrap {
+    margin: 12px 0 8px;
+    position: relative;
+    width: 120px;
+    height: 120px;
+  }
+  .donut-wrap svg {
+    width: 120px;
+    height: 120px;
+  }
+
+  .pursuits-line {
+    font-size: 10px;
+    color: var(--text-mid);
+    text-align: center;
+    font-weight: 500;
+    line-height: 1.4;
+
+    bottom: 14px;
+  }
+
+  .stats-divider {
+    width: 100%;
+    height: 1px;
+    background: var(--card-border);
+
+    bottom: 14px;
+  }
+
+  .secondary-stats {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .stat-row {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .stat-label {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+  }
+  .stat-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.2;
+  }
+  .stat-value span {
+    font-size: 11px;
+    font-weight: 400;
+    color: var(--text-mid);
+  }
+
+  /* ── RIGHT PANEL ── */
+  .right-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .table-header {
+    background: var(--brand-primary);
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 5px 5px 0 0;
+    display: flex; flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+  }
+  .th-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.10em;
+    text-transform: uppercase;
+    color: #fff;
+  }
+  .th-col {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.65);
+    text-align: center;
+  }
+  .th-col.insight { text-align: left; }
+
+  .table-body {
+    border: 1px solid var(--card-border);
+    border-top: none;
+    border-radius: 0 0 5px 5px;
+    overflow: hidden;
+    flex: 1;
+  }
+
+  .factor-row {
+    display: flex; flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--card-border);
+  }
+  .factor-row:last-child { border-bottom: none; }
+  .factor-row.even { background: var(--card-bg); }
+  .factor-row.odd  { background: var(--slide-bg); }
+
+  .factor-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--brand-primary);
+    white-space: nowrap;
+  }
+
+  /* Bar cells */
+  .bar-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    align-items: stretch;
+  }
+  .bar-track {
+    height: 14px;
+    background: #EEE8F5;
+    border-radius: 2px;
+    overflow: hidden;
+    position: relative;
+  }
+  .bar-fill {
+    height: 100%;
+    border-radius: 2px;
+    position: absolute;
+    left: 0; top: 0;
+  }
+  .bar-fill.win  { background: #22C55E; }
+  .bar-fill.loss { background: #EF4444; }
+  .bar-pct {
+    font-size: 9px;
+    font-weight: 700;
+    text-align: center;
+  }
+  .bar-pct.win  { color: #16A34A; }
+  .bar-pct.loss { color: #DC2626; }
+
+  .insight-cell {
+    font-size: 11px;
+    color: var(--text-mid);
+    line-height: 1.35;
+    font-style: italic;
+  }
+
+  /* ── FOOTER ── */
+  .footer {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 34px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+  }
+  .footer-text {
+    font-size: 9px;
+    color: var(--text-faint);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Chrome top -->
+  <div class="chrome-top">
+    <span class="chrome-internal">Accenture Internal</span>
+    <div class="chrome-spacer"></div>
+  </div>
+
+  <!-- Header -->
+  <div class="header-block">
+    <div class="slide-title">Win/Loss Analysis — <strong>What Drives Our Results</strong></div>
+    <div class="slide-subtitle">FY26 competitive pursuit review · 53 deals scored · source: CRM + debrief interviews</div>
+    <div class="accent-rule"></div>
+  </div>
+
+  <!-- Main content -->
+  <div class="main-content">
+
+    <!-- LEFT: Summary panel -->
+    <div class="left-panel">
+      <div class="win-rate-label">Win Rate</div>
+      <div class="win-rate-number">64%</div>
+
+      <!-- Donut -->
+      <div class="donut-wrap">
+        <svg viewBox="0 0 120 120" xmlns="http://www.w3.org/2000/svg">
+          <!-- Background circle -->
+          <circle cx="60" cy="60" r="46" fill="none" stroke="var(--card-border)" stroke-width="14"/>
+          <!--
+            Circumference = 2π×46 ≈ 289.03
+            64% of 289.03 ≈ 184.98  → win arc
+            dashoffset rotates from top: start at -90deg offset = 289.03×0.25 = 72.26
+          -->
+          <circle
+            cx="60" cy="60" r="46"
+            fill="none"
+            stroke="var(--brand-accent)"
+            stroke-width="14"
+            stroke-dasharray="184.98 289.03"
+            stroke-dashoffset="72.26"
+            stroke-linecap="butt"
+          />
+          <!-- Center label -->
+          <text x="60" y="55" text-anchor="middle" font-family="Inter,sans-serif" font-size="18" font-weight="800" fill="var(--brand-accent)">64%</text>
+          <text x="60" y="70" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" font-weight="600" fill="var(--text-mid)" letter-spacing="0.08em">WIN</text>
+        </svg>
+      </div>
+
+      <div class="pursuits-line">34 wins / 53 pursuits · FY26</div>
+
+      <div class="stats-divider"></div>
+
+      <div class="secondary-stats">
+        <div class="stat-row">
+          <div class="stat-label">Avg Deal Size</div>
+          <div class="stat-value">$2.4M <span>per pursuit</span></div>
+        </div>
+        <div class="stat-row">
+          <div class="stat-label">Avg Cycle Length</div>
+          <div class="stat-value">94 <span>days</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Factors table -->
+    <div class="right-panel">
+      <div class="table-header">
+        <div class="th-title">Why We Win / Lose</div>
+        <div class="th-col">Win Contribution</div>
+        <div class="th-col">Loss Reason</div>
+        <div class="th-col insight">Key Insight</div>
+      </div>
+      <div class="table-body">
+
+        <!-- Row: Solution Fit -->
+        <div class="factor-row odd">
+          <div class="factor-name">Solution Fit</div>
+          <div class="bar-cell">
+            <div class="bar-track"><div class="bar-fill win" style="width:78%"></div></div>
+            <div class="bar-pct win">78%</div>
+          </div>
+          <div class="bar-cell">
+            <div class="bar-track"><div class="bar-fill loss" style="width:22%"></div></div>
+            <div class="bar-pct loss">22%</div>
+          </div>
+          <div class="insight-cell">Core differentiator in 8/10 wins</div>
+        </div>
+
+        <!-- Row: Relationships -->
+        <div class="factor-row even">
+          <div class="factor-name">Relationships</div>
+          <div class="bar-cell">
+            <div class="bar-track"><div class="bar-fill win" style="width:71%"></div></div>
+            <div class="bar-pct win">71%</div>
+          </div>
+          <div class="bar-cell">
+            <div class="bar-track"><div class="bar-fill loss" style="width:29%"></div></div>
+            <div class="bar-pct loss">29%</div>
+          </div>
+          <div class="insight-cell">C-suite access critical</div>
+        </div>
+
+        <!-- Row: Price -->
+        <div class="factor-row odd">
+          <div class="factor-name">Price</div>
+          <div class="bar-cell">
+            <div class="bar-track"><div class="bar-fill win" style="width:44%"></div></div>
+            <div class="bar-pct win">44%</div>
+          </div>
+          <div class="bar-cell">
+            <div class="bar-track"><div class="bar-fill loss" style="width:56%"></div></div>
+            <div class="bar-pct loss">56%</div>
+          </div>
+          <div class="insight-cell">Lost 18 deals on price alone</div>
+        </div>
+
+        <!-- Row: Proposal Quality -->
+        <div class="factor-row even">
+          <div class="factor-name">Proposal Quality</div>
+          <div class="bar-cell">
+            <div class="bar-track"><div class="bar-fill win" style="width:67%"></div></div>
+            <div class="bar-pct win">67%</div>
+          </div>
+          <div class="bar-cell">
+            <div class="bar-track"><div class="bar-fill loss" style="width:33%"></div></div>
+            <div class="bar-pct loss">33%</div>
+          </div>
+          <div class="insight-cell">Late submissions cost 6 deals</div>
+        </div>
+
+        <!-- Row: Speed to Respond -->
+        <div class="factor-row odd">
+          <div class="factor-name">Speed to Respond</div>
+          <div class="bar-cell">
+            <div class="bar-track"><div class="bar-fill win" style="width:55%"></div></div>
+            <div class="bar-pct win">55%</div>
+          </div>
+          <div class="bar-cell">
+            <div class="bar-track"><div class="bar-fill loss" style="width:45%"></div></div>
+            <div class="bar-pct loss">45%</div>
+          </div>
+          <div class="insight-cell">Average 4-day response time</div>
+        </div>
+
+        <!-- Row: Technical Depth -->
+        <div class="factor-row even">
+          <div class="factor-name">Technical Depth</div>
+          <div class="bar-cell">
+            <div class="bar-track"><div class="bar-fill win" style="width:82%"></div></div>
+            <div class="bar-pct win">82%</div>
+          </div>
+          <div class="bar-cell">
+            <div class="bar-track"><div class="bar-fill loss" style="width:18%"></div></div>
+            <div class="bar-pct loss">18%</div>
+          </div>
+          <div class="insight-cell">Our strongest attribute</div>
+        </div>
+
+        <!-- Row: References -->
+        <div class="factor-row odd">
+          <div class="factor-name">References</div>
+          <div class="bar-cell">
+            <div class="bar-track"><div class="bar-fill win" style="width:69%"></div></div>
+            <div class="bar-pct win">69%</div>
+          </div>
+          <div class="bar-cell">
+            <div class="bar-track"><div class="bar-fill loss" style="width:31%"></div></div>
+            <div class="bar-pct loss">31%</div>
+          </div>
+          <div class="insight-cell">3 relevant references needed</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span class="footer-text">Confidential</span>
+    <span class="footer-text">Slide Lab · 2026 · 267</span>
+  </div>
+
+</body>
+</html>

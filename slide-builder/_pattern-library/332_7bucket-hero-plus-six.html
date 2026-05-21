@@ -1,0 +1,394 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>332 · 7-Bucket Hero + Six</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+    background: var(--slide-bg);
+  }
+
+  .slide {
+    position: relative;
+    width: 1280px;
+    height: 720px;
+    background: var(--slide-bg);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Chrome: Top bar ── */
+  .chrome-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    z-index: 10;
+  }
+
+  .chrome-internal {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .chrome-draft {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 7px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 2px 8px;
+    border-radius: 0;
+  }
+
+  /* ── Header block ── */
+  .header-block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 0;
+  overflow: visible;
+
+  }
+
+  .slide-title {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+  }
+
+  .slide-title strong {
+    color: var(--brand-accent);
+    font-weight: 700;
+  }
+
+  .slide-subtitle {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 108px;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+    font-weight: 400;
+  }
+
+  .accent-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+
+
+    background: var(--brand-accent);
+    border: none;
+  }
+
+  /* ── Content area ── */
+  .content-area {
+    position: absolute;
+    top: 140px;
+    left: 48px;
+    right: 48px;
+    bottom: 44px;
+    display: flex;
+    gap: 16px;
+  }
+
+  /* ── Hero card ── */
+  .hero-card {
+    flex: 0 0 calc(35% - 8px);
+    background: var(--brand-primary);
+    border-radius: 6px;
+    padding: 28px 24px 24px 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-ghost-number {
+    position: absolute;
+    top: 12px;
+    right: 16px;
+    font-size: 64px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.15);
+    line-height: 1;
+    user-select: none;
+    pointer-events: none;
+  }
+
+  .hero-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .hero-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.15em;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+  }
+
+  .hero-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #FFFFFF;
+    line-height: 1.3;
+  }
+
+  .hero-description {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.6;
+    font-weight: 400;
+  }
+
+  .hero-metric-block {
+    border-top: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+  .hero-metric-label {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+
+  .hero-metric-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--brand-accent-soft);
+    line-height: 1.1;
+  }
+
+  /* ── Supporting grid ── */
+  .supporting-grid {
+    flex: 1;
+    display: flex; flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .support-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 5px;
+    padding: 16px 16px 14px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .support-number {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--brand-accent);
+    letter-spacing: 0.05em;
+  }
+
+  .support-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.3;
+  }
+
+  .support-bullets {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+  .support-bullets li {
+    font-size: 11px;
+    color: var(--text-mid);
+    line-height: 1.45;
+}
+
+  .support-bullets li::before {
+    content: '–';
+    position: absolute;
+    left: 0;
+    color: var(--brand-accent-soft);
+    font-weight: 600;
+  }
+
+  /* ── Footer ── */
+  .chrome-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+  }
+
+  .footer-left,
+  .footer-right {
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+</style>
+</head>
+<body>
+<div class="slide">
+
+  <!-- Top Chrome -->
+  <div class="chrome-top">
+    <span class="chrome-internal">Accenture Internal</span>
+    <span class="chrome-draft">Draft</span>
+  </div>
+
+  <!-- Header -->
+  <div class="header-block">
+    <h1 class="slide-title">Strategic priorities require <strong>one clear focal point</strong></h1>
+    <p class="slide-subtitle">How the seven value buckets map to delivery outcomes and measurable client impact</p>
+    <div class="accent-rule"></div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <!-- Hero Card -->
+    <div class="hero-card">
+      <span class="hero-ghost-number">01</span>
+      <div class="hero-content">
+        <span class="hero-label">Primary driver</span>
+        <h2 class="hero-title">Accelerate Core Platform Modernisation</h2>
+        <p class="hero-description">Migrate legacy transaction systems to a cloud-native architecture, reducing operational latency by consolidating data pipelines and eliminating redundant middleware across all business units.</p>
+      </div>
+      <div class="hero-metric-block">
+        <div class="hero-metric-label">Projected efficiency gain</div>
+        <div class="hero-metric-value">↑ 43%</div>
+      </div>
+    </div>
+
+    <!-- Supporting Grid -->
+    <div class="supporting-grid">
+
+      <div class="support-card">
+        <span class="support-number">02</span>
+        <div class="support-title">Data Governance & Quality</div>
+        <ul class="support-bullets">
+          <li>Establish single source of truth across domains</li>
+          <li>Automate data lineage and classification tagging</li>
+        </ul>
+      </div>
+
+      <div class="support-card">
+        <span class="support-number">03</span>
+        <div class="support-title">Workforce Enablement</div>
+        <ul class="support-bullets">
+          <li>Deploy role-based learning paths at scale</li>
+          <li>Reduce onboarding time by 30% via tooling</li>
+        </ul>
+      </div>
+
+      <div class="support-card">
+        <span class="support-number">04</span>
+        <div class="support-title">Cybersecurity Posture</div>
+        <ul class="support-bullets">
+          <li>Zero-trust architecture across all endpoints</li>
+          <li>Continuous threat monitoring and response</li>
+        </ul>
+      </div>
+
+      <div class="support-card">
+        <span class="support-number">05</span>
+        <div class="support-title">Customer Experience</div>
+        <ul class="support-bullets">
+          <li>Unify digital channels into one journey layer</li>
+          <li>Real-time personalisation at touchpoints</li>
+        </ul>
+      </div>
+
+      <div class="support-card">
+        <span class="support-number">06</span>
+        <div class="support-title">Sustainability Metrics</div>
+        <ul class="support-bullets">
+          <li>Carbon reporting integrated in financial close</li>
+          <li>Scope 3 supplier data ingestion pipeline</li>
+        </ul>
+      </div>
+
+      <div class="support-card">
+        <span class="support-number">07</span>
+        <div class="support-title">Innovation Velocity</div>
+        <ul class="support-bullets">
+          <li>Accelerate idea-to-pilot cycle to under 6 weeks</li>
+          <li>Dedicated sandbox with production data proxies</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="chrome-footer">
+    <span class="footer-left">Confidential</span>
+    <span class="footer-right">Slide Lab · 2026 · 332</span>
+  </div>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>138 · Investment / portfolio scorecard — RAG status table</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+  --rag-green: #16A34A;
+  --rag-amber: #D97706;
+  --rag-red: #DC2626;
+  --rag-red-row-bg: #FFF5F5;
+  --rag-red-row-border: #DC2626;
+  --row-alt: #FAF7FD;
+  --rule: #E5D5F0;
+  --progress-track: #E5D5F0;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 1280px; height: 720px;
+  background: #4a4a4a;
+  font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  color: var(--text-dark);
+  overflow: hidden;
+}
+body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+/* ---- Slide canvas ---- */
+.slide {
+  width: 1280px;
+  height: 720px;
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.35);
+}
+
+/* ---- Top chrome (invariant) ---- */
+.project-label {
+  position: absolute; top: 24px; left: 24px;
+  font-size: 10px; color: var(--text-faint);
+  letter-spacing: 1.5px; text-transform: uppercase;
+  z-index: 5;
+}
+.draft-badge {
+  position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--draft-bg); color: var(--draft-text);
+  font-size: 11px; font-weight: 700;
+  padding: 4px 16px; letter-spacing: 1px; text-transform: uppercase;
+  z-index: 5;
+}
+
+/* ---- Title block ---- */
+.title-block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+.eyebrow {
+  font-size: 10px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--brand-accent);
+  margin-bottom: 6px;
+}
+.action-title {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+  pointer-events: auto;
+  font-size: 20px; font-weight: 700; line-height: 1.22;
+  letter-spacing: -0.3px; color: var(--text-dark);
+}
+.action-title strong { color: var(--brand-primary); }
+.subhead {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 108px;
+  pointer-events: auto;
+  font-size: 11px; color: var(--text-mid);
+  font-weight: 400; line-height: 1.45;
+  max-width: 940px;
+}
+.title-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+  pointer-events: none;
+    background: var(--brand-accent);
+  border-radius: 2px; }
+
+/* ---- Table wrap ---- */
+.table-wrap {
+  position: absolute;
+  top: 152px;
+  left: 48px;
+  right: 48px;
+  bottom: 100px;
+  overflow: hidden;
+}
+
+/* ---- Scorecard table ---- */
+table.scorecard {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: 'Inter', sans-serif;
+  font-size: 11px;
+  table-layout: fixed;
+}
+
+/* Column widths */
+table.scorecard col.col-initiative  { width: 19%; }
+table.scorecard col.col-workstream  { width: 10%; }
+table.scorecard col.col-investment  { width: 10%; }
+table.scorecard col.col-roi         { width: 9%; }
+table.scorecard col.col-date        { width: 9%; }
+table.scorecard col.col-benefits    { width: 23%; }
+table.scorecard col.col-rag         { width: 8%; }
+
+/* Header row */
+table.scorecard thead tr {
+  background: var(--brand-primary);
+  color: #fff;
+}
+table.scorecard thead th {
+  padding: 8px 10px;
+  font-size: 9px; font-weight: 700;
+  text-transform: uppercase; letter-spacing: 0.7px;
+  text-align: right;
+  white-space: nowrap;
+  line-height: 1.3;
+}
+table.scorecard thead th.col-h-left {
+  text-align: left; padding-left: 12px;
+}
+table.scorecard thead th.col-h-center {
+  text-align: center;
+}
+
+/* Data rows — base */
+table.scorecard tbody tr.data-row td {
+  padding: 7px 10px;
+  font-size: 11px;
+  color: var(--text-dark);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: middle;
+}
+table.scorecard tbody tr.data-row:nth-child(even) { background: var(--row-alt); }
+table.scorecard tbody tr.data-row td.col-initiative {
+  text-align: left;
+  padding-left: 14px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+table.scorecard tbody tr.data-row td.col-workstream {
+  text-align: left;
+  padding-left: 10px;
+  font-size: 10.5px;
+  color: var(--text-mid);
+  font-weight: 400;
+}
+table.scorecard tbody tr.data-row td.col-rag {
+  text-align: center;
+}
+table.scorecard tbody tr.data-row td.col-benefits-cell {
+  text-align: left;
+  padding: 7px 10px;
+}
+
+/* Red row — Supply Chain AI at risk */
+table.scorecard tbody tr.row-red {
+  background: var(--rag-red-row-bg) !important;
+}
+table.scorecard tbody tr.row-red td {
+  border-bottom: 1px solid #FECACA;
+}
+table.scorecard tbody tr.row-red td.col-initiative {
+  border-left: 3px solid var(--rag-red-row-border);
+  padding-left: 11px;
+  color: var(--rag-red);
+}
+
+/* Summary row */
+table.scorecard tbody tr.summary-row td {
+  padding: 7px 10px;
+  font-size: 11px; font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  border-top: 2px solid var(--brand-primary-mid);
+  border-bottom: none;
+  background: var(--card-bg);
+  color: var(--text-dark);
+}
+table.scorecard tbody tr.summary-row td.col-initiative {
+  text-align: left;
+  padding-left: 14px;
+  font-weight: 800;
+  color: var(--brand-primary);
+  border-left: 3px solid var(--brand-primary);
+  border-top: 2px solid var(--brand-primary-mid);
+}
+table.scorecard tbody tr.summary-row td.col-workstream {
+  text-align: left;
+  padding-left: 10px;
+  font-size: 10px;
+  color: var(--text-mid);
+  font-weight: 500;
+}
+table.scorecard tbody tr.summary-row td.col-benefits-cell {
+  text-align: left;
+  padding: 7px 10px;
+}
+
+/* ---- RAG dot ---- */
+.rag-dot {
+  display: inline-block;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  vertical-align: middle;
+}
+.rag-green  { background: var(--rag-green); }
+.rag-amber  { background: var(--rag-amber); }
+.rag-red    { background: var(--rag-red); }
+
+.rag-label {
+  display: inline-block;
+  font-size: 9.5px; font-weight: 700;
+  letter-spacing: 0.3px;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+.rag-label-green { color: var(--rag-green); }
+.rag-label-amber { color: var(--rag-amber); }
+.rag-label-red   { color: var(--rag-red); }
+
+/* ---- Mini progress bar ---- */
+.progress-wrap {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.progress-track {
+  flex: 1;
+  height: 7px;
+  background: var(--progress-track);
+  border-radius: 4px;
+  overflow: hidden;
+  min-width: 60px;
+}
+.progress-fill {
+  height: 100%;
+  border-radius: 4px;
+}
+.fill-green { background: var(--rag-green); }
+.fill-amber { background: var(--rag-amber); }
+.fill-red   { background: var(--rag-red); }
+.progress-pct {
+  font-size: 10.5px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  min-width: 30px;
+  text-align: right;
+}
+.pct-green { color: var(--rag-green); }
+.pct-amber { color: var(--rag-amber); }
+.pct-red   { color: var(--rag-red); }
+.pct-na    { color: var(--text-faint); font-weight: 400; font-style: italic; }
+
+/* Summary progress */
+.summary-progress-fill { background: var(--brand-primary-mid); }
+.pct-summary { color: var(--brand-primary-mid); }
+
+/* ---- Convergence bar ---- */
+.convergence-bar {
+  position: absolute;
+  bottom: 56px;
+  left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--brand-primary) 0%, var(--brand-accent) 60%, var(--brand-accent-soft) 100%);
+}
+
+/* ---- Footer (invariant) ---- */
+.footer {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 28px;
+  display: flex; align-items: center;
+  padding: 0 48px;
+  font-size: 9.5px; color: var(--text-faint);
+  letter-spacing: 1px; text-transform: uppercase;
+  border-top: 1px solid var(--card-border);
+  background: #FBFAFD;
+}
+.footer-right { margin-left: auto; }
+</style>
+</head>
+<body>
+<div class="slide">
+
+  <!-- Top chrome -->
+
+  <!-- Title block -->
+  <div class="title-block">
+    <div class="eyebrow">PORTFOLIO GOVERNANCE &middot; STRATEGIC INVESTMENT SCORECARD</div>
+    <div class="action-title"><strong>Supply Chain AI is at risk</strong> &mdash; only 15% benefits realized with 75% of investment committed</div>
+    <div class="subhead">7 active strategic investments across Operations, CX, Analytics, HR and IT. Figures as at May 2026. Benefits realized = % of projected total benefits confirmed to date.</div>
+    <div class="title-rule"></div>
+  </div>
+
+  <!-- Scorecard table -->
+  <div class="table-wrap">
+    <table class="scorecard">
+      <colgroup>
+        <col class="col-initiative">
+        <col class="col-workstream">
+        <col class="col-investment">
+        <col class="col-roi">
+        <col class="col-date">
+        <col class="col-benefits">
+        <col class="col-rag">
+      </colgroup>
+      <thead>
+        <tr>
+          <th class="col-h-left">Initiative</th>
+          <th class="col-h-left">Workstream</th>
+          <th>Investment</th>
+          <th>Expected ROI</th>
+          <th>Realization Date</th>
+          <th class="col-h-left" style="padding-left:10px;">Benefits Realized to Date</th>
+          <th class="col-h-center">RAG</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        <!-- Row 1 — ERP Modernization (Amber) -->
+        <tr class="data-row">
+          <td class="col-initiative">ERP Modernization</td>
+          <td class="col-workstream">Operations</td>
+          <td>$12.4M</td>
+          <td>180%</td>
+          <td>Q4 2026</td>
+          <td class="col-benefits-cell">
+            <div class="progress-wrap">
+              <div class="progress-track"><div class="progress-fill fill-amber" style="width:22%"></div></div>
+              <span class="progress-pct pct-amber">22%</span>
+            </div>
+          </td>
+          <td class="col-rag">
+            <span class="rag-dot rag-amber"></span>
+            <span class="rag-label rag-label-amber">Amber</span>
+          </td>
+        </tr>
+
+        <!-- Row 2 — AI Customer Service (Green) -->
+        <tr class="data-row">
+          <td class="col-initiative">AI Customer Service</td>
+          <td class="col-workstream">CX</td>
+          <td>$4.2M</td>
+          <td>240%</td>
+          <td>Q2 2025</td>
+          <td class="col-benefits-cell">
+            <div class="progress-wrap">
+              <div class="progress-track"><div class="progress-fill fill-green" style="width:68%"></div></div>
+              <span class="progress-pct pct-green">68%</span>
+            </div>
+          </td>
+          <td class="col-rag">
+            <span class="rag-dot rag-green"></span>
+            <span class="rag-label rag-label-green">Green</span>
+          </td>
+        </tr>
+
+        <!-- Row 3 — Data Platform (Green) -->
+        <tr class="data-row">
+          <td class="col-initiative">Data Platform</td>
+          <td class="col-workstream">Analytics</td>
+          <td>$7.8M</td>
+          <td>155%</td>
+          <td>Q1 2026</td>
+          <td class="col-benefits-cell">
+            <div class="progress-wrap">
+              <div class="progress-track"><div class="progress-fill fill-green" style="width:41%"></div></div>
+              <span class="progress-pct pct-green">41%</span>
+            </div>
+          </td>
+          <td class="col-rag">
+            <span class="rag-dot rag-green"></span>
+            <span class="rag-label rag-label-green">Green</span>
+          </td>
+        </tr>
+
+        <!-- Row 4 — Talent System (Green) -->
+        <tr class="data-row">
+          <td class="col-initiative">Talent System</td>
+          <td class="col-workstream">HR</td>
+          <td>$3.1M</td>
+          <td>120%</td>
+          <td>Q3 2025</td>
+          <td class="col-benefits-cell">
+            <div class="progress-wrap">
+              <div class="progress-track"><div class="progress-fill fill-green" style="width:88%"></div></div>
+              <span class="progress-pct pct-green">88%</span>
+            </div>
+          </td>
+          <td class="col-rag">
+            <span class="rag-dot rag-green"></span>
+            <span class="rag-label rag-label-green">Green</span>
+          </td>
+        </tr>
+
+        <!-- Row 5 — Supply Chain AI (RED — at-risk row) -->
+        <tr class="data-row row-red">
+          <td class="col-initiative">Supply Chain AI</td>
+          <td class="col-workstream">Operations</td>
+          <td>$9.6M</td>
+          <td>195%</td>
+          <td>Q2 2026</td>
+          <td class="col-benefits-cell">
+            <div class="progress-wrap">
+              <div class="progress-track"><div class="progress-fill fill-red" style="width:15%"></div></div>
+              <span class="progress-pct pct-red">15%</span>
+            </div>
+          </td>
+          <td class="col-rag">
+            <span class="rag-dot rag-red"></span>
+            <span class="rag-label rag-label-red">Red</span>
+          </td>
+        </tr>
+
+        <!-- Row 6 — Digital Commerce (Amber) -->
+        <tr class="data-row">
+          <td class="col-initiative">Digital Commerce</td>
+          <td class="col-workstream">CX</td>
+          <td>$5.4M</td>
+          <td>210%</td>
+          <td>Q1 2026</td>
+          <td class="col-benefits-cell">
+            <div class="progress-wrap">
+              <div class="progress-track"><div class="progress-fill fill-amber" style="width:34%"></div></div>
+              <span class="progress-pct pct-amber">34%</span>
+            </div>
+          </td>
+          <td class="col-rag">
+            <span class="rag-dot rag-amber"></span>
+            <span class="rag-label rag-label-amber">Amber</span>
+          </td>
+        </tr>
+
+        <!-- Row 7 — Cyber Defense (Amber / Ongoing) -->
+        <tr class="data-row">
+          <td class="col-initiative">Cyber Defense</td>
+          <td class="col-workstream">IT</td>
+          <td>$6.8M</td>
+          <td style="color:var(--text-faint);font-style:italic;font-weight:400;">N/A</td>
+          <td style="color:var(--text-mid);">Ongoing</td>
+          <td class="col-benefits-cell">
+            <div class="progress-wrap">
+              <span class="progress-pct pct-na" style="font-size:10px;">N/A</span>
+            </div>
+          </td>
+          <td class="col-rag">
+            <span class="rag-dot rag-amber"></span>
+            <span class="rag-label rag-label-amber">Amber</span>
+          </td>
+        </tr>
+
+        <!-- Summary row -->
+        <tr class="summary-row">
+          <td class="col-initiative">Portfolio Total</td>
+          <td class="col-workstream">7 Initiatives</td>
+          <td>$49.3M</td>
+          <td>183% blended</td>
+          <td style="color:var(--text-mid);font-size:10px;font-weight:500;">—</td>
+          <td class="col-benefits-cell">
+            <div class="progress-wrap">
+              <div class="progress-track"><div class="progress-fill summary-progress-fill" style="width:38%"></div></div>
+              <span class="progress-pct pct-summary">38% avg</span>
+            </div>
+          </td>
+          <td class="col-rag" style="font-size:10px;color:var(--text-mid);font-weight:500;text-align:center;">
+            1 Red<br>3 Amber
+          </td>
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Convergence bar -->
+  <div class="convergence-bar"></div>
+
+  <!-- Footer -->
+  <div class="footer">
+    Slide Lab &middot; Confidential &middot; Portfolio governance
+    <span class="footer-right">138 / 200</span>
+  </div>
+
+</div>
+</body>
+</html>

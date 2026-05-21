@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pattern 227 — Portfolio Initiative View</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --brand-primary:#2D0A4E; --brand-primary-mid:#5C2D87; --brand-accent:#A100FF;
+    --brand-accent-soft:#C780FF; --text-dark:#1A1A2E; --text-mid:#64748B;
+    --text-faint:#94A3B8; --slide-bg:#FFFFFF; --card-bg:#F8F4FC;
+    --card-border:#E5D5F0; --draft-bg:#FFD600; --draft-text:#B71C1C;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    background: var(--slide-bg);
+    font-family: Inter, system-ui, sans-serif;
+    position: relative;
+  }
+
+  /* ── Invariant chrome ───────────────────────────────── */
+  .label-internal {
+    position: absolute;
+    top: 14px; left: 20px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    font-weight: 500;
+    text-transform: uppercase;
+  }
+
+  .draft-badge {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 0;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .title-block {
+    position: absolute; top: 0; left: 0; right: 0; height: 160px;
+  }
+
+  .title-block-text h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.15;
+  }
+
+  .title-block-text h1 strong {
+    color: var(--brand-accent);
+    font-weight: 700;
+  }
+
+  .title-block-text p {
+    position: absolute; top: 108px; left: 64px; right: 64px;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+
+}
+
+  .accent-rule {
+    position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+
+}
+
+  .footer {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 56px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 20px 10px;
+  }
+
+  .footer span {
+    font-size: 8px;
+    color: var(--text-faint);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* ── Legend ─────────────────────────────────────────── */
+  .legend {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: var(--text-mid);
+    font-weight: 500;
+  }
+
+  .legend-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ── Table container ────────────────────────────────── */
+  .table-wrap {
+    position: absolute;
+    top: 134px; left: 48px; right: 48px;
+    bottom: 72px;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+
+  /* Column widths */
+  col.c-initiative { width: 24%; }
+  col.c-status     { width: 13%; }
+  col.c-value      { width: 11%; }
+  col.c-risk       { width: 11%; }
+  col.c-timeline   { width: 14%; }
+  col.c-owner      { width: 27%; }
+
+  /* Header row */
+  thead tr th {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    padding: 6px 10px 6px;
+    border-bottom: 2px solid var(--brand-primary);
+    text-align: left;
+    background: #fff;
+  }
+
+  thead tr th:not(:first-child) {
+    text-align: center;
+  }
+
+  /* Body rows */
+  tbody tr td {
+    padding: 12px 10px;
+    font-size: 14px;
+    color: var(--text-dark);
+    vertical-align: middle;
+    border-bottom: 1px solid var(--card-border);
+  }
+
+  /* Alternating shading — even rows */
+  tbody tr:nth-child(even) td {
+    background: var(--card-bg);
+  }
+
+  tbody tr:nth-child(odd) td {
+    background: #fff;
+  }
+
+  /* Critical path row override */
+  tbody tr.critical-path td {
+    background: var(--card-bg) !important;
+  }
+
+  tbody tr.critical-path td:first-child {
+    border-left: 3px solid var(--brand-accent);
+    padding-left: 7px;
+  }
+
+  /* Total row */
+  tfoot tr td {
+    padding: 10px 10px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    border-top: 2px solid var(--brand-primary);
+    background: #fff;
+  }
+
+  /* ── Cell components ────────────────────────────────── */
+
+  /* Initiative name */
+  .initiative-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text-dark);
+    display: block;
+    line-height: 1.3;
+  }
+
+  /* Workstream chip */
+  .ws-chip {
+    display: inline-block;
+
+    top: 3px;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    padding: 1px 6px;
+    border-radius: 3px;
+    text-transform: uppercase;
+  }
+
+  .ws-digital   { background: #EDE9FE; color: #5B21B6; }
+  .ws-data      { background: #E0F2FE; color: #0369A1; }
+  .ws-ops       { background: #FEF3C7; color: #92400E; }
+  .ws-cx        { background: #FCE7F3; color: #9D174D; }
+  .ws-infra     { background: #D1FAE5; color: #065F46; }
+
+  /* Status cell */
+  .status-cell {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+  }
+
+  .status-dot {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .status-label {
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  .s-green  { background: #16A34A; }
+  .s-amber  { background: #D97706; }
+  .s-red    { background: #DC2626; }
+  .s-blue   { background: #2563EB; }
+
+  .t-green { color: #15803D; }
+  .t-amber { color: #B45309; }
+  .t-red   { color: #B91C1C; }
+  .t-blue  { color: #1D4ED8; }
+
+  /* Value cell */
+  .value-cell {
+    text-align: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--brand-primary);
+  }
+
+  /* Risk pill */
+  .risk-cell {
+    text-align: center;
+  }
+
+  .risk-pill {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 20px;
+    letter-spacing: 0.04em;
+  }
+
+  .risk-high { background: #FEE2E2; color: #991B1B; }
+  .risk-med  { background: #FEF3C7; color: #92400E; }
+  .risk-low  { background: #D1FAE5; color: #065F46; }
+
+  /* Timeline cell */
+  .timeline-cell {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-mid);
+  }
+
+  /* Owner chip */
+  .owner-cell {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .owner-avatar {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  .owner-name {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-dark);
+    line-height: 1.2;
+  }
+
+  .owner-role {
+    font-size: 9px;
+    color: var(--text-faint);
+    display: block;
+  }
+
+  /* Critical path badge inline */
+  .cp-badge {
+    display: inline-block;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 1px 5px;
+    background: var(--brand-accent);
+    color: #fff;
+    border-radius: 2px;
+
+    left: 4px;
+    vertical-align: middle;
+    text-transform: uppercase;
+  }
+
+  /* Total row alignment */
+  .total-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--brand-primary);
+  }
+
+  .total-value {
+    text-align: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--brand-accent);
+  }
+
+  tfoot tr td:not(:first-child):not(.total-value) {
+    font-weight: 400;
+    color: var(--text-faint);
+    text-align: center;
+    font-size: 11px;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Invariant chrome -->
+  <span class="label-internal">Accenture Internal</span>
+
+  <div class="title-block">
+    <div class="title-block-text">
+      <h1>Portfolio Initiative View — <strong>4 × Dimensions</strong> Table</h1>
+      <p>Cross-initiative snapshot: status, value, risk, timeline, and ownership at a glance</p>
+      <div class="accent-rule"></div>
+    </div>
+    <!-- Legend: right-aligned, bottom of title zone (PRIMARY placement) -->
+    <div class="legend">
+      <div class="legend-item"><span class="legend-dot" style="background:#16A34A"></span>On Track</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#D97706"></span>At Risk</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#DC2626"></span>Off Track</div>
+      <div class="legend-item"><span class="legend-dot" style="background:#2563EB"></span>Planned</div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table>
+      <colgroup>
+        <col class="c-initiative">
+        <col class="c-status">
+        <col class="c-value">
+        <col class="c-risk">
+        <col class="c-timeline">
+        <col class="c-owner">
+      </colgroup>
+      <thead>
+        <tr>
+          <th>Initiative / Workstream</th>
+          <th style="text-align:center">Status</th>
+          <th style="text-align:center">Value ($M)</th>
+          <th style="text-align:center">Risk</th>
+          <th style="text-align:center">Timeline</th>
+          <th>Owner</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        <!-- Row 1 — On Track / High -->
+        <tr>
+          <td>
+            <span class="initiative-name">AI-Powered Demand Forecasting</span>
+            <span class="ws-chip ws-digital">Digital</span>
+          </td>
+          <td>
+            <div class="status-cell">
+              <span class="status-dot s-green"></span>
+              <span class="status-label t-green">On Track</span>
+            </div>
+          </td>
+          <td class="value-cell">$18.4</td>
+          <td class="risk-cell"><span class="risk-pill risk-med">Med</span></td>
+          <td class="timeline-cell">Q1 – Q3 2026</td>
+          <td>
+            <div class="owner-cell">
+              <div class="owner-avatar" style="background:#5C2D87">SR</div>
+              <div>
+                <span class="owner-name">S. Ramos</span>
+                <span class="owner-role">Supply Chain Lead</span>
+              </div>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Row 2 — Critical Path -->
+        <tr class="critical-path">
+          <td>
+            <span class="initiative-name">
+              Customer Data Platform Migration
+              <span class="cp-badge">Critical Path</span>
+            </span>
+            <span class="ws-chip ws-data">Data</span>
+          </td>
+          <td>
+            <div class="status-cell">
+              <span class="status-dot s-amber"></span>
+              <span class="status-label t-amber">At Risk</span>
+            </div>
+          </td>
+          <td class="value-cell">$31.2</td>
+          <td class="risk-cell"><span class="risk-pill risk-high">High</span></td>
+          <td class="timeline-cell">Q2 2025 – Q1 2026</td>
+          <td>
+            <div class="owner-cell">
+              <div class="owner-avatar" style="background:#A100FF">JL</div>
+              <div>
+                <span class="owner-name">J. Liu</span>
+                <span class="owner-role">Data Platform Architect</span>
+              </div>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Row 3 — On Track / Low -->
+        <tr>
+          <td>
+            <span class="initiative-name">Intelligent Process Automation</span>
+            <span class="ws-chip ws-ops">Operations</span>
+          </td>
+          <td>
+            <div class="status-cell">
+              <span class="status-dot s-green"></span>
+              <span class="status-label t-green">On Track</span>
+            </div>
+          </td>
+          <td class="value-cell">$12.7</td>
+          <td class="risk-cell"><span class="risk-pill risk-low">Low</span></td>
+          <td class="timeline-cell">Q1 – Q2 2026</td>
+          <td>
+            <div class="owner-cell">
+              <div class="owner-avatar" style="background:#0369A1">MK</div>
+              <div>
+                <span class="owner-name">M. Kovács</span>
+                <span class="owner-role">Automation CoE</span>
+              </div>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Row 4 — Off Track / High -->
+        <tr>
+          <td>
+            <span class="initiative-name">Omnichannel CX Redesign</span>
+            <span class="ws-chip ws-cx">CX</span>
+          </td>
+          <td>
+            <div class="status-cell">
+              <span class="status-dot s-red"></span>
+              <span class="status-label t-red">Off Track</span>
+            </div>
+          </td>
+          <td class="value-cell">$9.1</td>
+          <td class="risk-cell"><span class="risk-pill risk-high">High</span></td>
+          <td class="timeline-cell">Q3 2025 – Q2 2026</td>
+          <td>
+            <div class="owner-cell">
+              <div class="owner-avatar" style="background:#9D174D">PN</div>
+              <div>
+                <span class="owner-name">P. Nguyen</span>
+                <span class="owner-role">CX Transformation</span>
+              </div>
+            </div>
+          </td>
+        </tr>
+
+        <!-- Row 5 — Planned / Low -->
+        <tr>
+          <td>
+            <span class="initiative-name">Cloud Infrastructure Uplift</span>
+            <span class="ws-chip ws-infra">Infra</span>
+          </td>
+          <td>
+            <div class="status-cell">
+              <span class="status-dot s-blue"></span>
+              <span class="status-label t-blue">Planned</span>
+            </div>
+          </td>
+          <td class="value-cell">$7.6</td>
+          <td class="risk-cell"><span class="risk-pill risk-low">Low</span></td>
+          <td class="timeline-cell">Q3 – Q4 2026</td>
+          <td>
+            <div class="owner-cell">
+              <div class="owner-avatar" style="background:#065F46">AT</div>
+              <div>
+                <span class="owner-name">A. Torres</span>
+                <span class="owner-role">Infra & Cloud Lead</span>
+              </div>
+            </div>
+          </td>
+        </tr>
+
+      </tbody>
+      <tfoot>
+        <tr>
+          <td class="total-label">Portfolio Total &nbsp;·&nbsp; 5 Initiatives</td>
+          <td>—</td>
+          <td class="total-value">$79.0M</td>
+          <td>—</td>
+          <td>—</td>
+          <td style="font-size:11px; color:var(--text-mid); font-weight:500">5 workstreams · 5 owners</td>
+        </tr>
+      </tfoot>
+    </table>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span>Confidential — Accenture Internal</span>
+    <span>Slide Lab · 2026 · 227</span>
+  </div>
+
+</body>
+</html>

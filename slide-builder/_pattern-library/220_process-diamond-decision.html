@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pattern 220 — Diamond Decision Process Flow</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    background: var(--slide-bg);
+    font-family: Inter, system-ui, sans-serif;
+    position: relative;
+  }
+
+  /* ── Chrome: top-left label ── */
+  .label-internal {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  /* ── Chrome: DRAFT badge ── */
+  .badge-draft {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 0;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* ── Chrome: title block ── */
+  .title-block {
+    position: absolute; top: 0; left: 0; right: 0; height: 160px;
+  }
+
+  .title-block h1 {
+    position: absolute; top: 28px; left: 64px; right: 64px; min-height: 36px;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.2;
+  }
+
+  .title-block h1 strong {
+    color: var(--brand-accent);
+  }
+
+  .title-block .sub {
+    position: absolute; top: 108px; left: 64px; right: 64px;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+
+}
+
+  .title-block .accent-rule {
+  position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+
+  }
+
+  /* ── Chrome: footer ── */
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 20px 10px;
+  }
+
+  .footer span {
+    font-size: 8px;
+    color: var(--text-faint);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* ── Content area ── */
+  .content-area {
+    position: absolute;
+    top: 118px;
+    left: 48px;
+    right: 48px;
+    bottom: 64px;
+    display: flex;
+    gap: 0;
+  }
+
+  /* ── Flow column ── */
+  .flow-col {
+    flex: 0 0 680px;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  /* ── Annotation column ── */
+  .anno-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    padding-left: 24px;
+    gap: 0;
+    position: relative;
+  }
+
+  /* Shape base styles */
+  .shape-oval {
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .shape-rect {
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    padding: 0 12px;
+    line-height: 1.35;
+  }
+
+  /* START oval */
+  .node-start {
+    width: 120px;
+    height: 38px;
+    background: var(--brand-primary);
+    color: #FFFFFF;
+  }
+
+  /* Process rects */
+  .node-process {
+    width: 220px;
+    height: 52px;
+    background: var(--brand-primary-mid);
+    color: #FFFFFF;
+  }
+
+  /* Decision diamond wrapper */
+  .diamond-wrapper {
+    width: 110px;
+    height: 110px;
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .diamond-inner {
+    position: absolute;
+    inset: 0;
+    transform: rotate(45deg);
+    background: var(--brand-accent);
+    border-radius: 6px;
+  }
+
+  .diamond-label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #FFFFFF;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1.3;
+    letter-spacing: 0.04em;
+    z-index: 2;
+  }
+
+  /* END ovals */
+  .node-end-yes {
+    width: 150px;
+    height: 38px;
+    background: #166534;
+    color: #FFFFFF;
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+    padding: 0 10px;
+    line-height: 1.3;
+  }
+
+  .node-end-no {
+    width: 150px;
+    height: 38px;
+    background: var(--brand-primary);
+    color: #FFFFFF;
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+    padding: 0 10px;
+    line-height: 1.3;
+  }
+
+  /* Branch label pills */
+  .branch-label-yes {
+    position: absolute;
+    font-size: 10px;
+    font-weight: 700;
+    color: #166534;
+    background: #DCFCE7;
+    padding: 2px 7px;
+    border-radius: 3px;
+  }
+
+  .branch-label-no {
+    position: absolute;
+    font-size: 10px;
+    font-weight: 700;
+    color: #991B1B;
+    background: #FEE2E2;
+    padding: 2px 7px;
+    border-radius: 3px;
+  }
+
+  /* Annotations */
+  .anno-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .anno-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--brand-accent-soft);
+    flex-shrink: 0;
+
+    top: 3px;
+  }
+
+  .anno-text {
+    font-size: 10px;
+    color: var(--text-mid);
+    line-height: 1.5;
+  }
+
+  .anno-text strong {
+    display: block;
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--brand-primary);
+
+    bottom: 1px;
+  }
+
+  /* Vertical connector line between main-flow nodes */
+  .v-connector {
+    width: 2px;
+    background: var(--brand-primary);
+    flex-shrink: 0;
+  }
+
+  /* Arrow head (pointing down) */
+  .arrow-down {
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-top: 8px solid var(--brand-primary);
+    flex-shrink: 0;
+  }
+
+  .arrow-right {
+    width: 0;
+    height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 8px solid var(--brand-primary);
+    flex-shrink: 0;
+  }
+
+  /* SVG overlay for complex connector paths */
+  .svg-connectors {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: visible;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Chrome: top-left internal label -->
+  <div class="label-internal">Accenture Internal</div>
+
+  <!-- Chrome: DRAFT badge -->
+  <div class="badge-draft">Draft</div>
+
+  <!-- Chrome: title block -->
+  <div class="title-block">
+    <h1>Decision <strong>Process Flow</strong></h1>
+    <p class="sub">Structured diamond-gate flowchart — map decision branching from input to outcome</p>
+    <div class="accent-rule"></div>
+  </div>
+
+  <!-- Content area -->
+  <div class="content-area">
+
+    <!-- Flow column with SVG connectors -->
+    <div class="flow-col" id="flowCol">
+
+      <!-- SVG overlay for all connector lines and arrows -->
+      <svg class="svg-connectors" id="svgConnectors" viewBox="0 0 680 538" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+
+        <!-- Connector: START → PROCESS 1 (center-down) -->
+        <!-- START oval center: x=340, y=19  bottom: y=38 -->
+        <!-- P1 top: y=54 -->
+        <line x1="340" y1="38" x2="340" y2="54" stroke="#2D0A4E" stroke-width="2"/>
+        <polygon points="335,54 345,54 340,62" fill="#2D0A4E"/>
+
+        <!-- Connector: PROCESS 1 → DECISION (center-down) -->
+        <!-- P1 bottom: y=106 -->
+        <!-- Diamond top vertex: y=119 -->
+        <line x1="340" y1="106" x2="340" y2="119" stroke="#2D0A4E" stroke-width="2"/>
+        <polygon points="335,119 345,119 340,127" fill="#2D0A4E"/>
+
+        <!-- Decision diamond center: y=174 -->
+        <!-- Diamond bottom vertex: y=229 -->
+
+        <!-- YES branch: left side from diamond left vertex (x=285, y=174) → left outcome -->
+        <!-- Diamond left vertex: x=285, y=174 -->
+        <!-- YES end oval center x=130, y=174 -->
+        <line x1="285" y1="174" x2="200" y2="174" stroke="#2D0A4E" stroke-width="2"/>
+        <polygon points="200,169 200,179 192,174" fill="#2D0A4E"/>
+
+        <!-- YES branch label -->
+        <rect x="222" y="157" width="36" height="16" rx="3" fill="#DCFCE7"/>
+        <text x="240" y="169" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" font-weight="700" fill="#166534">YES</text>
+
+        <!-- NO branch: bottom vertex (x=340, y=229) → PROCESS 2 top (y=245) -->
+        <line x1="340" y1="229" x2="340" y2="245" stroke="#2D0A4E" stroke-width="2"/>
+        <polygon points="335,245 345,245 340,253" fill="#2D0A4E"/>
+
+        <!-- NO branch label -->
+        <rect x="318" y="232" width="30" height="16" rx="3" fill="#FEE2E2"/>
+        <text x="333" y="244" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" font-weight="700" fill="#991B1B">NO</text>
+
+        <!-- Connector: PROCESS 2 → END NO (center-down) -->
+        <!-- P2 bottom: y=297 -->
+        <!-- END NO top: y=313 -->
+        <line x1="340" y1="297" x2="340" y2="313" stroke="#2D0A4E" stroke-width="2"/>
+        <polygon points="335,313 345,313 340,321" fill="#2D0A4E"/>
+
+        <!-- Annotation leader lines (subtle dashes from flow center to anno column) -->
+        <line x1="451" y1="19"  x2="490" y2="45"  stroke="#E5D5F0" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="451" y1="80"  x2="490" y2="115" stroke="#E5D5F0" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="451" y1="174" x2="490" y2="195" stroke="#E5D5F0" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="451" y1="271" x2="490" y2="290" stroke="#E5D5F0" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="265" y1="174" x2="490" y2="380" stroke="#E5D5F0" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="415" y1="332" x2="490" y2="455" stroke="#E5D5F0" stroke-width="1" stroke-dasharray="3,3"/>
+
+      </svg>
+
+      <!-- ① START oval  — positioned via flex; use margin to space -->
+      <!-- We switch to absolute positioning inside the flow col for pixel accuracy -->
+    </div>
+
+  </div>
+
+  <!-- Re-approach: place everything absolutely inside a known 680×538 area -->
+  <!-- Remove the flex flow-col and use absolute layout directly -->
+
+  <style>
+    /* Override content-area to be a pure absolute container */
+    .content-area { display: block; }
+    .flow-col { position: absolute; left: 0; top: 0; width: 680px; height: 538px; flex: none; }
+    .anno-col  { position: absolute; left: 704px; top: 0; width: calc(1184px - 704px); height: 538px; }
+
+    /* Node absolute positions */
+    #n-start   { position: absolute; left: 280px; top: 0px;   }
+    #n-p1      { position: absolute; left: 230px; top: 54px;  }
+    #n-diamond { position: absolute; left: 285px; top: 119px; }
+    #n-yes     { position: absolute; left: 117px; top: 155px; }
+    #n-p2      { position: absolute; left: 230px; top: 245px; }
+    #n-end-no  { position: absolute; left: 265px; top: 313px; }
+  </style>
+
+  <!-- Nodes rendered absolutely inside .flow-col -->
+  <div class="content-area">
+    <div class="flow-col" id="flowCol">
+
+      <svg class="svg-connectors" viewBox="0 0 680 538" xmlns="http://www.w3.org/2000/svg">
+        <!-- START bottom → P1 top -->
+        <line x1="340" y1="38"  x2="340" y2="54"  stroke="#2D0A4E" stroke-width="2"/>
+        <polygon points="335,54  345,54  340,63"  fill="#2D0A4E"/>
+
+        <!-- P1 bottom → Diamond top vertex -->
+        <line x1="340" y1="106" x2="340" y2="119" stroke="#2D0A4E" stroke-width="2"/>
+        <polygon points="335,119 345,119 340,128" fill="#2D0A4E"/>
+
+        <!-- Diamond left vertex → YES oval right side -->
+        <!-- Diamond center: (340, 174); left vertex: (285, 174) -->
+        <!-- YES oval right edge: left=117+150=267, mid-y=155+19=174 -->
+        <line x1="285" y1="174" x2="267" y2="174" stroke="#2D0A4E" stroke-width="2"/>
+        <polygon points="267,169 267,179 259,174" fill="#2D0A4E"/>
+
+        <!-- YES branch label -->
+        <rect x="270" y="162" width="30" height="14" rx="2" fill="#DCFCE7"/>
+        <text x="285" y="173" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="9" font-weight="700" fill="#166534">YES</text>
+
+        <!-- Diamond bottom vertex → P2 top -->
+        <!-- Diamond center y=174, half-height=55 → bottom vertex y=229 -->
+        <line x1="340" y1="229" x2="340" y2="245" stroke="#2D0A4E" stroke-width="2"/>
+        <polygon points="335,245 345,245 340,254" fill="#2D0A4E"/>
+
+        <!-- NO branch label -->
+        <rect x="320" y="230" width="24" height="13" rx="2" fill="#FEE2E2"/>
+        <text x="332" y="241" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="9" font-weight="700" fill="#991B1B">NO</text>
+
+        <!-- P2 bottom → END-NO top -->
+        <line x1="340" y1="297" x2="340" y2="313" stroke="#2D0A4E" stroke-width="2"/>
+        <polygon points="335,313 345,313 340,322" fill="#2D0A4E"/>
+
+        <!-- Subtle leader lines to annotation column -->
+        <line x1="450" y1="19"  x2="492" y2="40"  stroke="#E5D5F0" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="450" y1="80"  x2="492" y2="110" stroke="#E5D5F0" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="450" y1="174" x2="492" y2="185" stroke="#E5D5F0" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="192" y1="174" x2="492" y2="280" stroke="#E5D5F0" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="450" y1="271" x2="492" y2="345" stroke="#E5D5F0" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="415" y1="332" x2="492" y2="430" stroke="#E5D5F0" stroke-width="1" stroke-dasharray="3,3"/>
+      </svg>
+
+      <!-- START oval -->
+      <div id="n-start" class="shape-oval node-start">Start</div>
+
+      <!-- Process 1 -->
+      <div id="n-p1" class="shape-rect node-process">Evaluate Input &amp; Gather Data</div>
+
+      <!-- Decision diamond -->
+      <div id="n-diamond" class="diamond-wrapper">
+        <div class="diamond-inner"></div>
+        <div class="diamond-label">Criteria<br>Met?</div>
+      </div>
+
+      <!-- YES end -->
+      <div id="n-yes" class="node-end-yes">Outcome A<br>Approve &amp; Proceed</div>
+
+      <!-- Process 2 (NO branch) -->
+      <div id="n-p2" class="shape-rect node-process">Review &amp; Revise Submission</div>
+
+      <!-- END NO -->
+      <div id="n-end-no" class="node-end-no">Outcome B<br>Resubmit / Close</div>
+
+    </div>
+
+    <!-- Annotation column -->
+    <div class="anno-col">
+
+      <div style="position:absolute; top:24px; left:0; right:0;">
+        <div class="anno-item">
+          <div class="anno-dot" style="background:#2D0A4E;"></div>
+          <div class="anno-text">
+            <strong>① Start</strong>
+            Trigger point — an input, request, or event initiates the process and sends it into the evaluation pipeline.
+          </div>
+        </div>
+      </div>
+
+      <div style="position:absolute; top:96px; left:0; right:0;">
+        <div class="anno-item">
+          <div class="anno-dot" style="background:#5C2D87;"></div>
+          <div class="anno-text">
+            <strong>② Evaluate Input</strong>
+            Intake and structure available data. Validate completeness before advancing to the decision gate.
+          </div>
+        </div>
+      </div>
+
+      <div style="position:absolute; top:172px; left:0; right:0;">
+        <div class="anno-item">
+          <div class="anno-dot" style="background:#A100FF;"></div>
+          <div class="anno-text">
+            <strong>③ Decision Gate</strong>
+            Core diamond node. Tests whether defined criteria are satisfied. Branches YES or NO based on outcome.
+          </div>
+        </div>
+      </div>
+
+      <div style="position:absolute; top:262px; left:0; right:0;">
+        <div class="anno-item">
+          <div class="anno-dot" style="background:#166534;"></div>
+          <div class="anno-text">
+            <strong>YES → Outcome A</strong>
+            Criteria met. Process completes with approval, forwarding, or execution of the primary action.
+          </div>
+        </div>
+      </div>
+
+      <div style="position:absolute; top:332px; left:0; right:0;">
+        <div class="anno-item">
+          <div class="anno-dot" style="background:#5C2D87;"></div>
+          <div class="anno-text">
+            <strong>NO → Review Step</strong>
+            Criteria not met. Route to a corrective loop — revise, amend, or escalate before re-entry.
+          </div>
+        </div>
+      </div>
+
+      <div style="position:absolute; top:416px; left:0; right:0;">
+        <div class="anno-item">
+          <div class="anno-dot" style="background:#2D0A4E;"></div>
+          <div class="anno-text">
+            <strong>NO → Outcome B</strong>
+            Revised submission or formal closure. Captures the alternative terminal state with clear accountability.
+          </div>
+        </div>
+      </div>
+
+      <!-- Pattern meta chip -->
+      <div style="position:absolute; bottom:4px; left:0;">
+        <span style="font-size:9px; color:var(--text-faint); letter-spacing:0.08em; text-transform:uppercase; background:var(--card-bg); border:1px solid var(--card-border); padding:3px 8px;">Pattern · 220 · Process</span>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Footer chrome -->
+  <div class="footer">
+    <span>Confidential — Accenture Internal</span>
+    <span>Slide Lab · 2026 · 220</span>
+  </div>
+
+</body>
+</html>

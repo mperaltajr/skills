@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pattern 149 — Brainstorm Affinity Map</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #4a4a4a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    padding: 24px;
+    box-sizing: border-box;
+  }
+
+  .slide {
+    width: 1280px;
+    height: 720px;
+    position: relative;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 12px 48px rgba(0,0,0,0.35);
+  }
+
+  /* ── Top chrome (Style A) ── */
+  .accenture-tag {
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    color: var(--text-faint);
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    z-index: 5;
+  }
+
+  .draft-badge {
+    position: absolute;
+    top: 20px; left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    padding: 4px 16px;
+    text-transform: uppercase;
+    z-index: 5;
+  }
+
+  /* ── Title block (Style A) ── */
+  .title-block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+  .title-block .eyebrow {
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--brand-accent);
+    margin-bottom: 6px;
+  }
+
+  .title-block h1 {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+  pointer-events: auto;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-dark);
+    line-height: 1.25;
+  }
+
+  .title-block h1 strong {
+    color: var(--brand-primary);
+    font-weight: 800;
+  }
+
+  .accent-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+  pointer-events: none;
+    
+    
+    background: var(--brand-accent);
+    }
+
+  /* ── Cluster grid ── */
+  .cluster-grid {
+    position: absolute;
+    top: 148px;
+    left: 48px;
+    right: 48px;
+    bottom: 60px;
+    display: flex; flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  /* ── Individual cluster ── */
+  .cluster {
+    background: #fff;
+    border-radius: 8px;
+    padding: 10px 12px 10px 12px;
+    border-top: 4px solid;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow: hidden;
+  }
+
+  .cluster--blue  { border-color: #2980B9; }
+  .cluster--green { border-color: #27AE60; }
+  .cluster--amber { border-color: #E67E22; }
+  .cluster--purple{ border-color: #8E44AD; }
+
+  .cluster-header {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    line-height: 1;
+  }
+  .cluster--blue   .cluster-header { color: #2980B9; }
+  .cluster--green  .cluster-header { color: #27AE60; }
+  .cluster--amber  .cluster-header { color: #E67E22; }
+  .cluster--purple .cluster-header { color: #8E44AD; }
+
+  .stickies {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-content: flex-start;
+  }
+
+  /* ── Sticky note ── */
+  .sticky {
+    width: 92px;
+    min-height: 58px;
+    border-radius: 4px;
+    padding: 7px 8px;
+    font-size: 9.5px;
+    font-weight: 500;
+    line-height: 1.4;
+    color: var(--text-dark);
+    box-shadow: 2px 3px 8px rgba(0,0,0,0.13), 0 1px 2px rgba(0,0,0,0.07);
+    display: flex;
+    align-items: flex-start;
+  }
+
+  /* Blue cluster stickies */
+  .sticky--b1 { background: #D6EAF8; transform: rotate(-1.5deg); }
+  .sticky--b2 { background: #EBF5FB; transform: rotate(1deg); }
+  .sticky--b3 { background: #D6EAF8; transform: rotate(0.8deg); }
+  .sticky--b4 { background: #AED6F1; transform: rotate(-1deg); }
+  .sticky--b5 { background: #EBF5FB; transform: rotate(1.8deg); }
+
+  /* Green cluster stickies */
+  .sticky--g1 { background: #D5F5E3; transform: rotate(1.2deg); }
+  .sticky--g2 { background: #EAFAF1; transform: rotate(-0.9deg); }
+  .sticky--g3 { background: #D5F5E3; transform: rotate(1.5deg); }
+  .sticky--g4 { background: #A9DFBF; transform: rotate(-1.3deg); }
+  .sticky--g5 { background: #EAFAF1; transform: rotate(0.7deg); }
+
+  /* Amber cluster stickies */
+  .sticky--a1 { background: #FCF3CF; transform: rotate(-1.1deg); }
+  .sticky--a2 { background: #FEF9E7; transform: rotate(1.4deg); }
+  .sticky--a3 { background: #FCF3CF; transform: rotate(-0.7deg); }
+  .sticky--a4 { background: #F9E79F; transform: rotate(1.9deg); }
+
+  /* Purple cluster stickies */
+  .sticky--p1 { background: #E8DAEF; transform: rotate(0.9deg); }
+  .sticky--p2 { background: #F5EEF8; transform: rotate(-1.4deg); }
+  .sticky--p3 { background: #E8DAEF; transform: rotate(1.2deg); }
+  .sticky--p4 { background: #D7BDE2; transform: rotate(-0.8deg); }
+
+  /* ── Footer (Style A) ── */
+  .footer-rule {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 32px;
+    height: 1px;
+    background: var(--card-border);
+  }
+  .footer-left {
+    position: absolute;
+    bottom: 14px;
+    left: 24px;
+    color: var(--text-faint);
+    font-size: 11px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+  .footer-right {
+    position: absolute;
+    bottom: 14px;
+    right: 24px;
+    color: var(--text-faint);
+    font-size: 11px;
+  }
+
+  /* DARK THEME */
+  :root {
+    --card-bg: rgba(255,255,255,0.07);
+    --card-border: rgba(255,255,255,0.12);
+    --text-dark: #FFFFFF;
+    --text-mid: rgba(255,255,255,0.6);
+    --slide-bg: #2D0A4E;
+  }
+  body { background: #2D0A4E; }
+  .slide { background: #2D0A4E; }
+  .accenture-tag { color: rgba(255,255,255,0.4); }
+  .title-block h1 {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+  pointer-events: auto; color: #FFFFFF; }
+  .title-block h1 strong { color: #C780FF; }
+  .cluster { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); box-shadow: none; }
+  .cluster--blue  { border-top: 4px solid #2980B9; }
+  .cluster--green { border-top: 4px solid #27AE60; }
+  .cluster--amber { border-top: 4px solid #E67E22; }
+  .cluster--purple{ border-top: 4px solid #8E44AD; }
+  /* Sticky notes: muted on dark bg — keep original colors at reduced opacity */
+  .sticky { color: #1A1A2E; opacity: 0.88; }
+  .footer-rule { background: rgba(255,255,255,0.1); }
+  .footer-left, .footer-right { color: rgba(255,255,255,0.4); }
+</style>
+</head>
+<body>
+<div class="slide">
+
+  <!-- Top chrome (Style A normalized) -->
+  <div class="accenture-tag" data-shape-id="accenture-tag">ACCENTURE INTERNAL</div>
+
+  <!-- Title block -->
+  <div class="title-block">
+    <div class="eyebrow" data-shape-id="eyebrow">Ideation Output — Affinity Map</div>
+    <h1 data-shape-id="title"><strong>47 ideas generated, 4 themes emerged</strong> — technology and CX clusters have most cross-functional overlap</h1>
+    <div class="accent-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- 2×2 Cluster grid -->
+  <div class="cluster-grid">
+
+    <!-- Cluster 1: Customer Experience -->
+    <div class="cluster cluster--blue" data-shape-id="cluster-1-bg">
+      <div class="cluster-header" data-shape-id="cluster-1-heading">Customer Experience</div>
+      <div class="stickies" data-shape-id="cluster-1-body">
+        <div class="sticky sticky--b1" data-shape-id="cluster-1-sticky-1">Faster checkout</div>
+        <div class="sticky sticky--b2" data-shape-id="cluster-1-sticky-2">Loyalty rewards upgrade</div>
+        <div class="sticky sticky--b3" data-shape-id="cluster-1-sticky-3">Personalized home page</div>
+        <div class="sticky sticky--b4" data-shape-id="cluster-1-sticky-4">Return process simplified</div>
+        <div class="sticky sticky--b5" data-shape-id="cluster-1-sticky-5">Chat-first support</div>
+      </div>
+    </div>
+
+    <!-- Cluster 2: Operational Efficiency -->
+    <div class="cluster cluster--green" data-shape-id="cluster-2-bg">
+      <div class="cluster-header" data-shape-id="cluster-2-heading">Operational Efficiency</div>
+      <div class="stickies" data-shape-id="cluster-2-body">
+        <div class="sticky sticky--g1" data-shape-id="cluster-2-sticky-1">Automate invoice reconciliation</div>
+        <div class="sticky sticky--g2" data-shape-id="cluster-2-sticky-2">Reduce approval chains</div>
+        <div class="sticky sticky--g3" data-shape-id="cluster-2-sticky-3">Real-time inventory sync</div>
+        <div class="sticky sticky--g4" data-shape-id="cluster-2-sticky-4">Vendor portal</div>
+        <div class="sticky sticky--g5" data-shape-id="cluster-2-sticky-5">Batch → streaming ETL</div>
+      </div>
+    </div>
+
+    <!-- Cluster 3: People & Culture -->
+    <div class="cluster cluster--amber" data-shape-id="cluster-3-bg">
+      <div class="cluster-header" data-shape-id="cluster-3-heading">People &amp; Culture</div>
+      <div class="stickies" data-shape-id="cluster-3-body">
+        <div class="sticky sticky--a1" data-shape-id="cluster-3-sticky-1">Remote work toolkit</div>
+        <div class="sticky sticky--a2" data-shape-id="cluster-3-sticky-2">Peer recognition program</div>
+        <div class="sticky sticky--a3" data-shape-id="cluster-3-sticky-3">Skills passport</div>
+        <div class="sticky sticky--a4" data-shape-id="cluster-3-sticky-4">Manager coaching</div>
+      </div>
+    </div>
+
+    <!-- Cluster 4: Technology & Data -->
+    <div class="cluster cluster--purple" data-shape-id="cluster-4-bg">
+      <div class="cluster-header" data-shape-id="cluster-4-heading">Technology &amp; Data</div>
+      <div class="stickies" data-shape-id="cluster-4-body">
+        <div class="sticky sticky--p1" data-shape-id="cluster-4-sticky-1">Single data platform</div>
+        <div class="sticky sticky--p2" data-shape-id="cluster-4-sticky-2">API governance</div>
+        <div class="sticky sticky--p3" data-shape-id="cluster-4-sticky-3">AI/ML literacy training</div>
+        <div class="sticky sticky--p4" data-shape-id="cluster-4-sticky-4">Cloud migration complete</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer-left" data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+
+</div>
+</body>
+</html>

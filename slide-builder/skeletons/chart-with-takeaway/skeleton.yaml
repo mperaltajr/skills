@@ -1,0 +1,63 @@
+id: chart-with-takeaway
+category: chart
+page_types:
+  - chart
+  - data
+  - analytics
+  - kpi
+  - trend
+  - comparison-chart
+best_for: Data slide with a chart occupying the main body and a key takeaway strip at the bottom
+visual_structure: chart-with-takeaway
+# This skeleton family has 8 layout variants — pick by chart-to-text ratio and chart type.
+# Use skeleton_from_pptx(skel_pptx_path, template_path, out_path) — NOT skeleton_on_template.
+variants:
+  bottom-strip:
+    file: chart-with-takeaway-bottom-strip.pptx
+    best_for: Single chart spanning full width; takeaway strip below. Most common data slide layout.
+    chart_zone: "x=0.60\" y=1.57\" w=12.13\" h=4.82\""
+  third:
+    file: chart-with-takeaway-third.pptx
+    best_for: Chart in left 2/3, tall annotation or stat in right 1/3.
+    chart_zone: "x=0.60\" y=1.57\" w=7.61\" h=5.43\""
+  quarter:
+    file: chart-with-takeaway-quarter.pptx
+    best_for: Chart in left 2/3, two short bullet callouts in right 1/3.
+    chart_zone: "x=0.60\" y=1.57\" w=8.67\" h=5.43\""
+  full:
+    file: chart-with-takeaway-full.pptx
+    best_for: Chart fills the entire body; minimal text. Use when the chart is self-explanatory.
+    chart_zone: "x=0.60\" y=1.57\" w=12.13\" h=5.43\""
+  dual:
+    file: chart-with-takeaway-dual.pptx
+    best_for: Two side-by-side charts (left + right halves). Use for compare-and-contrast data pairs.
+    chart_zone: "left: x=0.60\" right: x=6.67\", both y=1.57\" w=5.87\" h=5.43\""
+  quarter-hero:
+    file: chart-with-takeaway-quarter-hero.pptx
+    best_for: Chart in left 2/3, large hero stat + label in right 1/3. Use when one number tells the story.
+    chart_zone: "x=0.60\" y=1.57\" w=8.67\" h=5.43\""
+  third-hero:
+    file: chart-with-takeaway-third-hero.pptx
+    best_for: Chart in left 2/3, hero stat + paragraph annotation in right 1/3.
+    chart_zone: "x=0.60\" y=1.57\" w=7.61\" h=5.43\""
+  multi-bucket:
+    file: chart-with-takeaway-multi-bucket.pptx
+    best_for: Three mini-charts in a row (horizontal bucket layout). Use for multi-metric scorecards.
+    chart_zone: "three equal zones, x=0.60\"/4.67\"/8.73\", y=1.57\" w=3.67\" h=5.43\""
+
+# Tokens shared across all variants (exact names may vary by variant — verify with inspect)
+tokens:
+  ACTION_TITLE: '[Action title — the insight the chart proves, in one line]'
+  SUB_HEADLINE: '[Chart subtitle — what is being measured and over what period]'
+  CHART_TITLE: '[Chart title above the PNG zone — pass "" if title is in the chart PNG itself]'
+  TAKEAWAY_TEXT: '[1–2 sentence narrative in the takeaway strip — what to do with this data]'
+  FOOTNOTE: '[1. Insert Footnote]'
+  SOURCE: '[Insert source without "Source:" prefix — fill_tokens adds it automatically]'
+  PAGE_NUMBER: '[1]'
+
+# Zone fill for dark charts (--bg dark)
+# The chart body rectangle is a positional shape — look it up by:
+#   for s in slide.shapes:
+#       if abs(s.top/914400 - 1.57) < 0.1 and abs(s.left/914400 - 0.60) < 0.1:
+#           P.set_shape_fill(s, "1A1A2E")  # dark navy
+# Then generate chart with bg="dark" for transparent PNG with light text.

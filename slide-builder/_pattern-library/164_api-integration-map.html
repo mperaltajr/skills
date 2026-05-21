@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pattern 164 — API Integration Map</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --brand-primary:#2D0A4E;
+    --brand-primary-mid:#5C2D87;
+    --brand-accent:#A100FF;
+    --brand-accent-soft:#C780FF;
+    --text-dark:#1A1A2E;
+    --text-mid:#64748B;
+    --text-faint:#94A3B8;
+    --slide-bg:#FFFFFF;
+    --card-bg:#F8F4FC;
+    --card-border:#E5D5F0;
+    --draft-bg:#FFD600;
+    --draft-text:#B71C1C;
+
+    --dir-bidir:#A100FF;
+    --dir-bidir-soft:#EDE0FF;
+    --dir-inbound:#16A34A;
+    --dir-inbound-soft:#DCFCE7;
+    --dir-outbound:#EA580C;
+    --dir-outbound-soft:#FFEDD5;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: Inter, system-ui, sans-serif;
+    background: var(--slide-bg);
+    position: relative;
+  }
+
+  /* ── Invariant chrome ── */
+
+  .internal-label {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .draft-badge {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 0;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .title-block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+  .title-block-text {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .title-block h1 {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+  pointer-events: auto;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.15;
+  }
+
+  .title-block h1 strong {
+    color: var(--brand-accent);
+  }
+
+  .title-block .sub {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 108px;
+  pointer-events: auto;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+    }
+
+  .accent-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+  pointer-events: none;
+    
+    
+    background: var(--brand-accent);
+    }
+
+  footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+  }
+
+  footer span {
+    font-size: 8px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* ── Legend ── */
+
+  .legend {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+
+  .legend-title {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-mid);
+    margin-bottom: 2px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 10px;
+    color: var(--text-dark);
+  }
+
+  .legend-line {
+    width: 28px;
+    height: 2px;
+    border-radius: 1px;
+    flex-shrink: 0;
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* ── Diagram canvas ── */
+
+  .diagram {
+    position: absolute;
+    top: 130px;
+    left: 48px;
+    right: 48px;
+    bottom: 70px;
+  }
+
+  /* SVG connector layer */
+  .connector-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  /* ── Hub box ── */
+
+  .hub {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 148px;
+    height: 80px;
+    background: var(--brand-primary);
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    z-index: 5;
+    box-shadow: 0 4px 20px rgba(45,10,78,0.35);
+  }
+
+  .hub-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: #FFFFFF;
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  .hub-sub {
+    font-size: 9px;
+    color: var(--brand-accent-soft);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-align: center;
+  }
+
+  /* ── Service boxes ── */
+
+  .service {
+    position: absolute;
+    width: 138px;
+    background: var(--card-bg);
+    border: 1.5px solid var(--card-border);
+    border-radius: 6px;
+    padding: 9px 12px;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .service-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-dark);
+    line-height: 1.2;
+  }
+
+  .service-protocol {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    padding: 1px 6px;
+    border-radius: 3px;
+    width: fit-content;
+  }
+
+  .proto-rest   { background:#EDE9FE; color:#5B21B6; }
+  .proto-soap   { background:#FEF3C7; color:#92400E; }
+  .proto-graphql{ background:#FCE7F3; color:#9D174D; }
+  .proto-grpc   { background:#D1FAE5; color:#065F46; }
+
+  .service-owner {
+    font-size: 9px;
+    color: var(--text-faint);
+    margin-top: 2px;
+  }
+
+  /* Direction border tint */
+  .dir-bidir   { border-color: var(--dir-bidir); }
+  .dir-inbound { border-color: var(--dir-inbound); }
+  .dir-outbound{ border-color: var(--dir-outbound); }
+</style>
+</head>
+<body>
+
+<!-- Chrome -->
+<div class="internal-label">Accenture Internal</div>
+
+<div class="title-block">
+  <div class="title-block-text">
+    <h1>API Integration <strong>Map</strong></h1>
+    <p class="sub">Service topology, protocols, and data-flow directions across the integration layer</p>
+    <div class="accent-rule"></div>
+  </div>
+  <div class="legend">
+    <div class="legend-title">Direction Key</div>
+    <div class="legend-item">
+      <div class="legend-line" style="background:var(--dir-bidir);"></div>
+      <span>Bi-directional</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-line" style="background:var(--dir-inbound);"></div>
+      <span>Inbound only</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-line" style="background:var(--dir-outbound);"></div>
+      <span>Outbound only</span>
+    </div>
+  </div>
+</div>
+
+<!-- Diagram area -->
+<div class="diagram" id="diagram">
+
+  <!-- SVG connectors drawn below -->
+  <svg class="connector-svg" id="connectors" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <!-- Arrowhead markers -->
+      <marker id="arrow-bidir-end" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 Z" fill="#A100FF"/>
+      </marker>
+      <marker id="arrow-bidir-start" markerWidth="8" markerHeight="8" refX="2" refY="3" orient="auto-start-reverse">
+        <path d="M0,0 L0,6 L8,3 Z" fill="#A100FF"/>
+      </marker>
+      <marker id="arrow-inbound-end" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 Z" fill="#16A34A"/>
+      </marker>
+      <marker id="arrow-outbound-end" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+        <path d="M0,0 L0,6 L8,3 Z" fill="#EA580C"/>
+      </marker>
+    </defs>
+    <!-- Lines drawn by JS after layout -->
+  </svg>
+
+  <!-- Hub -->
+  <div class="hub" id="hub">
+    <div class="hub-label">API Gateway<br>/ ESB</div>
+    <div class="hub-sub">Integration Hub</div>
+  </div>
+
+  <!-- LEFT services (3) -->
+  <div class="service dir-inbound" id="svc-0" style="top:6%; left:2%;">
+    <div class="service-name">CRM System</div>
+    <span class="service-protocol proto-rest">REST</span>
+    <div class="service-owner">Owner: Sales Ops</div>
+  </div>
+
+  <div class="service dir-bidir" id="svc-1" style="top:38%; left:2%;">
+    <div class="service-name">ERP / Finance</div>
+    <span class="service-protocol proto-soap">SOAP</span>
+    <div class="service-owner">Owner: Finance IT</div>
+  </div>
+
+  <div class="service dir-outbound" id="svc-2" style="top:70%; left:2%;">
+    <div class="service-name">Identity Provider</div>
+    <span class="service-protocol proto-rest">REST</span>
+    <div class="service-owner">Owner: IAM Team</div>
+  </div>
+
+  <!-- RIGHT services (3) -->
+  <div class="service dir-bidir" id="svc-3" style="top:6%; right:2%;">
+    <div class="service-name">Data Warehouse</div>
+    <span class="service-protocol proto-grpc">gRPC</span>
+    <div class="service-owner">Owner: Analytics</div>
+  </div>
+
+  <div class="service dir-outbound" id="svc-4" style="top:38%; right:2%;">
+    <div class="service-name">Customer Portal</div>
+    <span class="service-protocol proto-graphql">GraphQL</span>
+    <div class="service-owner">Owner: Digital Eng.</div>
+  </div>
+
+  <div class="service dir-inbound" id="svc-5" style="top:70%; right:2%;">
+    <div class="service-name">Legacy Mainframe</div>
+    <span class="service-protocol proto-soap">SOAP</span>
+    <div class="service-owner">Owner: Core Infra</div>
+  </div>
+
+</div>
+
+<footer>
+  <span>Confidential — Accenture Internal</span>
+  <span>Slide Lab · 2026 · 164</span>
+</footer>
+
+<script>
+  // Draw connector lines between hub and each service box
+  const diagram   = document.getElementById('diagram');
+  const svg       = document.getElementById('connectors');
+  const hubEl     = document.getElementById('hub');
+  const dRect     = diagram.getBoundingClientRect();
+
+  // Direction metadata per service index
+  const dirs = [
+    { type:'inbound',  markerEnd:'url(#arrow-inbound-end)',  markerStart:'none',                      color:'#16A34A' },
+    { type:'bidir',    markerEnd:'url(#arrow-bidir-end)',    markerStart:'url(#arrow-bidir-start)',    color:'#A100FF' },
+    { type:'outbound', markerEnd:'url(#arrow-outbound-end)', markerStart:'none',                      color:'#EA580C' },
+    { type:'bidir',    markerEnd:'url(#arrow-bidir-end)',    markerStart:'url(#arrow-bidir-start)',    color:'#A100FF' },
+    { type:'outbound', markerEnd:'url(#arrow-outbound-end)', markerStart:'none',                      color:'#EA580C' },
+    { type:'inbound',  markerEnd:'url(#arrow-inbound-end)',  markerStart:'none',                      color:'#16A34A' },
+  ];
+
+  function center(el) {
+    const r = el.getBoundingClientRect();
+    return {
+      x: r.left - dRect.left + r.width  / 2,
+      y: r.top  - dRect.top  + r.height / 2,
+      w: r.width,
+      h: r.height
+    };
+  }
+
+  function edgePoint(c, targetX, targetY) {
+    // Returns the edge point of a box (cx,cy,w,h) toward (targetX,targetY)
+    const dx = targetX - c.x;
+    const dy = targetY - c.y;
+    const angle = Math.atan2(dy, dx);
+    const hw = c.w / 2;
+    const hh = c.h / 2;
+    // Scale to rectangle boundary
+    const scale = Math.min(Math.abs(hw / Math.cos(angle)), Math.abs(hh / Math.sin(angle)));
+    return {
+      x: c.x + Math.cos(angle) * scale,
+      y: c.y + Math.sin(angle) * scale
+    };
+  }
+
+  const hubC = center(hubEl);
+
+  for (let i = 0; i < 6; i++) {
+    const svcEl = document.getElementById(`svc-${i}`);
+    const svcC  = center(svcEl);
+    const dir   = dirs[i];
+
+    const from  = edgePoint(svcC, hubC.x, hubC.y);
+    const to    = edgePoint(hubC, svcC.x, svcC.y);
+
+    const line  = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+    line.setAttribute('x1', from.x);
+    line.setAttribute('y1', from.y);
+    line.setAttribute('x2', to.x);
+    line.setAttribute('y2', to.y);
+    line.setAttribute('stroke', dir.color);
+    line.setAttribute('stroke-width', '2');
+    line.setAttribute('stroke-dasharray', dir.type === 'bidir' ? 'none' : '6 3');
+    line.setAttribute('marker-end',   dir.markerEnd);
+    if (dir.markerStart !== 'none') {
+      line.setAttribute('marker-start', dir.markerStart);
+    }
+    svg.appendChild(line);
+  }
+</script>
+
+</body>
+</html>

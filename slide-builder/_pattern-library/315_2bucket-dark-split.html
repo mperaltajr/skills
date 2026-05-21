@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>315 — 2-Bucket Dark Split</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+    background: #2D0A4E;
+    position: relative;
+  }
+
+  /* ── Chrome top bar ── */
+  .chrome-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    z-index: 10;
+  }
+
+  .chrome-label {
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  .draft-badge {
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 0;
+    line-height: 1;
+  }
+
+  /* spacer to balance flexbox centering */
+  .chrome-spacer {
+    width: 140px;
+  }
+
+  /* ── Main content area ── */
+  .slide-body {
+    position: absolute;
+    top: 36px;
+    bottom: 40px;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    padding: 0 48px;
+  }
+
+  /* ── Header section ── */
+  .header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 0;
+  overflow: visible;
+}
+
+  .accent-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+
+
+    background: var(--brand-accent);
+  }
+
+  .slide-title {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+    font-size: 28px;
+    font-weight: 700;
+    color: #FFFFFF;
+    letter-spacing: -0.01em;
+  }
+
+  .slide-title strong {
+    color: #C780FF;
+    font-weight: 700;
+  }
+
+  .slide-sub {
+    font-size: 14px;
+    font-style: italic;
+    color: rgba(255, 255, 255, 0.6);
+    line-height: 1.4;
+    font-weight: 400;
+  }
+
+  /* ── Bucket panels row ── */
+  .buckets-row {
+    flex: 1;
+    display: flex;
+    gap: 0;
+    min-height: 0;
+}
+
+  .bucket {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 24px 28px 24px 28px;
+    position: relative;
+  }
+
+  .bucket-left {
+    background: rgba(255, 255, 255, 0.07);
+    border-top: 4px solid var(--brand-accent);
+    border-right: none;
+  }
+
+  .bucket-right {
+    background: rgba(255, 255, 255, 0.10);
+    border-top: 4px solid var(--brand-accent);
+    border-left: none;
+  }
+
+  /* vertical divider between panels */
+  .bucket-divider {
+    width: 1px;
+    background: rgba(255, 255, 255, 0.15);
+    flex-shrink: 0;
+    align-self: stretch;
+  }
+
+  .bucket-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: #C780FF;
+}
+
+  .bucket-heading {
+    font-size: 18px;
+    font-weight: 700;
+    color: #FFFFFF;
+    line-height: 1.25;
+}
+
+  .bucket-bullets {
+    list-style: none;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .bucket-bullets li {
+    font-size: 14px;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.75);
+    line-height: 1.5;
+}
+
+  .bucket-bullets li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 7px;
+    width: 5px;
+    height: 1px;
+    background: var(--brand-accent-soft);
+    opacity: 0.7;
+  }
+
+  .bucket-stat {
+}
+
+  .stat-value {
+    font-size: 36px;
+    font-weight: 700;
+    color: #C780FF;
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    font-weight: 500;
+    color: rgba(255, 255, 255, 0.45);
+}
+
+  /* ── Footer ── */
+  .chrome-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+  }
+
+  .footer-text {
+    font-size: 9px;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.4);
+    letter-spacing: 0.06em;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Top chrome -->
+  <div class="chrome-top">
+    <span class="chrome-label">Accenture Internal</span>
+    <span class="chrome-spacer"></span>
+  </div>
+
+  <!-- Main slide body -->
+  <div class="slide-body">
+
+    <!-- Header -->
+    <div class="header">
+      <div class="accent-rule"></div>
+      <h1 class="slide-title">Two paths to <strong>accelerated value</strong></h1>
+      <p class="slide-sub">Side-by-side comparison of strategic options across the transformation horizon</p>
+    </div>
+
+    <!-- Two-bucket panels -->
+    <div class="buckets-row">
+
+      <!-- Bucket 1 -->
+      <div class="bucket bucket-left">
+        <div class="bucket-label">Bucket 1</div>
+        <div class="bucket-heading">Operational<br>Excellence</div>
+        <ul class="bucket-bullets">
+          <li>Streamline core delivery processes end-to-end</li>
+          <li>Automate high-volume, low-judgment workflows</li>
+          <li>Reduce cycle time across handoff points</li>
+          <li>Establish real-time performance visibility</li>
+        </ul>
+        <div class="bucket-stat">
+          <div class="stat-value">↓38%</div>
+          <div class="stat-label">Cost reduction potential</div>
+        </div>
+      </div>
+
+      <!-- Divider -->
+      <div class="bucket-divider"></div>
+
+      <!-- Bucket 2 -->
+      <div class="bucket bucket-right">
+        <div class="bucket-label">Bucket 2</div>
+        <div class="bucket-heading">Growth<br>Acceleration</div>
+        <ul class="bucket-bullets">
+          <li>Expand addressable markets through digital channels</li>
+          <li>Unlock new revenue streams via platform plays</li>
+          <li>Shorten time-to-market for priority offerings</li>
+          <li>Deepen client relationships with data-led insights</li>
+        </ul>
+        <div class="bucket-stat">
+          <div class="stat-value">+2.4×</div>
+          <div class="stat-label">Revenue growth multiplier</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Footer chrome -->
+  <div class="chrome-footer">
+    <span class="footer-text">Accenture Confidential — For Internal Use Only</span>
+    <span class="footer-text">© 2026 Accenture. All rights reserved.</span>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pattern 195 — Risk vs. Opportunity Matrix</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --brand-primary:#2D0A4E;
+    --brand-primary-mid:#5C2D87;
+    --brand-accent:#A100FF;
+    --brand-accent-soft:#C780FF;
+    --text-dark:#1A1A2E;
+    --text-mid:#64748B;
+    --text-faint:#94A3B8;
+    --slide-bg:#FFFFFF;
+    --card-bg:#F8F4FC;
+    --card-border:#E5D5F0;
+    --draft-bg:#FFD600;
+    --draft-text:#B71C1C;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    background: var(--slide-bg);
+    font-family: Inter, system-ui, sans-serif;
+    position: relative;
+  }
+
+  /* ── Invariant chrome ── */
+
+  .label-internal {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .draft-badge {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 0;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .title-block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+  .title-block h1 {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+  pointer-events: auto;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.15;
+  }
+
+  .title-block h1 strong {
+    color: var(--brand-accent);
+    font-weight: 700;
+  }
+
+  .title-block .sub {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 108px;
+  pointer-events: auto;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+    }
+
+  .accent-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+  pointer-events: none;
+    
+    
+    background: var(--brand-accent);
+    }
+
+  footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 20px 8px;
+  }
+
+  footer span {
+    font-size: 8px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* ── Content area ── */
+
+  .content-area {
+    position: absolute;
+    top: 128px;
+    left: 48px;
+    right: 48px;
+    bottom: 80px;
+    display: flex;
+    gap: 0;
+    align-items: stretch;
+  }
+
+  /* ── Panels ── */
+
+  .panel {
+    flex: 1;
+    border-radius: 6px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .panel-risk {
+    background: #FEF2F2;
+    border: 1px solid #FECACA;
+  }
+
+  .panel-opportunity {
+    background: #F0FDF4;
+    border: 1px solid #BBF7D0;
+  }
+
+  .panel-header {
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .panel-risk .panel-header {
+    background: #DC2626;
+  }
+
+  .panel-opportunity .panel-header {
+    background: #16A34A;
+  }
+
+  .panel-header-icon {
+    font-size: 16px;
+    line-height: 1;
+  }
+
+  .panel-header-title {
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    color: #FFFFFF;
+    text-transform: uppercase;
+  }
+
+  .panel-body {
+    flex: 1;
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  /* ── Items ── */
+
+  .item {
+    background: #FFFFFF;
+    border-radius: 4px;
+    padding: 8px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .panel-risk .item {
+    border-left: 3px solid #DC2626;
+  }
+
+  .panel-opportunity .item {
+    border-left: 3px solid #16A34A;
+  }
+
+  .item-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .badge {
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 2px 6px;
+    border-radius: 2px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .badge-critical {
+    background: #DC2626;
+    color: #FFFFFF;
+  }
+
+  .badge-high-risk {
+    background: #F97316;
+    color: #FFFFFF;
+  }
+
+  .badge-medium {
+    background: #EAB308;
+    color: #FFFFFF;
+  }
+
+  .badge-high-opp {
+    background: #16A34A;
+    color: #FFFFFF;
+  }
+
+  .badge-medium-opp {
+    background: #65A30D;
+    color: #FFFFFF;
+  }
+
+  .item-desc {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-dark);
+    line-height: 1.3;
+    flex: 1;
+  }
+
+  .item-note {
+    font-size: 10px;
+    color: var(--text-faint);
+    line-height: 1.35;
+    padding-left: 2px;
+  }
+
+  /* ── Center divider ── */
+
+  .divider {
+    width: 48px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    position: relative;
+  }
+
+  .divider-line {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1px;
+    background: var(--card-border);
+  }
+
+  .divider-icon {
+    position: relative;
+    z-index: 1;
+    background: #FFFFFF;
+    border: 1px solid var(--card-border);
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    line-height: 1;
+  }
+
+  /* ── Convergence bar ── */
+
+  .convergence-bar {
+    position: absolute;
+    bottom: 58px;
+    left: 48px;
+    right: 48px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-left: 4px solid var(--brand-accent);
+    border-radius: 0 4px 4px 0;
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .convergence-label {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--brand-accent);
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .convergence-text {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-dark);
+    line-height: 1.3;
+  }
+
+  .convergence-text em {
+    font-style: normal;
+    color: var(--brand-accent);
+    font-weight: 700;
+  }
+
+  /* DARK THEME */
+  :root {
+    --card-bg: rgba(255,255,255,0.07);
+    --card-border: rgba(255,255,255,0.12);
+    --text-dark: #FFFFFF;
+    --text-mid: rgba(255,255,255,0.6);
+    --slide-bg: #2D0A4E;
+  }
+
+  body {
+    background: #2D0A4E;
+  }
+
+  .label-internal {
+    color: rgba(255,255,255,0.4);
+  }
+
+  .title-block h1 {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+  pointer-events: auto;
+    color: #FFFFFF;
+  }
+
+  .title-block h1 strong {
+    color: #C780FF;
+  }
+
+  .title-block .sub {
+    color: rgba(255,255,255,0.6);
+  }
+
+  .accent-rule {
+    background: #A100FF;
+  }
+
+  .panel-risk {
+    background: rgba(220,38,38,0.12);
+    border: 1px solid rgba(220,38,38,0.3);
+  }
+
+  .panel-opportunity {
+    background: rgba(22,163,74,0.1);
+    border: 1px solid rgba(22,163,74,0.25);
+  }
+
+  .item {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+  }
+
+  .item-desc {
+    color: rgba(255,255,255,0.85);
+  }
+
+  .item-note {
+    color: rgba(255,255,255,0.5);
+  }
+
+  .divider-line {
+    background: rgba(255,255,255,0.3);
+  }
+
+  .divider-icon {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.85);
+  }
+
+  .convergence-bar {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-left: 4px solid #A100FF;
+  }
+
+  .convergence-text {
+    color: rgba(255,255,255,0.85);
+  }
+
+  footer {
+    border-top: 1px solid rgba(255,255,255,0.1);
+  }
+
+  footer span {
+    color: rgba(255,255,255,0.4);
+  }
+</style>
+</head>
+<body>
+
+  <!-- Invariant chrome -->
+  <div class="label-internal" data-shape-id="accenture-tag">Accenture Internal</div>
+
+  <div class="title-block">
+    <h1 data-shape-id="title">Opportunity <strong>outweighs</strong> risk — with the right mitigations</h1>
+    <div class="sub" data-shape-id="subtitle">Risk vs. Opportunity Matrix · Strategic initiative assessment</div>
+    <div class="accent-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- Content area -->
+  <div class="content-area">
+
+    <!-- Risk panel -->
+    <div class="panel panel-risk">
+      <div class="panel-header">
+        <span class="panel-header-icon" data-shape-id="panel-1-icon">⚠</span>
+        <span class="panel-header-title" data-shape-id="panel-1-header">Risks</span>
+      </div>
+      <div class="panel-body">
+
+        <div class="item">
+          <div class="item-row">
+            <span class="badge badge-critical" data-shape-id="risk-1-badge">Critical</span>
+            <span class="item-desc" data-shape-id="risk-1-desc">Regulatory non-compliance in target markets</span>
+          </div>
+          <div class="item-note" data-shape-id="risk-1-note">Mitigation: engage legal counsel Q1; complete gap analysis before go-live</div>
+        </div>
+
+        <div class="item">
+          <div class="item-row">
+            <span class="badge badge-high-risk" data-shape-id="risk-2-badge">High</span>
+            <span class="item-desc" data-shape-id="risk-2-desc">Key talent attrition during transition period</span>
+          </div>
+          <div class="item-note" data-shape-id="risk-2-note">Mitigation: retention bonuses + accelerated role clarity by month 2</div>
+        </div>
+
+        <div class="item">
+          <div class="item-row">
+            <span class="badge badge-high-risk" data-shape-id="risk-3-badge">High</span>
+            <span class="item-desc" data-shape-id="risk-3-desc">Data migration integrity and system downtime</span>
+          </div>
+          <div class="item-note" data-shape-id="risk-3-note">Mitigation: parallel-run legacy systems for 60 days; automated reconciliation</div>
+        </div>
+
+        <div class="item">
+          <div class="item-row">
+            <span class="badge badge-medium" data-shape-id="risk-4-badge">Medium</span>
+            <span class="item-desc" data-shape-id="risk-4-desc">Stakeholder resistance slowing adoption curve</span>
+          </div>
+          <div class="item-note" data-shape-id="risk-4-note">Mitigation: executive sponsorship + change-champion network in place</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Divider -->
+    <div class="divider">
+      <div class="divider-line"></div>
+      <div class="divider-icon" data-shape-id="divider-icon">⚖</div>
+    </div>
+
+    <!-- Opportunity panel -->
+    <div class="panel panel-opportunity">
+      <div class="panel-header">
+        <span class="panel-header-icon" data-shape-id="panel-2-icon">★</span>
+        <span class="panel-header-title" data-shape-id="panel-2-header">Opportunities</span>
+      </div>
+      <div class="panel-body">
+
+        <div class="item">
+          <div class="item-row">
+            <span class="badge badge-high-opp" data-shape-id="opp-1-badge">High</span>
+            <span class="item-desc" data-shape-id="opp-1-desc">35% cost reduction through process automation</span>
+          </div>
+          <div class="item-note" data-shape-id="opp-1-note">Capture action: pilot automation in Finance by Q2; scale post-validation</div>
+        </div>
+
+        <div class="item">
+          <div class="item-row">
+            <span class="badge badge-high-opp" data-shape-id="opp-2-badge">High</span>
+            <span class="item-desc" data-shape-id="opp-2-desc">New revenue stream via platform-as-a-service model</span>
+          </div>
+          <div class="item-note" data-shape-id="opp-2-note">Capture action: identify anchor client for beta; target $8M ARR by year 2</div>
+        </div>
+
+        <div class="item">
+          <div class="item-row">
+            <span class="badge badge-medium-opp" data-shape-id="opp-3-badge">Medium</span>
+            <span class="item-desc" data-shape-id="opp-3-desc">First-mover advantage in underserved mid-market segment</span>
+          </div>
+          <div class="item-note" data-shape-id="opp-3-note">Capture action: accelerate GTM launch; lock in 3 lighthouse accounts in H1</div>
+        </div>
+
+        <div class="item">
+          <div class="item-row">
+            <span class="badge badge-medium-opp" data-shape-id="opp-4-badge">Medium</span>
+            <span class="item-desc" data-shape-id="opp-4-desc">Talent brand uplift attracting next-gen engineering talent</span>
+          </div>
+          <div class="item-note" data-shape-id="opp-4-note">Capture action: publish case study post-launch; partner with 2 universities</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Convergence bar -->
+  <div class="convergence-bar">
+    <span class="convergence-label" data-shape-id="convergence-mark">Net Assessment</span>
+    <span class="convergence-text" data-shape-id="convergence">
+      Opportunity outweighs risk <em>if regulatory compliance and talent retention risks are mitigated by end of Q1</em> — estimated net value upside of $12–15M over 24 months.
+    </span>
+  </div>
+
+  <footer data-shape-id="footer-rule">
+    <span data-shape-id="footer-left">Confidential — Accenture Internal</span>
+    <span data-shape-id="footer-right">Slide Lab · 2026 · 195d</span>
+  </footer>
+
+</body>
+</html>

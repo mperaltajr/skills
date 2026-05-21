@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>85 · Vision, mission, values</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1280px; height: 720px; background: var(--slide-bg); font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; color: var(--text-dark); overflow: hidden; }
+body { padding: 0px 56px 80px 56px; position: relative; }
+
+.draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; }
+.project-label { position: absolute; top: 24px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
+
+/* ---- Title ---- */
+.action-title { position: absolute; left: 56px; right: 56px; top: 28px; min-height: 36px; font-size: 26px; font-weight: 700; line-height: 1.2; max-width: 1100px; }
+.action-title strong { color: var(--brand-primary); }
+.subhead { position: absolute; left: 56px; right: 56px; top: 108px; font-size: 14px; color: var(--text-mid); font-style: italic; }
+.title-rule { position: absolute; left: 56px; top: 136px; width: 40px; height: 3px; background: var(--brand-accent); }
+
+/* ---- Content block (pyramid layout: VISION on top, MISSION middle, VALUES base) ---- */
+.content-block {
+  position: absolute;
+  left: 56px;
+  right: 56px;
+  top: 170px;
+  bottom: 80px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
+/* Each tier — pyramid-style: top narrow, bottom widest */
+.tier {
+  position: relative;
+  display: flex;
+  align-items: stretch;
+}
+
+/* Left label column (uppercase letter-spaced) — sits inside the tier band */
+.tier-label {
+  flex-shrink: 0;
+  width: 110px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 0 18px 0 22px;
+  border-right: 1px solid rgba(255,255,255,0.25);
+}
+.tier-label .lbl {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+.tier-label .lbl-sub {
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  margin-top: 4px;
+  opacity: 0.7;
+}
+
+/* Statement column */
+.tier-statement {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 0 26px;
+}
+
+/* ---- TIER 1: VISION (top, narrowest, brand-accent) ---- */
+.tier-vision {
+  width: 760px;
+  height: 110px;
+  background: var(--brand-accent);
+  color: #fff;
+}
+.tier-vision .tier-statement {
+  font-size: 19px;
+  font-weight: 700;
+  font-style: italic;
+  line-height: 1.3;
+  letter-spacing: -0.005em;
+}
+.tier-vision .tier-statement .quote-mark {
+  font-size: 36px;
+  line-height: 0;
+  color: rgba(255,255,255,0.5);
+  margin-right: 8px;
+  font-style: normal;
+  vertical-align: -8px;
+  font-weight: 800;
+}
+
+/* ---- TIER 2: MISSION (middle, wider, brand-primary) ---- */
+.tier-mission {
+  width: 940px;
+  height: 130px;
+  background: var(--brand-primary);
+  color: #fff;
+}
+.tier-mission .tier-statement {
+  font-size: 14.5px;
+  font-weight: 500;
+  line-height: 1.45;
+  color: rgba(255,255,255,0.95);
+}
+.tier-mission .tier-statement strong { color: #fff; font-weight: 700; }
+
+/* ---- TIER 3: VALUES (base, widest, light card) ---- */
+.tier-values {
+  width: 1120px;
+  height: 130px;
+  background: var(--card-bg);
+  border: 1.5px solid var(--card-border);
+  color: var(--text-dark);
+}
+.tier-values .tier-label {
+  border-right: 1px solid var(--card-border);
+}
+.tier-values .tier-label .lbl { color: var(--brand-primary); }
+.tier-values .tier-label .lbl-sub { color: var(--text-mid); opacity: 1; }
+
+.values-row {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 14px;
+  padding: 0 22px;
+}
+.value-chip {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 10px 8px;
+  background: #fff;
+  border: 1.5px solid var(--brand-accent-soft);
+  border-radius: 8px;
+  min-height: 84px;
+}
+.value-chip .v-icon {
+  width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--brand-accent);
+}
+.value-chip .v-icon svg { width: 22px; height: 22px; }
+.value-chip .v-name {
+  font-size: 12.5px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--brand-primary);
+  text-align: center;
+  line-height: 1.1;
+}
+.value-chip .v-desc {
+  font-size: 10px;
+  color: var(--text-mid);
+  text-align: center;
+  line-height: 1.3;
+  font-weight: 500;
+}
+
+/* ---- Convergence line ---- */
+.convergence {
+  position: absolute;
+  left: 56px;
+  right: 56px;
+  bottom: 56px;
+  padding-top: 12px;
+  border-top: 1px solid var(--card-border);
+  font-size: 14px;
+  color: var(--brand-primary);
+  font-style: italic;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.4;
+}
+.convergence::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: var(--brand-accent);
+  border-radius: 50%;
+  margin-right: 10px;
+  transform: translateY(-2px);
+}
+.convergence strong { color: var(--brand-accent); font-style: normal; font-weight: 700; }
+
+/* ---- Footer chrome ---- */
+.footer-rule { position: absolute; left: 0; right: 0; bottom: 32px; height: 1px; background: var(--card-border); }
+.footer-left { position: absolute; bottom: 14px; left: 24px; color: var(--text-faint); font-size: 11px; letter-spacing: 1px; }
+.footer-right { position: absolute; bottom: 14px; right: 24px; color: var(--text-faint); font-size: 11px; }
+</style>
+</head>
+<body>
+
+  <div class="action-title" data-shape-id="title">Vision, mission, values &mdash; <strong>why Slide Lab exists.</strong></div>
+  <div class="subhead" data-shape-id="subtitle">Three statements, one stack: where we're going, what we do, how we behave.</div>
+  <div class="title-rule" data-shape-id="brand-rule"></div>
+
+  <div class="content-block">
+
+    <!-- TIER 1 — VISION (top, narrowest, brand-accent fill) -->
+    <div class="tier tier-vision" data-shape-id="tier-vision-band">
+      <div class="tier-label">
+        <div class="lbl" data-shape-id="tier-vision-label">Vision</div>
+        <div class="lbl-sub" data-shape-id="tier-vision-sublabel">Where we&rsquo;re going</div>
+      </div>
+      <div class="tier-statement" data-shape-id="tier-vision-statement">
+        <span class="quote-mark">&ldquo;</span>Every consulting deck argued before it&rsquo;s drawn.<span class="quote-mark" style="margin-left:6px;margin-right:0;">&rdquo;</span>
+      </div>
+    </div>
+
+    <!-- TIER 2 — MISSION (middle, brand-primary fill, white text) -->
+    <div class="tier tier-mission" data-shape-id="tier-mission-band">
+      <div class="tier-label">
+        <div class="lbl" data-shape-id="tier-mission-label">Mission</div>
+        <div class="lbl-sub" data-shape-id="tier-mission-sublabel">What we do</div>
+      </div>
+      <div class="tier-statement" data-shape-id="tier-mission-statement">
+        We make <strong>structured thinking the default</strong> by giving consultants a tool that locks the argument before the first slide is built &mdash; so the deck follows the logic, not the other way around.
+      </div>
+    </div>
+
+    <!-- TIER 3 — VALUES (base, widest, 4 chips) -->
+    <div class="tier tier-values" data-shape-id="tier-values-band">
+      <div class="tier-label">
+        <div class="lbl" data-shape-id="tier-values-label">Values</div>
+        <div class="lbl-sub" data-shape-id="tier-values-sublabel">How we behave</div>
+      </div>
+      <div class="values-row">
+
+        <div class="value-chip" data-shape-id="value-chip-1">
+          <div class="v-icon" data-shape-id="value-chip-1-icon">
+            <!-- Heart / Rigor as guarded craft -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s-7-4.5-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 7C19 17.5 12 22 12 22z"/>
+            </svg>
+          </div>
+          <div class="v-name" data-shape-id="value-chip-1-name">Rigor</div>
+          <div class="v-desc" data-shape-id="value-chip-1-desc">Argument before aesthetics</div>
+        </div>
+
+        <div class="value-chip" data-shape-id="value-chip-2">
+          <div class="v-icon" data-shape-id="value-chip-2-icon">
+            <!-- Speed / lightning -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" fill="currentColor" stroke="none"/>
+            </svg>
+          </div>
+          <div class="v-name" data-shape-id="value-chip-2-name">Speed</div>
+          <div class="v-desc" data-shape-id="value-chip-2-desc">Hours, not weeks</div>
+        </div>
+
+        <div class="value-chip" data-shape-id="value-chip-3">
+          <div class="v-icon" data-shape-id="value-chip-3-icon">
+            <!-- Reusability / refresh-cycle -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="23 4 23 10 17 10"/>
+              <polyline points="1 20 1 14 7 14"/>
+              <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/>
+            </svg>
+          </div>
+          <div class="v-name" data-shape-id="value-chip-3-name">Reusability</div>
+          <div class="v-desc" data-shape-id="value-chip-3-desc">Build once, ship many</div>
+        </div>
+
+        <div class="value-chip" data-shape-id="value-chip-4">
+          <div class="v-icon" data-shape-id="value-chip-4-icon">
+            <!-- Internal IP / lock + brain -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </div>
+          <div class="v-name" data-shape-id="value-chip-4-name">Internal IP</div>
+          <div class="v-desc" data-shape-id="value-chip-4-desc">Our craft, our edge</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Convergence -->
+  <div class="convergence" data-shape-id="convergence">
+    The stack reads top-down: vision sets the destination, mission names the work, values <strong>govern how the work gets done</strong>.
+  </div>
+
+  <!-- Footer chrome -->
+  <div class="footer-left" data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+</body>
+</html>

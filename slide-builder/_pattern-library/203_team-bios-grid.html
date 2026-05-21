@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>Pattern 203 — Team Bios Grid</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: Inter, system-ui, sans-serif;
+    background: var(--slide-bg);
+    position: relative;
+  }
+
+  /* ── Invariant chrome ── */
+
+  .label-internal {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .draft-badge {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 0;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .title-block {
+    position: absolute; top: 0; left: 0; right: 0; height: 160px;
+  }
+
+  .title-block h1 {
+    position: absolute; top: 28px; left: 64px; right: 64px; min-height: 36px;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.2;
+  }
+
+  .title-block h1 strong {
+    color: var(--brand-accent);
+    font-weight: 700;
+  }
+
+  .title-block .sub-headline {
+    position: absolute; top: 108px; left: 64px; right: 64px;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+
+}
+
+  .accent-rule {
+    position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+
+    border: none;
+  }
+
+  footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 20px 10px;
+  }
+
+  footer span {
+    font-size: 8px;
+    color: var(--text-faint);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* ── Bio grid ── */
+
+  .bio-grid {
+    position: absolute;
+    top: 120px;
+    left: 48px;
+    right: 48px;
+    bottom: 56px;
+    display: flex; flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .bio-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow: hidden;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .avatar {
+    width: 56px;
+    height: 56px;
+    min-width: 56px;
+    border-radius: 50%;
+    background: var(--brand-primary-mid);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #FFFFFF;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  .card-identity {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .person-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .person-role {
+    font-size: 14px;
+    color: var(--text-mid);
+    font-weight: 400;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .bio-excerpt {
+    font-size: 11px;
+    color: var(--text-dark);
+    line-height: 1.55;
+    flex: 1;
+  }
+
+  .chip-row {
+    display: flex;
+    gap: 5px;
+    flex-wrap: nowrap;
+    overflow: hidden;
+
+    top: auto;
+  }
+
+  .chip {
+    background: var(--brand-accent-soft);
+    color: var(--brand-primary);
+    font-size: 9px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 20px;
+    white-space: nowrap;
+    letter-spacing: 0.03em;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Invariant chrome -->
+  <span class="label-internal" data-shape-id="accenture-tag">Accenture Internal</span>
+
+  <div class="title-block">
+    <h1 data-shape-id="title">Meet the <strong>Core Team</strong></h1>
+    <p class="sub-headline" data-shape-id="subtitle">Six leaders driving the programme — backgrounds, roles, and areas of expertise</p>
+    <div class="accent-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- Bio grid -->
+  <div class="bio-grid">
+
+    <!-- Card 1 -->
+    <div class="bio-card">
+      <div class="card-header">
+        <div class="avatar" data-shape-id="persona-1-photo">SR</div>
+        <div class="card-identity">
+          <span class="person-name" data-shape-id="persona-1-name">Sarah Reynolds</span>
+          <span class="person-role" data-shape-id="persona-1-role">Programme Director</span>
+        </div>
+      </div>
+      <p class="bio-excerpt" data-shape-id="persona-1-bio">20+ years leading large-scale digital transformations across FS and public sector. Accountable for overall delivery and stakeholder alignment.</p>
+      <div class="chip-row">
+        <span class="chip" data-shape-id="persona-1-tag-1">Programme Governance</span>
+        <span class="chip" data-shape-id="persona-1-tag-2">Change Management</span>
+      </div>
+    </div>
+
+    <!-- Card 2 -->
+    <div class="bio-card">
+      <div class="card-header">
+        <div class="avatar" data-shape-id="persona-2-photo">JM</div>
+        <div class="card-identity">
+          <span class="person-name" data-shape-id="persona-2-name">James Morales</span>
+          <span class="person-role" data-shape-id="persona-2-role">Technology Lead</span>
+        </div>
+      </div>
+      <p class="bio-excerpt" data-shape-id="persona-2-bio">Cloud-native architect specialising in Azure and Kubernetes. Defines the technical blueprint and oversees engineering squads across two workstreams.</p>
+      <div class="chip-row">
+        <span class="chip" data-shape-id="persona-2-tag-1">Cloud Architecture</span>
+        <span class="chip" data-shape-id="persona-2-tag-2">DevSecOps</span>
+      </div>
+    </div>
+
+    <!-- Card 3 -->
+    <div class="bio-card">
+      <div class="card-header">
+        <div class="avatar" data-shape-id="persona-3-photo">LP</div>
+        <div class="card-identity">
+          <span class="person-name" data-shape-id="persona-3-name">Lena Park</span>
+          <span class="person-role" data-shape-id="persona-3-role">Data &amp; AI Strategist</span>
+        </div>
+      </div>
+      <p class="bio-excerpt" data-shape-id="persona-3-bio">Leads the analytics and ML platform build. Prior experience at a global consultancy driving gen-AI adoption in regulated industries.</p>
+      <div class="chip-row">
+        <span class="chip" data-shape-id="persona-3-tag-1">Generative AI</span>
+        <span class="chip" data-shape-id="persona-3-tag-2">Data Governance</span>
+      </div>
+    </div>
+
+    <!-- Card 4 -->
+    <div class="bio-card">
+      <div class="card-header">
+        <div class="avatar" data-shape-id="persona-4-photo">TN</div>
+        <div class="card-identity">
+          <span class="person-name" data-shape-id="persona-4-name">Tariq Nassar</span>
+          <span class="person-role" data-shape-id="persona-4-role">Change &amp; Comms Lead</span>
+        </div>
+      </div>
+      <p class="bio-excerpt" data-shape-id="persona-4-bio">Behavioural change expert with a track record in enterprise ERP rollouts. Manages communications, training design, and adoption metrics.</p>
+      <div class="chip-row">
+        <span class="chip" data-shape-id="persona-4-tag-1">OCM</span>
+        <span class="chip" data-shape-id="persona-4-tag-2">Training Design</span>
+      </div>
+    </div>
+
+    <!-- Card 5 -->
+    <div class="bio-card">
+      <div class="card-header">
+        <div class="avatar" data-shape-id="persona-5-photo">CW</div>
+        <div class="card-identity">
+          <span class="person-name" data-shape-id="persona-5-name">Claire Wong</span>
+          <span class="person-role" data-shape-id="persona-5-role">Commercial &amp; Risk Manager</span>
+        </div>
+      </div>
+      <p class="bio-excerpt" data-shape-id="persona-5-bio">Manages contract performance, financial controls, and risk registers. Brings 12 years in commercial management on multi-vendor engagements.</p>
+      <div class="chip-row">
+        <span class="chip" data-shape-id="persona-5-tag-1">Risk &amp; Controls</span>
+        <span class="chip" data-shape-id="persona-5-tag-2">Commercial</span>
+      </div>
+    </div>
+
+    <!-- Card 6 -->
+    <div class="bio-card">
+      <div class="card-header">
+        <div class="avatar" data-shape-id="persona-6-photo">BO</div>
+        <div class="card-identity">
+          <span class="person-name" data-shape-id="persona-6-name">Ben O'Sullivan</span>
+          <span class="person-role" data-shape-id="persona-6-role">Solution Architect</span>
+        </div>
+      </div>
+      <p class="bio-excerpt" data-shape-id="persona-6-bio">Owns integration design between legacy platforms and the new cloud core. Experienced in API-led connectivity and enterprise middleware patterns.</p>
+      <div class="chip-row">
+        <span class="chip" data-shape-id="persona-6-tag-1">Integration</span>
+        <span class="chip" data-shape-id="persona-6-tag-2">API Design</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <footer data-shape-id="footer-rule">
+    <span data-shape-id="footer-left">Confidential — Accenture Internal</span>
+    <span data-shape-id="footer-right">Slide Lab · 2026 · 203</span>
+  </footer>
+
+</body>
+</html>

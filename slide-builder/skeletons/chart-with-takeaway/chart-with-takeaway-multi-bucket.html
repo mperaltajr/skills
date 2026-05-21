@@ -1,0 +1,174 @@
+<!-- SKELETON
+  id: chart-with-takeaway-multi-bucket
+  category: chart-with-takeaway
+  page-types: Chart, Framework, Structured Text
+  zones: action_title, sub_headline, icon_1, icon_2, icon_3, bucket_label_1, bucket_label_2, bucket_label_3, b1_bullet_1, b1_bullet_2, b1_bullet_3, b2_bullet_1, b2_bullet_2, b2_bullet_3, b3_bullet_1, b3_bullet_2, b3_bullet_3, footnote, source
+  best-for: 3 workstreams / themes / categories each with an icon, label, and 3 supporting bullets
+  buckets: x=58/454/850 w=372 h=521
+  icon-zone: 117x117 centered in bucket top
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  .slide {
+    position: relative;
+    width: 1280px;
+    height: 720px;
+    background: #ffffff;
+    font-family: Arial, Helvetica, sans-serif;
+    overflow: hidden;
+  }
+
+  .draft-badge {
+    position: absolute;
+    left: 610px; top: 4px; width: 60px; height: 20px;
+    background: #FFC000;
+    border: 2px solid #CC0000;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 700; color: #CC0000;
+  }
+
+  .zone-title {
+    position: absolute;
+    left: 58px; top: 19px; width: 1164px; height: 77px;
+    background: #E6F1FB;
+    border: 1px dashed #378ADD;
+    padding: 10px 14px;
+    display: flex; align-items: center;
+  }
+  .zone-label {
+    display: block; font-size: 7px; color: #888; font-style: italic; margin-bottom: 4px;
+  }
+  .zone-title span:not(.zone-label) {
+    font-size: 20px; font-weight: 700; color: #1a1a1a; line-height: 1.2;
+  }
+
+  .zone-sub {
+    position: absolute;
+    left: 58px; top: 96px; width: 1164px; height: 26px;
+    background: #F0F4FB;
+    border: 1px dashed #85B7EB;
+    padding: 0 14px;
+    display: flex; align-items: center;
+  }
+  .zone-sub span:not(.zone-label) {
+    font-size: 11px; color: #444;
+  }
+
+  /* Buckets */
+  .bucket {
+    position: absolute;
+    top: 151px; width: 372px; height: 521px;
+    border: 1px dashed #CCCCCC;
+    padding: 14px;
+  }
+  .bucket-1 { left: 58px;  background: #EAF3DE; }
+  .bucket-2 { left: 454px; background: #FFF0D4; }
+  .bucket-3 { left: 850px; background: #F0E8F8; }
+
+  .bucket-icon {
+    width: 117px; height: 117px;
+    background: #fff;
+    border: 1px dashed #999;
+    margin: 10px auto 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8px; color: #777; font-style: italic;
+    text-align: center;
+  }
+  .bucket-label {
+    font-size: 13px; font-weight: 700;
+    color: #1a1a1a;
+    text-align: center;
+    margin-bottom: 8px;
+  }
+  .bucket-divider {
+    width: calc(100% - 40px);
+    height: 2px; background: #aaa;
+    margin: 0 20px 10px;
+  }
+  .bucket-bullet {
+    font-size: 9px; color: #222; line-height: 1.5;
+    padding-left: 10px; position: relative;
+    margin-bottom: 6px;
+  }
+  .bucket-bullet::before {
+    content: "•"; position: absolute; left: 0;
+  }
+
+  .zone-footnote {
+    position: absolute;
+    left: 58px; top: 672px; width: 1164px; height: 16px;
+    background: #F1EFE8; border: 1px solid #BBBBBB;
+    padding: 2px 14px;
+    font-size: 8px; color: #444;
+  }
+  .zone-source {
+    position: absolute;
+    left: 58px; top: 688px; width: 900px; height: 14px;
+    background: #F1EFE8; border: 1px solid #BBBBBB;
+    padding: 1px 14px;
+    font-size: 8px; color: #444;
+  }
+  .page-number {
+    position: absolute;
+    right: 58px; top: 690px;
+    font-size: 8px; color: #666;
+  }
+</style>
+</head>
+<body>
+<div class="slide">
+
+  <div class="draft-badge">DRAFT</div>
+
+  <div class="zone-title">
+    <span class="zone-label">action_title — native placeholder, inherits font/color from client master</span>
+    <span>{{ACTION_TITLE}}</span>
+  </div>
+
+  <div class="zone-sub">
+    <span class="zone-label">sub_headline — native placeholder, inherits from client master</span>
+    <span>{{SUB_HEADLINE}}</span>
+  </div>
+
+  <!-- Bucket 1 -->
+  <div class="bucket bucket-1">
+    <div class="bucket-icon">{{ICON_1}}</div>
+    <div class="bucket-label">{{BUCKET_LABEL_1}}</div>
+    <div class="bucket-divider"></div>
+    <div class="bucket-bullet">{{B1_BULLET_1}}</div>
+    <div class="bucket-bullet">{{B1_BULLET_2}}</div>
+    <div class="bucket-bullet">{{B1_BULLET_3}}</div>
+  </div>
+
+  <!-- Bucket 2 -->
+  <div class="bucket bucket-2">
+    <div class="bucket-icon">{{ICON_2}}</div>
+    <div class="bucket-label">{{BUCKET_LABEL_2}}</div>
+    <div class="bucket-divider"></div>
+    <div class="bucket-bullet">{{B2_BULLET_1}}</div>
+    <div class="bucket-bullet">{{B2_BULLET_2}}</div>
+    <div class="bucket-bullet">{{B2_BULLET_3}}</div>
+  </div>
+
+  <!-- Bucket 3 -->
+  <div class="bucket bucket-3">
+    <div class="bucket-icon">{{ICON_3}}</div>
+    <div class="bucket-label">{{BUCKET_LABEL_3}}</div>
+    <div class="bucket-divider"></div>
+    <div class="bucket-bullet">{{B3_BULLET_1}}</div>
+    <div class="bucket-bullet">{{B3_BULLET_2}}</div>
+    <div class="bucket-bullet">{{B3_BULLET_3}}</div>
+  </div>
+
+  <div class="zone-footnote">1. {{FOOTNOTE}}</div>
+  <div class="zone-source">Source: {{SOURCE}}</div>
+  <div class="page-number">1</div>
+
+</div>
+</body>
+</html>

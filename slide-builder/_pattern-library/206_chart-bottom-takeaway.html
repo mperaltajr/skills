@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pattern 206 — Chart with Bottom Takeaway Strip</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: Inter, system-ui, sans-serif;
+    background: var(--slide-bg);
+    position: relative;
+  }
+
+  /* ── Invariant chrome ── */
+
+  .label-internal {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    font-weight: 400;
+  }
+
+  .badge-draft {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 0;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .title-block {
+    position: absolute; top: 0; left: 0; right: 0; height: 160px;
+  }
+
+  .title-block-text {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .title-block h1 {
+    position: absolute; top: 28px; left: 64px; right: 64px; min-height: 36px;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.15;
+  }
+
+  .title-block h1 strong {
+    color: var(--brand-accent);
+    font-weight: 700;
+  }
+
+  .title-block .sub {
+    position: absolute; top: 108px; left: 64px; right: 64px;
+
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+  }
+
+  .title-block .accent-rule {
+  position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+
+  }
+
+  /* ── Legend (PRIMARY: right-pushed flex element in header/title zone) ── */
+
+  .legend {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-self: flex-end;
+    padding-bottom: 2px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11px;
+    color: var(--text-dark);
+    white-space: nowrap;
+  }
+
+  .legend-swatch {
+    width: 14px;
+    height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* ── Footer ── */
+
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 20px 10px;
+  }
+
+  .footer span {
+    font-size: 8px;
+    color: var(--text-faint);
+    letter-spacing: 0.04em;
+  }
+
+  /* ── Chart area ── */
+
+  .chart-area {
+    position: absolute;
+    top: 120px;
+    left: 48px;
+    right: 48px;
+    bottom: 110px; /* 56px footer + 54px strip */
+    border-bottom: 1px solid var(--card-border);
+  }
+
+  .chart-area svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+    overflow: visible;
+  }
+
+  /* ── Takeaway strip ── */
+
+  .takeaway-strip {
+    position: absolute;
+    bottom: 56px;
+    left: 48px;
+    right: 48px;
+    height: 54px;
+    background: var(--card-bg);
+    border-left: 4px solid var(--brand-accent);
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 10px;
+  }
+
+  .takeaway-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--brand-accent);
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .takeaway-text {
+    font-size: 14px;
+    color: var(--text-dark);
+    line-height: 1.45;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Invariant chrome -->
+  <div class="label-internal">ACCENTURE INTERNAL</div>
+  <div class="badge-draft">DRAFT</div>
+
+  <!-- Title block -->
+  <div class="title-block">
+    <div class="title-block-text">
+      <h1>Revenue growth is <strong>accelerating</strong> across all segments</h1>
+      <div class="sub">Quarterly revenue by business unit, FY2024–FY2026 (USD millions)</div>
+      <div class="accent-rule"></div>
+    </div>
+    <!-- Legend (PRIMARY placement: right-pushed flex element below sub-headline/accent-rule) -->
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-swatch" style="background: var(--brand-primary);"></div>
+        FY2024
+      </div>
+      <div class="legend-item">
+        <div class="legend-swatch" style="background: var(--brand-primary-mid);"></div>
+        FY2025
+      </div>
+      <div class="legend-item">
+        <div class="legend-swatch" style="background: var(--brand-accent-soft);"></div>
+        FY2026E
+      </div>
+    </div>
+  </div>
+
+  <!-- Chart area -->
+  <div class="chart-area">
+    <svg viewBox="0 0 1184 326" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+
+      <!-- Definitions -->
+      <defs>
+        <style>
+          .axis-label { font-family: Inter, system-ui, sans-serif; font-size: 11px; fill: #64748B; }
+          .axis-unit  { font-family: Inter, system-ui, sans-serif; font-size: 10px; fill: #94A3B8; }
+          .grid-line  { stroke: #E5D5F0; stroke-width: 1; stroke-dasharray: 4 3; }
+          .group-label{ font-family: Inter, system-ui, sans-serif; font-size: 11px; fill: #1A1A2E; text-anchor: middle; }
+          .bar-value  { font-family: Inter, system-ui, sans-serif; font-size: 10px; fill: #1A1A2E; text-anchor: middle; }
+        </style>
+      </defs>
+
+      <!-- Chart geometry constants:
+           Plot area: x=64 y=12 w=1096 h=268 (bottom at y=280)
+           Y-axis: 0–500, 5 ticks at 0,100,200,300,400,500
+           4 groups, 3 bars each, grouped bar layout
+      -->
+
+      <!-- Y-axis gridlines & labels -->
+      <!-- y=280 → 0, y=226.4 → 100, y=172.8 → 200, y=119.2 → 300, y=65.6 → 400, y=12 → 500 -->
+      <line x1="64" y1="280" x2="1160" y2="280" stroke="#94A3B8" stroke-width="1"/>
+      <line x1="64" y1="226" x2="1160" y2="226" class="grid-line"/>
+      <line x1="64" y1="173" x2="1160" y2="173" class="grid-line"/>
+      <line x1="64" y1="119" x2="1160" y2="119" class="grid-line"/>
+      <line x1="64" y1="65"  x2="1160" y2="65"  class="grid-line"/>
+      <line x1="64" y1="12"  x2="1160" y2="12"  class="grid-line"/>
+
+      <text x="58" y="284" class="axis-label" text-anchor="end">0</text>
+      <text x="58" y="230" class="axis-label" text-anchor="end">100</text>
+      <text x="58" y="177" class="axis-label" text-anchor="end">200</text>
+      <text x="58" y="123" class="axis-label" text-anchor="end">300</text>
+      <text x="58" y="69"  class="axis-label" text-anchor="end">400</text>
+      <text x="58" y="16"  class="axis-label" text-anchor="end">500</text>
+
+      <!-- Y-axis unit label -->
+      <text x="18" y="150" class="axis-unit" text-anchor="middle" transform="rotate(-90,18,150)">USD Millions</text>
+
+      <!-- Bar group layout:
+           Plot width = 1096px, 4 groups → 274px each
+           Group inner: 3 bars × 34px + 2 gaps × 6px + outer pad 20px each = 102+12+40 = 154px
+           Group start offsets from x=64:
+             G1: 64+60 = 124   G2: 124+274 = 398   G3: 398+274 = 672   G4: 672+274 = 946
+      -->
+
+      <!-- Helper: bar top y = 280 - (value/500)*268 -->
+      <!-- G1: Digital Services — 210, 270, 340 -->
+      <!-- G2: Cloud Platform — 180, 245, 310 -->
+      <!-- G3: Consulting    — 320, 375, 430 -->
+      <!-- G4: Managed Ops   — 150, 195, 260 -->
+
+      <!-- Group 1: Digital Services  (center x=198) -->
+      <!-- bar positions: 124, 162, 200 (width 34 each) -->
+      <rect x="124" y="168" width="34" height="112" fill="#2D0A4E" rx="2"/>
+      <rect x="162" y="136" width="34" height="144" fill="#5C2D87" rx="2"/>
+      <rect x="200" y="99"  width="34" height="181" fill="#C780FF" rx="2"/>
+      <text x="141" y="164" class="bar-value">210</text>
+      <text x="179" y="132" class="bar-value">270</text>
+      <text x="217" y="95"  class="bar-value">340</text>
+      <text x="196" y="300" class="group-label">Digital Services</text>
+
+      <!-- Group 2: Cloud Platform  (center x=472) -->
+      <rect x="398" y="184" width="34" height="96"  fill="#2D0A4E" rx="2"/>
+      <rect x="436" y="149" width="34" height="131" fill="#5C2D87" rx="2"/>
+      <rect x="474" y="114" width="34" height="166" fill="#C780FF" rx="2"/>
+      <text x="415" y="180" class="bar-value">180</text>
+      <text x="453" y="145" class="bar-value">245</text>
+      <text x="491" y="110" class="bar-value">310</text>
+      <text x="470" y="300" class="group-label">Cloud Platform</text>
+
+      <!-- Group 3: Consulting  (center x=746) -->
+      <rect x="672" y="109" width="34" height="171" fill="#2D0A4E" rx="2"/>
+      <rect x="710" y="80"  width="34" height="200" fill="#5C2D87" rx="2"/>
+      <rect x="748" y="50"  width="34" height="230" fill="#C780FF" rx="2"/>
+      <text x="689" y="105" class="bar-value">320</text>
+      <text x="727" y="76"  class="bar-value">375</text>
+      <text x="765" y="46"  class="bar-value">430</text>
+      <text x="744" y="300" class="group-label">Consulting</text>
+
+      <!-- Group 4: Managed Ops  (center x=1020) -->
+      <rect x="946" y="200" width="34" height="80"  fill="#2D0A4E" rx="2"/>
+      <rect x="984" y="175" width="34" height="105" fill="#5C2D87" rx="2"/>
+      <rect x="1022" y="141" width="34" height="139" fill="#C780FF" rx="2"/>
+      <text x="963"  y="196" class="bar-value">150</text>
+      <text x="1001" y="171" class="bar-value">195</text>
+      <text x="1039" y="137" class="bar-value">260</text>
+      <text x="1018" y="300" class="group-label">Managed Ops</text>
+
+    </svg>
+  </div>
+
+  <!-- Takeaway strip -->
+  <div class="takeaway-strip">
+    <div class="takeaway-label">IMPLICATION:</div>
+    <div class="takeaway-text">
+      Consulting and Digital Services are the primary growth engines, with FY2026 estimates exceeding FY2024 baselines by 34% and 62% respectively.
+      Investment prioritisation should shift toward these two segments to capture the compounding momentum already visible in the data.
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span>CONFIDENTIAL — ACCENTURE INTERNAL</span>
+    <span>Slide Lab · 2026 · 206</span>
+  </div>
+
+</body>
+</html>

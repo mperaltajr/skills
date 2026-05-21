@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>72 · OKR cascade</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 1280px;
+  height: 720px;
+  background: var(--slide-bg);
+  font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  color: var(--text-dark);
+  overflow: hidden;
+}
+body { position: relative; }
+
+/* ---- Top chrome ---- */
+.project-label {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  color: var(--text-faint);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+.draft-badge {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--draft-bg);
+  color: var(--draft-text);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 16px;
+  letter-spacing: 1px;
+}
+.pattern-tag {
+  position: absolute;
+  top: 24px;
+  right: 24px;
+  color: var(--text-faint);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+
+/* ---- Title block ---- */
+.title-block {
+  position: absolute;
+  top: 56px;
+  left: 64px;
+  right: 64px;
+}
+.action-title { position: absolute; left: 64px; right: 64px; top: 28px; min-height: 36px; font-size: 26px;
+  font-weight: 700;
+  line-height: 1.22;
+  color: var(--text-dark);
+  letter-spacing: -0.01em;
+  max-width: 1080px;
+}
+.action-title strong { color: var(--brand-primary); }
+.subhead { position: absolute; left: 64px; right: 64px; top: 108px; font-size: 14px;
+  color: var(--text-mid);
+  line-height: 1.4;
+  font-style: italic;
+  max-width: 1000px;
+}
+.title-rule { position: absolute; left: 64px; top: 136px; width: 40px;
+  height: 3px;
+  background: var(--brand-accent);
+  border-radius: 2px;
+}
+
+/* ---- Body: OKR cascade canvas ---- */
+.cascade {
+  position: absolute;
+  top: 174px;
+  left: 64px;
+  right: 64px;
+  height: 426px;
+}
+
+/* SVG connector layer sits underneath cards */
+.cascade-svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+/* ---- Objective (root) ---- */
+.objective {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 720px;
+  height: 78px;
+  background: var(--brand-primary);
+  color: white;
+  border-radius: 6px;
+  padding: 12px 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-shadow: 0 6px 18px rgba(45, 10, 78, 0.28);
+  z-index: 2;
+}
+.objective .tag {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--brand-accent-soft);
+  margin-bottom: 4px;
+}
+.objective .label {
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+/* ---- Key Result row (three columns) ---- */
+.kr-row {
+  position: absolute;
+  top: 134px;
+  left: 0;
+  right: 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 24px;
+}
+.kr-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+
+.kr {
+  height: 72px;
+  background: var(--brand-primary-mid);
+  color: white;
+  border-radius: 6px;
+  padding: 10px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  box-shadow: 0 4px 12px rgba(92, 45, 135, 0.22);
+  position: relative;
+  z-index: 2;
+}
+.kr .tag {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--brand-accent-soft);
+  margin-bottom: 3px;
+}
+.kr .label {
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+/* ---- Initiatives (leaf cards) ---- */
+.inits {
+  margin-top: 38px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.init {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 5px;
+  padding: 8px 12px 8px 14px;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--text-dark);
+  line-height: 1.3;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  position: relative;
+  z-index: 2;
+}
+.init .num {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--brand-primary-mid);
+  letter-spacing: 0.08em;
+  flex: 0 0 auto;
+  padding-top: 1px;
+}
+.init .text { flex: 1; }
+
+/* ---- Convergence strip ---- */
+.convergence {
+  position: absolute;
+  bottom: 60px;
+  left: 64px;
+  right: 64px;
+  background: var(--brand-primary);
+  color: white;
+  padding: 11px 22px;
+  font-size: 14px;
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1.35;
+}
+.convergence::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: var(--brand-accent);
+  border-radius: 50%;
+  margin-right: 10px;
+  transform: translateY(-2px);
+}
+
+/* ---- Footer invariant ---- */
+.footer-rule {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 32px;
+  height: 1px;
+  background: var(--card-border);
+}
+.footer-left {
+  position: absolute;
+  bottom: 14px;
+  left: 24px;
+  color: var(--text-faint);
+  font-size: 11px;
+  letter-spacing: 1px;
+}
+.footer-right {
+  position: absolute;
+  bottom: 14px;
+  right: 24px;
+  color: var(--text-faint);
+  font-size: 11px;
+}
+</style>
+</head>
+<body>
+
+  <!-- Top chrome -->
+  <div class="pattern-tag" data-shape-id="pattern-tag">PATTERN 72 / OKR CASCADE</div>
+
+  <!-- Title -->
+  <div class="title-block">
+    <div class="action-title" data-shape-id="title">Q3 OKRs &mdash; <strong>one objective, three key results, nine initiatives</strong>.</div>
+    <div class="subhead" data-shape-id="subtitle">Each level commits the level below: the objective sets ambition, KRs make it measurable, initiatives make it doable this quarter.</div>
+    <div class="title-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- Cascade body -->
+  <div class="cascade">
+
+    <!--
+      Geometry for SVG connectors (viewBox 0 0 1152 426, preserveAspectRatio=none):
+        Objective box: centered, 720x78 at top=0  -> bottom edge y=78, center x=576
+        KR columns (3) across 1152 width with 24px gaps:
+          col width = (1152 - 48) / 3 = 368
+          col-A: x=0..368,   center x=184
+          col-B: x=392..760, center x=576
+          col-C: x=784..1152,center x=968
+        KR row top=134, height=72  -> top edge y=134, bottom edge y=206
+        Initiatives stack starts at top=134+72+38=244 (margin-top: 38px on .inits)
+    -->
+    <svg class="cascade-svg" data-shape-id="chart-canvas" viewBox="0 0 1152 426" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="arrow-kr" viewBox="0 0 8 8" refX="8" refY="4"
+                markerWidth="8" markerHeight="8" markerUnits="strokeWidth" orient="auto">
+          <path d="M0,0 L8,4 L0,8 z" fill="#5C2D87"/>
+        </marker>
+      </defs>
+
+      <!-- Objective bottom (576, 78) down to bus at y=106 -->
+      <path d="M 576 78 L 576 106" stroke="#5C2D87" stroke-width="1.5" fill="none"/>
+      <!-- Horizontal bus across all three KR column centers at y=106 -->
+      <path d="M 184 106 L 968 106" stroke="#5C2D87" stroke-width="1.5" fill="none"/>
+      <!-- Down arms to each KR top edge (y=134) -->
+      <path d="M 184 106 L 184 134" stroke="#5C2D87" stroke-width="1.5" fill="none" marker-end="url(#arrow-kr)"/>
+      <path d="M 576 106 L 576 134" stroke="#5C2D87" stroke-width="1.5" fill="none" marker-end="url(#arrow-kr)"/>
+      <path d="M 968 106 L 968 134" stroke="#5C2D87" stroke-width="1.5" fill="none" marker-end="url(#arrow-kr)"/>
+
+      <!-- KR bottom (y=206) down to initiative stack top (y=244): 38px gap -->
+      <!-- Light vertical drop lines, no arrow head -->
+      <path d="M 184 206 L 184 244" stroke="#C780FF" stroke-width="1.5" fill="none"/>
+      <path d="M 576 206 L 576 244" stroke="#C780FF" stroke-width="1.5" fill="none"/>
+      <path d="M 968 206 L 968 244" stroke="#C780FF" stroke-width="1.5" fill="none"/>
+    </svg>
+
+    <!-- OBJECTIVE -->
+    <div class="objective" data-shape-id="objective">
+      <div class="tag" data-shape-id="objective-tag">Objective</div>
+      <div class="label" data-shape-id="objective-label">Make Slide Lab the default deck-building method across three practices.</div>
+    </div>
+
+    <!-- KEY RESULTS + INITIATIVES -->
+    <div class="kr-row">
+
+      <!-- Column A -->
+      <div class="kr-col">
+        <div class="kr" data-shape-id="kr-1">
+          <div class="tag" data-shape-id="kr-1-tag">Key Result 1</div>
+          <div class="label" data-shape-id="kr-1-label">Roll out to 3 practice areas by Q3 end</div>
+        </div>
+        <div class="inits">
+          <div class="init" data-shape-id="kr-1-init-1"><span class="num" data-shape-id="kr-1-init-1-num">1.1</span><span class="text" data-shape-id="kr-1-init-1-text">Coach 6 senior managers through full deck cycle</span></div>
+          <div class="init" data-shape-id="kr-1-init-2"><span class="num" data-shape-id="kr-1-init-2-num">1.2</span><span class="text" data-shape-id="kr-1-init-2-text">Brand-theme each practice (colors, type, marks)</span></div>
+          <div class="init" data-shape-id="kr-1-init-3"><span class="num" data-shape-id="kr-1-init-3-num">1.3</span><span class="text" data-shape-id="kr-1-init-3-text">Weekly pilot review with practice leads</span></div>
+        </div>
+      </div>
+
+      <!-- Column B -->
+      <div class="kr-col">
+        <div class="kr" data-shape-id="kr-2">
+          <div class="tag" data-shape-id="kr-2-tag">Key Result 2</div>
+          <div class="label" data-shape-id="kr-2-label">80%+ partner-ready sign-off rate</div>
+        </div>
+        <div class="inits">
+          <div class="init" data-shape-id="kr-2-init-1"><span class="num" data-shape-id="kr-2-init-1-num">2.1</span><span class="text" data-shape-id="kr-2-init-1-text">Ship QC framework v2 with deterministic checks</span></div>
+          <div class="init" data-shape-id="kr-2-init-2"><span class="num" data-shape-id="kr-2-init-2-num">2.2</span><span class="text" data-shape-id="kr-2-init-2-text">Grow pattern library to 100+ vetted patterns</span></div>
+          <div class="init" data-shape-id="kr-2-init-3"><span class="num" data-shape-id="kr-2-init-3-num">2.3</span><span class="text" data-shape-id="kr-2-init-3-text">Close the coach feedback loop after every deck</span></div>
+        </div>
+      </div>
+
+      <!-- Column C -->
+      <div class="kr-col">
+        <div class="kr" data-shape-id="kr-3">
+          <div class="tag" data-shape-id="kr-3-tag">Key Result 3</div>
+          <div class="label" data-shape-id="kr-3-label">&minus;50% deck cycle time vs Q2 baseline</div>
+        </div>
+        <div class="inits">
+          <div class="init" data-shape-id="kr-3-init-1"><span class="num" data-shape-id="kr-3-init-1-num">3.1</span><span class="text" data-shape-id="kr-3-init-1-text">Optimize the storyline session to under 30 min</span></div>
+          <div class="init" data-shape-id="kr-3-init-2"><span class="num" data-shape-id="kr-3-init-2-num">3.2</span><span class="text" data-shape-id="kr-3-init-2-text">Build the HTML-to-PPTX translator end-to-end</span></div>
+          <div class="init" data-shape-id="kr-3-init-3"><span class="num" data-shape-id="kr-3-init-3-num">3.3</span><span class="text" data-shape-id="kr-3-init-3-text">Enable one-click template hot-swap per practice</span></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Convergence -->
+  <div class="convergence" data-shape-id="convergence">
+    Nine initiatives, three measurable outcomes, one ambition &mdash; if an initiative does not ladder up, it does not ship this quarter.
+  </div>
+
+  <!-- Footer invariant -->
+  <div class="footer-left" data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+
+</body>
+</html>

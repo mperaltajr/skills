@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>304 – Double Diamond Design Thinking</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    background: var(--slide-bg);
+    font-family: 'Inter', sans-serif;
+    color: var(--text-dark);
+    position: relative;
+  }
+
+  /* ── TOP CHROME ── */
+  .chrome-top {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+  }
+
+  .label-internal {
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+  }
+
+  .badge-draft {
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 0;
+    line-height: 1.4;
+  }
+
+  /* ── TITLE BLOCK ── */
+  .title-block {
+    position: absolute;
+    top: 52px;
+    left: 48px;
+    right: 48px;
+  }
+
+  .title-block h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.2;
+    margin-bottom: 6px;
+  }
+
+  .title-block h1 strong {
+    color: var(--brand-accent);
+    font-weight: 700;
+  }
+
+  .title-block .sub-headline {
+    font-size: 13px;
+    font-style: italic;
+    color: var(--text-mid);
+    margin-bottom: 10px;
+  }
+
+  .accent-rule {
+    width: 64px;
+    height: 3px;
+    background: var(--brand-accent);
+    border: none;
+  }
+
+  /* ── DIAGRAM AREA ── */
+  .diagram-area {
+    position: absolute;
+    top: 148px;
+    left: 48px;
+    right: 48px;
+    bottom: 48px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* SVG double diamond */
+  .diamond-svg-wrap {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    position: relative;
+  }
+
+  /* ── PHASE LABELS BELOW DIAMONDS ── */
+  .phase-row {
+    width: 1100px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 0;
+    margin-top: 28px;
+  }
+
+  .phase-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 16px;
+  }
+
+  .phase-desc {
+    font-size: 12px;
+    color: var(--text-mid);
+    text-align: center;
+    line-height: 1.6;
+    margin-bottom: 14px;
+    min-height: 40px;
+  }
+
+  .pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+  }
+
+  .pill {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    font-size: 10.5px;
+    font-weight: 500;
+    color: var(--text-mid);
+    padding: 5px 12px;
+    white-space: nowrap;
+  }
+
+  /* ── FOOTER ── */
+  .chrome-footer {
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 40px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+  }
+
+  .footer-label {
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+  <!-- TOP CHROME -->
+  <div class="chrome-top">
+    <span class="label-internal">Accenture Internal</span>
+    <span class="badge-draft">Draft</span>
+    <div style="width:140px"></div><!-- spacer to balance flex -->
+  </div>
+
+  <!-- TITLE BLOCK -->
+  <div class="title-block">
+    <h1>Double Diamond: <strong>Design Thinking</strong> Framework</h1>
+    <p class="sub-headline">Diverge and converge — explore the problem space before committing to solution space</p>
+    <div class="accent-rule"></div>
+  </div>
+
+  <!-- DIAGRAM -->
+  <div class="diagram-area">
+
+    <!-- SVG double diamond -->
+    <div class="diamond-svg-wrap">
+      <!--
+        Canvas for SVG: 1100 × 220px
+        Diamond 1: points at x=0 (left tip), x=275 (center/right tip), top/bottom at y=0 / y=220
+          Left half (Discover): polygon 0,110 → 137.5,0 → 137.5,220
+          Right half (Define):  polygon 137.5,0 → 275,110 → 137.5,220
+        Diamond 2: points at x=275 (left tip), x=550 (right tip), same vertical
+          Left half (Develop):  polygon 275,110 → 412.5,0 → 412.5,220
+          Right half (Deliver): polygon 412.5,0 → 550,110 → 412.5,220
+
+        Total width 550, centered in 1100 → offset = 275
+        So all x values shift +275
+      -->
+      <svg width="1100" height="310" viewBox="0 0 1100 220" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <!-- Discover fill: brand-primary-mid at 22% -->
+          <linearGradient id="grad-discover" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#5C2D87" stop-opacity="0.18"/>
+            <stop offset="100%" stop-color="#5C2D87" stop-opacity="0.30"/>
+          </linearGradient>
+          <!-- Define fill: brand-primary at 28% -->
+          <linearGradient id="grad-define" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#2D0A4E" stop-opacity="0.28"/>
+            <stop offset="100%" stop-color="#2D0A4E" stop-opacity="0.18"/>
+          </linearGradient>
+          <!-- Develop fill: brand-accent at 18% -->
+          <linearGradient id="grad-develop" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#A100FF" stop-opacity="0.18"/>
+            <stop offset="100%" stop-color="#A100FF" stop-opacity="0.28"/>
+          </linearGradient>
+          <!-- Deliver fill: brand-primary full at 68% -->
+          <linearGradient id="grad-deliver" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#2D0A4E" stop-opacity="0.55"/>
+            <stop offset="100%" stop-color="#2D0A4E" stop-opacity="0.75"/>
+          </linearGradient>
+        </defs>
+
+        <!-- === DIAMOND 1 === centered left half of canvas, shifted right by 275 -->
+        <!-- Discover: left tip=275,110  top=412.5,0  bottom=412.5,220 -->
+        <polygon points="275,110 412,0 412,220" fill="url(#grad-discover)" stroke="#5C2D87" stroke-width="1.5" stroke-opacity="0.4"/>
+        <!-- Define:   top=412.5,0  right tip=550,110  bottom=412.5,220 -->
+        <polygon points="412,0 550,110 412,220" fill="url(#grad-define)" stroke="#2D0A4E" stroke-width="1.5" stroke-opacity="0.35"/>
+
+        <!-- === DIAMOND 2 === shifted right by 550 from original -->
+        <!-- Develop: left tip=550,110  top=687.5,0  bottom=687.5,220 -->
+        <polygon points="550,110 688,0 688,220" fill="url(#grad-develop)" stroke="#A100FF" stroke-width="1.5" stroke-opacity="0.45"/>
+        <!-- Deliver: top=687.5,0  right tip=825,110  bottom=687.5,220 -->
+        <polygon points="688,0 825,110 688,220" fill="url(#grad-deliver)" stroke="#2D0A4E" stroke-width="1.5" stroke-opacity="0.5"/>
+
+        <!-- Phase labels inside each half -->
+        <!-- Discover label -->
+        <text x="343" y="116" text-anchor="middle" font-family="Inter,sans-serif" font-size="14" font-weight="700" fill="#5C2D87" opacity="0.9">Discover</text>
+        <!-- Define label -->
+        <text x="481" y="116" text-anchor="middle" font-family="Inter,sans-serif" font-size="14" font-weight="700" fill="#2D0A4E" opacity="0.9">Define</text>
+        <!-- Develop label -->
+        <text x="619" y="116" text-anchor="middle" font-family="Inter,sans-serif" font-size="14" font-weight="700" fill="#A100FF" opacity="0.95">Develop</text>
+        <!-- Deliver label -->
+        <text x="756" y="116" text-anchor="middle" font-family="Inter,sans-serif" font-size="14" font-weight="700" fill="#FFFFFF" opacity="0.95">Deliver</text>
+
+        <!-- Divider line at center (x=412) between D1 halves - vertical stroke at center of D1 -->
+        <line x1="412" y1="1" x2="412" y2="219" stroke="#5C2D87" stroke-width="1" stroke-opacity="0.25" stroke-dasharray="4 3"/>
+        <!-- Divider line at x=688 between D2 halves -->
+        <line x1="688" y1="1" x2="688" y2="219" stroke="#A100FF" stroke-width="1" stroke-opacity="0.25" stroke-dasharray="4 3"/>
+
+        <!-- Outer boundary strokes for clarity -->
+        <!-- D1 full outline -->
+        <polygon points="275,110 412,0 550,110 412,220" fill="none" stroke="#5C2D87" stroke-width="2" stroke-opacity="0.5"/>
+        <!-- D2 full outline -->
+        <polygon points="550,110 688,0 825,110 688,220" fill="none" stroke="#A100FF" stroke-width="2" stroke-opacity="0.55"/>
+
+        <!-- Center point circle at x=550 -->
+        <circle cx="550" cy="110" r="8" fill="#A100FF"/>
+        <circle cx="550" cy="110" r="5" fill="#FFFFFF"/>
+
+        <!-- "Insight" label at center point -->
+        <text x="550" y="94" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#A100FF" letter-spacing="0.06em">INSIGHT</text>
+
+        <!-- Left tip marker -->
+        <circle cx="275" cy="110" r="4" fill="#5C2D87" opacity="0.5"/>
+        <!-- Right tip marker -->
+        <circle cx="825" cy="110" r="4" fill="#2D0A4E" opacity="0.7"/>
+
+        <!-- Diverge / Converge arrows subtle text above diamonds -->
+        <!-- Diamond 1 -->
+        <text x="343" y="18" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="500" fill="#5C2D87" opacity="0.55" letter-spacing="0.08em">DIVERGE</text>
+        <text x="481" y="18" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="500" fill="#2D0A4E" opacity="0.55" letter-spacing="0.08em">CONVERGE</text>
+        <!-- Diamond 2 -->
+        <text x="619" y="18" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="500" fill="#A100FF" opacity="0.65" letter-spacing="0.08em">DIVERGE</text>
+        <text x="756" y="18" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="500" fill="#2D0A4E" opacity="0.65" letter-spacing="0.08em">CONVERGE</text>
+
+        <!-- Arrow flow hint under diamonds -->
+        <line x1="285" y1="200" x2="815" y2="200" stroke="#E5D5F0" stroke-width="1.5"/>
+        <polygon points="815,196 825,200 815,204" fill="#E5D5F0"/>
+        <polygon points="285,196 275,200 285,204" fill="#E5D5F0"/>
+      </svg>
+    </div>
+
+    <!-- PHASE DESCRIPTIONS + PILLS -->
+    <div class="phase-row">
+      <!-- Discover -->
+      <div class="phase-col">
+        <p class="phase-desc">Explore broadly. Gather rich<br>qualitative and quantitative data.</p>
+        <div class="pills">
+          <span class="pill">User Interviews</span>
+          <span class="pill">Field Research</span>
+          <span class="pill">Desk Study</span>
+        </div>
+      </div>
+      <!-- Define -->
+      <div class="phase-col">
+        <p class="phase-desc">Synthesise findings into a clear<br>problem statement or HMW.</p>
+        <div class="pills">
+          <span class="pill">Affinity Map</span>
+          <span class="pill">Point-of-View</span>
+          <span class="pill">HMW Frame</span>
+        </div>
+      </div>
+      <!-- Develop -->
+      <div class="phase-col">
+        <p class="phase-desc">Generate diverse ideas and build<br>rapid prototypes for testing.</p>
+        <div class="pills">
+          <span class="pill">Ideation</span>
+          <span class="pill">Prototyping</span>
+          <span class="pill">Co-creation</span>
+        </div>
+      </div>
+      <!-- Deliver -->
+      <div class="phase-col">
+        <p class="phase-desc">Test, refine, and scale the best<br>solution with real users.</p>
+        <div class="pills">
+          <span class="pill">Pilot Test</span>
+          <span class="pill">Iteration</span>
+          <span class="pill">Rollout Plan</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /diagram-area -->
+
+  <!-- FOOTER -->
+  <div class="chrome-footer">
+    <span class="footer-label">Confidential</span>
+    <span class="footer-label">Slide Lab · 2026 · 304</span>
+  </div>
+
+</body>
+</html>

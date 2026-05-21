@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>305 – Systems Archetypes: Limits to Growth (Dark)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #2D0A4E;
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* ── Chrome: top bar ── */
+  .top-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    z-index: 10;
+  }
+
+  .internal-label {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .draft-badge {
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 0;
+    line-height: 1;
+  }
+
+  .top-bar-right {
+    width: 160px; /* balance left label */
+  }
+
+  /* ── Main content area ── */
+  .slide-body {
+    position: absolute;
+    top: 36px;
+    left: 0;
+    right: 0;
+    bottom: 32px;
+    display: flex;
+    flex-direction: row;
+    padding: 40px 48px 32px 48px;
+    gap: 32px;
+  }
+
+  /* ── Left panel: SVG diagram ── */
+  .left-panel {
+    flex: 0 0 55%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+  }
+
+  .diagram-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.35);
+    margin-bottom: 16px;
+    align-self: flex-start;
+  }
+
+  .diagram-wrapper {
+    width: 100%;
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* ── Right panel: annotation ── */
+  .right-panel {
+    flex: 0 0 45%;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0;
+    padding-left: 8px;
+  }
+
+  .sub-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--brand-accent-soft);
+    margin-bottom: 10px;
+  }
+
+  .slide-title {
+    font-size: 28px;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.2;
+    margin-bottom: 6px;
+  }
+
+  .slide-title strong {
+    color: var(--brand-accent-soft);
+  }
+
+  .sub-headline {
+    font-size: 13px;
+    font-style: italic;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 18px;
+    line-height: 1.5;
+  }
+
+  .accent-rule {
+    width: 64px;
+    height: 3px;
+    background: var(--brand-accent);
+    margin-bottom: 32px;
+    flex-shrink: 0;
+  }
+
+  /* ── Annotation points ── */
+  .annotations {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    margin-bottom: 28px;
+  }
+
+  .annotation-item {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .annotation-num {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(161, 0, 255, 0.25);
+    border: 1px solid rgba(161, 0, 255, 0.5);
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--brand-accent-soft);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 1px;
+  }
+
+  .annotation-text {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.55;
+  }
+
+  .annotation-text strong {
+    color: rgba(255, 255, 255, 0.95);
+    font-weight: 600;
+  }
+
+  /* ── Management leverage callout ── */
+  .leverage-box {
+    background: rgba(255, 255, 255, 0.07);
+    border-left: 3px solid var(--brand-accent);
+    border-top: 1px solid rgba(255, 255, 255, 0.12);
+    border-right: 1px solid rgba(255, 255, 255, 0.12);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+    padding: 14px 16px;
+  }
+
+  .leverage-heading {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--brand-accent-soft);
+    margin-bottom: 6px;
+  }
+
+  .leverage-text {
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.75);
+    line-height: 1.55;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 32px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    padding: 0 48px;
+    justify-content: space-between;
+  }
+
+  .footer-text {
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.4);
+    letter-spacing: 0.06em;
+  }
+
+  /* ── Chart legend (FALLBACK: inside chart container, top-right) ── */
+  .chart-legend {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 4px;
+    padding: 8px 10px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .legend-swatch {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .legend-dash {
+    width: 18px;
+    height: 0;
+    border-top: 1.5px dashed;
+  }
+
+  .legend-circle {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    border: 1.5px solid;
+    background: transparent;
+    flex-shrink: 0;
+  }
+
+  .legend-label {
+    font-size: 9px;
+    font-weight: 600;
+    white-space: nowrap;
+  }
+
+  /* ── Divider between panels ── */
+  .panel-divider {
+    width: 1px;
+    background: rgba(255, 255, 255, 0.1);
+    align-self: stretch;
+    margin: 8px 0;
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+<!-- Top chrome -->
+<div class="top-bar">
+  <span class="internal-label">Accenture Internal</span>
+  <span class="draft-badge">Draft</span>
+  <div class="top-bar-right"></div>
+</div>
+
+<!-- Main body -->
+<div class="slide-body">
+
+  <!-- LEFT: Causal loop diagram -->
+  <div class="left-panel">
+    <div class="diagram-label">Causal Loop Diagram</div>
+    <div class="diagram-wrapper">
+      <svg viewBox="0 0 560 400" width="560" height="480" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <!-- Arrow markers -->
+          <marker id="arrow-white" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="rgba(255,255,255,0.75)"/>
+          </marker>
+          <marker id="arrow-accent" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#A100FF"/>
+          </marker>
+          <marker id="arrow-amber" markerWidth="8" markerHeight="8" refX="7" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L8,3 z" fill="#F59E0B"/>
+          </marker>
+          <!-- Loop arrow markers (curved) -->
+          <marker id="loop-accent" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L7,3 z" fill="#A100FF"/>
+          </marker>
+          <marker id="loop-amber" markerWidth="7" markerHeight="7" refX="6" refY="3" orient="auto">
+            <path d="M0,0 L0,6 L7,3 z" fill="#F59E0B"/>
+          </marker>
+        </defs>
+
+        <!-- ── Background subtle grid hint ── -->
+        <!-- Node positions:
+             Effort:          cx=140, cy=100  (top-left)
+             Performance:     cx=420, cy=100  (top-right)
+             Limiting Factor: cx=280, cy=305  (bottom-center)
+        -->
+
+        <!-- ── Reinforcing loop arc (top, between Effort and Performance) ── -->
+        <!-- Subtle arc above the top edge to indicate R loop direction -->
+        <path d="M 165 88 Q 280 30 395 88"
+              fill="none"
+              stroke="#A100FF"
+              stroke-width="1.5"
+              stroke-dasharray="4 3"
+              opacity="0.5"/>
+
+        <!-- ── Arrows: Effort → Performance (+) ── -->
+        <line x1="202" y1="100" x2="356" y2="100"
+              stroke="rgba(255,255,255,0.75)" stroke-width="1.8"
+              marker-end="url(#arrow-white)"/>
+
+        <!-- ── Arrows: Performance → Limiting Factor (−) ── -->
+        <!-- from bottom-right of Performance node to top-right of Limiting Factor -->
+        <path d="M 414 122 Q 420 210 318 288"
+              fill="none"
+              stroke="rgba(255,255,255,0.75)" stroke-width="1.8"
+              marker-end="url(#arrow-white)"/>
+
+        <!-- ── Arrows: Limiting Factor → Effort (−) ── -->
+        <!-- from top-left of Limiting Factor to bottom of Effort node -->
+        <path d="M 242 288 Q 140 210 140 122"
+              fill="none"
+              stroke="rgba(255,255,255,0.75)" stroke-width="1.8"
+              marker-end="url(#arrow-white)"/>
+
+        <!-- ── Plus/Minus labels ── -->
+        <!-- + on Effort→Performance arrow (mid-top) -->
+        <text x="280" y="90" text-anchor="middle"
+              font-family="Inter, sans-serif" font-size="13" font-weight="700"
+              fill="rgba(255,255,255,0.85)">+</text>
+
+        <!-- − on Performance→Limiting Factor -->
+        <text x="408" y="210" text-anchor="middle"
+              font-family="Inter, sans-serif" font-size="13" font-weight="700"
+              fill="rgba(255,255,255,0.85)">−</text>
+
+        <!-- − on Limiting Factor→Effort -->
+        <text x="152" y="210" text-anchor="middle"
+              font-family="Inter, sans-serif" font-size="13" font-weight="700"
+              fill="rgba(255,255,255,0.85)">−</text>
+
+        <!-- ── Node: Effort ── -->
+        <rect x="80" y="76" width="120" height="48" rx="6"
+              fill="rgba(255,255,255,0.10)" stroke="rgba(255,255,255,0.55)" stroke-width="1.2"/>
+        <text x="140" y="97" text-anchor="middle"
+              font-family="Inter, sans-serif" font-size="12" font-weight="600"
+              fill="#ffffff">Effort</text>
+        <text x="140" y="113" text-anchor="middle"
+              font-family="Inter, sans-serif" font-size="10" font-weight="400"
+              fill="rgba(255,255,255,0.55)">(Growth Action)</text>
+
+        <!-- ── Node: Performance ── -->
+        <rect x="360" y="76" width="120" height="48" rx="6"
+              fill="rgba(255,255,255,0.10)" stroke="rgba(255,255,255,0.55)" stroke-width="1.2"/>
+        <text x="420" y="97" text-anchor="middle"
+              font-family="Inter, sans-serif" font-size="12" font-weight="600"
+              fill="#ffffff">Performance</text>
+        <text x="420" y="113" text-anchor="middle"
+              font-family="Inter, sans-serif" font-size="10" font-weight="400"
+              fill="rgba(255,255,255,0.55)">(Growth Result)</text>
+
+        <!-- ── Node: Limiting Factor ── -->
+        <rect x="210" y="281" width="140" height="48" rx="6"
+              fill="rgba(255,255,255,0.10)" stroke="rgba(255,255,255,0.55)" stroke-width="1.2"/>
+        <text x="280" y="302" text-anchor="middle"
+              font-family="Inter, sans-serif" font-size="12" font-weight="600"
+              fill="#ffffff">Limiting Factor</text>
+        <text x="280" y="318" text-anchor="middle"
+              font-family="Inter, sans-serif" font-size="10" font-weight="400"
+              fill="rgba(255,255,255,0.55)">(Constraint)</text>
+
+        <!-- ── R: Reinforcing loop label ── -->
+        <!-- Positioned inside the upper arc -->
+        <!-- Clockwise curved arrow indicator -->
+        <path d="M 258 148 A 48 48 0 0 1 310 148"
+              fill="none" stroke="#A100FF" stroke-width="1.6"
+              marker-end="url(#loop-accent)"/>
+        <text x="280" y="142" text-anchor="middle"
+              font-family="Inter, sans-serif" font-size="11" font-weight="700"
+              fill="#A100FF">R</text>
+        <text x="280" y="156" text-anchor="middle"
+              font-family="Inter, sans-serif" font-size="9" font-weight="500"
+              fill="rgba(161,0,255,0.8)">Reinforcing</text>
+
+        <!-- ── B: Balancing loop label ── -->
+        <!-- Positioned in lower/center of triangle -->
+        <!-- Counter-clockwise curved arrow indicator -->
+        <path d="M 310 230 A 48 48 0 0 0 258 230"
+              fill="none" stroke="#F59E0B" stroke-width="1.6"
+              marker-end="url(#loop-amber)"/>
+        <text x="280" y="248" text-anchor="middle"
+              font-family="Inter, sans-serif" font-size="11" font-weight="700"
+              fill="#F59E0B">B</text>
+        <text x="280" y="262" text-anchor="middle"
+              font-family="Inter, sans-serif" font-size="9" font-weight="500"
+              fill="rgba(245,158,11,0.8)">Balancing</text>
+
+      </svg>
+    </div>
+
+    <!-- Legend: FALLBACK position — top-right of chart container -->
+    <div class="chart-legend">
+      <div class="legend-item">
+        <div class="legend-swatch">
+          <div class="legend-dash" style="border-color:#A100FF;"></div>
+          <div class="legend-circle" style="border-color:rgba(161,0,255,0.5);"></div>
+        </div>
+        <span class="legend-label" style="color:#A100FF;">R Loop — growth reinforces itself</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-swatch">
+          <div class="legend-dash" style="border-color:#F59E0B;"></div>
+          <div class="legend-circle" style="border-color:rgba(245,158,11,0.5);"></div>
+        </div>
+        <span class="legend-label" style="color:#F59E0B;">B Loop — constraint slows growth</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Panel divider -->
+  <div class="panel-divider"></div>
+
+  <!-- RIGHT: Title + annotations -->
+  <div class="right-panel">
+    <div class="sub-label">Archetype: Limits to Growth</div>
+
+    <div class="slide-title">
+      Growth stalls when<br><strong>constraints go unaddressed</strong>
+    </div>
+    <div class="sub-headline">
+      A reinforcing engine drives progress — until a hidden<br>limiting condition applies the brakes.
+    </div>
+    <div class="accent-rule"></div>
+
+    <div class="annotations">
+      <div class="annotation-item">
+        <div class="annotation-num">1</div>
+        <div class="annotation-text">
+          <strong>Reinforcing loop (R):</strong> greater effort produces better performance, which justifies further effort — a self-amplifying cycle.
+        </div>
+      </div>
+      <div class="annotation-item">
+        <div class="annotation-num">2</div>
+        <div class="annotation-text">
+          <strong>Balancing loop (B):</strong> as performance grows it strains the limiting factor (capacity, skill, resource), which erodes the effect of future effort.
+        </div>
+      </div>
+      <div class="annotation-item">
+        <div class="annotation-num">3</div>
+        <div class="annotation-text">
+          <strong>Trap:</strong> leaders push harder on the R loop. The system appears to plateau for no apparent reason; the real fix is removing the constraint.
+        </div>
+      </div>
+    </div>
+
+    <div class="leverage-box">
+      <div class="leverage-heading">Management Leverage</div>
+      <div class="leverage-text">
+        Identify and relieve the limiting factor early — before performance plateaus. Pushing harder on the growth action after the constraint binds yields diminishing returns and organizational fatigue.
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Footer -->
+<div class="footer">
+  <span class="footer-text">Systems Thinking · Causal Loop Diagrams</span>
+  <span class="footer-text">Accenture Internal — Do Not Distribute</span>
+  <span class="footer-text">Slide 305</span>
+</div>
+
+</body>
+</html>

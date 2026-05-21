@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>150 — Retrospective sailboat</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #4a4a4a;
+  font-family: 'Inter', -apple-system, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.slide {
+  width: 1280px;
+  height: 720px;
+  background: var(--slide-bg);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.35);
+}
+
+/* Ocean background */
+.ocean-bg {
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(180deg, #EBF5FB 0%, #D6EAF8 55%, #AED6F1 100%);
+  z-index: 0;
+}
+
+/* Overlay white fade at top to keep title readable */
+.title-fade {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 145px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.96) 0%, rgba(255,255,255,0.75) 80%, rgba(255,255,255,0) 100%);
+  z-index: 1;
+}
+
+/* ===== Top-row chrome ===== */
+.draft-badge {
+  position: absolute;
+  top: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--draft-bg); color: var(--draft-text);
+  font-size: 11px; font-weight: 700; padding: 4px 16px;
+  letter-spacing: 1px; z-index: 10;
+}
+.project-label {
+  position: absolute; top: 24px; left: 24px;
+  color: var(--text-faint); font-size: 10px; font-weight: 600;
+  letter-spacing: 1.5px; text-transform: uppercase; z-index: 10;
+}
+
+/* ===== Title block ===== */
+.title-block {
+  position: absolute;
+  top: 48px; left: 48px; right: 48px;
+  z-index: 5;
+}
+.eyebrow {
+  font-size: 10.5px; font-weight: 600; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--brand-accent); margin-bottom: 8px;
+}
+.title {
+  font-size: 22px; font-weight: 700; color: var(--text-dark);
+  letter-spacing: -0.3px; line-height: 1.25; max-width: 1100px;
+}
+.accent-rule {
+  margin-top: 10px; width: 56px; height: 3px;
+  background: var(--brand-accent); border-radius: 2px;
+}
+
+/* ===== SVG illustration ===== */
+.scene-svg {
+  position: absolute;
+  bottom: 92px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  pointer-events: none;
+}
+
+/* ===== Content grid ===== */
+.grid {
+  position: absolute;
+  top: 142px; left: 48px; right: 48px; bottom: 100px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 12px;
+  z-index: 5;
+}
+
+/* Zone card base */
+.zone {
+  border-radius: 8px;
+  border: 1px solid transparent;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  backdrop-filter: blur(1px);
+}
+
+.zone-header {
+  padding: 9px 14px 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.zone-icon {
+  font-size: 20px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.zone-title {
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+}
+.zone-body {
+  flex: 1;
+  padding: 10px 14px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.bullet {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--text-dark);
+}
+.bullet-dot {
+  flex-shrink: 0;
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  margin-top: 5px;
+}
+
+/* ── ISLAND (top-right) green ── */
+.zone-island {
+  background: rgba(234, 250, 241, 0.92);
+  border-color: #A9DFBF;
+  grid-column: 2; grid-row: 1;
+}
+.zone-island .zone-header { background: #27AE60; }
+.zone-island .zone-title { color: #fff; }
+.zone-island .bullet-dot { background: #27AE60; }
+
+/* ── SAIL / WIND (top-left) brand accent ── */
+.zone-sail {
+  background: rgba(199, 128, 255, 0.14);
+  border-color: #D7A8FF;
+  grid-column: 1; grid-row: 1;
+}
+.zone-sail .zone-header { background: var(--brand-accent); }
+.zone-sail .zone-title { color: #fff; }
+.zone-sail .bullet-dot { background: var(--brand-accent); }
+
+/* ── ANCHOR (bottom-left) brand-primary tint ── */
+.zone-anchor {
+  background: rgba(45, 10, 78, 0.07);
+  border-color: #C3A8E0;
+  grid-column: 1; grid-row: 2;
+}
+.zone-anchor .zone-header { background: var(--brand-primary); }
+.zone-anchor .zone-title { color: #fff; }
+.zone-anchor .bullet-dot { background: var(--brand-primary); }
+
+/* ── ROCKS (bottom-right) red ── */
+.zone-rocks {
+  background: rgba(254, 242, 242, 0.92);
+  border-color: #FECACA;
+  grid-column: 2; grid-row: 2;
+}
+.zone-rocks .zone-header { background: #DC2626; }
+.zone-rocks .zone-title { color: #fff; }
+.zone-rocks .bullet-dot { background: #DC2626; }
+
+/* ===== Convergence bar ===== */
+.convergence {
+  position: absolute;
+  bottom: 29px; left: 48px; right: 48px;
+  padding: 11px 18px;
+  background: linear-gradient(90deg, var(--brand-primary) 0%, var(--brand-primary-mid) 100%);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  z-index: 6;
+}
+.conv-tag {
+  font-size: 9.5px; font-weight: 700; letter-spacing: 1.6px;
+  color: var(--brand-accent-soft); text-transform: uppercase;
+  padding: 4px 8px;
+  border: 1px solid rgba(199,128,255,0.4);
+  border-radius: 3px; flex-shrink: 0;
+}
+.conv-text {
+  font-size: 13px; color: #fff; font-weight: 500;
+  letter-spacing: 0.1px; line-height: 1.35;
+}
+.conv-text strong { color: var(--brand-accent-soft); font-weight: 700; }
+
+/* ===== Footer ===== */
+.footer {
+  position: absolute;
+  bottom: 0; left: 0; right: 0; height: 28px;
+  display: flex; align-items: center; padding: 0 48px;
+  font-size: 9.5px; color: var(--text-faint);
+  letter-spacing: 1px; text-transform: uppercase;
+  border-top: 1px solid #E5D5F0;
+  background: rgba(251, 250, 253, 0.95);
+  z-index: 7;
+}
+.footer .pg { margin-left: auto; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+
+<div class="slide">
+
+  <!-- Ocean background -->
+  <div class="ocean-bg" data-shape-id="ocean-bg"></div>
+  <div class="title-fade"></div>
+
+  <!-- SVG scene — boat hull + sail + mast, simplified -->
+  <svg class="scene-svg" width="220" height="80" viewBox="0 0 220 80" fill="none" xmlns="http://www.w3.org/2000/svg" data-shape-id="boat-illustration">
+    <!-- Water ripples -->
+    <ellipse cx="110" cy="72" rx="106" ry="7" fill="#AED6F1" opacity="0.6"/>
+    <path d="M10 68 Q55 63 110 66 Q165 69 210 64" stroke="#7FB3D3" stroke-width="1.5" fill="none" opacity="0.7"/>
+    <path d="M20 73 Q70 70 110 72 Q150 74 200 71" stroke="#7FB3D3" stroke-width="1" fill="none" opacity="0.5"/>
+    <!-- Hull -->
+    <path d="M55 60 Q64 70 110 72 Q156 70 165 60 L160 56 L60 56 Z" fill="#2D0A4E"/>
+    <path d="M60 56 L160 56 L155 52 L65 52 Z" fill="#5C2D87"/>
+    <!-- Mast -->
+    <line x1="110" y1="52" x2="110" y2="14" stroke="#2D0A4E" stroke-width="2.5"/>
+    <!-- Main sail -->
+    <path d="M110 16 L110 50 L148 42 Z" fill="#A100FF" opacity="0.85"/>
+    <!-- Jib -->
+    <path d="M110 22 L110 50 L82 44 Z" fill="#C780FF" opacity="0.7"/>
+    <!-- Flag -->
+    <path d="M110 14 L120 18 L110 22 Z" fill="#FFD600"/>
+  </svg>
+
+  <!-- Top chrome -->
+  <div class="project-label" data-shape-id="accenture-tag">ACCENTURE INTERNAL</div>
+  <div class="draft-badge" data-shape-id="draft-badge">DRAFT</div>
+
+  <!-- Title -->
+  <div class="title-block">
+    <div class="eyebrow" data-shape-id="eyebrow">Sprint retrospective &middot; Sailboat</div>
+    <div class="title" data-shape-id="title"><strong>Velocity is strong but three risks need mitigation</strong> &mdash; anchor items from sprint&nbsp;4 must be resolved before Phase&nbsp;2 launch</div>
+    <div class="accent-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- 2×2 zone grid -->
+  <div class="grid">
+
+    <!-- SAIL / WIND — top-left -->
+    <div class="zone zone-sail" data-shape-id="quadrant-tl-bg">
+      <div class="zone-header">
+        <span class="zone-icon" data-shape-id="quadrant-tl-icon">💨</span>
+        <span class="zone-title" data-shape-id="quadrant-tl-name">Sail &amp; Wind — what propelled us</span>
+      </div>
+      <div class="zone-body" data-shape-id="quadrant-tl-body">
+        <div class="bullet"><span class="bullet-dot"></span><span>Strong stakeholder alignment kept priorities stable across all sprints</span></div>
+        <div class="bullet"><span class="bullet-dot"></span><span>Pre-built accelerators saved 3 weeks of custom development effort</span></div>
+        <div class="bullet"><span class="bullet-dot"></span><span>Team velocity improved 40% from sprint 1 to sprint 4</span></div>
+      </div>
+    </div>
+
+    <!-- ISLAND — top-right -->
+    <div class="zone zone-island" data-shape-id="quadrant-tr-bg">
+      <div class="zone-header">
+        <span class="zone-icon" data-shape-id="quadrant-tr-icon">🏝️</span>
+        <span class="zone-title" data-shape-id="quadrant-tr-name">Island — goals &amp; vision</span>
+      </div>
+      <div class="zone-body" data-shape-id="quadrant-tr-body">
+        <div class="bullet"><span class="bullet-dot"></span><span>Deliver Phase 2 on time by end of Q3</span></div>
+        <div class="bullet"><span class="bullet-dot"></span><span>100% user adoption across all business units</span></div>
+        <div class="bullet"><span class="bullet-dot"></span><span>Reduce defect rate to &lt;2% in production</span></div>
+      </div>
+    </div>
+
+    <!-- ANCHOR — bottom-left -->
+    <div class="zone zone-anchor" data-shape-id="quadrant-bl-bg">
+      <div class="zone-header">
+        <span class="zone-icon" data-shape-id="quadrant-bl-icon">⚓</span>
+        <span class="zone-title" data-shape-id="quadrant-bl-name">Anchor — what slowed us</span>
+      </div>
+      <div class="zone-body" data-shape-id="quadrant-bl-body">
+        <div class="bullet"><span class="bullet-dot"></span><span>Legacy system dependencies blocked three sprint deliverables</span></div>
+        <div class="bullet"><span class="bullet-dot"></span><span>Unclear requirements in sprint 4 caused two rework cycles</span></div>
+        <div class="bullet"><span class="bullet-dot"></span><span>3 team members on leave reduced capacity by 25% in weeks 6–8</span></div>
+      </div>
+    </div>
+
+    <!-- ROCKS — bottom-right -->
+    <div class="zone zone-rocks" data-shape-id="quadrant-br-bg">
+      <div class="zone-header">
+        <span class="zone-icon" data-shape-id="quadrant-br-icon">🪨</span>
+        <span class="zone-title" data-shape-id="quadrant-br-name">Rocks — risks ahead</span>
+      </div>
+      <div class="zone-body" data-shape-id="quadrant-br-body">
+        <div class="bullet"><span class="bullet-dot"></span><span>Integration testing window is tight — only 4 days before Phase 2 freeze</span></div>
+        <div class="bullet"><span class="bullet-dot"></span><span>Budget variance likely if scope creeps beyond current sprint plan</span></div>
+        <div class="bullet"><span class="bullet-dot"></span><span>Key stakeholder availability drops in July — decisions may stall</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Convergence bar -->
+  <div class="convergence" data-shape-id="convergence">
+    <div class="conv-tag" data-shape-id="convergence-mark">So what</div>
+    <div class="conv-text" data-shape-id="convergence-text"><strong>Velocity is strong and the island is in sight</strong> &mdash; but three anchor items from sprint 4 and a tight integration window must be resolved before Phase&nbsp;2 launch or the rocks will stop us.</div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer" data-shape-id="footer-rule">
+    <span data-shape-id="footer-left">Accenture &middot; Confidential &middot; Sprint retrospective</span>
+    <span class="pg" data-shape-id="footer-right">150 / 200</span>
+  </div>
+
+</div>
+
+</body>
+</html>

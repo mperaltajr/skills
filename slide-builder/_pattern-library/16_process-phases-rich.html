@@ -1,0 +1,282 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>16 · Process phases rich</title>
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1280px; height: 720px; background: var(--slide-bg); font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; color: var(--text-dark); overflow: hidden; }
+body { padding: 50px 56px 80px 56px; position: relative; }
+.draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; }
+.project-label { position: absolute; top: 24px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
+
+/* ---- Title block ---- */
+.title-block { }
+.action-title { position: absolute; left: 56px; right: 56px; top: 28px; min-height: 72px; font-size: 28px; font-weight: 700; line-height: 1.2; max-width: 1100px; }
+.action-title strong { color: var(--brand-primary); }
+.subhead { position: absolute; left: 56px; right: 56px; top: 100px; font-size: 14px; color: var(--text-mid); font-style: italic; }
+.title-rule { position: absolute; left: 56px; top: 128px; width: 40px; height: 3px; background: var(--brand-accent); }
+
+/* ---- Content block: vertically centered between title and footer ---- */
+.content-block {
+  position: absolute;
+  left: 56px;
+  right: 56px;
+  top: 200px;
+  bottom: 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 20px;
+}
+
+/* ---- Phase row: 4 identical cards with arrow connectors ---- */
+.phase-row { display: flex; flex-wrap: wrap; gap: 14px; position: relative; }
+
+.phase-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-top: 3px solid var(--brand-accent);
+  display: flex;
+  flex-direction: column;
+  height: 360px;
+  position: relative;
+}
+
+/* Chevron arrow on right edge of each card except the last */
+.phase-card:not(:last-child)::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: -14px;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-top: 9px solid transparent;
+  border-bottom: 9px solid transparent;
+  border-left: 10px solid var(--brand-accent);
+  z-index: 2;
+}
+
+.phase-head {
+  padding: 14px 18px 10px 18px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  border-bottom: 1px solid var(--card-border);
+}
+.phase-numeral {
+  font-size: 40px;
+  font-weight: 800;
+  color: var(--brand-accent);
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -1px;
+  flex-shrink: 0;
+}
+.phase-title-wrap { display: flex; flex-direction: column; gap: 2px; padding-top: 2px; }
+.phase-eyebrow { font-size: 9px; font-weight: 700; color: var(--text-faint); letter-spacing: 1.6px; text-transform: uppercase; }
+.phase-name { font-size: 17px; font-weight: 700; color: var(--brand-primary); letter-spacing: 0.5px; line-height: 1.1; }
+
+.phase-body {
+  padding: 14px 18px 10px 18px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+.phase-body ul { list-style: none; }
+.phase-body li {
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--text-dark);
+  padding-left: 14px;
+  position: relative;
+  margin-bottom: 8px;
+}
+.phase-body li::before {
+  content: "·";
+  position: absolute;
+  left: 0;
+  top: -4px;
+  color: var(--brand-accent);
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.phase-exit {
+  margin-top: auto;
+  padding-top: 10px;
+  border-top: 1px dashed var(--card-border);
+  font-size: 11px;
+  line-height: 1.35;
+  color: var(--brand-primary);
+}
+.phase-exit-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--brand-accent);
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+.phase-exit-text { font-weight: 600; }
+
+.phase-foot {
+  padding: 8px 18px 12px 18px;
+  font-size: 10.5px;
+  color: var(--text-faint);
+  font-style: italic;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+/* ---- Convergence line ---- */
+.convergence {
+  background: var(--brand-primary);
+  color: white;
+  padding: 12px 22px;
+  font-size: 14px;
+  font-style: italic;
+  font-weight: 500;
+}
+
+/* ---- Footer invariant ---- */
+.footer-rule { position: absolute; left: 0; right: 0; bottom: 32px; height: 1px; background: var(--card-border); }
+.footer-left { position: absolute; bottom: 14px; left: 24px; color: var(--text-faint); font-size: 11px; letter-spacing: 1px; }
+.footer-right { position: absolute; bottom: 14px; right: 24px; color: var(--text-faint); font-size: 11px; }
+</style>
+</head>
+<body>
+
+  <div class="title-block">
+    <div class="action-title" data-shape-id="title">Four phases — <strong>each with a clear exit criterion</strong> before moving on.</div>
+    <div class="subhead" data-shape-id="subtitle">Sequential by design. No phase advances on optimism; each gate is a discrete sign-off.</div>
+    <div class="title-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <div class="content-block">
+    <div class="phase-row">
+
+      <div class="phase-card">
+        <div class="phase-head">
+          <div class="phase-numeral" data-shape-id="step-1-num">01</div>
+          <div class="phase-title-wrap">
+            <div class="phase-eyebrow" data-shape-id="step-1-eyebrow">Phase 1</div>
+            <div class="phase-name" data-shape-id="step-1-name">DISCOVER</div>
+          </div>
+        </div>
+        <div class="phase-body">
+          <ul data-shape-id="step-1-body">
+            <li>Stakeholder interviews across business units</li>
+            <li>Current-state process mapping</li>
+            <li>Pain point inventory and root-cause clustering</li>
+          </ul>
+          <div class="phase-exit">
+            <div class="phase-exit-label" data-shape-id="step-1-exit-label">Exit criterion</div>
+            <div class="phase-exit-text" data-shape-id="step-1-exit-text">Alignment doc signed by all sponsors</div>
+          </div>
+        </div>
+        <div class="phase-foot">
+          <span data-shape-id="step-1-meta-left">Lead: PM</span>
+          <span data-shape-id="step-1-meta-right">W1–W2</span>
+        </div>
+      </div>
+
+      <div class="phase-card">
+        <div class="phase-head">
+          <div class="phase-numeral" data-shape-id="step-2-num">02</div>
+          <div class="phase-title-wrap">
+            <div class="phase-eyebrow" data-shape-id="step-2-eyebrow">Phase 2</div>
+            <div class="phase-name" data-shape-id="step-2-name">DESIGN</div>
+          </div>
+        </div>
+        <div class="phase-body">
+          <ul data-shape-id="step-2-body">
+            <li>Solution options framing (3–4 candidates)</li>
+            <li>Trade-off analysis on cost, risk, speed</li>
+            <li>Recommendation memo with rationale</li>
+          </ul>
+          <div class="phase-exit">
+            <div class="phase-exit-label" data-shape-id="step-2-exit-label">Exit criterion</div>
+            <div class="phase-exit-text" data-shape-id="step-2-exit-text">Option selected by steering committee</div>
+          </div>
+        </div>
+        <div class="phase-foot">
+          <span data-shape-id="step-2-meta-left">Lead: Strategy</span>
+          <span data-shape-id="step-2-meta-right">W3–W5</span>
+        </div>
+      </div>
+
+      <div class="phase-card">
+        <div class="phase-head">
+          <div class="phase-numeral" data-shape-id="step-3-num">03</div>
+          <div class="phase-title-wrap">
+            <div class="phase-eyebrow" data-shape-id="step-3-eyebrow">Phase 3</div>
+            <div class="phase-name" data-shape-id="step-3-name">BUILD</div>
+          </div>
+        </div>
+        <div class="phase-body">
+          <ul data-shape-id="step-3-body">
+            <li>Pilot implementation in scoped wave-1 unit</li>
+            <li>Training rollout and change comms</li>
+            <li>Measurement framework instrumented</li>
+          </ul>
+          <div class="phase-exit">
+            <div class="phase-exit-label" data-shape-id="step-3-exit-label">Exit criterion</div>
+            <div class="phase-exit-text" data-shape-id="step-3-exit-text">Pilot live with baseline metrics flowing</div>
+          </div>
+        </div>
+        <div class="phase-foot">
+          <span data-shape-id="step-3-meta-left">Lead: Eng + Strategy</span>
+          <span data-shape-id="step-3-meta-right">W6–W9</span>
+        </div>
+      </div>
+
+      <div class="phase-card">
+        <div class="phase-head">
+          <div class="phase-numeral" data-shape-id="step-4-num">04</div>
+          <div class="phase-title-wrap">
+            <div class="phase-eyebrow" data-shape-id="step-4-eyebrow">Phase 4</div>
+            <div class="phase-name" data-shape-id="step-4-name">SCALE</div>
+          </div>
+        </div>
+        <div class="phase-body">
+          <ul data-shape-id="step-4-body">
+            <li>Rollout to wave-2 units on staged cadence</li>
+            <li>Sustained measurement against targets</li>
+            <li>Governance handoff to line operations</li>
+          </ul>
+          <div class="phase-exit">
+            <div class="phase-exit-label" data-shape-id="step-4-exit-label">Exit criterion</div>
+            <div class="phase-exit-text" data-shape-id="step-4-exit-text">BAU operations with owner accountable</div>
+          </div>
+        </div>
+        <div class="phase-foot">
+          <span data-shape-id="step-4-meta-left">Lead: PMO</span>
+          <span data-shape-id="step-4-meta-right">W10–W12</span>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="convergence" data-shape-id="convergence">No phase advances without its exit criterion. That's the discipline.</div>
+  </div>
+  <div class="footer-left" data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+</body>
+</html>

@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>132 · Cost-benefit waterfall &mdash; Investments vs. benefits</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #4a4a4a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 24px;
+  box-sizing: border-box;
+}
+.slide {
+  width: 1280px;
+  height: 720px;
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.35);
+}
+
+/* ── chrome ── */
+.accenture-tag {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  font-size: 10px;
+  color: var(--text-faint);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  z-index: 5;
+}
+.draft-badge {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--draft-bg);
+  color: var(--draft-text);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 16px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  z-index: 5;
+}
+
+/* ── title block ── */
+.title-block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+.title-main {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+  pointer-events: auto;
+  flex: 1;
+}
+.title-main .action-title {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+  pointer-events: auto;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-dark);
+  line-height: 1.25;
+}
+.title-main .subheadline {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 108px;
+  pointer-events: auto;
+  font-size: 12.5px;
+  font-style: italic;
+  color: var(--text-mid);
+  }
+.title-main .accent-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+  pointer-events: none;
+  
+  
+  background: var(--brand-accent);
+  }
+
+/* ── legend ── */
+.chart-legend {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-mid);
+  flex-shrink: 0;
+  align-self: flex-end;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.legend-swatch {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+.swatch-total  { background: var(--brand-primary); }
+.swatch-gain   { background: #16A34A; }
+.swatch-loss   { background: #DC2626; }
+
+/* ── chart area ── */
+.chart-area {
+  position: absolute;
+  top: 144px;
+  left: 48px;
+  right: 48px;
+  bottom: 104px;
+}
+
+/* ── convergence bar ── */
+.convergence-bar {
+  position: absolute;
+  bottom: 56px;
+  left: 48px;
+  right: 48px;
+  padding: 12px 18px;
+  background: linear-gradient(90deg, var(--brand-primary) 0%, var(--brand-primary-mid) 100%);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.conv-tag {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  color: var(--brand-accent-soft);
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border: 1px solid rgba(199,128,255,0.4);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.conv-text {
+  font-size: 12.5px;
+  color: #fff;
+  font-weight: 500;
+}
+
+/* ── footer ── */
+.footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  padding: 0 48px;
+  font-size: 9.5px;
+  color: var(--text-faint);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-top: 1px solid var(--card-border);
+  background: #FBFAFD;
+}
+.footer-right {
+  margin-left: auto;
+}
+</style>
+</head>
+<body>
+<div class="slide" data-shape-id="slide">
+
+  <!-- chrome -->
+  <div class="accenture-tag" data-shape-id="accenture-tag">ACCENTURE INTERNAL</div>
+
+  <!-- title block -->
+  <div class="title-block" data-shape-id="title-block">
+    <div class="title-main">
+      <div class="action-title" data-shape-id="title"><strong>Positive ROI in year 2</strong> &mdash; labor savings alone recover 73% of implementation cost</div>
+      <div class="subheadline" data-shape-id="subtitle">Business case waterfall ($M) &mdash; investments vs. cumulative benefits over 3-year horizon</div>
+      <div class="accent-rule" data-shape-id="accent-rule"></div>
+    </div>
+    <div class="chart-legend" data-shape-id="legend">
+      <div class="legend-item" data-shape-id="legend-cost">
+        <div class="legend-swatch swatch-loss" data-shape-id="legend-swatch-cost"></div>Investment (cost)
+      </div>
+      <div class="legend-item" data-shape-id="legend-benefit">
+        <div class="legend-swatch swatch-gain" data-shape-id="legend-swatch-benefit"></div>Benefit
+      </div>
+      <div class="legend-item" data-shape-id="legend-net">
+        <div class="legend-swatch swatch-total" data-shape-id="legend-swatch-net"></div>Net value
+      </div>
+    </div>
+  </div>
+
+  <!-- chart area -->
+  <div class="chart-area" data-shape-id="chart-area">
+    <!--
+      SVG waterfall — cost-benefit business case
+      viewBox: 0 0 960 370  (plot area x:90→930 w=840, y:16→330 h=314)
+
+      Data ($M) — running cumulative:
+        Bar 0  Implementation Cost  −8.2   cum: 0 → −8.2
+        Bar 1  Licensing Cost       −3.1   cum: −8.2 → −11.3
+        Bar 2  Training Cost        −1.4   cum: −11.3 → −12.7
+        Bar 3  Labor Savings        +9.6   cum: −12.7 → −3.1
+        Bar 4  Productivity Gains   +5.8   cum: −3.1 → +2.7
+        Bar 5  Risk Reduction       +3.2   cum: +2.7 → +5.9
+        Bar 6  Revenue Uplift       +4.1   cum: +5.9 → +10.0
+        Bar 7  Net Business Value   +9.8   total: 0 → +9.8 (stated in brief)
+
+      Y domain: −14 to +22 (span=36M)
+      Scale s = 314/36 = 8.7222 px/M
+      y(v) = 330 − (v + 14) * 8.7222
+      y(0)    = 330 − 14 * 8.7222 = 330 − 122.11 = 207.89
+      y(−12.7)= 207.89 + 12.7*8.7222 = 207.89 + 110.77 = 318.66
+      y(−11.3)= 207.89 + 11.3*8.7222 = 207.89 + 98.56  = 306.45
+      y(−8.2) = 207.89 + 8.2*8.7222  = 207.89 + 71.52  = 279.41
+      y(−3.1) = 207.89 + 3.1*8.7222  = 207.89 + 27.04  = 234.93
+      y(+2.7) = 207.89 − 2.7*8.7222  = 207.89 − 23.55  = 184.34
+      y(+5.9) = 207.89 − 5.9*8.7222  = 207.89 − 51.46  = 156.43
+      y(+10.0)= 207.89 − 10.0*8.7222 = 207.89 − 87.22  = 120.67
+      y(+9.8) = 207.89 − 9.8*8.7222  = 207.89 − 85.48  = 122.41
+
+      8 bars, slot = 840/8 = 105 px, bar width = 54
+      x_center[i] = 90 + (i + 0.5) * 105
+      Bars:  0→142.5, 1→247.5, 2→352.5, 3→457.5, 4→562.5, 5→667.5, 6→772.5, 7→877.5
+      x_left = x_center − 27
+
+      Y-axis ticks at −12, −8, −4, 0, +4, +8, +12, +16, +20:
+        y(−12) = 207.89 + 12*8.7222 = 312.56
+        y(−8)  = 207.89 + 8*8.7222  = 278.67
+        y(−4)  = 207.89 + 4*8.7222  = 242.78
+        y(0)   = 207.89
+        y(+4)  = 207.89 − 4*8.7222  = 173.00
+        y(+8)  = 207.89 − 8*8.7222  = 138.11
+        y(+12) = 207.89 − 12*8.7222 = 103.22
+        y(+16) = 207.89 − 16*8.7222 = 68.33
+        y(+20) = 207.89 − 20*8.7222 = 33.44
+    -->
+    <svg width="100%" height="100%" viewBox="0 0 960 370" preserveAspectRatio="xMidYMid meet"
+         xmlns="http://www.w3.org/2000/svg" data-shape-id="chart-svg">
+
+      <!-- ── section label bands (light tinted) ── -->
+      <!-- Costs zone: bars 0-2, x 115.5 to 379.5, y 16 to 330 -->
+      <rect x="115.5" y="16" width="264" height="314" fill="#FEF2F2" opacity="0.45" data-shape-id="zone-costs"/>
+      <!-- Benefits zone: bars 3-6, x 430.5 to 799.5 -->
+      <rect x="430.5" y="16" width="369" height="314" fill="#F0FDF4" opacity="0.45" data-shape-id="zone-benefits"/>
+
+      <!-- ── section labels ── -->
+      <text x="248" y="12" font-family="Inter, sans-serif" font-size="10" font-weight="700"
+            fill="#DC2626" text-anchor="middle" letter-spacing="1.2" text-transform="uppercase"
+            data-shape-id="label-costs">INVESTMENTS</text>
+      <text x="615" y="12" font-family="Inter, sans-serif" font-size="10" font-weight="700"
+            fill="#16A34A" text-anchor="middle" letter-spacing="1.2"
+            data-shape-id="label-benefits">BENEFITS</text>
+
+      <!-- ── gridlines ── -->
+      <g stroke="#E5D5F0" stroke-width="0.75">
+        <line x1="90" y1="312.56" x2="931" y2="312.56"/>
+        <line x1="90" y1="278.67" x2="931" y2="278.67"/>
+        <line x1="90" y1="242.78" x2="931" y2="242.78"/>
+        <line x1="90" y1="173.00" x2="931" y2="173.00"/>
+        <line x1="90" y1="138.11" x2="931" y2="138.11"/>
+        <line x1="90" y1="103.22" x2="931" y2="103.22"/>
+        <line x1="90" y1="68.33"  x2="931" y2="68.33"/>
+        <line x1="90" y1="33.44"  x2="931" y2="33.44"/>
+      </g>
+
+      <!-- ── zero line (prominent) ── -->
+      <line x1="90" y1="207.89" x2="931" y2="207.89" stroke="#2D0A4E" stroke-width="1.5"
+            data-shape-id="zero-line"/>
+      <text x="82" y="211.5" font-family="Inter, sans-serif" font-size="10" font-weight="700"
+            fill="#2D0A4E" text-anchor="end">$0</text>
+
+      <!-- ── Y axis labels ── -->
+      <g font-family="Inter, sans-serif" font-size="10" fill="#64748B" text-anchor="end">
+        <text x="82" y="316">−$12M</text>
+        <text x="82" y="282">−$8M</text>
+        <text x="82" y="246">−$4M</text>
+        <text x="82" y="176">+$4M</text>
+        <text x="82" y="141">+$8M</text>
+        <text x="82" y="106">+$12M</text>
+        <text x="82" y="71"> +$16M</text>
+        <text x="82" y="36"> +$20M</text>
+      </g>
+
+      <!-- Y axis title -->
+      <text x="18" y="175" font-family="Inter, sans-serif" font-size="9.5" font-weight="700"
+            fill="#2D0A4E" text-anchor="middle" transform="rotate(-90 18 175)"
+            letter-spacing="0.8">VALUE ($M)</text>
+
+      <!-- ══════════════════════════════════════
+           CONNECTOR LINES (dashed, behind bars)
+           ══════════════════════════════════════ -->
+      <!-- After Bar 0 (cum −8.2) y=279.41: right edge bar0 → left edge bar1 -->
+      <line x1="169.5" y1="279.41" x2="220.5" y2="279.41"
+            stroke="#94A3B8" stroke-width="1" stroke-dasharray="3 2" data-shape-id="conn-0-1"/>
+      <!-- After Bar 1 (cum −11.3) y=306.45 -->
+      <line x1="274.5" y1="306.45" x2="325.5" y2="306.45"
+            stroke="#94A3B8" stroke-width="1" stroke-dasharray="3 2" data-shape-id="conn-1-2"/>
+      <!-- After Bar 2 (cum −12.7) y=318.66 -->
+      <line x1="379.5" y1="318.66" x2="430.5" y2="318.66"
+            stroke="#94A3B8" stroke-width="1" stroke-dasharray="3 2" data-shape-id="conn-2-3"/>
+      <!-- After Bar 3 (cum −3.1) y=234.93 -->
+      <line x1="484.5" y1="234.93" x2="535.5" y2="234.93"
+            stroke="#94A3B8" stroke-width="1" stroke-dasharray="3 2" data-shape-id="conn-3-4"/>
+      <!-- After Bar 4 (cum +2.7) y=184.34 -->
+      <line x1="589.5" y1="184.34" x2="640.5" y2="184.34"
+            stroke="#94A3B8" stroke-width="1" stroke-dasharray="3 2" data-shape-id="conn-4-5"/>
+      <!-- After Bar 5 (cum +5.9) y=156.43 -->
+      <line x1="694.5" y1="156.43" x2="745.5" y2="156.43"
+            stroke="#94A3B8" stroke-width="1" stroke-dasharray="3 2" data-shape-id="conn-5-6"/>
+      <!-- After Bar 6 (cum +10.0) y=120.67 -->
+      <line x1="799.5" y1="120.67" x2="850.5" y2="120.67"
+            stroke="#94A3B8" stroke-width="1" stroke-dasharray="3 2" data-shape-id="conn-6-7"/>
+
+      <!-- ══════════════════════════════════════
+           BARS
+           ══════════════════════════════════════ -->
+
+      <!-- Bar 0: Implementation Cost (0 → −8.2), floats DOWN from zero line -->
+      <!-- top = y(0)=207.89, bottom = y(−8.2)=279.41, h=71.52 -->
+      <rect x="115.5" y="207.89" width="54" height="71.52" fill="#DC2626"
+            data-shape-id="bar-impl-cost"/>
+
+      <!-- Bar 1: Licensing Cost (−8.2 → −11.3), floats DOWN from −8.2 -->
+      <!-- top=279.41, h=27.04, bottom=306.45 -->
+      <rect x="220.5" y="279.41" width="54" height="27.04" fill="#DC2626"
+            data-shape-id="bar-lic-cost"/>
+
+      <!-- Bar 2: Training Cost (−11.3 → −12.7), floats DOWN from −11.3 -->
+      <!-- top=306.45, h=12.21, bottom=318.66 -->
+      <rect x="325.5" y="306.45" width="54" height="12.21" fill="#DC2626"
+            data-shape-id="bar-training-cost"/>
+
+      <!-- Bar 3: Labor Savings (−12.7 → −3.1), floats UP from −12.7 -->
+      <!-- bottom=318.66, top=234.93, h=83.73 -->
+      <rect x="430.5" y="234.93" width="54" height="83.73" fill="#16A34A"
+            data-shape-id="bar-labor"/>
+
+      <!-- Bar 4: Productivity Gains (−3.1 → +2.7), floats UP from −3.1 -->
+      <!-- bottom=234.93, top=184.34, h=50.59 -->
+      <rect x="535.5" y="184.34" width="54" height="50.59" fill="#16A34A"
+            data-shape-id="bar-productivity"/>
+
+      <!-- Bar 5: Risk Reduction (+2.7 → +5.9), floats UP from +2.7 -->
+      <!-- bottom=184.34, top=156.43, h=27.91 -->
+      <rect x="640.5" y="156.43" width="54" height="27.91" fill="#16A34A"
+            data-shape-id="bar-risk"/>
+
+      <!-- Bar 6: Revenue Uplift (+5.9 → +10.0), floats UP from +5.9 -->
+      <!-- bottom=156.43, top=120.67, h=35.76 -->
+      <rect x="745.5" y="120.67" width="54" height="35.76" fill="#16A34A"
+            data-shape-id="bar-revenue"/>
+
+      <!-- Bar 7: Net Business Value (0 → +9.8), total bar from zero -->
+      <!-- top=122.41, bottom=207.89, h=85.48 -->
+      <rect x="850.5" y="122.41" width="54" height="85.48" fill="#2D0A4E"
+            data-shape-id="bar-net"/>
+
+      <!-- ══════════════════════════════════════
+           VALUE LABELS
+           ══════════════════════════════════════ -->
+      <!-- Cost bars: labels below bar bottom (in negative space) -->
+      <text x="142.5" y="292" font-family="Inter, sans-serif" font-size="10.5" font-weight="700"
+            fill="#DC2626" text-anchor="middle" data-shape-id="val-impl">−$8.2M</text>
+      <text x="247.5" y="319" font-family="Inter, sans-serif" font-size="10.5" font-weight="700"
+            fill="#DC2626" text-anchor="middle" data-shape-id="val-lic">−$3.1M</text>
+      <text x="352.5" y="333" font-family="Inter, sans-serif" font-size="10.5" font-weight="700"
+            fill="#DC2626" text-anchor="middle" data-shape-id="val-training">−$1.4M</text>
+
+      <!-- Benefit bars: labels above bar top -->
+      <text x="457.5" y="228" font-family="Inter, sans-serif" font-size="10.5" font-weight="700"
+            fill="#16A34A" text-anchor="middle" data-shape-id="val-labor">+$9.6M</text>
+      <text x="562.5" y="178" font-family="Inter, sans-serif" font-size="10.5" font-weight="700"
+            fill="#16A34A" text-anchor="middle" data-shape-id="val-productivity">+$5.8M</text>
+      <text x="667.5" y="150" font-family="Inter, sans-serif" font-size="10.5" font-weight="700"
+            fill="#16A34A" text-anchor="middle" data-shape-id="val-risk">+$3.2M</text>
+      <text x="772.5" y="114" font-family="Inter, sans-serif" font-size="10.5" font-weight="700"
+            fill="#16A34A" text-anchor="middle" data-shape-id="val-revenue">+$4.1M</text>
+
+      <!-- Net bar: label above -->
+      <text x="877.5" y="115.5" font-family="Inter, sans-serif" font-size="11.5" font-weight="800"
+            fill="#2D0A4E" text-anchor="middle" data-shape-id="val-net">+$9.8M</text>
+
+      <!-- ══════════════════════════════════════
+           X AXIS LABELS
+           ══════════════════════════════════════ -->
+      <g font-family="Inter, sans-serif" font-size="9.5" font-weight="600" fill="#64748B" text-anchor="middle">
+        <text x="142.5" y="346" data-shape-id="xlabel-impl">Implementation</text>
+        <text x="142.5" y="357">Cost</text>
+
+        <text x="247.5" y="346" data-shape-id="xlabel-lic">Licensing</text>
+        <text x="247.5" y="357">Cost</text>
+
+        <text x="352.5" y="346" data-shape-id="xlabel-training">Training</text>
+        <text x="352.5" y="357">Cost</text>
+
+        <text x="457.5" y="346" data-shape-id="xlabel-labor">Labor</text>
+        <text x="457.5" y="357">Savings</text>
+
+        <text x="562.5" y="346" data-shape-id="xlabel-productivity">Productivity</text>
+        <text x="562.5" y="357">Gains</text>
+
+        <text x="667.5" y="346" data-shape-id="xlabel-risk">Risk</text>
+        <text x="667.5" y="357">Reduction</text>
+
+        <text x="772.5" y="346" data-shape-id="xlabel-revenue">Revenue</text>
+        <text x="772.5" y="357">Uplift</text>
+
+        <text x="877.5" y="346" font-weight="700" fill="#2D0A4E" data-shape-id="xlabel-net">Net Business</text>
+        <text x="877.5" y="357" font-weight="700" fill="#2D0A4E">Value</text>
+      </g>
+
+      <!-- ══════════════════════════════════════
+           ROI CALLOUT BOX
+           ══════════════════════════════════════ -->
+      <!-- Positioned top-right of chart, attached to net bar -->
+      <rect x="802" y="30" width="138" height="50" rx="4"
+            fill="#F8F4FC" stroke="#5C2D87" stroke-width="1.5" data-shape-id="roi-box"/>
+      <text x="871" y="50" font-family="Inter, sans-serif" font-size="10" font-weight="700"
+            fill="#2D0A4E" text-anchor="middle" data-shape-id="roi-label">NET +$9.8M / 3 YRS</text>
+      <text x="871" y="65" font-family="Inter, sans-serif" font-size="13" font-weight="800"
+            fill="#A100FF" text-anchor="middle" data-shape-id="roi-value">73% ROI</text>
+      <!-- Arrow from ROI box to net bar top -->
+      <line x1="877.5" y1="80" x2="877.5" y2="116"
+            stroke="#5C2D87" stroke-width="1.5" stroke-dasharray="3 2" data-shape-id="roi-arrow"/>
+      <polygon points="877.5,122 873.5,113 881.5,113" fill="#5C2D87" data-shape-id="roi-arrowhead"/>
+
+    </svg>
+  </div>
+
+  <!-- convergence bar -->
+  <div class="convergence-bar" data-shape-id="convergence-bar">
+    <div class="conv-tag" data-shape-id="conv-tag">ROI SUMMARY</div>
+    <div class="conv-text" data-shape-id="conv-text">Net <strong style="color:var(--brand-accent-soft)">+$9.8M over 3 years = 73% ROI</strong> &mdash; labor savings alone ($9.6M) recover 73% of total implementation cost; program reaches positive cumulative value in year 2.</div>
+  </div>
+
+  <!-- footer -->
+  <div class="footer" data-shape-id="footer">
+    <span data-shape-id="footer-left">Slide Lab &middot; Confidential &middot; Business case</span>
+    <span class="footer-right" data-shape-id="footer-right">132 / 200</span>
+  </div>
+
+</div>
+</body>
+</html>

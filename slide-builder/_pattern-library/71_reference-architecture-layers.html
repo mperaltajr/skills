@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>71 · Reference architecture layers</title>
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  /* Graduated brand colors for layer header bands — darkest top, lightest bottom */
+  --layer-1: #2D0A4E;
+  --layer-2: #5C2D87;
+  --layer-3: #7E3FB0;
+  --layer-4: #A100FF;
+  --layer-5: #C780FF;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1280px; height: 720px; background: var(--slide-bg); font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; color: var(--text-dark); overflow: hidden; }
+body { padding: 0px 64px; position: relative; }
+.draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; }
+.project-label { position: absolute; top: 24px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
+
+.action-title { position: absolute; left: 64px; right: 64px; top: 28px; min-height: 36px; font-size: 28px; font-weight: 700; line-height: 1.2; }
+.action-title strong { color: var(--brand-primary); }
+.subhead { position: absolute; left: 64px; right: 64px; top: 108px; font-size: 14px; color: var(--text-mid); font-style: italic; }
+.title-rule { position: absolute; left: 64px; top: 136px; width: 40px; height: 3px; background: var(--brand-accent); }
+
+/* Architecture canvas — layer stack on left, cross-cutting bars on right */
+.arch-canvas { display: flex; flex-wrap: wrap; gap: 14px; width: 100%; }
+
+.layer-stack { display: flex; flex-direction: column; gap: 8px; }
+.layer { display: flex; flex-wrap: wrap; min-height: 72px; border: 1px solid var(--card-border); }
+.layer-header { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; padding: 8px 12px; color: #FFFFFF; }
+.layer-header .layer-num { font-size: 9px; font-weight: 700; letter-spacing: 2px; opacity: 0.75; }
+.layer-header .layer-name { font-size: 14px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; margin-top: 2px; line-height: 1.15; }
+.layer-body { background: var(--slide-bg); display: flex; align-items: center; gap: 8px; padding: 10px 14px; }
+
+.component { flex: 1; background: var(--card-bg); border: 1px solid var(--brand-accent-soft); padding: 10px 8px; text-align: center; min-height: 50px; display: flex; flex-direction: column; justify-content: center; }
+.component .c-name { font-size: 11px; font-weight: 700; color: var(--text-dark); line-height: 1.2; }
+.component .c-meta { font-size: 9px; font-weight: 500; color: var(--text-mid); margin-top: 3px; letter-spacing: 0.5px; text-transform: uppercase; }
+
+.l1 .layer-header { background: var(--layer-1); }
+.l2 .layer-header { background: var(--layer-2); }
+.l3 .layer-header { background: var(--layer-3); }
+.l4 .layer-header { background: var(--layer-4); }
+.l5 .layer-header { background: var(--layer-5); color: var(--brand-primary); }
+.l5 .layer-header .layer-num { color: var(--brand-primary); opacity: 0.85; }
+
+/* Cross-cutting concerns — vertical bars spanning all layers */
+.cross-cutting { display: flex; flex-wrap: wrap; gap: 10px; }
+.cc-bar { background: var(--brand-primary); color: #FFFFFF; display: flex; flex-direction: column; align-items: center; justify-content: space-between; padding: 16px 8px; text-align: center; border: 1px solid var(--brand-primary); }
+.cc-bar.alt { background: var(--brand-accent); border-color: var(--brand-accent); }
+.cc-label { writing-mode: vertical-rl; transform: rotate(180deg); font-size: 14px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; }
+.cc-tag { font-size: 9px; font-weight: 600; letter-spacing: 1.5px; opacity: 0.85; text-transform: uppercase; writing-mode: vertical-rl; transform: rotate(180deg); }
+
+.convergence { position: absolute; left: 64px; right: 64px; bottom: 70px; background: var(--brand-primary); color: white; padding: 12px 22px; font-size: 14px; font-style: italic; font-weight: 500; }
+
+.footer-rule { position: absolute; left: 0; right: 0; bottom: 32px; height: 1px; background: var(--card-border); }
+.footer-left { position: absolute; bottom: 14px; left: 24px; color: var(--text-faint); font-size: 11px; letter-spacing: 1px; }
+.footer-right { position: absolute; bottom: 14px; right: 24px; color: var(--text-faint); font-size: 11px; }
+</style>
+</head>
+<body>
+
+  <div class="action-title" data-shape-id="title">Slide Lab architecture — <strong>five layers, two cross-cutting concerns.</strong></div>
+  <div class="subhead" data-shape-id="subtitle">Layered reference architecture, top to bottom. Brand theming and QC engine apply at every layer.</div>
+  <div class="title-rule" data-shape-id="brand-rule"></div>
+
+  <div class="arch-canvas">
+    <div class="layer-stack">
+      <div class="layer l1" data-shape-id="tier-1-shape">
+        <div class="layer-header" data-shape-id="tier-1-header">
+          <div class="layer-num" data-shape-id="tier-1-label">LAYER 1</div>
+          <div class="layer-name" data-shape-id="tier-1-name">Presentation</div>
+        </div>
+        <div class="layer-body">
+          <div class="component" data-shape-id="tier-1-component-1"><div class="c-name" data-shape-id="tier-1-component-1-name">Claude Code UI</div><div class="c-meta" data-shape-id="tier-1-component-1-meta">Primary surface</div></div>
+          <div class="component" data-shape-id="tier-1-component-2"><div class="c-name" data-shape-id="tier-1-component-2-name">VS Code</div><div class="c-meta" data-shape-id="tier-1-component-2-meta">Author IDE</div></div>
+          <div class="component" data-shape-id="tier-1-component-3"><div class="c-name" data-shape-id="tier-1-component-3-name">Web preview</div><div class="c-meta" data-shape-id="tier-1-component-3-meta">HTML render</div></div>
+        </div>
+      </div>
+
+      <div class="layer l2" data-shape-id="tier-2-shape">
+        <div class="layer-header" data-shape-id="tier-2-header">
+          <div class="layer-num" data-shape-id="tier-2-label">LAYER 2</div>
+          <div class="layer-name" data-shape-id="tier-2-name">Skills</div>
+        </div>
+        <div class="layer-body">
+          <div class="component" data-shape-id="tier-2-component-1"><div class="c-name" data-shape-id="tier-2-component-1-name">storyline-helper</div><div class="c-meta" data-shape-id="tier-2-component-1-meta">Narrative</div></div>
+          <div class="component" data-shape-id="tier-2-component-2"><div class="c-name" data-shape-id="tier-2-component-2-name">slide-builder</div><div class="c-meta" data-shape-id="tier-2-component-2-meta">Build</div></div>
+          <div class="component" data-shape-id="tier-2-component-3"><div class="c-name" data-shape-id="tier-2-component-3-name">slide-helper</div><div class="c-meta" data-shape-id="tier-2-component-3-meta">Assist</div></div>
+          <div class="component" data-shape-id="tier-2-component-4"><div class="c-name" data-shape-id="tier-2-component-4-name">slide-qc</div><div class="c-meta" data-shape-id="tier-2-component-4-meta">Review</div></div>
+        </div>
+      </div>
+
+      <div class="layer l3" data-shape-id="tier-3-shape">
+        <div class="layer-header" data-shape-id="tier-3-header">
+          <div class="layer-num" data-shape-id="tier-3-label">LAYER 3</div>
+          <div class="layer-name" data-shape-id="tier-3-name">Pattern library</div>
+        </div>
+        <div class="layer-body">
+          <div class="component" data-shape-id="tier-3-component-1"><div class="c-name" data-shape-id="tier-3-component-1-name">100+ HTML patterns</div><div class="c-meta" data-shape-id="tier-3-component-1-meta">Mockups</div></div>
+          <div class="component" data-shape-id="tier-3-component-2"><div class="c-name" data-shape-id="tier-3-component-2-name">Theme variables</div><div class="c-meta" data-shape-id="tier-3-component-2-meta">CSS tokens</div></div>
+          <div class="component" data-shape-id="tier-3-component-3"><div class="c-name" data-shape-id="tier-3-component-3-name">QC rules</div><div class="c-meta" data-shape-id="tier-3-component-3-meta">Standards</div></div>
+        </div>
+      </div>
+
+      <div class="layer l4" data-shape-id="tier-4-shape">
+        <div class="layer-header" data-shape-id="tier-4-header">
+          <div class="layer-num" data-shape-id="tier-4-label">LAYER 4</div>
+          <div class="layer-name" data-shape-id="tier-4-name">Build engine</div>
+        </div>
+        <div class="layer-body">
+          <div class="component" data-shape-id="tier-4-component-1"><div class="c-name" data-shape-id="tier-4-component-1-name">HTML to PPTX</div><div class="c-meta" data-shape-id="tier-4-component-1-meta">Translator</div></div>
+          <div class="component" data-shape-id="tier-4-component-2"><div class="c-name" data-shape-id="tier-4-component-2-name">python-pptx</div><div class="c-meta" data-shape-id="tier-4-component-2-meta">Core lib</div></div>
+          <div class="component" data-shape-id="tier-4-component-3"><div class="c-name" data-shape-id="tier-4-component-3-name">Template integration</div><div class="c-meta" data-shape-id="tier-4-component-3-meta">Layouts</div></div>
+        </div>
+      </div>
+
+      <div class="layer l5" data-shape-id="tier-5-shape">
+        <div class="layer-header" data-shape-id="tier-5-header">
+          <div class="layer-num" data-shape-id="tier-5-label">LAYER 5</div>
+          <div class="layer-name" data-shape-id="tier-5-name">Templates</div>
+        </div>
+        <div class="layer-body">
+          <div class="component" data-shape-id="tier-5-component-1"><div class="c-name" data-shape-id="tier-5-component-1-name">Accenture</div><div class="c-meta" data-shape-id="tier-5-component-1-meta">Brand deck</div></div>
+          <div class="component" data-shape-id="tier-5-component-2"><div class="c-name" data-shape-id="tier-5-component-2-name">FedEx</div><div class="c-meta" data-shape-id="tier-5-component-2-meta">Client deck</div></div>
+          <div class="component" data-shape-id="tier-5-component-3"><div class="c-name" data-shape-id="tier-5-component-3-name">Generic</div><div class="c-meta" data-shape-id="tier-5-component-3-meta">Fallback</div></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="cross-cutting">
+      <div class="cc-bar" data-shape-id="cross-cutting-1-shape">
+        <div class="cc-tag" data-shape-id="cross-cutting-1-tag">Spans all layers</div>
+        <div class="cc-label" data-shape-id="cross-cutting-1-label">Brand theming</div>
+        <div class="cc-tag">&nbsp;</div>
+      </div>
+      <div class="cc-bar alt" data-shape-id="cross-cutting-2-shape">
+        <div class="cc-tag" data-shape-id="cross-cutting-2-tag">Spans all layers</div>
+        <div class="cc-label" data-shape-id="cross-cutting-2-label">QC engine</div>
+        <div class="cc-tag">&nbsp;</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="convergence" data-shape-id="convergence">Five layers stacked top-to-bottom; brand theming and QC engine cut across every layer, end to end.</div>
+  <div class="footer-left" data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+</body>
+</html>

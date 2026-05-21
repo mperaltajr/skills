@@ -1,0 +1,24 @@
+{
+  "id": "10_org_charts_team_governance__slide_4",
+  "layout_pattern": "full-section",
+  "page_types": [
+    "Org Chart Team & Governance",
+    "Conceptual \u2014 Analytical Framework"
+  ],
+  "title": {
+    "x": 58,
+    "y": 37,
+    "w": 1164,
+    "h": 76,
+    "slot": "action_title"
+  },
+  "body": {
+    "x": 58,
+    "y": 151,
+    "w": 1164,
+    "h": 481,
+    "kind": "composed",
+    "primitives_slot": "primitives"
+  },
+  "invariant": true
+}

@@ -1,0 +1,154 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>43 · Definitions / glossary</title>
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1280px; height: 720px; background: var(--slide-bg); font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; color: var(--text-dark); overflow: hidden; }
+body { padding: 44px 64px 56px 64px; position: relative; display: flex; flex-direction: column; }
+
+.draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; }
+.project-label { position: absolute; top: 24px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
+
+.title-block { }
+.action-title { position: absolute; left: 64px; right: 64px; top: 28px; min-height: 72px; font-size: 30px; font-weight: 700; line-height: 1.2; color: var(--text-dark); }
+.action-title strong { color: var(--brand-primary); }
+.subhead { position: absolute; left: 64px; right: 64px; top: 100px; font-size: 14px; color: var(--text-mid); font-style: italic; }
+.title-rule { position: absolute; left: 64px; top: 128px; width: 40px; height: 3px; background: var(--brand-accent); }
+
+.body-region { position: absolute; left: 64px; right: 64px; top: 162px; bottom: 96px; display: flex; flex-direction: column; min-height: 0; }
+
+.glossary { display: flex; flex-direction: column; flex: 1 1 auto; }
+
+/* Two-column grid: TERM (~25%) · DEFINITION (~75%) */
+.gloss-row { display: flex; flex-wrap: wrap; gap: 32px; align-items: start; }
+
+.table-head { padding: 0 0 8px 0; border-bottom: 1.5px solid var(--brand-primary); }
+.head-cell { font-size: 11px; font-weight: 700; color: var(--brand-primary-mid); letter-spacing: 2px; text-transform: uppercase; line-height: 1; }
+
+.term-row { padding: 12px 0 12px 0; border-bottom: 1px solid var(--card-border); flex: 1 1 0; min-height: 0; }
+.term-row:last-of-type { border-bottom: none; }
+
+.term-label { font-size: 14px; font-weight: 700; color: var(--brand-primary); letter-spacing: 2px; text-transform: uppercase; line-height: 1.15; padding-top: 1px; }
+
+.def-block { display: flex; flex-direction: column; gap: 4px; }
+.def-text { font-size: 13.5px; line-height: 1.55; color: var(--text-dark); }
+.def-text strong { color: var(--brand-primary); font-weight: 600; }
+.def-prov { font-size: 11px; line-height: 1.4; color: var(--text-faint); font-style: italic; margin-top: 2px; }
+.def-prov span { font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; font-style: normal; color: var(--brand-primary-mid); margin-right: 6px; }
+
+.convergence { position: absolute; left: 64px; right: 64px; bottom: 48px; background: var(--brand-primary); color: white; padding: 14px 22px; font-size: 14px; font-style: italic; font-weight: 600; }
+
+.footer-rule { position: absolute; left: 0; right: 0; bottom: 32px; height: 1px; background: var(--card-border); }
+.footer-left { position: absolute; bottom: 14px; left: 24px; color: var(--text-faint); font-size: 11px; letter-spacing: 1px; }
+.footer-right { position: absolute; bottom: 14px; right: 24px; color: var(--text-faint); font-size: 11px; }
+
+/* DARK THEME */
+:root {
+  --card-bg: rgba(255,255,255,0.07);
+  --card-border: rgba(255,255,255,0.12);
+  --text-dark: #FFFFFF;
+  --text-mid: rgba(255,255,255,0.6);
+  --slide-bg: #2D0A4E;
+}
+body, .slide { background: #2D0A4E; }
+.project-label { color: rgba(255,255,255,0.4); }
+.action-title { position: absolute; left: 64px; right: 64px; top: 28px; min-height: 72px; color: #FFFFFF; }
+.action-title strong { color: #C780FF; }
+.subhead { position: absolute; left: 64px; right: 64px; top: 100px; color: rgba(255,255,255,0.6); }
+.title-rule { position: absolute; left: 64px; top: 128px; background: #A100FF; }
+.table-head { border-bottom-color: rgba(255,255,255,0.3); }
+.head-cell { color: rgba(255,255,255,0.6); }
+.term-row { border-bottom-color: rgba(255,255,255,0.12); }
+.term-label { color: #C780FF; }
+.def-text { color: rgba(255,255,255,0.85); }
+.def-text strong { color: #C780FF; }
+.def-prov { color: rgba(255,255,255,0.5); }
+.def-prov span { color: rgba(255,255,255,0.6); }
+.convergence { position: absolute; left: 64px; right: 64px; bottom: 48px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.85); }
+.footer-rule { background: rgba(255,255,255,0.1); }
+.footer-left, .footer-right { color: rgba(255,255,255,0.4); }
+</style>
+</head>
+<body>
+
+  <div class="title-block">
+    <div class="action-title" data-shape-id="title">Vocabulary &mdash; <strong>six terms before we go further.</strong></div>
+    <div class="subhead" data-shape-id="subtitle">Same words, same meaning &mdash; the shared dictionary for everything that follows.</div>
+    <div class="title-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <div class="body-region">
+    <div class="glossary">
+
+      <div class="gloss-row table-head">
+        <div class="head-cell" data-shape-id="table-head-1">Term</div>
+        <div class="head-cell" data-shape-id="table-head-2">Definition</div>
+      </div>
+
+      <div class="gloss-row term-row">
+        <div class="term-label" data-shape-id="term-1-label">Governing<br>thought</div>
+        <div class="def-block">
+          <div class="def-text" data-shape-id="term-1-def">The single sentence the whole deck has to prove. <strong>If the deck were one sentence, it's this one.</strong></div>
+        </div>
+      </div>
+
+      <div class="gloss-row term-row">
+        <div class="term-label" data-shape-id="term-2-label">Action title</div>
+        <div class="def-block">
+          <div class="def-text" data-shape-id="term-2-def">The headline of each slide, written as a declarative sentence with a verb and a so-what. Not <strong>"Background"</strong> &mdash; <strong>"Background shows we lost 60% of cycle time in this phase."</strong></div>
+        </div>
+      </div>
+
+      <div class="gloss-row term-row">
+        <div class="term-label" data-shape-id="term-3-label">So-what</div>
+        <div class="def-block">
+          <div class="def-text" data-shape-id="term-3-def">The decision or action a slide demands of the reader. Every slide has one; most slides don't say it.</div>
+        </div>
+      </div>
+
+      <div class="gloss-row term-row">
+        <div class="term-label" data-shape-id="term-4-label">Invariant zone</div>
+        <div class="def-block">
+          <div class="def-text" data-shape-id="term-4-def">The fixed parts of every slide that shouldn't change deck-to-deck: page number, source line, footer, brand chrome.</div>
+          <div class="def-prov" data-shape-id="term-4-prov"><span>Provenance</span>Borrowed from architecture &mdash; "the parts that hold even when everything else moves."</div>
+        </div>
+      </div>
+
+      <div class="gloss-row term-row">
+        <div class="term-label" data-shape-id="term-5-label">MECE</div>
+        <div class="def-block">
+          <div class="def-text" data-shape-id="term-5-def"><strong>Mutually Exclusive, Collectively Exhaustive.</strong> The discipline of cutting a problem into non-overlapping pieces that cover the whole space.</div>
+        </div>
+      </div>
+
+      <div class="gloss-row term-row">
+        <div class="term-label" data-shape-id="term-6-label">Convergence line</div>
+        <div class="def-block">
+          <div class="def-text" data-shape-id="term-6-def">The italic statement at the bottom of an argument slide that closes it &mdash; the final claim the evidence supports.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="convergence" data-shape-id="convergence">Same words, same meaning &mdash; that's where the conversation starts.</div>
+  <div class="footer-left" data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+</body>
+</html>

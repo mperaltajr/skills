@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>117 · Concept mind map</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #4a4a4a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 24px;
+  box-sizing: border-box;
+}
+.slide {
+  width: 1280px;
+  height: 720px;
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.35);
+}
+
+/* Top chrome */
+.accenture-tag {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  font-size: 10px;
+  color: var(--text-faint);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  z-index: 5;
+}
+
+/* DRAFT badge */
+.draft-badge {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--draft-bg);
+  color: var(--draft-text);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 16px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  z-index: 5;
+  /* NO border-radius */
+}
+
+/* Title block */
+.title-block {
+  position: absolute;
+  top: 48px;
+  left: 48px;
+  right: 48px;
+}
+.title-block h1 {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--text-dark);
+  letter-spacing: -0.01em;
+}
+.title-block h1 strong {
+  color: var(--brand-primary);
+}
+.subhead {
+  font-size: 12.5px;
+  color: var(--text-mid);
+  margin-top: 6px;
+  font-style: italic;
+  line-height: 1.4;
+}
+.title-rule {
+  width: 48px;
+  height: 3px;
+  background: var(--brand-accent);
+  margin-top: 10px;
+}
+
+/* Mind map SVG area */
+.mind-map-area {
+  position: absolute;
+  top: 145px;
+  left: 0;
+  right: 0;
+  bottom: 32px;
+}
+.mind-map-area svg {
+  width: 100%;
+  height: 100%;
+  font-family: 'Inter', sans-serif;
+  overflow: visible;
+}
+
+/* Footer */
+.footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  padding: 0 48px;
+  font-size: 9.5px;
+  color: var(--text-faint);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-top: 1px solid var(--card-border);
+  background: #FBFAFD;
+}
+.footer-right {
+  margin-left: auto;
+}
+</style>
+</head>
+<body>
+<div class="slide" data-shape-id="slide-root">
+
+  <!-- Top chrome -->
+  <div class="accenture-tag" data-shape-id="accenture-tag">Accenture Internal</div>
+
+  <!-- Title block -->
+  <div class="title-block" data-shape-id="title-block">
+    <h1 data-shape-id="title"><strong>Five interdependent pillars</strong> — digital transformation requires simultaneous progress across all branches</h1>
+    <div class="subhead" data-shape-id="subhead">Radial mind map: each pillar radiates from a shared strategic core, with three concrete enablers per branch</div>
+    <div class="title-rule" data-shape-id="title-rule"></div>
+  </div>
+
+  <!-- Mind map SVG -->
+  <!--
+    SVG viewBox: 0 0 1280 543
+    SVG area height = 720 - 145 - 32 = 543px
+
+    Center node: cx=640, cy=278 (slightly above mid to balance title weight)
+
+    5 branches:
+      1. Technology  — NE  — angle = -45deg (315deg) → dx=+cos(315)*185 = +130.8, dy=+sin(315)*185 = -130.8 → (771, 147)
+      2. Process     — E   — angle = 0deg           → dx=+185, dy=0                                          → (825, 278)
+      3. People      — SE  — angle = +60deg          → dx=+cos(60)*185 = +92.5, dy=+sin(60)*185 = +160.2   → (733, 438)
+      4. Data        — SW  — angle = +210deg         → dx=+cos(210)*185 = -160.2, dy=+sin(210)*185 = -92.5 → (480, 370) — wait, SW should be lower-left
+         SW angle = 225deg → dx=cos(225)*185 = -130.8, dy=sin(225)*185 = +130.8 → (509, 409)
+      5. Customer    — NW  — angle = 225deg rotated… NW = 135deg measured from East CCW = 135deg
+         NW = 135deg → dx=cos(135)*185 = -130.8, dy=sin(135)*185 = -130.8 → (509, 147) — that's NW upper-left
+
+    Let me re-plan with standard math (angle from positive x-axis, y increases downward):
+      NE = -45deg  → cos(-45)=0.707, sin(-45)=-0.707 → (640+131, 278-131) = (771, 147)
+      E  = 0deg    → (640+185, 278+0) = (825, 278)
+      SE = +45deg  → cos(45)=0.707, sin(45)=0.707   → (640+131, 278+131) = (771, 409)
+      SW = +180+45 = 225deg → cos(225)=-0.707, sin(225)=0.707 → (640-131, 278+131) = (509, 409)
+      NW = -135deg → cos(-135)=-0.707, sin(-135)=-0.707 → (640-131, 278-131) = (509, 147)
+
+    Branch ellipses: rx=62 ry=24
+    Leaf rectangles: w=100 h=30, rx=6
+    Leaf distance from branch center: 110px
+    Leaf spread: ±30deg from branch angle
+
+    Per-branch leaf angles:
+      NE (branch at -45deg):  leaves at -45-30=-75, -45, -45+30=-15
+      E  (branch at 0deg):    leaves at -30, 0, +30
+      SE (branch at +45deg):  leaves at +15, +45, +75
+      SW (branch at +225deg): leaves at +195, +225, +255
+      NW (branch at -135deg): leaves at -165, -135, -105
+
+    Leaf coords from branch center (110px):
+      NE leaves from (771,147):
+        -75: (771+110*cos(-75), 147+110*sin(-75)) = (771+28.5, 147-106.3) = (799, 41) — too close to top
+
+    Better: use 95px leaf spread from branch center, and adjust spread to 20deg for compactness.
+    Also let me re-check the SVG height: 543px. Center at cy=285 gives more room.
+
+    Final layout — center (640, 285), branch radius 175px:
+      NE (-45deg):  (640+124, 285-124) = (764, 161)
+      E  (0deg):    (640+175, 285)     = (815, 285)
+      SE (+45deg):  (640+124, 285+124) = (764, 409)
+      SW (+225deg): (640-124, 285+124) = (516, 409)
+      NW (-135deg): (640-124, 285-124) = (516, 161)
+
+    Leaves from branch, radius 105px, spread ±25deg:
+      NE branch (764,161), angle -45:
+        L1: -70deg  → (764+105*cos(-70), 161+105*sin(-70)) = (764+35.9, 161-98.7) = (800, 62)
+        L2: -45deg  → (764+74.2, 161-74.2) = (838, 87)
+        L3: -20deg  → (764+98.7, 161-35.9) = (863, 125)
+      E branch (815,285), angle 0:
+        L1: -25deg  → (815+95.1, 285-44.4) = (910, 241)
+        L2: 0deg    → (815+105, 285)        = (920, 285)
+        L3: +25deg  → (815+95.1, 285+44.4) = (910, 329)
+      SE branch (764,409), angle +45:
+        L1: +20deg  → (764+98.7, 409+35.9) = (863, 445)
+        L2: +45deg  → (764+74.2, 409+74.2) = (838, 483)
+        L3: +70deg  → (764+35.9, 409+98.7) = (800, 508)
+      SW branch (516,409), angle +225:
+        +225 ± 25 → angles 200, 225, 250
+        L1: 200deg → (516+cos(200)*105, 409+sin(200)*105) = (516-98.7, 409-35.9) = (417, 373) — going UP-left from SE-branch... hmm SW angle should go lower-left
+        Actually SW at 225deg = lower-left. Leaves spread around 225deg:
+        L1: 200deg → (516+cos(200)*105, 409+sin(200)*105) = (516-98.7, 409-35.9) = (417, 373)
+        L2: 225deg → (516+cos(225)*105, 409+sin(225)*105) = (516-74.2, 409+74.2) = (442, 483) — off bottom?
+        Let me reduce: center at (640, 270), branch radius 165, leaf radius 95.
+
+    *** FINAL GEOMETRY — simplified ***
+    Center: (640, 270)
+    Branch radius: 165px
+    Leaf radius: 95px, spread ±22deg
+
+    Branches (angle in standard math, y-down):
+      B1 Technology NE: -45deg → (640+117, 270-117) = (757, 153)
+      B2 Process E:      0deg  → (640+165, 270)     = (805, 270)
+      B3 People SE:    +45deg  → (640+117, 270+117) = (757, 387)
+      B4 Data SW:      225deg  → (640-117, 270+117) = (523, 387)
+      B5 Customer NW:  -135deg → (640-117, 270-117) = (523, 153)
+
+    Leaves: radius 95 from branch center
+      B1 NE (757,153) base -45, spread ±22:
+        L1 -67deg: (757+37.1, 153-87.5) = (794, 66)
+        L2 -45deg: (757+67.2, 153-67.2) = (824, 86)
+        L3 -23deg: (757+87.5, 153-37.1) = (845, 116)
+      B2 E (805,270) base 0, spread ±22:
+        L1 -22deg: (805+88.1, 270-35.6) = (893, 234)
+        L2  0deg:  (805+95,   270)       = (900, 270)
+        L3 +22deg: (805+88.1, 270+35.6) = (893, 306)
+      B3 SE (757,387) base +45, spread ±22:
+        L1 +23deg: (757+87.5, 387+37.1) = (845, 424)
+        L2 +45deg: (757+67.2, 387+67.2) = (824, 454)
+        L3 +67deg: (757+37.1, 387+87.5) = (794, 475)
+      B4 SW (523,387) base 225, spread ±22:
+        L1 203deg: (523+cos(203)*95, 387+sin(203)*95) = (523-87.5, 387-37.1) = (436, 350) -- going upper-left
+        Hmm, 225±22 should go lower-left. Let me use 203, 225, 247:
+        L1 203deg: cos(203)=-0.921, sin(203)=-0.391 → (523-87.5, 387-37.1) = (436, 350) -- upper-left of B4
+        L2 225deg: cos(225)=-0.707, sin(225)=0.707  → (523-67.2, 387+67.2) = (456, 454) -- lower-left (within slide)
+        L3 247deg: cos(247)=-0.391, sin(247)=-0.921 → (523-37.1, 387-87.5) = (486, 300) -- back toward upper...
+
+        The issue: SW angle=225 points to lower-left, but the spread wraps around creating confusion.
+        Better to define SW as exactly 225 (down-left) and use a linear spread like 205, 225, 245.
+        205deg: cos(205)=-0.906, sin(205)=-0.423 → (523-86.1, 387-40.2) = (437, 347) -- upper-left of branch
+        225deg: cos(225)=-0.707, sin(225)=0.707  → (456, 454)
+        245deg: cos(245)=-0.423, sin(245)=-0.906 → (523-40.2, 387-86.1) = (483, 301)
+
+        These go in 3 different directions from the SW branch, which is correct for a radial sub-spread.
+        But visually on slide: y=347 and y=301 are ABOVE y=387 branch, which is confusing layout.
+
+        Better approach: for SW, angle=225 means pointing lower-left. Sub-leaves should spread outward
+        in same general direction. Use 215, 230, 245:
+        215: cos(215)=-0.819, sin(215)=-0.574 → (523-77.8, 387-54.5) = (445, 333)
+        230: cos(230)=-0.643, sin(230)=-0.766 → hmm sin(230) is negative (up)...
+
+        In SVG coords (y increases DOWN): sin(225) = -0.707 is UP. So SW 225deg in SVG coords points LEFT and UP.
+        That means SW is actually NW in visual terms!
+
+        Let me restart with VISUAL angles (0=right, 90=DOWN, 180=left, 270=up):
+          B1 Technology NE = 315deg (right+up)
+          B2 Process E     = 0deg   (right)
+          B3 People SE     = 45deg  (right+down)
+          B4 Data SW       = 225deg visual = 135deg (left+down)
+          B5 Customer NW   = 270-45 = 225deg? No...
+
+        Standard visual angles (0=right, clockwise positive, y-down):
+          NE = -45 or 315
+          E  = 0
+          SE = 45
+          SW = 135  (← this is SW in y-down coords: left + down)
+          NW = -135 or 225 (← left + up)
+
+        Wait, let me just use cardinal directions in y-down SVG space:
+          Right = 0deg (East)
+          Down  = 90deg (South)
+          Left  = 180deg (West)
+          Up    = 270deg (North) [or -90]
+
+          NE = -45deg (up-right): cos(-45)=0.707, sin(-45)=-0.707 ✓
+          E  = 0deg: right ✓
+          SE = +45deg (down-right): cos(45)=0.707, sin(45)=0.707 ✓
+          SW = 135deg (down-left): cos(135)=-0.707, sin(135)=0.707 → LEFT and DOWN ✓
+          NW = -135deg (up-left): cos(-135)=-0.707, sin(-135)=-0.707 → LEFT and UP ✓
+
+        So SW is actually 135deg, not 225deg. Let me recalc:
+
+    *** CORRECTED FINAL GEOMETRY ***
+    Center: (640, 270)  Branch r=165  Leaf r=95  Leaf spread ±22deg
+
+    B1 Technology NE: angle=-45  → cx=640+165*0.707=757, cy=270-165*0.707=153  → (757, 153) ✓
+    B2 Process E:     angle=0    → cx=640+165=805, cy=270                        → (805, 270) ✓
+    B3 People SE:     angle=45   → cx=640+117=757, cy=270+117=387                → (757, 387) ✓
+    B4 Data SW:       angle=135  → cx=640-117=523, cy=270+117=387                → (523, 387) ✓
+    B5 Customer NW:   angle=-135 → cx=640-117=523, cy=270-117=153                → (523, 153) ✓
+
+    Leaves for B1 NE (757,153), base=-45, spread to -67,-45,-23:
+      L1 -67: (757+95*cos(-67), 153+95*sin(-67)) = (757+37.1, 153-87.4) = (794, 66)
+      L2 -45: (757+67.2, 153-67.2) = (824, 86)
+      L3 -23: (757+87.4, 153-37.1) = (844, 116)
+
+    Leaves for B2 E (805,270), base=0, spread to -22,0,22:
+      L1 -22: (805+88.1, 270-35.6) = (893, 234)
+      L2  0:  (805+95, 270) = (900, 270)
+      L3 +22: (805+88.1, 270+35.6) = (893, 306)
+
+    Leaves for B3 SE (757,387), base=45, spread to 23,45,67:
+      L1 23: (757+87.4, 387+37.1) = (844, 424)
+      L2 45: (757+67.2, 387+67.2) = (824, 454)
+      L3 67: (757+37.1, 387+87.4) = (794, 474)
+
+    Leaves for B4 SW (523,387), base=135, spread to 113,135,157:
+      L1 113: (523+cos(113)*95, 387+sin(113)*95) = (523-37.1, 387+87.4) = (486, 474)
+      L2 135: (523+cos(135)*95, 387+sin(135)*95) = (523-67.2, 387+67.2) = (456, 454)
+      L3 157: (523+cos(157)*95, 387+sin(157)*95) = (523-87.4, 387+37.1) = (436, 424)
+
+    Leaves for B5 NW (523,153), base=-135, spread to -157,-135,-113:
+      L1 -157: (523+cos(-157)*95, 153+sin(-157)*95) = (523-87.4, 153-37.1) = (436, 116)
+      L2 -135: (523+cos(-135)*95, 153+sin(-135)*95) = (523-67.2, 153-67.2) = (456, 86)
+      L3 -113: (523+cos(-113)*95, 153+sin(-113)*95) = (523-37.1, 153-87.4) = (486, 66)
+
+    All leaf positions look balanced. Let's verify bounds:
+      Min y: 66 (fine, SVG starts at 0, body area is 543px tall)
+      Max y: 474 (fine, < 543)
+      Min x: 436 (fine)
+      Max x: 900 (fine < 1280)
+
+    Leaf rect: width=96, height=28, rx=5, centered on leaf cx,cy
+    Branch ellipse: rx=64, ry=22
+    Center ellipse: rx=80, ry=32
+  -->
+  <div class="mind-map-area" data-shape-id="mind-map-area">
+    <svg viewBox="0 0 1280 543" preserveAspectRatio="xMidYMid meet" data-shape-id="mind-map-svg">
+
+      <!-- ====================================================
+           BRANCH LINES (thick, brand accent)
+           From center (640,270) to branch nodes
+           ==================================================== -->
+      <g stroke="#A100FF" stroke-width="2.5" stroke-opacity="0.9">
+        <!-- B1 Technology NE -->
+        <line x1="640" y1="270" x2="757" y2="153" data-shape-id="branch-line-1"/>
+        <!-- B2 Process E -->
+        <line x1="640" y1="270" x2="805" y2="270" data-shape-id="branch-line-2"/>
+        <!-- B3 People SE -->
+        <line x1="640" y1="270" x2="757" y2="387" data-shape-id="branch-line-3"/>
+        <!-- B4 Data SW -->
+        <line x1="640" y1="270" x2="523" y2="387" data-shape-id="branch-line-4"/>
+        <!-- B5 Customer NW -->
+        <line x1="640" y1="270" x2="523" y2="153" data-shape-id="branch-line-5"/>
+      </g>
+
+      <!-- ====================================================
+           LEAF CONNECTOR LINES (thin, lighter)
+           ==================================================== -->
+      <g stroke="#C780FF" stroke-width="1.2" stroke-opacity="0.65">
+        <!-- B1 Technology leaves -->
+        <line x1="757" y1="153" x2="794" y2="66"  data-shape-id="leaf-line-1-1"/>
+        <line x1="757" y1="153" x2="824" y2="86"  data-shape-id="leaf-line-1-2"/>
+        <line x1="757" y1="153" x2="844" y2="116" data-shape-id="leaf-line-1-3"/>
+        <!-- B2 Process leaves -->
+        <line x1="805" y1="270" x2="893" y2="234" data-shape-id="leaf-line-2-1"/>
+        <line x1="805" y1="270" x2="900" y2="270" data-shape-id="leaf-line-2-2"/>
+        <line x1="805" y1="270" x2="893" y2="306" data-shape-id="leaf-line-2-3"/>
+        <!-- B3 People leaves -->
+        <line x1="757" y1="387" x2="844" y2="424" data-shape-id="leaf-line-3-1"/>
+        <line x1="757" y1="387" x2="824" y2="454" data-shape-id="leaf-line-3-2"/>
+        <line x1="757" y1="387" x2="794" y2="474" data-shape-id="leaf-line-3-3"/>
+        <!-- B4 Data leaves -->
+        <line x1="523" y1="387" x2="486" y2="474" data-shape-id="leaf-line-4-1"/>
+        <line x1="523" y1="387" x2="456" y2="454" data-shape-id="leaf-line-4-2"/>
+        <line x1="523" y1="387" x2="436" y2="424" data-shape-id="leaf-line-4-3"/>
+        <!-- B5 Customer leaves -->
+        <line x1="523" y1="153" x2="436" y2="116" data-shape-id="leaf-line-5-1"/>
+        <line x1="523" y1="153" x2="456" y2="86"  data-shape-id="leaf-line-5-2"/>
+        <line x1="523" y1="153" x2="486" y2="66"  data-shape-id="leaf-line-5-3"/>
+      </g>
+
+      <!-- ====================================================
+           LEAF NODES — white cards with brand accent border
+           rect centered on leaf cx,cy: x=cx-48, y=cy-14, w=96, h=28
+           ==================================================== -->
+      <g font-family="Inter, sans-serif">
+
+        <!-- B1 Technology leaves (794,66) (824,86) (844,116) -->
+        <rect x="746" y="52" width="96" height="28" rx="5" fill="white" stroke="#A100FF" stroke-width="1.5" data-shape-id="leaf-1-1"/>
+        <text x="794" y="70" text-anchor="middle" font-size="10" font-weight="600" fill="#1A1A2E" data-shape-id="leaf-1-1-text">Cloud Infra</text>
+
+        <rect x="776" y="72" width="96" height="28" rx="5" fill="white" stroke="#A100FF" stroke-width="1.5" data-shape-id="leaf-1-2"/>
+        <text x="824" y="90" text-anchor="middle" font-size="10" font-weight="600" fill="#1A1A2E" data-shape-id="leaf-1-2-text">AI &amp; Analytics</text>
+
+        <rect x="796" y="102" width="96" height="28" rx="5" fill="white" stroke="#A100FF" stroke-width="1.5" data-shape-id="leaf-1-3"/>
+        <text x="844" y="120" text-anchor="middle" font-size="10" font-weight="600" fill="#1A1A2E" data-shape-id="leaf-1-3-text">Cybersecurity</text>
+
+        <!-- B2 Process leaves (893,234) (900,270) (893,306) -->
+        <rect x="845" y="220" width="96" height="28" rx="5" fill="white" stroke="#A100FF" stroke-width="1.5" data-shape-id="leaf-2-1"/>
+        <text x="893" y="238" text-anchor="middle" font-size="10" font-weight="600" fill="#1A1A2E" data-shape-id="leaf-2-1-text">Automation</text>
+
+        <rect x="852" y="256" width="96" height="28" rx="5" fill="white" stroke="#A100FF" stroke-width="1.5" data-shape-id="leaf-2-2"/>
+        <text x="900" y="274" text-anchor="middle" font-size="10" font-weight="600" fill="#1A1A2E" data-shape-id="leaf-2-2-text">Lean Ops</text>
+
+        <rect x="845" y="292" width="96" height="28" rx="5" fill="white" stroke="#A100FF" stroke-width="1.5" data-shape-id="leaf-2-3"/>
+        <text x="893" y="310" text-anchor="middle" font-size="10" font-weight="600" fill="#1A1A2E" data-shape-id="leaf-2-3-text">Agile Delivery</text>
+
+        <!-- B3 People leaves (844,424) (824,454) (794,474) -->
+        <rect x="796" y="410" width="96" height="28" rx="5" fill="white" stroke="#A100FF" stroke-width="1.5" data-shape-id="leaf-3-1"/>
+        <text x="844" y="428" text-anchor="middle" font-size="10" font-weight="600" fill="#1A1A2E" data-shape-id="leaf-3-1-text">Digital Skills</text>
+
+        <rect x="776" y="440" width="96" height="28" rx="5" fill="white" stroke="#A100FF" stroke-width="1.5" data-shape-id="leaf-3-2"/>
+        <text x="824" y="458" text-anchor="middle" font-size="10" font-weight="600" fill="#1A1A2E" data-shape-id="leaf-3-2-text">Culture Shift</text>
+
+        <rect x="746" y="460" width="96" height="28" rx="5" fill="white" stroke="#A100FF" stroke-width="1.5" data-shape-id="leaf-3-3"/>
+        <text x="794" y="478" text-anchor="middle" font-size="10" font-weight="600" fill="#1A1A2E" data-shape-id="leaf-3-3-text">Leadership</text>
+
+        <!-- B4 Data leaves (486,474) (456,454) (436,424) -->
+        <rect x="438" y="460" width="96" height="28" rx="5" fill="white" stroke="#A100FF" stroke-width="1.5" data-shape-id="leaf-4-1"/>
+        <text x="486" y="478" text-anchor="middle" font-size="10" font-weight="600" fill="#1A1A2E" data-shape-id="leaf-4-1-text">Data Governance</text>
+
+        <rect x="408" y="440" width="96" height="28" rx="5" fill="white" stroke="#A100FF" stroke-width="1.5" data-shape-id="leaf-4-2"/>
+        <text x="456" y="458" text-anchor="middle" font-size="10" font-weight="600" fill="#1A1A2E" data-shape-id="leaf-4-2-text">Real-time Intel</text>
+
+        <rect x="388" y="410" width="96" height="28" rx="5" fill="white" stroke="#A100FF" stroke-width="1.5" data-shape-id="leaf-4-3"/>
+        <text x="436" y="428" text-anchor="middle" font-size="10" font-weight="600" fill="#1A1A2E" data-shape-id="leaf-4-3-text">Data Platforms</text>
+
+        <!-- B5 Customer leaves (436,116) (456,86) (486,66) -->
+        <rect x="388" y="102" width="96" height="28" rx="5" fill="white" stroke="#A100FF" stroke-width="1.5" data-shape-id="leaf-5-1"/>
+        <text x="436" y="120" text-anchor="middle" font-size="10" font-weight="600" fill="#1A1A2E" data-shape-id="leaf-5-1-text">CX Design</text>
+
+        <rect x="408" y="72" width="96" height="28" rx="5" fill="white" stroke="#A100FF" stroke-width="1.5" data-shape-id="leaf-5-2"/>
+        <text x="456" y="90" text-anchor="middle" font-size="10" font-weight="600" fill="#1A1A2E" data-shape-id="leaf-5-2-text">Personalization</text>
+
+        <rect x="438" y="52" width="96" height="28" rx="5" fill="white" stroke="#A100FF" stroke-width="1.5" data-shape-id="leaf-5-3"/>
+        <text x="486" y="70" text-anchor="middle" font-size="10" font-weight="600" fill="#1A1A2E" data-shape-id="leaf-5-3-text">Digital Channels</text>
+
+      </g>
+
+      <!-- ====================================================
+           BRANCH NODES — labeled ovals (brand-primary-mid bg)
+           ellipse rx=64 ry=22, white text
+           ==================================================== -->
+      <g font-family="Inter, sans-serif">
+
+        <!-- B1 Technology NE (757, 153) -->
+        <ellipse cx="757" cy="153" rx="64" ry="22" fill="#5C2D87" data-shape-id="branch-node-1"/>
+        <text x="757" y="158" text-anchor="middle" font-size="12" font-weight="700" fill="white" letter-spacing="0.3" data-shape-id="branch-label-1">Technology</text>
+
+        <!-- B2 Process E (805, 270) -->
+        <ellipse cx="805" cy="270" rx="64" ry="22" fill="#5C2D87" data-shape-id="branch-node-2"/>
+        <text x="805" y="275" text-anchor="middle" font-size="12" font-weight="700" fill="white" letter-spacing="0.3" data-shape-id="branch-label-2">Process</text>
+
+        <!-- B3 People SE (757, 387) -->
+        <ellipse cx="757" cy="387" rx="64" ry="22" fill="#5C2D87" data-shape-id="branch-node-3"/>
+        <text x="757" y="392" text-anchor="middle" font-size="12" font-weight="700" fill="white" letter-spacing="0.3" data-shape-id="branch-label-3">People</text>
+
+        <!-- B4 Data SW (523, 387) -->
+        <ellipse cx="523" cy="387" rx="64" ry="22" fill="#5C2D87" data-shape-id="branch-node-4"/>
+        <text x="523" y="392" text-anchor="middle" font-size="12" font-weight="700" fill="white" letter-spacing="0.3" data-shape-id="branch-label-4">Data</text>
+
+        <!-- B5 Customer NW (523, 153) -->
+        <ellipse cx="523" cy="153" rx="64" ry="22" fill="#5C2D87" data-shape-id="branch-node-5"/>
+        <text x="523" y="158" text-anchor="middle" font-size="12" font-weight="700" fill="white" letter-spacing="0.3" data-shape-id="branch-label-5">Customer</text>
+
+      </g>
+
+      <!-- ====================================================
+           CENTER NODE — "Digital Transformation"
+           Large oval, brand primary bg, white text
+           rx=80 ry=32
+           ==================================================== -->
+      <ellipse cx="640" cy="270" rx="82" ry="34" fill="#2D0A4E" stroke="white" stroke-width="2" data-shape-id="center-node"/>
+      <text x="640" y="264" text-anchor="middle" font-size="11" font-weight="800" fill="white" letter-spacing="0.5" font-family="Inter, sans-serif" data-shape-id="center-label-1">DIGITAL</text>
+      <text x="640" y="279" text-anchor="middle" font-size="11" font-weight="800" fill="white" letter-spacing="0.5" font-family="Inter, sans-serif" data-shape-id="center-label-2">TRANSFORMATION</text>
+
+    </svg>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer" data-shape-id="footer">
+    <span data-shape-id="footer-left">Slide Lab &middot; Confidential &middot; Strategic framework</span>
+    <span class="footer-right" data-shape-id="footer-right">117 / 200</span>
+  </div>
+
+</div>
+</body>
+</html>

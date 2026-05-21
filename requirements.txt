@@ -1,0 +1,36 @@
+# Slide Lab — Python dependencies
+#
+# Install with:   pip install -r requirements.txt
+#
+# These cover all skill folders (slide-builder, slide-qc, storyline-helper,
+# rfp-helper, slidelab-log, docx, pptx, xlsx) plus the cross-skill glue.
+
+# Core PPTX construction + manipulation
+python-pptx>=0.6.21
+lxml>=4.9.0           # XML manipulation in patches/translator/icon insertion
+
+# Catalog + brief YAML
+pyyaml>=6.0
+
+# Render PDF -> PNG (slide-qc + themed_thumbnails)
+pypdfium2>=4.0
+
+# Imaging (thumbnail generation, icon extraction)
+Pillow>=10.0
+
+# Charting (chart-generating builders)
+matplotlib>=3.7
+numpy>=1.24
+
+# XLSX read/write (xlsx skill + chart-data ingestion)
+openpyxl>=3.1
+
+# Windows-only — needed for PowerPoint COM "high-fidelity" rendering path.
+# Optional: only required if you use slide-qc --engine ppt. Comment out on
+# macOS/Linux.
+pywin32>=306 ; platform_system == "Windows"
+
+# Optional: only required if you use the HTML mockup preview path which
+# renders a Chromium screenshot of pattern HTML. Most Slide Lab flows do
+# not need it. Comment out if you don't run the HTML preview.
+# playwright>=1.40

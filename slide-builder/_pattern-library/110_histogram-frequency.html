@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>110 · Histogram — Frequency distribution</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #4a4a4a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 24px;
+  box-sizing: border-box;
+}
+.slide {
+  width: 1280px;
+  height: 720px;
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.35);
+}
+
+/* Chrome */
+.accenture-tag {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  font-size: 10px;
+  color: var(--text-faint);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  z-index: 5;
+  font-weight: 600;
+}
+.draft-badge {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--draft-bg);
+  color: var(--draft-text);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 16px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  z-index: 5;
+}
+
+/* Title block */
+.title-block {
+  position: absolute;
+  top: 48px;
+  left: 48px;
+  right: 48px;
+}
+.slide-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-dark);
+  line-height: 1.25;
+}
+.slide-title strong {
+  color: var(--brand-primary);
+}
+.slide-subtitle {
+  font-size: 14px;
+  color: var(--text-mid);
+  margin-top: 7px;
+  font-style: italic;
+  line-height: 1.4;
+}
+.title-rule {
+  width: 40px;
+  height: 3px;
+  background: var(--brand-accent);
+  margin-top: 14px;
+}
+
+/* Chart container */
+.chart-container {
+  position: absolute;
+  top: 150px;
+  left: 48px;
+  right: 48px;
+  bottom: 100px;
+}
+
+/* Callout box */
+.callout-box {
+  position: absolute;
+  top: 8px;
+  right: 0;
+  width: 264px;
+  background: var(--brand-primary);
+  color: #fff;
+  padding: 16px 18px;
+}
+.callout-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--brand-accent-soft);
+  margin-bottom: 8px;
+}
+.callout-body {
+  font-size: 12.5px;
+  line-height: 1.5;
+  font-weight: 500;
+}
+.callout-body strong {
+  color: var(--brand-accent-soft);
+  font-weight: 700;
+}
+
+/* Legend */
+.legend-row {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  align-items: flex-end;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: var(--text-mid);
+  font-weight: 600;
+}
+.swatch-median { width: 18px; height: 0; border-top: 2px dashed #A100FF; }
+.swatch-mean   { width: 18px; height: 0; border-top: 2px dashed #DC2626; }
+.swatch-mode   { width: 18px; height: 0; border-top: 2px dashed #16A34A; }
+.swatch-core   { width: 14px; height: 14px; background: #A100FF; }
+.swatch-tail   { width: 14px; height: 14px; background: #94A3B8; }
+
+/* Convergence bar */
+.convergence {
+  position: absolute;
+  bottom: 56px;
+  left: 48px;
+  right: 48px;
+  background: var(--brand-primary);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  font-style: italic;
+  line-height: 1.4;
+  padding: 10px 20px;
+}
+
+/* Footer */
+.footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  padding: 0 48px;
+  font-size: 9.5px;
+  color: var(--text-faint);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-top: 1px solid var(--card-border);
+  background: #FBFAFD;
+}
+.footer-right {
+  margin-left: auto;
+}
+</style>
+</head>
+<body>
+<div class="slide" data-shape-id="slide-root">
+
+  <!-- Chrome -->
+  <div class="accenture-tag" data-shape-id="accenture-tag">Accenture Internal</div>
+
+  <!-- Title block -->
+  <div class="title-block" data-shape-id="title-block">
+    <div class="slide-title" data-shape-id="title"><strong>Deal velocity clusters at 30 days</strong> &mdash; long tail driven by enterprise complexity</div>
+    <div class="slide-subtitle" data-shape-id="subtitle">Distribution of deal close time (days) &middot; n = 169 deals &middot; Sales pipeline FY26 Q1</div>
+    <div class="title-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- Main chart container -->
+  <div class="chart-container" data-shape-id="chart-container">
+
+    <!--
+      SVG histogram
+      Plot area: x 64 -> 920, y 18 -> 340 (height 322, width 856)
+      12 bins of equal width: 856/12 = 71.33px each
+      Bin left x: 64 + i*71.33
+      Y axis: 0–45 deals → 322px. 1 deal = 7.156px
+      Frequencies (bins 0-10, 10-20, ... 110-120):
+        [3, 12, 28, 42, 38, 21, 11, 7, 4, 2, 1, 0]
+        ← total 169
+      Color: bins 1,2,3,4 (20-60 days, the core cluster near median) = accent purple
+              others = text-faint gray
+      Bar heights: freq * (322/45)
+      Y bottom baseline = 340
+    -->
+    <svg width="100%" height="100%" viewBox="0 0 980 420" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg" data-shape-id="chart-svg">
+      <defs>
+        <pattern id="grid" width="71.33" height="64.4" patternUnits="userSpaceOnUse" x="64">
+          <path d="M0 64.4 H71.33" stroke="#E5D5F0" stroke-width="0.5" fill="none"/>
+        </pattern>
+      </defs>
+
+      <!-- Y-axis gridlines (horizontal) at 0,10,20,30,40,45 -->
+      <!-- y = 340 - (val/45)*322 -->
+      <!-- 0  → 340 -->
+      <!-- 10 → 340-71.56 = 268.4 -->
+      <!-- 20 → 340-143.1 = 196.9 -->
+      <!-- 30 → 340-214.7 = 125.3 -->
+      <!-- 40 → 340-286.2 = 53.8  -->
+      <!-- 45 → 340-322   = 18    -->
+      <g stroke="#E5D5F0" stroke-width="1" data-shape-id="gridlines">
+        <line x1="64" y1="340" x2="920" y2="340"/>
+        <line x1="64" y1="268.4" x2="920" y2="268.4"/>
+        <line x1="64" y1="196.9" x2="920" y2="196.9"/>
+        <line x1="64" y1="125.3" x2="920" y2="125.3"/>
+        <line x1="64" y1="53.8" x2="920" y2="53.8"/>
+        <line x1="64" y1="18" x2="920" y2="18"/>
+      </g>
+
+      <!-- Y-axis labels -->
+      <!-- 45 → 18, 40 → 53.8, 30 → 125.3, 20 → 196.9, 10 → 268.4, 0 → 340 -->
+      <g font-family="Inter, sans-serif" font-size="11" fill="#64748B" text-anchor="end" data-shape-id="y-labels">
+        <text x="57" y="22">45</text>
+        <text x="57" y="57.8">40</text>
+        <text x="57" y="129.3">30</text>
+        <text x="57" y="200.9">20</text>
+        <text x="57" y="272.4">10</text>
+        <text x="57" y="344">0</text>
+      </g>
+
+      <!-- Y-axis title -->
+      <text x="18" y="185" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#2D0A4E"
+            text-anchor="middle" transform="rotate(-90 18 185)" letter-spacing="0.8" data-shape-id="y-axis-title">DEALS (FREQUENCY)</text>
+
+      <!--
+        Bars: 12 bins. Bin width = 71.33. Left x of bin i = 64 + i*71.33.
+        Bar height = freq * (322/45) = freq * 7.156
+        Bar y = 340 - height
+        Colors: bins 1–4 (20-60 days, i=2,3,4,5) → brand accent #A100FF
+                bins near outlier (i=0,1,6,7,8,9,10,11) → gray #94A3B8
+        freq = [3, 12, 28, 42, 38, 21, 11, 7, 4, 2, 1, 0]
+
+        bin 0 (0-10):   h=21.5,  y=318.5  gray
+        bin 1 (10-20):  h=85.9,  y=254.1  gray
+        bin 2 (20-30):  h=200.4, y=139.6  ACCENT (near mode/median)
+        bin 3 (30-40):  h=300.6, y=39.4   ACCENT (peak)
+        bin 4 (40-50):  h=272.0, y=68.0   ACCENT
+        bin 5 (50-60):  h=150.3, y=189.7  ACCENT (still in core)
+        bin 6 (60-70):  h=78.7,  y=261.3  gray
+        bin 7 (70-80):  h=50.1,  y=289.9  gray
+        bin 8 (80-90):  h=28.6,  y=311.4  gray
+        bin 9 (90-100): h=14.3,  y=325.7  gray
+        bin 10(100-110):h=7.2,   y=332.8  gray
+        bin 11(110-120):h=0,     y=340    (zero)
+        x coords: 64, 135.3, 206.6, 277.9, 349.2, 420.5, 491.8, 563.1, 634.4, 705.7, 777.0, 848.3
+      -->
+
+      <!-- Gray bars (outlier bins) -->
+      <g fill="#94A3B8" data-shape-id="bars-gray">
+        <!-- bin 0: 0-10 days, freq=3 -->
+        <rect x="64" y="318.5" width="71.33" height="21.5" data-shape-id="bar-0"/>
+        <!-- bin 1: 10-20 days, freq=12 -->
+        <rect x="135.33" y="254.1" width="71.33" height="85.9" data-shape-id="bar-1"/>
+        <!-- bin 6: 60-70 days, freq=11 -->
+        <rect x="491.98" y="261.3" width="71.33" height="78.7" data-shape-id="bar-6"/>
+        <!-- bin 7: 70-80 days, freq=7 -->
+        <rect x="563.31" y="289.9" width="71.33" height="50.1" data-shape-id="bar-7"/>
+        <!-- bin 8: 80-90 days, freq=4 -->
+        <rect x="634.64" y="311.4" width="71.33" height="28.6" data-shape-id="bar-8"/>
+        <!-- bin 9: 90-100 days, freq=2 -->
+        <rect x="705.97" y="325.7" width="71.33" height="14.3" data-shape-id="bar-9"/>
+        <!-- bin 10: 100-110 days, freq=1 -->
+        <rect x="777.3" y="332.8" width="71.33" height="7.2" data-shape-id="bar-10"/>
+        <!-- bin 11: 110-120 days, freq=0 — zero height, just baseline -->
+      </g>
+
+      <!-- Accent bars (core cluster, bins 2-5: 20-60 days) -->
+      <g fill="#A100FF" opacity="0.85" data-shape-id="bars-accent">
+        <!-- bin 2: 20-30 days, freq=28 -->
+        <rect x="206.66" y="139.6" width="71.33" height="200.4" data-shape-id="bar-2"/>
+        <!-- bin 3: 30-40 days, freq=42 (PEAK = MODE) -->
+        <rect x="277.99" y="39.4" width="71.33" height="300.6" data-shape-id="bar-3"/>
+        <!-- bin 4: 40-50 days, freq=38 -->
+        <rect x="349.32" y="68.0" width="71.33" height="272.0" data-shape-id="bar-4"/>
+        <!-- bin 5: 50-60 days, freq=21 -->
+        <rect x="420.65" y="189.7" width="71.33" height="150.3" data-shape-id="bar-5"/>
+      </g>
+
+      <!-- Subtle top-edge stroke on accent bars for crispness -->
+      <g fill="none" stroke="#7B00CC" stroke-width="1" opacity="0.6" data-shape-id="bars-accent-stroke">
+        <rect x="206.66" y="139.6" width="71.33" height="200.4"/>
+        <rect x="277.99" y="39.4" width="71.33" height="300.6"/>
+        <rect x="349.32" y="68.0" width="71.33" height="272.0"/>
+        <rect x="420.65" y="189.7" width="71.33" height="150.3"/>
+      </g>
+
+      <!-- Frequency count labels on bars (only bins with room) -->
+      <g font-family="Inter, sans-serif" font-size="10" font-weight="700" text-anchor="middle" data-shape-id="bar-labels">
+        <text x="99.7" y="314" fill="#64748B">3</text>
+        <text x="170.99" y="248" fill="#64748B">12</text>
+        <text x="242.32" y="133" fill="#fff">28</text>
+        <text x="313.65" y="33" fill="#fff">42</text>
+        <text x="384.98" y="62" fill="#fff">38</text>
+        <text x="456.31" y="184" fill="#fff">21</text>
+        <text x="527.64" y="255" fill="#64748B">11</text>
+        <text x="598.97" y="284" fill="#64748B">7</text>
+        <text x="670.3" y="305" fill="#64748B">4</text>
+        <text x="741.63" y="320" fill="#64748B">2</text>
+        <text x="812.96" y="327" fill="#64748B">1</text>
+      </g>
+
+      <!--
+        Vertical statistical marker lines
+        X positions based on continuous day scale 0-120 → plot width 856px (x: 64 to 920)
+        Scale: 1 day = 856/120 = 7.133px per day
+        Mode  = 30 days → x = 64 + 30*7.133 = 64 + 214 = 278.0 (left edge of peak bin)
+                          Mode label at bin center of peak: x=313.65
+        Median = 38 days → x = 64 + 38*7.133 = 64 + 271.1 = 335.1
+        Mean   = 47 days → x = 64 + 47*7.133 = 64 + 335.3 = 399.3
+      -->
+
+      <!-- MODE line (green) at day 30 — left edge of peak bin -->
+      <line x1="278.0" y1="18" x2="278.0" y2="340" stroke="#16A34A" stroke-width="2" stroke-dasharray="6 4" data-shape-id="mode-line"/>
+      <!-- Mode label box -->
+      <rect x="228" y="18" width="70" height="26" fill="#16A34A" rx="0" data-shape-id="mode-label-bg"/>
+      <text x="263" y="28.5" font-family="Inter, sans-serif" font-size="9" font-weight="800" fill="#fff" text-anchor="middle" letter-spacing="0.5" data-shape-id="mode-label-title">MODE</text>
+      <text x="263" y="40" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#fff" text-anchor="middle" data-shape-id="mode-label-value">Day 30</text>
+
+      <!-- MEDIAN line (brand accent) at day 38 -->
+      <line x1="335.1" y1="18" x2="335.1" y2="340" stroke="#A100FF" stroke-width="2.5" stroke-dasharray="6 4" data-shape-id="median-line"/>
+      <!-- Median label box -->
+      <rect x="285" y="18" width="82" height="26" fill="#A100FF" rx="0" data-shape-id="median-label-bg"/>
+      <text x="326" y="28.5" font-family="Inter, sans-serif" font-size="9" font-weight="800" fill="#fff" text-anchor="middle" letter-spacing="0.5" data-shape-id="median-label-title">MEDIAN</text>
+      <text x="326" y="40" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#fff" text-anchor="middle" data-shape-id="median-label-value">Day 38</text>
+
+      <!-- MEAN line (red) at day 47 -->
+      <line x1="399.3" y1="18" x2="399.3" y2="340" stroke="#DC2626" stroke-width="2" stroke-dasharray="6 4" data-shape-id="mean-line"/>
+      <!-- Mean label box -->
+      <rect x="367" y="18" width="66" height="26" fill="#DC2626" rx="0" data-shape-id="mean-label-bg"/>
+      <text x="400" y="28.5" font-family="Inter, sans-serif" font-size="9" font-weight="800" fill="#fff" text-anchor="middle" letter-spacing="0.5" data-shape-id="mean-label-title">MEAN</text>
+      <text x="400" y="40" font-family="Inter, sans-serif" font-size="9" font-weight="600" fill="#fff" text-anchor="middle" data-shape-id="mean-label-value">Day 47</text>
+
+      <!-- X-axis baseline -->
+      <line x1="64" y1="340" x2="920" y2="340" stroke="#2D0A4E" stroke-width="1.5" data-shape-id="x-baseline"/>
+
+      <!-- X-axis tick labels (bin centers, every 10 days) -->
+      <!-- Bin centers: 5, 15, 25, 35, 45, 55, 65, 75, 85, 95, 105, 115 -->
+      <!-- x = 64 + center*7.133 -->
+      <g font-family="Inter, sans-serif" font-size="10" fill="#64748B" text-anchor="middle" data-shape-id="x-labels">
+        <text x="99.7" y="356">10</text>
+        <text x="170.99" y="356">20</text>
+        <text x="242.32" y="356">30</text>
+        <text x="313.65" y="356">40</text>
+        <text x="384.98" y="356">50</text>
+        <text x="456.31" y="356">60</text>
+        <text x="527.64" y="356">70</text>
+        <text x="598.97" y="356">80</text>
+        <text x="670.3" y="356">90</text>
+        <text x="741.63" y="356">100</text>
+        <text x="812.96" y="356">110</text>
+        <text x="884.29" y="356">120</text>
+      </g>
+
+      <!-- X-axis title -->
+      <text x="492" y="378" font-family="Inter, sans-serif" font-size="11" font-weight="700" fill="#2D0A4E"
+            text-anchor="middle" letter-spacing="0.8" data-shape-id="x-axis-title">DEAL CLOSE TIME (DAYS)</text>
+
+      <!-- Outlier annotation arrow + label -->
+      <!-- Enterprise callout pointing to bins 8-11 -->
+      <g data-shape-id="enterprise-callout">
+        <!-- Bracket line over gray outlier zone -->
+        <line x1="634.64" y1="295" x2="848.63" y2="295" stroke="#64748B" stroke-width="1.5" stroke-dasharray="none"/>
+        <line x1="634.64" y1="290" x2="634.64" y2="300" stroke="#64748B" stroke-width="1.5"/>
+        <line x1="848.63" y1="290" x2="848.63" y2="300" stroke="#64748B" stroke-width="1.5"/>
+        <!-- Label -->
+        <rect x="640" y="256" width="198" height="32" fill="#F8F4FC" stroke="#E5D5F0" stroke-width="1"/>
+        <text x="739" y="269" font-family="Inter, sans-serif" font-size="10" font-weight="700" fill="#64748B" text-anchor="middle" letter-spacing="0.3">Enterprise outliers</text>
+        <text x="739" y="282" font-family="Inter, sans-serif" font-size="9.5" fill="#94A3B8" text-anchor="middle">&gt;80 days &middot; complex procurement</text>
+      </g>
+
+      <!-- Core cluster annotation -->
+      <g data-shape-id="core-callout">
+        <rect x="175" y="84" width="270" height="38" fill="#2D0A4E"/>
+        <text x="310" y="99" font-family="Inter, sans-serif" font-size="10" font-weight="800" fill="#C780FF" text-anchor="middle" letter-spacing="0.5">CORE VELOCITY ZONE</text>
+        <text x="310" y="114" font-family="Inter, sans-serif" font-size="9.5" fill="#FFFFFF" text-anchor="middle">Most deals close in 20–60 days (82%)</text>
+      </g>
+
+    </svg>
+
+    <!-- Callout panel (right) -->
+    <div class="callout-box" data-shape-id="callout-box">
+      <div class="callout-label" data-shape-id="callout-label">Key Insight</div>
+      <div class="callout-body" data-shape-id="callout-body">
+        <strong>Most deals close in 20–40 days.</strong> The distribution is right-skewed — mean (47) is pulled above median (38) by enterprise outliers above 80 days driven by complex procurement cycles.
+      </div>
+    </div>
+
+    <!-- Legend row -->
+    <div class="legend-row" data-shape-id="legend">
+      <div class="legend-item">
+        <span class="swatch-core" data-shape-id="legend-core-swatch"></span>
+        <span data-shape-id="legend-core-label">Core cluster (20–60 days)</span>
+      </div>
+      <div class="legend-item">
+        <span class="swatch-tail" data-shape-id="legend-tail-swatch"></span>
+        <span data-shape-id="legend-tail-label">Outlier bins</span>
+      </div>
+      <div class="legend-item">
+        <span class="swatch-mode" data-shape-id="legend-mode-swatch"></span>
+        <span data-shape-id="legend-mode-label">Mode (day 30)</span>
+      </div>
+      <div class="legend-item">
+        <span class="swatch-median" data-shape-id="legend-median-swatch"></span>
+        <span data-shape-id="legend-median-label">Median (day 38)</span>
+      </div>
+      <div class="legend-item">
+        <span class="swatch-mean" data-shape-id="legend-mean-swatch"></span>
+        <span data-shape-id="legend-mean-label">Mean (day 47)</span>
+      </div>
+    </div>
+
+  </div><!-- /chart-container -->
+
+  <!-- Convergence bar -->
+  <div class="convergence" data-shape-id="convergence">
+    Accelerating deals from 38 to 30 days at median compresses the sales cycle by 21% &mdash; freeing capacity for 2 additional enterprise pursuits per quarter.
+  </div>
+
+  <!-- Footer -->
+  <div class="footer" data-shape-id="footer">
+    <span data-shape-id="footer-left">Slide Lab &middot; Confidential &middot; Sales velocity</span>
+    <span class="footer-right" data-shape-id="footer-right">110 / 200</span>
+  </div>
+
+</div><!-- /slide -->
+</body>
+</html>

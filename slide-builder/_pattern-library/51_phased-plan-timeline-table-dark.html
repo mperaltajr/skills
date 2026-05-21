@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>51 · Phased plan timeline-table (dark)</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-primary-soft: #7A4AB0;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --phase-1: #2D0A4E;
+  --phase-2: #5C2D87;
+  --phase-3: #A100FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-zebra: #F6F2FB;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1280px; height: 720px; background: var(--slide-bg); font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; color: var(--text-dark); overflow: hidden; }
+body { position: relative; }
+
+/* Top chrome */
+.project-label { position: absolute; top: 8px; left: 24px; color: #FFFFFF; opacity: 0.75; font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; z-index: 5; }
+.draft-badge { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; z-index: 5; }
+
+/* Title band */
+.title-band { position: absolute; top: 0; left: 0; width: 1280px; height: 64px; background: var(--brand-primary); }
+.title-text { position: absolute; top: 28px; left: 40px; right: 40px; color: #FFFFFF; font-size: 22px; font-weight: 400; line-height: 1.2; letter-spacing: -0.2px; }
+.title-text strong { color: var(--brand-accent-soft); font-weight: 700; }
+.title-rule { position: absolute; top: 64px; left: 0; width: 1280px; height: 3px; background: var(--brand-accent); }
+
+/* Timeline header */
+.timeline-wrap {
+  position: absolute;
+  top: 96px;
+  left: 88px;
+  right: 88px;
+  height: 60px;
+}
+.timeline-bar {
+  position: absolute;
+  top: 18px;
+  left: 0;
+  right: 0;
+  height: 5px;
+  display: flex;
+  border-radius: 3px;
+  overflow: hidden;
+}
+.timeline-bar .seg { flex: 1; height: 100%; }
+.timeline-bar .seg.s1 { background: var(--phase-1); }
+.timeline-bar .seg.s2 { background: var(--phase-2); }
+.timeline-bar .seg.s3 { background: var(--phase-3); }
+
+.timeline-dot {
+  position: absolute;
+  top: 12px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px var(--card-border);
+}
+.timeline-dot.d1 { left: -8px;  background: var(--phase-1); }
+.timeline-dot.d2 { left: calc(33.33% - 8px); background: var(--phase-2); }
+.timeline-dot.d3 { left: calc(66.66% - 8px); background: var(--phase-3); }
+.timeline-dot.d4 { right: -8px; background: var(--phase-3); }
+
+.timeline-labels {
+  position: absolute;
+  top: 36px;
+  left: 0; right: 0;
+  display: flex;
+}
+.timeline-labels .lab {
+  flex: 1;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  white-space: nowrap;
+}
+.timeline-labels .lab em { font-style: italic; font-weight: 500; opacity: 0.85; }
+.timeline-labels .lab.l1 { color: var(--phase-1); text-align: left; }
+.timeline-labels .lab.l2 { color: var(--phase-2); text-align: center; }
+.timeline-labels .lab.l3 { color: var(--phase-3); text-align: right; }
+
+/* Table */
+.table-wrap {
+  position: absolute;
+  top: 174px;
+  left: 40px;
+  right: 40px;
+  bottom: 96px;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+}
+
+.table-head {
+  display: flex;
+  background: var(--brand-primary);
+  height: 36px;
+  flex-shrink: 0;
+}
+.table-head .col {
+  padding: 0 14px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  border-right: 1px solid rgba(255,255,255,0.10);
+}
+.table-head .col:last-child { border-right: none; }
+.table-head .col.output { color: var(--brand-accent-soft); }
+
+.col-phase   { width: 180px; flex-shrink: 0; }
+.col-obj     { width: 200px; flex-shrink: 0; }
+.col-actions { flex: 1; }
+.col-output  { width: 220px; flex-shrink: 0; }
+
+.row {
+  display: flex;
+  flex: 1;
+  border-top: 1px solid var(--card-border);
+  min-height: 0;
+}
+.row:first-of-type { border-top: none; }
+.row.zebra { background: var(--card-zebra); }
+
+.row .stripe {
+  width: 5px;
+  flex-shrink: 0;
+}
+.row.r1 .stripe { background: var(--phase-1); }
+.row.r2 .stripe { background: var(--phase-2); }
+.row.r3 .stripe { background: var(--phase-3); }
+
+.row .cell {
+  padding: 14px 14px;
+  border-right: 1px solid var(--card-border);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+.row .cell:last-child { border-right: none; }
+
+.cell.phase {
+  width: 175px;
+  flex-shrink: 0;
+}
+.cell.phase .days { font-size: 12.5px; font-weight: 700; color: var(--text-dark); }
+.cell.phase .phase-name { font-size: 11.5px; font-style: italic; font-weight: 700; line-height: 1.3; margin-top: 4px; }
+.row.r1 .phase-name { color: var(--phase-1); }
+.row.r2 .phase-name { color: var(--phase-2); }
+.row.r3 .phase-name { color: var(--phase-3); }
+
+.cell.obj {
+  width: 200px;
+  flex-shrink: 0;
+  font-size: 11.5px;
+  color: var(--text-mid);
+  line-height: 1.5;
+}
+
+.cell.actions { flex: 1; }
+.cell.actions .bullet {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 7px;
+}
+.cell.actions .bullet:last-child { margin-bottom: 0; }
+.cell.actions .dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  margin-top: 6px;
+  margin-right: 9px;
+}
+.row.r1 .actions .dot { background: var(--phase-1); }
+.row.r2 .actions .dot { background: var(--phase-2); }
+.row.r3 .actions .dot { background: var(--phase-3); }
+.cell.actions .bullet-text {
+  font-size: 11px;
+  color: var(--text-dark);
+  line-height: 1.45;
+}
+
+.cell.output { width: 220px; flex-shrink: 0; }
+.cell.output .out-item {
+  display: flex;
+  align-items: flex-start;
+  margin-bottom: 9px;
+}
+.cell.output .out-item:last-child { margin-bottom: 0; }
+.cell.output .out-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--brand-accent);
+  flex-shrink: 0;
+  margin-top: 6px;
+  margin-right: 9px;
+}
+.cell.output .out-text {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dark);
+  line-height: 1.4;
+}
+
+/* Footer invariant */
+.footer-rule { position: absolute; left: 0; right: 0; bottom: 32px; height: 1px; background: var(--card-border); }
+.footer-left { position: absolute; bottom: 14px; left: 24px; color: var(--text-faint); font-size: 11px; letter-spacing: 1px; }
+.footer-right { position: absolute; bottom: 14px; right: 24px; color: var(--text-faint); font-size: 11px; }
+
+/* DARK THEME */
+:root {
+  --card-bg: rgba(255,255,255,0.07);
+  --card-border: rgba(255,255,255,0.12);
+  --card-zebra: rgba(255,255,255,0.04);
+  --text-dark: #FFFFFF;
+  --text-mid: rgba(255,255,255,0.6);
+  --slide-bg: #2D0A4E;
+}
+html, body { background: #2D0A4E; color: #FFFFFF; }
+.table-wrap {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(255,255,255,0.12);
+}
+.row { border-top-color: rgba(255,255,255,0.12); }
+.row.zebra { background: rgba(255,255,255,0.04); }
+.row .cell { border-right-color: rgba(255,255,255,0.12); }
+.cell.phase .days { color: #FFFFFF; }
+.cell.obj { color: rgba(255,255,255,0.6); }
+.cell.actions .bullet-text { color: rgba(255,255,255,0.85); }
+.cell.output .out-text { color: rgba(255,255,255,0.85); }
+.timeline-dot { border-color: rgba(255,255,255,0.3); }
+.timeline-labels .lab.l1 { color: rgba(255,255,255,0.6); }
+.timeline-labels .lab.l2 { color: #C780FF; }
+.timeline-labels .lab.l3 { color: #A100FF; }
+.footer-rule { background: rgba(255,255,255,0.1); }
+.footer-left { color: rgba(255,255,255,0.4); }
+.footer-right { color: rgba(255,255,255,0.4); }
+</style>
+</head>
+<body>
+
+  <!-- Title band + chrome -->
+  <div class="title-band"></div>
+  <div class="title-text" data-shape-id="title">90-day plan &mdash; <strong>three phases, one runway</strong> from foundation to scale.</div>
+  <div class="title-rule" data-shape-id="brand-rule"></div>
+
+  <!-- Timeline header -->
+  <div class="timeline-wrap">
+    <div class="timeline-bar" data-shape-id="timeline-axis">
+      <div class="seg s1"></div>
+      <div class="seg s2"></div>
+      <div class="seg s3"></div>
+    </div>
+    <div class="timeline-dot d1" data-shape-id="timeline-tick-1"></div>
+    <div class="timeline-dot d2" data-shape-id="timeline-tick-2"></div>
+    <div class="timeline-dot d3" data-shape-id="timeline-tick-3"></div>
+    <div class="timeline-dot d4" data-shape-id="timeline-tick-4"></div>
+    <div class="timeline-labels">
+      <div class="lab l1" data-shape-id="timeline-tick-1-label">Days 1&ndash;30 &nbsp;&middot;&nbsp; <em>&ldquo;Roll down the runway&rdquo;</em></div>
+      <div class="lab l2" data-shape-id="timeline-tick-2-label">Days 31&ndash;60 &nbsp;&middot;&nbsp; <em>&ldquo;Liftoff&rdquo;</em></div>
+      <div class="lab l3" data-shape-id="timeline-tick-3-label">Days 61&ndash;90 &nbsp;&middot;&nbsp; <em>&ldquo;Initial climb&rdquo;</em></div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+
+    <div class="table-head">
+      <div class="col col-phase" data-shape-id="table-col-1-header">Phase</div>
+      <div class="col col-obj" data-shape-id="table-col-2-header">Objective</div>
+      <div class="col col-actions" data-shape-id="table-col-3-header">Key actions</div>
+      <div class="col col-output output" data-shape-id="table-col-4-header">Output &middot; proof of progress</div>
+    </div>
+
+    <!-- Row 1 -->
+    <div class="row r1">
+      <div class="stripe"></div>
+      <div class="cell phase">
+        <div class="days" data-shape-id="phase-1-days">Days 1&ndash;30</div>
+        <div class="phase-name" data-shape-id="phase-1-name">&ldquo;Access &amp; foundation&rdquo;</div>
+      </div>
+      <div class="cell obj" data-shape-id="phase-1-objective">Establish trusted access at senior levels and align on business priorities.</div>
+      <div class="cell actions">
+        <div class="bullet"><span class="dot"></span><span class="bullet-text" data-shape-id="phase-1-action-1">Align on priority domains; conduct executive listening sessions led by account leadership.</span></div>
+        <div class="bullet"><span class="dot"></span><span class="bullet-text" data-shape-id="phase-1-action-2">Focus discussions on outcome gaps, value leakage, and partner blind spots.</span></div>
+        <div class="bullet"><span class="dot"></span><span class="bullet-text" data-shape-id="phase-1-action-3">Establish a monthly executive touch-point cadence anchored on the ops-to-value connection.</span></div>
+      </div>
+      <div class="cell output">
+        <div class="out-item"><span class="out-dot"></span><span class="out-text" data-shape-id="phase-1-output-1">Shared view of executive priorities &amp; pain points</span></div>
+        <div class="out-item"><span class="out-dot"></span><span class="out-text" data-shape-id="phase-1-output-2">1&ndash;2 senior sponsors aligned to approach</span></div>
+      </div>
+    </div>
+
+    <!-- Row 2 -->
+    <div class="row r2 zebra">
+      <div class="stripe"></div>
+      <div class="cell phase">
+        <div class="days" data-shape-id="phase-2-days">Days 31&ndash;60</div>
+        <div class="phase-name" data-shape-id="phase-2-name">&ldquo;Credibility &amp; proof&rdquo;</div>
+      </div>
+      <div class="cell obj" data-shape-id="phase-2-objective">Demonstrate value and shift perception from delivery vendor to trusted advisor.</div>
+      <div class="cell actions">
+        <div class="bullet"><span class="dot"></span><span class="bullet-text" data-shape-id="phase-2-action-1">Deliver targeted, domain-specific insights via lightweight POVs focused on problem, impact, implication.</span></div>
+        <div class="bullet"><span class="dot"></span><span class="bullet-text" data-shape-id="phase-2-action-2">Facilitate decision-focused working sessions with leaders &mdash; not presentations.</span></div>
+        <div class="bullet"><span class="dot"></span><span class="bullet-text" data-shape-id="phase-2-action-3">Embed insights directly into active programs and live discussions.</span></div>
+      </div>
+      <div class="cell output">
+        <div class="out-item"><span class="out-dot"></span><span class="out-text" data-shape-id="phase-2-output-1">Leaders begin pulling us into discussions</span></div>
+        <div class="out-item"><span class="out-dot"></span><span class="out-text" data-shape-id="phase-2-output-2">Evidence of improved decisions and clarity on value drivers</span></div>
+      </div>
+    </div>
+
+    <!-- Row 3 -->
+    <div class="row r3">
+      <div class="stripe"></div>
+      <div class="cell phase">
+        <div class="days" data-shape-id="phase-3-days">Days 61&ndash;90</div>
+        <div class="phase-name" data-shape-id="phase-3-name">&ldquo;Scale &amp; positioning&rdquo;</div>
+      </div>
+      <div class="cell obj" data-shape-id="phase-3-objective">Institutionalize the role in the operating rhythm and decision-making cycle.</div>
+      <div class="cell actions">
+        <div class="bullet"><span class="dot"></span><span class="bullet-text" data-shape-id="phase-3-action-1">Launch quarterly operational value reviews &mdash; jointly owned with the client.</span></div>
+        <div class="bullet"><span class="dot"></span><span class="bullet-text" data-shape-id="phase-3-action-2">Position as connector across operations, transformation, and value.</span></div>
+        <div class="bullet"><span class="dot"></span><span class="bullet-text" data-shape-id="phase-3-action-3">Embed capability into account governance and investment-prioritization cycles.</span></div>
+      </div>
+      <div class="cell output">
+        <div class="out-item"><span class="out-dot"></span><span class="out-text" data-shape-id="phase-3-output-1">Consistently present in decision-making forums</span></div>
+        <div class="out-item"><span class="out-dot"></span><span class="out-text" data-shape-id="phase-3-output-2">Role embedded in operating model &mdash; expected, not optional</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer-left" data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+
+</body>
+</html>

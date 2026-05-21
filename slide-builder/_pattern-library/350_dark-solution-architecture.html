@@ -1,0 +1,546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dark Solution Architecture Stack</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #2D0A4E;
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* ── Chrome top bar ── */
+  .chrome-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    z-index: 10;
+  }
+
+  .chrome-internal {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .draft-badge {
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 0;
+    line-height: 1;
+  }
+
+  .chrome-spacer {
+    width: 140px;
+  }
+
+  /* ── Main layout ── */
+  .slide-body {
+    position: absolute;
+    top: 32px;
+    left: 0;
+    right: 0;
+    bottom: 32px;
+    display: flex;
+    padding: 28px 48px 20px;
+    gap: 28px;
+  }
+
+  /* ── Left column — Architecture Stack ── */
+  .left-col {
+    width: 65%;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .title-block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 0;
+  overflow: visible;
+  }
+
+  .title-block h1 {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+    font-size: 28px;
+    font-weight: 700;
+    color: #ffffff;
+    line-
+}
+
+  .title-block h1 strong {
+    color: #C780FF;
+  }
+
+  .title-block .sub {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 108px;
+    font-size: 14px;
+    font-style: italic;
+    color: rgba(255,255,255,0.6);
+}
+
+  .accent-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+
+
+    background: var(--brand-accent);
+    border-radius: 0;
+  }
+
+  /* ── Stack container ── */
+  .arch-stack {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    position: relative;
+  }
+
+  .layer-wrap {
+    position: relative;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .layer-band {
+    flex: 1;
+    border: 1px solid rgba(255,255,255,0.10);
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 14px;
+    position: relative;
+    overflow: hidden;
+    min-height: 64px;
+  }
+
+  /* Slightly different rgba intensity per layer */
+  .layer-ux    { background: rgba(255,255,255,0.11); }
+  .layer-api   { background: rgba(255,255,255,0.09); }
+  .layer-svc   { background: rgba(255,255,255,0.07); }
+  .layer-data  { background: rgba(255,255,255,0.055); }
+  .layer-infra { background: rgba(255,255,255,0.04); }
+
+  .layer-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #C780FF;
+    width: 58px;
+    flex-shrink: 0;
+  }
+
+  .layer-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+    width: 110px;
+    flex-shrink: 0;
+  }
+
+  .pills {
+    display: flex;
+    gap: 8px;
+    flex: 1;
+    flex-wrap: nowrap;
+    align-items: center;
+  }
+
+  .pill {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 5px 12px;
+    border-radius: 20px;
+    white-space: nowrap;
+    line-height: 1;
+    color: #ffffff;
+  }
+
+  .pill-key {
+    background: var(--brand-accent);
+  }
+
+  .pill-secondary {
+    background: rgba(255,255,255,0.12);
+  }
+
+  /* ── SVG connector arrows ── */
+  .connector-svg {
+    width: 100%;
+    height: 14px;
+    display: block;
+    flex-shrink: 0;
+    overflow: visible;
+  }
+
+  /* ── Right column — Principles card ── */
+  .right-col {
+    width: 35%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+  .principles-card {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    padding: 18px 18px 14px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .card-header {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.13em;
+    text-transform: uppercase;
+    color: #C780FF;
+}
+
+  .principles-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    flex: 1;
+  }
+
+  .principle-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+  .principle-item:last-child {
+    border-bottom: none;
+}
+
+  .principle-number {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--brand-accent);
+    letter-spacing: 0.08em;
+}
+
+  .principle-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.3;
+  }
+
+  .principle-desc {
+    font-size: 11px;
+    color: rgba(255,255,255,0.55);
+    line-height: 1.45;
+  }
+
+  /* ── Partners strip ── */
+  .partners-strip {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    padding: 12px 18px;
+    flex-shrink: 0;
+  }
+
+  .partners-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.45);
+}
+
+  .partners-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .partner-circle {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: rgba(161,0,255,0.25);
+    border: 1px solid rgba(161,0,255,0.45);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    color: #C780FF;
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+  }
+
+  .partner-name {
+    font-size: 10px;
+    color: rgba(255,255,255,0.55);
+    line-height: 1.3;
+  }
+
+  /* ── Footer ── */
+  .chrome-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 32px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    padding: 0 48px;
+    justify-content: space-between;
+    z-index: 10;
+  }
+
+  .footer-text {
+    font-size: 9px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.06em;
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Top chrome ── -->
+<div class="chrome-top">
+  <span class="chrome-internal">Accenture Internal</span>
+  <span class="chrome-spacer"></span>
+</div>
+
+<!-- ── Main slide body ── -->
+<div class="slide-body">
+
+  <!-- LEFT: Architecture stack -->
+  <div class="left-col">
+    <div class="title-block">
+      <h1>End-to-End <strong>Solution Architecture</strong></h1>
+      <p class="sub">Layered platform design — cloud-native, API-first, event-driven</p>
+      <div class="accent-rule"></div>
+    </div>
+
+    <div class="arch-stack">
+
+      <!-- UX Layer -->
+      <div class="layer-wrap">
+        <div class="layer-band layer-ux">
+          <span class="layer-label">UX</span>
+          <span class="layer-name">User Interface</span>
+          <div class="pills">
+            <span class="pill pill-key">React / Next.js</span>
+            <span class="pill pill-secondary">Design System</span>
+            <span class="pill pill-secondary">Accessibility</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Arrow UX → API -->
+      <svg class="connector-svg" viewBox="0 0 700 10" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <line x1="350" y1="0" x2="350" y2="10" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+        <!-- down arrow -->
+        <polyline points="346,6 350,10 354,6" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+        <!-- up arrow -->
+        <polyline points="346,4 350,0 354,4" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+      </svg>
+
+      <!-- API Layer -->
+      <div class="layer-wrap">
+        <div class="layer-band layer-api">
+          <span class="layer-label">API</span>
+          <span class="layer-name">Integration</span>
+          <div class="pills">
+            <span class="pill pill-key">API Gateway</span>
+            <span class="pill pill-secondary">Event Bus</span>
+            <span class="pill pill-secondary">Auth / OAuth</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Arrow API → SERVICES -->
+      <svg class="connector-svg" viewBox="0 0 700 10" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <line x1="350" y1="0" x2="350" y2="10" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+        <polyline points="346,6 350,10 354,6" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+        <polyline points="346,4 350,0 354,4" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+      </svg>
+
+      <!-- SERVICES Layer -->
+      <div class="layer-wrap">
+        <div class="layer-band layer-svc">
+          <span class="layer-label">Services</span>
+          <span class="layer-name">Application</span>
+          <div class="pills">
+            <span class="pill pill-key">Microservices</span>
+            <span class="pill pill-secondary">Workflow Engine</span>
+            <span class="pill pill-secondary">AI / ML Core</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Arrow SERVICES → DATA -->
+      <svg class="connector-svg" viewBox="0 0 700 10" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <line x1="350" y1="0" x2="350" y2="10" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+        <polyline points="346,6 350,10 354,6" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+        <polyline points="346,4 350,0 354,4" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+      </svg>
+
+      <!-- DATA Layer -->
+      <div class="layer-wrap">
+        <div class="layer-band layer-data">
+          <span class="layer-label">Data</span>
+          <span class="layer-name">Platform</span>
+          <div class="pills">
+            <span class="pill pill-key">Data Lakehouse</span>
+            <span class="pill pill-secondary">Streaming</span>
+            <span class="pill pill-secondary">Data Mesh</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Arrow DATA → INFRA -->
+      <svg class="connector-svg" viewBox="0 0 700 10" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+        <line x1="350" y1="0" x2="350" y2="10" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+        <polyline points="346,6 350,10 354,6" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+        <polyline points="346,4 350,0 354,4" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+      </svg>
+
+      <!-- INFRA Layer -->
+      <div class="layer-wrap">
+        <div class="layer-band layer-infra">
+          <span class="layer-label">Infra</span>
+          <span class="layer-name">Cloud</span>
+          <div class="pills">
+            <span class="pill pill-key">Kubernetes</span>
+            <span class="pill pill-secondary">IaC / Terraform</span>
+            <span class="pill pill-secondary">Zero-Trust</span>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /arch-stack -->
+  </div><!-- /left-col -->
+
+  <!-- RIGHT: Principles + Partners -->
+  <div class="right-col">
+
+    <div class="principles-card">
+      <div class="card-header">Key Design Principles</div>
+      <div class="principles-list">
+
+        <div class="principle-item">
+          <span class="principle-number">01</span>
+          <span class="principle-title">API-First by Default</span>
+          <span class="principle-desc">Every capability exposed via versioned, documented APIs before any UI is built.</span>
+        </div>
+
+        <div class="principle-item">
+          <span class="principle-number">02</span>
+          <span class="principle-title">Event-Driven Decoupling</span>
+          <span class="principle-desc">Services communicate asynchronously; no direct synchronous dependencies.</span>
+        </div>
+
+        <div class="principle-item">
+          <span class="principle-number">03</span>
+          <span class="principle-title">Zero-Trust Security</span>
+          <span class="principle-desc">Identity verified at every layer; least-privilege enforced continuously.</span>
+        </div>
+
+        <div class="principle-item">
+          <span class="principle-number">04</span>
+          <span class="principle-title">Observability Built In</span>
+          <span class="principle-desc">Logs, metrics, and traces emitted from day one — not bolted on later.</span>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="partners-strip">
+      <div class="partners-label">Technology Partners</div>
+      <div class="partners-row">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="partner-circle">AWS</div>
+          <span class="partner-name">Amazon<br>Web Services</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-left:4px;">
+          <div class="partner-circle">GCP</div>
+          <span class="partner-name">Google<br>Cloud</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;margin-left:4px;">
+          <div class="partner-circle">AZ</div>
+          <span class="partner-name">Microsoft<br>Azure</span>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /right-col -->
+
+</div><!-- /slide-body -->
+
+<!-- ── Footer chrome ── -->
+<div class="chrome-footer">
+  <span class="footer-text">Accenture Confidential — For Internal Use Only</span>
+  <span class="footer-text">Solution Architecture · v0.1 DRAFT</span>
+</div>
+
+</body>
+</html>

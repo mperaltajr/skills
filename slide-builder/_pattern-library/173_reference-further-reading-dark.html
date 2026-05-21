@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>Pattern 173 — Reference / Further Reading</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: Inter, system-ui, sans-serif;
+    background: var(--slide-bg);
+    position: relative;
+  }
+
+  /* ── Invariant Chrome ── */
+
+  .project-label {
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    color: var(--text-faint);
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .draft-badge {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 16px;
+    border-radius: 0;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .title-block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+  .title-block h1 {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+  pointer-events: auto;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.15;
+  }
+
+  .title-block h1 strong {
+    color: var(--brand-accent);
+  }
+
+  .title-block .sub-headline {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 108px;
+  pointer-events: auto;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+    }
+
+  .accent-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+  pointer-events: none;
+    
+    
+    background: var(--brand-accent);
+    }
+
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+  }
+
+  .footer span {
+    font-size: 8px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+  }
+
+  /* ── Content Area ── */
+
+  .content-area {
+    position: absolute;
+    top: 128px;
+    left: 48px;
+    right: 48px;
+    bottom: 72px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .columns {
+    display: flex;
+    gap: 20px;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .col-header {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--brand-primary-mid);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--card-border);
+    margin-bottom: 2px;
+  }
+
+  .ref-item {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-left: 2px solid var(--brand-accent);
+    border-radius: 4px;
+    padding: 8px 10px 8px 12px;
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .ref-icon {
+    font-size: 18px;
+    line-height: 1;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .ref-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .ref-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-dark);
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ref-source {
+    font-size: 11px;
+    color: var(--text-mid);
+    margin-top: 2px;
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ref-year {
+    font-size: 10px;
+    color: var(--text-faint);
+    margin-top: 2px;
+  }
+
+  /* ── Internal Resources Strip ── */
+
+  .internal-strip {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 4px;
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  .strip-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--brand-primary-mid);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .strip-divider {
+    width: 1px;
+    height: 20px;
+    background: var(--card-border);
+    flex-shrink: 0;
+  }
+
+  .chips {
+    display: flex;
+    gap: 8px;
+    flex-wrap: nowrap;
+    overflow: hidden;
+  }
+
+  .chip {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: #FFFFFF;
+    border: 1px solid var(--card-border);
+    border-radius: 3px;
+    padding: 3px 10px;
+    flex-shrink: 0;
+  }
+
+  .chip-name {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-dark);
+  }
+
+  .chip-tag {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--brand-accent);
+    background: #EDE0FA;
+    padding: 1px 5px;
+    border-radius: 2px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* DARK THEME */
+  :root {
+    --card-bg: rgba(255,255,255,0.07);
+    --card-border: rgba(255,255,255,0.12);
+    --text-dark: #FFFFFF;
+    --text-mid: rgba(255,255,255,0.6);
+    --slide-bg: #2D0A4E;
+  }
+
+  body { background: #2D0A4E; }
+
+  .project-label { color: rgba(255,255,255,0.4); }
+
+  .title-block h1 {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+  pointer-events: auto; color: #FFFFFF; }
+  .title-block h1 strong { color: #C780FF; }
+  .title-block .sub-headline { color: rgba(255,255,255,0.6); }
+  .accent-rule { background: #A100FF; }
+
+  .col-header {
+    color: #C780FF;
+    border-bottom-color: rgba(255,255,255,0.12);
+  }
+
+  .ref-item {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-left: 2px solid #A100FF;
+  }
+
+  .ref-title { color: #FFFFFF; }
+  .ref-source { color: rgba(255,255,255,0.6); }
+  .ref-year { color: rgba(255,255,255,0.5); }
+
+  .internal-strip {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+  }
+
+  .strip-label { color: #C780FF; }
+  .strip-divider { background: rgba(255,255,255,0.12); }
+
+  .chip {
+    background: rgba(161,0,255,0.2);
+    border: 1px solid rgba(161,0,255,0.3);
+  }
+
+  .chip-name { color: #FFFFFF; }
+  .chip-tag {
+    background: rgba(161,0,255,0.3);
+    color: #C780FF;
+  }
+
+  .footer { border-top: 1px solid rgba(255,255,255,0.1); }
+  .footer span { color: rgba(255,255,255,0.4); }
+</style>
+</head>
+<body>
+
+  <!-- Invariant Chrome -->
+
+  <div class="title-block">
+    <h1 data-shape-id="title">References &amp; <strong>Further Reading</strong></h1>
+    <div class="sub-headline" data-shape-id="subtitle">Curated sources, frameworks, and internal materials supporting this analysis</div>
+    <div class="accent-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <div class="columns">
+
+      <!-- Left Column: Reports & Research -->
+      <div class="column">
+        <div class="col-header" data-shape-id="col-1-header">Reports &amp; Research</div>
+
+        <div class="ref-item">
+          <div class="ref-icon" data-shape-id="ref-1-icon">📄</div>
+          <div class="ref-body">
+            <div class="ref-title" data-shape-id="ref-1-title">The State of AI in Enterprise 2025</div>
+            <div class="ref-source" data-shape-id="ref-1-source">McKinsey Global Institute</div>
+            <div class="ref-year" data-shape-id="ref-1-year">2025</div>
+          </div>
+        </div>
+
+        <div class="ref-item">
+          <div class="ref-icon" data-shape-id="ref-2-icon">📄</div>
+          <div class="ref-body">
+            <div class="ref-title" data-shape-id="ref-2-title">Digital Transformation Maturity Index</div>
+            <div class="ref-source" data-shape-id="ref-2-source">Gartner Research</div>
+            <div class="ref-year" data-shape-id="ref-2-year">2025</div>
+          </div>
+        </div>
+
+        <div class="ref-item">
+          <div class="ref-icon" data-shape-id="ref-3-icon">📄</div>
+          <div class="ref-body">
+            <div class="ref-title" data-shape-id="ref-3-title">Future of Work: Workforce Reinvention</div>
+            <div class="ref-source" data-shape-id="ref-3-source">World Economic Forum</div>
+            <div class="ref-year" data-shape-id="ref-3-year">2024</div>
+          </div>
+        </div>
+
+        <div class="ref-item">
+          <div class="ref-icon" data-shape-id="ref-4-icon">📄</div>
+          <div class="ref-body">
+            <div class="ref-title" data-shape-id="ref-4-title">Technology Vision 2026: Human by Design</div>
+            <div class="ref-source" data-shape-id="ref-4-source">Accenture Research</div>
+            <div class="ref-year" data-shape-id="ref-4-year">2026</div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Right Column: Articles & Frameworks -->
+      <div class="column">
+        <div class="col-header" data-shape-id="col-2-header">Articles &amp; Frameworks</div>
+
+        <div class="ref-item">
+          <div class="ref-icon" data-shape-id="ref-5-icon">📰</div>
+          <div class="ref-body">
+            <div class="ref-title" data-shape-id="ref-5-title">Competing on Customer Journeys</div>
+            <div class="ref-source" data-shape-id="ref-5-source">Harvard Business Review · David C. Edelman</div>
+            <div class="ref-year" data-shape-id="ref-5-year">2024</div>
+          </div>
+        </div>
+
+        <div class="ref-item">
+          <div class="ref-icon" data-shape-id="ref-6-icon">📰</div>
+          <div class="ref-body">
+            <div class="ref-title" data-shape-id="ref-6-title">Jobs-to-Be-Done Theory: A Primer</div>
+            <div class="ref-source" data-shape-id="ref-6-source">Clayton Christensen Institute</div>
+            <div class="ref-year" data-shape-id="ref-6-year">2023</div>
+          </div>
+        </div>
+
+        <div class="ref-item">
+          <div class="ref-icon" data-shape-id="ref-7-icon">🗂️</div>
+          <div class="ref-body">
+            <div class="ref-title" data-shape-id="ref-7-title">OKR Framework — Measure What Matters</div>
+            <div class="ref-source" data-shape-id="ref-7-source">John Doerr · Penguin Business</div>
+            <div class="ref-year" data-shape-id="ref-7-year">2023</div>
+          </div>
+        </div>
+
+        <div class="ref-item">
+          <div class="ref-icon" data-shape-id="ref-8-icon">🗂️</div>
+          <div class="ref-body">
+            <div class="ref-title" data-shape-id="ref-8-title">Platform Strategy Design Principles</div>
+            <div class="ref-source" data-shape-id="ref-8-source">MIT Sloan Management Review</div>
+            <div class="ref-year" data-shape-id="ref-8-year">2025</div>
+          </div>
+        </div>
+
+      </div>
+
+    </div>
+
+    <!-- Internal Resources Strip -->
+    <div class="internal-strip">
+      <div class="strip-label" data-shape-id="internal-strip-label">Internal Resources</div>
+      <div class="strip-divider"></div>
+      <div class="chips">
+
+        <div class="chip">
+          <span class="chip-name" data-shape-id="chip-1-name">AI Readiness Playbook v3</span>
+          <span class="chip-tag" data-shape-id="chip-1-tag">Internal</span>
+        </div>
+
+        <div class="chip">
+          <span class="chip-name" data-shape-id="chip-2-name">Client Benchmark Database 2025</span>
+          <span class="chip-tag" data-shape-id="chip-2-tag">Restricted</span>
+        </div>
+
+        <div class="chip">
+          <span class="chip-name" data-shape-id="chip-3-name">Digital Strategy Toolkit — FS</span>
+          <span class="chip-tag" data-shape-id="chip-3-tag">Internal</span>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span data-shape-id="footer-left">CONFIDENTIAL — ACCENTURE INTERNAL</span>
+    <span data-shape-id="footer-right">Slide Lab · 2026 · 173d</span>
+  </div>
+
+</body>
+</html>

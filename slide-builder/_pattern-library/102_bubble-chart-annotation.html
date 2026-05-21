@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>102 · Bubble chart with annotation panel</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+
+  /* Quadrant zone fills */
+  --zone-tl: rgba(92, 45, 135, 0.06);   /* High impact, Low effort — Quick wins */
+  --zone-tr: rgba(161, 0, 255, 0.09);   /* High impact, High effort — Prioritize */
+  --zone-bl: rgba(148, 163, 184, 0.05); /* Low impact, Low effort — Deprioritize */
+  --zone-br: rgba(183, 28, 28, 0.04);   /* Low impact, High effort — Avoid */
+
+  /* Bubble category colors */
+  --bubble-priority: #A100FF;
+  --bubble-quickwin: #5C2D87;
+  --bubble-avoid: #94A3B8;
+  --bubble-neutral: #2D0A4E;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #4a4a4a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  margin: 0;
+  padding: 24px;
+  box-sizing: border-box;
+}
+.slide {
+  width: 1280px;
+  height: 720px;
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.35);
+}
+
+/* ---- Top chrome ---- */
+.accenture-tag {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  font-size: 10px;
+  color: var(--text-faint);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  z-index: 5;
+}
+
+/* ---- DRAFT badge ---- */
+.draft-badge {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--draft-bg);
+  color: var(--draft-text);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 16px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  z-index: 5;
+}
+
+/* ---- Title block ---- */
+.title-block {
+  position: absolute;
+  top: 48px;
+  left: 48px;
+  right: 48px;
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+}
+.title-main {
+  flex: 1;
+}
+.title-main h1 {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-dark);
+  line-height: 1.2;
+}
+.title-main h1 strong {
+  color: var(--brand-primary);
+}
+.title-main .subhead {
+  font-size: 14px;
+  font-style: italic;
+  color: var(--text-mid);
+  margin-top: 6px;
+}
+.title-rule {
+  width: 64px;
+  height: 3px;
+  background: var(--brand-accent);
+  margin-top: 14px;
+}
+
+/* ---- Body: chart + annotation side by side ---- */
+.body-area {
+  position: absolute;
+  top: 160px;
+  left: 48px;
+  right: 48px;
+  bottom: 44px;
+  display: flex;
+  gap: 24px;
+}
+
+/* ---- Chart panel (left ~65%) ---- */
+.chart-panel {
+  flex: 0 0 740px;
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  position: relative;
+}
+
+/* Y-axis label column */
+.y-axis-col {
+  width: 38px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 38px; /* reserve space for x-axis row */
+  flex-shrink: 0;
+}
+.y-axis-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  color: var(--brand-primary);
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: nowrap;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.y-tick-top {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--text-mid);
+  text-transform: uppercase;
+  transform: rotate(-90deg) translateX(50%);
+  white-space: nowrap;
+  margin-bottom: 4px;
+}
+.y-tick-bottom {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--text-mid);
+  text-transform: uppercase;
+  transform: rotate(-90deg) translateX(50%);
+  white-space: nowrap;
+}
+
+/* Plot area + x-axis column */
+.plot-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* The scatter plot container */
+.plot-area {
+  position: relative;
+  flex: 1;
+  border-left: 2px solid var(--brand-primary);
+  border-bottom: 2px solid var(--brand-primary);
+  overflow: hidden;
+}
+
+/* Y-axis arrow */
+.plot-area::before {
+  content: '';
+  position: absolute;
+  left: -7px;
+  top: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-bottom: 8px solid var(--brand-primary);
+}
+
+/* X-axis arrow */
+.plot-area::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  bottom: -7px;
+  border-top: 5px solid transparent;
+  border-bottom: 5px solid transparent;
+  border-left: 8px solid var(--brand-primary);
+}
+
+/* ---- Quadrant zones ---- */
+.zone {
+  position: absolute;
+  pointer-events: none;
+}
+.zone-tl { /* Low effort, High impact — Quick wins */
+  top: 0; left: 0; width: 50%; height: 50%;
+  background: var(--zone-tl);
+}
+.zone-tr { /* High effort, High impact — Prioritize (focal) */
+  top: 0; right: 0; width: 50%; height: 50%;
+  background: var(--zone-tr);
+  outline: 2px solid rgba(161,0,255,0.18);
+  outline-offset: -2px;
+}
+.zone-bl { /* Low effort, Low impact — Deprioritize */
+  bottom: 0; left: 0; width: 50%; height: 50%;
+  background: var(--zone-bl);
+}
+.zone-br { /* High effort, Low impact — Avoid */
+  bottom: 0; right: 0; width: 50%; height: 50%;
+  background: var(--zone-br);
+}
+
+/* Quadrant zone labels */
+.zone-label {
+  position: absolute;
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  pointer-events: none;
+  z-index: 1;
+}
+.zone-label.tl { top: 6px; left: 8px; color: rgba(92,45,135,0.45); }
+.zone-label.tr { top: 6px; right: 8px; color: rgba(161,0,255,0.5); }
+.zone-label.bl { bottom: 6px; left: 8px; color: rgba(148,163,184,0.55); }
+.zone-label.br { bottom: 6px; right: 8px; color: rgba(183,28,28,0.45); }
+
+/* Center crosshair dashes */
+.quadrant-line-v {
+  position: absolute;
+  top: 0; bottom: 0;
+  left: 50%;
+  border-left: 1px dashed rgba(100,116,139,0.25);
+  pointer-events: none;
+}
+.quadrant-line-h {
+  position: absolute;
+  left: 0; right: 0;
+  top: 50%;
+  border-top: 1px dashed rgba(100,116,139,0.25);
+  pointer-events: none;
+}
+
+/* ---- Bubbles ---- */
+.bubble {
+  position: absolute;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  font-weight: 700;
+  line-height: 1.15;
+  transform: translate(-50%, -50%);
+  border: 2.5px solid #FFFFFF;
+  box-shadow: 0 3px 10px rgba(45,10,78,0.22);
+  z-index: 4;
+  color: #fff;
+  font-size: 9px;
+  padding: 4px;
+  cursor: default;
+}
+/* Sizes (Stakeholder Reach) */
+.b-xl { width: 80px; height: 80px; font-size: 9.5px; }
+.b-lg { width: 62px; height: 62px; font-size: 9px; }
+.b-md { width: 46px; height: 46px; font-size: 8.5px; }
+.b-sm { width: 34px; height: 34px; font-size: 8px; }
+
+/* Colors by category */
+.b-priority { background: var(--bubble-priority); box-shadow: 0 3px 12px rgba(161,0,255,0.35); }
+.b-quickwin { background: var(--bubble-quickwin); }
+.b-avoid    { background: var(--bubble-avoid); opacity: 0.88; }
+.b-neutral  { background: var(--bubble-neutral); }
+
+/* ---- X-axis row ---- */
+.x-axis-row {
+  height: 38px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  padding-top: 6px;
+}
+.x-ticks {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: var(--text-mid);
+  text-transform: uppercase;
+}
+.x-axis-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2.5px;
+  color: var(--brand-primary);
+  text-transform: uppercase;
+}
+
+/* ---- Size legend (top-right of chart area) ---- */
+.size-legend {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(248,244,252,0.92);
+  border: 1px solid var(--card-border);
+  padding: 8px 10px;
+  z-index: 6;
+  min-width: 148px;
+}
+.size-legend-title {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--brand-primary);
+  margin-bottom: 6px;
+}
+.size-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  font-size: 10px;
+  color: var(--text-dark);
+}
+.size-row:last-child { margin-bottom: 0; }
+.size-dot {
+  background: var(--text-faint);
+  border-radius: 50%;
+  flex-shrink: 0;
+  border: 1.5px solid white;
+  box-shadow: 0 1px 3px rgba(45,10,78,0.18);
+}
+.sd-xl { width: 20px; height: 20px; }
+.sd-lg { width: 15px; height: 15px; }
+.sd-md { width: 11px; height: 11px; }
+.sd-sm { width: 7px;  height: 7px;  }
+
+/* ---- Right annotation panel (35%) ---- */
+.annotation-panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-bottom: 4px;
+}
+.annotation-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  padding: 14px 16px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  position: relative;
+  overflow: hidden;
+}
+.annotation-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 4px;
+}
+.card-priority::before { background: var(--brand-accent); }
+.card-quickwin::before { background: var(--brand-primary-mid); }
+.card-avoid::before   { background: var(--text-faint); }
+
+.card-tag {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  display: inline-block;
+  margin-left: 4px;
+  align-self: flex-start;
+}
+.card-priority .card-tag { background: var(--brand-accent); color: #fff; }
+.card-quickwin .card-tag { background: var(--brand-primary-mid); color: #fff; }
+.card-avoid .card-tag   { background: var(--text-faint); color: #fff; }
+
+.card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-dark);
+  line-height: 1.2;
+  margin-left: 4px;
+}
+.card-title strong { color: var(--brand-primary); }
+
+.card-initiatives {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-left: 4px;
+}
+.initiative-item {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 11px;
+  color: var(--text-dark);
+  line-height: 1.3;
+}
+.initiative-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.card-priority .initiative-dot { background: var(--brand-accent); }
+.card-quickwin .initiative-dot { background: var(--brand-primary-mid); }
+.card-avoid .initiative-dot   { background: var(--text-faint); }
+
+.card-note {
+  font-size: 10px;
+  font-style: italic;
+  color: var(--text-mid);
+  margin-left: 4px;
+  margin-top: 2px;
+}
+
+/* ---- Footer ---- */
+.footer {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  padding: 0 48px;
+  font-size: 9.5px;
+  color: var(--text-faint);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-top: 1px solid var(--card-border);
+  background: #FBFAFD;
+}
+.footer-right {
+  margin-left: auto;
+}
+</style>
+</head>
+<body>
+<div class="slide">
+
+  <!-- Top chrome -->
+  <div class="accenture-tag">ACCENTURE INTERNAL</div>
+
+  <!-- Title block -->
+  <div class="title-block">
+    <div class="title-main">
+      <h1>Initiative prioritization — <strong>effort vs. impact, sized by reach</strong></h1>
+      <div class="subhead">Top-right quadrant defines the portfolio; top-left delivers early momentum.</div>
+      <div class="title-rule"></div>
+    </div>
+  </div>
+
+  <!-- Body: scatter chart + annotations -->
+  <div class="body-area">
+
+    <!-- ===== Chart panel ===== -->
+    <div class="chart-panel">
+
+      <!-- Y-axis label column -->
+      <div class="y-axis-col">
+        <div class="y-tick-top">High</div>
+        <div class="y-axis-label">Business Impact</div>
+        <div class="y-tick-bottom">Low</div>
+      </div>
+
+      <!-- Plot column -->
+      <div class="plot-col">
+
+        <!-- Scatter plot area -->
+        <div class="plot-area" id="plot">
+
+          <!-- Quadrant zones -->
+          <div class="zone zone-tl"></div>
+          <div class="zone zone-tr"></div>
+          <div class="zone zone-bl"></div>
+          <div class="zone zone-br"></div>
+
+          <!-- Quadrant zone labels -->
+          <div class="zone-label tl">Quick wins</div>
+          <div class="zone-label tr">Prioritize</div>
+          <div class="zone-label bl">Deprioritize</div>
+          <div class="zone-label br">Avoid</div>
+
+          <!-- Center crosshair lines -->
+          <div class="quadrant-line-v"></div>
+          <div class="quadrant-line-h"></div>
+
+          <!-- Size legend (top-right of plot) -->
+          <div class="size-legend">
+            <div class="size-legend-title">Stakeholder Reach</div>
+            <div class="size-row"><div class="size-dot sd-xl"></div><span>&gt; 5,000 people</span></div>
+            <div class="size-row"><div class="size-dot sd-lg"></div><span>1,000 – 5,000</span></div>
+            <div class="size-row"><div class="size-dot sd-md"></div><span>200 – 1,000</span></div>
+            <div class="size-row"><div class="size-dot sd-sm"></div><span>&lt; 200 people</span></div>
+          </div>
+
+          <!--
+            Bubbles — positioned as % of plot area.
+            X = Implementation Effort: 0%(left/Low) → 100%(right/High)
+            Y = Business Impact: 0%(top/High) → 100%(bottom/Low)
+            Category colors: b-priority(accent purple), b-quickwin(primary-mid), b-neutral(primary dark), b-avoid(faint)
+          -->
+
+          <!-- TOP PRIORITY initiatives (top-right: high effort, high impact) -->
+          <!-- CRM Platform Overhaul: XL reach, high effort ~72%, high impact ~18% -->
+          <div class="bubble b-xl b-priority" style="left:72%; top:18%;">CRM<br>Overhaul</div>
+          <!-- AI-Powered Analytics: LG reach, high effort ~82%, high impact ~28% -->
+          <div class="bubble b-lg b-priority" style="left:82%; top:28%;">AI<br>Analytics</div>
+          <!-- Enterprise Data Mesh: MD reach, effort ~64%, impact ~22% -->
+          <div class="bubble b-md b-priority" style="left:64%; top:22%;">Data<br>Mesh</div>
+
+          <!-- QUICK WINS (top-left: low effort, high impact) -->
+          <!-- Self-Service Dashboards: LG reach, low effort ~22%, high impact ~20% -->
+          <div class="bubble b-lg b-quickwin" style="left:22%; top:20%;">Self-Svc<br>Dashboards</div>
+          <!-- Process Automation: MD reach, low effort ~32%, impact ~30% -->
+          <div class="bubble b-md b-quickwin" style="left:32%; top:30%;">Process<br>Automation</div>
+          <!-- Knowledge Base Refresh: SM reach, effort ~14%, impact ~38% -->
+          <div class="bubble b-sm b-quickwin" style="left:14%; top:38%;">KB<br>Refresh</div>
+
+          <!-- NEUTRAL — low impact, low effort (bottom-left, deprioritize) -->
+          <!-- UX Audit: SM reach, effort ~26%, impact ~68% -->
+          <div class="bubble b-sm b-neutral" style="left:26%; top:68%;">UX<br>Audit</div>
+          <!-- Vendor Renegotiation: MD reach, effort ~36%, impact ~74% -->
+          <div class="bubble b-md b-neutral" style="left:36%; top:74%;">Vendor<br>Renegotiate</div>
+
+          <!-- AVOID — high effort, low impact (bottom-right) -->
+          <!-- Legacy App Migration: XL reach, effort ~74%, impact ~72% -->
+          <div class="bubble b-xl b-avoid" style="left:74%; top:72%;">Legacy<br>App Migration</div>
+          <!-- Compliance Reporting Rebuild: LG reach, effort ~86%, impact ~80% -->
+          <div class="bubble b-lg b-avoid" style="left:86%; top:80%;">Compliance<br>Rebuild</div>
+
+        </div><!-- /plot-area -->
+
+        <!-- X-axis row -->
+        <div class="x-axis-row">
+          <div class="x-ticks">
+            <span>Low</span>
+            <span>High</span>
+          </div>
+          <div class="x-axis-label">Implementation Effort</div>
+        </div>
+
+      </div><!-- /plot-col -->
+    </div><!-- /chart-panel -->
+
+    <!-- ===== Annotation panel ===== -->
+    <div class="annotation-panel">
+
+      <!-- Top Priority -->
+      <div class="annotation-card card-priority">
+        <div class="card-tag">Top Priority</div>
+        <div class="card-title"><strong>High impact</strong>, high effort — fund &amp; resource now</div>
+        <div class="card-initiatives">
+          <div class="initiative-item"><div class="initiative-dot"></div>CRM Platform Overhaul</div>
+          <div class="initiative-item"><div class="initiative-dot"></div>AI-Powered Analytics</div>
+          <div class="initiative-item"><div class="initiative-dot"></div>Enterprise Data Mesh</div>
+        </div>
+        <div class="card-note">Largest stakeholder reach; sequential sequencing recommended.</div>
+      </div>
+
+      <!-- Quick Wins -->
+      <div class="annotation-card card-quickwin">
+        <div class="card-tag">Quick Wins</div>
+        <div class="card-title"><strong>High impact</strong>, low effort — launch this quarter</div>
+        <div class="card-initiatives">
+          <div class="initiative-item"><div class="initiative-dot"></div>Self-Service Dashboards</div>
+          <div class="initiative-item"><div class="initiative-dot"></div>Process Automation</div>
+          <div class="initiative-item"><div class="initiative-dot"></div>Knowledge Base Refresh</div>
+        </div>
+        <div class="card-note">Demonstrate momentum; fund top-priority work from savings.</div>
+      </div>
+
+      <!-- Avoid -->
+      <div class="annotation-card card-avoid">
+        <div class="card-tag">Avoid</div>
+        <div class="card-title">Low impact, <strong>high effort</strong> — defer or descope</div>
+        <div class="card-initiatives">
+          <div class="initiative-item"><div class="initiative-dot"></div>Legacy App Migration</div>
+          <div class="initiative-item"><div class="initiative-dot"></div>Compliance Reporting Rebuild</div>
+        </div>
+        <div class="card-note">High cost, limited strategic return. Revisit in H2 planning cycle.</div>
+      </div>
+
+    </div><!-- /annotation-panel -->
+
+  </div><!-- /body-area -->
+
+  <!-- Footer -->
+  <div class="footer">
+    Slide Lab &middot; Confidential &middot; Initiative prioritization
+    <span class="footer-right">102 / 200</span>
+  </div>
+
+</div><!-- /slide -->
+</body>
+</html>

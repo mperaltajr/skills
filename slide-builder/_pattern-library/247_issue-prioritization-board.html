@@ -1,0 +1,487 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>247 — Issue Prioritization Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+
+    --crit-accent: #D32F2F;
+    --crit-border: #FFCDD2;
+    --crit-badge-bg: #FFEBEE;
+    --crit-badge-text: #B71C1C;
+
+    --high-accent: #E65100;
+    --high-border: #FFE0B2;
+    --high-badge-bg: #FFF3E0;
+    --high-badge-text: #BF360C;
+
+    --med-accent: var(--card-border);
+    --med-badge-bg: #F3E5F5;
+    --med-badge-text: #6A1B9A;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    background: var(--slide-bg);
+    font-family: 'Inter', sans-serif;
+    color: var(--text-dark);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  /* ── TOP CHROME ── */
+  .top-chrome {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 28px 0;
+    flex-shrink: 0;
+  }
+  .accenture-label {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+  .draft-badge {
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 0;
+    line-height: 1;
+  }
+  .top-right-spacer {
+    width: 120px; /* balance the left label */
+  }
+
+  /* ── TITLE BLOCK ── */
+  .title-block {
+    position: absolute; top: 0; left: 0; right: 0; height: 160px;
+  }
+  .slide-title {
+    position: absolute; top: 28px; left: 64px; right: 64px; min-height: 36px;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+  .slide-title strong {
+    color: var(--brand-accent);
+    font-weight: 700;
+  }
+  .slide-sub {
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+
+    top: 4px;
+  }
+  .title-rule {
+    position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+
+    border-radius: 0;
+  }
+
+  /* ── SUMMARY STRIP ── */
+  .summary-strip {
+    margin: 8px 28px 0;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 3px;
+    padding: 6px 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-shrink: 0;
+  }
+  .summary-text {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--text-mid);
+    text-transform: uppercase;
+  }
+  .summary-text .s-crit { color: var(--crit-accent); }
+  .summary-text .s-high { color: var(--high-accent); }
+  .summary-text .s-med  { color: var(--brand-primary-mid); }
+  .summary-dot {
+    color: var(--text-faint);
+    font-size: 10px;
+    font-weight: 400;
+  }
+  .summary-date {
+    font-size: 10px;
+    color: var(--text-faint);
+
+    left: auto;
+    font-style: italic;
+  }
+
+  /* ── BOARD ── */
+  .board {
+    display: flex;
+    gap: 12px;
+    padding: 8px 28px 8px;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .col-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    bottom: 6px;
+    flex-shrink: 0;
+  }
+  .col-accent-bar {
+    width: 4px;
+    height: 18px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+  .col-title {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+  .col-count {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-faint);
+
+    left: auto;
+  }
+
+  /* Column accent colors */
+  .col-critical .col-accent-bar { background: var(--crit-accent); }
+  .col-critical .col-title       { color: var(--crit-accent); }
+  .col-high .col-accent-bar      { background: var(--high-accent); }
+  .col-high .col-title           { color: var(--high-accent); }
+  .col-medium .col-accent-bar    { background: var(--card-border); }
+  .col-medium .col-title         { color: var(--brand-primary-mid); }
+
+  .cards {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  /* ── ISSUE CARD ── */
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-left-width: 3px;
+    border-radius: 3px;
+    padding: 9px 10px 8px;
+    position: relative;
+    flex: 1;
+  }
+  .card-critical { border-left-color: var(--crit-accent); }
+  .card-high     { border-left-color: var(--high-accent); }
+  .card-medium   { border-left-color: var(--card-border); }
+
+  .card-top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 6px;
+
+    bottom: 4px;
+  }
+  .card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-dark);
+    line-height: 1.3;
+    flex: 1;
+  }
+  .priority-badge {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 2px 6px;
+    border-radius: 2px;
+    flex-shrink: 0;
+    line-height: 1.4;
+  }
+  .badge-p1 { background: var(--crit-badge-bg); color: var(--crit-badge-text); }
+  .badge-p2 { background: var(--high-badge-bg); color: var(--high-badge-text); }
+  .badge-p3 { background: var(--med-badge-bg);  color: var(--med-badge-text); }
+
+  .card-desc {
+    font-size: 11px;
+    color: var(--text-mid);
+    line-height: 1.4;
+
+    bottom: 6px;
+  }
+  .card-meta {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: var(--text-faint);
+  }
+  .meta-owner {
+    font-weight: 600;
+    color: var(--text-faint);
+  }
+  .meta-sep { color: var(--card-border); }
+
+  /* ── FOOTER ── */
+  .footer {
+    border-top: 1px solid var(--card-border);
+    padding: 6px 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+
+    top: 8px;
+  }
+  .footer-left, .footer-right {
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+</style>
+</head>
+<body>
+
+  <!-- TOP CHROME -->
+  <div class="top-chrome">
+    <span class="accenture-label">Accenture Internal</span>
+    <span class="top-right-spacer"></span>
+  </div>
+
+  <!-- TITLE BLOCK -->
+  <div class="title-block">
+    <h1 class="slide-title">Issue <strong>Prioritization</strong> Board</h1>
+    <p class="slide-sub">Open issues ranked by severity — owner accountability and resolution tracking</p>
+    <div class="title-rule"></div>
+  </div>
+
+  <!-- SUMMARY STRIP -->
+  <div class="summary-strip">
+    <span class="summary-text">
+      <span class="s-crit">3 Critical</span>
+    </span>
+    <span class="summary-dot">·</span>
+    <span class="summary-text">
+      <span class="s-high">4 High</span>
+    </span>
+    <span class="summary-dot">·</span>
+    <span class="summary-text">
+      <span class="s-med">5 Medium</span>
+    </span>
+    <span class="summary-date">As of 19 May 2026</span>
+  </div>
+
+  <!-- BOARD -->
+  <div class="board">
+
+    <!-- CRITICAL -->
+    <div class="column col-critical">
+      <div class="col-header">
+        <div class="col-accent-bar"></div>
+        <span class="col-title">Critical</span>
+        <span class="col-count">3 issues</span>
+      </div>
+      <div class="cards">
+
+        <div class="card card-critical">
+          <div class="card-top">
+            <span class="card-title">Data Migration Failure Risk</span>
+            <span class="priority-badge badge-p1">P1</span>
+          </div>
+          <p class="card-desc">System cannot handle volume &gt; 10M records without data loss or timeout errors.</p>
+          <div class="card-meta">
+            <span class="meta-owner">IT Lead</span>
+            <span class="meta-sep">·</span>
+            <span>Raised 05 May 2026</span>
+          </div>
+        </div>
+
+        <div class="card card-critical">
+          <div class="card-top">
+            <span class="card-title">Budget Overrun Trajectory</span>
+            <span class="priority-badge badge-p1">P1</span>
+          </div>
+          <p class="card-desc">Current burn rate is 18% above plan; projected overrun of $240K by close of Q3.</p>
+          <div class="card-meta">
+            <span class="meta-owner">Finance</span>
+            <span class="meta-sep">·</span>
+            <span>Raised 08 May 2026</span>
+          </div>
+        </div>
+
+        <div class="card card-critical">
+          <div class="card-top">
+            <span class="card-title">Key Dependency Slippage</span>
+            <span class="priority-badge badge-p1">P1</span>
+          </div>
+          <p class="card-desc">ERP upgrade delayed 3 weeks; blocks downstream UAT start and go-live milestone.</p>
+          <div class="card-meta">
+            <span class="meta-owner">PM</span>
+            <span class="meta-sep">·</span>
+            <span>Raised 12 May 2026</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- HIGH -->
+    <div class="column col-high">
+      <div class="col-header">
+        <div class="col-accent-bar"></div>
+        <span class="col-title">High</span>
+        <span class="col-count">3 issues</span>
+      </div>
+      <div class="cards">
+
+        <div class="card card-high">
+          <div class="card-top">
+            <span class="card-title">Security Access Review Overdue</span>
+            <span class="priority-badge badge-p2">P2</span>
+          </div>
+          <p class="card-desc">Quarterly access review not completed; 14 privileged accounts unaudited since March.</p>
+          <div class="card-meta">
+            <span class="meta-owner">CISO Office</span>
+            <span class="meta-sep">·</span>
+            <span>Raised 01 May 2026</span>
+          </div>
+        </div>
+
+        <div class="card card-high">
+          <div class="card-top">
+            <span class="card-title">Test Environment Instability</span>
+            <span class="priority-badge badge-p2">P2</span>
+          </div>
+          <p class="card-desc">UAT environment experiencing intermittent failures; blocking regression test execution.</p>
+          <div class="card-meta">
+            <span class="meta-owner">QA Lead</span>
+            <span class="meta-sep">·</span>
+            <span>Raised 10 May 2026</span>
+          </div>
+        </div>
+
+        <div class="card card-high">
+          <div class="card-top">
+            <span class="card-title">Vendor SLA Non-Compliance</span>
+            <span class="priority-badge badge-p2">P2</span>
+          </div>
+          <p class="card-desc">Infrastructure vendor missed 3 SLA targets in April; escalation letter pending sign-off.</p>
+          <div class="card-meta">
+            <span class="meta-owner">Procurement</span>
+            <span class="meta-sep">·</span>
+            <span>Raised 14 May 2026</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- MEDIUM -->
+    <div class="column col-medium">
+      <div class="col-header">
+        <div class="col-accent-bar"></div>
+        <span class="col-title">Medium</span>
+        <span class="col-count">3 issues</span>
+      </div>
+      <div class="cards">
+
+        <div class="card card-medium">
+          <div class="card-top">
+            <span class="card-title">Documentation Gaps in Runbooks</span>
+            <span class="priority-badge badge-p3">P3</span>
+          </div>
+          <p class="card-desc">Six operational runbooks missing update following v2.3 release; risk to handover quality.</p>
+          <div class="card-meta">
+            <span class="meta-owner">Tech Writer</span>
+            <span class="meta-sep">·</span>
+            <span>Raised 07 May 2026</span>
+          </div>
+        </div>
+
+        <div class="card card-medium">
+          <div class="card-top">
+            <span class="card-title">Training Completion Below Target</span>
+            <span class="priority-badge badge-p3">P3</span>
+          </div>
+          <p class="card-desc">Only 61% of end-users completed mandatory system training; target was 85% by 15 May.</p>
+          <div class="card-meta">
+            <span class="meta-owner">Change Lead</span>
+            <span class="meta-sep">·</span>
+            <span>Raised 15 May 2026</span>
+          </div>
+        </div>
+
+        <div class="card card-medium">
+          <div class="card-top">
+            <span class="card-title">Reporting Dashboard Lag</span>
+            <span class="priority-badge badge-p3">P3</span>
+          </div>
+          <p class="card-desc">Executive dashboard refresh delayed by 48 hours; impacting weekly status reporting cycle.</p>
+          <div class="card-meta">
+            <span class="meta-owner">Analytics</span>
+            <span class="meta-sep">·</span>
+            <span>Raised 16 May 2026</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <span class="footer-left">Confidential</span>
+    <span class="footer-right">Slide Lab · 2026 · 247</span>
+  </div>
+
+</body>
+</html>

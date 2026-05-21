@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>131 &middot; Burn rate / runway chart</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #4a4a4a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 24px;
+  box-sizing: border-box;
+}
+.slide {
+  width: 1280px;
+  height: 720px;
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.35);
+}
+
+/* Top chrome */
+.accenture-tag {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  font-size: 10px;
+  color: var(--text-faint);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  z-index: 5;
+  font-weight: 600;
+}
+
+/* DRAFT badge */
+.draft-badge {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--draft-bg);
+  color: var(--draft-text);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 16px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  z-index: 5;
+}
+
+/* Title block */
+.title-block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+.title-block h1 {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+  pointer-events: auto;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-dark);
+  line-height: 1.25;
+}
+.title-block h1 strong {
+  color: var(--brand-primary);
+}
+.title-block .subhead {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 108px;
+  pointer-events: auto;
+  font-size: 14px;
+  color: var(--text-mid);
+  font-style: italic;
+  line-height: 1.4;
+}
+.title-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+  pointer-events: none;
+  
+  
+  background: var(--brand-accent);
+  }
+
+/* Chart SVG container */
+.chart-container {
+  position: absolute;
+  top: 150px;
+  left: 80px;
+  right: 48px;
+  bottom: 100px;
+}
+.chart-container svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Convergence bar */
+.convergence {
+  position: absolute;
+  bottom: 56px;
+  left: 48px;
+  right: 48px;
+  height: 32px;
+  background: var(--brand-primary);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  font-size: 14px;
+  font-style: italic;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: 0.3px;
+}
+.convergence span {
+  color: var(--brand-accent-soft);
+  font-style: normal;
+  font-weight: 700;
+  margin-right: 4px;
+}
+
+/* Footer */
+.footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  padding: 0 48px;
+  font-size: 9.5px;
+  color: var(--text-faint);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-top: 1px solid var(--card-border);
+  background: #FBFAFD;
+}
+.footer-right {
+  margin-left: auto;
+}
+</style>
+</head>
+<body>
+<div class="slide" data-shape-id="slide">
+
+  <!-- Top chrome -->
+  <div class="accenture-tag" data-shape-id="accenture-tag">Accenture Internal</div>
+
+  <!-- Title block -->
+  <div class="title-block" data-shape-id="title-block">
+    <h1 data-shape-id="title"><strong>14-month runway at current burn</strong> &mdash; Series B must close by Q1&nbsp;2026 or reduce burn by 25%</h1>
+    <p class="subhead" data-shape-id="subtitle">Cash remaining ($M) &middot; Jan 2025 &ndash; Jun 2026 &middot; Monthly burn avg $3.2M, accelerating from month 10</p>
+    <div class="title-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- Chart area SVG -->
+  <!--
+    SVG viewBox: 0 0 920 390
+    Plot area: x 70..870 (width 800), y 20..330 (height 310)
+    Y axis: $0M (y=330) to $70M (y=20). Scale: 310/70 = 4.4286 px/$M
+    18 months (index 0..17). dx = 800/17 = 47.059
+    Y(cash) = 330 - cash * (310/70)
+
+    Cash data (pre-calculated):
+    M0  Jan-25: 55.0  => y = 330 - 55*4.4286 = 330 - 243.57 = 86.4
+    M1  Feb-25: 51.8  => y = 330 - 229.40 = 100.6
+    M2  Mar-25: 48.6  => y = 330 - 215.23 = 114.8
+    M3  Apr-25: 63.4  => y = 330 - 280.78 = 49.2   (Series A +18M step)
+    M4  May-25: 60.2  => y = 330 - 266.60 = 63.4
+    M5  Jun-25: 57.0  => y = 330 - 252.43 = 77.6
+    M6  Jul-25: 53.8  => y = 330 - 238.26 = 91.7
+    M7  Aug-25: 50.6  => y = 330 - 224.09 = 105.9  (TODAY)
+    M8  Sep-25: 46.44 => y = 330 - 205.67 = 124.3  (burn +30% = 4.16/mo)
+    M9  Oct-25: 42.28 => y = 330 - 187.24 = 142.8
+    M10 Nov-25: 37.78 => y = 330 - 167.33 = 162.7  (acceleration to 4.5)
+    M11 Dec-25: 32.98 => y = 330 - 146.10 = 183.9  (burn 4.8)
+    M12 Jan-26: 27.98 => y = 330 - 123.92 = 206.1  (burn 5.0)
+    M13 Feb-26: 22.78 => y = 330 - 100.88 = 229.1  (burn 5.2)
+    M14 Mar-26: 17.78 => y = 330 -  78.76 = 251.2  (revenue inflection, burn decelerates to 4.5)
+    M15 Apr-26: 13.28 => y = 330 -  58.81 = 271.2  (burn 4.5)
+    M16 May-26:  9.28 => y = 330 -  41.12 = 288.9  (burn 4.0)
+    M17 Jun-26:  5.28 => y = 330 -  23.39 = 306.6  (burn 4.0) => runway exhausted marker
+
+    X positions: x(i) = 70 + i * (800/17)
+    M0:  70.0
+    M1:  117.1
+    M2:  164.1
+    M3:  211.2
+    M4:  258.2
+    M5:  305.3
+    M6:  352.4
+    M7:  399.4
+    M8:  446.5
+    M9:  493.5
+    M10: 540.6
+    M11: 587.6
+    M12: 634.7
+    M13: 681.8
+    M14: 728.8
+    M15: 775.9
+    M16: 822.9
+    M17: 870.0
+  -->
+  <div class="chart-container" data-shape-id="chart-container">
+    <svg viewBox="0 0 920 390" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <!-- Area fill gradient: brand-primary-mid to brand-accent-soft -->
+        <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#5C2D87" stop-opacity="0.7"/>
+          <stop offset="100%" stop-color="#C780FF" stop-opacity="0.15"/>
+        </linearGradient>
+        <!-- Critical zone red tint (months 15-18) -->
+        <linearGradient id="critGrad" x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0%" stop-color="#DC2626" stop-opacity="0.0"/>
+          <stop offset="100%" stop-color="#DC2626" stop-opacity="0.12"/>
+        </linearGradient>
+        <!-- Clip path for plot area -->
+        <clipPath id="plotClip">
+          <rect x="70" y="20" width="800" height="310"/>
+        </clipPath>
+      </defs>
+
+      <!-- ── Horizontal gridlines (0, 10, 20, 30, 40, 50, 60, 70) ── -->
+      <!-- Y(0)=330, Y(10)=285.7, Y(20)=241.4, Y(30)=197.1, Y(40)=152.9, Y(50)=108.6, Y(60)=64.3, Y(70)=20 -->
+      <g stroke="#E5D5F0" stroke-width="0.8" opacity="0.9">
+        <line x1="70" y1="330" x2="870" y2="330"/>
+        <line x1="70" y1="285.7" x2="870" y2="285.7"/>
+        <line x1="70" y1="241.4" x2="870" y2="241.4"/>
+        <line x1="70" y1="197.1" x2="870" y2="197.1"/>
+        <line x1="70" y1="152.9" x2="870" y2="152.9"/>
+        <line x1="70" y1="108.6" x2="870" y2="108.6"/>
+        <line x1="70" y1="64.3" x2="870" y2="64.3"/>
+        <line x1="70" y1="20" x2="870" y2="20"/>
+      </g>
+
+      <!-- ── Critical zone shading: months 15-17 (x=775.9 to 870) ── -->
+      <rect x="775.9" y="20" width="94.1" height="310" fill="url(#critGrad)" clip-path="url(#plotClip)"/>
+
+      <!-- ── Area polygon (filled) ── -->
+      <!-- Points: M0..M17 then close bottom right, bottom left -->
+      <polygon
+        points="
+          70,86.4
+          117.1,100.6
+          164.1,114.8
+          211.2,49.2
+          258.2,63.4
+          305.3,77.6
+          352.4,91.7
+          399.4,105.9
+          446.5,124.3
+          493.5,142.8
+          540.6,162.7
+          587.6,183.9
+          634.7,206.1
+          681.8,229.1
+          728.8,251.2
+          775.9,271.2
+          822.9,288.9
+          870,306.6
+          870,330
+          70,330
+        "
+        fill="url(#areaGrad)"
+        clip-path="url(#plotClip)"
+      />
+
+      <!-- ── Area stroke line ── -->
+      <polyline
+        points="
+          70,86.4
+          117.1,100.6
+          164.1,114.8
+          211.2,49.2
+          258.2,63.4
+          305.3,77.6
+          352.4,91.7
+          399.4,105.9
+          446.5,124.3
+          493.5,142.8
+          540.6,162.7
+          587.6,183.9
+          634.7,206.1
+          681.8,229.1
+          728.8,251.2
+          775.9,271.2
+          822.9,288.9
+          870,306.6
+        "
+        fill="none"
+        stroke="#A100FF"
+        stroke-width="2.5"
+        stroke-linejoin="round"
+        stroke-linecap="round"
+        clip-path="url(#plotClip)"
+      />
+
+      <!-- ── Data points (key months only) ── -->
+      <g fill="#A100FF" stroke="#fff" stroke-width="2" clip-path="url(#plotClip)">
+        <circle cx="70" cy="86.4" r="4"/>
+        <circle cx="211.2" cy="49.2" r="5"/>
+        <circle cx="399.4" cy="105.9" r="5"/>
+        <circle cx="540.6" cy="162.7" r="4"/>
+        <circle cx="728.8" cy="251.2" r="5"/>
+        <circle cx="870" cy="306.6" r="4"/>
+      </g>
+
+      <!-- ── TODAY vertical dashed line at M7 (x=399.4) ── -->
+      <line x1="399.4" y1="20" x2="399.4" y2="330"
+        stroke="#1A1A2E" stroke-width="1.5" stroke-dasharray="5,4" opacity="0.65"
+        clip-path="url(#plotClip)"/>
+      <!-- TODAY label -->
+      <rect x="375" y="20" width="48" height="18" rx="2" fill="#1A1A2E"/>
+      <text x="399.4" y="33" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#fff" text-anchor="middle">TODAY</text>
+
+      <!-- ── Runway exhausted dashed red vertical line at M17 (x=870) ── -->
+      <line x1="870" y1="20" x2="870" y2="330"
+        stroke="#DC2626" stroke-width="2" stroke-dasharray="6,4"
+        clip-path="url(#plotClip)"/>
+
+      <!-- ── Y axis labels ── -->
+      <g font-family="Inter,sans-serif" font-size="11" fill="#64748B" text-anchor="end">
+        <text x="62" y="334">$0M</text>
+        <text x="62" y="290">$10M</text>
+        <text x="62" y="245">$20M</text>
+        <text x="62" y="201">$30M</text>
+        <text x="62" y="157">$40M</text>
+        <text x="62" y="113">$50M</text>
+        <text x="62" y="68">$60M</text>
+        <text x="62" y="24">$70M</text>
+      </g>
+      <!-- Y axis title -->
+      <text x="18" y="185" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#2D0A4E"
+        text-anchor="middle" transform="rotate(-90 18 185)" letter-spacing="0.8">CASH REMAINING ($M)</text>
+
+      <!-- ── X axis baseline ── -->
+      <line x1="70" y1="330" x2="870" y2="330" stroke="#2D0A4E" stroke-width="1.5"/>
+
+      <!-- ── X axis month labels (every 3 months) ── -->
+      <!-- M0=Jan25, M3=Apr25, M6=Jul25, M9=Oct25, M12=Jan26, M15=Apr26, M17=Jun26 -->
+      <g font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="#64748B" text-anchor="middle">
+        <text x="70" y="345">Jan 25</text>
+        <text x="211.2" y="345">Apr 25</text>
+        <text x="352.4" y="345">Jul 25</text>
+        <text x="493.5" y="345">Oct 25</text>
+        <text x="634.7" y="345">Jan 26</text>
+        <text x="775.9" y="345">Apr 26</text>
+        <text x="870" y="345">Jun 26</text>
+      </g>
+
+      <!-- ── Month tick marks ── -->
+      <g stroke="#94A3B8" stroke-width="0.8">
+        <line x1="70" y1="330" x2="70" y2="337"/>
+        <line x1="117.1" y1="330" x2="117.1" y2="335"/>
+        <line x1="164.1" y1="330" x2="164.1" y2="335"/>
+        <line x1="211.2" y1="330" x2="211.2" y2="337"/>
+        <line x1="258.2" y1="330" x2="258.2" y2="335"/>
+        <line x1="305.3" y1="330" x2="305.3" y2="335"/>
+        <line x1="352.4" y1="330" x2="352.4" y2="337"/>
+        <line x1="399.4" y1="330" x2="399.4" y2="337"/>
+        <line x1="446.5" y1="330" x2="446.5" y2="335"/>
+        <line x1="493.5" y1="330" x2="493.5" y2="337"/>
+        <line x1="540.6" y1="330" x2="540.6" y2="335"/>
+        <line x1="587.6" y1="330" x2="587.6" y2="337"/>
+        <line x1="634.7" y1="330" x2="634.7" y2="337"/>
+        <line x1="681.8" y1="330" x2="681.8" y2="335"/>
+        <line x1="728.8" y1="330" x2="728.8" y2="337"/>
+        <line x1="775.9" y1="330" x2="775.9" y2="337"/>
+        <line x1="822.9" y1="330" x2="822.9" y2="335"/>
+        <line x1="870" y1="330" x2="870" y2="337"/>
+      </g>
+
+      <!-- ── EVENT ANNOTATION 1: Month 3 — Series A closes +$18M (x=211.2, y=49.2) ── -->
+      <!-- Callout box below/right of the peak; leader line from point downward to box -->
+      <line x1="211.2" y1="53" x2="211.2" y2="68" stroke="#16A34A" stroke-width="1.2" stroke-dasharray="3,2"/>
+      <rect x="218" y="68" width="148" height="36" rx="3" fill="#ECFDF3" stroke="#16A34A" stroke-width="1"/>
+      <text x="226" y="83" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="#027A48">&#9650; Month 3 &mdash; Series A closes</text>
+      <text x="226" y="97" font-family="Inter,sans-serif" font-size="10" font-weight="800" fill="#027A48">+$18M &rarr; $63.4M peak cash</text>
+
+      <!-- ── EVENT ANNOTATION 2: Month 7 — Headcount scale (x=399.4, y=105.9) ── -->
+      <!-- Box to the right of TODAY line, below -->
+      <rect x="408" y="115" width="148" height="36" rx="3" fill="#FFFAEB" stroke="#D97706" stroke-width="1"/>
+      <text x="415" y="129" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="#B45309">&#9660; Month 7 — Headcount scale</text>
+      <text x="415" y="143" font-family="Inter,sans-serif" font-size="9.5" font-weight="700" fill="#B45309">Burn +30% from here</text>
+      <line x1="399.4" y1="133" x2="408" y2="133" stroke="#D97706" stroke-width="1" stroke-dasharray="2,2"/>
+
+      <!-- ── EVENT ANNOTATION 3: Month 14 — Revenue inflection (x=728.8, y=251.2) ── -->
+      <!-- Box above and to the left -->
+      <rect x="600" y="195" width="160" height="36" rx="3" fill="#F8F4FC" stroke="#5C2D87" stroke-width="1"/>
+      <text x="607" y="210" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="#2D0A4E">&#9650; Month 14 — Revenue inflection</text>
+      <text x="607" y="224" font-family="Inter,sans-serif" font-size="9.5" font-weight="700" fill="#5C2D87">Burn decelerates</text>
+      <line x1="728.8" y1="251.2" x2="760" y2="213" stroke="#5C2D87" stroke-width="1" stroke-dasharray="2,2"/>
+
+      <!-- ── Runway exhausted label at x=870 ── -->
+      <rect x="790" y="356" width="138" height="28" rx="2" fill="#DC2626"/>
+      <text x="859" y="368" font-family="Inter,sans-serif" font-size="8.5" font-weight="700" fill="#fff" text-anchor="middle">&#9888; Runway exhausted</text>
+      <text x="859" y="380" font-family="Inter,sans-serif" font-size="8.5" font-weight="700" fill="#fff" text-anchor="middle">Series B needed</text>
+
+      <!-- ── Cash value labels at key months ── -->
+      <g font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#2D0A4E">
+        <!-- M0 start: $55M -->
+        <text x="74" y="80" fill="#5C2D87">$55M</text>
+        <!-- M3 Series A peak: $63.4M -->
+        <!-- label shown via annotation box -->
+        <!-- M7 TODAY: $50.6M -->
+        <text x="340" y="102" fill="#1A1A2E" font-size="9">$50.6M</text>
+        <!-- M17 end: $5.3M -->
+        <text x="834" y="302" fill="#DC2626" font-size="9">$5.3M</text>
+      </g>
+
+      <!-- ── Critical zone label ── -->
+      <text x="823" y="38" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="#DC2626" text-anchor="middle" letter-spacing="0.3">CRITICAL ZONE</text>
+      <text x="823" y="50" font-family="Inter,sans-serif" font-size="8.5" fill="#DC2626" text-anchor="middle">Series B window</text>
+
+      <!-- ── Legend ── -->
+      <g font-family="Inter,sans-serif" font-size="10" fill="#64748B">
+        <!-- Area fill swatch -->
+        <rect x="70" y="357" width="14" height="10" rx="1" fill="url(#areaGrad)" stroke="#A100FF" stroke-width="1"/>
+        <text x="90" y="367" font-weight="600">Cash remaining</text>
+        <!-- Today marker -->
+        <line x1="160" y1="357" x2="160" y2="367" stroke="#1A1A2E" stroke-width="1.5" stroke-dasharray="3,2"/>
+        <text x="166" y="367" font-weight="600">Today (Month 8)</text>
+        <!-- Runway marker -->
+        <line x1="270" y1="357" x2="270" y2="367" stroke="#DC2626" stroke-width="1.5" stroke-dasharray="3,2"/>
+        <text x="276" y="367" font-weight="600">Runway exhausted (Month 17)</text>
+        <!-- Critical zone -->
+        <rect x="440" y="358" width="12" height="9" fill="#DC2626" opacity="0.12"/>
+        <rect x="440" y="358" width="12" height="9" fill="none" stroke="#DC2626" stroke-width="0.8"/>
+        <text x="457" y="367" font-weight="600">Critical zone (Months 15–18)</text>
+      </g>
+    </svg>
+  </div>
+
+  <!-- Convergence bar -->
+  <div class="convergence" data-shape-id="convergence">
+    <span>Series B close date is the single critical path item.</span> Without funding by Q1 2026, a 25% burn reduction must begin no later than Month 12 to preserve 6 months of runway.
+  </div>
+
+  <!-- Footer -->
+  <div class="footer" data-shape-id="footer">
+    <span>Slide Lab &middot; Confidential &middot; Financial runway</span>
+    <span class="footer-right">131 / 200</span>
+  </div>
+
+</div>
+</body>
+</html>

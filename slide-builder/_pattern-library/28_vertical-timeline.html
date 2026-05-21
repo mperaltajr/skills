@@ -1,0 +1,158 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>28 · Vertical timeline</title>
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1280px; height: 720px; background: var(--slide-bg); font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; color: var(--text-dark); overflow: hidden; }
+body { padding: 50px 64px; position: relative; }
+.draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; }
+.project-label { position: absolute; top: 24px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
+
+.action-title { position: absolute; left: 64px; right: 64px; top: 28px; min-height: 72px; font-size: 28px; font-weight: 700; line-height: 1.2; }
+.action-title strong { color: var(--brand-primary); }
+.subhead { position: absolute; left: 64px; right: 64px; top: 100px; font-size: 14px; color: var(--text-mid); font-style: italic; }
+.title-rule { position: absolute; left: 64px; top: 128px; width: 40px; height: 3px; background: var(--brand-accent); }
+
+/* Timeline container — SVG for axis + dots + connectors, HTML for text.
+   Height reduced from 500 -> 460 and the bottom node lifted so its full circle
+   (including halo) sits ~50px clear of the footer rule. */
+.timeline { position: relative; width: 100%; height: 460px; margin-top: 6px; }
+
+/* SVG sits behind the text and draws the geometry */
+.timeline-svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+
+/* Text blocks — absolute-positioned, each one aligned to its dot's y-coord.
+   x-coords pinned to the connector's outer end for perfect column alignment. */
+.label { position: absolute; width: 340px; }
+.label .date { font-size: 14px; font-weight: 700; color: var(--brand-primary); letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 2px; }
+.label .event-title { font-size: 15px; font-weight: 700; color: var(--text-dark); line-height: 1.25; margin-bottom: 4px; }
+.label .event-desc { font-size: 14px; color: var(--text-mid); line-height: 1.45; }
+
+/* Left and right column anchors.
+   Axis sits at horizontal center of .timeline. Connector length = 90 px. */
+.label.left  { right: calc(50% + 102px); text-align: right; }
+.label.right { left:  calc(50% + 102px); text-align: left;  }
+
+/* Row vertical positions — match SVG dot y-coords. translateY centers the block on the dot.
+   Rows compressed and shifted up so the last node + its halo clears the footer rule. */
+.row1 { top: 30px;  }
+.row2 { top: 112px; }
+.row3 { top: 194px; }
+.row4 { top: 276px; }
+.row5 { top: 358px; }
+.row6 { top: 425px; }
+.label { transform: translateY(-50%); }
+
+/* Last-row label is constrained to render upward from the dot so its description
+   cannot bleed into the footer zone. */
+.label.row6 { transform: translateY(-50%); max-height: 88px; overflow: hidden; }
+
+/* TODAY focal-point emphasis */
+.label.today .date        { color: var(--brand-accent); font-size: 14px; }
+.label.today .event-title { color: var(--brand-primary); font-size: 18px; }
+.label.today .event-desc  { color: var(--text-dark); font-weight: 500; }
+
+.footer-rule { position: absolute; left: 0; right: 0; bottom: 32px; height: 1px; background: var(--card-border); }
+.footer-left { position: absolute; bottom: 14px; left: 24px; color: var(--text-faint); font-size: 11px; letter-spacing: 1px; }
+.footer-right { position: absolute; bottom: 14px; right: 24px; color: var(--text-faint); font-size: 11px; }
+</style>
+</head>
+<body>
+
+  <div class="action-title" data-shape-id="title">How Slide Lab got here — <strong>six course corrections</strong>.</div>
+  <div class="subhead" data-shape-id="subtitle">Each step was a course-correction. The next one is yours to choose.</div>
+  <div class="title-rule" data-shape-id="brand-rule"></div>
+
+  <div class="timeline">
+    <!--
+      SVG viewBox: 1152 wide (1280 - 2*64 body padding) by 460 tall.
+      Axis x = 576 (center). Dot y values match .rowN top values.
+      Connector length = 90 px from axis. Soft-accent stroke.
+      The last dot (TODAY) sits at y=425, leaving ~35 SVG-units of breathing room
+      below it inside the timeline box, plus a ~30px gap from the timeline's
+      bottom edge to the footer rule. Full halo (r=18) fits cleanly.
+    -->
+    <svg class="timeline-svg" data-shape-id="chart-canvas" viewBox="0 0 1152 460" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <!-- vertical axis: stops short of the bottom edge so it doesn't visually collide with the footer rule -->
+      <line x1="576" y1="0" x2="576" y2="445" stroke="#A100FF" stroke-width="3"/>
+
+      <!-- horizontal connectors: dot -> text. Soft accent, 2px. -->
+      <line x1="576" y1="30"  x2="486" y2="30"  stroke="#C780FF" stroke-width="2"/>
+      <line x1="576" y1="112" x2="666" y2="112" stroke="#C780FF" stroke-width="2"/>
+      <line x1="576" y1="194" x2="486" y2="194" stroke="#C780FF" stroke-width="2"/>
+      <line x1="576" y1="276" x2="666" y2="276" stroke="#C780FF" stroke-width="2"/>
+      <line x1="576" y1="358" x2="486" y2="358" stroke="#C780FF" stroke-width="2"/>
+      <line x1="576" y1="425" x2="666" y2="425" stroke="#C780FF" stroke-width="2"/>
+
+      <!-- dots -->
+      <!-- n1: start (filled accent) -->
+      <circle cx="576" cy="30"  r="10" fill="#A100FF" stroke="#A100FF" stroke-width="3"/>
+      <!-- n2: hollow -->
+      <circle cx="576" cy="112" r="10" fill="#FFFFFF" stroke="#A100FF" stroke-width="3"/>
+      <!-- n3: key (slightly larger, hollow) -->
+      <circle cx="576" cy="194" r="12" fill="#FFFFFF" stroke="#A100FF" stroke-width="3"/>
+      <!-- n4: key -->
+      <circle cx="576" cy="276" r="12" fill="#FFFFFF" stroke="#A100FF" stroke-width="3"/>
+      <!-- n5: hollow -->
+      <circle cx="576" cy="358" r="10" fill="#FFFFFF" stroke="#A100FF" stroke-width="3"/>
+      <!-- n6: TODAY focal — filled deep primary with soft halo. Center at y=425; halo r=18 -> bottom edge at y=443, well inside the 460-unit viewBox. -->
+      <circle cx="576" cy="425" r="18" fill="#2D0A4E" fill-opacity="0.12"/>
+      <circle cx="576" cy="425" r="13" fill="#2D0A4E" stroke="#2D0A4E" stroke-width="3"/>
+    </svg>
+
+    <div class="label left  row1">
+      <div class="date" data-shape-id="event-1-date">Q2 2025</div>
+      <div class="event-title" data-shape-id="event-1-title">Spark</div>
+      <div class="event-desc" data-shape-id="event-1-desc">Notice the pattern: senior consultants escape the deck-bloat trap; juniors get crushed by it.</div>
+    </div>
+
+    <div class="label right row2">
+      <div class="date" data-shape-id="event-2-date">Q3 2025</div>
+      <div class="event-title" data-shape-id="event-2-title">Hypothesis</div>
+      <div class="event-desc" data-shape-id="event-2-desc">The fix isn't training. It's a structural tool that enforces the discipline.</div>
+    </div>
+
+    <div class="label left  row3">
+      <div class="date" data-shape-id="event-3-date">Q4 2025</div>
+      <div class="event-title" data-shape-id="event-3-title">Prototype V1</div>
+      <div class="event-desc" data-shape-id="event-3-desc">First HTML/Playwright build of Slide Lab. Twelve decks tested internally.</div>
+    </div>
+
+    <div class="label right row4">
+      <div class="date" data-shape-id="event-4-date">Q1 2026</div>
+      <div class="event-title" data-shape-id="event-4-title">V2 Architecture</div>
+      <div class="event-desc" data-shape-id="event-4-desc">Skeleton-first pipeline. Speed gains, but visual quality regressed.</div>
+    </div>
+
+    <div class="label left  row5">
+      <div class="date" data-shape-id="event-5-date">Q2 2026</div>
+      <div class="event-title" data-shape-id="event-5-title">V2.5 Hybrid</div>
+      <div class="event-desc" data-shape-id="event-5-desc">Pattern library curation. Skeletons + HTML treatments. Editorial chrome restored.</div>
+    </div>
+
+    <div class="label right row6 today">
+      <div class="date" data-shape-id="event-6-date">Today</div>
+      <div class="event-title" data-shape-id="event-6-title">Pilot</div>
+      <div class="event-desc" data-shape-id="event-6-desc">Four-week pilot with the FedEx strategy practice. The data speaks.</div>
+    </div>
+  </div>
+  <div class="footer-left" data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+</body>
+</html>

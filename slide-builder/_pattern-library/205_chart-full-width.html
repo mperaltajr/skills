@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>Pattern 205 — Chart Full-Width (No Takeaway Panel)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+  :root {
+    --brand-primary:#2D0A4E; --brand-primary-mid:#5C2D87; --brand-accent:#A100FF;
+    --brand-accent-soft:#C780FF; --text-dark:#1A1A2E; --text-mid:#64748B;
+    --text-faint:#94A3B8; --slide-bg:#FFFFFF; --card-bg:#F8F4FC;
+    --card-border:#E5D5F0; --draft-bg:#FFD600; --draft-text:#B71C1C;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: Inter, system-ui, sans-serif;
+    background: #FFFFFF;
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+  }
+
+  .slide {
+    position: relative;
+    width: 1280px;
+    height: 720px;
+    background: var(--slide-bg);
+  }
+
+  /* ── Invariant chrome ── */
+  .internal-label {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    font-weight: 400;
+  }
+
+  .draft-badge {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 0;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .title-block {
+    position: absolute; top: 0; left: 0; right: 0; height: 160px;
+  }
+
+  .title-block h1 {
+    position: absolute; top: 28px; left: 64px; right: 64px; min-height: 36px;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.2;
+  }
+
+  .title-block h1 strong {
+    color: var(--brand-accent);
+    font-weight: 700;
+  }
+
+  .title-block .sub-headline {
+    position: absolute; top: 108px; left: 64px; right: 64px;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+
+}
+
+  .accent-rule {
+    position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+
+    border-radius: 0;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: flex-end;
+    padding: 0 20px 10px;
+    justify-content: space-between;
+  }
+
+  .footer-left,
+  .footer-right {
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* ── Chart area ── */
+  .chart-area {
+    position: absolute;
+    top: 136px;
+    left: 48px;
+    right: 48px;
+    bottom: 118px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .chart-wrapper {
+    flex: 1;
+    position: relative;
+  }
+
+  .source-note {
+    font-size: 9px;
+    color: var(--text-faint);
+
+    top: 6px;
+    padding-left: 4px;
+  }
+
+  /* ── Takeaway strip ── */
+  .takeaway-strip {
+    position: absolute;
+    bottom: 56px;
+    left: 48px;
+    right: 48px;
+    height: 52px;
+    background: var(--card-bg);
+    border-left: 4px solid var(--brand-accent);
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    padding: 0 16px;
+    gap: 10px;
+  }
+
+  .takeaway-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--brand-accent);
+    letter-spacing: 0.06em;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .takeaway-text {
+    font-size: 14px;
+    color: var(--text-dark);
+    line-height: 1.45;
+  }
+</style>
+</head>
+<body>
+<div class="slide">
+
+  <!-- Invariant chrome -->
+  <span class="internal-label">Accenture Internal</span>
+
+  <!-- Title block -->
+  <div class="title-block">
+    <h1>Revenue reached a <strong>record high</strong> in Q4 2023</h1>
+    <p class="sub-headline">Six-quarter revenue trend shows sustained growth acceleration across all business units</p>
+    <div class="accent-rule"></div>
+  </div>
+
+  <!-- Chart area -->
+  <div class="chart-area">
+    <div class="chart-wrapper">
+      <!--
+        Canvas: 1184px wide (1280 - 48*2), chart-wrapper fills available height ~490px
+        SVG viewBox sized to match, preserving pixel-accurate label placement.
+        Y-axis: $0–$8B, 5 gridlines at $2B intervals
+        X-axis: Q1 2023, Q2 2023, Q3 2023, Q4 2023, Q1 2024, Q2 2024
+        Bar values: 4.8, 5.3, 5.9, 7.2, 6.8, 6.1 ($B)
+        Highlight bar: Q4 2023 (index 3)
+      -->
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        viewBox="0 0 1184 490"
+        width="100%"
+        height="100%"
+        style="display:block; overflow:visible;"
+      >
+        <defs>
+          <!-- Callout bubble filter -->
+          <filter id="shadow" x="-10%" y="-10%" width="120%" height="120%">
+            <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#2D0A4E" flood-opacity="0.15"/>
+          </filter>
+        </defs>
+
+        <!-- ── Layout constants (JavaScript-style comments for clarity) ──
+             paddingLeft = 72  (Y-axis labels + axis title)
+             paddingRight = 24
+             paddingTop = 40   (value labels above bars)
+             paddingBottom = 56 (X-axis labels)
+             chartWidth = 1184 - 72 - 24 = 1088
+             chartHeight = 490 - 40 - 56 = 394
+             yMax = 8 ($B), yStep = 2
+             barCount = 6, groupWidth = 1088/6 ≈ 181.3
+             barWidth = 90, barGap = (181.3-90)/2 ≈ 45.7
+        -->
+
+        <!-- Y-axis label (rotated) -->
+        <text
+          x="14"
+          y="237"
+          transform="rotate(-90,14,237)"
+          font-family="Inter,system-ui,sans-serif"
+          font-size="11"
+          fill="#64748B"
+          text-anchor="middle"
+          font-style="italic"
+        >Revenue ($B)</text>
+
+        <!-- Gridlines & Y-axis ticks -->
+        <!-- y=0   → svgY = 40+394 = 434 -->
+        <!-- y=2   → svgY = 40+394*(1-2/8) = 40+394*0.75 = 40+295.5 = 335.5 -->
+        <!-- y=4   → svgY = 40+394*(1-4/8) = 40+394*0.5  = 40+197   = 237   -->
+        <!-- y=6   → svgY = 40+394*(1-6/8) = 40+394*0.25 = 40+98.5  = 138.5 -->
+        <!-- y=8   → svgY = 40+0 = 40 -->
+
+        <g font-family="Inter,system-ui,sans-serif" font-size="11" fill="#94A3B8" text-anchor="end">
+          <!-- $0 -->
+          <text x="66" y="437">$0</text>
+          <line x1="72" y1="434" x2="1160" y2="434" stroke="#E5D5F0" stroke-width="1"/>
+          <!-- $2B -->
+          <text x="66" y="339">$2B</text>
+          <line x1="72" y1="335.5" x2="1160" y2="335.5" stroke="#E5D5F0" stroke-width="1"/>
+          <!-- $4B -->
+          <text x="66" y="241">$4B</text>
+          <line x1="72" y1="237" x2="1160" y2="237" stroke="#E5D5F0" stroke-width="1"/>
+          <!-- $6B -->
+          <text x="66" y="143">$6B</text>
+          <line x1="72" y1="138.5" x2="1160" y2="138.5" stroke="#E5D5F0" stroke-width="1"/>
+          <!-- $8B -->
+          <text x="66" y="45">$8B</text>
+          <line x1="72" y1="40" x2="1160" y2="40" stroke="#E5D5F0" stroke-width="1" stroke-dasharray="4,3"/>
+        </g>
+
+        <!-- X-axis baseline -->
+        <line x1="72" y1="434" x2="1160" y2="434" stroke="#C4B5D4" stroke-width="1.5"/>
+
+        <!--
+          groupWidth = 1088/6 = 181.333
+          barWidth = 90
+          barOffset = (181.333-90)/2 = 45.667
+
+          Bar left edges (x = 72 + i*181.333 + 45.667):
+            i=0: 72 + 0     + 45.667 = 117.667  → 118
+            i=1: 72 + 181.3 + 45.667 = 299.0    → 299
+            i=2: 72 + 362.7 + 45.667 = 480.3    → 480
+            i=3: 72 + 544.0 + 45.667 = 661.7    → 662  ← highlight
+            i=4: 72 + 725.3 + 45.667 = 843.0    → 843
+            i=5: 72 + 906.7 + 45.667 = 1024.3   → 1024
+
+          Bar heights (h = value/8 * 394):
+            4.8 → 236.4 → 236   svgY = 434-236 = 198
+            5.3 → 260.9 → 261   svgY = 434-261 = 173
+            5.9 → 290.3 → 290   svgY = 434-290 = 144
+            7.2 → 354.6 → 355   svgY = 434-355 = 79   ← highlight
+            6.8 → 334.9 → 335   svgY = 434-335 = 99
+            6.1 → 300.3 → 300   svgY = 434-300 = 134
+
+          Group centers (for X labels):
+            72 + i*181.333 + 90.667
+            i=0: 162.667 → 163
+            i=1: 344.0   → 344
+            i=2: 525.3   → 525
+            i=3: 706.7   → 707
+            i=4: 888.0   → 888
+            i=5: 1069.3  → 1069
+        -->
+
+        <!-- Bars -->
+        <!-- Q1 2023 — $4.8B -->
+        <rect x="118" y="198" width="90" height="236" fill="#5C2D87" rx="2"/>
+        <!-- Q2 2023 — $5.3B -->
+        <rect x="299" y="173" width="90" height="261" fill="#5C2D87" rx="2"/>
+        <!-- Q3 2023 — $5.9B -->
+        <rect x="480" y="144" width="90" height="290" fill="#5C2D87" rx="2"/>
+        <!-- Q4 2023 — $7.2B (highlight) -->
+        <rect x="662" y="79" width="90" height="355" fill="#A100FF" rx="2"/>
+        <!-- Q1 2024 — $6.8B -->
+        <rect x="843" y="99" width="90" height="335" fill="#5C2D87" rx="2"/>
+        <!-- Q2 2024 — $6.1B -->
+        <rect x="1024" y="134" width="90" height="300" fill="#5C2D87" rx="2"/>
+
+        <!-- Value labels above bars -->
+        <g font-family="Inter,system-ui,sans-serif" font-size="13" font-weight="600" text-anchor="middle">
+          <text x="163" y="190" fill="#5C2D87">$4.8B</text>
+          <text x="344" y="165" fill="#5C2D87">$5.3B</text>
+          <text x="525" y="136" fill="#5C2D87">$5.9B</text>
+          <text x="707" y="71"  fill="#A100FF">$7.2B</text>
+          <text x="888" y="91"  fill="#5C2D87">$6.8B</text>
+          <text x="1069" y="126" fill="#5C2D87">$6.1B</text>
+        </g>
+
+        <!-- X-axis labels -->
+        <g font-family="Inter,system-ui,sans-serif" font-size="12" fill="#64748B" text-anchor="middle">
+          <text x="163"  y="455">Q1 2023</text>
+          <text x="344"  y="455">Q2 2023</text>
+          <text x="525"  y="455">Q3 2023</text>
+          <text x="707"  y="455" font-weight="700" fill="#A100FF">Q4 2023</text>
+          <text x="888"  y="455">Q1 2024</text>
+          <text x="1069" y="455">Q2 2024</text>
+        </g>
+
+        <!-- X-axis period label -->
+        <text
+          x="616"
+          y="476"
+          font-family="Inter,system-ui,sans-serif"
+          font-size="10"
+          fill="#94A3B8"
+          text-anchor="middle"
+          font-style="italic"
+        >Fiscal Quarter</text>
+
+        <!-- ── Callout annotation for Q4 2023 highlight bar ── -->
+        <!-- Bubble tail points to top of Q4 bar at (707, 79). Bubble sits upper-right. -->
+        <!-- Bubble rect: x=770, y=18, width=230, height=44, rx=4 -->
+        <!-- Tail: triangle tip at (720, 79), from (770,38) to (770,52) -->
+        <g filter="url(#shadow)">
+          <!-- Tail polygon -->
+          <polygon points="770,38 770,54 720,46" fill="#2D0A4E"/>
+          <!-- Bubble -->
+          <rect x="770" y="18" width="234" height="44" rx="4" fill="#2D0A4E"/>
+        </g>
+        <text
+          x="887"
+          y="36"
+          font-family="Inter,system-ui,sans-serif"
+          font-size="12"
+          font-weight="700"
+          fill="#FFFFFF"
+          text-anchor="middle"
+        >Record quarter: +22% YoY</text>
+        <text
+          x="887"
+          y="52"
+          font-family="Inter,system-ui,sans-serif"
+          font-size="10"
+          fill="#C780FF"
+          text-anchor="middle"
+        >Highest revenue in company history</text>
+
+        <!-- Connector line from bubble to bar top -->
+        <line x1="720" y1="46" x2="707" y2="79" stroke="#A100FF" stroke-width="1.5" stroke-dasharray="3,2" opacity="0.6"/>
+
+      </svg>
+    </div>
+
+    <p class="source-note">Source: Accenture Finance — Consolidated Revenue Report FY2023–FY2024 (unaudited). Figures in USD billions.</p>
+  </div>
+
+  <!-- Takeaway strip -->
+  <div class="takeaway-strip">
+    <div class="takeaway-label">TAKEAWAY:</div>
+    <div class="takeaway-text">
+      Q4 2023 was a record-breaking quarter at $7.2B — 22% above the prior year — driven by accelerated enterprise deals and seasonal demand; the subsequent normalisation to $6.1B in Q2 2024 reflects a sustainable baseline, not a reversal.
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span class="footer-left">Confidential — Accenture Internal</span>
+    <span class="footer-right">Slide Lab · 2026 · 205</span>
+  </div>
+
+</div>
+</body>
+</html>

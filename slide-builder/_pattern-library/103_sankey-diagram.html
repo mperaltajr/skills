@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>103 &middot; Sankey &mdash; Revenue flows to cost centers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+
+  /* Flow band colours — one per source */
+  --c-products:    #A100FF; /* brand-accent */
+  --c-services:    #16A34A; /* green */
+  --c-licensing:   #D97706; /* amber */
+  --c-partnerships:#2563EB; /* blue */
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #4a4a4a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.slide {
+  width: 1280px;
+  height: 720px;
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.35);
+}
+
+/* ── Chrome ─────────────────────────────────────────── */
+.accenture-tag {
+  position: absolute;
+  top: 24px; left: 24px;
+  font-size: 10px;
+  color: var(--text-faint);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  z-index: 5;
+}
+
+.draft-badge {
+  position: absolute;
+  top: 20px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--draft-bg);
+  color: var(--draft-text);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 16px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  z-index: 5;
+  /* NO border-radius */
+}
+
+/* ── Title block ─────────────────────────────────────── */
+.title-block {
+  position: absolute;
+  top: 48px; left: 48px; right: 48px;
+}
+.action-title {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-dark);
+  line-height: 1.2;
+}
+.action-title strong {
+  color: var(--brand-primary);
+}
+.subheadline {
+  font-size: 14px;
+  font-style: italic;
+  color: var(--text-mid);
+  margin-top: 6px;
+}
+.accent-rule {
+  width: 64px;
+  height: 3px;
+  background: var(--brand-accent);
+  margin-top: 14px;
+}
+
+/* ── Diagram area ────────────────────────────────────── */
+.diagram-area {
+  position: absolute;
+  top: 150px; left: 48px; right: 48px; bottom: 44px;
+}
+
+/* ── Node columns ────────────────────────────────────── */
+.nodes {
+  position: absolute;
+  top: 0; bottom: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-around;
+  gap: 0;
+}
+.nodes-left  { left: 0;    width: 168px; }
+.nodes-right { right: 0;   width: 168px; }
+
+.node {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 10px 14px;
+  border: 1.5px solid var(--card-border);
+  background: var(--card-bg);
+  position: relative;
+  z-index: 3;
+}
+.node-left  { border-right: 4px solid; border-left: 1.5px solid var(--card-border); }
+.node-right { border-left: 4px solid;  border-right: 1.5px solid var(--card-border); }
+
+/* Colour-coded left borders per source */
+.node-products    { border-right-color: var(--c-products); }
+.node-services    { border-right-color: var(--c-services); }
+.node-licensing   { border-right-color: var(--c-licensing); }
+.node-partnerships{ border-right-color: var(--c-partnerships); }
+
+/* Right nodes use brand-primary accent on left edge */
+.node-right { border-left-color: var(--brand-primary); }
+
+.node-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-dark);
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+}
+.node-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--brand-primary);
+  margin-top: 3px;
+  line-height: 1;
+}
+.node-sub {
+  font-size: 10px;
+  color: var(--text-mid);
+  margin-top: 2px;
+}
+
+/* Colour swatch pill under node label */
+.node-swatch {
+  display: inline-block;
+  width: 28px; height: 3px;
+  margin-top: 4px;
+  border-radius: 0;
+}
+.swatch-products    { background: var(--c-products); }
+.swatch-services    { background: var(--c-services); }
+.swatch-licensing   { background: var(--c-licensing); }
+.swatch-partnerships{ background: var(--c-partnerships); }
+
+/* ── Flow bands canvas ───────────────────────────────── */
+/*
+  Layout:
+  - Diagram area height: from top:150px to bottom:44px on a 720px slide
+    = 720 - 150 - 44 = 526px usable (but .diagram-area bottom is 44px from slide bottom).
+    Actually diagram area bottom = 44px above slide bottom so its height =
+    720 - 150 - 44 = 526px. We'll treat that as 100% of .diagram-area.
+  - Node columns are 168px wide, leaving a flow canal of
+    1280 - 48 - 48 - 168 - 168 = 848px wide at center.
+    The .flow-canvas sits from left:168px, right:168px inside .diagram-area.
+  - Each node box height ≈ (526px - some gap*3) / 4 ≈ 122px each
+    We use justify-content:space-around with 4 items in 526px.
+    space-around: gap = 526 / (4*2) = 65.75 each side
+    So first node: top=65.75, height=~96px (depends on content).
+    We'll pin exact values via JS-free CSS: we'll use flex with explicit
+    heights to make the maths stable.
+
+  PLAN: Give each node a fixed height so we can calculate band positions.
+  Diagram area = 526px. 4 nodes + 3 gaps (equal).
+  Node height = H, gap = G. 4H + 3G = 526. Let H=112, G = (526-448)/3 = 26px.
+
+  Node vertical centres (from top of diagram-area):
+    Node 1: top=0,       centre=56
+    Node 2: top=138,     centre=194
+    Node 3: top=276,     centre=332
+    Node 4: top=414,     centre=470
+
+  Node top edges (= gap accumulation):
+    N1: top = 0         -> bottom = 112
+    N2: top = 138       -> bottom = 250
+    N3: top = 276       -> bottom = 388
+    N4: top = 414       -> bottom = 526
+
+  That leaves a 26px gap between each pair. Total: 4*112 + 3*26 = 448+78=526. ✓
+
+  FLOW MATRIX ($M):  source rows × dest cols.  Total per source sums to its total.
+  Values are "band height in pixels" — proportional to the dollar amount.
+
+  Source totals ($M):  Products=35, Services=52, Licensing=18, Partnerships=22 → total=127
+  Dest totals ($M):    R&D=40, Sales=30, Operations=32, G&A=25               → total=127 ✓
+
+  Allocations (rounded, may not perfectly re-sum — close enough for illustration):
+            R&D  Sales  Ops   G&A   | total
+  Products   14    10     7     4   |  35
+  Services   20     8    16     8   |  52
+  Licensing   3     7     4     4   |  18
+  Partners    3     5     5     9   |  22
+             40    30    32    25     127
+
+  Pixel bands per flow: scale = (dest_node_height=112) / dest_total
+    scale_R&D   = 112/40  = 2.80
+    scale_Sales = 112/30  = 3.733
+    scale_Ops   = 112/32  = 3.50
+    scale_G&A   = 112/25  = 4.48
+
+  Band heights at destination (right side) — px (rounded):
+  Products→R&D:   14*2.80=39.2≈39   Products→Sales: 10*3.733≈37  Products→Ops: 7*3.50=24.5≈25  Products→G&A: 4*4.48≈18
+  Services→R&D:   20*2.80=56        Services→Sales:  8*3.733≈30  Services→Ops:16*3.50=56       Services→G&A: 8*4.48≈36 [but 36+25+56+30≠112; normalise below]
+  ...
+  This is getting complex. Use a different approach: define pixel heights directly
+  by splitting each 112-px node proportionally to the inflows/outflows.
+
+  Source node splits (left side, source node = 112px, split by dest):
+  Each source node 112px splits into 4 sub-bands proportional to [R&D, Sales, Ops, G&A] flows:
+  Products  [14,10,7,4]/35*112 = [44.8, 32.0, 22.4, 12.8] → [45, 32, 22, 13]
+  Services  [20,8,16,8]/52*112 = [43.1, 17.2, 34.5, 17.2] → [43, 17, 35, 17]
+  Licensing [3,7,4,4]/18*112   = [18.7, 43.6, 24.9, 24.9] → [19, 43, 25, 25]  (sums: 112 ✓)
+  Partners  [3,5,5,9]/22*112   = [15.3, 25.5, 25.5, 45.8] → [15, 26, 25, 46]
+
+  Dest node splits (right side, dest node = 112px, split by source):
+  R&D     [14,20,3,3]/40*112   = [39.2, 56.0, 8.4, 8.4]   → [39, 56,  8,  9]
+  Sales   [10,8,7,5]/30*112    = [37.3, 29.9, 26.1, 18.7]  → [37, 30, 26, 19]
+  Ops     [7,16,4,5]/32*112    = [24.5, 56.0, 14.0, 17.5]  → [25, 56, 14, 17]
+  G&A     [4,8,4,9]/25*112     = [17.9, 35.8, 17.9, 40.3]  → [18, 36, 18, 40]
+
+  Stacking order within each node: R&D, Sales, Ops, G&A (consistent top-to-bottom).
+
+  Left node Y positions (source sub-bands, cumulative within node):
+  -- Products (node top=0):
+     Band→R&D:   top=0,    h=45  → centre-top=22.5,  centre-bot=22.5
+     Band→Sales: top=45,   h=32  → centre=61
+     Band→Ops:   top=77,   h=22  → centre=88
+     Band→G&A:   top=99,   h=13  → centre=105.5
+
+  -- Services (node top=138):
+     Band→R&D:   top=138,  h=43  → centre=159.5
+     Band→Sales: top=181,  h=17  → centre=189.5
+     Band→Ops:   top=198,  h=35  → centre=215.5
+     Band→G&A:   top=233,  h=17  → centre=241.5
+
+  -- Licensing (node top=276):
+     Band→R&D:   top=276,  h=19  → centre=285.5
+     Band→Sales: top=295,  h=43  → centre=316.5
+     Band→Ops:   top=338,  h=25  → centre=350.5
+     Band→G&A:   top=363,  h=25  → centre=375.5
+
+  -- Partners (node top=414):
+     Band→R&D:   top=414,  h=15  → centre=421.5
+     Band→Sales: top=429,  h=26  → centre=442
+     Band→Ops:   top=455,  h=25  → centre=467.5
+     Band→G&A:   top=480,  h=46  → centre=503
+
+  Right node Y positions (dest sub-bands, cumulative within dest node):
+  -- R&D (node top=0):
+     Band←Products: top=0,   h=39  → centre=19.5
+     Band←Services: top=39,  h=56  → centre=67
+     Band←Licensing:top=95,  h=8   → centre=99
+     Band←Partners: top=103, h=9   → centre=107.5
+
+  -- Sales (node top=138):
+     Band←Products: top=138, h=37  → centre=156.5
+     Band←Services: top=175, h=30  → centre=190
+     Band←Licensing:top=205, h=26  → centre=218
+     Band←Partners: top=231, h=19  → centre=240.5
+
+  -- Ops (node top=276):
+     Band←Products: top=276, h=25  → centre=288.5
+     Band←Services: top=301, h=56  → centre=329
+     Band←Licensing:top=357, h=14  → centre=364
+     Band←Partners: top=371, h=17  → centre=379.5
+
+  -- G&A (node top=414):
+     Band←Products: top=414, h=18  → centre=423
+     Band←Services: top=432, h=36  → centre=450
+     Band←Licensing:top=468, h=18  → centre=477
+     Band←Partners: top=486, h=40  → centre=506 [adj: 486+40=526 ✓]
+
+  Each flow band = CSS div, clip-path polygon(4 points):
+    left-top, right-top, right-bottom, left-bottom
+    x: 0 → band-canvas-width (W=848px)
+    y: left-top, right-top, left-bottom, right-bottom (relative to .flow-canvas top=0)
+*/
+
+.nodes .node { height: 112px; flex-shrink: 0; }
+
+/* Override the flex justify — we'll position nodes absolutely instead */
+.nodes { position: absolute; justify-content: flex-start; }
+.node-col { position: absolute; top: 0; }
+.node-col-left  { left: 0;    width: 168px; }
+.node-col-right { right: 0;   width: 168px; }
+
+/* ── Flow canvas ─────────────────────────────────────── */
+.flow-canvas {
+  position: absolute;
+  top: 0; bottom: 0;
+  left: 168px; right: 168px;
+  overflow: visible;
+}
+
+.band {
+  position: absolute;
+  left: 0; right: 0;
+  opacity: 0.6;
+  /* Each band uses clip-path to form a trapezoid */
+}
+
+/* ── Products flows (purple / accent) ─────────────────── */
+/* Products→R&D:   left top=0 h=45, right top=0 h=39
+   polygon: (0,0) (W,0) (W,39) (0,45) */
+.b-p-rd   { background: var(--c-products);    clip-path: polygon(0 0,   100% 0,    100% 39px,  0 45px); top:0;   height:45px; }
+/* Products→Sales: left top=45 h=32, right top=138 h=37
+   polygon: (0,0)(W,138-45=93)(W,93+37=130)(0,32) — but we position from left-top */
+.b-p-sl   { background: var(--c-products);    clip-path: polygon(0 0,   100% 93px, 100% 130px, 0 32px); top:45px; height:130px; }
+/* Products→Ops:   left top=77 h=22, right top=276 h=25
+   relative: right offset = 276-77=199, rb=199+25=224 */
+.b-p-op   { background: var(--c-products);    clip-path: polygon(0 0,   100% 199px,100% 224px, 0 22px); top:77px; height:224px; }
+/* Products→G&A:   left top=99 h=13, right top=414 h=18
+   relative: right offset = 414-99=315, rb=315+18=333 */
+.b-p-ga   { background: var(--c-products);    clip-path: polygon(0 0,   100% 315px,100% 333px, 0 13px); top:99px; height:333px; }
+
+/* ── Services flows (green) ───────────────────────────── */
+/* Services→R&D:   left top=138 h=43, right top=39 h=56
+   right offset relative to left-top: 39-138=-99, rb=-99+56=-43 → negative clip won't work.
+   Strategy: when right is ABOVE left, extend the clip box upward.
+   We'll set top to the minimum of left-top and right-top.
+   Clipping coords are relative to the div's top.
+
+   left-top=138, left-bot=181; right-top=39, right-bot=95
+   div top = min(39,138)=39, div bottom = max(181,95)=181 → height=142
+   Within div: left-top rel = 138-39=99, left-bot rel = 181-39=142
+               right-top rel = 39-39=0,  right-bot rel = 95-39=56
+   polygon: (0, 99px) (100%, 0) (100%, 56px) (0, 142px) */
+.b-s-rd   { background: var(--c-services);    clip-path: polygon(0 99px,  100% 0,    100% 56px,  0 142px); top:39px;  height:142px; }
+/* Services→Sales: left top=181 h=17, right top=175 h=30
+   div top=min(175,181)=175, div bottom=max(198,205)=205 → height=30
+   left-top rel=181-175=6, left-bot=198-175=23; right-top=0, right-bot=30
+   polygon: (0,6px)(100%,0)(100%,30px)(0,23px) */
+.b-s-sl   { background: var(--c-services);    clip-path: polygon(0 6px,  100% 0,    100% 30px,  0 23px);  top:175px; height:30px; }
+/* Services→Ops:   left top=198 h=35, right top=301 h=56
+   div top=198, right rel=301-198=103, rb=103+56=159; height=max(35,159)=159
+   left: top=0, bot=35; right: top=103, bot=159
+   polygon: (0,0)(100%,103px)(100%,159px)(0,35px) */
+.b-s-op   { background: var(--c-services);    clip-path: polygon(0 0,    100% 103px, 100% 159px, 0 35px);  top:198px; height:159px; }
+/* Services→G&A:   left top=233 h=17, right top=432 h=36
+   div top=233, right rel=432-233=199, rb=199+36=235; height=235
+   polygon: (0,0)(100%,199px)(100%,235px)(0,17px) */
+.b-s-ga   { background: var(--c-services);    clip-path: polygon(0 0,    100% 199px, 100% 235px, 0 17px);  top:233px; height:235px; }
+
+/* ── Licensing flows (amber) ──────────────────────────── */
+/* Licensing→R&D:   left top=276 h=19, right top=95 h=8
+   div top=min(95,276)=95, bot=max(295,103)=295 → height=200
+   left rel=276-95=181, lb=295-95=200; right rel=0, rb=8
+   polygon: (0,181px)(100%,0)(100%,8px)(0,200px) */
+.b-l-rd   { background: var(--c-licensing);   clip-path: polygon(0 181px,100% 0,    100% 8px,   0 200px); top:95px;  height:200px; }
+/* Licensing→Sales: left top=295 h=43, right top=205 h=26
+   div top=min(205,295)=205, bot=max(338,231)=338 → height=133
+   left rel=295-205=90, lb=338-205=133; right rel=0, rb=26
+   polygon: (0,90px)(100%,0)(100%,26px)(0,133px) */
+.b-l-sl   { background: var(--c-licensing);   clip-path: polygon(0 90px, 100% 0,    100% 26px,  0 133px); top:205px; height:133px; }
+/* Licensing→Ops:   left top=338 h=25, right top=357 h=14
+   div top=338, right rel=357-338=19, rb=19+14=33; height=max(25,33)=33
+   polygon: (0,0)(100%,19px)(100%,33px)(0,25px) */
+.b-l-op   { background: var(--c-licensing);   clip-path: polygon(0 0,    100% 19px,  100% 33px,  0 25px);  top:338px; height:33px; }
+/* Licensing→G&A:   left top=363 h=25, right top=468 h=18
+   div top=363, right rel=468-363=105, rb=105+18=123; height=123
+   polygon: (0,0)(100%,105px)(100%,123px)(0,25px) */
+.b-l-ga   { background: var(--c-licensing);   clip-path: polygon(0 0,    100% 105px, 100% 123px, 0 25px);  top:363px; height:123px; }
+
+/* ── Partners flows (blue) ────────────────────────────── */
+/* Partners→R&D:    left top=414 h=15, right top=103 h=9
+   div top=min(103,414)=103, bot=max(429,112)=429 → height=326
+   left rel=414-103=311, lb=429-103=326; right rel=0, rb=9
+   polygon: (0,311px)(100%,0)(100%,9px)(0,326px) */
+.b-pa-rd  { background: var(--c-partnerships);clip-path: polygon(0 311px,100% 0,    100% 9px,   0 326px); top:103px; height:326px; }
+/* Partners→Sales:  left top=429 h=26, right top=231 h=19
+   div top=min(231,429)=231, bot=max(455,250)=455 → height=224
+   left rel=429-231=198, lb=455-231=224; right rel=0, rb=19
+   polygon: (0,198px)(100%,0)(100%,19px)(0,224px) */
+.b-pa-sl  { background: var(--c-partnerships);clip-path: polygon(0 198px,100% 0,    100% 19px,  0 224px); top:231px; height:224px; }
+/* Partners→Ops:    left top=455 h=25, right top=371 h=17
+   div top=min(371,455)=371, bot=max(480,388)=480 → height=109
+   left rel=455-371=84, lb=480-371=109; right rel=0, rb=17
+   polygon: (0,84px)(100%,0)(100%,17px)(0,109px) */
+.b-pa-op  { background: var(--c-partnerships);clip-path: polygon(0 84px, 100% 0,    100% 17px,  0 109px); top:371px; height:109px; }
+/* Partners→G&A:    left top=480 h=46, right top=486 h=40
+   div top=480, right rel=486-480=6, rb=6+40=46; height=46
+   polygon: (0,0)(100%,6px)(100%,46px)(0,46px) */
+.b-pa-ga  { background: var(--c-partnerships);clip-path: polygon(0 0,    100% 6px,   100% 46px,  0 46px);  top:480px; height:46px; }
+
+/* ── Node absolute positions ─────────────────────────── */
+.n1 { top: 0;    }
+.n2 { top: 138px;}
+.n3 { top: 276px;}
+.n4 { top: 414px;}
+
+/* ── Column headers ───────────────────────────────────── */
+.col-header {
+  position: absolute;
+  top: -28px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--text-mid);
+}
+.col-header-left  { left: 0; }
+.col-header-right { right: 0; text-align: right; }
+
+/* ── Convergence bar ──────────────────────────────────── */
+.convergence-bar {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 44px;
+  background: var(--brand-primary);
+  display: flex;
+  align-items: center;
+  padding: 0 24px;
+  gap: 14px;
+}
+.convergence-label {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--brand-accent-soft);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.convergence-text {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: #fff;
+  font-style: italic;
+  line-height: 1.3;
+}
+.convergence-text strong {
+  color: var(--brand-accent-soft);
+  font-style: normal;
+}
+
+/* ── Legend ───────────────────────────────────────────── */
+.legend {
+  display: flex;
+  gap: 20px;
+  align-items: center;
+  justify-content: flex-end;
+  margin-top: 10px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-mid);
+  white-space: nowrap;
+}
+.legend-swatch {
+  width: 20px;
+  height: 8px;
+  flex-shrink: 0;
+}
+.sw-p  { background: var(--c-products); }
+.sw-s  { background: var(--c-services); }
+.sw-l  { background: var(--c-licensing); }
+.sw-pa { background: var(--c-partnerships); }
+
+/* ── Footer ───────────────────────────────────────────── */
+.footer {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  padding: 0 48px;
+  font-size: 9.5px;
+  color: var(--text-faint);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-top: 1px solid var(--card-border);
+  background: #FBFAFD;
+}
+.footer-right {
+  margin-left: auto;
+}
+</style>
+</head>
+<body>
+<div class="slide" data-shape-id="slide">
+
+  <!-- Chrome -->
+  <div class="accenture-tag" data-shape-id="accenture-tag">Accenture Internal</div>
+
+  <!-- Title -->
+  <div class="title-block" data-shape-id="title-block">
+    <div class="action-title" data-shape-id="title">
+      Revenue flows to cost centers &mdash; <strong>Services drives R&amp;D investment</strong>
+    </div>
+    <div class="subheadline" data-shape-id="subtitle">
+      Proportional allocation of $127M annual revenue across four cost centres; band width reflects dollar magnitude.
+    </div>
+    <div class="accent-rule" data-shape-id="accent-rule"></div>
+    <div class="legend" data-shape-id="legend">
+      <div class="legend-item" data-shape-id="legend-products">
+        <div class="legend-swatch sw-p"></div>Products
+      </div>
+      <div class="legend-item" data-shape-id="legend-services">
+        <div class="legend-swatch sw-s"></div>Services
+      </div>
+      <div class="legend-item" data-shape-id="legend-licensing">
+        <div class="legend-swatch sw-l"></div>Licensing
+      </div>
+      <div class="legend-item" data-shape-id="legend-partners">
+        <div class="legend-swatch sw-pa"></div>Partnerships
+      </div>
+    </div>
+  </div>
+
+  <!-- Diagram area -->
+  <div class="diagram-area" data-shape-id="diagram-area">
+
+    <!-- LEFT NODE COLUMN -->
+    <div class="node-col node-col-left" data-shape-id="left-nodes">
+      <div class="col-header col-header-left" data-shape-id="col-hdr-left">Revenue streams</div>
+
+      <div class="node node-left node-products n1" data-shape-id="node-products">
+        <div class="node-label" data-shape-id="lbl-products">Products</div>
+        <div class="node-value" data-shape-id="val-products">$35M</div>
+        <div class="node-sub"   data-shape-id="sub-products">28% of revenue</div>
+        <div class="node-swatch swatch-products" data-shape-id="sw-products"></div>
+      </div>
+
+      <div class="node node-left node-services n2" data-shape-id="node-services">
+        <div class="node-label" data-shape-id="lbl-services">Services</div>
+        <div class="node-value" data-shape-id="val-services">$52M</div>
+        <div class="node-sub"   data-shape-id="sub-services">41% of revenue</div>
+        <div class="node-swatch swatch-services" data-shape-id="sw-services"></div>
+      </div>
+
+      <div class="node node-left node-licensing n3" data-shape-id="node-licensing">
+        <div class="node-label" data-shape-id="lbl-licensing">Licensing</div>
+        <div class="node-value" data-shape-id="val-licensing">$18M</div>
+        <div class="node-sub"   data-shape-id="sub-licensing">14% of revenue</div>
+        <div class="node-swatch swatch-licensing" data-shape-id="sw-licensing"></div>
+      </div>
+
+      <div class="node node-left node-partnerships n4" data-shape-id="node-partnerships">
+        <div class="node-label" data-shape-id="lbl-partnerships">Partnerships</div>
+        <div class="node-value" data-shape-id="val-partnerships">$22M</div>
+        <div class="node-sub"   data-shape-id="sub-partnerships">17% of revenue</div>
+        <div class="node-swatch swatch-partnerships" data-shape-id="sw-partnerships"></div>
+      </div>
+    </div>
+
+    <!-- RIGHT NODE COLUMN -->
+    <div class="node-col node-col-right" data-shape-id="right-nodes">
+      <div class="col-header col-header-right" data-shape-id="col-hdr-right">Cost centers</div>
+
+      <div class="node node-right n1" data-shape-id="node-rd">
+        <div class="node-label" data-shape-id="lbl-rd">R&amp;D</div>
+        <div class="node-value" data-shape-id="val-rd">$40M</div>
+        <div class="node-sub"   data-shape-id="sub-rd">31% of spend</div>
+      </div>
+
+      <div class="node node-right n2" data-shape-id="node-sales">
+        <div class="node-label" data-shape-id="lbl-sales">Sales</div>
+        <div class="node-value" data-shape-id="val-sales">$30M</div>
+        <div class="node-sub"   data-shape-id="sub-sales">24% of spend</div>
+      </div>
+
+      <div class="node node-right n3" data-shape-id="node-ops">
+        <div class="node-label" data-shape-id="lbl-ops">Operations</div>
+        <div class="node-value" data-shape-id="val-ops">$32M</div>
+        <div class="node-sub"   data-shape-id="sub-ops">25% of spend</div>
+      </div>
+
+      <div class="node node-right n4" data-shape-id="node-ga">
+        <div class="node-label" data-shape-id="lbl-ga">G&amp;A</div>
+        <div class="node-value" data-shape-id="val-ga">$25M</div>
+        <div class="node-sub"   data-shape-id="sub-ga">20% of spend</div>
+      </div>
+    </div>
+
+    <!-- FLOW CANVAS — sits between the two node columns -->
+    <div class="flow-canvas" data-shape-id="flow-canvas">
+
+      <!-- ── Products flows (purple) ── -->
+      <div class="band b-p-rd"  data-shape-id="flow-prod-rd"  title="Products → R&D $14M"></div>
+      <div class="band b-p-sl"  data-shape-id="flow-prod-sl"  title="Products → Sales $10M"></div>
+      <div class="band b-p-op"  data-shape-id="flow-prod-op"  title="Products → Ops $7M"></div>
+      <div class="band b-p-ga"  data-shape-id="flow-prod-ga"  title="Products → G&A $4M"></div>
+
+      <!-- ── Services flows (green) ── -->
+      <div class="band b-s-rd"  data-shape-id="flow-svc-rd"   title="Services → R&D $20M"></div>
+      <div class="band b-s-sl"  data-shape-id="flow-svc-sl"   title="Services → Sales $8M"></div>
+      <div class="band b-s-op"  data-shape-id="flow-svc-op"   title="Services → Ops $16M"></div>
+      <div class="band b-s-ga"  data-shape-id="flow-svc-ga"   title="Services → G&A $8M"></div>
+
+      <!-- ── Licensing flows (amber) ── -->
+      <div class="band b-l-rd"  data-shape-id="flow-lic-rd"   title="Licensing → R&D $3M"></div>
+      <div class="band b-l-sl"  data-shape-id="flow-lic-sl"   title="Licensing → Sales $7M"></div>
+      <div class="band b-l-op"  data-shape-id="flow-lic-op"   title="Licensing → Ops $4M"></div>
+      <div class="band b-l-ga"  data-shape-id="flow-lic-ga"   title="Licensing → G&A $4M"></div>
+
+      <!-- ── Partnerships flows (blue) ── -->
+      <div class="band b-pa-rd" data-shape-id="flow-par-rd"   title="Partners → R&D $3M"></div>
+      <div class="band b-pa-sl" data-shape-id="flow-par-sl"   title="Partners → Sales $5M"></div>
+      <div class="band b-pa-op" data-shape-id="flow-par-op"   title="Partners → Ops $5M"></div>
+      <div class="band b-pa-ga" data-shape-id="flow-par-ga"   title="Partners → G&A $9M"></div>
+
+    </div><!-- /flow-canvas -->
+
+    <!-- CONVERGENCE BAR (inside diagram area, pinned to bottom) -->
+    <div class="convergence-bar" data-shape-id="convergence-bar">
+      <span class="convergence-label" data-shape-id="convergence-label">So what</span>
+      <span class="convergence-text" data-shape-id="convergence-text">
+        <strong>Services ($52M) is the single largest R&amp;D funder at $20M</strong> &mdash; protecting the Services revenue line directly protects innovation capacity; a 10% Services shortfall would cut R&amp;D by $2M and stall two planned product cycles.
+      </span>
+    </div>
+
+  </div><!-- /diagram-area -->
+
+  <!-- Footer -->
+  <div class="footer" data-shape-id="footer">
+    <span data-shape-id="footer-left">Slide Lab &middot; Confidential &middot; Resource allocation</span>
+    <span class="footer-right" data-shape-id="footer-right">103 / 200</span>
+  </div>
+
+</div><!-- /slide -->
+</body>
+</html>
