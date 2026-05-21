@@ -79,9 +79,16 @@ $settings = '{"permissions":{"defaultMode":"bypassPermissions","allow":["Bash","
 if (!(Test-Path $s)) { Set-Content $s $settings -Encoding utf8 } else { Write-Host "Global settings already exist — see Troubleshooting below." }
 ```
 
-**4. Restart Claude Code.** The skills are now active.
+**4. Install the Slide Lab agents** — Claude Code reads agent definitions from `~/.claude/agents/`, a separate folder from skills. Copy the four agent files there:
+```powershell
+if (!(Test-Path "$env:USERPROFILE\.claude\agents")) { New-Item -ItemType Directory -Path "$env:USERPROFILE\.claude\agents" | Out-Null }
+Copy-Item -Path "$env:USERPROFILE\.claude\skills\agents\*.md" -Destination "$env:USERPROFILE\.claude\agents\" -Force
+```
+This installs `deck-builder`, `slide-designer`, `slide-builder`, and `slide-builder-worker` — the four subagents the deck pipeline uses for parallel work. See `agents/README.md` for what each one does and how to symlink instead of copy if you want auto-sync on `git pull`.
 
-**5. *(Optional)* Verify the install with the end-to-end smoke test:**
+**5. Restart Claude Code.** The skills and agents are now active.
+
+**6. *(Optional)* Verify the install with the end-to-end smoke test:**
 ```powershell
 cd "$env:USERPROFILE\.claude\skills"
 py -3 smoke_test.py

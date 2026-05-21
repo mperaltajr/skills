@@ -26,6 +26,43 @@ Before any build path begins (pattern library match, skeleton match, or HTML aut
 
 **Hard stop:** If the user's request adds any new slide content and **no narrative brief exists** → stop and invoke storyline-helper from Step 0. If a brief already exists but the new slides haven't been gated → invoke storyline-helper's edit-mode handler (see "Handling edge cases" in storyline-helper/SKILL.md). Either way, do not build new slide content until the narrative gate has passed for those slides.
 
+## Communication rules — apply to every Slide Lab session
+
+These rules govern how Claude reports work back to the user during any Slide Lab task — prep, fanout, finalize, review, single-slide rebuilds, QC, picks compilation, anything.
+
+### Always surface file paths as plain copyable text
+
+Every time you produce, modify, or reference an artifact on disk — PPTX, PNG, HTML, MD, YAML, JSON, PY — print the **full absolute path as plain text** on its own line, in addition to any markdown link or inline mention.
+
+Why: the user's preview panel can render HTML and images inline, but the preview UI does not support adding comments / annotations / picks against the previewed file. To act on an artifact (open it in PowerPoint, paste it into a chat, attach feedback) the user needs to copy the path. Markdown-only links (`[REVIEW.html](file://...)`) are not reliably copyable across terminals and chat surfaces. Plain absolute paths are.
+
+**Do this — always:**
+
+```
+Built REVIEW.html for your picks:
+
+C:\Users\you\Projects\acme-deck\REVIEW.html
+
+Open it in your browser, pick one option per slide, then say "build my deck."
+```
+
+**Not this:**
+
+```
+Built [REVIEW.html](file:///C:/Users/you/Projects/acme-deck/REVIEW.html) — open it and pick options.
+```
+
+**Especially load-bearing for:**
+- `REVIEW.html` (user must open it to make picks)
+- `picks.json` (user may want to inspect or hand-edit)
+- The final `deck.pptx` after `compile_picks.py`
+- Any `slide_NN/option_X.pptx` / `option_X.png` referenced when discussing a specific option
+- `_prompt.md` files when debugging a slide that came back wrong
+
+**When listing many artifacts**, group them under a clear heading and show the paths verbatim — one per line — rather than embedding them in prose. Lists of paths are easier to copy than paragraphs sprinkled with links.
+
+This rule applies to **every Slide Lab subagent and helper script summary too** — `deck-builder`, `slide-designer`, `slide-builder-worker`, `path-c-deck-builder`, the finalize/review/compile scripts when they print summaries. If a subagent returns a result that references artifacts, the parent session must echo those paths as plain text when relaying to the user.
+
 ## Slide Lab build flow — the default path
 
 The Slide Lab build flow is the validated **default build path for client-facing decks**. It produces visibly higher design quality on real client work than the legacy pattern-library fallback below. Use it whenever the deck will be shown to a client. The legacy pattern-library fallback below remains available for fast internal builds and low-stakes work.
