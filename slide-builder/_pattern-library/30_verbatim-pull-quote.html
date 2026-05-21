@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>30 · Verbatim pull-quote / voice-of-client</title>
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #2D0A4E;          /* dark mode — quote on brand-primary */
+  --text-on-dark: #FFFFFF;
+  --text-on-dark-mid: #C780FF;
+  --text-on-dark-faint: #B8A5D9;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 1280px; height: 720px;
+  background: var(--slide-bg);
+  font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  color: var(--text-on-dark);
+  overflow: hidden;
+}
+body { position: relative; }
+
+/* Top chrome */
+.draft-badge {
+  position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--draft-bg); color: var(--draft-text);
+  font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px;
+}
+.project-label {
+  position: absolute; top: 24px; left: 24px;
+  color: var(--text-on-dark-mid); font-size: 10px; font-weight: 600;
+  letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.7;
+}
+
+/* Main grid — vertically centered quote zone left, side context right */
+.stage {
+  position: absolute;
+  top: 80px; bottom: 80px; left: 88px; right: 88px;
+  display: flex; flex-wrap: wrap;
+  gap: 64px;
+  align-items: center;
+}
+
+.quote-col { position: relative; padding-top: 0; }
+
+.pre-label {
+  font-size: 11px; font-weight: 700; letter-spacing: 3px;
+  text-transform: uppercase; color: var(--brand-accent-soft);
+  margin-bottom: 28px;
+}
+
+/* Oversized opening quotation mark — hangs above the quote */
+.big-quote-mark {
+  position: absolute;
+  top: -30px;
+  left: -8px;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 220px;
+  font-weight: 400;
+  line-height: 1;
+  color: var(--brand-accent);
+  opacity: 0.55;
+  pointer-events: none;
+  user-select: none;
+}
+
+.quote {
+  position: relative;
+  z-index: 2;
+  font-size: 36px;
+  font-weight: 500;
+  font-style: italic;
+  line-height: 1.32;
+  color: var(--text-on-dark);
+  max-width: 760px;
+  letter-spacing: -0.3px;
+  padding-top: 56px;
+}
+
+.quote-rule {
+  width: 60px; height: 3px;
+  background: var(--brand-accent);
+  margin: 32px 0 22px 0;
+}
+
+.attribution-name {
+  font-size: 16px; font-weight: 700;
+  color: var(--text-on-dark);
+  letter-spacing: 0.2px;
+}
+.attribution-role {
+  font-size: 14px; font-style: italic;
+  color: var(--brand-accent-soft);
+  margin-top: 4px;
+}
+.attribution-context {
+  font-size: 14px;
+  color: var(--text-on-dark-faint);
+  margin-top: 10px;
+  letter-spacing: 0.3px;
+}
+
+/* Side context card */
+.side-context {
+  background: rgba(255, 255, 255, 0.06);
+  border-left: 3px solid var(--brand-accent);
+  padding: 22px 22px 22px 22px;
+  align-self: end;
+  max-width: 280px;
+}
+.side-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 2.5px;
+  text-transform: uppercase; color: var(--brand-accent-soft);
+  margin-bottom: 12px;
+}
+.side-body {
+  font-size: 14px; line-height: 1.55;
+  color: var(--text-on-dark);
+  opacity: 0.92;
+}
+
+/* Footer */
+.footer-rule {
+  position: absolute; left: 24px; right: 24px; bottom: 36px;
+  height: 1px; background: rgba(199, 128, 255, 0.18);
+}
+.footer-left {
+  position: absolute; bottom: 16px; left: 24px;
+  color: var(--text-on-dark-mid); font-size: 11px; letter-spacing: 1px; opacity: 0.65;
+}
+.footer-right {
+  position: absolute; bottom: 16px; right: 24px;
+  color: var(--text-on-dark-mid); font-size: 11px; opacity: 0.65;
+}
+</style>
+</head>
+<body>
+
+  <div class="stage">
+    <div class="quote-col">
+      <div class="pre-label" data-shape-id="eyebrow">Voice of the practice</div>
+      <div class="big-quote-mark" data-shape-id="quote-mark">&ldquo;</div>
+      <div class="quote" data-shape-id="quote-text">I didn&rsquo;t realize how much of the deck-cycle pain was on me. I thought the tools were broken. Turns out the tool was fine &mdash; I just never had a way to sharpen the thinking before I started building.</div>
+      <div class="quote-rule" data-shape-id="quote-rule"></div>
+      <div class="attribution-name" data-shape-id="quote-attribution-name">Anna Reyes</div>
+      <div class="attribution-role" data-shape-id="quote-attribution-role">Senior Manager, Strategy Practice</div>
+      <div class="attribution-context" data-shape-id="quote-attribution-context">Week 3 of the four-week Slide Lab pilot &middot; May 2026</div>
+    </div>
+
+    <div class="side-context">
+      <div class="side-label" data-shape-id="side-context-label">Context</div>
+      <div class="side-body" data-shape-id="side-context-body">Said unprompted in the post-deck retro. Permission granted to share this quote for internal pitch use.</div>
+    </div>
+  </div>
+  <div class="footer-left" data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+</body>
+</html>

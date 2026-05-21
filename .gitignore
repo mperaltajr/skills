@@ -1,0 +1,53 @@
+# ── Claude Code local settings (machine-specific, never share) ──
+.claude/settings.local.json
+.claude/launch.json
+.claude/worktrees/
+
+# ── Client / project-specific files (never commit these) ──
+# Template configs live in the client's Claude Project folder, not in the skill.
+# Run: setup_template.py <pptx> <name> --output "<Claude Projects\Client>"
+slide-builder/clients/
+*.pptx
+*.docx
+*.xlsx
+*.pdf
+*.png
+*.jpg
+*.jpeg
+
+# ── Twin PPTX corpus — the curated, hand-built single-slide reference files
+# in slide-builder/_renders/twins/ DO ship. They're tiny (~12 MB across
+# ~430 files) and the composer needs them to produce output. Render-time
+# artifacts (PNG caches, _pngs_themed, *_render folders) stay ignored.
+!slide-builder/_renders/twins/*.pptx
+# Render caches inside the twins dir stay ignored regardless.
+slide-builder/_renders/twins/_pngs_themed/
+slide-builder/_renders/twins/*_render/
+slide-builder/_renders/twins/_pngs/
+
+# Reference PPTX templates (used by smoke_test.py + as design exemplars) ship too.
+!references/PPT Files/*.pptx
+
+# ── Session working files ──
+_session/
+_versions/
+_reference/
+_screenshots/
+_smoke_out/
+*-chart-data.xlsx
+
+# ── Python ──
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# ── OS clutter ──
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ── Editor ──
+.vscode/
+*.swp

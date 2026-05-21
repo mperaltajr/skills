@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pattern 261 – Waterfall Chart with Subtotals (Dark)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --brand-primary:#2D0A4E; --brand-primary-mid:#5C2D87; --brand-accent:#A100FF;
+    --brand-accent-soft:#C780FF; --text-dark:#1A1A2E; --text-mid:#64748B;
+    --text-faint:#94A3B8; --slide-bg:#FFFFFF; --card-bg:#F8F4FC;
+    --card-border:#E5D5F0; --draft-bg:#FFD600; --draft-text:#B71C1C;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: Inter, system-ui, sans-serif;
+    background: var(--brand-primary);
+    position: relative;
+  }
+
+  /* ── Invariant chrome (dark mode) ── */
+
+  .label-internal {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+  }
+
+  .badge-draft {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 0;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .title-block {
+    position: absolute; top: 0; left: 0; right: 0; height: 160px;
+  }
+
+  .title-block h1 {
+    position: absolute; top: 28px; left: 64px; right: 64px; min-height: 36px;
+    font-size: 29px;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.15;
+  }
+
+  .title-block h1 strong {
+    color: var(--brand-accent-soft);
+    font-weight: 700;
+  }
+
+  .title-block .sub-headline {
+    position: absolute; top: 108px; left: 64px; right: 64px;
+    font-size: 14px;
+    font-style: italic;
+    color: rgba(255,255,255,0.65);
+
+}
+
+  .accent-rule {
+    position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+
+}
+
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 28px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+    font-size: 9px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.05em;
+  }
+
+  /* ── Layout ── */
+
+  .content-area {
+    position: absolute;
+    top: 106px;
+    left: 48px;
+    right: 48px;
+    bottom: 32px;
+    display: flex;
+    gap: 24px;
+  }
+
+  /* ── Left: chart panel ── */
+
+  .chart-panel {
+    flex: 0 0 auto;
+    width: 65%;
+    position: relative;
+  }
+
+  .chart-panel svg {
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+  }
+
+  /* ── Right: insight cards ── */
+
+  .cards-panel {
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .insight-card {
+    flex: 1 1 0;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .insight-card .card-label {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--brand-accent-soft);
+  }
+
+  .insight-card .card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #ffffff;
+    line-height: 1.3;
+  }
+
+  .insight-card .card-body {
+    font-size: 14px;
+    color: rgba(255,255,255,0.75);
+    line-height: 1.6;
+    flex: 1;
+  }
+
+  .net-callout {
+    background: rgba(161,0,255,0.18);
+    border: 1px solid rgba(161,0,255,0.35);
+    border-radius: 6px;
+    padding: 14px 16px;
+  }
+
+  .net-callout .callout-value {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--brand-accent-soft);
+    line-height: 1;
+  }
+
+  .net-callout .callout-desc {
+    font-size: 11px;
+    color: rgba(255,255,255,0.75);
+
+    top: 6px;
+    line-height: 1.5;
+  }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+
+    top: 2px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    color: rgba(255,255,255,0.65);
+  }
+
+  .legend-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Chrome -->
+  <div class="label-internal">Accenture Internal</div>
+  <div class="badge-draft">Draft</div>
+
+  <div class="title-block">
+    <h1>FY25→FY26 Revenue Bridge: <strong>$90M Net Growth</strong></h1>
+    <div class="sub-headline">Waterfall decomposition of drivers — volume &amp; price gains offset FX and churn headwinds</div>
+    <div class="accent-rule"></div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <!-- LEFT: SVG Waterfall -->
+    <div class="chart-panel">
+      <svg viewBox="0 0 760 530" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <!-- subtle grid -->
+        </defs>
+
+        <!-- ── Axes ── -->
+        <!-- Y gridlines at 0,100,200,300,400,500,600,700 -->
+        <!-- chart area: x 70..740, y 20..460 (440px tall = 700 units, so 1 unit = 0.629px) -->
+        <!-- y_px(v) = 460 - (v/700)*440 -->
+
+        <!-- gridlines rgba(255,255,255,0.1) -->
+        <line x1="70" y1="460" x2="740" y2="460" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+        <line x1="70" y1="397" x2="740" y2="397" stroke="rgba(255,255,255,0.08)" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="70" y1="334" x2="740" y2="334" stroke="rgba(255,255,255,0.08)" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="70" y1="272" x2="740" y2="272" stroke="rgba(255,255,255,0.08)" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="70" y1="209" x2="740" y2="209" stroke="rgba(255,255,255,0.08)" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="70" y1="146" x2="740" y2="146" stroke="rgba(255,255,255,0.08)" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="70" y1="83"  x2="740" y2="83"  stroke="rgba(255,255,255,0.08)" stroke-width="1" stroke-dasharray="3,3"/>
+        <line x1="70" y1="20"  x2="740" y2="20"  stroke="rgba(255,255,255,0.05)" stroke-width="1" stroke-dasharray="3,3"/>
+
+        <!-- Y-axis labels -->
+        <text x="62" y="464" text-anchor="end" fill="rgba(255,255,255,0.45)" font-size="10" font-family="Inter,sans-serif">0</text>
+        <text x="62" y="401" text-anchor="end" fill="rgba(255,255,255,0.45)" font-size="10" font-family="Inter,sans-serif">100</text>
+        <text x="62" y="338" text-anchor="end" fill="rgba(255,255,255,0.45)" font-size="10" font-family="Inter,sans-serif">200</text>
+        <text x="62" y="276" text-anchor="end" fill="rgba(255,255,255,0.45)" font-size="10" font-family="Inter,sans-serif">300</text>
+        <text x="62" y="213" text-anchor="end" fill="rgba(255,255,255,0.45)" font-size="10" font-family="Inter,sans-serif">400</text>
+        <text x="62" y="150" text-anchor="end" fill="rgba(255,255,255,0.45)" font-size="10" font-family="Inter,sans-serif">500</text>
+        <text x="62" y="87"  text-anchor="end" fill="rgba(255,255,255,0.45)" font-size="10" font-family="Inter,sans-serif">600</text>
+        <text x="62" y="24"  text-anchor="end" fill="rgba(255,255,255,0.45)" font-size="10" font-family="Inter,sans-serif">700</text>
+
+        <!-- Y-axis label -->
+        <text x="12" y="260" text-anchor="middle" fill="rgba(255,255,255,0.35)" font-size="10" font-family="Inter,sans-serif" transform="rotate(-90,12,260)">Revenue ($M)</text>
+
+        <!--
+          Bar geometry (9 bars):
+          Bar width = 56px, gap = 18px
+          Bars at x: 80, 154, 228, 302, 376, 450, 524, 598, 672
+
+          y_px(v) = 460 - (v/700)*440
+
+          1. FY25 Baseline: 480 → grounded from 0 to 480
+             y_top = 460 - (480/700)*440 = 460 - 301.7 = 158.3  h = 301.7
+          2. Volume Growth: +85 → floats from 480 to 565
+             y_top = 460 - (565/700)*440 = 460 - 354.9 = 105.1  y_bot = 158.3  h = 53.1
+          3. Price Realization: +42 → floats from 565 to 607
+             y_top = 460 - (607/700)*440 = 460 - 381.2 = 78.8   y_bot = 105.1  h = 26.3
+          4. New Markets: +28 → floats from 607 to 635
+             y_top = 460 - (635/700)*440 = 460 - 399.0 = 61.0   y_bot = 78.8   h = 17.6
+          5. H1 Subtotal: 635 → grounded 0 to 635
+             y_top = 460 - (635/700)*440 = 61.0  h = 399.0
+          6. FX Headwind: -34 → floats from 635 down to 601
+             y_top = 460 - (635/700)*440 = 61.0  h = (34/700)*440 = 21.4  (drops down)
+             bar_y = 61.0  (top stays at 635 level, bar extends down)
+          7. Cost Pass-through: -19 → floats from 601 down to 582
+             y_top = 460 - (601/700)*440 = 460 - 378.1 = 81.9  h = (19/700)*440 = 11.9
+          8. Customer Churn: -12 → from 582 down to 570
+             y_top = 460 - (582/700)*440 = 460 - 366.1 = 93.9  h = (12/700)*440 = 7.5
+          9. FY26 Actual: 570 → grounded 0 to 570
+             y_top = 460 - (570/700)*440 = 460 - 358.3 = 101.7  h = 358.3
+
+          Connector lines: dashed, from right edge of one bar to left edge of next
+          Line from top of right bar to top of left bar (at the running total)
+        -->
+
+        <!-- Bar 1: FY25 Baseline (grounded, --brand-primary-mid fill + white stroke) -->
+        <rect x="80" y="158" width="56" height="302" fill="#5C2D87" stroke="rgba(255,255,255,0.5)" stroke-width="1.5"/>
+        <!-- value label above -->
+        <text x="108" y="150" text-anchor="middle" fill="white" font-size="11" font-weight="600" font-family="Inter,sans-serif">$480M</text>
+
+        <!-- Connector 1→2: from x=136,y=158 to x=154,y=158 -->
+        <line x1="136" y1="158" x2="154" y2="158" stroke="rgba(255,255,255,0.3)" stroke-width="1" stroke-dasharray="3,2"/>
+
+        <!-- Bar 2: Volume Growth +85 (float 158→105) -->
+        <rect x="154" y="105" width="56" height="53" fill="#38A169"/>
+        <text x="182" y="97" text-anchor="middle" fill="#68D391" font-size="11" font-weight="600" font-family="Inter,sans-serif">+$85M</text>
+
+        <!-- Connector 2→3: from x=210,y=105 to x=228,y=105 -->
+        <line x1="210" y1="105" x2="228" y2="105" stroke="rgba(255,255,255,0.3)" stroke-width="1" stroke-dasharray="3,2"/>
+
+        <!-- Bar 3: Price Realization +42 (float 105→79) -->
+        <rect x="228" y="79" width="56" height="26" fill="#38A169"/>
+        <text x="256" y="71" text-anchor="middle" fill="#68D391" font-size="11" font-weight="600" font-family="Inter,sans-serif">+$42M</text>
+
+        <!-- Connector 3→4: from x=284,y=79 to x=302,y=79 -->
+        <line x1="284" y1="79" x2="302" y2="79" stroke="rgba(255,255,255,0.3)" stroke-width="1" stroke-dasharray="3,2"/>
+
+        <!-- Bar 4: New Markets +28 (float 79→61) -->
+        <rect x="302" y="61" width="56" height="18" fill="#38A169"/>
+        <text x="330" y="53" text-anchor="middle" fill="#68D391" font-size="11" font-weight="600" font-family="Inter,sans-serif">+$28M</text>
+
+        <!-- Connector 4→5: from x=358,y=61 to x=376,y=61 -->
+        <line x1="358" y1="61" x2="376" y2="61" stroke="rgba(255,255,255,0.3)" stroke-width="1" stroke-dasharray="3,2"/>
+
+        <!-- Bar 5: H1 Subtotal 635 (grounded, semi-transparent white) -->
+        <rect x="376" y="61" width="56" height="399" fill="rgba(255,255,255,0.25)" stroke="rgba(255,255,255,0.45)" stroke-width="1.5"/>
+        <text x="404" y="53" text-anchor="middle" fill="rgba(255,255,255,0.9)" font-size="11" font-weight="600" font-family="Inter,sans-serif">$635M</text>
+
+        <!-- Connector 5→6: from x=432,y=61 to x=450,y=61 -->
+        <line x1="432" y1="61" x2="450" y2="61" stroke="rgba(255,255,255,0.3)" stroke-width="1" stroke-dasharray="3,2"/>
+
+        <!-- Bar 6: FX Headwind -34 (drop from 635→601, y=61, h=21) -->
+        <rect x="450" y="61" width="56" height="21" fill="#E53E3E"/>
+        <!-- label below (value goes below the bar since it drops) -->
+        <text x="478" y="95" text-anchor="middle" fill="#FC8181" font-size="11" font-weight="600" font-family="Inter,sans-serif">−$34M</text>
+
+        <!-- Connector 6→7: from x=506,y=82 to x=524,y=82 (bottom of bar 6 = 61+21=82) -->
+        <line x1="506" y1="82" x2="524" y2="82" stroke="rgba(255,255,255,0.3)" stroke-width="1" stroke-dasharray="3,2"/>
+
+        <!-- Bar 7: Cost Pass-through -19 (drop from 601→582, y=82, h=12) -->
+        <rect x="524" y="82" width="56" height="12" fill="#E53E3E"/>
+        <text x="552" y="109" text-anchor="middle" fill="#FC8181" font-size="11" font-weight="600" font-family="Inter,sans-serif">−$19M</text>
+
+        <!-- Connector 7→8: from x=580,y=94 to x=598,y=94 -->
+        <line x1="580" y1="94" x2="598" y2="94" stroke="rgba(255,255,255,0.3)" stroke-width="1" stroke-dasharray="3,2"/>
+
+        <!-- Bar 8: Customer Churn -12 (drop from 582→570, y=94, h=8) -->
+        <rect x="598" y="94" width="56" height="8" fill="#E53E3E"/>
+        <text x="626" y="118" text-anchor="middle" fill="#FC8181" font-size="11" font-weight="600" font-family="Inter,sans-serif">−$12M</text>
+
+        <!-- Connector 8→9: from x=654,y=102 to x=672,y=102 -->
+        <line x1="654" y1="102" x2="672" y2="102" stroke="rgba(255,255,255,0.3)" stroke-width="1" stroke-dasharray="3,2"/>
+
+        <!-- Bar 9: FY26 Actual 570 (grounded, accent fill) -->
+        <rect x="672" y="102" width="56" height="358" fill="#A100FF"/>
+        <text x="700" y="94" text-anchor="middle" fill="#C780FF" font-size="11" font-weight="700" font-family="Inter,sans-serif">$570M</text>
+
+        <!-- ── X-axis labels (rotated 35°) ── -->
+        <!-- Bar centers: 108, 182, 256, 330, 404, 478, 552, 626, 700 -->
+        <text transform="translate(108,480) rotate(35)" fill="rgba(255,255,255,0.7)" font-size="10" font-family="Inter,sans-serif">FY25 Baseline</text>
+        <text transform="translate(182,480) rotate(35)" fill="rgba(255,255,255,0.7)" font-size="10" font-family="Inter,sans-serif">Volume Growth</text>
+        <text transform="translate(256,480) rotate(35)" fill="rgba(255,255,255,0.7)" font-size="10" font-family="Inter,sans-serif">Price Realization</text>
+        <text transform="translate(330,480) rotate(35)" fill="rgba(255,255,255,0.7)" font-size="10" font-family="Inter,sans-serif">New Markets</text>
+        <text transform="translate(404,480) rotate(35)" fill="rgba(255,255,255,0.7)" font-size="10" font-family="Inter,sans-serif" font-weight="600">H1 Subtotal</text>
+        <text transform="translate(478,480) rotate(35)" fill="rgba(255,255,255,0.7)" font-size="10" font-family="Inter,sans-serif">FX Headwind</text>
+        <text transform="translate(552,480) rotate(35)" fill="rgba(255,255,255,0.7)" font-size="10" font-family="Inter,sans-serif">Cost Pass-thru</text>
+        <text transform="translate(626,480) rotate(35)" fill="rgba(255,255,255,0.7)" font-size="10" font-family="Inter,sans-serif">Customer Churn</text>
+        <text transform="translate(672,480) rotate(35)" fill="rgba(255,255,255,0.7)" font-size="10" font-family="Inter,sans-serif" font-weight="700">FY26 Actual</text>
+
+      </svg>
+      <div class="legend" style="position:absolute;top:8px;right:8px;">
+        <div class="legend-item"><div class="legend-swatch" style="background:#38A169;border:1px solid rgba(255,255,255,0.15);"></div>Growth driver</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#E53E3E;border:1px solid rgba(255,255,255,0.15);"></div>Headwind</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:rgba(255,255,255,0.25);border:1px solid rgba(255,255,255,0.15);"></div>Subtotal</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#A100FF;border:1px solid rgba(255,255,255,0.15);"></div>Total / Actual</div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Insight cards -->
+    <div class="cards-panel">
+
+      <!-- Net callout -->
+      <div class="insight-card net-callout">
+        <div class="card-label">Net Revenue Change</div>
+        <div class="callout-value">+$90M</div>
+        <div class="callout-desc">
+          <strong style="color:rgba(255,255,255,0.9)">$155M tailwinds</strong> (volume, price, new markets) offset
+          <strong style="color:rgba(255,255,255,0.9)">$65M headwinds</strong> (FX, cost pass-through, churn) = net +$90M vs FY25 baseline.
+        </div>
+      </div>
+
+      <!-- Card 1 -->
+      <div class="insight-card">
+        <div class="card-label">Growth Drivers</div>
+        <div class="card-title">Volume &amp; price account for 82% of tailwinds</div>
+        <div class="card-body">
+          Volume growth ($85M) and price realization ($42M) are the primary levers. New Markets added $28M — tracking ahead of plan at H1 close.
+        </div>
+      </div>
+
+      <!-- Card 2 -->
+      <div class="insight-card">
+        <div class="card-label">Headwind Exposure</div>
+        <div class="card-title">FX alone represents 52% of downside risk</div>
+        <div class="card-body">
+          The $34M FX headwind is the largest single drag. Cost pass-through ($19M) and churn ($12M) are manageable but require monitoring in H2.
+        </div>
+      </div>
+
+      <!-- Card 3 -->
+      <div class="insight-card">
+        <div class="card-label">FY26 Outlook</div>
+        <div class="card-title">$570M actual; momentum sustained if FX stabilises</div>
+        <div class="card-body">
+          H1 Subtotal of $635M exceeded target by ~3%. Full-year $570M reflects conservative FX assumptions — upside scenario reaches $590–600M with rate normalisation.
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span>Confidential</span>
+    <span>Slide Lab &middot; 2026 &middot; 261</span>
+  </div>
+
+</body>
+</html>

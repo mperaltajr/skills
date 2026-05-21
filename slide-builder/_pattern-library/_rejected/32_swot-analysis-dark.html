@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>32 · SWOT analysis</title>
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --swot-strength: #DCFCE7;
+  --swot-weakness: #FECACA;
+  --swot-opportunity: #F8F4FC;
+  --swot-threat: #FEF3C7;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1280px; height: 720px; background: var(--slide-bg); font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; color: var(--text-dark); overflow: hidden; }
+body { padding: 50px 56px 80px 56px; position: relative; }
+.draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; }
+.project-label { position: absolute; top: 24px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
+
+/* ---- Title block ---- */
+.action-title { font-size: 28px; font-weight: 700; line-height: 1.2; max-width: 1050px; }
+.action-title strong { color: var(--brand-primary); }
+.subhead { font-size: 14px; color: var(--text-mid); margin-top: 10px; font-style: italic; }
+.title-rule { width: 56px; height: 3px; background: var(--brand-accent); margin: 18px 0 0 0; }
+
+/* ---- Content block ---- */
+.content-block {
+  position: absolute;
+  left: 56px;
+  right: 56px;
+  top: 190px;
+  bottom: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ---- Matrix layout ---- */
+.matrix-wrap {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  flex: 1;
+}
+
+.y-axis {
+  width: 28px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  flex-shrink: 0;
+}
+.y-axis-track {
+  position: absolute;
+  top: 28px;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+}
+.y-tick {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--text-mid);
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+}
+
+.grid-col { flex: 1; display: flex; flex-direction: column; gap: 0; }
+
+/* ---- Top axis ---- */
+.x-axis {
+  height: 22px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+}
+.x-tick {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  color: var(--text-mid);
+  text-transform: uppercase;
+  text-align: center;
+}
+
+/* ---- Grid: 2x2 ---- */
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 8px;
+  flex: 1;
+}
+
+.quadrant {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--card-border);
+}
+
+.q-header {
+  padding: 8px 16px 7px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  border-bottom: 1px solid rgba(45, 10, 78, 0.08);
+}
+.q-name {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--brand-primary);
+}
+.q-meta {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: var(--text-mid);
+}
+
+.q-body {
+  padding: 12px 16px 14px 16px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.bullet {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--brand-primary);
+}
+.bullet::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--brand-primary);
+  margin-top: 7px;
+  flex-shrink: 0;
+}
+
+/* ---- Quadrant tints ---- */
+.q-strengths {
+  background: var(--swot-strength);
+  outline: 2.5px solid var(--brand-primary);
+  outline-offset: -1px;
+  z-index: 2;
+}
+.q-strengths .q-name { color: var(--brand-primary); }
+.q-strengths .q-header { border-bottom-color: rgba(45, 10, 78, 0.18); }
+.q-weaknesses { background: var(--swot-weakness); }
+.q-weaknesses .q-header { border-bottom-color: rgba(45, 10, 78, 0.12); }
+.q-opportunities { background: var(--swot-opportunity); }
+.q-opportunities .bullet { color: var(--brand-primary); }
+.q-opportunities .bullet::before { background: var(--brand-accent); }
+.q-threats { background: var(--swot-threat); }
+
+/* ---- Convergence line ---- */
+.convergence {
+  background: var(--brand-primary);
+  color: white;
+  padding: 11px 22px;
+  font-size: 13px;
+  font-style: italic;
+  font-weight: 600;
+  border-left: 3px solid var(--brand-accent);
+}
+
+/* ---- Footer invariant ---- */
+.footer-rule { position: absolute; left: 0; right: 0; bottom: 32px; height: 1px; background: var(--card-border); }
+.footer-left { position: absolute; bottom: 14px; left: 24px; color: var(--text-faint); font-size: 10px; letter-spacing: 1px; }
+.footer-right { position: absolute; bottom: 14px; right: 24px; color: var(--text-faint); font-size: 11px; }
+
+/* DARK THEME */
+:root {
+  --card-bg: rgba(255,255,255,0.07);
+  --card-border: rgba(255,255,255,0.12);
+  --text-dark: #FFFFFF;
+  --text-mid: rgba(255,255,255,0.6);
+  --slide-bg: #2D0A4E;
+}
+body, .slide { background: #2D0A4E; }
+.project-label { color: rgba(255,255,255,0.4); }
+.action-title { color: #FFFFFF; }
+.action-title strong { color: #C780FF; }
+.subhead { color: rgba(255,255,255,0.6); }
+.y-tick, .x-tick { color: rgba(255,255,255,0.5); }
+.quadrant { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.12); }
+.q-strengths { background: rgba(46,204,113,0.1); outline-color: #A100FF; }
+.q-weaknesses { background: rgba(220,38,38,0.1); }
+.q-opportunities { background: rgba(255,255,255,0.07); }
+.q-threats { background: rgba(243,156,18,0.08); }
+.q-header { border-bottom-color: rgba(255,255,255,0.08); }
+.q-name { color: rgba(255,255,255,0.85); }
+.q-meta { color: rgba(255,255,255,0.5); }
+.bullet { color: rgba(255,255,255,0.85); }
+.bullet::before { background: rgba(255,255,255,0.4); }
+.q-opportunities .bullet::before { background: #A100FF; }
+.q-strengths .q-header { border-bottom-color: rgba(255,255,255,0.12); }
+.footer-rule { background: rgba(255,255,255,0.1); }
+.footer-left, .footer-right { color: rgba(255,255,255,0.4); }
+</style>
+</head>
+<body>
+  <div class="project-label" data-shape-id="accenture-tag">ACCENTURE INTERNAL</div>
+  <div class="draft-badge" data-shape-id="draft-badge">DRAFT</div>
+
+  <div class="action-title" data-shape-id="title">Slide Lab SWOT — <strong>building from strengths, naming the work.</strong></div>
+  <div class="subhead" data-shape-id="subtitle">Internal advantages compound with external opportunities; the rest is the work ahead.</div>
+  <div class="title-rule" data-shape-id="brand-rule"></div>
+
+  <div class="content-block">
+    <div class="matrix-wrap">
+      <div class="y-axis">
+        <div class="y-axis-track">
+          <div class="y-tick" data-shape-id="quadrant-y-high">Internal</div>
+          <div class="y-tick" data-shape-id="quadrant-y-low">External</div>
+        </div>
+      </div>
+
+      <div class="grid-col">
+        <div class="x-axis">
+          <div class="x-tick" data-shape-id="quadrant-x-low">Positive</div>
+          <div class="x-tick" data-shape-id="quadrant-x-high">Negative</div>
+        </div>
+
+        <div class="grid">
+          <!-- Top-left: STRENGTHS (focal) -->
+          <div class="quadrant q-strengths" data-shape-id="quadrant-tl">
+            <div class="q-header">
+              <div class="q-name" data-shape-id="quadrant-tl-name">Strengths</div>
+              <div class="q-meta" data-shape-id="quadrant-tl-label">Internal · Positive</div>
+            </div>
+            <div class="q-body">
+              <div class="bullet" data-shape-id="quadrant-tl-chip-1">Real measured cycle-time gains (-64% in pilot)</div>
+              <div class="bullet" data-shape-id="quadrant-tl-chip-2">Compounds with existing consultant skills</div>
+              <div class="bullet" data-shape-id="quadrant-tl-chip-3">Drops into any brand template</div>
+              <div class="bullet" data-shape-id="quadrant-tl-chip-4">Internal IP — no vendor dependency</div>
+            </div>
+          </div>
+
+          <!-- Top-right: WEAKNESSES -->
+          <div class="quadrant q-weaknesses" data-shape-id="quadrant-tr">
+            <div class="q-header">
+              <div class="q-name" data-shape-id="quadrant-tr-name">Weaknesses</div>
+              <div class="q-meta" data-shape-id="quadrant-tr-label">Internal · Negative</div>
+            </div>
+            <div class="q-body">
+              <div class="bullet" data-shape-id="quadrant-tr-chip-1">Pattern library still expanding</div>
+              <div class="bullet" data-shape-id="quadrant-tr-chip-2">HTML&rarr;PPTX translator not yet built</div>
+              <div class="bullet" data-shape-id="quadrant-tr-chip-3">Limited brand templates currently themed</div>
+              <div class="bullet" data-shape-id="quadrant-tr-chip-4">Requires ~90 min onboarding per user</div>
+            </div>
+          </div>
+
+          <!-- Bottom-left: OPPORTUNITIES -->
+          <div class="quadrant q-opportunities" data-shape-id="quadrant-bl">
+            <div class="q-header">
+              <div class="q-name" data-shape-id="quadrant-bl-name">Opportunities</div>
+              <div class="q-meta" data-shape-id="quadrant-bl-label">External · Positive</div>
+            </div>
+            <div class="q-body">
+              <div class="bullet" data-shape-id="quadrant-bl-chip-1">Q3 rollout to 3 more practice areas</div>
+              <div class="bullet" data-shape-id="quadrant-bl-chip-2">License opportunity to peer firms</div>
+              <div class="bullet" data-shape-id="quadrant-bl-chip-3">Underlying patterns publishable as IP</div>
+              <div class="bullet" data-shape-id="quadrant-bl-chip-4">Train juniors faster on structured argument</div>
+            </div>
+          </div>
+
+          <!-- Bottom-right: THREATS -->
+          <div class="quadrant q-threats" data-shape-id="quadrant-br">
+            <div class="q-header">
+              <div class="q-name" data-shape-id="quadrant-br-name">Threats</div>
+              <div class="q-meta" data-shape-id="quadrant-br-label">External · Negative</div>
+            </div>
+            <div class="q-body">
+              <div class="bullet" data-shape-id="quadrant-br-chip-1">Generic GenAI tools becoming default</div>
+              <div class="bullet" data-shape-id="quadrant-br-chip-2">Senior consultants resist new tooling</div>
+              <div class="bullet" data-shape-id="quadrant-br-chip-3">Vendor lock-in risk if scaled wrong</div>
+              <div class="bullet" data-shape-id="quadrant-br-chip-4">Quality erodes if pattern library bloats</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="convergence" data-shape-id="convergence">Strengths and opportunities are stackable. Weaknesses and threats are the work.</div>
+  </div>
+
+  <div class="footer-rule" data-shape-id="footer-rule"></div>
+  <div class="footer-left" data-shape-id="footer-left">CONFIDENTIAL — ACCENTURE INTERNAL</div>
+  <div class="footer-right" data-shape-id="footer-right">Slide Lab · 2026 · 32d</div>
+</body>
+</html>

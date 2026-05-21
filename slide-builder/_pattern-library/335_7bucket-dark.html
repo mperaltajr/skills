@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>335 · 7-Bucket Dark</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    background: #2D0A4E;
+    font-family: 'Inter', sans-serif;
+    position: relative;
+  }
+
+  /* ── Chrome: top bar ── */
+  .chrome-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    z-index: 10;
+  }
+
+  .chrome-label {
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+  }
+
+  .draft-badge {
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    border-radius: 0;
+    padding: 3px 8px;
+    line-height: 1;
+  }
+
+  /* ── Main content area ── */
+  .slide-body {
+    position: absolute;
+    top: 32px;
+    left: 0;
+    right: 0;
+    bottom: 28px;
+    display: flex;
+    flex-direction: column;
+    padding: 28px 48px 20px;
+  }
+
+  /* ── Title block ── */
+  .title-block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 0;
+  overflow: visible;
+  }
+
+  .accent-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+
+
+    background: var(--brand-accent);
+  }
+
+  .slide-title {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+    font-size: 28px;
+    font-weight: 700;
+    color: #FFFFFF;
+  }
+
+  .slide-title strong {
+    color: var(--brand-accent-soft);
+    font-weight: 700;
+  }
+
+  .slide-subtitle {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 108px;
+    font-size: 14px;
+    font-style: italic;
+    color: rgba(255, 255, 255, 0.6);
+  }
+
+  /* ── Cards row ── */
+  .cards-row {
+    display: flex;
+    gap: 12px;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* ── Hero card (left 30%) ── */
+  .hero-card {
+    flex: 0 0 calc(30% - 6px);
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-top: 4px solid var(--brand-accent);
+    border-radius: 4px;
+    padding: 20px 20px 20px 20px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .hero-ghost-num {
+    position: absolute;
+    top: -8px;
+    right: 12px;
+    font-size: 48px;
+    font-weight: 800;
+    color: rgba(255, 255, 255, 0.06);
+    line-height: 1;
+    user-select: none;
+    pointer-events: none;
+  }
+
+  .hero-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: var(--brand-accent);
+    font-size: 11px;
+    font-weight: 700;
+    color: #FFFFFF;
+}
+
+  .hero-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #FFFFFF;
+    line-height: 1.3;
+}
+
+  .hero-desc {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.65);
+    line-height: 1.6;
+    flex: 1;
+  }
+
+  .hero-stat {
+}
+
+  .hero-stat-value {
+    font-size: 30px;
+    font-weight: 800;
+    color: var(--brand-accent-soft);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+
+  .hero-stat-label {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.5);
+}
+
+  /* ── Grid (right 70%) ── */
+  .grid-panel {
+    flex: 1;
+    display: flex; flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  /* ── Grid card ── */
+  .grid-card {
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
+    padding: 16px 16px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .card-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--brand-accent);
+    font-size: 9px;
+    font-weight: 700;
+    color: #FFFFFF;
+    flex-shrink: 0;
+  }
+
+  .card-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #FFFFFF;
+    line-height: 1.3;
+  }
+
+  .card-bullets {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+  .card-bullets li {
+    font-size: 11px;
+    color: rgba(255, 255, 255, 0.7);
+    line-height: 1.45;
+}
+
+  .card-bullets li::before {
+    content: '·';
+    position: absolute;
+    left: 0;
+    color: var(--brand-accent-soft);
+    font-weight: 700;
+  }
+
+  /* ── Footer ── */
+  .chrome-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 28px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    z-index: 10;
+  }
+
+  .footer-text {
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.4);
+    letter-spacing: 0.05em;
+  }
+
+  .footer-page {
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.4);
+    letter-spacing: 0.05em;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Top chrome -->
+  <div class="chrome-top">
+    <span class="chrome-label">Accenture Internal</span>
+    <span class="chrome-label">&nbsp;</span>
+  </div>
+
+  <!-- Slide body -->
+  <div class="slide-body">
+
+    <!-- Title block -->
+    <div class="title-block">
+      <div class="accent-rule"></div>
+      <div class="slide-title">Seven Pillars of <strong>Transformation</strong></div>
+      <div class="slide-subtitle">Strategic priorities mapped across the full programme lifecycle</div>
+    </div>
+
+    <!-- Cards row -->
+    <div class="cards-row">
+
+      <!-- Hero card -->
+      <div class="hero-card">
+        <div class="hero-ghost-num">01</div>
+        <div class="hero-badge">01</div>
+        <div class="hero-title">Executive Alignment &amp; Sponsorship</div>
+        <div class="hero-desc">
+          Sustained C-suite commitment is the single strongest predictor of programme success.
+          Establish a governance cadence that surfaces blockers before they become escalations.
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-value">87%</div>
+          <div class="hero-stat-label">of stalled programmes cite<br>misaligned sponsorship</div>
+        </div>
+      </div>
+
+      <!-- 3×2 grid -->
+      <div class="grid-panel">
+
+        <div class="grid-card">
+          <div class="card-header">
+            <span class="card-badge">02</span>
+            <span class="card-title">Operating Model Design</span>
+          </div>
+          <ul class="card-bullets">
+            <li>Define target-state org structure and spans</li>
+            <li>Align roles to value-stream accountabilities</li>
+          </ul>
+        </div>
+
+        <div class="grid-card">
+          <div class="card-header">
+            <span class="card-badge">03</span>
+            <span class="card-title">Data &amp; Analytics Foundation</span>
+          </div>
+          <ul class="card-bullets">
+            <li>Establish single source of truth for KPIs</li>
+            <li>Govern data quality at ingestion layer</li>
+          </ul>
+        </div>
+
+        <div class="grid-card">
+          <div class="card-header">
+            <span class="card-badge">04</span>
+            <span class="card-title">Technology Enablement</span>
+          </div>
+          <ul class="card-bullets">
+            <li>Retire shadow systems blocking adoption</li>
+            <li>Phase cloud migration to de-risk cutover</li>
+          </ul>
+        </div>
+
+        <div class="grid-card">
+          <div class="card-header">
+            <span class="card-badge">05</span>
+            <span class="card-title">Change &amp; Capability Build</span>
+          </div>
+          <ul class="card-bullets">
+            <li>Run impact assessments per stakeholder cohort</li>
+            <li>Embed learning in the flow of work</li>
+          </ul>
+        </div>
+
+        <div class="grid-card">
+          <div class="card-header">
+            <span class="card-badge">06</span>
+            <span class="card-title">Value Realisation Tracking</span>
+          </div>
+          <ul class="card-bullets">
+            <li>Link milestones to measurable business outcomes</li>
+            <li>Monthly benefit harvest reviews with CFO office</li>
+          </ul>
+        </div>
+
+        <div class="grid-card">
+          <div class="card-header">
+            <span class="card-badge">07</span>
+            <span class="card-title">Continuous Improvement</span>
+          </div>
+          <ul class="card-bullets">
+            <li>Formalise retrospective loop post each phase</li>
+            <li>Capture and broadcast what good looks like</li>
+          </ul>
+        </div>
+
+      </div><!-- /grid-panel -->
+
+    </div><!-- /cards-row -->
+
+  </div><!-- /slide-body -->
+
+  <!-- Footer chrome -->
+  <div class="chrome-footer">
+    <span class="footer-text">Confidential — For client discussion only</span>
+    <span class="footer-page">1</span>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pattern 225 – Competitive Positioning Map</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+  :root {
+    --brand-primary:#2D0A4E;
+    --brand-primary-mid:#5C2D87;
+    --brand-accent:#A100FF;
+    --brand-accent-soft:#C780FF;
+    --text-dark:#1A1A2E;
+    --text-mid:#64748B;
+    --text-faint:#94A3B8;
+    --slide-bg:#FFFFFF;
+    --card-bg:#F8F4FC;
+    --card-border:#E5D5F0;
+    --draft-bg:#FFD600;
+    --draft-text:#B71C1C;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: Inter, system-ui, sans-serif;
+    background: var(--slide-bg);
+    position: relative;
+  }
+
+  /* CHROME: ACCENTURE INTERNAL */
+  .accenture-internal {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  /* CHROME: DRAFT badge */
+  .draft-badge {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 0;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  /* CHROME: Title block */
+  .title-block {
+    position: absolute; top: 0; left: 0; right: 0; height: 160px;
+  }
+
+  .title-block h1 {
+    position: absolute; top: 28px; left: 64px; right: 64px; min-height: 36px;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.15;
+  }
+
+  .title-block h1 strong {
+    color: var(--brand-accent);
+    font-weight: 700;
+  }
+
+  .title-block .sub-headline {
+    position: absolute; top: 108px; left: 64px; right: 64px;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+
+}
+
+  .title-block .accent-rule {
+  position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+
+  }
+
+  /* CHROME: Footer */
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+  }
+
+  .footer-left, .footer-right {
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* CONTENT AREA */
+  .content-area {
+    position: absolute;
+    top: 118px;
+    left: 48px;
+    right: 48px;
+    bottom: 64px;
+    display: flex;
+    gap: 20px;
+    align-items: stretch;
+  }
+
+  /* MAP AREA */
+  .map-area {
+    flex: 1;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .map-svg-container {
+    flex: 1;
+    position: relative;
+  }
+
+  .map-svg-container svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .map-source {
+    font-size: 9px;
+    color: var(--text-faint);
+
+    top: 4px;
+    padding-left: 4px;
+  }
+
+  /* RIGHT PANEL */
+  .right-panel {
+    width: 220px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    padding: 16px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+
+  .panel-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    border-bottom: 2px solid var(--brand-accent);
+    padding-bottom: 6px;
+  }
+
+  .panel-bullets {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .panel-bullet {
+    display: flex;
+    gap: 10px;
+    align-items: flex-start;
+  }
+
+  .bullet-marker {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--brand-accent);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    top: 1px;
+  }
+
+  .bullet-number {
+    font-size: 9px;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .bullet-text-block {
+    flex: 1;
+  }
+
+  .bullet-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.3;
+  }
+
+  .bullet-desc {
+    font-size: 10px;
+    color: var(--text-mid);
+    line-height: 1.4;
+
+    top: 2px;
+  }
+
+  .panel-footer-note {
+    font-size: 9px;
+    color: var(--text-faint);
+    font-style: italic;
+
+    top: auto;
+    line-height: 1.4;
+  }
+</style>
+</head>
+<body>
+
+  <!-- CHROME: ACCENTURE INTERNAL -->
+  <div class="accenture-internal" data-shape-id="accenture-tag">Accenture Internal</div>
+
+  <!-- CHROME: DRAFT badge -->
+
+  <!-- CHROME: Title block -->
+  <div class="title-block">
+    <h1 data-shape-id="title">We hold the <strong>strongest position</strong> on breadth and leadership</h1>
+    <div class="sub-headline" data-shape-id="subtitle">Competitive landscape mapped by capability breadth vs. market authority — 2025 snapshot</div>
+    <div class="accent-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- CONTENT AREA -->
+  <div class="content-area">
+
+    <!-- MAP -->
+    <div class="map-area">
+      <div class="map-svg-container">
+        <svg data-shape-id="chart-canvas" viewBox="0 0 820 490" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <!-- Glow filter for US dot -->
+            <filter id="glow-us" x="-60%" y="-60%" width="220%" height="220%">
+              <feGaussianBlur stdDeviation="8" result="coloredBlur"/>
+              <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+            <!-- Subtle grid -->
+            <pattern id="grid" width="82" height="49" patternUnits="userSpaceOnUse">
+              <path d="M 82 0 L 0 0 0 49" fill="none" stroke="#E5D5F0" stroke-width="0.5" opacity="0.6"/>
+            </pattern>
+          </defs>
+
+          <!-- Plot area bounds: x: 60–780, y: 20–440 -->
+
+          <!-- QUADRANT BACKGROUNDS -->
+          <!-- Bottom-left: Niche/Narrow -->
+          <rect x="60" y="230" width="360" height="210" fill="#F8F4FC" opacity="0.5"/>
+          <!-- Bottom-right: Leader/Narrow (could be challengers) -->
+          <rect x="420" y="230" width="360" height="210" fill="#F0EDFA" opacity="0.4"/>
+          <!-- Top-left: Niche/Broad -->
+          <rect x="60" y="20" width="360" height="210" fill="#F0EDFA" opacity="0.4"/>
+          <!-- Top-right: Leader/Broad — our zone -->
+          <rect x="420" y="20" width="360" height="210" fill="#EDE0FB" opacity="0.55"/>
+
+          <!-- Quadrant zone labels -->
+          <text x="90" y="42" font-size="9" fill="#94A3B8" font-family="Inter,sans-serif" font-weight="600" letter-spacing="0.08em" text-transform="uppercase">NICHE BROAD</text>
+          <text x="450" y="42" font-size="9" fill="#A100FF" font-family="Inter,sans-serif" font-weight="700" letter-spacing="0.08em" opacity="0.7">LEADER BROAD</text>
+          <text x="90" y="252" font-size="9" fill="#94A3B8" font-family="Inter,sans-serif" font-weight="600" letter-spacing="0.08em">NICHE NARROW</text>
+          <text x="450" y="252" font-size="9" fill="#94A3B8" font-family="Inter,sans-serif" font-weight="600" letter-spacing="0.08em">LEADER NARROW</text>
+
+          <!-- Grid overlay -->
+          <rect x="60" y="20" width="720" height="420" fill="url(#grid)" opacity="0.5"/>
+
+          <!-- Axis lines -->
+          <line x1="60" y1="440" x2="780" y2="440" stroke="#CBD5E1" stroke-width="1.5"/>
+          <line x1="60" y1="440" x2="60" y2="20" stroke="#CBD5E1" stroke-width="1.5"/>
+
+          <!-- Center dividers (faint) -->
+          <line x1="420" y1="20" x2="420" y2="440" stroke="#C780FF" stroke-width="0.8" stroke-dasharray="4,4" opacity="0.5"/>
+          <line x1="60" y1="230" x2="780" y2="230" stroke="#C780FF" stroke-width="0.8" stroke-dasharray="4,4" opacity="0.5"/>
+
+          <!-- X-axis label -->
+          <text x="420" y="470" text-anchor="middle" font-size="11" fill="#64748B" font-family="Inter,sans-serif" font-weight="600">Breadth of Capabilities</text>
+          <text x="175" y="483" text-anchor="middle" font-size="9" fill="#94A3B8" font-family="Inter,sans-serif">← Narrow</text>
+          <text x="665" y="483" text-anchor="middle" font-size="9" fill="#94A3B8" font-family="Inter,sans-serif">Broad →</text>
+
+          <!-- Y-axis label (rotated) -->
+          <text x="-230" y="18" transform="rotate(-90)" text-anchor="middle" font-size="11" fill="#64748B" font-family="Inter,sans-serif" font-weight="600">Market Position</text>
+          <text x="-410" y="18" transform="rotate(-90)" text-anchor="middle" font-size="9" fill="#94A3B8" font-family="Inter,sans-serif">← Niche</text>
+          <text x="-55" y="18" transform="rotate(-90)" text-anchor="middle" font-size="9" fill="#94A3B8" font-family="Inter,sans-serif">Leader →</text>
+
+          <!-- X axis ticks -->
+          <line x1="60" y1="440" x2="60" y2="447" stroke="#CBD5E1" stroke-width="1"/>
+          <line x1="240" y1="440" x2="240" y2="447" stroke="#CBD5E1" stroke-width="1"/>
+          <line x1="420" y1="440" x2="420" y2="447" stroke="#CBD5E1" stroke-width="1"/>
+          <line x1="600" y1="440" x2="600" y2="447" stroke="#CBD5E1" stroke-width="1"/>
+          <line x1="780" y1="440" x2="780" y2="447" stroke="#CBD5E1" stroke-width="1"/>
+
+          <!-- Y axis ticks -->
+          <line x1="60" y1="440" x2="53" y2="440" stroke="#CBD5E1" stroke-width="1"/>
+          <line x1="60" y1="335" x2="53" y2="335" stroke="#CBD5E1" stroke-width="1"/>
+          <line x1="60" y1="230" x2="53" y2="230" stroke="#CBD5E1" stroke-width="1"/>
+          <line x1="60" y1="125" x2="53" y2="125" stroke="#CBD5E1" stroke-width="1"/>
+          <line x1="60" y1="20" x2="53" y2="20" stroke="#CBD5E1" stroke-width="1"/>
+
+          <!-- ===================== -->
+          <!-- COMPETITOR DOTS       -->
+          <!-- ===================== -->
+
+          <!-- Competitor 1: Alpha Corp — top-right quadrant, large -->
+          <!-- x=570, y=75 — broad + leader but below us -->
+          <circle cx="570" cy="95" r="22" fill="#5C2D87" opacity="0.82"/>
+          <text cx="570" cy="125" text-anchor="middle" font-size="10" fill="#1A1A2E" font-family="Inter,sans-serif" font-weight="600" x="570" y="126">Alpha Corp</text>
+          <text x="570" y="136" text-anchor="middle" font-size="8.5" fill="#64748B" font-family="Inter,sans-serif">$18B rev</text>
+
+          <!-- Competitor 2: Nexora — top-right, medium -->
+          <!-- x=665, y=130 -->
+          <circle cx="665" cy="130" r="16" fill="#5C2D87" opacity="0.72"/>
+          <text x="665" y="154" text-anchor="middle" font-size="10" fill="#1A1A2E" font-family="Inter,sans-serif" font-weight="600">Nexora</text>
+          <text x="665" y="164" text-anchor="middle" font-size="8.5" fill="#64748B" font-family="Inter,sans-serif">$11B rev</text>
+
+          <!-- Competitor 3: Brightfield — top-left, medium — broad niche -->
+          <!-- x=170, y=90 -->
+          <circle cx="185" cy="90" r="17" fill="#5C2D87" opacity="0.65"/>
+          <text x="185" y="116" text-anchor="middle" font-size="10" fill="#1A1A2E" font-family="Inter,sans-serif" font-weight="600">Brightfield</text>
+          <text x="185" y="126" text-anchor="middle" font-size="8.5" fill="#64748B" font-family="Inter,sans-serif">$7B rev</text>
+
+          <!-- Competitor 4: Veridian — bottom-right, small -->
+          <!-- x=620, y=330 -->
+          <circle cx="610" cy="330" r="12" fill="#5C2D87" opacity="0.60"/>
+          <text x="610" y="350" text-anchor="middle" font-size="10" fill="#1A1A2E" font-family="Inter,sans-serif" font-weight="600">Veridian</text>
+          <text x="610" y="360" text-anchor="middle" font-size="8.5" fill="#64748B" font-family="Inter,sans-serif">$5B rev</text>
+
+          <!-- Competitor 5: CoreSys — bottom-left, small -->
+          <!-- x=190, y=300 -->
+          <circle cx="195" cy="310" r="11" fill="#5C2D87" opacity="0.58"/>
+          <text x="195" y="329" text-anchor="middle" font-size="10" fill="#1A1A2E" font-family="Inter,sans-serif" font-weight="600">CoreSys</text>
+          <text x="195" y="339" text-anchor="middle" font-size="8.5" fill="#64748B" font-family="Inter,sans-serif">$3B rev</text>
+
+          <!-- Competitor 6: Praxi — bottom-right, medium-small -->
+          <!-- x=510, y=280 -->
+          <circle cx="500" cy="295" r="14" fill="#5C2D87" opacity="0.62"/>
+          <text x="500" y="317" text-anchor="middle" font-size="10" fill="#1A1A2E" font-family="Inter,sans-serif" font-weight="600">Praxi</text>
+          <text x="500" y="327" text-anchor="middle" font-size="8.5" fill="#64748B" font-family="Inter,sans-serif">$6B rev</text>
+
+          <!-- Competitor 7: Luma Tech — top-left, small -->
+          <!-- x=320, y=150 -->
+          <circle cx="315" cy="165" r="10" fill="#5C2D87" opacity="0.55"/>
+          <text x="315" y="184" text-anchor="middle" font-size="10" fill="#1A1A2E" font-family="Inter,sans-serif" font-weight="600">Luma Tech</text>
+          <text x="315" y="194" text-anchor="middle" font-size="8.5" fill="#64748B" font-family="Inter,sans-serif">$2B rev</text>
+
+          <!-- ===================== -->
+          <!-- US DOT (dominant)     -->
+          <!-- ===================== -->
+          <!-- x=700, y=55 — dominant top-right position -->
+          <!-- Outer glow ring -->
+          <circle cx="710" cy="58" r="38" fill="none" stroke="#A100FF" stroke-width="2.5" opacity="0.25" filter="url(#glow-us)"/>
+          <circle cx="710" cy="58" r="32" fill="#A100FF" opacity="0.18" filter="url(#glow-us)"/>
+          <!-- Main dot -->
+          <circle cx="710" cy="58" r="26" fill="#A100FF" filter="url(#glow-us)"/>
+          <!-- US Label inside -->
+          <text x="710" y="64" text-anchor="middle" font-size="13" fill="#FFFFFF" font-family="Inter,sans-serif" font-weight="700">US</text>
+
+          <!-- US annotation line + label -->
+          <line x1="710" y1="86" x2="710" y2="100" stroke="#A100FF" stroke-width="1" stroke-dasharray="3,2" opacity="0.6"/>
+          <text x="710" y="112" text-anchor="middle" font-size="10" fill="#A100FF" font-family="Inter,sans-serif" font-weight="700">Our Company</text>
+          <text x="710" y="122" text-anchor="middle" font-size="8.5" fill="#64748B" font-family="Inter,sans-serif">$42B rev</text>
+
+        </svg>
+      </div>
+      <div class="map-source" data-shape-id="chart-source">Source: Gartner Magic Quadrant 2025 + internal analysis &nbsp;·&nbsp; Bubble size = estimated revenue</div>
+    </div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel" data-shape-id="annot-panel">
+      <div class="panel-title" data-shape-id="annot-header">Our Advantage</div>
+      <div class="panel-bullets">
+        <div class="panel-bullet">
+          <div class="bullet-marker" data-shape-id="annot-1-marker"><span class="bullet-number">1</span></div>
+          <div class="bullet-text-block">
+            <div class="bullet-label" data-shape-id="annot-1-label">Unmatched End-to-End Scope</div>
+            <div class="bullet-desc" data-shape-id="annot-1-body">We cover strategy through execution across all verticals — no competitor matches our full-stack breadth.</div>
+          </div>
+        </div>
+        <div class="panel-bullet">
+          <div class="bullet-marker" data-shape-id="annot-2-marker"><span class="bullet-number">2</span></div>
+          <div class="bullet-text-block">
+            <div class="bullet-label" data-shape-id="annot-2-label">Established Market Authority</div>
+            <div class="bullet-desc" data-shape-id="annot-2-body">17 consecutive years as a Gartner Leader; recognized brand in 50+ markets with anchor client relationships.</div>
+          </div>
+        </div>
+        <div class="panel-bullet">
+          <div class="bullet-marker" data-shape-id="annot-3-marker"><span class="bullet-number">3</span></div>
+          <div class="bullet-text-block">
+            <div class="bullet-label" data-shape-id="annot-3-label">Proprietary AI Platform</div>
+            <div class="bullet-desc" data-shape-id="annot-3-body">SyntheticEdge AI platform accelerates delivery 2× vs. next-best competitor with embedded IP no rival can replicate.</div>
+          </div>
+        </div>
+      </div>
+      <div class="panel-footer-note" data-shape-id="annot-footer">Competitors benchmarked on publicly available capability inventories and analyst ratings.</div>
+    </div>
+
+  </div>
+
+  <!-- CHROME: Footer -->
+  <div class="footer" data-shape-id="footer-rule">
+    <div class="footer-left" data-shape-id="footer-left"></div>
+    <div class="footer-right" data-shape-id="footer-right"></div>
+  </div>
+
+</body>
+</html>

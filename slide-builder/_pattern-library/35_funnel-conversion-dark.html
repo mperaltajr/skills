@@ -1,0 +1,315 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>35 · Funnel conversion</title>
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1280px; height: 720px; background: var(--slide-bg); font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; color: var(--text-dark); overflow: hidden; }
+body { padding: 50px 64px; position: relative; }
+
+.draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; }
+.project-label { position: absolute; top: 24px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
+
+.action-title { position: absolute; left: 64px; right: 64px; top: 28px; min-height: 72px; font-size: 28px; font-weight: 700; line-height: 1.2; }
+.action-title strong { color: var(--brand-primary); }
+.subhead { position: absolute; left: 64px; right: 64px; top: 100px; font-size: 14px; color: var(--text-mid); font-style: italic; }
+.title-rule { position: absolute; left: 64px; top: 128px; width: 40px; height: 3px; background: var(--brand-accent); }
+
+/* ===== Content block — absolutely positioned between title-rule (~y=153) and convergence (~y=634).
+   Available vertical canvas ≈ 480px. Block is centered with justify-content: center.
+   Funnel + callouts share the same internal height — the block IS the stage. ===== */
+.content-block {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 165px;       /* just below title-rule (title-rule bottom ≈ y=156) */
+  bottom: 100px;    /* leaves room for convergence text + footer */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: stretch;
+}
+
+/* Stage holds the funnel SVG + all absolutely-positioned tier-rows and callouts.
+   Height = 5 tiers × 84 + 4 gaps × 8 = 452. We give it 452px and let flex center it. */
+.stage { position: relative; width: 100%; height: 452px; }
+
+/* SVG funnel — 760px wide × 452px tall.
+   5 tiers, each 84px tall, with 8px gap.
+   Widths descending: 720 / 560 / 410 / 280 / 180.
+   Centered on x = 380 within the svg.
+*/
+.funnel-svg {
+  position: absolute;
+  left: 60px;
+  top: 0;
+}
+
+/* Labels live inside each tier; they're absolutely positioned over the SVG. */
+.tier-row {
+  position: absolute;
+  left: 60px;        /* matches svg left */
+  width: 760px;      /* matches svg width */
+  height: 84px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+/* Each row's top — tier height 84 + 8 gap = 92 stride */
+.row-1 { top: 0px; }      /* AWARENESS — widest */
+.row-2 { top: 92px; }     /* DRAFTS */
+.row-3 { top: 184px; }    /* REVIEWED */
+.row-4 { top: 276px; }    /* PARTNER-READY */
+.row-5 { top: 368px; }    /* CLIENT-READY — narrowest */
+
+.tier-label {
+  text-align: center;
+  color: white;
+  line-height: 1.05;
+  display: flex;
+  align-items: baseline;
+  gap: 16px;
+}
+.tier-label .name {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1.8px;
+  opacity: 0.85;
+  text-transform: uppercase;
+}
+.tier-label .count {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+}
+
+/* Narrow tiers (4 & 5) need tighter labels so text doesn't overflow tier width */
+.row-4 .tier-label .name,
+.row-5 .tier-label .name { font-size: 11px; letter-spacing: 1.2px; }
+.row-4 .tier-label .count,
+.row-5 .tier-label .count { font-size: 22px; }
+.row-5 .tier-label { gap: 8px; }
+
+/* Top two tiers are lighter — they need dark text */
+.row-1 .tier-label,
+.row-2 .tier-label { color: var(--brand-primary); }
+.row-1 .tier-label .name,
+.row-2 .tier-label .name { opacity: 0.65; }
+
+/* ===== Right-side callouts — identical column ===== */
+.callout {
+  position: absolute;
+  left: 860px;       /* identical right-column margin */
+  width: 280px;      /* right edge at 1140 — comfortably inside 1152 padding box */
+  height: 84px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--text-mid);
+  padding-left: 18px;
+  border-left: 1px solid var(--card-border);
+}
+.callout .stage-tag {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.callout .body { color: var(--text-dark); }
+.callout .drop {
+  font-size: 10px;
+  color: var(--text-faint);
+  margin-top: 4px;
+  font-style: italic;
+}
+
+/* Tick connector from funnel edge to callout */
+.callout::before {
+  content: "";
+  position: absolute;
+  left: -42px;
+  top: 50%;
+  width: 32px;
+  height: 1px;
+  background: var(--card-border);
+}
+
+/* ===== FOCAL POINT — the biggest drop: AWARENESS → DRAFTS (60% lost) =====
+   The row-1 callout becomes the focal card: accent tint + leak pill header.
+   The SVG also adds an accent ring around tier 1 for reinforcement. */
+.callout.row-1-callout {
+  background: var(--card-bg);
+  border-left: 3px solid var(--brand-accent);
+  padding-left: 16px;
+}
+.callout.row-1-callout .stage-tag {
+  display: inline-block;
+  background: var(--brand-accent);
+  color: white;
+  padding: 3px 9px;
+  border-radius: 10px;
+  letter-spacing: 1.2px;
+  margin-bottom: 5px;
+  align-self: flex-start;
+}
+.callout.row-1-callout .body { color: var(--brand-primary); font-weight: 600; }
+.callout.row-1-callout .drop { color: var(--brand-primary-mid); font-weight: 500; font-style: normal; }
+
+/* ===== Convergence line ===== */
+.convergence { position: absolute; left: 64px; right: 64px; bottom: 56px; text-align: center; font-size: 14px; font-style: italic; color: var(--brand-primary); font-weight: 500; }
+.convergence strong { color: var(--brand-accent); font-style: normal; font-weight: 700; }
+
+/* ===== Footer chrome ===== */
+.footer-rule { position: absolute; left: 0; right: 0; bottom: 32px; height: 1px; background: var(--card-border); }
+.footer-left { position: absolute; bottom: 14px; left: 24px; color: var(--text-faint); font-size: 11px; letter-spacing: 1px; }
+.footer-right { position: absolute; bottom: 14px; right: 24px; color: var(--text-faint); font-size: 11px; }
+
+/* DARK THEME */
+:root {
+  --card-bg: rgba(255,255,255,0.07);
+  --card-border: rgba(255,255,255,0.12);
+  --text-dark: #FFFFFF;
+  --text-mid: rgba(255,255,255,0.6);
+  --slide-bg: #2D0A4E;
+}
+body, .slide { background: #2D0A4E; }
+.project-label { color: rgba(255,255,255,0.4); }
+.action-title { position: absolute; left: 64px; right: 64px; top: 28px; min-height: 72px; color: #FFFFFF; }
+.action-title strong { color: #C780FF; }
+.subhead { position: absolute; left: 64px; right: 64px; top: 100px; color: rgba(255,255,255,0.6); }
+.title-rule { position: absolute; left: 64px; top: 128px; background: #A100FF; }
+.callout { color: rgba(255,255,255,0.85); border-left-color: rgba(255,255,255,0.12); }
+.callout::before { background: rgba(255,255,255,0.12); }
+.callout .stage-tag { color: rgba(255,255,255,0.5); }
+.callout .body { color: rgba(255,255,255,0.85); }
+.callout .drop { color: rgba(255,255,255,0.5); }
+.callout.row-1-callout { background: rgba(255,255,255,0.07); border-left: 3px solid #A100FF; }
+.callout.row-1-callout .body { color: #FFFFFF; }
+.callout.row-1-callout .drop { color: rgba(255,255,255,0.6); }
+.row-1 .tier-label, .row-2 .tier-label { color: #FFFFFF; }
+.convergence { color: rgba(255,255,255,0.85); }
+.convergence strong { color: #C780FF; }
+.footer-rule { background: rgba(255,255,255,0.1); }
+.footer-left, .footer-right { color: rgba(255,255,255,0.4); }
+</style>
+</head>
+<body>
+
+  <div class="action-title" data-shape-id="title">Where decks die — <strong>1,000 initiated, 28 reach the client clean.</strong></div>
+  <div class="subhead" data-shape-id="subtitle">Annual deck-quality funnel across the practice. The leak isn't the pitch — it's the early structure.</div>
+  <div class="title-rule" data-shape-id="brand-rule"></div>
+
+  <div class="content-block">
+    <div class="stage">
+      <!-- Funnel SVG: 760 × 452. 5 tiers of 84px tall, 8px gap.
+           Tier widths descending: 720 / 560 / 410 / 280 / 180.
+           Center vertical line of funnel at x = 380.
+           Top of tier i at y = (i-1)*92.
+
+           Color graduation: top lightest → bottom darkest brand-primary.
+      -->
+      <svg class="funnel-svg" width="760" height="452" viewBox="0 0 760 452" xmlns="http://www.w3.org/2000/svg">
+        <!-- Tier 1 — AWARENESS, width 720, lightest -->
+        <polygon points="20,0 740,0 660,84 100,84" fill="rgba(199,128,255,0.18)" data-shape-id="funnel-stage-1-shape"/>
+        <!-- Tier 2 — DRAFTS, width 560 -->
+        <polygon points="100,92 660,92 585,176 175,176" fill="rgba(161,0,255,0.28)" data-shape-id="funnel-stage-2-shape"/>
+        <!-- Tier 3 — REVIEWED, width 410 -->
+        <polygon points="175,184 585,184 520,268 240,268" fill="rgba(161,0,255,0.45)" data-shape-id="funnel-stage-3-shape"/>
+        <!-- Tier 4 — PARTNER-READY, width 280 -->
+        <polygon points="240,276 520,276 470,360 290,360" fill="rgba(161,0,255,0.65)" data-shape-id="funnel-stage-4-shape"/>
+        <!-- Tier 5 — CLIENT-READY, width 180, darkest -->
+        <polygon points="290,368 470,368 425,452 335,452" fill="#A100FF" data-shape-id="funnel-stage-5-shape"/>
+
+        <!-- Subtle highlight ring around the AWARENESS tier — focal point (biggest drop happens just after) -->
+        <polygon points="20,0 740,0 660,84 100,84" fill="none" stroke="#A100FF" stroke-width="2.5" data-shape-id="funnel-stage-1-highlight-ring"/>
+      </svg>
+
+      <!-- Tier label rows — name + count only inside tier; conversion lives in right callout -->
+      <div class="tier-row row-1">
+        <div class="tier-label">
+          <span class="name" data-shape-id="funnel-stage-1-name">AWARENESS</span>
+          <span class="count" data-shape-id="funnel-stage-1-count">1,000</span>
+        </div>
+      </div>
+      <div class="tier-row row-2">
+        <div class="tier-label">
+          <span class="name" data-shape-id="funnel-stage-2-name">DRAFTS</span>
+          <span class="count" data-shape-id="funnel-stage-2-count">600</span>
+        </div>
+      </div>
+      <div class="tier-row row-3">
+        <div class="tier-label">
+          <span class="name" data-shape-id="funnel-stage-3-name">REVIEWED</span>
+          <span class="count" data-shape-id="funnel-stage-3-count">270</span>
+        </div>
+      </div>
+      <div class="tier-row row-4">
+        <div class="tier-label">
+          <span class="name" data-shape-id="funnel-stage-4-name">PARTNER-READY</span>
+          <span class="count" data-shape-id="funnel-stage-4-count">80</span>
+        </div>
+      </div>
+      <div class="tier-row row-5">
+        <div class="tier-label">
+          <span class="name" data-shape-id="funnel-stage-5-name">CLIENT-READY</span>
+          <span class="count" data-shape-id="funnel-stage-5-count">28</span>
+        </div>
+      </div>
+
+      <!-- Right-side callouts — identical left margin, 1:1 with funnel tiers.
+           Row 1 is the FOCAL callout — biggest leak, where Slide Lab plays.
+           Each callout: stage tag, what passes through, what's lost (with conversion %). -->
+      <div class="callout row-1-callout" style="top: 0px;">
+        <div class="stage-tag" data-shape-id="funnel-stage-1-tag">BIGGEST LEAK · SLIDE LAB PLAYS HERE</div>
+        <div class="body" data-shape-id="funnel-stage-1-body">Decks created in the practice over a year.</div>
+        <div class="drop" data-shape-id="funnel-stage-1-drop"><strong>60% lost</strong> to blank-page paralysis &amp; workstream dumps.</div>
+      </div>
+      <div class="callout row-2-callout" style="top: 92px;">
+        <div class="stage-tag" data-shape-id="funnel-stage-2-tag">STAGE 2 · STRUCTURE FAILS</div>
+        <div class="body" data-shape-id="funnel-stage-2-body">Got past the workstream-findings dump into a storyline.</div>
+        <div class="drop" data-shape-id="funnel-stage-2-drop">55% lost — story doesn't hold under partner review.</div>
+      </div>
+      <div class="callout row-3-callout" style="top: 184px;">
+        <div class="stage-tag" data-shape-id="funnel-stage-3-tag">STAGE 3 · REVIEW SLOG</div>
+        <div class="body" data-shape-id="funnel-stage-3-body">Made it to partner review without being fully mangled.</div>
+        <div class="drop" data-shape-id="funnel-stage-3-drop">70% lost — heavy edits, redo cycles.</div>
+      </div>
+      <div class="callout row-4-callout" style="top: 276px;">
+        <div class="stage-tag" data-shape-id="funnel-stage-4-tag">STAGE 4 · FINAL POLISH</div>
+        <div class="body" data-shape-id="funnel-stage-4-body">Partner signed off without major rework.</div>
+        <div class="drop" data-shape-id="funnel-stage-4-drop">65% lost — late-stage edits before client send.</div>
+      </div>
+      <div class="callout row-5-callout" style="top: 368px;">
+        <div class="stage-tag" data-shape-id="funnel-stage-5-tag">STAGE 5 · OUTCOME</div>
+        <div class="body" data-shape-id="funnel-stage-5-body">Survived the final review. Sent to client clean.</div>
+        <div class="drop" data-shape-id="funnel-stage-5-drop">Just 2.8% end-to-end — 28 of 1,000.</div>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="convergence" data-shape-id="convergence">From <strong>1,000 decks initiated</strong> to <strong>28 client-ready</strong> — the leak isn't the pitch, it's the early structure.</div>
+  <div class="footer-left" data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+</body>
+</html>

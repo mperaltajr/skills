@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pattern 181 — Multi-Modal Dense Exec Layout</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: Inter, system-ui, sans-serif;
+    background: var(--slide-bg);
+    position: relative;
+  }
+
+  /* ── Invariant chrome ── */
+
+  .project-label {
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  .draft-badge {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 16px;
+    border-radius: 0;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .title-block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+  .title-block h1 {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+  pointer-events: auto;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.15;
+  }
+
+  .title-block h1 strong {
+    color: var(--brand-accent);
+    font-weight: 700;
+  }
+
+  .title-block .sub-headline {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 108px;
+  pointer-events: auto;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+    }
+
+  .accent-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+  pointer-events: none;
+    
+    
+    background: var(--brand-accent);
+    }
+
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 20px 10px;
+  }
+
+  .footer span {
+    font-size: 8px;
+    color: var(--text-faint);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  /* ── Body layout ── */
+
+  .body-area {
+    position: absolute;
+    top: 128px;
+    left: 48px;
+    right: 48px;
+    bottom: 64px;
+    display: flex;
+    gap: 0;
+  }
+
+  .zone {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    padding: 14px 14px 12px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .zone-left {
+    width: 38%;
+    border-right: none;
+    border-radius: 6px 0 0 6px;
+  }
+
+  .zone-center {
+    width: 32%;
+    border-left: 1.5px solid var(--card-border);
+    border-right: 1.5px solid var(--card-border);
+  }
+
+  .zone-right {
+    width: 30%;
+    border-left: none;
+    border-radius: 0 6px 6px 0;
+  }
+
+  .zone-header {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    margin-bottom: 10px;
+    padding-bottom: 6px;
+    border-bottom: 1.5px solid var(--card-border);
+  }
+
+  /* ── Table zone ── */
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 11px;
+  }
+
+  .data-table thead tr th {
+    font-size: 9px;
+    font-weight: 600;
+    color: var(--text-mid);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 4px 6px;
+    border-bottom: 1.5px solid var(--card-border);
+  }
+
+  .data-table thead tr th:not(:first-child) {
+    text-align: right;
+  }
+
+  .data-table tbody tr td {
+    padding: 6px 6px;
+    color: var(--text-dark);
+    border-bottom: 1px solid var(--card-border);
+    font-size: 11px;
+    vertical-align: middle;
+  }
+
+  .data-table tbody tr td:not(:first-child) {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    font-weight: 500;
+  }
+
+  .data-table tbody tr td:first-child {
+    font-weight: 500;
+    color: var(--text-dark);
+  }
+
+  .data-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .row-total td {
+    background: var(--brand-primary);
+    color: #FFFFFF !important;
+    font-weight: 700 !important;
+    font-size: 11px;
+  }
+
+  .delta-pos {
+    color: #16A34A;
+    font-size: 10px;
+    font-weight: 600;
+  }
+
+  .delta-neg {
+    color: #DC2626;
+    font-size: 10px;
+    font-weight: 600;
+  }
+
+  .table-footnote {
+    margin-top: 8px;
+    font-size: 9px;
+    color: var(--text-faint);
+    font-style: italic;
+  }
+
+  /* ── Chart zone ── */
+
+  .chart-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+
+  .chart-legend {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    position: absolute;
+    top: 8px;
+    right: 8px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 9px;
+    color: var(--text-mid);
+    font-weight: 500;
+  }
+
+  .legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  svg.bar-chart {
+    flex: 1;
+    overflow: visible;
+  }
+
+  /* ── Insight zone ── */
+
+  .insight-bullets {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    flex: 1;
+  }
+
+  .insight-bullets li {
+    font-size: 11px;
+    color: var(--text-dark);
+    line-height: 1.45;
+    padding-left: 12px;
+    position: relative;
+  }
+
+  .insight-bullets li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 6px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--brand-accent);
+  }
+
+  .insight-bullets li strong {
+    color: var(--brand-primary);
+    font-weight: 600;
+  }
+
+  .callout-box {
+    background: var(--brand-primary);
+    border-radius: 5px;
+    padding: 10px 12px;
+    margin-top: 12px;
+  }
+
+  .callout-box .callout-label {
+    font-size: 9px;
+    color: var(--brand-accent-soft);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 600;
+    margin-bottom: 3px;
+  }
+
+  .callout-box .callout-number {
+    font-size: 30px;
+    font-weight: 700;
+    color: #FFFFFF;
+    line-height: 1;
+    letter-spacing: -0.5px;
+  }
+
+  .callout-box .callout-sub {
+    font-size: 9px;
+    color: var(--brand-accent-soft);
+    margin-top: 3px;
+    line-height: 1.3;
+  }
+
+  /* DARK THEME */
+  :root {
+    --card-bg: rgba(255,255,255,0.07);
+    --card-border: rgba(255,255,255,0.12);
+    --text-dark: #FFFFFF;
+    --text-mid: rgba(255,255,255,0.6);
+    --slide-bg: #2D0A4E;
+  }
+
+  body, .slide { background: #2D0A4E; }
+
+  .project-label { color: rgba(255,255,255,0.4); }
+
+  .title-block h1 {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+  pointer-events: auto; color: #FFFFFF; }
+  .title-block h1 strong { color: #C780FF; }
+  .title-block .sub-headline { color: rgba(255,255,255,0.6); }
+
+  .accent-rule { background: #A100FF; }
+
+  .zone {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+  }
+
+  .zone-header {
+    color: #FFFFFF;
+    border-bottom: 1.5px solid rgba(255,255,255,0.12);
+  }
+
+  .data-table thead tr th {
+    color: rgba(255,255,255,0.6);
+    border-bottom: 1.5px solid rgba(255,255,255,0.12);
+  }
+
+  .data-table tbody tr td {
+    color: rgba(255,255,255,0.85);
+    border-bottom: 1px solid rgba(255,255,255,0.12);
+  }
+
+  .data-table tbody tr td:first-child { color: rgba(255,255,255,0.85); }
+
+  .data-table thead tr { background: rgba(255,255,255,0.1); }
+
+  .table-footnote { color: rgba(255,255,255,0.5); }
+
+  .legend-item { color: rgba(255,255,255,0.6); }
+
+  svg.bar-chart line[stroke="#E5D5F0"] { stroke: rgba(255,255,255,0.3); }
+  svg.bar-chart text[fill="#94A3B8"] { fill: rgba(255,255,255,0.6); }
+  svg.bar-chart text[fill="#64748B"] { fill: rgba(255,255,255,0.6); }
+
+  .insight-bullets li { color: rgba(255,255,255,0.85); }
+  .insight-bullets li strong { color: #C780FF; }
+
+  .footer { border-top: 1px solid rgba(255,255,255,0.1); }
+  .footer span { color: rgba(255,255,255,0.4); }
+</style>
+</head>
+<body>
+
+  <!-- Invariant chrome -->
+
+  <!-- Title block -->
+  <div class="title-block">
+    <h1 data-shape-id="title">Portfolio Performance Digest — <strong>Q2 2026</strong> Executive Summary</h1>
+    <div class="sub-headline" data-shape-id="subtitle">Cross-stream financials, delivery velocity, and strategic inflection signals — one-slide view</div>
+    <div class="accent-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- Body: 3 zones -->
+  <div class="body-area">
+
+    <!-- Zone Left: Data Table -->
+    <div class="zone zone-left">
+      <div class="zone-header" data-shape-id="zone-1-header">Financial & Delivery Scorecard</div>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Stream</th>
+            <th>Budget ($M)</th>
+            <th>Actual ($M)</th>
+            <th>Δ vs Plan</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Cloud Infra</td>
+            <td>42.0</td>
+            <td>38.7</td>
+            <td><span class="delta-pos">+8.3%</span></td>
+          </tr>
+          <tr>
+            <td>Data & AI</td>
+            <td>31.5</td>
+            <td>33.9</td>
+            <td><span class="delta-neg">−7.6%</span></td>
+          </tr>
+          <tr>
+            <td>Cyber</td>
+            <td>18.0</td>
+            <td>16.4</td>
+            <td><span class="delta-pos">+8.9%</span></td>
+          </tr>
+          <tr class="row-total">
+            <td>Total Portfolio</td>
+            <td>91.5</td>
+            <td>89.0</td>
+            <td>−2.7%</td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="table-footnote">Budget = approved Q2 baseline · Actuals as of 2026-05-16</div>
+    </div>
+
+    <!-- Zone Center: Bar Chart -->
+    <div class="zone zone-center">
+      <div class="zone-header" data-shape-id="zone-2-header">Budget vs Actual ($M)</div>
+      <div class="chart-container">
+        <div class="chart-legend">
+          <div class="legend-item">
+            <div class="legend-dot" style="background:#5C2D87;"></div>Budget
+          </div>
+          <div class="legend-item">
+            <div class="legend-dot" style="background:#A100FF;"></div>Actual
+          </div>
+        </div>
+        <svg class="bar-chart" viewBox="0 0 330 320" preserveAspectRatio="xMidYMid meet" data-shape-id="chart-canvas">
+          <line x1="38" y1="10" x2="38" y2="290" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+          <line x1="38" y1="290" x2="312" y2="290" stroke="rgba(255,255,255,0.3)" stroke-width="1"/>
+
+          <line x1="38" y1="220" x2="312" y2="220" stroke="rgba(255,255,255,0.3)" stroke-width="0.5" stroke-dasharray="3,3"/>
+          <line x1="38" y1="150" x2="312" y2="150" stroke="rgba(255,255,255,0.3)" stroke-width="0.5" stroke-dasharray="3,3"/>
+          <line x1="38" y1="80"  x2="312" y2="80"  stroke="rgba(255,255,255,0.3)" stroke-width="0.5" stroke-dasharray="3,3"/>
+          <line x1="38" y1="10"  x2="312" y2="10"  stroke="rgba(255,255,255,0.3)" stroke-width="0.5" stroke-dasharray="3,3"/>
+
+          <text x="33" y="293" font-size="8" fill="rgba(255,255,255,0.6)" text-anchor="end">0</text>
+          <text x="33" y="223" font-size="8" fill="rgba(255,255,255,0.6)" text-anchor="end">25</text>
+          <text x="33" y="153" font-size="8" fill="rgba(255,255,255,0.6)" text-anchor="end">50</text>
+          <text x="33" y="83"  font-size="8" fill="rgba(255,255,255,0.6)" text-anchor="end">75</text>
+          <text x="33" y="13"  font-size="8" fill="rgba(255,255,255,0.6)" text-anchor="end">100</text>
+
+          <rect x="50" y="172" width="18" height="118" fill="#5C2D87" rx="1"/>
+          <rect x="72" y="182" width="18" height="108" fill="#A100FF" rx="1"/>
+          <text x="69" y="305" font-size="8" fill="rgba(255,255,255,0.6)" text-anchor="middle">Cloud</text>
+
+          <rect x="117" y="202" width="18" height="88" fill="#5C2D87" rx="1"/>
+          <rect x="139" y="195" width="18" height="95" fill="#A100FF" rx="1"/>
+          <text x="136" y="305" font-size="8" fill="rgba(255,255,255,0.6)" text-anchor="middle">Data/AI</text>
+
+          <rect x="184" y="240" width="18" height="50" fill="#5C2D87" rx="1"/>
+          <rect x="206" y="244" width="18" height="46" fill="#A100FF" rx="1"/>
+          <text x="203" y="305" font-size="8" fill="rgba(255,255,255,0.6)" text-anchor="middle">Cyber</text>
+
+          <rect x="251" y="34" width="18" height="256" fill="#5C2D87" rx="1" opacity="0.7"/>
+          <rect x="273" y="41" width="18" height="249" fill="#A100FF" rx="1" opacity="0.7"/>
+          <text x="270" y="305" font-size="8" fill="rgba(255,255,255,0.6)" text-anchor="middle">Total</text>
+
+          <text x="59" y="169" font-size="7" fill="#C780FF" text-anchor="middle" font-weight="600">42</text>
+          <text x="81" y="179" font-size="7" fill="#A100FF" text-anchor="middle" font-weight="600">38.7</text>
+
+          <text x="126" y="199" font-size="7" fill="#C780FF" text-anchor="middle" font-weight="600">31.5</text>
+          <text x="148" y="192" font-size="7" fill="#A100FF" text-anchor="middle" font-weight="600">33.9</text>
+
+          <text x="193" y="237" font-size="7" fill="#C780FF" text-anchor="middle" font-weight="600">18</text>
+          <text x="215" y="241" font-size="7" fill="#A100FF" text-anchor="middle" font-weight="600">16.4</text>
+
+          <text x="260" y="31" font-size="7" fill="#C780FF" text-anchor="middle" font-weight="600">91.5</text>
+          <text x="282" y="38" font-size="7" fill="#A100FF" text-anchor="middle" font-weight="600">89.0</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Zone Right: Insight column -->
+    <div class="zone zone-right">
+      <div class="zone-header" data-shape-id="zone-3-header">Key Findings</div>
+      <ul class="insight-bullets">
+        <li data-shape-id="insight-1"><strong>Cloud Infra</strong> running 8% under budget — unspent capacity signals delivery slowdown or scope deferral requiring PMO review before Q3.</li>
+        <li data-shape-id="insight-2"><strong>Data & AI overrun</strong> of $2.4M driven by vendor escalations; mitigation plan due by 30 May with executive sign-off.</li>
+        <li data-shape-id="insight-3"><strong>Cyber</strong> tracking favorably; savings of $1.6M available for reallocation to offset Data & AI exposure.</li>
+      </ul>
+      <div class="callout-box">
+        <div class="callout-label" data-shape-id="callout-label">Net Portfolio Variance</div>
+        <div class="callout-number" data-shape-id="callout-value">−$2.5M</div>
+        <div class="callout-sub" data-shape-id="callout-sub">vs $91.5M baseline · within 3% tolerance threshold · escalation not yet required</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span data-shape-id="footer-left">Confidential — Accenture Internal</span>
+    <span data-shape-id="footer-right">Slide Lab · 2026 · 181d</span>
+  </div>
+
+</body>
+</html>

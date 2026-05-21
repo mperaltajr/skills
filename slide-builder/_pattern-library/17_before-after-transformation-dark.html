@@ -1,0 +1,199 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>17 · Before-after transformation</title>
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1280px; height: 720px; background: var(--slide-bg); font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; color: var(--text-dark); overflow: hidden; }
+body { padding: 50px 56px 80px 56px; position: relative; }
+.draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; }
+.project-label { position: absolute; top: 24px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
+
+/* ---- Title block ---- */
+.action-title { position: absolute; left: 56px; right: 56px; top: 28px; min-height: 72px; font-size: 28px; font-weight: 700; line-height: 1.2; max-width: 1050px; }
+.action-title strong { color: var(--brand-primary); }
+.subhead { position: absolute; left: 56px; right: 56px; top: 100px; font-size: 14px; color: var(--text-mid); font-style: italic; }
+.title-rule { position: absolute; left: 56px; top: 128px; width: 40px; height: 3px; background: var(--brand-accent); }
+
+/* ---- Content block: sits close under the title rule, leaves room for convergence ---- */
+.content-block {
+  position: absolute;
+  left: 56px;
+  right: 56px;
+  top: 160px;
+  bottom: 130px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+
+/* ---- Transformation grid: BEFORE 42% — ARROW 16% — AFTER 42% ---- */
+.transformation { display: flex; flex-wrap: wrap; gap: 0; align-items: stretch; }
+
+.panel { padding: 24px 26px; min-height: 340px; display: flex; flex-direction: column; }
+.panel-label { font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+.panel-heading { font-size: 20px; font-weight: 700; line-height: 1.25; margin-bottom: 18px; }
+.panel ul { list-style: none; }
+.panel li { font-size: 13.5px; line-height: 1.5; padding-left: 18px; position: relative; margin-bottom: 12px; }
+.panel li:last-child { margin-bottom: 0; }
+
+/* BEFORE — faded, subordinate */
+.panel.before {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  opacity: 0.82;
+}
+.panel.before .panel-label { color: var(--text-mid); }
+.panel.before .panel-heading { color: var(--text-dark); }
+.panel.before li { color: var(--text-mid); }
+.panel.before li::before { content: ""; width: 6px; height: 6px; background: var(--text-faint); position: absolute; left: 0; top: 8px; }
+
+/* AFTER — focal point, heavier */
+.panel.after {
+  background: var(--brand-primary);
+  color: white;
+  box-shadow: 0 12px 28px -10px rgba(45, 10, 78, 0.45);
+  position: relative;
+  z-index: 2;
+  min-height: 360px;
+  margin-top: -10px;
+}
+.panel.after .panel-label { color: var(--brand-accent-soft); }
+.panel.after .panel-heading { color: white; }
+.panel.after li { color: white; }
+.panel.after li::before { content: ""; width: 8px; height: 8px; background: var(--brand-accent); position: absolute; left: 0; top: 7px; }
+
+/* ARROW column */
+.arrow-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  position: relative;
+}
+.arrow-label-top, .arrow-label-bottom {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--brand-accent);
+  text-align: center;
+}
+.arrow-label-top { margin-bottom: 14px; }
+.arrow-label-bottom { margin-top: 14px; color: var(--text-mid); }
+.arrow-svg { width: 100%; max-width: 150px; height: 64px; display: block; }
+
+/* ---- Convergence line ---- */
+.convergence {
+  position: absolute;
+  left: 56px;
+  right: 56px;
+  bottom: 72px;
+  background: var(--brand-primary);
+  color: white;
+  padding: 14px 22px;
+  font-size: 14px;
+  font-style: italic;
+  font-weight: 500;
+  border-left: 4px solid var(--brand-accent);
+}
+
+/* ---- Footer invariant ---- */
+.footer-rule { position: absolute; left: 0; right: 0; bottom: 32px; height: 1px; background: var(--card-border); }
+.footer-left { position: absolute; bottom: 14px; left: 24px; color: var(--text-faint); font-size: 11px; letter-spacing: 1px; }
+.footer-right { position: absolute; bottom: 14px; right: 24px; color: var(--text-faint); font-size: 11px; }
+
+/* DARK THEME */
+:root {
+  --card-bg: rgba(255,255,255,0.07);
+  --card-border: rgba(255,255,255,0.12);
+  --text-dark: #FFFFFF;
+  --text-mid: rgba(255,255,255,0.6);
+  --text-faint: rgba(255,255,255,0.4);
+  --slide-bg: #2D0A4E;
+}
+body, .slide { background: #2D0A4E; }
+.project-label { color: rgba(255,255,255,0.4); }
+.action-title { position: absolute; left: 56px; right: 56px; top: 28px; min-height: 72px; color: #FFFFFF; }
+.action-title strong { color: #C780FF; }
+.subhead { position: absolute; left: 56px; right: 56px; top: 100px; color: rgba(255,255,255,0.6); }
+.panel.before { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); }
+.panel.before .panel-label { color: rgba(255,255,255,0.5); }
+.panel.before .panel-heading { color: rgba(255,255,255,0.85); }
+.panel.before li { color: rgba(255,255,255,0.6); }
+.panel.before li::before { background: rgba(255,255,255,0.4); }
+.arrow-label-bottom { color: rgba(255,255,255,0.6); }
+.footer-rule { background: rgba(255,255,255,0.1); }
+.footer-left, .footer-right { color: rgba(255,255,255,0.4); }
+</style>
+</head>
+<body>
+
+  <div class="action-title" data-shape-id="title">What changed in <strong>four weeks of pilot</strong>.</div>
+  <div class="subhead" data-shape-id="subtitle">Same teams, same deck volume. Different discipline — and the workflow followed.</div>
+  <div class="title-rule" data-shape-id="brand-rule"></div>
+
+  <div class="content-block">
+    <div class="transformation">
+
+      <div class="panel before">
+        <div class="panel-label" data-shape-id="before-panel-label">Before · Week 0</div>
+        <div class="panel-heading" data-shape-id="before-panel-heading">Disconnected deck workflow</div>
+        <ul data-shape-id="before-panel-body">
+          <li>Slide deck assembled bottom-up from workstream findings</li>
+          <li>Argument lost as bullets compound across review cycles</li>
+          <li>Three rounds of partner edits per deck typical</li>
+          <li>11 days median from kickoff to final</li>
+        </ul>
+      </div>
+
+      <div class="arrow-col">
+        <div class="arrow-label-top" data-shape-id="transformation-arrow-label-top">Pilot</div>
+        <svg class="arrow-svg" data-shape-id="transformation-arrow" viewBox="0 0 150 64" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+          <defs>
+            <linearGradient id="arrowGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+              <stop offset="0%" stop-color="#C780FF"/>
+              <stop offset="100%" stop-color="#A100FF"/>
+            </linearGradient>
+          </defs>
+          <!-- Proper arrow: rectangular shaft (4,22)-(105,42) + spearhead (105,10)(146,32)(105,54) -->
+          <path d="M 4,22 L 105,22 L 105,10 L 146,32 L 105,54 L 105,42 L 4,42 Z" fill="url(#arrowGrad)"/>
+        </svg>
+        <div class="arrow-label-bottom" data-shape-id="transformation-arrow-label-bottom">Weeks 1–4</div>
+      </div>
+
+      <div class="panel after">
+        <div class="panel-label" data-shape-id="after-panel-label">After · Week 4</div>
+        <div class="panel-heading" data-shape-id="after-panel-heading">Structured argument-first workflow</div>
+        <ul data-shape-id="after-panel-body">
+          <li>Governing thought drives the deck structure</li>
+          <li>Each slide carries one argument; reviews sharpen, not pile on</li>
+          <li>One round of partner edits</li>
+          <li>5 days median from kickoff to final</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <div class="convergence" data-shape-id="convergence">The change isn't a tool — it's a discipline. The tool just enforces it.</div>
+  <div class="footer-left" data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+</body>
+</html>

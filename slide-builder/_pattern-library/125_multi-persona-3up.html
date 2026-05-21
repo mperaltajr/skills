@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pattern 125 — Three Personas 3-Up</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary:#2D0A4E;
+    --brand-primary-mid:#5C2D87;
+    --brand-accent:#A100FF;
+    --brand-accent-soft:#C780FF;
+    --text-dark:#1A1A2E;
+    --text-mid:#64748B;
+    --text-faint:#94A3B8;
+    --slide-bg:#FFFFFF;
+    --card-bg:#F8F4FC;
+    --card-border:#E5D5F0;
+    --draft-bg:#FFD600;
+    --draft-text:#B71C1C;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: #4a4a4a;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Inter', sans-serif;
+    margin: 0;
+    padding: 24px;
+    box-sizing: border-box;
+  }
+
+  .slide {
+    width: 1280px;
+    height: 720px;
+    position: relative;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 12px 48px rgba(0,0,0,0.35);
+  }
+
+  /* Top chrome */
+  .top-chrome {
+    position: absolute;
+    top: 24px;
+    left: 24px;
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    z-index: 5;
+  }
+
+  /* DRAFT badge */
+  .draft-badge {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 16px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    z-index: 5;
+  }
+
+  /* Title block */
+  .title-block {
+    position: absolute;
+    top: 48px;
+    left: 48px;
+    right: 48px;
+  }
+
+  .title-block h1 {
+    font-size: 17px;
+    font-weight: 400;
+    color: var(--text-dark);
+    line-height: 1.3;
+  }
+
+  .title-block h1 strong {
+    font-weight: 700;
+    color: var(--brand-primary);
+  }
+
+  .title-block .subheadline {
+    font-size: 11px;
+    color: var(--text-mid);
+    margin-top: 4px;
+  }
+
+  .title-block .accent-rule {
+    margin-top: 8px;
+    height: 3px;
+    width: 48px;
+    background: var(--brand-accent);
+    border-radius: 2px;
+  }
+
+  /* Cards grid */
+  .cards-grid {
+    position: absolute;
+    top: 148px;
+    left: 48px;
+    right: 48px;
+    bottom: 44px;
+    display: flex; flex-wrap: wrap;
+    gap: 16px;
+  }
+
+  /* Individual card */
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-left: 4px solid var(--brand-accent);
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* Avatar row */
+  .avatar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--brand-primary-mid), var(--brand-accent));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.5px;
+  }
+
+  .name-role .name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-dark);
+    line-height: 1.2;
+  }
+
+  .name-role .role {
+    font-size: 11px;
+    color: var(--text-mid);
+    margin-top: 1px;
+  }
+
+  /* Demographic row */
+  .demo-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 8px;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--card-border);
+  }
+
+  .demo-pill {
+    font-size: 9.5px;
+    color: var(--text-mid);
+    background: #ede8f5;
+    border-radius: 3px;
+    padding: 2px 6px;
+    letter-spacing: 0.2px;
+  }
+
+  /* Section header */
+  .section-header {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--brand-accent);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 4px;
+    margin-top: 8px;
+  }
+
+  /* Bullet list */
+  .bullet-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  .bullet-list li {
+    font-size: 10.5px;
+    color: var(--text-dark);
+    line-height: 1.4;
+    padding-left: 10px;
+    position: relative;
+  }
+
+  .bullet-list li::before {
+    content: '·';
+    position: absolute;
+    left: 0;
+    color: var(--brand-accent);
+    font-weight: 700;
+    font-size: 14px;
+    line-height: 1.1;
+  }
+
+  /* Quote */
+  .quote {
+    margin-top: auto;
+    padding-top: 8px;
+    border-top: 1px solid var(--card-border);
+    font-size: 11px;
+    font-style: italic;
+    color: var(--brand-primary-mid);
+    line-height: 1.4;
+  }
+
+  .quote::before {
+    content: '\201C';
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--brand-accent);
+    line-height: 0;
+    vertical-align: -4px;
+    margin-right: 2px;
+  }
+
+  /* Footer */
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    padding: 0 48px;
+    font-size: 9.5px;
+    color: var(--text-faint);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    border-top: 1px solid var(--card-border);
+    background: #FBFAFD;
+  }
+
+  .footer-right {
+    margin-left: auto;
+  }
+</style>
+</head>
+<body>
+<div class="slide">
+
+  <!-- Top chrome -->
+  <div class="top-chrome">Accenture Internal</div>
+
+  <!-- DRAFT badge -->
+
+  <!-- Title block -->
+  <div class="title-block">
+    <h1><strong>Three distinct users, one unified need</strong></h1>
+    <p class="subheadline">Visibility, speed, and reliability across all three personas</p>
+    <div class="accent-rule"></div>
+  </div>
+
+  <!-- Cards grid -->
+  <div class="cards-grid">
+
+    <!-- Card 1: Sarah Chen -->
+    <div class="card">
+      <div class="avatar-row">
+        <div class="avatar">SC</div>
+        <div class="name-role">
+          <div class="name">Sarah Chen</div>
+          <div class="role">VP of Operations</div>
+        </div>
+      </div>
+      <div class="demo-row">
+        <span class="demo-pill">Age 38</span>
+        <span class="demo-pill">New York, NY</span>
+        <span class="demo-pill">VP Operations</span>
+      </div>
+      <div class="section-header">Goals</div>
+      <ul class="bullet-list">
+        <li>Streamline procurement processes</li>
+        <li>Reduce headcount costs</li>
+        <li>Increase vendor compliance</li>
+      </ul>
+      <div class="section-header">Pain Points</div>
+      <ul class="bullet-list">
+        <li>Manual approvals slow everything down</li>
+        <li>No real-time visibility into operations</li>
+        <li>Disconnected systems across business units</li>
+      </ul>
+      <div class="quote">I need one dashboard, not seven.</div>
+    </div>
+
+    <!-- Card 2: Marcus Reid -->
+    <div class="card">
+      <div class="avatar-row">
+        <div class="avatar">MR</div>
+        <div class="name-role">
+          <div class="name">Marcus Reid</div>
+          <div class="role">Finance Director</div>
+        </div>
+      </div>
+      <div class="demo-row">
+        <span class="demo-pill">Age 44</span>
+        <span class="demo-pill">Chicago, IL</span>
+        <span class="demo-pill">Finance Director</span>
+      </div>
+      <div class="section-header">Goals</div>
+      <ul class="bullet-list">
+        <li>Close books faster each period</li>
+        <li>Improve forecast accuracy</li>
+        <li>Reduce audit risk exposure</li>
+      </ul>
+      <div class="section-header">Pain Points</div>
+      <ul class="bullet-list">
+        <li>Spreadsheet hell with no version control</li>
+        <li>Late submissions from business units</li>
+        <li>Incomplete data at close time</li>
+      </ul>
+      <div class="quote">The numbers are always wrong until they're not.</div>
+    </div>
+
+    <!-- Card 3: Priya Sharma -->
+    <div class="card">
+      <div class="avatar-row">
+        <div class="avatar">PS</div>
+        <div class="name-role">
+          <div class="name">Priya Sharma</div>
+          <div class="role">IT Manager</div>
+        </div>
+      </div>
+      <div class="demo-row">
+        <span class="demo-pill">Age 31</span>
+        <span class="demo-pill">Austin, TX</span>
+        <span class="demo-pill">IT Manager</span>
+      </div>
+      <div class="section-header">Goals</div>
+      <ul class="bullet-list">
+        <li>Modernize infrastructure stack</li>
+        <li>Reduce technical debt</li>
+        <li>Enable self-service for end users</li>
+      </ul>
+      <div class="section-header">Pain Points</div>
+      <ul class="bullet-list">
+        <li>Legacy systems block every initiative</li>
+        <li>Shadow IT creates security exposure</li>
+        <li>Insufficient budget for modernization</li>
+      </ul>
+      <div class="quote">My team builds workarounds for workarounds.</div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span>Slide Lab · Confidential · User research</span>
+    <span class="footer-right">125 / 200</span>
+  </div>
+
+</div>
+</body>
+</html>

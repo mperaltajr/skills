@@ -1,0 +1,1457 @@
+<p:grpSp xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+  <p:nvGrpSpPr>
+    <p:cNvPr id="224" name="Group 40">
+      <a:extLst>
+        <a:ext uri="{FF2B5EF4-FFF2-40B4-BE49-F238E27FC236}">
+          <a16:creationId xmlns:a16="http://schemas.microsoft.com/office/drawing/2014/main" id="{31FF1503-B716-4B07-8A5F-0EFC9F098F4E}"/>
+        </a:ext>
+      </a:extLst>
+    </p:cNvPr>
+    <p:cNvGrpSpPr>
+      <a:grpSpLocks noChangeAspect="1"/>
+    </p:cNvGrpSpPr>
+    <p:nvPr/>
+  </p:nvGrpSpPr>
+  <p:grpSpPr bwMode="auto">
+    <a:xfrm>
+      <a:off x="7888291" y="715963"/>
+      <a:ext cx="491836" cy="464127"/>
+      <a:chOff x="4662" y="607"/>
+      <a:chExt cx="426" cy="402"/>
+    </a:xfrm>
+    <a:solidFill>
+      <a:srgbClr val="000000"/>
+    </a:solidFill>
+  </p:grpSpPr>
+  <p:sp>
+    <p:nvSpPr>
+      <p:cNvPr id="225" name="Freeform 41">
+        <a:extLst>
+          <a:ext uri="{FF2B5EF4-FFF2-40B4-BE49-F238E27FC236}">
+            <a16:creationId xmlns:a16="http://schemas.microsoft.com/office/drawing/2014/main" id="{9561F222-A9CE-462C-8C70-9C76519BFC8C}"/>
+          </a:ext>
+        </a:extLst>
+      </p:cNvPr>
+      <p:cNvSpPr>
+        <a:spLocks/>
+      </p:cNvSpPr>
+      <p:nvPr/>
+    </p:nvSpPr>
+    <p:spPr bwMode="auto">
+      <a:xfrm>
+        <a:off x="4662" y="992"/>
+        <a:ext cx="426" cy="17"/>
+      </a:xfrm>
+      <a:custGeom>
+        <a:avLst/>
+        <a:gdLst>
+          <a:gd name="T0" fmla="*/ 282 w 288"/>
+          <a:gd name="T1" fmla="*/ 12 h 12"/>
+          <a:gd name="T2" fmla="*/ 6 w 288"/>
+          <a:gd name="T3" fmla="*/ 12 h 12"/>
+          <a:gd name="T4" fmla="*/ 0 w 288"/>
+          <a:gd name="T5" fmla="*/ 6 h 12"/>
+          <a:gd name="T6" fmla="*/ 6 w 288"/>
+          <a:gd name="T7" fmla="*/ 0 h 12"/>
+          <a:gd name="T8" fmla="*/ 282 w 288"/>
+          <a:gd name="T9" fmla="*/ 0 h 12"/>
+          <a:gd name="T10" fmla="*/ 288 w 288"/>
+          <a:gd name="T11" fmla="*/ 6 h 12"/>
+          <a:gd name="T12" fmla="*/ 282 w 288"/>
+          <a:gd name="T13" fmla="*/ 12 h 12"/>
+        </a:gdLst>
+        <a:ahLst/>
+        <a:cxnLst>
+          <a:cxn ang="0">
+            <a:pos x="T0" y="T1"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T2" y="T3"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T4" y="T5"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T6" y="T7"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T8" y="T9"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T10" y="T11"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T12" y="T13"/>
+          </a:cxn>
+        </a:cxnLst>
+        <a:rect l="0" t="0" r="r" b="b"/>
+        <a:pathLst>
+          <a:path w="288" h="12">
+            <a:moveTo>
+              <a:pt x="282" y="12"/>
+            </a:moveTo>
+            <a:cubicBezTo>
+              <a:pt x="6" y="12"/>
+              <a:pt x="6" y="12"/>
+              <a:pt x="6" y="12"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="3" y="12"/>
+              <a:pt x="0" y="9"/>
+              <a:pt x="0" y="6"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="0" y="2"/>
+              <a:pt x="3" y="0"/>
+              <a:pt x="6" y="0"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="282" y="0"/>
+              <a:pt x="282" y="0"/>
+              <a:pt x="282" y="0"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="286" y="0"/>
+              <a:pt x="288" y="2"/>
+              <a:pt x="288" y="6"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="288" y="9"/>
+              <a:pt x="286" y="12"/>
+              <a:pt x="282" y="12"/>
+            </a:cubicBezTo>
+            <a:close/>
+          </a:path>
+        </a:pathLst>
+      </a:custGeom>
+      <a:grpFill/>
+      <a:ln>
+        <a:noFill/>
+      </a:ln>
+      <a:extLst>
+        <a:ext uri="{91240B29-F687-4F45-9708-019B960494DF}">
+          <a14:hiddenLine xmlns:a14="http://schemas.microsoft.com/office/drawing/2010/main" w="9525">
+            <a:solidFill>
+              <a:srgbClr val="000000"/>
+            </a:solidFill>
+            <a:round/>
+            <a:headEnd/>
+            <a:tailEnd/>
+          </a14:hiddenLine>
+        </a:ext>
+      </a:extLst>
+    </p:spPr>
+    <p:txBody>
+      <a:bodyPr vert="horz" wrap="square" lIns="91440" tIns="45720" rIns="91440" bIns="45720" numCol="1" anchor="t" anchorCtr="0" compatLnSpc="1">
+        <a:prstTxWarp prst="textNoShape">
+          <a:avLst/>
+        </a:prstTxWarp>
+      </a:bodyPr>
+      <a:lstStyle/>
+      <a:p>
+        <a:pPr marL="0" marR="0" lvl="0" indent="0" defTabSz="914400" eaLnBrk="1" fontAlgn="base" latinLnBrk="0" hangingPunct="1">
+          <a:lnSpc>
+            <a:spcPct val="100000"/>
+          </a:lnSpc>
+          <a:spcBef>
+            <a:spcPct val="0"/>
+          </a:spcBef>
+          <a:spcAft>
+            <a:spcPct val="0"/>
+          </a:spcAft>
+          <a:buClrTx/>
+          <a:buSzTx/>
+          <a:buFontTx/>
+          <a:buNone/>
+          <a:tabLst/>
+          <a:defRPr/>
+        </a:pPr>
+        <a:endParaRPr kumimoji="0" lang="en-US" sz="1800" b="0" i="0" u="none" strike="noStrike" kern="0" cap="none" spc="0" normalizeH="0" baseline="0" noProof="0">
+          <a:ln>
+            <a:noFill/>
+          </a:ln>
+          <a:solidFill>
+            <a:schemeClr val="tx2"/>
+          </a:solidFill>
+          <a:effectLst/>
+          <a:uLnTx/>
+          <a:uFillTx/>
+          <a:latin typeface="Graphik" charset="0"/>
+          <a:cs typeface="Arial" charset="0"/>
+        </a:endParaRPr>
+      </a:p>
+    </p:txBody>
+  </p:sp>
+  <p:sp>
+    <p:nvSpPr>
+      <p:cNvPr id="226" name="Freeform 42">
+        <a:extLst>
+          <a:ext uri="{FF2B5EF4-FFF2-40B4-BE49-F238E27FC236}">
+            <a16:creationId xmlns:a16="http://schemas.microsoft.com/office/drawing/2014/main" id="{6DEDF6EF-31C2-4F27-9EFE-9F54135B34F3}"/>
+          </a:ext>
+        </a:extLst>
+      </p:cNvPr>
+      <p:cNvSpPr>
+        <a:spLocks noEditPoints="1"/>
+      </p:cNvSpPr>
+      <p:nvPr/>
+    </p:nvSpPr>
+    <p:spPr bwMode="auto">
+      <a:xfrm>
+        <a:off x="4999" y="940"/>
+        <a:ext cx="71" cy="69"/>
+      </a:xfrm>
+      <a:custGeom>
+        <a:avLst/>
+        <a:gdLst>
+          <a:gd name="T0" fmla="*/ 42 w 48"/>
+          <a:gd name="T1" fmla="*/ 48 h 48"/>
+          <a:gd name="T2" fmla="*/ 6 w 48"/>
+          <a:gd name="T3" fmla="*/ 48 h 48"/>
+          <a:gd name="T4" fmla="*/ 0 w 48"/>
+          <a:gd name="T5" fmla="*/ 42 h 48"/>
+          <a:gd name="T6" fmla="*/ 0 w 48"/>
+          <a:gd name="T7" fmla="*/ 6 h 48"/>
+          <a:gd name="T8" fmla="*/ 6 w 48"/>
+          <a:gd name="T9" fmla="*/ 0 h 48"/>
+          <a:gd name="T10" fmla="*/ 42 w 48"/>
+          <a:gd name="T11" fmla="*/ 0 h 48"/>
+          <a:gd name="T12" fmla="*/ 48 w 48"/>
+          <a:gd name="T13" fmla="*/ 6 h 48"/>
+          <a:gd name="T14" fmla="*/ 48 w 48"/>
+          <a:gd name="T15" fmla="*/ 42 h 48"/>
+          <a:gd name="T16" fmla="*/ 42 w 48"/>
+          <a:gd name="T17" fmla="*/ 48 h 48"/>
+          <a:gd name="T18" fmla="*/ 12 w 48"/>
+          <a:gd name="T19" fmla="*/ 36 h 48"/>
+          <a:gd name="T20" fmla="*/ 36 w 48"/>
+          <a:gd name="T21" fmla="*/ 36 h 48"/>
+          <a:gd name="T22" fmla="*/ 36 w 48"/>
+          <a:gd name="T23" fmla="*/ 12 h 48"/>
+          <a:gd name="T24" fmla="*/ 12 w 48"/>
+          <a:gd name="T25" fmla="*/ 12 h 48"/>
+          <a:gd name="T26" fmla="*/ 12 w 48"/>
+          <a:gd name="T27" fmla="*/ 36 h 48"/>
+        </a:gdLst>
+        <a:ahLst/>
+        <a:cxnLst>
+          <a:cxn ang="0">
+            <a:pos x="T0" y="T1"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T2" y="T3"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T4" y="T5"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T6" y="T7"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T8" y="T9"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T10" y="T11"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T12" y="T13"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T14" y="T15"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T16" y="T17"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T18" y="T19"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T20" y="T21"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T22" y="T23"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T24" y="T25"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T26" y="T27"/>
+          </a:cxn>
+        </a:cxnLst>
+        <a:rect l="0" t="0" r="r" b="b"/>
+        <a:pathLst>
+          <a:path w="48" h="48">
+            <a:moveTo>
+              <a:pt x="42" y="48"/>
+            </a:moveTo>
+            <a:cubicBezTo>
+              <a:pt x="6" y="48"/>
+              <a:pt x="6" y="48"/>
+              <a:pt x="6" y="48"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="3" y="48"/>
+              <a:pt x="0" y="45"/>
+              <a:pt x="0" y="42"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="0" y="6"/>
+              <a:pt x="0" y="6"/>
+              <a:pt x="0" y="6"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="0" y="2"/>
+              <a:pt x="3" y="0"/>
+              <a:pt x="6" y="0"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="42" y="0"/>
+              <a:pt x="42" y="0"/>
+              <a:pt x="42" y="0"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="46" y="0"/>
+              <a:pt x="48" y="2"/>
+              <a:pt x="48" y="6"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="48" y="42"/>
+              <a:pt x="48" y="42"/>
+              <a:pt x="48" y="42"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="48" y="45"/>
+              <a:pt x="46" y="48"/>
+              <a:pt x="42" y="48"/>
+            </a:cubicBezTo>
+            <a:close/>
+            <a:moveTo>
+              <a:pt x="12" y="36"/>
+            </a:moveTo>
+            <a:cubicBezTo>
+              <a:pt x="36" y="36"/>
+              <a:pt x="36" y="36"/>
+              <a:pt x="36" y="36"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="36" y="12"/>
+              <a:pt x="36" y="12"/>
+              <a:pt x="36" y="12"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="12" y="12"/>
+              <a:pt x="12" y="12"/>
+              <a:pt x="12" y="12"/>
+            </a:cubicBezTo>
+            <a:lnTo>
+              <a:pt x="12" y="36"/>
+            </a:lnTo>
+            <a:close/>
+          </a:path>
+        </a:pathLst>
+      </a:custGeom>
+      <a:grpFill/>
+      <a:ln>
+        <a:noFill/>
+      </a:ln>
+      <a:extLst>
+        <a:ext uri="{91240B29-F687-4F45-9708-019B960494DF}">
+          <a14:hiddenLine xmlns:a14="http://schemas.microsoft.com/office/drawing/2010/main" w="9525">
+            <a:solidFill>
+              <a:srgbClr val="000000"/>
+            </a:solidFill>
+            <a:round/>
+            <a:headEnd/>
+            <a:tailEnd/>
+          </a14:hiddenLine>
+        </a:ext>
+      </a:extLst>
+    </p:spPr>
+    <p:txBody>
+      <a:bodyPr vert="horz" wrap="square" lIns="91440" tIns="45720" rIns="91440" bIns="45720" numCol="1" anchor="t" anchorCtr="0" compatLnSpc="1">
+        <a:prstTxWarp prst="textNoShape">
+          <a:avLst/>
+        </a:prstTxWarp>
+      </a:bodyPr>
+      <a:lstStyle/>
+      <a:p>
+        <a:pPr marL="0" marR="0" lvl="0" indent="0" defTabSz="914400" eaLnBrk="1" fontAlgn="base" latinLnBrk="0" hangingPunct="1">
+          <a:lnSpc>
+            <a:spcPct val="100000"/>
+          </a:lnSpc>
+          <a:spcBef>
+            <a:spcPct val="0"/>
+          </a:spcBef>
+          <a:spcAft>
+            <a:spcPct val="0"/>
+          </a:spcAft>
+          <a:buClrTx/>
+          <a:buSzTx/>
+          <a:buFontTx/>
+          <a:buNone/>
+          <a:tabLst/>
+          <a:defRPr/>
+        </a:pPr>
+        <a:endParaRPr kumimoji="0" lang="en-US" sz="1800" b="0" i="0" u="none" strike="noStrike" kern="0" cap="none" spc="0" normalizeH="0" baseline="0" noProof="0">
+          <a:ln>
+            <a:noFill/>
+          </a:ln>
+          <a:solidFill>
+            <a:schemeClr val="tx2"/>
+          </a:solidFill>
+          <a:effectLst/>
+          <a:uLnTx/>
+          <a:uFillTx/>
+          <a:latin typeface="Graphik" charset="0"/>
+          <a:cs typeface="Arial" charset="0"/>
+        </a:endParaRPr>
+      </a:p>
+    </p:txBody>
+  </p:sp>
+  <p:sp>
+    <p:nvSpPr>
+      <p:cNvPr id="227" name="Freeform 43">
+        <a:extLst>
+          <a:ext uri="{FF2B5EF4-FFF2-40B4-BE49-F238E27FC236}">
+            <a16:creationId xmlns:a16="http://schemas.microsoft.com/office/drawing/2014/main" id="{A3F3EE41-6060-47A0-9033-BEE26CE0D1D4}"/>
+          </a:ext>
+        </a:extLst>
+      </p:cNvPr>
+      <p:cNvSpPr>
+        <a:spLocks noEditPoints="1"/>
+      </p:cNvSpPr>
+      <p:nvPr/>
+    </p:nvSpPr>
+    <p:spPr bwMode="auto">
+      <a:xfrm>
+        <a:off x="4893" y="870"/>
+        <a:ext cx="71" cy="139"/>
+      </a:xfrm>
+      <a:custGeom>
+        <a:avLst/>
+        <a:gdLst>
+          <a:gd name="T0" fmla="*/ 42 w 48"/>
+          <a:gd name="T1" fmla="*/ 96 h 96"/>
+          <a:gd name="T2" fmla="*/ 6 w 48"/>
+          <a:gd name="T3" fmla="*/ 96 h 96"/>
+          <a:gd name="T4" fmla="*/ 0 w 48"/>
+          <a:gd name="T5" fmla="*/ 90 h 96"/>
+          <a:gd name="T6" fmla="*/ 0 w 48"/>
+          <a:gd name="T7" fmla="*/ 6 h 96"/>
+          <a:gd name="T8" fmla="*/ 6 w 48"/>
+          <a:gd name="T9" fmla="*/ 0 h 96"/>
+          <a:gd name="T10" fmla="*/ 42 w 48"/>
+          <a:gd name="T11" fmla="*/ 0 h 96"/>
+          <a:gd name="T12" fmla="*/ 48 w 48"/>
+          <a:gd name="T13" fmla="*/ 6 h 96"/>
+          <a:gd name="T14" fmla="*/ 48 w 48"/>
+          <a:gd name="T15" fmla="*/ 90 h 96"/>
+          <a:gd name="T16" fmla="*/ 42 w 48"/>
+          <a:gd name="T17" fmla="*/ 96 h 96"/>
+          <a:gd name="T18" fmla="*/ 12 w 48"/>
+          <a:gd name="T19" fmla="*/ 84 h 96"/>
+          <a:gd name="T20" fmla="*/ 36 w 48"/>
+          <a:gd name="T21" fmla="*/ 84 h 96"/>
+          <a:gd name="T22" fmla="*/ 36 w 48"/>
+          <a:gd name="T23" fmla="*/ 12 h 96"/>
+          <a:gd name="T24" fmla="*/ 12 w 48"/>
+          <a:gd name="T25" fmla="*/ 12 h 96"/>
+          <a:gd name="T26" fmla="*/ 12 w 48"/>
+          <a:gd name="T27" fmla="*/ 84 h 96"/>
+        </a:gdLst>
+        <a:ahLst/>
+        <a:cxnLst>
+          <a:cxn ang="0">
+            <a:pos x="T0" y="T1"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T2" y="T3"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T4" y="T5"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T6" y="T7"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T8" y="T9"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T10" y="T11"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T12" y="T13"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T14" y="T15"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T16" y="T17"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T18" y="T19"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T20" y="T21"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T22" y="T23"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T24" y="T25"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T26" y="T27"/>
+          </a:cxn>
+        </a:cxnLst>
+        <a:rect l="0" t="0" r="r" b="b"/>
+        <a:pathLst>
+          <a:path w="48" h="96">
+            <a:moveTo>
+              <a:pt x="42" y="96"/>
+            </a:moveTo>
+            <a:cubicBezTo>
+              <a:pt x="6" y="96"/>
+              <a:pt x="6" y="96"/>
+              <a:pt x="6" y="96"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="3" y="96"/>
+              <a:pt x="0" y="93"/>
+              <a:pt x="0" y="90"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="0" y="6"/>
+              <a:pt x="0" y="6"/>
+              <a:pt x="0" y="6"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="0" y="2"/>
+              <a:pt x="3" y="0"/>
+              <a:pt x="6" y="0"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="42" y="0"/>
+              <a:pt x="42" y="0"/>
+              <a:pt x="42" y="0"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="46" y="0"/>
+              <a:pt x="48" y="2"/>
+              <a:pt x="48" y="6"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="48" y="90"/>
+              <a:pt x="48" y="90"/>
+              <a:pt x="48" y="90"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="48" y="93"/>
+              <a:pt x="46" y="96"/>
+              <a:pt x="42" y="96"/>
+            </a:cubicBezTo>
+            <a:close/>
+            <a:moveTo>
+              <a:pt x="12" y="84"/>
+            </a:moveTo>
+            <a:cubicBezTo>
+              <a:pt x="36" y="84"/>
+              <a:pt x="36" y="84"/>
+              <a:pt x="36" y="84"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="36" y="12"/>
+              <a:pt x="36" y="12"/>
+              <a:pt x="36" y="12"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="12" y="12"/>
+              <a:pt x="12" y="12"/>
+              <a:pt x="12" y="12"/>
+            </a:cubicBezTo>
+            <a:lnTo>
+              <a:pt x="12" y="84"/>
+            </a:lnTo>
+            <a:close/>
+          </a:path>
+        </a:pathLst>
+      </a:custGeom>
+      <a:grpFill/>
+      <a:ln>
+        <a:noFill/>
+      </a:ln>
+      <a:extLst>
+        <a:ext uri="{91240B29-F687-4F45-9708-019B960494DF}">
+          <a14:hiddenLine xmlns:a14="http://schemas.microsoft.com/office/drawing/2010/main" w="9525">
+            <a:solidFill>
+              <a:srgbClr val="000000"/>
+            </a:solidFill>
+            <a:round/>
+            <a:headEnd/>
+            <a:tailEnd/>
+          </a14:hiddenLine>
+        </a:ext>
+      </a:extLst>
+    </p:spPr>
+    <p:txBody>
+      <a:bodyPr vert="horz" wrap="square" lIns="91440" tIns="45720" rIns="91440" bIns="45720" numCol="1" anchor="t" anchorCtr="0" compatLnSpc="1">
+        <a:prstTxWarp prst="textNoShape">
+          <a:avLst/>
+        </a:prstTxWarp>
+      </a:bodyPr>
+      <a:lstStyle/>
+      <a:p>
+        <a:pPr marL="0" marR="0" lvl="0" indent="0" defTabSz="914400" eaLnBrk="1" fontAlgn="base" latinLnBrk="0" hangingPunct="1">
+          <a:lnSpc>
+            <a:spcPct val="100000"/>
+          </a:lnSpc>
+          <a:spcBef>
+            <a:spcPct val="0"/>
+          </a:spcBef>
+          <a:spcAft>
+            <a:spcPct val="0"/>
+          </a:spcAft>
+          <a:buClrTx/>
+          <a:buSzTx/>
+          <a:buFontTx/>
+          <a:buNone/>
+          <a:tabLst/>
+          <a:defRPr/>
+        </a:pPr>
+        <a:endParaRPr kumimoji="0" lang="en-US" sz="1800" b="0" i="0" u="none" strike="noStrike" kern="0" cap="none" spc="0" normalizeH="0" baseline="0" noProof="0">
+          <a:ln>
+            <a:noFill/>
+          </a:ln>
+          <a:solidFill>
+            <a:schemeClr val="tx2"/>
+          </a:solidFill>
+          <a:effectLst/>
+          <a:uLnTx/>
+          <a:uFillTx/>
+          <a:latin typeface="Graphik" charset="0"/>
+          <a:cs typeface="Arial" charset="0"/>
+        </a:endParaRPr>
+      </a:p>
+    </p:txBody>
+  </p:sp>
+  <p:sp>
+    <p:nvSpPr>
+      <p:cNvPr id="228" name="Freeform 44">
+        <a:extLst>
+          <a:ext uri="{FF2B5EF4-FFF2-40B4-BE49-F238E27FC236}">
+            <a16:creationId xmlns:a16="http://schemas.microsoft.com/office/drawing/2014/main" id="{099A7453-9FF9-448E-A721-6D6BC816AEB0}"/>
+          </a:ext>
+        </a:extLst>
+      </p:cNvPr>
+      <p:cNvSpPr>
+        <a:spLocks noEditPoints="1"/>
+      </p:cNvSpPr>
+      <p:nvPr/>
+    </p:nvSpPr>
+    <p:spPr bwMode="auto">
+      <a:xfrm>
+        <a:off x="4786" y="801"/>
+        <a:ext cx="71" cy="208"/>
+      </a:xfrm>
+      <a:custGeom>
+        <a:avLst/>
+        <a:gdLst>
+          <a:gd name="T0" fmla="*/ 42 w 48"/>
+          <a:gd name="T1" fmla="*/ 144 h 144"/>
+          <a:gd name="T2" fmla="*/ 6 w 48"/>
+          <a:gd name="T3" fmla="*/ 144 h 144"/>
+          <a:gd name="T4" fmla="*/ 0 w 48"/>
+          <a:gd name="T5" fmla="*/ 138 h 144"/>
+          <a:gd name="T6" fmla="*/ 0 w 48"/>
+          <a:gd name="T7" fmla="*/ 6 h 144"/>
+          <a:gd name="T8" fmla="*/ 6 w 48"/>
+          <a:gd name="T9" fmla="*/ 0 h 144"/>
+          <a:gd name="T10" fmla="*/ 42 w 48"/>
+          <a:gd name="T11" fmla="*/ 0 h 144"/>
+          <a:gd name="T12" fmla="*/ 48 w 48"/>
+          <a:gd name="T13" fmla="*/ 6 h 144"/>
+          <a:gd name="T14" fmla="*/ 48 w 48"/>
+          <a:gd name="T15" fmla="*/ 138 h 144"/>
+          <a:gd name="T16" fmla="*/ 42 w 48"/>
+          <a:gd name="T17" fmla="*/ 144 h 144"/>
+          <a:gd name="T18" fmla="*/ 12 w 48"/>
+          <a:gd name="T19" fmla="*/ 132 h 144"/>
+          <a:gd name="T20" fmla="*/ 36 w 48"/>
+          <a:gd name="T21" fmla="*/ 132 h 144"/>
+          <a:gd name="T22" fmla="*/ 36 w 48"/>
+          <a:gd name="T23" fmla="*/ 12 h 144"/>
+          <a:gd name="T24" fmla="*/ 12 w 48"/>
+          <a:gd name="T25" fmla="*/ 12 h 144"/>
+          <a:gd name="T26" fmla="*/ 12 w 48"/>
+          <a:gd name="T27" fmla="*/ 132 h 144"/>
+        </a:gdLst>
+        <a:ahLst/>
+        <a:cxnLst>
+          <a:cxn ang="0">
+            <a:pos x="T0" y="T1"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T2" y="T3"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T4" y="T5"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T6" y="T7"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T8" y="T9"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T10" y="T11"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T12" y="T13"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T14" y="T15"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T16" y="T17"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T18" y="T19"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T20" y="T21"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T22" y="T23"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T24" y="T25"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T26" y="T27"/>
+          </a:cxn>
+        </a:cxnLst>
+        <a:rect l="0" t="0" r="r" b="b"/>
+        <a:pathLst>
+          <a:path w="48" h="144">
+            <a:moveTo>
+              <a:pt x="42" y="144"/>
+            </a:moveTo>
+            <a:cubicBezTo>
+              <a:pt x="6" y="144"/>
+              <a:pt x="6" y="144"/>
+              <a:pt x="6" y="144"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="3" y="144"/>
+              <a:pt x="0" y="141"/>
+              <a:pt x="0" y="138"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="0" y="6"/>
+              <a:pt x="0" y="6"/>
+              <a:pt x="0" y="6"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="0" y="2"/>
+              <a:pt x="3" y="0"/>
+              <a:pt x="6" y="0"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="42" y="0"/>
+              <a:pt x="42" y="0"/>
+              <a:pt x="42" y="0"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="46" y="0"/>
+              <a:pt x="48" y="2"/>
+              <a:pt x="48" y="6"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="48" y="138"/>
+              <a:pt x="48" y="138"/>
+              <a:pt x="48" y="138"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="48" y="141"/>
+              <a:pt x="46" y="144"/>
+              <a:pt x="42" y="144"/>
+            </a:cubicBezTo>
+            <a:close/>
+            <a:moveTo>
+              <a:pt x="12" y="132"/>
+            </a:moveTo>
+            <a:cubicBezTo>
+              <a:pt x="36" y="132"/>
+              <a:pt x="36" y="132"/>
+              <a:pt x="36" y="132"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="36" y="12"/>
+              <a:pt x="36" y="12"/>
+              <a:pt x="36" y="12"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="12" y="12"/>
+              <a:pt x="12" y="12"/>
+              <a:pt x="12" y="12"/>
+            </a:cubicBezTo>
+            <a:lnTo>
+              <a:pt x="12" y="132"/>
+            </a:lnTo>
+            <a:close/>
+          </a:path>
+        </a:pathLst>
+      </a:custGeom>
+      <a:grpFill/>
+      <a:ln>
+        <a:noFill/>
+      </a:ln>
+      <a:extLst>
+        <a:ext uri="{91240B29-F687-4F45-9708-019B960494DF}">
+          <a14:hiddenLine xmlns:a14="http://schemas.microsoft.com/office/drawing/2010/main" w="9525">
+            <a:solidFill>
+              <a:srgbClr val="000000"/>
+            </a:solidFill>
+            <a:round/>
+            <a:headEnd/>
+            <a:tailEnd/>
+          </a14:hiddenLine>
+        </a:ext>
+      </a:extLst>
+    </p:spPr>
+    <p:txBody>
+      <a:bodyPr vert="horz" wrap="square" lIns="91440" tIns="45720" rIns="91440" bIns="45720" numCol="1" anchor="t" anchorCtr="0" compatLnSpc="1">
+        <a:prstTxWarp prst="textNoShape">
+          <a:avLst/>
+        </a:prstTxWarp>
+      </a:bodyPr>
+      <a:lstStyle/>
+      <a:p>
+        <a:pPr marL="0" marR="0" lvl="0" indent="0" defTabSz="914400" eaLnBrk="1" fontAlgn="base" latinLnBrk="0" hangingPunct="1">
+          <a:lnSpc>
+            <a:spcPct val="100000"/>
+          </a:lnSpc>
+          <a:spcBef>
+            <a:spcPct val="0"/>
+          </a:spcBef>
+          <a:spcAft>
+            <a:spcPct val="0"/>
+          </a:spcAft>
+          <a:buClrTx/>
+          <a:buSzTx/>
+          <a:buFontTx/>
+          <a:buNone/>
+          <a:tabLst/>
+          <a:defRPr/>
+        </a:pPr>
+        <a:endParaRPr kumimoji="0" lang="en-US" sz="1800" b="0" i="0" u="none" strike="noStrike" kern="0" cap="none" spc="0" normalizeH="0" baseline="0" noProof="0">
+          <a:ln>
+            <a:noFill/>
+          </a:ln>
+          <a:solidFill>
+            <a:schemeClr val="tx2"/>
+          </a:solidFill>
+          <a:effectLst/>
+          <a:uLnTx/>
+          <a:uFillTx/>
+          <a:latin typeface="Graphik" charset="0"/>
+          <a:cs typeface="Arial" charset="0"/>
+        </a:endParaRPr>
+      </a:p>
+    </p:txBody>
+  </p:sp>
+  <p:sp>
+    <p:nvSpPr>
+      <p:cNvPr id="229" name="Freeform 45">
+        <a:extLst>
+          <a:ext uri="{FF2B5EF4-FFF2-40B4-BE49-F238E27FC236}">
+            <a16:creationId xmlns:a16="http://schemas.microsoft.com/office/drawing/2014/main" id="{53920290-E50C-4836-A26B-9AEB06935BFD}"/>
+          </a:ext>
+        </a:extLst>
+      </p:cNvPr>
+      <p:cNvSpPr>
+        <a:spLocks noEditPoints="1"/>
+      </p:cNvSpPr>
+      <p:nvPr/>
+    </p:nvSpPr>
+    <p:spPr bwMode="auto">
+      <a:xfrm>
+        <a:off x="4680" y="732"/>
+        <a:ext cx="71" cy="277"/>
+      </a:xfrm>
+      <a:custGeom>
+        <a:avLst/>
+        <a:gdLst>
+          <a:gd name="T0" fmla="*/ 42 w 48"/>
+          <a:gd name="T1" fmla="*/ 192 h 192"/>
+          <a:gd name="T2" fmla="*/ 6 w 48"/>
+          <a:gd name="T3" fmla="*/ 192 h 192"/>
+          <a:gd name="T4" fmla="*/ 0 w 48"/>
+          <a:gd name="T5" fmla="*/ 186 h 192"/>
+          <a:gd name="T6" fmla="*/ 0 w 48"/>
+          <a:gd name="T7" fmla="*/ 6 h 192"/>
+          <a:gd name="T8" fmla="*/ 6 w 48"/>
+          <a:gd name="T9" fmla="*/ 0 h 192"/>
+          <a:gd name="T10" fmla="*/ 42 w 48"/>
+          <a:gd name="T11" fmla="*/ 0 h 192"/>
+          <a:gd name="T12" fmla="*/ 48 w 48"/>
+          <a:gd name="T13" fmla="*/ 6 h 192"/>
+          <a:gd name="T14" fmla="*/ 48 w 48"/>
+          <a:gd name="T15" fmla="*/ 186 h 192"/>
+          <a:gd name="T16" fmla="*/ 42 w 48"/>
+          <a:gd name="T17" fmla="*/ 192 h 192"/>
+          <a:gd name="T18" fmla="*/ 12 w 48"/>
+          <a:gd name="T19" fmla="*/ 180 h 192"/>
+          <a:gd name="T20" fmla="*/ 36 w 48"/>
+          <a:gd name="T21" fmla="*/ 180 h 192"/>
+          <a:gd name="T22" fmla="*/ 36 w 48"/>
+          <a:gd name="T23" fmla="*/ 12 h 192"/>
+          <a:gd name="T24" fmla="*/ 12 w 48"/>
+          <a:gd name="T25" fmla="*/ 12 h 192"/>
+          <a:gd name="T26" fmla="*/ 12 w 48"/>
+          <a:gd name="T27" fmla="*/ 180 h 192"/>
+        </a:gdLst>
+        <a:ahLst/>
+        <a:cxnLst>
+          <a:cxn ang="0">
+            <a:pos x="T0" y="T1"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T2" y="T3"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T4" y="T5"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T6" y="T7"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T8" y="T9"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T10" y="T11"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T12" y="T13"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T14" y="T15"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T16" y="T17"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T18" y="T19"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T20" y="T21"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T22" y="T23"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T24" y="T25"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T26" y="T27"/>
+          </a:cxn>
+        </a:cxnLst>
+        <a:rect l="0" t="0" r="r" b="b"/>
+        <a:pathLst>
+          <a:path w="48" h="192">
+            <a:moveTo>
+              <a:pt x="42" y="192"/>
+            </a:moveTo>
+            <a:cubicBezTo>
+              <a:pt x="6" y="192"/>
+              <a:pt x="6" y="192"/>
+              <a:pt x="6" y="192"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="3" y="192"/>
+              <a:pt x="0" y="189"/>
+              <a:pt x="0" y="186"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="0" y="6"/>
+              <a:pt x="0" y="6"/>
+              <a:pt x="0" y="6"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="0" y="2"/>
+              <a:pt x="3" y="0"/>
+              <a:pt x="6" y="0"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="42" y="0"/>
+              <a:pt x="42" y="0"/>
+              <a:pt x="42" y="0"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="46" y="0"/>
+              <a:pt x="48" y="2"/>
+              <a:pt x="48" y="6"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="48" y="186"/>
+              <a:pt x="48" y="186"/>
+              <a:pt x="48" y="186"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="48" y="189"/>
+              <a:pt x="46" y="192"/>
+              <a:pt x="42" y="192"/>
+            </a:cubicBezTo>
+            <a:close/>
+            <a:moveTo>
+              <a:pt x="12" y="180"/>
+            </a:moveTo>
+            <a:cubicBezTo>
+              <a:pt x="36" y="180"/>
+              <a:pt x="36" y="180"/>
+              <a:pt x="36" y="180"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="36" y="12"/>
+              <a:pt x="36" y="12"/>
+              <a:pt x="36" y="12"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="12" y="12"/>
+              <a:pt x="12" y="12"/>
+              <a:pt x="12" y="12"/>
+            </a:cubicBezTo>
+            <a:lnTo>
+              <a:pt x="12" y="180"/>
+            </a:lnTo>
+            <a:close/>
+          </a:path>
+        </a:pathLst>
+      </a:custGeom>
+      <a:grpFill/>
+      <a:ln>
+        <a:noFill/>
+      </a:ln>
+      <a:extLst>
+        <a:ext uri="{91240B29-F687-4F45-9708-019B960494DF}">
+          <a14:hiddenLine xmlns:a14="http://schemas.microsoft.com/office/drawing/2010/main" w="9525">
+            <a:solidFill>
+              <a:srgbClr val="000000"/>
+            </a:solidFill>
+            <a:round/>
+            <a:headEnd/>
+            <a:tailEnd/>
+          </a14:hiddenLine>
+        </a:ext>
+      </a:extLst>
+    </p:spPr>
+    <p:txBody>
+      <a:bodyPr vert="horz" wrap="square" lIns="91440" tIns="45720" rIns="91440" bIns="45720" numCol="1" anchor="t" anchorCtr="0" compatLnSpc="1">
+        <a:prstTxWarp prst="textNoShape">
+          <a:avLst/>
+        </a:prstTxWarp>
+      </a:bodyPr>
+      <a:lstStyle/>
+      <a:p>
+        <a:pPr marL="0" marR="0" lvl="0" indent="0" defTabSz="914400" eaLnBrk="1" fontAlgn="base" latinLnBrk="0" hangingPunct="1">
+          <a:lnSpc>
+            <a:spcPct val="100000"/>
+          </a:lnSpc>
+          <a:spcBef>
+            <a:spcPct val="0"/>
+          </a:spcBef>
+          <a:spcAft>
+            <a:spcPct val="0"/>
+          </a:spcAft>
+          <a:buClrTx/>
+          <a:buSzTx/>
+          <a:buFontTx/>
+          <a:buNone/>
+          <a:tabLst/>
+          <a:defRPr/>
+        </a:pPr>
+        <a:endParaRPr kumimoji="0" lang="en-US" sz="1800" b="0" i="0" u="none" strike="noStrike" kern="0" cap="none" spc="0" normalizeH="0" baseline="0" noProof="0">
+          <a:ln>
+            <a:noFill/>
+          </a:ln>
+          <a:solidFill>
+            <a:schemeClr val="tx2"/>
+          </a:solidFill>
+          <a:effectLst/>
+          <a:uLnTx/>
+          <a:uFillTx/>
+          <a:latin typeface="Graphik" charset="0"/>
+          <a:cs typeface="Arial" charset="0"/>
+        </a:endParaRPr>
+      </a:p>
+    </p:txBody>
+  </p:sp>
+  <p:sp>
+    <p:nvSpPr>
+      <p:cNvPr id="230" name="Freeform 46">
+        <a:extLst>
+          <a:ext uri="{FF2B5EF4-FFF2-40B4-BE49-F238E27FC236}">
+            <a16:creationId xmlns:a16="http://schemas.microsoft.com/office/drawing/2014/main" id="{599EE0D2-8AD2-4ED6-828A-F4E9F608E7C3}"/>
+          </a:ext>
+        </a:extLst>
+      </p:cNvPr>
+      <p:cNvSpPr>
+        <a:spLocks/>
+      </p:cNvSpPr>
+      <p:nvPr/>
+    </p:nvSpPr>
+    <p:spPr bwMode="auto">
+      <a:xfrm>
+        <a:off x="4705" y="607"/>
+        <a:ext cx="340" cy="227"/>
+      </a:xfrm>
+      <a:custGeom>
+        <a:avLst/>
+        <a:gdLst>
+          <a:gd name="T0" fmla="*/ 223 w 230"/>
+          <a:gd name="T1" fmla="*/ 157 h 157"/>
+          <a:gd name="T2" fmla="*/ 220 w 230"/>
+          <a:gd name="T3" fmla="*/ 156 h 157"/>
+          <a:gd name="T4" fmla="*/ 4 w 230"/>
+          <a:gd name="T5" fmla="*/ 12 h 157"/>
+          <a:gd name="T6" fmla="*/ 2 w 230"/>
+          <a:gd name="T7" fmla="*/ 4 h 157"/>
+          <a:gd name="T8" fmla="*/ 11 w 230"/>
+          <a:gd name="T9" fmla="*/ 2 h 157"/>
+          <a:gd name="T10" fmla="*/ 227 w 230"/>
+          <a:gd name="T11" fmla="*/ 146 h 157"/>
+          <a:gd name="T12" fmla="*/ 228 w 230"/>
+          <a:gd name="T13" fmla="*/ 155 h 157"/>
+          <a:gd name="T14" fmla="*/ 223 w 230"/>
+          <a:gd name="T15" fmla="*/ 157 h 157"/>
+        </a:gdLst>
+        <a:ahLst/>
+        <a:cxnLst>
+          <a:cxn ang="0">
+            <a:pos x="T0" y="T1"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T2" y="T3"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T4" y="T5"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T6" y="T7"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T8" y="T9"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T10" y="T11"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T12" y="T13"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T14" y="T15"/>
+          </a:cxn>
+        </a:cxnLst>
+        <a:rect l="0" t="0" r="r" b="b"/>
+        <a:pathLst>
+          <a:path w="230" h="157">
+            <a:moveTo>
+              <a:pt x="223" y="157"/>
+            </a:moveTo>
+            <a:cubicBezTo>
+              <a:pt x="222" y="157"/>
+              <a:pt x="221" y="157"/>
+              <a:pt x="220" y="156"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="4" y="12"/>
+              <a:pt x="4" y="12"/>
+              <a:pt x="4" y="12"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="1" y="10"/>
+              <a:pt x="0" y="7"/>
+              <a:pt x="2" y="4"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="4" y="1"/>
+              <a:pt x="8" y="0"/>
+              <a:pt x="11" y="2"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="227" y="146"/>
+              <a:pt x="227" y="146"/>
+              <a:pt x="227" y="146"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="229" y="148"/>
+              <a:pt x="230" y="152"/>
+              <a:pt x="228" y="155"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="227" y="156"/>
+              <a:pt x="225" y="157"/>
+              <a:pt x="223" y="157"/>
+            </a:cubicBezTo>
+            <a:close/>
+          </a:path>
+        </a:pathLst>
+      </a:custGeom>
+      <a:grpFill/>
+      <a:ln>
+        <a:noFill/>
+      </a:ln>
+      <a:extLst>
+        <a:ext uri="{91240B29-F687-4F45-9708-019B960494DF}">
+          <a14:hiddenLine xmlns:a14="http://schemas.microsoft.com/office/drawing/2010/main" w="9525">
+            <a:solidFill>
+              <a:srgbClr val="000000"/>
+            </a:solidFill>
+            <a:round/>
+            <a:headEnd/>
+            <a:tailEnd/>
+          </a14:hiddenLine>
+        </a:ext>
+      </a:extLst>
+    </p:spPr>
+    <p:txBody>
+      <a:bodyPr vert="horz" wrap="square" lIns="91440" tIns="45720" rIns="91440" bIns="45720" numCol="1" anchor="t" anchorCtr="0" compatLnSpc="1">
+        <a:prstTxWarp prst="textNoShape">
+          <a:avLst/>
+        </a:prstTxWarp>
+      </a:bodyPr>
+      <a:lstStyle/>
+      <a:p>
+        <a:pPr marL="0" marR="0" lvl="0" indent="0" defTabSz="914400" eaLnBrk="1" fontAlgn="base" latinLnBrk="0" hangingPunct="1">
+          <a:lnSpc>
+            <a:spcPct val="100000"/>
+          </a:lnSpc>
+          <a:spcBef>
+            <a:spcPct val="0"/>
+          </a:spcBef>
+          <a:spcAft>
+            <a:spcPct val="0"/>
+          </a:spcAft>
+          <a:buClrTx/>
+          <a:buSzTx/>
+          <a:buFontTx/>
+          <a:buNone/>
+          <a:tabLst/>
+          <a:defRPr/>
+        </a:pPr>
+        <a:endParaRPr kumimoji="0" lang="en-US" sz="1800" b="0" i="0" u="none" strike="noStrike" kern="0" cap="none" spc="0" normalizeH="0" baseline="0" noProof="0">
+          <a:ln>
+            <a:noFill/>
+          </a:ln>
+          <a:solidFill>
+            <a:schemeClr val="tx2"/>
+          </a:solidFill>
+          <a:effectLst/>
+          <a:uLnTx/>
+          <a:uFillTx/>
+          <a:latin typeface="Graphik" charset="0"/>
+          <a:cs typeface="Arial" charset="0"/>
+        </a:endParaRPr>
+      </a:p>
+    </p:txBody>
+  </p:sp>
+  <p:sp>
+    <p:nvSpPr>
+      <p:cNvPr id="231" name="Freeform 47">
+        <a:extLst>
+          <a:ext uri="{FF2B5EF4-FFF2-40B4-BE49-F238E27FC236}">
+            <a16:creationId xmlns:a16="http://schemas.microsoft.com/office/drawing/2014/main" id="{2F91BD80-A052-4D8C-BB68-CF0D942DC304}"/>
+          </a:ext>
+        </a:extLst>
+      </p:cNvPr>
+      <p:cNvSpPr>
+        <a:spLocks/>
+      </p:cNvSpPr>
+      <p:nvPr/>
+    </p:nvSpPr>
+    <p:spPr bwMode="auto">
+      <a:xfrm>
+        <a:off x="4955" y="748"/>
+        <a:ext cx="90" cy="96"/>
+      </a:xfrm>
+      <a:custGeom>
+        <a:avLst/>
+        <a:gdLst>
+          <a:gd name="T0" fmla="*/ 6 w 61"/>
+          <a:gd name="T1" fmla="*/ 67 h 67"/>
+          <a:gd name="T2" fmla="*/ 0 w 61"/>
+          <a:gd name="T3" fmla="*/ 61 h 67"/>
+          <a:gd name="T4" fmla="*/ 5 w 61"/>
+          <a:gd name="T5" fmla="*/ 55 h 67"/>
+          <a:gd name="T6" fmla="*/ 48 w 61"/>
+          <a:gd name="T7" fmla="*/ 49 h 67"/>
+          <a:gd name="T8" fmla="*/ 42 w 61"/>
+          <a:gd name="T9" fmla="*/ 7 h 67"/>
+          <a:gd name="T10" fmla="*/ 47 w 61"/>
+          <a:gd name="T11" fmla="*/ 1 h 67"/>
+          <a:gd name="T12" fmla="*/ 54 w 61"/>
+          <a:gd name="T13" fmla="*/ 6 h 67"/>
+          <a:gd name="T14" fmla="*/ 60 w 61"/>
+          <a:gd name="T15" fmla="*/ 54 h 67"/>
+          <a:gd name="T16" fmla="*/ 55 w 61"/>
+          <a:gd name="T17" fmla="*/ 60 h 67"/>
+          <a:gd name="T18" fmla="*/ 7 w 61"/>
+          <a:gd name="T19" fmla="*/ 67 h 67"/>
+          <a:gd name="T20" fmla="*/ 6 w 61"/>
+          <a:gd name="T21" fmla="*/ 67 h 67"/>
+        </a:gdLst>
+        <a:ahLst/>
+        <a:cxnLst>
+          <a:cxn ang="0">
+            <a:pos x="T0" y="T1"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T2" y="T3"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T4" y="T5"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T6" y="T7"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T8" y="T9"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T10" y="T11"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T12" y="T13"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T14" y="T15"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T16" y="T17"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T18" y="T19"/>
+          </a:cxn>
+          <a:cxn ang="0">
+            <a:pos x="T20" y="T21"/>
+          </a:cxn>
+        </a:cxnLst>
+        <a:rect l="0" t="0" r="r" b="b"/>
+        <a:pathLst>
+          <a:path w="61" h="67">
+            <a:moveTo>
+              <a:pt x="6" y="67"/>
+            </a:moveTo>
+            <a:cubicBezTo>
+              <a:pt x="3" y="67"/>
+              <a:pt x="1" y="64"/>
+              <a:pt x="0" y="61"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="0" y="58"/>
+              <a:pt x="2" y="55"/>
+              <a:pt x="5" y="55"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="48" y="49"/>
+              <a:pt x="48" y="49"/>
+              <a:pt x="48" y="49"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="42" y="7"/>
+              <a:pt x="42" y="7"/>
+              <a:pt x="42" y="7"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="42" y="4"/>
+              <a:pt x="44" y="1"/>
+              <a:pt x="47" y="1"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="51" y="0"/>
+              <a:pt x="54" y="3"/>
+              <a:pt x="54" y="6"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="60" y="54"/>
+              <a:pt x="60" y="54"/>
+              <a:pt x="60" y="54"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="61" y="57"/>
+              <a:pt x="58" y="60"/>
+              <a:pt x="55" y="60"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="7" y="67"/>
+              <a:pt x="7" y="67"/>
+              <a:pt x="7" y="67"/>
+            </a:cubicBezTo>
+            <a:cubicBezTo>
+              <a:pt x="7" y="67"/>
+              <a:pt x="6" y="67"/>
+              <a:pt x="6" y="67"/>
+            </a:cubicBezTo>
+            <a:close/>
+          </a:path>
+        </a:pathLst>
+      </a:custGeom>
+      <a:grpFill/>
+      <a:ln>
+        <a:noFill/>
+      </a:ln>
+      <a:extLst>
+        <a:ext uri="{91240B29-F687-4F45-9708-019B960494DF}">
+          <a14:hiddenLine xmlns:a14="http://schemas.microsoft.com/office/drawing/2010/main" w="9525">
+            <a:solidFill>
+              <a:srgbClr val="000000"/>
+            </a:solidFill>
+            <a:round/>
+            <a:headEnd/>
+            <a:tailEnd/>
+          </a14:hiddenLine>
+        </a:ext>
+      </a:extLst>
+    </p:spPr>
+    <p:txBody>
+      <a:bodyPr vert="horz" wrap="square" lIns="91440" tIns="45720" rIns="91440" bIns="45720" numCol="1" anchor="t" anchorCtr="0" compatLnSpc="1">
+        <a:prstTxWarp prst="textNoShape">
+          <a:avLst/>
+        </a:prstTxWarp>
+      </a:bodyPr>
+      <a:lstStyle/>
+      <a:p>
+        <a:pPr marL="0" marR="0" lvl="0" indent="0" defTabSz="914400" eaLnBrk="1" fontAlgn="base" latinLnBrk="0" hangingPunct="1">
+          <a:lnSpc>
+            <a:spcPct val="100000"/>
+          </a:lnSpc>
+          <a:spcBef>
+            <a:spcPct val="0"/>
+          </a:spcBef>
+          <a:spcAft>
+            <a:spcPct val="0"/>
+          </a:spcAft>
+          <a:buClrTx/>
+          <a:buSzTx/>
+          <a:buFontTx/>
+          <a:buNone/>
+          <a:tabLst/>
+          <a:defRPr/>
+        </a:pPr>
+        <a:endParaRPr kumimoji="0" lang="en-US" sz="1800" b="0" i="0" u="none" strike="noStrike" kern="0" cap="none" spc="0" normalizeH="0" baseline="0" noProof="0">
+          <a:ln>
+            <a:noFill/>
+          </a:ln>
+          <a:solidFill>
+            <a:schemeClr val="tx2"/>
+          </a:solidFill>
+          <a:effectLst/>
+          <a:uLnTx/>
+          <a:uFillTx/>
+          <a:latin typeface="Graphik" charset="0"/>
+          <a:cs typeface="Arial" charset="0"/>
+        </a:endParaRPr>
+      </a:p>
+    </p:txBody>
+  </p:sp>
+</p:grpSp>

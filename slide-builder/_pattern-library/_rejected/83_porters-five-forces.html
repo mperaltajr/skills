@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>83 · Porter's five forces</title>
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --intensity-high: #DC2626;
+  --intensity-high-bg: #FEE2E2;
+  --intensity-med: #D97706;
+  --intensity-med-bg: #FEF3C7;
+  --intensity-low: #059669;
+  --intensity-low-bg: #DCFCE7;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1280px; height: 720px; background: var(--slide-bg); font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; color: var(--text-dark); overflow: hidden; }
+body { padding: 50px 56px 80px 56px; position: relative; }
+.draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; }
+.project-label { position: absolute; top: 24px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
+.page-label { position: absolute; top: 24px; right: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
+
+/* ---- Title block ---- */
+.action-title { font-size: 26px; font-weight: 700; line-height: 1.2; max-width: 1100px; }
+.action-title strong { color: var(--brand-primary); }
+.subhead { font-size: 13px; color: var(--text-mid); margin-top: 8px; font-style: italic; }
+.title-rule { width: 56px; height: 3px; background: var(--brand-accent); margin: 14px 0 0 0; }
+
+/* ---- Five-forces canvas ---- */
+.canvas {
+  position: absolute;
+  left: 56px;
+  right: 56px;
+  top: 178px;
+  bottom: 116px;
+}
+
+/* SVG connector layer — sits behind cards */
+.connectors {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Card positioning — using absolute coords inside 1168x426 stage */
+.force {
+  position: absolute;
+  background: #FFFFFF;
+  border: 1px solid var(--card-border);
+  border-top: 3px solid var(--brand-accent);
+  padding: 9px 12px 10px 12px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.force-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 6px;
+}
+.force-name {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--brand-primary);
+  line-height: 1.15;
+}
+.intensity {
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 9px;
+  flex-shrink: 0;
+}
+.intensity.high { background: var(--intensity-high-bg); color: var(--intensity-high); }
+.intensity.med  { background: var(--intensity-med-bg);  color: var(--intensity-med); }
+.intensity.low  { background: var(--intensity-low-bg);  color: var(--intensity-low); }
+
+.force-bullets { display: flex; flex-direction: column; gap: 3px; margin-top: 2px; }
+.b {
+  display: flex; align-items: flex-start; gap: 6px;
+  font-size: 10.5px; line-height: 1.3; color: var(--text-dark);
+}
+.b::before {
+  content: ""; width: 4px; height: 4px; border-radius: 50%;
+  background: var(--brand-accent); margin-top: 5.5px; flex-shrink: 0;
+}
+
+/* Outer card sizes */
+.force.outer { width: 260px; }
+
+/* North — top */
+.force.north { top: 0; left: 50%; transform: translateX(-50%); }
+/* East — right */
+.force.east  { top: 50%; right: 0; transform: translateY(-50%); }
+/* South — bottom */
+.force.south { bottom: 0; left: 50%; transform: translateX(-50%); }
+/* West — left */
+.force.west  { top: 50%; left: 0; transform: translateY(-50%); }
+
+/* Center — RIVALRY (brand-primary fill, white text) */
+.force.center {
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 300px;
+  background: var(--brand-primary);
+  border: none;
+  border-top: 3px solid var(--brand-accent);
+  padding: 11px 14px 12px 14px;
+  box-shadow: 0 6px 20px rgba(45, 10, 78, 0.25);
+}
+.force.center .force-name { color: #FFFFFF; font-size: 11px; letter-spacing: 1.8px; }
+.force.center .b { color: rgba(255,255,255,0.92); }
+.force.center .b::before { background: var(--brand-accent-soft); }
+.force.center .intensity.med { background: rgba(255, 214, 0, 0.18); color: #FFD600; }
+
+/* ---- Convergence strip ---- */
+.convergence {
+  position: absolute;
+  left: 56px;
+  right: 56px;
+  bottom: 64px;
+  background: var(--brand-primary);
+  color: white;
+  padding: 11px 20px;
+  font-size: 13px;
+  font-style: italic;
+  font-weight: 600;
+  border-left: 3px solid var(--brand-accent);
+  z-index: 3;
+}
+
+/* ---- Footer invariant ---- */
+.footer-rule { position: absolute; left: 0; right: 0; bottom: 32px; height: 1px; background: var(--card-border); }
+.footer-left { position: absolute; bottom: 14px; left: 24px; color: var(--text-faint); font-size: 10px; letter-spacing: 1px; }
+.footer-right { position: absolute; bottom: 14px; right: 24px; color: var(--text-faint); font-size: 11px; }
+</style>
+</head>
+<body>
+  <div class="project-label" data-shape-id="accenture-tag">ACCENTURE INTERNAL</div>
+  <div class="page-label" data-shape-id="page-label">PATTERN 83 / PORTER'S FIVE FORCES</div>
+  <div class="draft-badge" data-shape-id="draft-badge">DRAFT</div>
+
+  <div class="action-title" data-shape-id="title">Five forces around Slide Lab &mdash; <strong>supplier power and substitutes are the watchouts.</strong></div>
+  <div class="subhead" data-shape-id="subtitle">Rivalry sits in the middle; the surrounding forces shape how much room we have to win.</div>
+  <div class="title-rule" data-shape-id="brand-rule"></div>
+
+  <div class="canvas">
+
+    <!-- Connector arrows: from each outer force INTO the center -->
+    <svg class="connectors" data-shape-id="chart-canvas" viewBox="0 0 1168 426" preserveAspectRatio="none">
+      <defs>
+        <marker id="arrow-in" viewBox="0 0 10 10" refX="9" refY="5"
+                markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" fill="#A100FF" />
+        </marker>
+      </defs>
+      <!-- North -> Center -->
+      <line x1="584" y1="92"  x2="584" y2="170"
+            stroke="#A100FF" stroke-width="2.2" stroke-dasharray="0"
+            marker-end="url(#arrow-in)" />
+      <!-- East -> Center -->
+      <line x1="906" y1="213" x2="744" y2="213"
+            stroke="#A100FF" stroke-width="2.2"
+            marker-end="url(#arrow-in)" />
+      <!-- South -> Center -->
+      <line x1="584" y1="334" x2="584" y2="256"
+            stroke="#A100FF" stroke-width="2.2"
+            marker-end="url(#arrow-in)" />
+      <!-- West -> Center -->
+      <line x1="262" y1="213" x2="424" y2="213"
+            stroke="#A100FF" stroke-width="2.2"
+            marker-end="url(#arrow-in)" />
+    </svg>
+
+    <!-- North: Threat of new entrants -->
+    <div class="force outer north" data-shape-id="force-1-card">
+      <div class="force-head">
+        <div class="force-name" data-shape-id="force-1-name">Threat of new entrants</div>
+        <div class="intensity med" data-shape-id="force-1-intensity">Med-High</div>
+      </div>
+      <div class="force-bullets">
+        <div class="b" data-shape-id="force-1-bullet-1">Low barrier &mdash; anyone can build a Claude skill</div>
+        <div class="b" data-shape-id="force-1-bullet-2">Brand and proven outcomes are our moat</div>
+      </div>
+    </div>
+
+    <!-- East: Bargaining power of suppliers -->
+    <div class="force outer east" data-shape-id="force-2-card">
+      <div class="force-head">
+        <div class="force-name" data-shape-id="force-2-name">Power of suppliers</div>
+        <div class="intensity high" data-shape-id="force-2-intensity">High</div>
+      </div>
+      <div class="force-bullets">
+        <div class="b" data-shape-id="force-2-bullet-1">Claude API is the supplier &mdash; real switching cost</div>
+        <div class="b" data-shape-id="force-2-bullet-2">Pricing or rate-limit changes hit us directly</div>
+        <div class="b" data-shape-id="force-2-bullet-3">Model deprecation forces re-tuning</div>
+      </div>
+    </div>
+
+    <!-- South: Threat of substitutes -->
+    <div class="force outer south" data-shape-id="force-3-card">
+      <div class="force-head">
+        <div class="force-name" data-shape-id="force-3-name">Threat of substitutes</div>
+        <div class="intensity high" data-shape-id="force-3-intensity">High</div>
+      </div>
+      <div class="force-bullets">
+        <div class="b" data-shape-id="force-3-bullet-1">Generic GenAI tools good enough for many decks</div>
+        <div class="b" data-shape-id="force-3-bullet-2">In-house training and template libraries</div>
+      </div>
+    </div>
+
+    <!-- West: Bargaining power of buyers -->
+    <div class="force outer west" data-shape-id="force-4-card">
+      <div class="force-head">
+        <div class="force-name" data-shape-id="force-4-name">Power of buyers</div>
+        <div class="intensity med" data-shape-id="force-4-intensity">Med</div>
+      </div>
+      <div class="force-bullets">
+        <div class="b" data-shape-id="force-4-bullet-1">Practice MDs hold the budget</div>
+        <div class="b" data-shape-id="force-4-bullet-2">Free internal alternatives lower willingness to pay</div>
+        <div class="b" data-shape-id="force-4-bullet-3">Adoption drops fast if value isn't visible</div>
+      </div>
+    </div>
+
+    <!-- Center: Industry rivalry -->
+    <div class="force center" data-shape-id="force-5-card">
+      <div class="force-head">
+        <div class="force-name" data-shape-id="force-5-name">Industry rivalry</div>
+        <div class="intensity med" data-shape-id="force-5-intensity">Med</div>
+      </div>
+      <div class="force-bullets">
+        <div class="b" data-shape-id="force-5-bullet-1">Training firms compete for the same deck-quality budget</div>
+        <div class="b" data-shape-id="force-5-bullet-2">Generic GenAI vendors expanding into consulting workflows</div>
+        <div class="b" data-shape-id="force-5-bullet-3">No clear incumbent yet &mdash; window is open but closing</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="convergence" data-shape-id="convergence">Two forces are high &mdash; substitutes and supplier power. Address them or lose share.</div>
+
+  <div class="footer-rule" data-shape-id="footer-rule"></div>
+  <div class="footer-left" data-shape-id="footer-left">CONFIDENTIAL &mdash; ACCENTURE INTERNAL</div>
+  <div class="footer-right" data-shape-id="footer-right">Slide Lab &middot; 2026 &middot; 83</div>
+</body>
+</html>

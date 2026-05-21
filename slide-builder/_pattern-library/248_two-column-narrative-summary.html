@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>248 — Two-Column Narrative Summary</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+    background: var(--slide-bg);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── TOP CHROME ── */
+  .top-bar {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 24px 0;
+    flex-shrink: 0;
+    height: 28px;
+  }
+
+  .top-left-label {
+    position: absolute;
+    left: 24px;
+    top: 10px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .draft-badge {
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 2px 8px;
+    border-radius: 0;
+    line-height: 1.4;
+  }
+
+  /* ── TITLE BLOCK ── */
+  .title-block {
+    position: absolute; top: 0; left: 0; right: 0; height: 160px;
+  }
+
+  .slide-title {
+    position: absolute; top: 28px; left: 64px; right: 64px; min-height: 36px;
+    font-size: 29px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+
+  .slide-title strong {
+    color: var(--brand-accent);
+  }
+
+  .slide-subtitle {
+    position: absolute; top: 108px; left: 64px; right: 64px;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+
+    line-height: 1.4;
+  }
+
+  .title-rule {
+    position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+
+}
+
+  /* ── BODY ── */
+  .body {
+    flex: 1;
+    display: flex;
+    gap: 0;
+    padding: 0 24px 8px;
+    min-height: 0;
+  }
+
+  /* ── LEFT COLUMN ── */
+  .col-left {
+    width: 55%;
+    padding-right: 28px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .narrative-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .section-label {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--brand-primary);
+    padding-left: 8px;
+    border-left: 2px solid var(--brand-accent);
+    line-height: 1.4;
+  }
+
+  .section-body {
+    font-size: 14px;
+    color: var(--text-dark);
+    line-height: 1.65;
+    padding-left: 10px;
+  }
+
+  /* ── DIVIDER ── */
+  .col-divider {
+    width: 1px;
+    background: var(--card-border);
+    flex-shrink: 0;
+
+    top: 4px;
+
+    bottom: 4px;
+  }
+
+  /* ── RIGHT COLUMN ── */
+  .col-right {
+    flex: 1;
+    padding-left: 28px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .so-what-box {
+    background: var(--brand-primary);
+    padding: 20px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .so-what-eyebrow {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: var(--brand-accent-soft);
+  }
+
+  .so-what-text {
+    font-size: 16px;
+    font-weight: 700;
+    color: #FFFFFF;
+    line-height: 1.45;
+  }
+
+  .next-steps-label {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--brand-accent);
+  }
+
+  .next-steps-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    list-style: none;
+  }
+
+  .next-step-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .step-number {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    background: var(--brand-accent);
+    color: #FFFFFF;
+    font-size: 11px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 2px;
+
+    top: 1px;
+  }
+
+  .step-text {
+    font-size: 14px;
+    color: var(--text-dark);
+    line-height: 1.55;
+  }
+
+  /* ── FOOTER ── */
+  .footer {
+    flex-shrink: 0;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 6px 24px;
+    height: 28px;
+
+    top: 6px;
+  }
+
+  .footer-left,
+  .footer-right {
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+</style>
+</head>
+<body>
+
+  <!-- TOP BAR -->
+  <div class="top-bar">
+    <span class="top-left-label">Accenture Internal</span>
+  </div>
+
+  <!-- TITLE BLOCK -->
+  <div class="title-block">
+    <h1 class="slide-title">Data Architecture: <strong>Strategic</strong> Readout</h1>
+    <p class="slide-subtitle">Executive summary of diagnostic findings, implications, and recommended path forward</p>
+    <div class="title-rule"></div>
+  </div>
+
+  <!-- BODY: TWO COLUMNS -->
+  <div class="body">
+
+    <!-- LEFT COLUMN -->
+    <div class="col-left">
+
+      <div class="narrative-section">
+        <div class="section-label">Context</div>
+        <p class="section-body">The organization has operated under a fragmented data architecture for 5+ years, resulting in 23 disparate systems and an estimated $8M in annual reconciliation costs.</p>
+      </div>
+
+      <div class="narrative-section">
+        <div class="section-label">Findings</div>
+        <p class="section-body">Our diagnostic reveals three root causes: (1) absence of a master data standard, (2) siloed ownership across business units, and (3) underinvestment in integration middleware.</p>
+      </div>
+
+      <div class="narrative-section">
+        <div class="section-label">Implications</div>
+        <p class="section-body">Without intervention, the cost trajectory reaches $14M by 2028 and data quality issues will constrain the planned AI initiatives scheduled for 2027.</p>
+      </div>
+
+    </div>
+
+    <!-- COLUMN DIVIDER -->
+    <div class="col-divider"></div>
+
+    <!-- RIGHT COLUMN -->
+    <div class="col-right">
+
+      <div class="so-what-box">
+        <div class="so-what-eyebrow">So What?</div>
+        <div class="so-what-text">Immediate structural intervention is required — the current architecture is a strategic liability that will actively block AI transformation goals.</div>
+      </div>
+
+      <div class="next-steps-label">Recommended Next Steps</div>
+
+      <ol class="next-steps-list">
+        <li class="next-step-item">
+          <div class="step-number">1</div>
+          <span class="step-text">Commission data architecture review <em style="color: var(--text-mid);">(6 weeks)</em></span>
+        </li>
+        <li class="next-step-item">
+          <div class="step-number">2</div>
+          <span class="step-text">Establish cross-BU data governance council</span>
+        </li>
+        <li class="next-step-item">
+          <div class="step-number">3</div>
+          <span class="step-text">Procure integration platform <em style="color: var(--text-mid);">(RFP by July)</em></span>
+        </li>
+      </ol>
+
+    </div>
+
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <span class="footer-left">Confidential</span>
+    <span class="footer-right">Slide Lab · 2026 · 248</span>
+  </div>
+
+</body>
+</html>

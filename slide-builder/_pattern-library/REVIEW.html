@@ -1,0 +1,861 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Pattern Library Final Review — 478 files</title>
+<style>
+  :root {
+    --bg: #0F172A;
+    --panel: #1E293B;
+    --panel-2: #273448;
+    --text: #E2E8F0;
+    --text-dim: #94A3B8;
+    --accent: #A100FF;
+    --approve: #16A34A;
+    --tweak: #CA8A04;
+    --reject: #DC2626;
+    --pending: #64748B;
+    --border: #334155;
+    --qc-pass: #16A34A;
+    --qc-fail: #DC2626;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); }
+  body { padding: 0; }
+  .topbar { position: sticky; top: 0; z-index: 100; background: var(--panel); border-bottom: 2px solid var(--border); padding: 14px 24px; display: flex; align-items: center; gap: 18px; }
+  .title { font-size: 17px; font-weight: 700; }
+  .title-sub { font-size: 11px; color: var(--text-dim); font-weight: 400; margin-top: 2px; }
+  .summary { display: flex; gap: 10px; flex: 1; margin-left: 16px; align-items: center; flex-wrap: wrap; }
+  .pill { padding: 5px 12px; border-radius: 14px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; gap: 5px; }
+  .pill .num { font-weight: 800; font-variant-numeric: tabular-nums; }
+  .pill.approve { background: rgba(22,163,74,0.15); color: var(--approve); border: 1px solid var(--approve); }
+  .pill.tweak { background: rgba(202,138,4,0.15); color: var(--tweak); border: 1px solid var(--tweak); }
+  .pill.reject { background: rgba(220,38,38,0.15); color: var(--reject); border: 1px solid var(--reject); }
+  .pill.pending { background: rgba(100,116,139,0.15); color: var(--text-dim); border: 1px solid var(--pending); }
+  button { font-family: inherit; cursor: pointer; border: none; padding: 7px 14px; font-size: 14px; font-weight: 600; border-radius: 6px; transition: all 0.15s; }
+  .btn-primary { background: var(--accent); color: white; }
+  .btn-primary:hover { filter: brightness(1.15); }
+  .btn-secondary { background: var(--panel-2); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { background: var(--border); }
+  .topbar-actions { display: flex; gap: 6px; }
+  .filter-bar { background: var(--panel-2); padding: 10px 24px; border-bottom: 1px solid var(--border); display: flex; gap: 10px; align-items: center; }
+  .filter-bar label { font-size: 11px; color: var(--text-dim); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .filter-bar select { background: var(--panel); color: var(--text); border: 1px solid var(--border); padding: 4px 8px; font-family: inherit; font-size: 14px; border-radius: 4px; }
+  .filter-bar input[type="search"] { background: var(--panel); color: var(--text); border: 1px solid var(--border); padding: 4px 10px; font-family: inherit; font-size: 14px; border-radius: 4px; min-width: 200px; }
+  .qc-banner { background: linear-gradient(135deg, #1E293B, #2D1B4E); border-bottom: 1px solid var(--border); padding: 12px 24px; }
+  .qc-banner-title { font-size: 10px; font-weight: 800; color: var(--accent); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 6px; }
+  .qc-banner-list { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; counter-reset: qc-counter; }
+  .qc-banner-item { font-size: 10px; color: var(--text); line-height: 1.35; padding-left: 14px; position: relative; }
+  .qc-banner-item::before { content: counter(qc-counter); counter-increment: qc-counter; position: absolute; left: 0; top: 0; color: var(--accent); font-weight: 800; }
+  .cards { padding: 20px; display: flex; flex-direction: column; gap: 20px; max-width: 1640px; margin: 0 auto; }
+  .card { background: var(--panel); border-radius: 8px; border: 1px solid var(--border); display: grid; grid-template-columns: 640px 1fr; gap: 0; overflow: hidden; }
+  .card.hidden { display: none; }
+  .card-preview { background: #000; position: relative; }
+  .card-preview .frame-wrapper { width: 640px; height: 360px; overflow: hidden; position: relative; background: white; }
+  .card-preview iframe { width: 1280px; height: 720px; border: none; transform: scale(0.5); transform-origin: 0 0; display: block; }
+  .card-preview .open-full { position: absolute; top: 8px; right: 8px; background: rgba(0,0,0,0.7); color: white; padding: 4px 9px; font-size: 10px; text-decoration: none; border-radius: 4px; }
+  .card-preview .open-full:hover { background: var(--accent); }
+  .card-controls { padding: 16px 20px; display: flex; flex-direction: column; gap: 12px; }
+  .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+  .card-num { font-size: 11px; color: var(--text-dim); font-weight: 700; letter-spacing: 1px; }
+  .card-name { font-size: 15px; font-weight: 700; margin-top: 3px; }
+  .card-targets { font-size: 11px; color: var(--text-dim); margin-top: 2px; font-style: italic; }
+  .status-badge { padding: 3px 9px; border-radius: 4px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; align-self: flex-start; }
+  .status-badge.pending { background: var(--pending); color: white; }
+  .status-badge.approved { background: var(--approve); color: white; }
+  .status-badge.tweak { background: var(--tweak); color: white; }
+  .status-badge.rejected { background: var(--reject); color: white; }
+  .decision-buttons { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .decision-buttons button { padding: 10px 6px; font-size: 11px; font-weight: 700; border-radius: 5px; border: 2px solid transparent; background: var(--panel-2); color: var(--text-dim); transition: all 0.15s; }
+  .decision-buttons button:hover { filter: brightness(1.15); }
+  .decision-buttons button.active.approve { background: var(--approve); color: white; border-color: var(--approve); }
+  .decision-buttons button.active.tweak { background: var(--tweak); color: white; border-color: var(--tweak); }
+  .decision-buttons button.active.reject { background: var(--reject); color: white; border-color: var(--reject); }
+  .decision-buttons button:not(.active).approve:hover { border-color: var(--approve); color: var(--approve); }
+  .decision-buttons button:not(.active).tweak:hover { border-color: var(--tweak); color: var(--tweak); }
+  .decision-buttons button:not(.active).reject:hover { border-color: var(--reject); color: var(--reject); }
+  textarea { width: 100%; min-height: 50px; background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 5px; padding: 8px 10px; font-family: inherit; font-size: 14px; line-height: 1.4; resize: vertical; }
+  textarea:focus { outline: none; border-color: var(--accent); }
+  .field-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 5px; }
+  .qc-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 4px; }
+  .qc-cell { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 5px 2px; background: var(--panel-2); border: 1px solid var(--border); border-radius: 4px; cursor: pointer; transition: all 0.12s; user-select: none; }
+  .qc-cell:hover { background: var(--border); }
+  .qc-cell.pass { background: rgba(22,163,74,0.18); border-color: var(--qc-pass); }
+  .qc-cell.fail { background: rgba(220,38,38,0.18); border-color: var(--qc-fail); }
+  .qc-num { font-size: 11px; font-weight: 800; font-family: 'SF Mono', monospace; color: var(--text-dim); }
+  .qc-cell.pass .qc-num { color: var(--qc-pass); }
+  .qc-cell.fail .qc-num { color: var(--qc-fail); }
+  .qc-label { font-size: 8px; color: var(--text-dim); text-align: center; line-height: 1.1; }
+  .qc-cell.pass .qc-label, .qc-cell.fail .qc-label { color: var(--text); }
+  .qc-state { font-size: 9px; font-weight: 700; letter-spacing: 0.3px; }
+  .qc-cell.pass .qc-state { color: var(--qc-pass); }
+  .qc-cell.fail .qc-state { color: var(--qc-fail); }
+  .qc-cell:not(.pass):not(.fail) .qc-state { color: var(--text-dim); }
+  .output-section { padding: 20px; max-width: 1640px; margin: 0 auto; }
+  .output-section h2 { font-size: 14px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+  .output-box { background: #0B1424; border: 1px solid var(--border); border-radius: 6px; padding: 16px 20px; font-family: 'SF Mono', Monaco, Consolas, monospace; font-size: 14px; line-height: 1.5; color: var(--text); white-space: pre-wrap; max-height: 400px; overflow: auto; }
+  .output-section .actions { display: flex; gap: 8px; margin-top: 12px; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--approve); color: white; padding: 10px 22px; border-radius: 5px; font-weight: 600; opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 200; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div>
+    <div class="title">Pattern Library · FINAL REVIEW · 478 files</div>
+    <div class="title-sub">251 base patterns (1–251) · 100 v4 patterns (252–351) · 127 dark variants. Filter to focus. Decisions persist via localStorage.</div>
+  </div>
+  <div class="summary">
+    <div class="pill approve">✓ <span class="num" id="count-approved">0</span></div>
+    <div class="pill tweak">~ <span class="num" id="count-tweak">0</span></div>
+    <div class="pill reject">✗ <span class="num" id="count-rejected">0</span></div>
+    <div class="pill pending">○ <span class="num" id="count-pending">0</span></div>
+  </div>
+  <div class="topbar-actions">
+    <button class="btn-secondary" onclick="approveAllPending()">Approve all pending</button>
+    <button class="btn-secondary" onclick="resetAll()">Reset</button>
+    <button class="btn-primary" onclick="copyOutput()">Copy → paste to Claude</button>
+  </div>
+</div>
+
+<div class="filter-bar">
+  <label>Filter:</label>
+  <select id="filter-status" onchange="applyFilters()">
+    <option value="all">All</option>
+    <option value="pending">Pending only</option>
+    <option value="approved">Approved only</option>
+    <option value="tweak">Tweak only</option>
+    <option value="rejected">Rejected only</option>
+  </select>
+  <input type="search" id="filter-text" placeholder="Search pattern name…" oninput="applyFilters()">
+  <span style="margin-left: auto; font-size: 11px; color: var(--text-dim);" id="shown-count"></span>
+</div>
+
+<div class="qc-banner">
+  <div class="qc-banner-title">Standing QC checklist · every pattern must satisfy all six</div>
+  <div class="qc-banner-list">
+    <div class="qc-banner-item">Visual hierarchy clear</div>
+    <div class="qc-banner-item">Single focal point</div>
+    <div class="qc-banner-item">Margins consistent</div>
+    <div class="qc-banner-item">Whitespace intentional</div>
+    <div class="qc-banner-item">Grid alignment</div>
+    <div class="qc-banner-item">Page balanced</div>
+  </div>
+</div>
+
+<div class="cards" id="cards"></div>
+
+<div class="output-section">
+  <h2>Output (live)</h2>
+  <div class="output-box" id="output-box">Pending review.</div>
+  <div class="actions">
+    <button class="btn-primary" onclick="copyOutput()">Copy to clipboard</button>
+    <button class="btn-secondary" onclick="downloadOutput()">Download as .md</button>
+  </div>
+</div>
+
+<div class="toast" id="toast">Copied to clipboard</div>
+
+<script>
+const QC_RULES = [
+  { id: 1, label: "Hierarchy" },
+  { id: 2, label: "Focal point" },
+  { id: 3, label: "Margins" },
+  { id: 4, label: "Whitespace" },
+  { id: 5, label: "Grid align" },
+  { id: 6, label: "Balanced" },
+];
+
+// Pre-populate with prior approved/rejected so you can skim past them
+const PRIOR_STATE = {
+  "01": "approved", "02": "approved", "03": "approved", "04": "approved", "05": "approved",
+  "06": "approved", "07": "approved", "08": "rejected",
+  "09": "approved", "11": "approved", "12": "approved", "13": "approved", "14": "approved",
+  "15": "approved", "16": "approved", "19": "approved", "20": "approved", "21": "approved",
+  "22": "approved", "23": "approved", "24": "approved", "25": "rejected", "26": "rejected",
+  "30": "approved", "32": "approved", "34": "approved", "38": "approved", "43": "approved",
+  // Batch 5 newly approved before this comp:
+  "10": "approved", "17": "approved", "18": "approved", "29": "approved",
+};
+
+const MOCKUPS = [
+  { id: "01", file: "01_anchor-with-cards-icons.html", name: "Anchor + cards with icons" },
+  { id: "02", file: "02_three-pillars-icons-outputs.html", name: "Three pillars + outputs strip" },
+  { id: "03", file: "03_hero-statement-supporting-cards.html", name: "Hero statement + 4 supporting cards" },
+  { id: "04", file: "04_comparison-band-headers.html", name: "Comparison matrix + convergence" },
+  { id: "05", file: "05_screenshot-hero-caption.html", name: "Screenshot + step strip + takeaway" },
+  { id: "06", file: "06_section-divider-numeral.html", name: "Section divider + hero numeral" },
+  { id: "07", file: "07_honest-expectations-two-panel.html", name: "Honest expectations two-panel" },
+  { id: "08", file: "08_closing-cta-signature.html", name: "Closing CTA original (superseded by 40)" },
+  { id: "09", file: "09_agenda-numbered-toc.html", name: "Agenda + objectives panel" },
+  { id: "10", file: "10_hero-stat-annotated.html", name: "Evidence chart + annotation panel" },
+  { id: "11", file: "11_long-form-structured-text.html", name: "Long-form SCQA — table-style header" },
+  { id: "12", file: "12_kpi-tile-dashboard.html", name: "KPI tile dashboard" },
+  { id: "13", file: "13_2x2-framework-quadrants.html", name: "2x2 framework quadrants" },
+  { id: "14", file: "14_gantt-workplan-timeline.html", name: "Gantt workplan timeline" },
+  { id: "15", file: "15_org-chart-hierarchy.html", name: "Org chart hierarchy" },
+  { id: "16", file: "16_process-phases-rich.html", name: "Process phases — rich content per phase" },
+  { id: "17", file: "17_before-after-transformation.html", name: "Before / after transformation" },
+  { id: "18", file: "18_methodology-overview.html", name: "Methodology — Activities / Deliverables / Takeaway" },
+  { id: "19", file: "19_cover-split-panel.html", name: "Cover split panel" },
+  { id: "20", file: "20_risk-heat-map.html", name: "Risk heat map" },
+  { id: "21", file: "21_stakeholder-map.html", name: "Stakeholder map (Mendelow)" },
+  { id: "22", file: "22_photo-hero-caption.html", name: "Photo hero + editorial caption" },
+  { id: "23", file: "23_account-scorecard-rag-grid.html", name: "Account scorecard — RAG status grid" },
+  { id: "24", file: "24_focus-areas-with-stats.html", name: "Four focus areas with stat callouts" },
+  { id: "25", file: "25_swimlane-process-flowchart.html", name: "Swim-lane process flowchart (REJECTED)" },
+  { id: "26", file: "26_hero-stat-delta.html", name: "Hero stat + delta indicator (REJECTED)" },
+  { id: "27", file: "27_case-study-sar.html", name: "Case study — Situation / Action / Result" },
+  { id: "28", file: "28_vertical-timeline.html", name: "Vertical timeline" },
+  { id: "29", file: "29_decision-tree.html", name: "Decision tree" },
+  { id: "30", file: "30_verbatim-pull-quote.html", name: "Verbatim pull-quote (dark mode)" },
+  { id: "31", file: "31_maturity-pyramid.html", name: "Maturity pyramid (5 tiers)" },
+  { id: "32", file: "32_swot-analysis.html", name: "SWOT analysis" },
+  { id: "33", file: "33_fishbone-root-cause.html", name: "Fishbone diagram" },
+  { id: "34", file: "34_cycle-diagram.html", name: "4-step cycle diagram" },
+  { id: "35", file: "35_funnel-conversion.html", name: "Funnel conversion" },
+  { id: "36", file: "36_customer-journey-map.html", name: "Customer journey map" },
+  { id: "37", file: "37_comparison-tier-cards.html", name: "Three-option comparison cards" },
+  { id: "38", file: "38_statement-hero-text.html", name: "Statement hero text (dark mode)" },
+  { id: "39", file: "39_issue-tree.html", name: "Issue tree (MECE)" },
+  { id: "40", file: "40_closing-cta-revival.html", name: "Closing CTA revival (replaces 08)" },
+  { id: "41", file: "41_persona-card.html", name: "Persona card" },
+  { id: "42", file: "42_q-and-a-discussion.html", name: "Q&A discussion (5 questions)" },
+  { id: "43", file: "43_definitions-glossary.html", name: "Definitions / glossary" },
+  { id: "44", file: "44_kpi-scorecard-table.html", name: "KPI scorecard table (with RAG legend)" },
+  { id: "45", file: "45_swimlane-chevron-handoff.html", name: "Swim-lane chevron handoff (from skill-workflow Option B)" },
+  { id: "46", file: "46_two-tier-phase-detail.html", name: "Two-tier phase chevrons + detail (from skill-workflow Option C)" },
+  { id: "47", file: "47_strategy-house.html", name: "Strategy house framework" },
+  { id: "48", file: "48_venn-overlap-insight.html", name: "Venn overlap insight" },
+  { id: "49", file: "49_convergence-paths-to-outcome.html", name: "Convergence paths to outcome" },
+  { id: "50", file: "50_two-parallel-paths-converging.html", name: "Two parallel paths converging" },
+  { id: "51", file: "51_phased-plan-timeline-table.html", name: "Phased plan timeline + table" },
+  { id: "52", file: "52_numbered-tile-rail-with-statement.html", name: "Numbered tile rail + statement bar" },
+  { id: "53", file: "53_scenario-timeline-impact-rail.html", name: "Scenario timeline + impact rail" },
+  { id: "54", file: "54_scenario-comparison-ledger.html", name: "Scenario comparison ledger" },
+  { id: "55", file: "55_delay-sensitivity-burn-scale.html", name: "Delay sensitivity burn scale" },
+  { id: "56", file: "56_data-table-with-stat-rail.html", name: "Data table + vertical stat rail" },
+  { id: "57", file: "57_anchor-stat-with-evidence-rail.html", name: "Anchor stat + stacked evidence rail" },
+  { id: "58", file: "58_decision-frame-banner-table-ask.html", name: "Decision frame — banner + table + 2-option ask" },
+  { id: "59", file: "59_stat-bank.html", name: "Stat bank (6 facts grid)" },
+  { id: "60", file: "60_strategic-roadmap-3-horizon.html", name: "Strategic roadmap (3-horizon)" },
+  { id: "61", file: "61_tradeoff-pros-cons.html", name: "Trade-off pros/cons table" },
+  { id: "62", file: "62_theory-of-change.html", name: "Theory of change / logic model" },
+  { id: "63", file: "63_raci-matrix.html", name: "RACI matrix" },
+  { id: "64", file: "64_investment-thesis-cards.html", name: "Investment thesis cards" },
+  { id: "65", file: "65_heatmap-capability.html", name: "Capability heatmap" },
+  { id: "66", file: "66_combo-chart-bars-line.html", name: "Combo chart (bars + line)" },
+  { id: "67", file: "67_stacked-bar-takeaway.html", name: "Stacked bar chart + takeaway" },
+  { id: "68", file: "68_donut-breakdown.html", name: "Donut chart + breakdown" },
+  { id: "69", file: "69_tornado-sensitivity.html", name: "Tornado sensitivity chart" },
+  { id: "70", file: "70_radar-capability.html", name: "Radar / spider chart" },
+  { id: "71", file: "71_reference-architecture-layers.html", name: "Reference architecture layers" },
+  { id: "72", file: "72_okr-cascade.html", name: "OKR cascade" },
+  { id: "73", file: "73_workshop-agenda-timings.html", name: "Workshop agenda with timings" },
+  { id: "74", file: "74_stat-photo-combo.html", name: "Stat + photo combo" },
+  { id: "75", file: "75_quote-stack-3.html", name: "Quote stack (3 quotes)" },
+  { id: "76", file: "76_logo-wall.html", name: "Logo wall" },
+  { id: "77", file: "77_multi-image-grid.html", name: "Multi-image grid (6 cards)" },
+  { id: "78", file: "78_decision-matrix-weighted.html", name: "Weighted decision matrix" },
+  { id: "79", file: "79_roi-calculator.html", name: "ROI calculator visual" },
+  { id: "80", file: "80_phased-rollout-waves.html", name: "Phased rollout / multi-wave plan" },
+  { id: "81", file: "81_operating-model-tom.html", name: "Operating model (TOM)" },
+  { id: "82", file: "82_mckinsey-7s-framework.html", name: "McKinsey 7S framework" },
+  { id: "83", file: "83_porters-five-forces.html", name: "Porter's 5 forces" },
+  { id: "84", file: "84_bcg-growth-share-matrix.html", name: "BCG growth-share matrix" },
+  { id: "85", file: "85_vision-mission-values.html", name: "Vision / Mission / Values" },
+  { id: "86", file: "86_risk-register-table.html", name: "Risk register table" },
+  { id: "87", file: "87_workstream-phase-matrix.html", name: "Workstream × phase matrix" },
+  { id: "88", file: "88_status-report-exec-summary.html", name: "Status report executive summary" },
+  { id: "89", file: "89_lessons-learned-retro.html", name: "Lessons learned / retrospective" },
+  { id: "90", file: "90_capability-gap-analysis.html", name: "Capability gap analysis" },
+  { id: "91", file: "91_north-star-metric.html", name: "North star metric (dark)" },
+  { id: "92", file: "92_three-step-approach.html", name: "Three-step approach chevrons" },
+  { id: "93", file: "93_communication-plan-matrix.html", name: "Communication plan matrix" },
+  { id: "94", file: "94_change-readiness-assessment.html", name: "Change readiness assessment (ADKAR)" },
+  { id: "95", file: "95_action-register.html", name: "Action register" },
+  { id: "96", file: "96_concept-intro-with-visual.html", name: "Concept intro (definition + visual)" },
+  { id: "97", file: "97_mission-statement-slide.html", name: "Mission statement slide" },
+  { id: "98", file: "98_quarterly-board-update.html", name: "Quarterly board update one-pager" },
+  { id: "99", file: "99_quick-win-priority-matrix.html", name: "Quick-win priority matrix" },
+  { id: "100", file: "100_pareto-80-20.html", name: "Pareto chart (80/20)" },
+  { id: "101", file: "101_waterfall-chart.html", name: "Waterfall chart (revenue bridge)" },
+  { id: "102", file: "102_bubble-chart-annotation.html", name: "Bubble chart with annotation" },
+  { id: "103", file: "103_sankey-diagram.html", name: "Sankey diagram" },
+  { id: "104", file: "104_geographic-map-slide.html", name: "Geographic / map slide" },
+  { id: "105", file: "105_time-series-confidence-band.html", name: "Time series with confidence band" },
+  { id: "106", file: "106_cohort-retention-grid.html", name: "Cohort retention grid" },
+  { id: "107", file: "107_box-plot-distribution.html", name: "Box plot / distribution" },
+  { id: "108", file: "108_stacked-bar-horizontal-100pct.html", name: "100% stacked horizontal bar" },
+  { id: "109", file: "109_multi-line-chart.html", name: "Multi-line chart" },
+  { id: "110", file: "110_histogram-frequency.html", name: "Histogram" },
+  { id: "111", file: "111_cumulative-s-curve.html", name: "Cumulative line / S-curve" },
+  { id: "112", file: "112_ansoff-matrix.html", name: "Ansoff matrix" },
+  { id: "113", file: "113_strategy-clock-bowman.html", name: "Strategy clock (Bowman's)" },
+  { id: "114", file: "114_wardley-map.html", name: "Wardley map" },
+  { id: "115", file: "115_blue-ocean-strategy-canvas.html", name: "Blue ocean strategy canvas" },
+  { id: "116", file: "116_three-horizons-curves.html", name: "Three horizons (McKinsey curves)" },
+  { id: "117", file: "117_concept-mind-map.html", name: "Concept map / mind map" },
+  { id: "118", file: "118_five-whys-cascade.html", name: "Five whys root cause" },
+  { id: "119", file: "119_data-flow-diagram.html", name: "Data flow diagram (DFD)" },
+  { id: "120", file: "120_sequence-diagram.html", name: "Sequence diagram" },
+  { id: "121", file: "121_state-machine-diagram.html", name: "State machine diagram" },
+  { id: "122", file: "122_customer-journey-funnel-emotion.html", name: "Customer journey funnel" },
+  { id: "123", file: "123_process-compliance-flowchart.html", name: "Process compliance flowchart" },
+  { id: "124", file: "124_approval-workflow.html", name: "Approval workflow" },
+  { id: "125", file: "125_multi-persona-3up.html", name: "Multi-persona (3 side-by-side)" },
+  { id: "126", file: "126_team-gallery.html", name: "Team gallery" },
+  { id: "127", file: "127_hiring-plan.html", name: "Hiring plan" },
+  { id: "128", file: "128_succession-plan.html", name: "Succession plan" },
+  { id: "129", file: "129_skills-matrix.html", name: "Skills matrix" },
+  { id: "130", file: "130_capability-ladder.html", name: "Capability ladder / career path" },
+  { id: "131", file: "131_burn-rate-runway.html", name: "Burn rate / runway chart" },
+  { id: "132", file: "132_cost-benefit-waterfall.html", name: "Cost-benefit waterfall" },
+  { id: "133", file: "133_pnl-summary-card.html", name: "P&L summary card" },
+  { id: "134", file: "134_sensitivity-range-chart.html", name: "Sensitivity range chart" },
+  { id: "135", file: "135_break-even-analysis.html", name: "Break-even analysis" },
+  { id: "136", file: "136_npv-irr-summary.html", name: "NPV / IRR summary card" },
+  { id: "137", file: "137_quarterly-review-scorecard.html", name: "Quarterly review scorecard" },
+  { id: "138", file: "138_investment-portfolio-scorecard.html", name: "Investment / portfolio scorecard" },
+  { id: "139", file: "139_steering-committee-dashboard.html", name: "Steering committee dashboard" },
+  { id: "140", file: "140_vendor-partner-scorecard.html", name: "Vendor / partner scorecard" },
+  { id: "141", file: "141_compliance-checklist.html", name: "Compliance checklist" },
+  { id: "142", file: "142_win-themes-proposal.html", name: "Win themes (proposal)" },
+  { id: "143", file: "143_differentiators-3col.html", name: "Differentiators (3 columns)" },
+  { id: "144", file: "144_proof-points-compilation.html", name: "Proof points compilation" },
+  { id: "145", file: "145_capability-vs-requirement-gap.html", name: "Capability vs requirement gap" },
+  { id: "146", file: "146_theory-of-change-v2.html", name: "Theory of change v2" },
+  { id: "147", file: "147_logic-model.html", name: "Logic model" },
+  { id: "148", file: "148_workshop-summary.html", name: "Workshop summary" },
+  { id: "149", file: "149_brainstorm-affinity-map.html", name: "Brainstorm output / affinity map" },
+  { id: "150", file: "150_retrospective-sailboat.html", name: "Retrospective sailboat" },
+  { id: "151", file: "151_decision-log.html", name: "Decision log" },
+  { id: "152", file: "152_faq-slide.html", name: "FAQ slide" },
+  { id: "153", file: "153_sprint-review-summary.html", name: "Sprint review summary" },
+  { id: "154", file: "154_implementation-tracker.html", name: "Implementation tracker" },
+  { id: "155", file: "155_annual-planning-view.html", name: "Annual planning view (12 months)" },
+  { id: "156", file: "156_cross-functional-dependency-map.html", name: "Cross-functional dependency map" },
+  { id: "157", file: "157_letter-memo-format.html", name: "Letter / memo format (full)" },
+  { id: "158", file: "158_one-page-strategy.html", name: "One-page strategy (stacked)" },
+  { id: "159", file: "159_north-star-alignment.html", name: "North star alignment" },
+  { id: "160", file: "160_strategy-on-a-page.html", name: "Strategy on a page" },
+  { id: "161", file: "161_2x2-deep-axis-labels.html", name: "2×2 with deep axis labels" },
+  { id: "162", file: "162_system-landscape.html", name: "System landscape" },
+  { id: "163", file: "163_architecture-stack-cloud.html", name: "Architecture stack (cloud)" },
+  { id: "164", file: "164_api-integration-map.html", name: "API integration map" },
+  { id: "165", file: "165_service-catalogue.html", name: "Service catalogue" },
+  { id: "166", file: "166_operating-rhythm.html", name: "Operating rhythm" },
+  { id: "167", file: "167_press-coverage-compilation.html", name: "Press / coverage compilation" },
+  { id: "168", file: "168_awards-accolades.html", name: "Awards & accolades" },
+  { id: "169", file: "169_recognition-hall-of-fame.html", name: "Recognition / hall of fame" },
+  { id: "170", file: "170_news-timeline.html", name: "News timeline" },
+  { id: "171", file: "171_glossary-v2-technical.html", name: "Glossary v2 (technical / dense)" },
+  { id: "172", file: "172_acronym-key.html", name: "Acronym key" },
+  { id: "173", file: "173_reference-further-reading.html", name: "Reference / further reading" },
+  { id: "174", file: "174_appendix-divider-sub-list.html", name: "Appendix divider with sub-list" },
+  { id: "175", file: "175_cover-full-bleed-photo.html", name: "Cover: full-bleed photo overlay" },
+  { id: "176", file: "176_cover-minimalist-type-only.html", name: "Cover: minimalist type-only" },
+  { id: "177", file: "177_cover-logo-tagline-meta.html", name: "Cover: logo + tagline + meta" },
+  { id: "178", file: "178_cover-diagonal-split.html", name: "Cover: diagonal split" },
+  { id: "179", file: "179_anchored-quote-chart-pairing.html", name: "Anchored quote + chart pairing" },
+  { id: "180", file: "180_big-number-sparkline.html", name: "Big number + sparkline KPI" },
+  { id: "181", file: "181_multi-modal-dense.html", name: "Multi-modal dense exec layout" },
+  { id: "182", file: "182_comparison-explicit-math.html", name: "Comparison with explicit math" },
+  { id: "183", file: "183_annotated-screenshot.html", name: "Annotated screenshot / photo" },
+  { id: "184", file: "184_executive-one-pager.html", name: "Executive one-pager" },
+  { id: "185", file: "185_market-sizing-pyramid.html", name: "Market sizing pyramid (TAM/SAM/SOM)" },
+  { id: "186", file: "186_problem-opportunity-statement.html", name: "Problem / opportunity statement" },
+  { id: "187", file: "187_key-assumptions-dependencies.html", name: "Key assumptions & dependencies" },
+  { id: "188", file: "188_go-to-market-motion.html", name: "Go-to-market motion" },
+  { id: "189", file: "189_value-chain-analysis.html", name: "Value chain analysis (Porter's)" },
+  { id: "190", file: "190_core-competency-tree.html", name: "Core competency tree" },
+  { id: "191", file: "191_ecosystem-map.html", name: "Ecosystem map" },
+  { id: "192", file: "192_agile-sprint-board.html", name: "Agile sprint board" },
+  { id: "193", file: "193_benefits-realization-tracker.html", name: "Benefits realization tracker" },
+  { id: "194", file: "194_key-messages-per-audience.html", name: "Key messages per audience" },
+  { id: "195", file: "195_risk-vs-opportunity-matrix.html", name: "Risk vs. opportunity matrix" },
+  { id: "196", file: "196_pilot-results-summary.html", name: "Pilot results summary" },
+  { id: "197", file: "197_solution-overview.html", name: "Solution overview" },
+  { id: "198", file: "198_partnership-model-comparison.html", name: "Partnership model comparison" },
+  { id: "199", file: "199_ai-digital-enablers-stack.html", name: "AI & digital enablers stack" },
+  { id: "200", file: "200_now-next-later-roadmap.html", name: "Now / next / later roadmap" },
+  { id: "201", file: "201_biography-card-single.html", name: "Biography card (single)" },
+  { id: "202", file: "202_biography-card-two-person.html", name: "Biography card (two-person)" },
+  { id: "203", file: "203_team-bios-grid.html", name: "Team bios grid (3×2)" },
+  { id: "204", file: "204_leadership-profile-executive.html", name: "Leadership profile — executive" },
+  { id: "205", file: "205_chart-full-width.html", name: "Chart full-width with callout" },
+  { id: "206", file: "206_chart-bottom-takeaway.html", name: "Chart + bottom takeaway strip" },
+  { id: "207", file: "207_dual-chart-side-by-side.html", name: "Dual chart side by side" },
+  { id: "208", file: "208_exec-summary-structured.html", name: "Exec summary (4-zone structured)" },
+  { id: "209", file: "209_banded-rows-findings.html", name: "Banded rows findings (label | description | evidence)" },
+  { id: "210", file: "210_two-column-compare-icons.html", name: "Two-column compare (Current vs Future state)" },
+  { id: "211", file: "211_structured-text-3col.html", name: "Structured text 3-column (Strengths / Gaps / Opportunities)" },
+  { id: "212", file: "212_flywheel-virtuous-cycle.html", name: "Flywheel virtuous cycle" },
+  { id: "213", file: "213_30-60-90-plan.html", name: "30-60-90 day plan" },
+  { id: "214", file: "214_dark-header-deliverables.html", name: "Dark-header deliverables cards" },
+  { id: "215", file: "215_framework-5-pillars.html", name: "Framework 5-pillar arch model" },
+  { id: "216", file: "216_iceberg-model.html", name: "Iceberg model" },
+  { id: "217", file: "217_multi-track-roadmap.html", name: "Multi-track roadmap (3-track × 4-quarter)" },
+  { id: "218", file: "218_scatter-plot-quadrant-zones.html", name: "Scatter plot with quadrant zones" },
+  { id: "219", file: "219_financial-bridge.html", name: "Financial bridge (waterfall)" },
+  { id: "220", file: "220_process-diamond-decision.html", name: "Process flowchart with diamond decision" },
+  { id: "221", file: "221_kpi-dashboard-6up.html", name: "KPI dashboard 6-up tiles" },
+  { id: "222", file: "222_maturity-model-assessment.html", name: "Maturity model assessment grid" },
+  { id: "223", file: "223_current-state-rag-assessment.html", name: "Current state RAG assessment" },
+  { id: "224", file: "224_interview-insights-synthesis.html", name: "Interview insights synthesis" },
+  { id: "225", file: "225_competitive-positioning-map.html", name: "Competitive positioning map" },
+  { id: "226", file: "226_client-success-story.html", name: "Client success story (3-panel)" },
+  { id: "227", file: "227_portfolio-initiative-view.html", name: "Portfolio initiative view" },
+  { id: "228", file: "228_cost-breakdown-donut-table.html", name: "Cost breakdown donut + table" },
+  { id: "229", file: "229_progress-summary-initiative-bars.html", name: "Progress summary with initiative bars" },
+  { id: "230", file: "230_org-flat-wide.html", name: "Org chart flat wide" },
+  { id: "231", file: "231_input-transform-output.html", name: "Input → Transform → Output model" },
+  { id: "232", file: "232_proposal-section-break.html", name: "Proposal section break (bid)" },
+  { id: "233", file: "233_closing-next-steps.html", name: "Closing next steps action table" },
+  { id: "234", file: "234_insight-text-callout-panel.html", name: "Insight text + callout panel" },
+  { id: "235", file: "235_three-horizons-growth-curves.html", name: "Three horizons growth curves" },
+  { id: "236", file: "236_geographic-heatmap.html", name: "Geographic heatmap (regional performance)" },
+  { id: "237", file: "237_exec-briefing-memo.html", name: "Executive briefing memo" },
+  { id: "238", file: "238_process-compliance-flowchart.html", name: "Process compliance flowchart (governance)" },
+  { id: "239", file: "239_capability-gap-text-table.html", name: "Capability gap text table" },
+  { id: "240", file: "240_state-machine-diagram.html", name: "State machine diagram" },
+  { id: "241", file: "241_value-proposition-canvas.html", name: "Value proposition canvas" },
+  { id: "242", file: "242_competitive-battlecard.html", name: "Competitive battlecard" },
+  { id: "243", file: "243_assumption-dependency-log.html", name: "Assumption & dependency log" },
+  { id: "244", file: "244_client-testimonial-reference.html", name: "Client testimonial / reference" },
+  { id: "245", file: "245_pyramid-argument-structure.html", name: "Pyramid argument structure (Minto)" },
+  { id: "246", file: "246_stakeholder-communication-matrix.html", name: "Stakeholder communication matrix" },
+  { id: "247", file: "247_issue-prioritization-board.html", name: "Issue prioritization board" },
+  { id: "248", file: "248_two-column-narrative-summary.html", name: "Two-column narrative summary" },
+  { id: "249", file: "249_risk-register-mini-dashboard.html", name: "Risk register mini dashboard" },
+  { id: "250", file: "250_strategic-options-comparison.html", name: "Strategic options comparison" },
+  { id: "251", file: "251_problem-3-forces-split.html", name: "Problem statement + 3 forces (split panel)" },
+  // ── v4 batch: 252–351 ──────────────────────────────────────────────
+  { id: "252", file: "252_scqa-one-pager.html", name: "SCQA one-pager" },
+  { id: "253", file: "253_exec-narrative-labeled-rows.html", name: "Exec narrative labeled rows" },
+  { id: "254", file: "254_options-financial-summary.html", name: "Options financial summary" },
+  { id: "255", file: "255_risk-adjusted-recommendation.html", name: "Risk-adjusted recommendation" },
+  { id: "256", file: "256_project-status-ask-dark.html", name: "Project status ask (dark)" },
+  { id: "257", file: "257_lollipop-chart.html", name: "Lollipop chart" },
+  { id: "258", file: "258_diverging-bar-chart.html", name: "Diverging bar chart" },
+  { id: "259", file: "259_bar-sparkline-rows.html", name: "Bar + sparkline rows" },
+  { id: "260", file: "260_small-multiples-6up-bars.html", name: "Small multiples 6-up bars" },
+  { id: "261", file: "261_waterfall-subtotals-dark.html", name: "Waterfall with subtotals (dark)" },
+  { id: "262", file: "262_multi-line-event-flags.html", name: "Multi-line chart with event flags" },
+  { id: "263", file: "263_slope-chart-before-after.html", name: "Slope chart before/after" },
+  { id: "264", file: "264_dot-plot-strip-chart.html", name: "Dot plot / strip chart" },
+  { id: "265", file: "265_quadrant-migration-arrows.html", name: "Quadrant with migration arrows" },
+  { id: "266", file: "266_dual-axis-line-dark.html", name: "Dual-axis line chart (dark)" },
+  { id: "267", file: "267_win-loss-analysis-table.html", name: "Win/loss analysis table" },
+  { id: "268", file: "268_market-share-segment.html", name: "Market share by segment" },
+  { id: "269", file: "269_competitor-swot-4up.html", name: "Competitor SWOT 4-up" },
+  { id: "270", file: "270_disruption-radar.html", name: "Disruption radar" },
+  { id: "271", file: "271_competitive-landscape-dark.html", name: "Competitive landscape (dark)" },
+  { id: "272", file: "272_pestle-grid.html", name: "PESTLE grid" },
+  { id: "273", file: "273_force-field-analysis.html", name: "Force field analysis" },
+  { id: "274", file: "274_soar-framework.html", name: "SOAR framework" },
+  { id: "275", file: "275_jobs-to-be-done-canvas.html", name: "Jobs-to-be-done canvas" },
+  { id: "276", file: "276_problem-solution-benefit-dark.html", name: "Problem → Solution → Benefit (dark)" },
+  { id: "277", file: "277_sipoc-diagram.html", name: "SIPOC diagram" },
+  { id: "278", file: "278_decision-gate-process.html", name: "Decision gate process" },
+  { id: "279", file: "279_value-stream-map.html", name: "Value stream map" },
+  { id: "280", file: "280_customer-onboarding-journey.html", name: "Customer onboarding journey" },
+  { id: "281", file: "281_swimlane-milestone-dark.html", name: "Swimlane milestone Gantt (dark)" },
+  { id: "282", file: "282_rolling-12month-investment.html", name: "Rolling 12-month investment roadmap" },
+  { id: "283", file: "283_sprint-plan-2week.html", name: "Sprint plan 2-week" },
+  { id: "284", file: "284_dependency-visualization.html", name: "Dependency visualization matrix" },
+  { id: "285", file: "285_initiative-roadmap-owners.html", name: "Initiative roadmap with owners" },
+  { id: "286", file: "286_cutover-golive-plan-dark.html", name: "Cutover / go-live plan (dark)" },
+  { id: "287", file: "287_three-col-key-findings.html", name: "Three-column key findings" },
+  { id: "288", file: "288_annotated-insight-panel.html", name: "Annotated insight panel" },
+  { id: "289", file: "289_interview-synthesis-grid.html", name: "Interview synthesis grid" },
+  { id: "290", file: "290_evidence-row-table.html", name: "Evidence row table" },
+  { id: "291", file: "291_hypothesis-testing-dark.html", name: "Hypothesis testing dashboard (dark)" },
+  { id: "292", file: "292_pull-quote-interstitial.html", name: "Pull-quote interstitial" },
+  { id: "293", file: "293_key-question-dark.html", name: "Key question slide (dark)" },
+  { id: "294", file: "294_where-we-go-from-here-dark.html", name: "Where we go from here (dark)" },
+  { id: "295", file: "295_split-color-cover.html", name: "Split color cover" },
+  { id: "296", file: "296_thank-you-qa.html", name: "Thank you / Q&A" },
+  { id: "297", file: "297_raci-matrix.html", name: "RACI matrix" },
+  { id: "298", file: "298_leadership-team-profiles.html", name: "Leadership team profiles" },
+  { id: "299", file: "299_committee-governance-structure.html", name: "Committee governance structure" },
+  { id: "300", file: "300_transformation-office-dark.html", name: "Transformation office structure (dark)" },
+  { id: "301", file: "301_board-reporting-pack.html", name: "Board reporting pack" },
+  { id: "302", file: "302_flywheel-reinforcing-loop.html", name: "Flywheel / reinforcing loop" },
+  { id: "303", file: "303_iceberg-model.html", name: "Iceberg model" },
+  { id: "304", file: "304_double-diamond-design.html", name: "Double diamond design thinking" },
+  { id: "305", file: "305_systems-archetypes-dark.html", name: "Systems archetypes (dark)" },
+  { id: "306", file: "306_pyramid-argument.html", name: "Pyramid argument (Minto)" },
+  { id: "307", file: "307_kpi-scorecard-12up.html", name: "KPI scorecard 12-up" },
+  { id: "308", file: "308_balanced-scorecard.html", name: "Balanced scorecard" },
+  { id: "309", file: "309_okr-tracking-dashboard.html", name: "OKR tracking dashboard" },
+  { id: "310", file: "310_executive-metrics-dark.html", name: "Executive metrics dashboard (dark)" },
+  { id: "311", file: "311_leading-lagging-indicators.html", name: "Leading vs lagging indicators" },
+  { id: "312", file: "312_2bucket-left-right-split.html", name: "2-bucket left/right split" },
+  { id: "313", file: "313_2bucket-top-bottom-stacked.html", name: "2-bucket top/bottom stacked" },
+  { id: "314", file: "314_2bucket-comparison-cards.html", name: "2-bucket comparison cards" },
+  { id: "315", file: "315_2bucket-dark-split.html", name: "2-bucket dark split" },
+  { id: "316", file: "316_3bucket-horizontal-cards.html", name: "3-bucket horizontal cards" },
+  { id: "317", file: "317_3bucket-numbered-steps.html", name: "3-bucket numbered steps" },
+  { id: "318", file: "318_3bucket-icon-tiles.html", name: "3-bucket icon tiles" },
+  { id: "319", file: "319_3bucket-dark.html", name: "3-bucket dark" },
+  { id: "320", file: "320_4bucket-2x2-grid.html", name: "4-bucket 2×2 grid" },
+  { id: "321", file: "321_4bucket-horizontal-strip.html", name: "4-bucket horizontal strip" },
+  { id: "322", file: "322_4bucket-with-metrics.html", name: "4-bucket with metrics" },
+  { id: "323", file: "323_4bucket-dark.html", name: "4-bucket dark" },
+  { id: "324", file: "324_5bucket-horizontal-strip.html", name: "5-bucket horizontal strip" },
+  { id: "325", file: "325_5bucket-radial-pentagon.html", name: "5-bucket radial / pentagon" },
+  { id: "326", file: "326_5bucket-numbered-column.html", name: "5-bucket numbered column" },
+  { id: "327", file: "327_5bucket-dark.html", name: "5-bucket dark" },
+  { id: "328", file: "328_6bucket-2x3-grid.html", name: "6-bucket 2×3 grid" },
+  { id: "329", file: "329_6bucket-3x2-grid.html", name: "6-bucket 3×2 grid" },
+  { id: "330", file: "330_6bucket-icon-strip.html", name: "6-bucket icon strip" },
+  { id: "331", file: "331_6bucket-dark.html", name: "6-bucket dark" },
+  { id: "332", file: "332_7bucket-hero-plus-six.html", name: "7-bucket hero + 6 supporting" },
+  { id: "333", file: "333_7bucket-numbered-list.html", name: "7-bucket numbered list" },
+  { id: "334", file: "334_7bucket-timeline-arc.html", name: "7-bucket timeline arc" },
+  { id: "335", file: "335_7bucket-dark.html", name: "7-bucket dark" },
+  { id: "336", file: "336_8bucket-4x2-grid.html", name: "8-bucket 4×2 grid" },
+  { id: "337", file: "337_8bucket-2x4-grid.html", name: "8-bucket 2×4 grid" },
+  { id: "338", file: "338_8bucket-octagon-radial.html", name: "8-bucket octagon radial" },
+  { id: "339", file: "339_8bucket-dark.html", name: "8-bucket dark" },
+  { id: "340", file: "340_dark-executive-briefing.html", name: "Dark: executive briefing memo" },
+  { id: "341", file: "341_dark-strategic-options.html", name: "Dark: strategic options (3 paths)" },
+  { id: "342", file: "342_dark-capability-maturity.html", name: "Dark: capability maturity" },
+  { id: "343", file: "343_dark-stakeholder-map.html", name: "Dark: stakeholder power/interest map" },
+  { id: "344", file: "344_dark-risk-heat-map.html", name: "Dark: risk heat map" },
+  { id: "345", file: "345_dark-investment-case.html", name: "Dark: investment case one-pager" },
+  { id: "346", file: "346_dark-north-star-alignment.html", name: "Dark: north star alignment" },
+  { id: "347", file: "347_dark-market-landscape.html", name: "Dark: market landscape overview" },
+  { id: "348", file: "348_dark-key-messages-audience.html", name: "Dark: key messages by audience" },
+  { id: "349", file: "349_dark-project-charter.html", name: "Dark: project charter one-page" },
+  { id: "350", file: "350_dark-solution-architecture.html", name: "Dark: solution architecture stack" },
+  { id: "351", file: "351_dark-closing-cta.html", name: "Dark: closing call-to-action" },
+  // ── Dark variants of approved patterns 1–200 ─────────────────────
+  { id: "01d", file: "01_anchor-with-cards-icons-dark.html", name: "Anchor + cards with icons (dark)" },
+  { id: "02d", file: "02_three-pillars-icons-outputs-dark.html", name: "Three pillars + outputs strip (dark)" },
+  { id: "03d", file: "03_hero-statement-supporting-cards-dark.html", name: "Hero statement + 4 supporting cards (dark)" },
+  { id: "04d", file: "04_comparison-band-headers-dark.html", name: "Comparison matrix + convergence (dark)" },
+  { id: "05d", file: "05_screenshot-hero-caption-dark.html", name: "Screenshot + step strip + takeaway (dark)" },
+  { id: "06d", file: "06_section-divider-numeral-dark.html", name: "Section divider + hero numeral (dark)" },
+  { id: "07d", file: "07_honest-expectations-two-panel-dark.html", name: "Honest expectations two-panel (dark)" },
+  { id: "09d", file: "09_agenda-numbered-toc-dark.html", name: "Agenda + objectives panel (dark)" },
+  { id: "10d", file: "10_hero-stat-annotated-dark.html", name: "Evidence chart + annotation panel (dark)" },
+  { id: "11d", file: "11_long-form-structured-text-dark.html", name: "Long-form SCQA (dark)" },
+  { id: "12d", file: "12_kpi-tile-dashboard-dark.html", name: "KPI tile dashboard (dark)" },
+  { id: "13d", file: "13_2x2-framework-quadrants-dark.html", name: "2×2 framework quadrants (dark)" },
+  { id: "14d", file: "14_gantt-workplan-timeline-dark.html", name: "Gantt workplan timeline (dark)" },
+  { id: "15d", file: "15_org-chart-hierarchy-dark.html", name: "Org chart hierarchy (dark)" },
+  { id: "16d", file: "16_process-phases-rich-dark.html", name: "Process phases — rich content (dark)" },
+  { id: "17d", file: "17_before-after-transformation-dark.html", name: "Before / after transformation (dark)" },
+  { id: "18d", file: "18_methodology-overview-dark.html", name: "Methodology overview (dark)" },
+  { id: "19d", file: "19_cover-split-panel-dark.html", name: "Cover split panel (dark)" },
+  { id: "20d", file: "20_risk-heat-map-dark.html", name: "Risk heat map (dark)" },
+  { id: "21d", file: "21_stakeholder-map-dark.html", name: "Stakeholder map (dark)" },
+  { id: "22d", file: "22_photo-hero-caption-dark.html", name: "Photo hero + editorial caption (dark)" },
+  { id: "23d", file: "23_account-scorecard-rag-grid-dark.html", name: "Account scorecard RAG (dark)" },
+  { id: "24d", file: "24_focus-areas-with-stats-dark.html", name: "Four focus areas with stat callouts (dark)" },
+  { id: "27d", file: "27_case-study-sar-dark.html", name: "Case study SAR (dark)" },
+  { id: "28d", file: "28_vertical-timeline-dark.html", name: "Vertical timeline (dark)" },
+  { id: "29d", file: "29_decision-tree-dark.html", name: "Decision tree (dark)" },
+  { id: "31d", file: "31_maturity-pyramid-dark.html", name: "Maturity pyramid (dark)" },
+  { id: "32d", file: "32_swot-analysis-dark.html", name: "SWOT analysis (dark)" },
+  { id: "33d", file: "33_fishbone-root-cause-dark.html", name: "Fishbone diagram (dark)" },
+  { id: "34d", file: "34_cycle-diagram-dark.html", name: "4-step cycle diagram (dark)" },
+  { id: "35d", file: "35_funnel-conversion-dark.html", name: "Funnel conversion (dark)" },
+  { id: "36d", file: "36_customer-journey-map-dark.html", name: "Customer journey map (dark)" },
+  { id: "37d", file: "37_comparison-tier-cards-dark.html", name: "Three-option comparison cards (dark)" },
+  { id: "39d", file: "39_issue-tree-dark.html", name: "Issue tree MECE (dark)" },
+  { id: "40d", file: "40_closing-cta-revival-dark.html", name: "Closing CTA (dark)" },
+  { id: "41d", file: "41_persona-card-dark.html", name: "Persona card (dark)" },
+  { id: "42d", file: "42_q-and-a-discussion-dark.html", name: "Q&A discussion (dark)" },
+  { id: "43d", file: "43_definitions-glossary-dark.html", name: "Definitions / glossary (dark)" },
+  { id: "44d", file: "44_kpi-scorecard-table-dark.html", name: "KPI scorecard table (dark)" },
+  { id: "45d", file: "45_swimlane-chevron-handoff-dark.html", name: "Swimlane chevron handoff (dark)" },
+  { id: "46d", file: "46_two-tier-phase-detail-dark.html", name: "Two-tier phase detail (dark)" },
+  { id: "47d", file: "47_strategy-house-dark.html", name: "Strategy house (dark)" },
+  { id: "48d", file: "48_venn-overlap-insight-dark.html", name: "Venn overlap insight (dark)" },
+  { id: "49d", file: "49_convergence-paths-to-outcome-dark.html", name: "Convergence paths to outcome (dark)" },
+  { id: "51d", file: "51_phased-plan-timeline-table-dark.html", name: "Phased plan timeline + table (dark)" },
+  { id: "52d", file: "52_numbered-tile-rail-with-statement-dark.html", name: "Numbered tile rail + statement (dark)" },
+  { id: "53d", file: "53_scenario-timeline-impact-rail-dark.html", name: "Scenario timeline + impact rail (dark)" },
+  { id: "54d", file: "54_scenario-comparison-ledger-dark.html", name: "Scenario comparison ledger (dark)" },
+  { id: "57d", file: "57_anchor-stat-with-evidence-rail-dark.html", name: "Anchor stat + evidence rail (dark)" },
+  { id: "59d", file: "59_stat-bank-dark.html", name: "Stat bank (dark)" },
+  { id: "60d", file: "60_strategic-roadmap-3-horizon-dark.html", name: "Strategic roadmap 3-horizon (dark)" },
+  { id: "61d", file: "61_tradeoff-pros-cons-dark.html", name: "Trade-off pros/cons table (dark)" },
+  { id: "62d", file: "62_theory-of-change-dark.html", name: "Theory of change (dark)" },
+  { id: "63d", file: "63_raci-matrix-dark.html", name: "RACI matrix (dark)" },
+  { id: "64d", file: "64_investment-thesis-cards-dark.html", name: "Investment thesis cards (dark)" },
+  { id: "66d", file: "66_combo-chart-bars-line-dark.html", name: "Combo chart bars + line (dark)" },
+  { id: "68d", file: "68_donut-breakdown-dark.html", name: "Donut chart + breakdown (dark)" },
+  { id: "69d", file: "69_tornado-sensitivity-dark.html", name: "Tornado sensitivity chart (dark)" },
+  { id: "70d", file: "70_radar-capability-dark.html", name: "Radar / spider chart (dark)" },
+  { id: "71d", file: "71_reference-architecture-layers-dark.html", name: "Reference architecture layers (dark)" },
+  { id: "72d", file: "72_okr-cascade-dark.html", name: "OKR cascade (dark)" },
+  { id: "74d", file: "74_stat-photo-combo-dark.html", name: "Stat + photo combo (dark)" },
+  { id: "75d", file: "75_quote-stack-3-dark.html", name: "Quote stack 3 (dark)" },
+  { id: "76d", file: "76_logo-wall-dark.html", name: "Logo wall (dark)" },
+  { id: "77d", file: "77_multi-image-grid-dark.html", name: "Multi-image grid (dark)" },
+  { id: "81d", file: "81_operating-model-tom-dark.html", name: "Operating model TOM (dark)" },
+  { id: "82d", file: "82_mckinsey-7s-framework-dark.html", name: "McKinsey 7S framework (dark)" },
+  { id: "83d", file: "83_porters-five-forces-dark.html", name: "Porter's 5 forces (dark)" },
+  { id: "85d", file: "85_vision-mission-values-dark.html", name: "Vision / mission / values (dark)" },
+  { id: "86d", file: "86_risk-register-table-dark.html", name: "Risk register table (dark)" },
+  { id: "87d", file: "87_workstream-phase-matrix-dark.html", name: "Workstream × phase matrix (dark)" },
+  { id: "88d", file: "88_status-report-exec-summary-dark.html", name: "Status report exec summary (dark)" },
+  { id: "89d", file: "89_lessons-learned-retro-dark.html", name: "Lessons learned / retrospective (dark)" },
+  { id: "90d", file: "90_capability-gap-analysis-dark.html", name: "Capability gap analysis (dark)" },
+  { id: "94d", file: "94_change-readiness-assessment-dark.html", name: "Change readiness ADKAR (dark)" },
+  { id: "95d", file: "95_action-register-dark.html", name: "Action register (dark)" },
+  { id: "96d", file: "96_concept-intro-with-visual-dark.html", name: "Concept intro with visual (dark)" },
+  { id: "97d", file: "97_mission-statement-slide-dark.html", name: "Mission statement slide (dark)" },
+  { id: "98d", file: "98_quarterly-board-update-dark.html", name: "Quarterly board update (dark)" },
+  { id: "99d", file: "99_quick-win-priority-matrix-dark.html", name: "Quick-win priority matrix (dark)" },
+  { id: "100d", file: "100_pareto-80-20-dark.html", name: "Pareto 80/20 (dark)" },
+  { id: "105d", file: "105_time-series-confidence-band-dark.html", name: "Time series with confidence band (dark)" },
+  { id: "130d", file: "130_capability-ladder-dark.html", name: "Capability ladder / career path (dark)" },
+  { id: "142d", file: "142_win-themes-proposal-dark.html", name: "Win themes (dark)" },
+  { id: "143d", file: "143_differentiators-3col-dark.html", name: "Differentiators 3-column (dark)" },
+  { id: "144d", file: "144_proof-points-compilation-dark.html", name: "Proof points compilation (dark)" },
+  { id: "145d", file: "145_capability-vs-requirement-gap-dark.html", name: "Capability vs requirement gap (dark)" },
+  { id: "147d", file: "147_logic-model-dark.html", name: "Logic model (dark)" },
+  { id: "148d", file: "148_workshop-summary-dark.html", name: "Workshop summary (dark)" },
+  { id: "149d", file: "149_brainstorm-affinity-map-dark.html", name: "Brainstorm / affinity map (dark)" },
+  { id: "150d", file: "150_retrospective-sailboat-dark.html", name: "Retrospective sailboat (dark)" },
+  { id: "153d", file: "153_sprint-review-summary-dark.html", name: "Sprint review summary (dark)" },
+  { id: "154d", file: "154_implementation-tracker-dark.html", name: "Implementation tracker (dark)" },
+  { id: "157d", file: "157_letter-memo-format-dark.html", name: "Letter / memo format (dark)" },
+  { id: "158d", file: "158_one-page-strategy-dark.html", name: "One-page strategy (dark)" },
+  { id: "160d", file: "160_strategy-on-a-page-dark.html", name: "Strategy on a page (dark)" },
+  { id: "161d", file: "161_2x2-deep-axis-labels-dark.html", name: "2×2 with deep axis labels (dark)" },
+  { id: "163d", file: "163_architecture-stack-cloud-dark.html", name: "Architecture stack cloud (dark)" },
+  { id: "165d", file: "165_service-catalogue-dark.html", name: "Service catalogue (dark)" },
+  { id: "166d", file: "166_operating-rhythm-dark.html", name: "Operating rhythm (dark)" },
+  { id: "167d", file: "167_press-coverage-compilation-dark.html", name: "Press / coverage compilation (dark)" },
+  { id: "168d", file: "168_awards-accolades-dark.html", name: "Awards & accolades (dark)" },
+  { id: "169d", file: "169_recognition-hall-of-fame-dark.html", name: "Recognition / hall of fame (dark)" },
+  { id: "170d", file: "170_news-timeline-dark.html", name: "News timeline (dark)" },
+  { id: "171d", file: "171_glossary-v2-technical-dark.html", name: "Glossary v2 technical (dark)" },
+  { id: "172d", file: "172_acronym-key-dark.html", name: "Acronym key (dark)" },
+  { id: "173d", file: "173_reference-further-reading-dark.html", name: "Reference / further reading (dark)" },
+  { id: "174d", file: "174_appendix-divider-sub-list-dark.html", name: "Appendix divider with sub-list (dark)" },
+  { id: "175d", file: "175_cover-full-bleed-photo-dark.html", name: "Cover full-bleed photo (dark)" },
+  { id: "176d", file: "176_cover-minimalist-type-only-dark.html", name: "Cover minimalist type-only (dark)" },
+  { id: "177d", file: "177_cover-logo-tagline-meta-dark.html", name: "Cover logo + tagline + meta (dark)" },
+  { id: "179d", file: "179_anchored-quote-chart-pairing-dark.html", name: "Anchored quote + chart pairing (dark)" },
+  { id: "181d", file: "181_multi-modal-dense-dark.html", name: "Multi-modal dense exec layout (dark)" },
+  { id: "182d", file: "182_comparison-explicit-math-dark.html", name: "Comparison with explicit math (dark)" },
+  { id: "183d", file: "183_annotated-screenshot-dark.html", name: "Annotated screenshot (dark)" },
+  { id: "186d", file: "186_problem-opportunity-statement-dark.html", name: "Problem / opportunity statement (dark)" },
+  { id: "188d", file: "188_go-to-market-motion-dark.html", name: "Go-to-market motion (dark)" },
+  { id: "189d", file: "189_value-chain-analysis-dark.html", name: "Value chain analysis Porter's (dark)" },
+  { id: "190d", file: "190_core-competency-tree-dark.html", name: "Core competency tree (dark)" },
+  { id: "191d", file: "191_ecosystem-map-dark.html", name: "Ecosystem map (dark)" },
+  { id: "192d", file: "192_agile-sprint-board-dark.html", name: "Agile sprint board (dark)" },
+  { id: "193d", file: "193_benefits-realization-tracker-dark.html", name: "Benefits realization tracker (dark)" },
+  { id: "194d", file: "194_key-messages-per-audience-dark.html", name: "Key messages per audience (dark)" },
+  { id: "195d", file: "195_risk-vs-opportunity-matrix-dark.html", name: "Risk vs opportunity matrix (dark)" },
+  { id: "196d", file: "196_pilot-results-summary-dark.html", name: "Pilot results summary (dark)" },
+  { id: "197d", file: "197_solution-overview-dark.html", name: "Solution overview (dark)" },
+  { id: "198d", file: "198_partnership-model-comparison-dark.html", name: "Partnership model comparison (dark)" },
+];
+
+const STORAGE_KEY = "pattern-library-final-100";
+const STATES = {};
+function ensureState(id) {
+  if (!STATES[id]) STATES[id] = { decision: PRIOR_STATE[id] || "pending", note: "", qc: {} };
+  if (!STATES[id].qc) STATES[id].qc = {};
+  return STATES[id];
+}
+
+function qcCellHtml(patternId, rule, qcState) {
+  const cellState = qcState[rule.id];
+  const cls = cellState === 'pass' ? 'pass' : (cellState === 'fail' ? 'fail' : '');
+  const stateLabel = cellState === 'pass' ? '✓' : (cellState === 'fail' ? '✗' : '—');
+  return `<div class="qc-cell ${cls}" onclick="toggleQc('${patternId}', ${rule.id})">
+    <div class="qc-num">${rule.id}</div>
+    <div class="qc-label">${rule.label}</div>
+    <div class="qc-state">${stateLabel}</div>
+  </div>`;
+}
+
+function renderCards() {
+  const root = document.getElementById("cards");
+  root.innerHTML = "";
+  for (const m of MOCKUPS) {
+    const s = ensureState(m.id);
+    const card = document.createElement("div");
+    card.className = "card";
+    card.dataset.patternId = m.id;
+    card.dataset.name = m.name.toLowerCase();
+    card.innerHTML = `
+      <div class="card-preview">
+        <div class="frame-wrapper"><iframe src="${m.file}" loading="lazy"></iframe></div>
+        <a class="open-full" href="${m.file}" target="_blank">Open ↗</a>
+      </div>
+      <div class="card-controls">
+        <div class="card-header">
+          <div>
+            <div class="card-num">PATTERN ${m.id}</div>
+            <div class="card-name">${m.name}</div>
+          </div>
+          <div class="status-badge ${s.decision}" id="badge-${m.id}">${s.decision.toUpperCase()}</div>
+        </div>
+        <div>
+          <div class="field-label">QC self-check</div>
+          <div class="qc-grid" id="qc-${m.id}">
+            ${QC_RULES.map(r => qcCellHtml(m.id, r, s.qc)).join("")}
+          </div>
+        </div>
+        <div>
+          <div class="field-label">Decision</div>
+          <div class="decision-buttons" id="buttons-${m.id}">
+            <button class="approve ${s.decision === 'approved' ? 'active' : ''}" onclick="setDecision('${m.id}', 'approved')">✓ APPROVE</button>
+            <button class="tweak ${s.decision === 'tweak' ? 'active' : ''}" onclick="setDecision('${m.id}', 'tweak')">~ TWEAK</button>
+            <button class="reject ${s.decision === 'rejected' ? 'active' : ''}" onclick="setDecision('${m.id}', 'rejected')">✗ REJECT</button>
+          </div>
+        </div>
+        <div>
+          <div class="field-label">Notes (optional)</div>
+          <textarea id="note-${m.id}" placeholder="If TWEAK: what to change. If REJECT: why."
+                    oninput="setNote('${m.id}', this.value)">${s.note}</textarea>
+        </div>
+      </div>
+    `;
+    root.appendChild(card);
+  }
+  applyFilters();
+  updateOutput();
+}
+
+function setDecision(id, decision) {
+  ensureState(id).decision = decision;
+  saveState();
+  const badge = document.getElementById(`badge-${id}`);
+  if (badge) { badge.className = `status-badge ${decision}`; badge.textContent = decision.toUpperCase(); }
+  const btnGroup = document.getElementById(`buttons-${id}`);
+  if (btnGroup) {
+    for (const btn of btnGroup.querySelectorAll("button")) btn.classList.remove("active");
+    if (decision === "approved") btnGroup.querySelector(".approve").classList.add("active");
+    if (decision === "tweak") btnGroup.querySelector(".tweak").classList.add("active");
+    if (decision === "rejected") btnGroup.querySelector(".reject").classList.add("active");
+  }
+  applyFilters();
+  updateOutput();
+}
+
+function setNote(id, note) { ensureState(id).note = note; saveState(); updateOutput(); }
+
+function toggleQc(patternId, ruleId) {
+  const s = ensureState(patternId);
+  const current = s.qc[ruleId];
+  if (current === undefined) s.qc[ruleId] = 'pass';
+  else if (current === 'pass') s.qc[ruleId] = 'fail';
+  else delete s.qc[ruleId];
+  saveState();
+  const grid = document.getElementById(`qc-${patternId}`);
+  if (grid) grid.innerHTML = QC_RULES.map(r => qcCellHtml(patternId, r, s.qc)).join("");
+  updateOutput();
+}
+
+function qcSummary(s) {
+  let pass = 0, fail = 0;
+  for (const r of QC_RULES) {
+    if (s.qc[r.id] === 'pass') pass++;
+    else if (s.qc[r.id] === 'fail') fail++;
+  }
+  if (pass === 0 && fail === 0) return "";
+  if (fail === 0) return ` [QC ${pass}/${QC_RULES.length}]`;
+  const failedLabels = QC_RULES.filter(r => s.qc[r.id] === 'fail').map(r => r.label).join(', ');
+  return ` [QC fails: ${failedLabels}]`;
+}
+
+function updateOutput() {
+  let approved = 0, tweak = 0, rejected = 0, pending = 0;
+  const lines = ["# Pattern library final review — 100 patterns", "Date: 2026-05-18", ""];
+  for (const m of MOCKUPS) {
+    const s = ensureState(m.id);
+    if (s.decision === "approved") approved++;
+    else if (s.decision === "tweak") tweak++;
+    else if (s.decision === "rejected") rejected++;
+    else pending++;
+    const noteSuffix = s.note.trim() ? ` — ${s.note.trim().replace(/\s+/g, " ")}` : "";
+    const qcTag = qcSummary(s);
+    lines.push(`Pattern ${m.id} (${m.name}): ${s.decision.toUpperCase()}${qcTag}${noteSuffix}`);
+  }
+  lines.push("");
+  lines.push(`Summary: ${approved} approved · ${tweak} tweak · ${rejected} rejected · ${pending} pending (of ${MOCKUPS.length})`);
+  document.getElementById("count-approved").textContent = approved;
+  document.getElementById("count-tweak").textContent = tweak;
+  document.getElementById("count-rejected").textContent = rejected;
+  document.getElementById("count-pending").textContent = pending;
+  document.getElementById("output-box").textContent = lines.join("\n");
+}
+
+function applyFilters() {
+  const status = document.getElementById("filter-status").value;
+  const text = document.getElementById("filter-text").value.toLowerCase().trim();
+  let shown = 0;
+  for (const card of document.querySelectorAll(".card")) {
+    const id = card.dataset.patternId;
+    const name = card.dataset.name;
+    const s = ensureState(id);
+    let visible = true;
+    if (status !== "all" && s.decision !== status) visible = false;
+    if (text && !name.includes(text) && !id.includes(text)) visible = false;
+    card.classList.toggle("hidden", !visible);
+    if (visible) shown++;
+  }
+  document.getElementById("shown-count").textContent = `${shown} of ${MOCKUPS.length} shown`;
+}
+
+function approveAllPending() {
+  if (!confirm(`Approve all currently pending patterns? (${document.getElementById("count-pending").textContent} patterns)`)) return;
+  for (const m of MOCKUPS) {
+    const s = ensureState(m.id);
+    if (s.decision === "pending") s.decision = "approved";
+  }
+  saveState();
+  renderCards();
+}
+
+function saveState() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(STATES)); } catch (e) {} }
+function loadState() {
+  try {
+    const s = localStorage.getItem(STORAGE_KEY);
+    if (s) Object.assign(STATES, JSON.parse(s));
+  } catch (e) {}
+}
+function resetAll() {
+  if (!confirm("Reset all decisions, notes, and QC checks?")) return;
+  for (const k of Object.keys(STATES)) delete STATES[k];
+  saveState();
+  renderCards();
+}
+function copyOutput() {
+  const txt = document.getElementById("output-box").textContent;
+  navigator.clipboard.writeText(txt).then(() => showToast("Copied to clipboard"));
+}
+function downloadOutput() {
+  const txt = document.getElementById("output-box").textContent;
+  const blob = new Blob([txt], { type: "text/markdown" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "pattern-library-final-review.md"; a.click();
+  URL.revokeObjectURL(url);
+}
+function showToast(msg) {
+  const t = document.getElementById("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  setTimeout(() => t.classList.remove("show"), 1800);
+}
+
+loadState();
+renderCards();
+</script>
+
+</body>
+</html>

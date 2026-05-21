@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>342 – Dark Capability Maturity</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+    background: #2D0A4E;
+    position: relative;
+  }
+
+  /* ── Chrome: top bar ── */
+  .chrome-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    z-index: 10;
+  }
+
+  .chrome-internal {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .draft-badge {
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 7px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    padding: 3px 8px;
+    border-radius: 0;
+    line-height: 1;
+  }
+
+  .chrome-spacer {
+    width: 140px; /* mirrors internal label width for centering */
+  }
+
+  /* ── Content area ── */
+  .content {
+    position: absolute;
+    top: 36px;
+    left: 0;
+    right: 0;
+    bottom: 32px;
+    display: flex;
+    flex-direction: column;
+    padding: 20px 48px 12px;
+  }
+
+  /* ── Header ── */
+  .slide-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 0;
+  overflow: visible;
+  }
+
+  .slide-header-title {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .accent-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+
+
+    background: var(--brand-accent);
+  }
+
+  .slide-title {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+    font-size: 28px;
+    font-weight: 700;
+    color: #ffffff;
+  }
+
+  .slide-title strong {
+    color: var(--brand-accent-soft);
+    font-weight: 700;
+  }
+
+  .slide-subtitle {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 108px;
+    font-size: 14px;
+    font-style: italic;
+    color: rgba(255, 255, 255, 0.6);
+    font-weight: 400;
+  }
+
+  /* ── Body row: grid + sidebar ── */
+  .body-row {
+    display: flex;
+    flex: 1;
+    gap: 20px;
+    min-height: 0;
+  }
+
+  /* ── Maturity grid ── */
+  .grid-wrap {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .maturity-grid {
+    flex: 1;
+    display: flex; flex-wrap: wrap;
+    gap: 3px;
+    min-height: 0;
+  }
+
+  /* Corner cell */
+  .cell-corner {
+    background: transparent;
+  }
+
+  /* Column header cells */
+  .col-header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    border-radius: 3px 3px 0 0;
+    padding: 0 4px;
+  }
+
+  .col-header[data-level="1"] {
+    background: rgba(161, 0, 255, 0.20);
+    color: rgba(199, 128, 255, 0.65);
+  }
+  .col-header[data-level="2"] {
+    background: rgba(161, 0, 255, 0.35);
+    color: rgba(199, 128, 255, 0.75);
+  }
+  .col-header[data-level="3"] {
+    background: rgba(161, 0, 255, 0.52);
+    color: rgba(199, 128, 255, 0.88);
+  }
+  .col-header[data-level="4"] {
+    background: rgba(161, 0, 255, 0.72);
+    color: #d9a6ff;
+  }
+  .col-header[data-level="5"] {
+    background: rgba(161, 0, 255, 1.0);
+    color: #ffffff;
+  }
+
+  /* Row header cells */
+  .row-header {
+    display: flex;
+    align-items: center;
+    padding: 0 10px 0 0;
+    font-size: 11px;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.75);
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    justify-content: flex-end;
+  }
+
+  /* Body cells */
+  .grid-cell {
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    position: relative;
+    transition: background 0.15s;
+  }
+
+  .grid-cell.is-current {
+    background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.22);
+  }
+
+  /* Dots */
+  .dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .dot-current {
+    background: rgba(255, 255, 255, 0.4);
+  }
+
+  .dot-target {
+    background: var(--brand-accent);
+    box-shadow: 0 0 6px rgba(161, 0, 255, 0.8);
+  }
+
+  /* Legend — primary placement: right-aligned in header zone */
+  .legend {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-shrink: 0;
+}
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.5);
+    letter-spacing: 0.04em;
+  }
+
+  /* ── Gap Summary sidebar ── */
+  .sidebar {
+    width: 228px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .sidebar-label {
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--brand-accent-soft);
+}
+
+  .gap-card {
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 4px;
+    padding: 11px 13px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .gap-card::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+  }
+
+  .gap-card:nth-child(2)::before { background: var(--brand-accent); }
+  .gap-card:nth-child(3)::before { background: rgba(161, 0, 255, 0.6); }
+  .gap-card:nth-child(4)::before { background: rgba(161, 0, 255, 0.35); }
+
+  .gap-priority {
+    font-size: 8px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--brand-accent-soft);
+    opacity: 0.7;
+  }
+
+  .gap-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.25;
+  }
+
+  .gap-action {
+    font-size: 10.5px;
+    color: rgba(255, 255, 255, 0.5);
+    line-height: 1.4;
+    font-weight: 400;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 32px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+  }
+
+  .footer-text {
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.4);
+    letter-spacing: 0.05em;
+  }
+</style>
+</head>
+<body>
+
+<!-- Top chrome -->
+<div class="chrome-top">
+  <span class="chrome-internal">Accenture Internal</span>
+  <span class="chrome-spacer"></span>
+</div>
+
+<!-- Footer -->
+<div class="footer">
+  <span class="footer-text">Capability Maturity Assessment · Current State vs. Target State</span>
+  <span class="footer-text">Confidential · © 2026 Accenture</span>
+</div>
+
+<!-- Main content -->
+<div class="content">
+
+  <!-- Header -->
+  <div class="slide-header">
+    <div class="slide-header-title">
+      <div class="accent-rule"></div>
+      <h1 class="slide-title">Capability Maturity: <strong>Current vs. Target State</strong></h1>
+      <p class="slide-subtitle">Across six domains — three priority gaps require immediate intervention</p>
+    </div>
+    <!-- Legend: primary placement — right-aligned below title block -->
+    <div class="legend">
+      <div class="legend-item">
+        <span class="dot dot-current"></span>
+        Current level
+      </div>
+      <div class="legend-item">
+        <span class="dot dot-target"></span>
+        Target level
+      </div>
+      <div class="legend-item" style="border-left: 1px solid rgba(255,255,255,0.15); padding-left:16px;">
+        <span style="display:inline-block;width:18px;height:10px;background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.15);border-radius:2px;margin-right:2px;"></span>
+        Current level column
+      </div>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="body-row">
+
+    <!-- Grid -->
+    <div class="grid-wrap">
+      <div class="maturity-grid">
+
+        <!-- Row 0: corner + column headers -->
+        <div class="cell-corner"></div>
+        <div class="col-header" data-level="1">Initial</div>
+        <div class="col-header" data-level="2">Managed</div>
+        <div class="col-header" data-level="3">Defined</div>
+        <div class="col-header" data-level="4">Quantified</div>
+        <div class="col-header" data-level="5">Optimizing</div>
+
+        <!-- Row 1: Data — current L2, target L4 -->
+        <div class="row-header">Data</div>
+        <div class="grid-cell"></div>
+        <div class="grid-cell is-current"><span class="dot dot-current"></span></div>
+        <div class="grid-cell"></div>
+        <div class="grid-cell"><span class="dot dot-target"></span></div>
+        <div class="grid-cell"></div>
+
+        <!-- Row 2: Process — current L3, target L5 -->
+        <div class="row-header">Process</div>
+        <div class="grid-cell"></div>
+        <div class="grid-cell"></div>
+        <div class="grid-cell is-current"><span class="dot dot-current"></span></div>
+        <div class="grid-cell"></div>
+        <div class="grid-cell"><span class="dot dot-target"></span></div>
+
+        <!-- Row 3: Technology — current L2, target L5 -->
+        <div class="row-header">Technology</div>
+        <div class="grid-cell"></div>
+        <div class="grid-cell is-current"><span class="dot dot-current"></span></div>
+        <div class="grid-cell"></div>
+        <div class="grid-cell"></div>
+        <div class="grid-cell"><span class="dot dot-target"></span></div>
+
+        <!-- Row 4: People — current L3, target L4 -->
+        <div class="row-header">People</div>
+        <div class="grid-cell"></div>
+        <div class="grid-cell"></div>
+        <div class="grid-cell is-current"><span class="dot dot-current"></span></div>
+        <div class="grid-cell"><span class="dot dot-target"></span></div>
+        <div class="grid-cell"></div>
+
+        <!-- Row 5: Governance — current L1, target L3 -->
+        <div class="row-header">Governance</div>
+        <div class="grid-cell is-current"><span class="dot dot-current"></span></div>
+        <div class="grid-cell"></div>
+        <div class="grid-cell"><span class="dot dot-target"></span></div>
+        <div class="grid-cell"></div>
+        <div class="grid-cell"></div>
+
+        <!-- Row 6: Culture — current L2, target L3 -->
+        <div class="row-header">Culture</div>
+        <div class="grid-cell"></div>
+        <div class="grid-cell is-current"><span class="dot dot-current"></span></div>
+        <div class="grid-cell"><span class="dot dot-target"></span></div>
+        <div class="grid-cell"></div>
+        <div class="grid-cell"></div>
+
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+      <div class="sidebar-label">Gap Summary — Priority Actions</div>
+
+      <div class="gap-card">
+        <div class="gap-priority">P1 · High Impact</div>
+        <div class="gap-title">Technology Modernisation</div>
+        <div class="gap-action">3-level gap; legacy stack blocks scalability. Initiate cloud migration roadmap Q3.</div>
+      </div>
+
+      <div class="gap-card">
+        <div class="gap-priority">P2 · High Impact</div>
+        <div class="gap-title">Governance Framework</div>
+        <div class="gap-action">Initial-state governance creates regulatory exposure. Define policies and ownership by Q4.</div>
+      </div>
+
+      <div class="gap-card">
+        <div class="gap-priority">P3 · Medium Impact</div>
+        <div class="gap-title">Data Capability Uplift</div>
+        <div class="gap-action">Move from ad-hoc to quantified. Invest in data platform and literacy programme.</div>
+      </div>
+
+    </div>
+
+  </div><!-- /body-row -->
+
+</div><!-- /content -->
+
+</body>
+</html>

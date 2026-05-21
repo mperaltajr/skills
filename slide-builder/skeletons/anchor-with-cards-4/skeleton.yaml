@@ -1,0 +1,29 @@
+id: anchor-with-cards-4
+category: anchor
+page_types:
+  - executive-summary
+  - four-pillar
+  - anchored-cards
+  - SCQA-summary
+best_for: Anchored executive summary with 4 numbered side-by-side cards (e.g. Problem/Solution/Outcomes/Rationale). Each card has its own short heading + body. Use when content fits a 4-card balance and the action title is the deck's organizing thesis.
+num_columns: 4
+visual_structure: 4-column-pillars
+source_pptx: 01_Executive Summary.pptx
+source_slide_num: 8
+source_layout_name: Default
+tokens:
+  ACTION_TITLE: '[Executive summary]'
+  COL_A_HEADING: '[Problem/opportunity
+
+
+    [Summarize the underlying problem or opportunity this busin]'
+  COL_B_HEADING: '[Solution
+
+
+    [Summarize the suggested solution to the problem / opportunity]]'
+  COL_C_HEADING: "[Outcomes \n\n[Summarize the outcomes and benefits that can expected\
+    \ from successfu]"
+  COL_D_HEADING: '[Strategic rationale
+
+
+    [Summarize the strategic rationale for addressing the probl]'

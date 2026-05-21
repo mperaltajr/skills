@@ -1,0 +1,540 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>347 – Dark Market Landscape Overview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    background: #2D0A4E;
+    font-family: 'Inter', sans-serif;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* ── Chrome ── */
+  .chrome-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    z-index: 10;
+  }
+
+  .chrome-internal {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .draft-badge {
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 7px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    padding: 3px 8px;
+    border-radius: 0;
+    line-height: 1;
+  }
+
+  .chrome-right {
+    width: 160px;
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  /* ── Header ── */
+  .slide-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 0;
+  overflow: visible;
+
+}
+
+  .accent-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+
+
+    background: var(--brand-accent);
+  }
+
+  .slide-title {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+    font-size: 28px;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: -0.01em;
+  }
+
+  .slide-title strong {
+    color: var(--brand-accent-soft);
+  }
+
+  .slide-subtitle {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 108px;
+    font-size: 14px;
+    font-style: italic;
+    color: rgba(255,255,255,0.6);
+    font-weight: 400;
+  }
+
+  /* ── Main grid ── */
+  .slide-body {
+    position: absolute;
+    top: 120px;
+    left: 48px;
+    right: 48px;
+    bottom: 40px;
+    display: flex; flex-wrap: wrap;
+    gap: 14px;
+  }
+
+  /* ── Card base ── */
+  .card {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .card-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.45);
+}
+
+  /* ── Left: Market Context ── */
+  .market-stat {
+    font-size: 40px;
+    font-weight: 800;
+    color: var(--brand-accent-soft);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+
+  .market-stat-label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.45);
+}
+
+  .cagr-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+  .cagr-badge {
+    background: rgba(52,211,153,0.15);
+    border: 1px solid rgba(52,211,153,0.3);
+    border-radius: 3px;
+    padding: 4px 10px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #34D399;
+    letter-spacing: 0.02em;
+  }
+
+  .cagr-label {
+    font-size: 11px;
+    color: rgba(255,255,255,0.45);
+  }
+
+  .drivers-heading {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.35);
+}
+
+  .driver-bullet {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+}
+
+  .driver-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--brand-accent);
+}
+
+  .driver-text {
+    font-size: 14px;
+    color: rgba(255,255,255,0.75);
+    line-height: 1.5;
+    font-weight: 400;
+  }
+
+  /* ── Middle: Competitive Landscape ── */
+  .comp-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    flex: 1;
+    justify-content: space-between;
+  }
+
+  .comp-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 10px;
+    border-radius: 4px;
+    border-left: 2px solid transparent;
+  }
+
+  .comp-row.our-position {
+    background: rgba(161,0,255,0.12);
+    border-left: 2px solid var(--brand-accent);
+  }
+
+  .logo-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    flex-shrink: 0;
+  }
+
+  .comp-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .comp-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+}
+
+  .comp-pills {
+    display: flex;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  .pill {
+    font-size: 10px;
+    font-weight: 500;
+    padding: 1px 6px;
+    border-radius: 2px;
+    line-height: 1.5;
+  }
+
+  .pill-blue   { background: rgba(96,165,250,0.18); color: #93C5FD; }
+  .pill-green  { background: rgba(52,211,153,0.18); color: #6EE7B7; }
+  .pill-purple { background: rgba(199,128,255,0.18); color: #D8B4FE; }
+  .pill-orange { background: rgba(251,146,60,0.18); color: #FCD34D; }
+  .pill-pink   { background: rgba(244,114,182,0.18); color: #F9A8D4; }
+  .pill-accent { background: rgba(161,0,255,0.22); color: var(--brand-accent-soft); }
+
+  .comp-revenue {
+    font-size: 14px;
+    color: rgba(255,255,255,0.5);
+    white-space: nowrap;
+    flex-shrink: 0;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .our-label {
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--brand-accent-soft);
+    display: block;
+}
+
+  /* ── Right: Opportunity ── */
+  .opp-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    flex: 1;
+  }
+
+  .opp-item {
+    padding: 14px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.07);
+    flex: 1;
+  }
+
+  .opp-item:last-child {
+    border-bottom: none;
+  }
+
+  .opp-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+  .opp-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--brand-accent-soft);
+    line-height: 1.2;
+  }
+
+  .growth-indicator {
+    font-size: 10px;
+    font-weight: 700;
+    color: #34D399;
+    background: rgba(52,211,153,0.12);
+    border-radius: 2px;
+    padding: 2px 5px;
+    white-space: nowrap;
+  }
+
+  .opp-body {
+    font-size: 14px;
+    color: rgba(255,255,255,0.7);
+    line-height: 1.55;
+    font-weight: 400;
+  }
+
+  /* ── Footer ── */
+  .slide-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+  }
+
+  .footer-text {
+    font-size: 9px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.06em;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Chrome top -->
+  <div class="chrome-top">
+    <span class="chrome-internal">Accenture Internal</span>
+    <div class="chrome-right"></div>
+  </div>
+
+  <!-- Header -->
+  <div class="slide-header">
+    <div class="accent-rule"></div>
+    <div class="slide-title">Enterprise AI Platform Market: <strong>Competitive Landscape</strong> &amp; White Space</div>
+    <div class="slide-subtitle">Market dynamics, player positioning, and underserved opportunity segments — FY2026</div>
+  </div>
+
+  <!-- Body grid -->
+  <div class="slide-body">
+
+    <!-- LEFT: Market Context -->
+    <div class="card">
+      <div class="card-label">Market Size</div>
+
+      <div class="market-stat">$184B</div>
+      <div class="market-stat-label">Total Addressable Market, 2025E</div>
+
+      <div class="cagr-row">
+        <span class="cagr-badge">▲ 34%</span>
+        <span class="cagr-label">5-yr CAGR (2025–2030)</span>
+      </div>
+
+      <div class="drivers-heading">Key Market Drivers</div>
+
+      <div class="driver-bullet">
+        <div class="driver-dot"></div>
+        <span class="driver-text">Generative AI adoption accelerating across regulated industries, compressing legacy vendor cycles</span>
+      </div>
+      <div class="driver-bullet">
+        <div class="driver-dot"></div>
+        <span class="driver-text">Enterprise governance mandates driving demand for auditable, explainable AI platforms</span>
+      </div>
+      <div class="driver-bullet">
+        <div class="driver-dot"></div>
+        <span class="driver-text">Hyperscaler commoditisation pushing differentiation toward vertical-specific orchestration layers</span>
+      </div>
+    </div>
+
+    <!-- MIDDLE: Competitive Landscape -->
+    <div class="card">
+      <div class="card-label">Competitive Landscape</div>
+
+      <div class="comp-list">
+
+        <!-- Competitor 1 -->
+        <div class="comp-row">
+          <div class="logo-circle" style="background:#2563EB;">M</div>
+          <div class="comp-info">
+            <div class="comp-name">Microsoft Azure AI</div>
+            <div class="comp-pills">
+              <span class="pill pill-blue">Cloud Infra</span>
+              <span class="pill pill-green">Enterprise Suite</span>
+            </div>
+          </div>
+          <div class="comp-revenue">≈$62B revenue</div>
+        </div>
+
+        <!-- Competitor 2 -->
+        <div class="comp-row">
+          <div class="logo-circle" style="background:#EA4335;">G</div>
+          <div class="comp-info">
+            <div class="comp-name">Google Vertex AI</div>
+            <div class="comp-pills">
+              <span class="pill pill-blue">Cloud Infra</span>
+              <span class="pill pill-purple">MLOps</span>
+            </div>
+          </div>
+          <div class="comp-revenue">≈$38B revenue</div>
+        </div>
+
+        <!-- Competitor 3 -->
+        <div class="comp-row">
+          <div class="logo-circle" style="background:#FF9900;">A</div>
+          <div class="comp-info">
+            <div class="comp-name">AWS SageMaker</div>
+            <div class="comp-pills">
+              <span class="pill pill-orange">Cloud Infra</span>
+              <span class="pill pill-green">Data Platform</span>
+            </div>
+          </div>
+          <div class="comp-revenue">≈$29B revenue</div>
+        </div>
+
+        <!-- Our Position -->
+        <div class="comp-row our-position">
+          <div class="logo-circle" style="background: var(--brand-accent);">AC</div>
+          <div class="comp-info">
+            <div class="comp-name">Accenture AI Platform</div>
+            <div class="comp-pills">
+              <span class="pill pill-accent">Vertical AI</span>
+              <span class="pill pill-accent">Managed Services</span>
+            </div>
+            <span class="our-label">Our Position</span>
+          </div>
+          <div class="comp-revenue">≈$9B revenue</div>
+        </div>
+
+        <!-- Competitor 5 -->
+        <div class="comp-row">
+          <div class="logo-circle" style="background:#7C3AED;">S</div>
+          <div class="comp-info">
+            <div class="comp-name">Salesforce Einstein</div>
+            <div class="comp-pills">
+              <span class="pill pill-purple">CRM AI</span>
+              <span class="pill pill-pink">Automation</span>
+            </div>
+          </div>
+          <div class="comp-revenue">≈$11B revenue</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT: Opportunity -->
+    <div class="card">
+      <div class="card-label">Opportunity</div>
+
+      <div class="opp-list">
+
+        <div class="opp-item">
+          <div class="opp-header">
+            <div class="opp-title">Regulated Industry Verticals</div>
+            <div class="growth-indicator">▲ 51%</div>
+          </div>
+          <div class="opp-body">BFSI, healthcare, and public sector remain underserved by hyperscalers; compliance-first AI platforms command 2–3× pricing premium.</div>
+        </div>
+
+        <div class="opp-item">
+          <div class="opp-header">
+            <div class="opp-title">Sovereign &amp; On-Premise AI</div>
+            <div class="growth-indicator">▲ 44%</div>
+          </div>
+          <div class="opp-body">Data residency mandates in EU, APAC, and Middle East creating demand for air-gapped deployments no hyperscaler currently addresses at scale.</div>
+        </div>
+
+        <div class="opp-item">
+          <div class="opp-header">
+            <div class="opp-title">AI Governance &amp; Audit Layer</div>
+            <div class="growth-indicator">▲ 67%</div>
+          </div>
+          <div class="opp-body">Regulatory pressure (EU AI Act, SEC guidance) driving greenfield spend on explainability tooling; no dominant vendor has emerged in this segment.</div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="slide-footer">
+    <span class="footer-text">Accenture Internal · Market Intelligence · FY2026</span>
+    <span class="footer-text">Sources: IDC, Gartner, company filings · For internal use only</span>
+  </div>
+
+</body>
+</html>

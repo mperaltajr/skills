@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>93 — Communication plan matrix</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --rag-green: #2ECC71;
+  --rag-amber: #F39C12;
+  --rag-red: #DC2626;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #4a4a4a;
+  font-family: 'Inter', -apple-system, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.slide {
+  width: 1280px;
+  height: 720px;
+  background: var(--slide-bg);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.35);
+}
+
+/* ===== Top chrome ===== */
+.top-chrome {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 36px;
+  background: var(--brand-primary);
+  display: flex;
+  align-items: center;
+  padding: 0 48px;
+  color: rgba(255,255,255,0.78);
+  font-size: 11px;
+  letter-spacing: 1.2px;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+.top-chrome .left { display: flex; align-items: center; gap: 14px; }
+.top-chrome .dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--brand-accent);
+}
+.top-chrome .right {
+  margin-left: auto;
+  font-weight: 400;
+  letter-spacing: 0.6px;
+  text-transform: none;
+  color: rgba(255,255,255,0.62);
+  font-size: 10.5px;
+}
+
+/* ===== Title block ===== */
+.title-block {
+  position: absolute;
+  top: 60px;
+  left: 48px;
+  right: 48px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+}
+.title-block .title-main {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+.eyebrow {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--brand-accent);
+  margin-bottom: 8px;
+}
+.title {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-dark);
+  letter-spacing: -0.4px;
+  line-height: 1.2;
+}
+.subhead {
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--text-mid);
+  font-weight: 400;
+  line-height: 1.45;
+  max-width: 900px;
+}
+.accent-rule {
+  margin-top: 14px;
+  width: 40px;
+  height: 3px;
+  background: var(--brand-accent);
+  border-radius: 2px;
+}
+
+/* ===== Audience-type legend (PRIMARY: right-pushed flex element inside title block) ===== */
+.aud-legend {
+  flex: 0 0 auto;
+  align-self: flex-end;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  background: #FBFAFD;
+}
+.aud-legend .legend-title {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--text-mid);
+  margin-bottom: 2px;
+}
+.aud-legend .legend-items {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.aud-legend .legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: var(--text-dark);
+}
+.aud-legend .legend-item .badge-mini {
+  width: 22px;
+  height: 18px;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8.5px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  flex-shrink: 0;
+}
+.aud-legend .legend-item .desc {
+  font-weight: 500;
+  color: var(--text-mid);
+  letter-spacing: 0.2px;
+  text-transform: none;
+  font-size: 10px;
+}
+
+/* Audience badge colors (shared) */
+.badge-EX { background: var(--brand-primary); color: #fff; }
+.badge-MG { background: var(--brand-accent); color: #fff; }
+.badge-IC { background: var(--card-bg); color: var(--brand-primary); border: 1px solid var(--card-border); }
+
+/* ===== Table ===== */
+.table-wrap {
+  position: absolute;
+  top: 260px;
+  left: 48px;
+  right: 48px;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: #fff;
+}
+
+table.commplan {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11.5px;
+  color: var(--text-dark);
+  table-layout: fixed;
+}
+
+table.commplan col.col-audience  { width: 22%; }
+table.commplan col.col-message   { width: 26%; }
+table.commplan col.col-channel   { width: 18%; }
+table.commplan col.col-frequency { width: 17%; }
+table.commplan col.col-owner     { width: 17%; }
+
+table.commplan thead th {
+  background: var(--brand-primary);
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  padding: 11px 14px;
+  text-align: left;
+  border-right: 1px solid rgba(255,255,255,0.08);
+  vertical-align: middle;
+  line-height: 1.3;
+}
+table.commplan thead th:last-child { border-right: none; }
+
+table.commplan tbody td {
+  padding: 11px 14px;
+  border-top: 1px solid var(--card-border);
+  border-right: 1px solid var(--card-border);
+  vertical-align: middle;
+  line-height: 1.4;
+  text-align: left;
+  font-size: 11.5px;
+}
+table.commplan tbody td:last-child { border-right: none; }
+table.commplan tbody tr:first-child td { border-top: none; }
+
+/* Audience cell with badge */
+.aud-cell {
+  background: var(--card-bg);
+  border-right: 2px solid var(--card-border) !important;
+}
+.aud-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.aud-row .badge {
+  width: 26px;
+  height: 22px;
+  border-radius: 3px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  flex-shrink: 0;
+}
+.aud-row .aud-name {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--brand-primary);
+  letter-spacing: 0.1px;
+  line-height: 1.25;
+}
+
+.channel-cell {
+  color: var(--text-dark);
+  font-weight: 500;
+}
+.freq-cell {
+  color: var(--text-mid);
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.2px;
+  text-transform: uppercase;
+}
+.owner-cell {
+  color: var(--brand-primary-mid);
+  font-weight: 600;
+}
+.msg-cell {
+  color: var(--text-dark);
+  font-weight: 400;
+}
+
+/* ===== Convergence line ===== */
+.convergence {
+  position: absolute;
+  bottom: 56px;
+  left: 48px;
+  right: 48px;
+  padding: 14px 18px;
+  background: linear-gradient(90deg, var(--brand-primary) 0%, var(--brand-primary-mid) 100%);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.convergence .conv-tag {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  color: var(--brand-accent-soft);
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border: 1px solid rgba(199, 128, 255, 0.4);
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.convergence .conv-text {
+  font-size: 14px;
+  color: #fff;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  line-height: 1.4;
+}
+.convergence .conv-text strong {
+  color: var(--brand-accent-soft);
+  font-weight: 700;
+}
+
+/* ===== Footer ===== */
+.footer {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  padding: 0 48px;
+  font-size: 9.5px;
+  color: var(--text-faint);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-top: 1px solid #F0EAF6;
+  background: #FBFAFD;
+}
+.footer .pg { margin-left: auto; font-variant-numeric: tabular-nums; }
+</style>
+</head>
+<body>
+
+<div class="slide">
+
+  <!-- Top chrome -->
+  <div class="top-chrome">
+    <div class="left">
+      <span class="dot"></span>
+      <span>Slide Lab</span>
+      <span style="opacity:0.4;">|</span>
+      <span>Change management</span>
+    </div>
+    <div class="right">Week 4 &middot; 2026-05-18</div>
+  </div>
+
+  <!-- Title -->
+  <div class="title-block">
+    <div class="title-main">
+      <div class="eyebrow">Stakeholder communication</div>
+      <div class="title">Communication plan &mdash; seven audiences, seven cadences.</div>
+      <div class="subhead">Each audience gets the message that matters to them, on a channel they actually read, at a rhythm that fits their decision cycle. One owner per row, no shared accountability.</div>
+      <div class="accent-rule"></div>
+    </div>
+
+    <!-- Audience-type legend: PRIMARY placement — right-pushed flex element inside title block -->
+    <div class="aud-legend" aria-label="Audience type legend">
+      <div class="legend-title">Audience type</div>
+      <div class="legend-items">
+        <span class="legend-item"><span class="badge-mini badge-EX">EX</span><span class="desc">Executive</span></span>
+        <span class="legend-item"><span class="badge-mini badge-MG">MG</span><span class="desc">Manager</span></span>
+        <span class="legend-item"><span class="badge-mini badge-IC">IC</span><span class="desc">Individual</span></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table class="commplan">
+      <colgroup>
+        <col class="col-audience">
+        <col class="col-message">
+        <col class="col-channel">
+        <col class="col-frequency">
+        <col class="col-owner">
+      </colgroup>
+      <thead>
+        <tr>
+          <th>Audience</th>
+          <th>Message</th>
+          <th>Channel</th>
+          <th>Frequency</th>
+          <th>Owner</th>
+        </tr>
+      </thead>
+      <tbody>
+
+        <tr>
+          <td class="aud-cell">
+            <div class="aud-row">
+              <span class="badge badge-EX">EX</span>
+              <span class="aud-name">Program MD</span>
+            </div>
+          </td>
+          <td class="msg-cell">Pilot progress &amp; risk escalations</td>
+          <td class="channel-cell">1:1 sync</td>
+          <td class="freq-cell">Weekly</td>
+          <td class="owner-cell">Mario</td>
+        </tr>
+
+        <tr>
+          <td class="aud-cell">
+            <div class="aud-row">
+              <span class="badge badge-EX">EX</span>
+              <span class="aud-name">Practice MDs</span>
+            </div>
+          </td>
+          <td class="msg-cell">Q3 rollout decision &amp; investment ask</td>
+          <td class="channel-cell">Monthly forum</td>
+          <td class="freq-cell">Monthly</td>
+          <td class="owner-cell">Maria</td>
+        </tr>
+
+        <tr>
+          <td class="aud-cell">
+            <div class="aud-row">
+              <span class="badge badge-IC">IC</span>
+              <span class="aud-name">Pilot users</span>
+            </div>
+          </td>
+          <td class="msg-cell">Tactical updates &amp; quick wins</td>
+          <td class="channel-cell">Slack channel</td>
+          <td class="freq-cell">Daily</td>
+          <td class="owner-cell">Coach</td>
+        </tr>
+
+        <tr>
+          <td class="aud-cell">
+            <div class="aud-row">
+              <span class="badge badge-IC">IC</span>
+              <span class="aud-name">Pilot users</span>
+            </div>
+          </td>
+          <td class="msg-cell">Recap &amp; what to try next</td>
+          <td class="channel-cell">Email digest</td>
+          <td class="freq-cell">Weekly</td>
+          <td class="owner-cell">Coach</td>
+        </tr>
+
+        <tr>
+          <td class="aud-cell">
+            <div class="aud-row">
+              <span class="badge badge-MG">MG</span>
+              <span class="aud-name">Skeptical seniors</span>
+            </div>
+          </td>
+          <td class="msg-cell">1:1 coaching &mdash; addressing objections</td>
+          <td class="channel-cell">In-person</td>
+          <td class="freq-cell">Ad-hoc</td>
+          <td class="owner-cell">Coach</td>
+        </tr>
+
+        <tr>
+          <td class="aud-cell">
+            <div class="aud-row">
+              <span class="badge badge-IC">IC</span>
+              <span class="aud-name">All consultants</span>
+            </div>
+          </td>
+          <td class="msg-cell">Pilot announcement &amp; Wave 2 preview</td>
+          <td class="channel-cell">All-hands</td>
+          <td class="freq-cell">Pre-Wave 2</td>
+          <td class="owner-cell">MD</td>
+        </tr>
+
+        <tr>
+          <td class="aud-cell">
+            <div class="aud-row">
+              <span class="badge badge-MG">MG</span>
+              <span class="aud-name">Wave 2 candidates</span>
+            </div>
+          </td>
+          <td class="msg-cell">Onboarding &amp; method walkthrough</td>
+          <td class="channel-cell">Workshops</td>
+          <td class="freq-cell">Pre-launch</td>
+          <td class="owner-cell">PMO</td>
+        </tr>
+
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Convergence -->
+  <div class="convergence">
+    <div class="conv-tag">So what</div>
+    <div class="conv-text">Generic &ldquo;all-hands updates&rdquo; fail because <strong>no audience hears their message</strong>. Segment by decision rhythm &mdash; daily for doers, monthly for deciders &mdash; or the change stalls in the middle.</div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span>Slide Lab &middot; Confidential &middot; Change management playbook</span>
+    <span class="pg">93 / 100</span>
+  </div>
+
+</div>
+
+</body>
+</html>

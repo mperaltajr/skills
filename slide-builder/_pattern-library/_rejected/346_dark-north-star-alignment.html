@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>346 – Dark North Star Alignment</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+    background: #2D0A4E;
+    position: relative;
+  }
+
+  /* ── Header bar ── */
+  .header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+  }
+
+  .header-label {
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    color: rgba(255,255,255,0.5);
+    text-transform: uppercase;
+  }
+
+  .draft-badge {
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--draft-text);
+    background: var(--draft-bg);
+    border-radius: 0;
+    padding: 3px 8px;
+  }
+
+  /* right spacer to balance flex */
+  .header-right {
+    width: 160px;
+  }
+
+  /* ── Title block ── */
+  .title-block {
+    position: absolute;
+    top: 52px;
+    left: 48px;
+    right: 48px;
+  }
+
+  .accent-rule {
+    width: 64px;
+    height: 3px;
+    background: var(--brand-accent);
+    margin-bottom: 10px;
+  }
+
+  .title-text {
+    font-size: 28px;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.25;
+    margin-bottom: 6px;
+  }
+
+  .title-text strong {
+    color: var(--brand-accent-soft);
+  }
+
+  .sub-headline {
+    font-size: 13px;
+    font-style: italic;
+    color: rgba(255,255,255,0.6);
+  }
+
+  /* ── Content area ── */
+  .content-area {
+    position: absolute;
+    top: 148px;
+    left: 48px;
+    right: 48px;
+    bottom: 36px;
+    /* used as positioning reference */
+  }
+
+  /* ── SVG connector layer ── */
+  .connector-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  /* ── North Star center box ── */
+  .north-star-box {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 280px;
+    background: rgba(255,255,255,0.1);
+    border: 2px solid var(--brand-accent);
+    border-radius: 8px;
+    padding: 20px 24px 22px;
+    text-align: center;
+    z-index: 10;
+  }
+
+  .north-star-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--brand-accent-soft);
+    margin-bottom: 10px;
+  }
+
+  .north-star-statement {
+    font-size: 18px;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.4;
+    margin-bottom: 14px;
+  }
+
+  .north-star-metric {
+    font-size: 36px;
+    font-weight: 700;
+    color: var(--brand-accent);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .north-star-metric-label {
+    font-size: 10px;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 0.08em;
+  }
+
+  /* ── Satellite cards ── */
+  .satellite {
+    position: absolute;
+    width: 178px;
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    padding: 14px 16px;
+    z-index: 10;
+  }
+
+  /* NW */
+  .satellite-nw {
+    top: 48px;
+    left: 52px;
+  }
+
+  /* NE */
+  .satellite-ne {
+    top: 48px;
+    right: 52px;
+  }
+
+  /* SW */
+  .satellite-sw {
+    bottom: 64px;
+    left: 52px;
+  }
+
+  /* SE */
+  .satellite-se {
+    bottom: 64px;
+    right: 52px;
+  }
+
+  .satellite-name {
+    font-size: 11px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.6);
+    margin-bottom: 4px;
+  }
+
+  .satellite-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.2;
+    margin-bottom: 5px;
+  }
+
+  .satellite-drives {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--brand-accent-soft);
+  }
+
+  /* ── Initiative pills ── */
+  .initiatives-row {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 10px;
+    z-index: 10;
+    white-space: nowrap;
+  }
+
+  .pill {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: #ffffff;
+    background: var(--brand-accent);
+    border-radius: 100px;
+    padding: 5px 14px;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+  }
+
+  .footer-text {
+    font-size: 9px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.08em;
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <span class="header-label">Accenture Internal</span>
+  <span class="draft-badge">Draft</span>
+  <div class="header-right"></div>
+</div>
+
+<!-- Title block -->
+<div class="title-block">
+  <div class="accent-rule"></div>
+  <div class="title-text">Aligned to a <strong>Single North Star</strong></div>
+  <div class="sub-headline">All initiatives and metrics trace back to one defining outcome</div>
+</div>
+
+<!-- Content area with satellites, SVG lines, and center box -->
+<div class="content-area" id="content-area">
+
+  <!-- SVG connectors — coordinates are relative to content-area -->
+  <svg class="connector-svg" viewBox="0 0 1184 548" preserveAspectRatio="none">
+    <!-- NW satellite center → north-star box top-left -->
+    <line x1="230" y1="127" x2="452" y2="234" stroke="rgba(161,0,255,0.4)" stroke-width="1" stroke-dasharray="5,4"/>
+    <!-- NE satellite center → north-star box top-right -->
+    <line x1="954" y1="127" x2="732" y2="234" stroke="rgba(161,0,255,0.4)" stroke-width="1" stroke-dasharray="5,4"/>
+    <!-- SW satellite center → north-star box bottom-left -->
+    <line x1="230" y1="408" x2="452" y2="344" stroke="rgba(161,0,255,0.4)" stroke-width="1" stroke-dasharray="5,4"/>
+    <!-- SE satellite center → north-star box bottom-right -->
+    <line x1="954" y1="408" x2="732" y2="344" stroke="rgba(161,0,255,0.4)" stroke-width="1" stroke-dasharray="5,4"/>
+  </svg>
+
+  <!-- North Star center box -->
+  <div class="north-star-box">
+    <div class="north-star-label">★ North Star</div>
+    <div class="north-star-statement">Deliver client outcomes<br>at unprecedented scale</div>
+    <div class="north-star-metric">92%</div>
+    <div class="north-star-metric-label">Client Outcome Score</div>
+  </div>
+
+  <!-- Satellite NW -->
+  <div class="satellite satellite-nw">
+    <div class="satellite-name">Revenue Growth</div>
+    <div class="satellite-value">+34%</div>
+    <div class="satellite-drives">Drives north star</div>
+  </div>
+
+  <!-- Satellite NE -->
+  <div class="satellite satellite-ne">
+    <div class="satellite-name">Delivery Velocity</div>
+    <div class="satellite-value">2.4× faster</div>
+    <div class="satellite-drives">Drives north star</div>
+  </div>
+
+  <!-- Satellite SW -->
+  <div class="satellite satellite-sw">
+    <div class="satellite-name">Talent Retention</div>
+    <div class="satellite-value">89%</div>
+    <div class="satellite-drives">Drives north star</div>
+  </div>
+
+  <!-- Satellite SE -->
+  <div class="satellite satellite-se">
+    <div class="satellite-name">Innovation Index</div>
+    <div class="satellite-value">4.7 / 5.0</div>
+    <div class="satellite-drives">Drives north star</div>
+  </div>
+
+  <!-- Initiatives pills -->
+  <div class="initiatives-row">
+    <div class="pill">AI-Led Delivery</div>
+    <div class="pill">Client 360 Programme</div>
+    <div class="pill">Talent Accelerator</div>
+  </div>
+
+</div>
+
+<!-- Footer -->
+<div class="footer">
+  <span class="footer-text">Accenture Confidential — For Internal Use Only</span>
+  <span class="footer-text">2026 Strategy Review</span>
+</div>
+
+</body>
+</html>

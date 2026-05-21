@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Investment Thesis Cards</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #2A2A2A;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 20px;
+  }
+
+  .slide {
+    width: 1280px;
+    height: 720px;
+    background: var(--slide-bg);
+    position: relative;
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+    color: var(--text-dark);
+  }
+
+  /* ===== TOP CHROME (Style A invariant) ===== */
+  .draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; z-index: 5; }
+  .project-label { position: absolute; top: 24px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; z-index: 5; }
+
+  /* ===== HEADER ZONE ===== */
+  .header {
+    position: absolute;
+    top: 48px;
+    left: 48px;
+    right: 48px;
+  }
+
+  .title {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+    margin-bottom: 8px;
+  }
+
+  .subhead {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-mid);
+    line-height: 1.5;
+    max-width: 880px;
+  }
+
+  .accent-rule {
+    width: 40px;
+    height: 3px;
+    background: var(--brand-accent);
+    margin-top: 14px;
+  }
+
+  /* ===== THESIS STACK ===== */
+  .thesis-stack {
+    position: absolute;
+    top: 176px;
+    left: 48px;
+    right: 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .thesis-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-left: 4px solid var(--brand-accent);
+    padding: 22px 28px 22px 28px;
+    display: flex; flex-wrap: wrap;
+    gap: 24px;
+    align-items: center;
+    min-height: 120px;
+  }
+
+  .thesis-num {
+    font-size: 44px;
+    font-weight: 800;
+    color: var(--brand-accent);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.04em;
+    text-align: center;
+  }
+
+  .thesis-body {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+  }
+
+  .thesis-statement {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.3;
+    letter-spacing: -0.005em;
+  }
+
+  .thesis-rationale {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-mid);
+    line-height: 1.55;
+  }
+
+  .thesis-stat {
+    border-left: 1px solid var(--card-border);
+    padding-left: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-start;
+  }
+
+  .stat-number {
+    font-size: 34px;
+    font-weight: 800;
+    color: var(--brand-primary);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.03em;
+  }
+
+  .stat-number .unit {
+    color: var(--brand-accent);
+    font-size: 22px;
+    font-weight: 700;
+    margin-left: 2px;
+    letter-spacing: -0.02em;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-mid);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    line-height: 1.35;
+  }
+
+  /* ===== CONVERGENCE LINE ===== */
+  .convergence {
+    position: absolute;
+    bottom: 48px;
+    left: 48px;
+    right: 48px;
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--brand-primary-mid);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* ===== FOOTER (invariant) ===== */
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 48px;
+    font-size: 9px;
+    color: var(--text-faint);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .footer-rule {
+    position: absolute;
+    bottom: 32px;
+    left: 48px;
+    right: 48px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent 0%, var(--card-border) 20%, var(--card-border) 80%, transparent 100%);
+  }
+
+  .page-num {
+    color: var(--text-mid);
+    font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<div class="slide">
+
+  <!-- Top chrome (Style A) -->
+
+  <!-- Header -->
+  <div class="header">
+    <h1 class="title" data-shape-id="title">Why now, why this &mdash; three theses for the Q3 rollout.</h1>
+    <p class="subhead" data-shape-id="subtitle">Each thesis stands on its own and is anchored by a measured proof point. Read top to bottom: a market reversal, a compounding moat, and a clean ownership position.</p>
+    <div class="accent-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- Thesis stack -->
+  <div class="thesis-stack">
+
+    <div class="thesis-card">
+      <div class="thesis-num" data-shape-id="thesis-1-num">01</div>
+      <div class="thesis-body">
+        <div class="thesis-statement" data-shape-id="thesis-1-statement">Consulting decks are getting slower and worse &mdash; Slide Lab reverses both.</div>
+        <div class="thesis-rationale" data-shape-id="thesis-1-rationale">Senior consultants spend more than 60% of their build time on deck structure, not insight. Slide Lab automates the structure layer, freeing partner hours for the thinking that actually moves the engagement.</div>
+      </div>
+      <div class="thesis-stat">
+        <div class="stat-number" data-shape-id="thesis-1-stat">&minus;64<span class="unit" data-shape-id="thesis-1-unit">%</span></div>
+        <div class="stat-label" data-shape-id="thesis-1-stat-label">Cycle time<br>vs. baseline</div>
+      </div>
+    </div>
+
+    <div class="thesis-card">
+      <div class="thesis-num" data-shape-id="thesis-2-num">02</div>
+      <div class="thesis-body">
+        <div class="thesis-statement" data-shape-id="thesis-2-statement">The IP compounds &mdash; every deck built adds to the pattern library.</div>
+        <div class="thesis-rationale" data-shape-id="thesis-2-rationale">Each new pattern is reusable across practices and clients. The library is the moat: the marginal cost of the next deck falls as the catalog grows, and every batch widens the lead.</div>
+      </div>
+      <div class="thesis-stat">
+        <div class="stat-number" data-shape-id="thesis-2-stat">44</div>
+        <div class="stat-label" data-shape-id="thesis-2-stat-label">Patterns shipped<br>across 5 batches</div>
+      </div>
+    </div>
+
+    <div class="thesis-card">
+      <div class="thesis-num" data-shape-id="thesis-3-num">03</div>
+      <div class="thesis-body">
+        <div class="thesis-statement" data-shape-id="thesis-3-statement">Internal IP, no vendor lock-in &mdash; we own the upside.</div>
+        <div class="thesis-rationale" data-shape-id="thesis-3-rationale">Built on the Claude SDK as a thin substrate; the patterns, pipeline, and prompts are entirely ours. No recurring vendor license, no rev-share, no exit risk if the model layer shifts.</div>
+      </div>
+      <div class="thesis-stat">
+        <div class="stat-number" data-shape-id="thesis-3-stat"><span class="unit" data-shape-id="thesis-3-unit">$</span>0</div>
+        <div class="stat-label" data-shape-id="thesis-3-stat-label">Vendor recurring<br>at any scale</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Convergence -->
+  <div class="convergence" data-shape-id="convergence">Three theses, three proof points.</div>
+
+  <!-- Footer rule -->
+
+  <!-- Footer -->
+  <div class="footer">
+    <span data-shape-id="footer-left">Source: Slide Lab pilot telemetry / internal finance model / Q2 2026</span>
+    <span class="page-num" data-shape-id="footer-right">64</span>
+  </div>
+
+</div>
+
+</body>
+</html>

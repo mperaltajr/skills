@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>65 · Capability heatmap</title>
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  /* Capability heatmap scale — gradient from card-bg (low) to brand-primary (high) */
+  --heat-1: #F8F4FC;
+  --heat-2: #E5D5F0;
+  --heat-3: #C780FF;
+  --heat-4: #A100FF;
+  --heat-5: #5C2D87;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1280px; height: 720px; background: var(--slide-bg); font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; color: var(--text-dark); overflow: hidden; }
+body { padding: 0px 64px; position: relative; }
+.draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; }
+.project-label { position: absolute; top: 24px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
+
+.title-zone { display: flex; align-items: flex-end; justify-content: space-between; }
+.title-block { max-width: 820px; }
+.action-title { position: absolute; left: 64px; right: 64px; top: 28px; min-height: 36px; font-size: 28px; font-weight: 700; line-height: 1.2; }
+.action-title strong { color: var(--brand-primary); }
+.subhead { position: absolute; left: 64px; right: 64px; top: 108px; font-size: 14px; color: var(--text-mid); font-style: italic; }
+.title-rule { position: absolute; left: 64px; top: 136px; width: 40px; height: 3px; background: var(--brand-accent); }
+
+/* Legend — PRIMARY: right-pushed flex element in the title zone, aligned to bottom of title block */
+.legend { display: flex; align-items: center; gap: 8px; font-size: 10px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-mid); flex-shrink: 0; padding-bottom: 2px; }
+.legend-label { color: var(--text-mid); }
+.legend-scale { display: flex; gap: 2px; }
+.legend-sw { width: 22px; height: 14px; border: 1px solid rgba(0,0,0,0.06); }
+
+/* Heatmap table layout */
+.heatmap { display: flex; flex-wrap: wrap; gap: 4px; width: 100%; max-width: 980px; margin: 18px auto 0 auto; }
+.col-header { font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--brand-primary-mid); text-align: center; padding: 10px 6px 12px 6px; border-bottom: 2px solid var(--card-border); }
+.col-header.corner { border-bottom: 2px solid transparent; }
+.row-label { font-size: 14px; font-weight: 600; color: var(--brand-primary-mid); text-transform: uppercase; letter-spacing: 1.5px; padding: 0 14px 0 4px; display: flex; align-items: center; justify-content: flex-end; text-align: right; }
+.cell { height: 60px; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; border: 1px solid rgba(255,255,255,0.6); }
+.h-1 { background: var(--heat-1); color: var(--brand-primary-mid); }
+.h-2 { background: var(--heat-2); color: var(--brand-primary); }
+.h-3 { background: var(--heat-3); color: #FFFFFF; }
+.h-4 { background: var(--heat-4); color: #FFFFFF; }
+.h-5 { background: var(--heat-5); color: #FFFFFF; }
+
+.convergence { position: absolute; left: 64px; right: 64px; bottom: 70px; background: var(--brand-primary); color: white; padding: 12px 22px; font-size: 14px; font-style: italic; font-weight: 500; }
+
+.footer-rule { position: absolute; left: 0; right: 0; bottom: 32px; height: 1px; background: var(--card-border); }
+.footer-left { position: absolute; bottom: 14px; left: 24px; color: var(--text-faint); font-size: 11px; letter-spacing: 1px; }
+.footer-right { position: absolute; bottom: 14px; right: 24px; color: var(--text-faint); font-size: 11px; }
+</style>
+</head>
+<body>
+
+  <div class="title-zone">
+    <div class="title-block">
+      <div class="action-title">Practice capability heatmap — <strong>where Slide Lab adds the most lift.</strong></div>
+      <div class="subhead">Self-rated proficiency across six capabilities by seniority level. Storyline coaching and strategy framing show the steepest gap at Manager.</div>
+      <div class="title-rule"></div>
+    </div>
+    <div class="legend">
+      <span class="legend-label">Low</span>
+      <div class="legend-scale">
+        <div class="legend-sw h-1"></div>
+        <div class="legend-sw h-2"></div>
+        <div class="legend-sw h-3"></div>
+        <div class="legend-sw h-4"></div>
+        <div class="legend-sw h-5"></div>
+      </div>
+      <span class="legend-label">High</span>
+    </div>
+  </div>
+
+  <div class="heatmap">
+    <div class="col-header corner"></div>
+    <div class="col-header">Manager</div>
+    <div class="col-header">Senior Manager</div>
+    <div class="col-header">Director</div>
+    <div class="col-header">Partner</div>
+
+    <div class="row-label">Strategy framing</div>
+    <div class="cell h-2">2</div>
+    <div class="cell h-3">3</div>
+    <div class="cell h-4">4</div>
+    <div class="cell h-5">5</div>
+
+    <div class="row-label">Storyline coaching</div>
+    <div class="cell h-1">1</div>
+    <div class="cell h-2">2</div>
+    <div class="cell h-4">4</div>
+    <div class="cell h-5">5</div>
+
+    <div class="row-label">Visual design</div>
+    <div class="cell h-3">3</div>
+    <div class="cell h-3">3</div>
+    <div class="cell h-2">2</div>
+    <div class="cell h-2">2</div>
+
+    <div class="row-label">Data analysis</div>
+    <div class="cell h-4">4</div>
+    <div class="cell h-4">4</div>
+    <div class="cell h-3">3</div>
+    <div class="cell h-2">2</div>
+
+    <div class="row-label">Brand application</div>
+    <div class="cell h-4">4</div>
+    <div class="cell h-3">3</div>
+    <div class="cell h-3">3</div>
+    <div class="cell h-3">3</div>
+
+    <div class="row-label">Client communication</div>
+    <div class="cell h-2">2</div>
+    <div class="cell h-3">3</div>
+    <div class="cell h-4">4</div>
+    <div class="cell h-5">5</div>
+  </div>
+
+  <div class="convergence">Biggest lift opportunity sits at Manager level — storyline coaching and strategy framing are the weakest cells across the practice.</div>
+  <div class="footer-left"></div>
+  <div class="footer-right"></div>
+</body>
+</html>

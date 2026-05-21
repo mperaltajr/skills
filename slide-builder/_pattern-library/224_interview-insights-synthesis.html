@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pattern 224 — Interview Insights Synthesis</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: Inter, system-ui, sans-serif;
+    background: var(--slide-bg);
+    position: relative;
+  }
+
+  /* ── Invariant chrome ── */
+
+  .label-internal {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .badge-draft {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 0;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .title-block {
+    position: absolute; top: 0; left: 0; right: 0; height: 160px;
+  }
+
+  .title-block h1 {
+    position: absolute; top: 28px; left: 64px; right: 64px; min-height: 36px;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.15;
+  }
+
+  .title-block h1 strong {
+    color: var(--brand-accent);
+    font-weight: 700;
+  }
+
+  .title-block .sub-headline {
+    position: absolute; top: 108px; left: 64px; right: 64px;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+
+}
+
+  .accent-rule {
+    position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+
+}
+
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 48px 10px;
+  }
+
+  .footer span {
+    font-size: 8px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* ── Body content ── */
+
+  .body-area {
+    position: absolute;
+    top: 128px;
+    left: 48px;
+    right: 48px;
+    bottom: 56px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* Meta chip row */
+  .meta-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .meta-chip {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 20px;
+    padding: 3px 12px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--brand-primary);
+    letter-spacing: 0.03em;
+  }
+
+  .meta-chip.accent {
+    background: var(--brand-accent);
+    border-color: var(--brand-accent);
+    color: #FFFFFF;
+  }
+
+  /* Columns */
+  .columns {
+    display: flex;
+    gap: 20px;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .column {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
+  }
+
+  /* Theme label */
+  .theme-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-left: 3px solid var(--brand-accent);
+    padding-left: 10px;
+    flex-shrink: 0;
+  }
+
+  .theme-label span {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--brand-accent);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    line-height: 1.2;
+  }
+
+  /* Frequency bar */
+  .freq-row {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    flex-shrink: 0;
+  }
+
+  .freq-label {
+    font-size: 9px;
+    color: var(--text-faint);
+    letter-spacing: 0.03em;
+  }
+
+  .freq-bar-track {
+    height: 6px;
+    background: var(--card-border);
+    border-radius: 3px;
+    overflow: hidden;
+  }
+
+  .freq-bar-fill {
+    height: 100%;
+    background: var(--brand-accent-soft);
+    border-radius: 3px;
+  }
+
+  /* Quotes */
+  .quotes {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .quote-block {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 4px;
+    padding: 9px 11px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .quote-text {
+    font-size: 10px;
+    font-style: italic;
+    color: var(--text-mid);
+    line-height: 1.45;
+  }
+
+  .quote-attr {
+    font-size: 9px;
+    color: var(--text-faint);
+    font-weight: 500;
+    letter-spacing: 0.03em;
+  }
+
+  /* Synthesized insight card */
+  .insight-card {
+    background: var(--card-bg);
+    border: 1px solid var(--brand-accent-soft);
+    border-radius: 4px;
+    padding: 7px 10px;
+    flex-shrink: 0;
+  }
+
+  .insight-label {
+    font-size: 8px;
+    font-weight: 700;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+
+    bottom: 3px;
+  }
+
+  .insight-text {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.35;
+  }
+
+  /* Convergence bar */
+  .convergence-bar {
+    flex-shrink: 0;
+    background: var(--brand-primary);
+    border-radius: 4px;
+    padding: 11px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .convergence-label {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--brand-accent-soft);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    white-space: nowrap;
+  }
+
+  .convergence-text {
+    font-size: 11px;
+    font-weight: 600;
+    color: #FFFFFF;
+    line-height: 1.3;
+  }
+
+  .convergence-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--brand-accent);
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Invariant chrome -->
+  <div class="label-internal">Accenture Internal</div>
+  <div class="badge-draft">DRAFT</div>
+
+  <div class="title-block">
+    <h1>Interview Insights Synthesis — <strong>Themes from Research</strong></h1>
+    <div class="sub-headline">Qualitative signal distilled from leader interviews across three organisational levels</div>
+    <div class="accent-rule"></div>
+  </div>
+
+  <!-- Body -->
+  <div class="body-area">
+
+    <!-- Meta chip row -->
+    <div class="meta-row">
+      <div class="meta-chip accent">N = 24 interviews</div>
+      <div class="meta-chip">3 levels: Senior Leadership · Middle Management · Frontline</div>
+      <div class="meta-chip">6-week field programme · May 2026</div>
+    </div>
+
+    <!-- Three columns -->
+    <div class="columns">
+
+      <!-- Column 1: Clarity & Direction -->
+      <div class="column">
+        <div class="theme-label">
+          <span>Clarity &amp; Direction</span>
+        </div>
+        <div class="freq-row">
+          <div class="freq-label">Mentioned by 20 of 24 leaders</div>
+          <div class="freq-bar-track">
+            <div class="freq-bar-fill" style="width:83%"></div>
+          </div>
+        </div>
+        <div class="quotes">
+          <div class="quote-block">
+            <div class="quote-text">&ldquo;We keep changing direction. People don&rsquo;t know what success looks like six months out, let alone three years.&rdquo;</div>
+            <div class="quote-attr">— VP, Strategy &amp; Planning</div>
+          </div>
+          <div class="quote-block">
+            <div class="quote-text">&ldquo;My team asks me every week: what is the actual priority? I don&rsquo;t always have a clean answer, and that&rsquo;s the problem.&rdquo;</div>
+            <div class="quote-attr">— Senior Manager, Operations</div>
+          </div>
+        </div>
+        <div class="insight-card">
+          <div class="insight-label">Synthesized Insight</div>
+          <div class="insight-text">Strategic ambiguity is fracturing execution — leaders at every level cite direction uncertainty as the primary performance drag.</div>
+        </div>
+      </div>
+
+      <!-- Column 2: Capability Gaps -->
+      <div class="column">
+        <div class="theme-label">
+          <span>Capability Gaps</span>
+        </div>
+        <div class="freq-row">
+          <div class="freq-label">Mentioned by 17 of 24 leaders</div>
+          <div class="freq-bar-track">
+            <div class="freq-bar-fill" style="width:71%"></div>
+          </div>
+        </div>
+        <div class="quotes">
+          <div class="quote-block">
+            <div class="quote-text">&ldquo;We have talent, but not the skills for what we&rsquo;re being asked to do now. The reskilling pipeline is too slow.&rdquo;</div>
+            <div class="quote-attr">— Director, People &amp; Change</div>
+          </div>
+          <div class="quote-block">
+            <div class="quote-text">&ldquo;Data literacy is non-negotiable for my team&rsquo;s mandate. Right now, maybe two people in ten have it at the level we need.&rdquo;</div>
+            <div class="quote-attr">— Head of Analytics, Finance</div>
+          </div>
+        </div>
+        <div class="insight-card">
+          <div class="insight-label">Synthesized Insight</div>
+          <div class="insight-text">The skill base lags the strategic ask by 18–24 months; leaders view the reskilling pace as the single largest execution risk.</div>
+        </div>
+      </div>
+
+      <!-- Column 3: Trust & Psychological Safety -->
+      <div class="column">
+        <div class="theme-label">
+          <span>Trust &amp; Psychological Safety</span>
+        </div>
+        <div class="freq-row">
+          <div class="freq-label">Mentioned by 15 of 24 leaders</div>
+          <div class="freq-bar-track">
+            <div class="freq-bar-fill" style="width:63%"></div>
+          </div>
+        </div>
+        <div class="quotes">
+          <div class="quote-block">
+            <div class="quote-text">&ldquo;People have stopped raising problems early because the last few times, the messenger got shot. That&rsquo;s a culture issue, not a process issue.&rdquo;</div>
+            <div class="quote-attr">— Associate Director, Risk</div>
+          </div>
+          <div class="quote-block">
+            <div class="quote-text">&ldquo;There&rsquo;s a performance theatre dynamic — everyone looks busy, but no one is sure they&rsquo;re working on the right things.&rdquo;</div>
+            <div class="quote-attr">— Programme Manager, Delivery</div>
+          </div>
+        </div>
+        <div class="insight-card">
+          <div class="insight-label">Synthesized Insight</div>
+          <div class="insight-text">Suppressed dissent is masking early-warning signals; psychological safety deficits are compounding both direction and capability risks.</div>
+        </div>
+      </div>
+
+    </div><!-- /columns -->
+
+    <!-- Convergence bar -->
+    <div class="convergence-bar">
+      <div class="convergence-dot"></div>
+      <div class="convergence-label">Consistent signal</div>
+      <div class="convergence-text">Across all three themes: leaders feel the organisation is operating at pace without a shared map — direction, capability, and candour must be addressed together, not sequentially.</div>
+    </div>
+
+  </div><!-- /body-area -->
+
+  <!-- Footer -->
+  <div class="footer">
+    <span>Confidential — Accenture Internal</span>
+    <span>Slide Lab · 2026 · 224</span>
+  </div>
+
+</body>
+</html>

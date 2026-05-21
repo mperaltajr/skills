@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>Pattern 238 — Process Compliance Flowchart</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', system-ui, sans-serif;
+    background: #888;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+  }
+
+  .slide {
+    position: relative;
+    width: 1280px;
+    height: 720px;
+    background: var(--slide-bg);
+    overflow: hidden;
+  }
+
+  /* ── Invariant chrome ── */
+
+  .label-internal {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .badge-draft {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 0;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .title-block {
+    position: absolute; top: 0; left: 0; right: 0; height: 160px;
+  }
+
+  .title-block h1 {
+    position: absolute; top: 28px; left: 64px; right: 64px; min-height: 36px;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.2;
+  }
+
+  .title-block h1 strong {
+    color: var(--brand-accent);
+    font-weight: 700;
+  }
+
+  .title-block .sub-headline {
+    position: absolute; top: 108px; left: 64px; right: 64px;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+
+}
+
+  .accent-rule {
+    position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+
+}
+
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 34px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+  }
+
+  .footer-left,
+  .footer-right {
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+<div class="slide">
+
+  <!-- ── Invariant chrome ── -->
+  <div class="label-internal">Accenture Internal</div>
+  <div class="badge-draft">DRAFT</div>
+
+  <!-- ── Title block ── -->
+  <div class="title-block">
+    <h1>Procurement <strong>Approval</strong> Governance Flow</h1>
+    <div class="sub-headline">Three-gate decision model for compliant vendor spend authorisation</div>
+    <div class="accent-rule"></div>
+  </div>
+
+  <!-- ── Flowchart SVG — positioned in body area (top=140, bottom=686) ── -->
+  <!--
+    Canvas body area: x=48..1232, y=140..686  (W=1184, H=546)
+    Flow layout: top-to-bottom, two columns for YES/NO branches
+    Column centres: Main=440, Right-branch=820
+
+    Node geometry (top-to-bottom, main spine x=440):
+      N1  START oval          cx=440  cy=185  rx=64  ry=26
+      N2  "Submit Request"    rect    cx=440  cy=265  w=180 h=46  (x=350,y=242)
+      N3  Diamond "Budget?"   cx=440  cy=355  half=36
+      N4a "Resubmit Next      rect    cx=820  cy=355  w=180 h=46  (NO branch right)
+          Cycle" terminal
+      N5  Diamond "Amount>"   cx=440  cy=445  half=36
+      N5a "CFO Approval"      rect    cx=820  cy=445  w=180 h=46  (YES right)
+      N6  Diamond "Vendor?"   cx=440  cy=535  half=36
+      N6a "Vendor Vetting"    rect    cx=820  cy=535  w=180 h=46  (NO right)
+      N7  "Issue PO"          rect    cx=440  cy=625  w=180 h=46  (x=350,y=602)
+      N8  END oval            cx=440  cy=686  — actually too low; compress:
+
+    Revised to fit 140–686 (H=546):
+      Vertical slots: 546/8 = ~68px per step
+      y positions: 168, 226, 294, 362, 430, 498, 566, 634 (step 68)
+      But some need more room for labels. Use non-uniform:
+      N1  START  y=175
+      N2  rect   y=240  (h=44, centre=262)
+      N3  diamond y=332  half=34
+      N4a rect   x-right  y=332 (terminal, cx=820)
+      N5  diamond y=412  half=34
+      N5a rect   cx=820  y=412
+      N6  diamond y=496  half=34
+      N6a rect   cx=820  y=496
+      N7  rect   y=574  (h=44, centre=596)
+      N8  END    y=650
+  -->
+  <svg
+    style="position:absolute;top:0;left:0;width:1280px;height:720px;pointer-events:none;overflow:visible;"
+    xmlns="http://www.w3.org/2000/svg">
+
+    <defs>
+      <!-- Arrowhead markers -->
+      <marker id="arr-dark" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+        <polygon points="0,0 9,3.5 0,7" fill="#2D0A4E"/>
+      </marker>
+      <marker id="arr-green" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+        <polygon points="0,0 9,3.5 0,7" fill="#1B8043"/>
+      </marker>
+      <marker id="arr-red" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+        <polygon points="0,0 9,3.5 0,7" fill="#B71C1C"/>
+      </marker>
+      <marker id="arr-amber" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+        <polygon points="0,0 9,3.5 0,7" fill="#E65100"/>
+      </marker>
+      <marker id="arr-accent" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto">
+        <polygon points="0,0 9,3.5 0,7" fill="#A100FF"/>
+      </marker>
+    </defs>
+
+    <!-- ══════════════════════════════════════════
+         NODES
+         Main spine x=440; branch column x=820
+    ══════════════════════════════════════════ -->
+
+    <!-- N1 — START oval  cy=175 -->
+    <ellipse cx="440" cy="175" rx="68" ry="26" fill="#1B8043" stroke="#145D32" stroke-width="2"/>
+    <text x="440" y="179" text-anchor="middle" dominant-baseline="middle"
+          font-family="Inter,sans-serif" font-size="13" font-weight="700" fill="#FFFFFF">START</text>
+
+    <!-- N2 — Submit Request  rect centre y=252, h=44 → top=230, bottom=274 -->
+    <rect x="350" y="230" width="180" height="44" rx="4"
+          fill="#FFFFFF" stroke="#2D0A4E" stroke-width="2"/>
+    <text x="440" y="252" text-anchor="middle" dominant-baseline="middle"
+          font-family="Inter,sans-serif" font-size="13" font-weight="600" fill="#2D0A4E">Submit Request</text>
+
+    <!-- N3 — Diamond "Budget Available?"  centre (440,332)  half=34 -->
+    <!-- rotated square: points at top/right/bottom/left -->
+    <polygon points="440,298 474,332 440,366 406,332"
+             fill="#2D0A4E" stroke="#2D0A4E" stroke-width="1.5"/>
+    <text x="440" y="328" text-anchor="middle" dominant-baseline="middle"
+          font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#FFFFFF">Budget</text>
+    <text x="440" y="343" text-anchor="middle" dominant-baseline="middle"
+          font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#FFFFFF">Available?</text>
+
+    <!-- N4a — NO terminal "Resubmit Next Cycle"  rect cx=820, centre y=332, h=44 → top=310, bottom=354 -->
+    <rect x="730" y="310" width="180" height="44" rx="4"
+          fill="#FFEBEE" stroke="#B71C1C" stroke-width="2"/>
+    <text x="820" y="328" text-anchor="middle" dominant-baseline="middle"
+          font-family="Inter,sans-serif" font-size="12" font-weight="700" fill="#B71C1C">Resubmit</text>
+    <text x="820" y="344" text-anchor="middle" dominant-baseline="middle"
+          font-family="Inter,sans-serif" font-size="12" font-weight="700" fill="#B71C1C">Next Cycle</text>
+
+    <!-- N5 — Diamond "Amount > $50K?"  centre (440,418)  half=34 -->
+    <polygon points="440,384 474,418 440,452 406,418"
+             fill="#2D0A4E" stroke="#2D0A4E" stroke-width="1.5"/>
+    <text x="440" y="414" text-anchor="middle" dominant-baseline="middle"
+          font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#FFFFFF">Amount</text>
+    <text x="440" y="429" text-anchor="middle" dominant-baseline="middle"
+          font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#FFFFFF">&gt; $50K?</text>
+
+    <!-- N5a — YES branch "CFO Approval Required"  rect cx=820, centre y=418, h=44 → top=396, bottom=440 -->
+    <rect x="730" y="396" width="180" height="44" rx="4"
+          fill="#FFF3E0" stroke="#E65100" stroke-width="2"/>
+    <text x="820" y="414" text-anchor="middle" dominant-baseline="middle"
+          font-family="Inter,sans-serif" font-size="12" font-weight="700" fill="#E65100">CFO Approval</text>
+    <text x="820" y="430" text-anchor="middle" dominant-baseline="middle"
+          font-family="Inter,sans-serif" font-size="12" font-weight="700" fill="#E65100">Required</text>
+
+    <!-- N6 — Diamond "Vendor Approved?"  centre (440,506)  half=34 -->
+    <polygon points="440,472 474,506 440,540 406,506"
+             fill="#2D0A4E" stroke="#2D0A4E" stroke-width="1.5"/>
+    <text x="440" y="502" text-anchor="middle" dominant-baseline="middle"
+          font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#FFFFFF">Vendor</text>
+    <text x="440" y="517" text-anchor="middle" dominant-baseline="middle"
+          font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#FFFFFF">Approved?</text>
+
+    <!-- N6a — NO branch "Vendor Vetting Process"  rect cx=820, centre y=506, h=44 → top=484, bottom=528 -->
+    <rect x="730" y="484" width="180" height="44" rx="4"
+          fill="#EDE7F6" stroke="#5C2D87" stroke-width="2"/>
+    <text x="820" y="502" text-anchor="middle" dominant-baseline="middle"
+          font-family="Inter,sans-serif" font-size="12" font-weight="700" fill="#5C2D87">Vendor Vetting</text>
+    <text x="820" y="518" text-anchor="middle" dominant-baseline="middle"
+          font-family="Inter,sans-serif" font-size="12" font-weight="700" fill="#5C2D87">Process</text>
+
+    <!-- N7 — Issue PO  rect centre y=594, h=44 → top=572, bottom=616 -->
+    <rect x="350" y="572" width="180" height="44" rx="4"
+          fill="#E8F5E9" stroke="#1B8043" stroke-width="2"/>
+    <text x="440" y="594" text-anchor="middle" dominant-baseline="middle"
+          font-family="Inter,sans-serif" font-size="13" font-weight="700" fill="#1B8043">Issue PO</text>
+
+    <!-- N8 — END oval  cy=652 -->
+    <ellipse cx="440" cy="652" rx="68" ry="26" fill="#A100FF" stroke="#7B00CC" stroke-width="2"/>
+    <text x="440" y="656" text-anchor="middle" dominant-baseline="middle"
+          font-family="Inter,sans-serif" font-size="13" font-weight="700" fill="#FFFFFF">END</text>
+
+    <!-- ══════════════════════════════════════════
+         CONNECTORS
+    ══════════════════════════════════════════ -->
+
+    <!-- START → Submit Request  (N1 bottom y=201 → N2 top y=230) -->
+    <line x1="440" y1="201" x2="440" y2="228"
+          stroke="#2D0A4E" stroke-width="2" marker-end="url(#arr-dark)"/>
+
+    <!-- Submit Request → Diamond Budget  (N2 bottom y=274 → N3 top y=298) -->
+    <line x1="440" y1="274" x2="440" y2="296"
+          stroke="#2D0A4E" stroke-width="2" marker-end="url(#arr-dark)"/>
+
+    <!-- Diamond Budget YES → Diamond Amount  (N3 bottom y=366 → N5 top y=384) -->
+    <line x1="440" y1="366" x2="440" y2="382"
+          stroke="#1B8043" stroke-width="2" marker-end="url(#arr-green)"/>
+    <text x="447" y="378" font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#1B8043">YES</text>
+
+    <!-- Diamond Budget NO → Resubmit terminal  (N3 right x=474 → N4a left x=730) -->
+    <line x1="476" y1="332" x2="728" y2="332"
+          stroke="#B71C1C" stroke-width="2" marker-end="url(#arr-red)"/>
+    <text x="570" y="325" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#B71C1C">NO</text>
+
+    <!-- Diamond Amount YES → CFO Approval box  (N5 right x=474 → N5a left x=730) -->
+    <line x1="476" y1="418" x2="728" y2="418"
+          stroke="#E65100" stroke-width="2" marker-end="url(#arr-amber)"/>
+    <text x="570" y="411" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#E65100">YES</text>
+
+    <!-- CFO Approval box → re-join main spine below N5 diamond
+         N5a right edge x=910 → loop down to y=452 → back to spine x=440 → N6 top y=472 -->
+    <path d="M 910 418 L 940 418 L 940 452 L 440 452 L 440 470"
+          stroke="#E65100" stroke-width="2" fill="none" marker-end="url(#arr-amber)"/>
+
+    <!-- Diamond Amount NO → Diamond Vendor  (N5 bottom y=452 → N6 top y=472)
+         When amount ≤ $50K, path goes straight down. But CFO path also joins at y=452.
+         Use a small offset — NO label on left side -->
+    <!-- Actually: NO goes straight down (left tip of diamond at x=406, but bottom is y=452)
+         We draw the NO path as a short jog from bottom of N5 -->
+    <!-- The straight-down YES path is already drawn above via CFO rejoiner.
+         For NO ($50K), we add the label on the bottom-left of the diamond. -->
+    <text x="395" y="462" text-anchor="end" font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#1B8043">NO</text>
+
+    <!-- Diamond Vendor YES → Issue PO  (N6 bottom y=540 → N7 top y=572) -->
+    <line x1="440" y1="540" x2="440" y2="570"
+          stroke="#1B8043" stroke-width="2" marker-end="url(#arr-green)"/>
+    <text x="447" y="560" font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#1B8043">YES</text>
+
+    <!-- Diamond Vendor NO → Vendor Vetting box  (N6 right x=474 → N6a left x=730) -->
+    <line x1="476" y1="506" x2="728" y2="506"
+          stroke="#5C2D87" stroke-width="2" marker-end="url(#arr-accent)"/>
+    <text x="570" y="499" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#5C2D87">NO</text>
+
+    <!-- Vendor Vetting → loop back to Diamond Vendor (top)
+         N6a right x=910, loop: right → up → back to diamond left x=406 -->
+    <path d="M 910 506 L 960 506 L 960 472 L 442 472"
+          stroke="#5C2D87" stroke-width="2" fill="none" marker-end="url(#arr-accent)"/>
+    <text x="960" y="492" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-style="italic" fill="#5C2D87">retry</text>
+
+    <!-- Issue PO → END  (N7 bottom y=616 → N8 top y=626) -->
+    <line x1="440" y1="616" x2="440" y2="624"
+          stroke="#A100FF" stroke-width="2" marker-end="url(#arr-accent)"/>
+
+    <!-- ══════════════════════════════════════════
+         LEGEND
+    ══════════════════════════════════════════ -->
+    <!-- Legend panel — top-right, x=1040..1220, y=155..340 -->
+    <rect x="1040" y="155" width="190" height="190" rx="4"
+          fill="#F8F4FC" stroke="#E5D5F0" stroke-width="1.5"/>
+    <text x="1050" y="178" font-family="Inter,sans-serif" font-size="11" font-weight="700"
+          fill="#2D0A4E" letter-spacing="0.05em">LEGEND</text>
+
+    <!-- Legend items -->
+    <!-- Process -->
+    <rect x="1050" y="192" width="32" height="18" rx="3" fill="#FFFFFF" stroke="#2D0A4E" stroke-width="1.5"/>
+    <text x="1090" y="205" font-family="Inter,sans-serif" font-size="11" fill="#1A1A2E">Process step</text>
+
+    <!-- Terminal — NO (red) -->
+    <rect x="1050" y="220" width="32" height="18" rx="3" fill="#FFEBEE" stroke="#B71C1C" stroke-width="1.5"/>
+    <text x="1090" y="233" font-family="Inter,sans-serif" font-size="11" fill="#1A1A2E">Terminal (stop)</text>
+
+    <!-- Escalation -->
+    <rect x="1050" y="248" width="32" height="18" rx="3" fill="#FFF3E0" stroke="#E65100" stroke-width="1.5"/>
+    <text x="1090" y="261" font-family="Inter,sans-serif" font-size="11" fill="#1A1A2E">Escalation</text>
+
+    <!-- Remediation -->
+    <rect x="1050" y="276" width="32" height="18" rx="3" fill="#EDE7F6" stroke="#5C2D87" stroke-width="1.5"/>
+    <text x="1090" y="289" font-family="Inter,sans-serif" font-size="11" fill="#1A1A2E">Remediation</text>
+
+    <!-- Decision -->
+    <polygon points="1066,314 1082,322 1066,330 1050,322" fill="#2D0A4E" stroke="#2D0A4E" stroke-width="1"/>
+    <text x="1090" y="325" font-family="Inter,sans-serif" font-size="11" fill="#1A1A2E">Decision gate</text>
+
+    <!-- Connector colours -->
+    <line x1="1050" y1="342" x2="1082" y2="342" stroke="#1B8043" stroke-width="2" marker-end="url(#arr-green)"/>
+    <text x="1090" y="346" font-family="Inter,sans-serif" font-size="11" fill="#1A1A2E">Approved path</text>
+
+  </svg>
+
+  <!-- ── Footer ── -->
+  <div class="footer">
+    <span class="footer-left">Confidential</span>
+    <span class="footer-right">Slide Lab · 2026 · 238</span>
+  </div>
+
+</div>
+</body>
+</html>

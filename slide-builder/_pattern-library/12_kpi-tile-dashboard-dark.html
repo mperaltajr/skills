@@ -1,0 +1,123 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>12 · KPI tile dashboard</title>
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+  --up-good: #16A34A;
+  --down-bad: #DC2626;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1280px; height: 720px; background: var(--slide-bg); font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; color: var(--text-dark); overflow: hidden; }
+body { padding: 50px 64px; position: relative; }
+.draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; }
+.project-label { position: absolute; top: 24px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
+
+.action-title { position: absolute; left: 64px; right: 64px; top: 28px; min-height: 72px; font-size: 27px; font-weight: 700; line-height: 1.2; }
+.action-title strong { color: var(--brand-primary); }
+.subhead { position: absolute; left: 64px; right: 64px; top: 100px; font-size: 14px; color: var(--text-mid); font-style: italic; }
+.title-rule { position: absolute; left: 64px; top: 128px; width: 40px; height: 3px; background: var(--brand-accent); }
+
+.content-block { position: absolute; left: 64px; right: 64px; top: 188px; bottom: 72px; display: flex; flex-direction: column; justify-content: center; gap: 26px; }
+
+.tile-grid { display: flex; flex-wrap: wrap; gap: 18px; height: 360px; }
+.tile { background: var(--card-bg); border: 1px solid var(--card-border); padding: 24px 26px; display: flex; flex-direction: column; justify-content: space-between; position: relative; min-width: 0; }
+.tile-label { font-size: 10.5px; font-weight: 700; letter-spacing: 1.5px; text-transform: uppercase; color: var(--text-mid); }
+.tile-stat { font-size: 52px; font-weight: 800; color: var(--brand-primary); line-height: 1; font-feature-settings: "tnum"; letter-spacing: -1.5px; margin-top: 6px; }
+.tile-stat .unit { font-size: 22px; font-weight: 700; color: var(--brand-primary-mid); margin-left: 4px; letter-spacing: 0; }
+.tile-delta { font-size: 11.5px; font-weight: 600; color: var(--text-mid); display: flex; align-items: center; gap: 6px; line-height: 1.3; }
+.tile-delta .arrow { font-size: 14px; font-weight: 800; }
+.tile-delta .arrow.up { color: var(--up-good); }
+.tile-delta .arrow.down-good { color: var(--up-good); }
+.tile-delta .arrow.flat-good { color: var(--up-good); }
+.tile-delta .compare { color: var(--text-faint); font-weight: 500; }
+
+.convergence { background: var(--brand-primary); color: white; padding: 16px 24px; font-size: 15px; font-style: italic; font-weight: 600; line-height: 1.4; }
+
+.footer-rule { position: absolute; left: 0; right: 0; bottom: 32px; height: 1px; background: var(--card-border); }
+.footer-left { position: absolute; bottom: 14px; left: 24px; color: var(--text-faint); font-size: 11px; letter-spacing: 1px; }
+.footer-right { position: absolute; bottom: 14px; right: 24px; color: var(--text-faint); font-size: 11px; }
+
+/* DARK THEME */
+:root {
+  --card-bg: rgba(255,255,255,0.07);
+  --card-border: rgba(255,255,255,0.12);
+  --text-dark: #FFFFFF;
+  --text-mid: rgba(255,255,255,0.6);
+  --text-faint: rgba(255,255,255,0.4);
+  --slide-bg: #2D0A4E;
+}
+body, .slide { background: #2D0A4E; }
+.project-label { color: rgba(255,255,255,0.4); }
+.action-title { position: absolute; left: 64px; right: 64px; top: 28px; min-height: 72px; color: #FFFFFF; }
+.action-title strong { color: #C780FF; }
+.subhead { position: absolute; left: 64px; right: 64px; top: 100px; color: rgba(255,255,255,0.6); }
+.tile { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); }
+.tile-label { color: rgba(255,255,255,0.5); }
+.tile-stat { color: #C780FF; }
+.tile-stat .unit { color: #C780FF; }
+.tile-delta { color: rgba(255,255,255,0.85); }
+.tile-delta .compare { color: rgba(255,255,255,0.5); }
+.footer-rule { background: rgba(255,255,255,0.1); }
+.footer-left, .footer-right { color: rgba(255,255,255,0.4); }
+</style>
+</head>
+<body>
+
+  <div class="action-title" data-shape-id="title">Four weeks in — <strong>every metric is moving in the right direction</strong>.</div>
+  <div class="subhead" data-shape-id="subtitle">Pilot scorecard for the Slide Lab workstream pilot, weeks 1-4.</div>
+  <div class="title-rule" data-shape-id="brand-rule"></div>
+
+  <div class="content-block">
+    <div class="tile-grid">
+      <div class="tile">
+        <div class="tile-label" data-shape-id="metric-1-label">Cycle time</div>
+        <div class="tile-stat" data-shape-id="metric-1-value">-62%</div>
+        <div class="tile-delta" data-shape-id="metric-1-delta"><span class="arrow down-good">&#9660;</span> vs baseline <span class="compare">· 14d &rarr; 5d</span></div>
+      </div>
+      <div class="tile">
+        <div class="tile-label" data-shape-id="metric-2-label">Partner edits</div>
+        <div class="tile-stat" data-shape-id="metric-2-value">1.4<span class="unit">&times;</span></div>
+        <div class="tile-delta" data-shape-id="metric-2-delta"><span class="arrow down-good">&#9660;</span> fewer rounds <span class="compare">· 3.2 &rarr; 1.4 per deck</span></div>
+      </div>
+      <div class="tile">
+        <div class="tile-label" data-shape-id="metric-3-label">Stakeholder sign-off</div>
+        <div class="tile-stat" data-shape-id="metric-3-value">94<span class="unit">%</span></div>
+        <div class="tile-delta" data-shape-id="metric-3-delta"><span class="arrow up">&#9650;</span> vs Q1 <span class="compare">· 60% &rarr; 94%</span></div>
+      </div>
+      <div class="tile">
+        <div class="tile-label" data-shape-id="metric-4-label">Deck length</div>
+        <div class="tile-stat" data-shape-id="metric-4-value">11<span class="unit"> slides</span></div>
+        <div class="tile-delta" data-shape-id="metric-4-delta"><span class="arrow down-good">&#9660;</span> tighter <span class="compare">· 19 &rarr; 11 avg</span></div>
+      </div>
+      <div class="tile">
+        <div class="tile-label" data-shape-id="metric-5-label">Storyline gate pass rate</div>
+        <div class="tile-stat" data-shape-id="metric-5-value">8<span class="unit">/10</span></div>
+        <div class="tile-delta" data-shape-id="metric-5-delta"><span class="arrow up">&#9650;</span> first-pass <span class="compare">· 4/10 &rarr; 8/10</span></div>
+      </div>
+      <div class="tile">
+        <div class="tile-label" data-shape-id="metric-6-label">Build errors</div>
+        <div class="tile-stat" data-shape-id="metric-6-value">0</div>
+        <div class="tile-delta" data-shape-id="metric-6-delta"><span class="arrow flat-good">&#9679;</span> sustained <span class="compare">· 4 consecutive weeks clean</span></div>
+      </div>
+    </div>
+
+    <div class="convergence" data-shape-id="convergence">Two more weeks of pilot data and we move to a Q3 rollout decision.</div>
+  </div>
+  <div class="footer-left" data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+</body>
+</html>

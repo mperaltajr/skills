@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>114 · Wardley Map — Capability Evolution</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #4a4a4a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 24px;
+  box-sizing: border-box;
+}
+.slide {
+  width: 1280px;
+  height: 720px;
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.35);
+}
+
+/* Chrome */
+.chrome-label {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  font-size: 10px;
+  color: var(--text-faint);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  z-index: 5;
+  font-weight: 600;
+}
+.draft-badge {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--draft-bg);
+  color: var(--draft-text);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 16px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  z-index: 5;
+}
+
+/* Title block */
+.title-block {
+  position: absolute;
+  top: 48px;
+  left: 48px;
+  right: 48px;
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+}
+.title-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.action-title {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--text-dark);
+}
+.action-title strong {
+  color: var(--brand-primary);
+}
+.subhead { position: absolute; left: 48px; right: 48px; top: 108px; font-size: 14px;
+  color: var(--text-mid);
+  font-style: italic;
+}
+.title-rule { position: absolute; left: 48px; top: 136px; width: 40px;
+  height: 3px;
+  background: var(--brand-accent);
+}
+
+/* Main map area */
+.map-area {
+  position: absolute;
+  top: 148px;
+  left: 48px;
+  right: 48px;
+  bottom: 90px;
+}
+
+/* SVG fills map-area fully */
+.map-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+/* Legend */
+.legend {
+  flex: 0 0 168px;
+  width: 168px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-self: flex-start;
+}
+.legend-box {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  padding: 10px 12px;
+}
+.legend-title {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--brand-primary);
+  margin-bottom: 8px;
+}
+.legend-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10.5px;
+  color: var(--text-dark);
+  margin-bottom: 5px;
+  line-height: 1.3;
+}
+.legend-row:last-child { margin-bottom: 0; }
+.leg-circle {
+  flex-shrink: 0;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--brand-primary);
+  background: var(--card-bg);
+}
+.leg-circle.accent {
+  border-color: var(--brand-accent);
+  border-width: 2.5px;
+  background: rgba(161,0,255,0.08);
+}
+.leg-line {
+  flex-shrink: 0;
+  width: 28px;
+  height: 2px;
+  background: var(--text-faint);
+  position: relative;
+}
+.leg-line::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: -3px;
+  width: 0;
+  height: 0;
+  border-left: 5px solid var(--text-faint);
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+}
+.leg-dash {
+  flex-shrink: 0;
+  width: 28px;
+  height: 0;
+  border-top: 2px dashed var(--brand-accent);
+  position: relative;
+}
+.leg-dash::after {
+  content: '';
+  position: absolute;
+  right: 0;
+  top: -3px;
+  width: 0;
+  height: 0;
+  border-left: 5px solid var(--brand-accent);
+  border-top: 4px solid transparent;
+  border-bottom: 4px solid transparent;
+}
+
+/* Convergence bar */
+.convergence {
+  position: absolute;
+  bottom: 34px;
+  left: 48px;
+  right: 48px;
+  background: var(--brand-primary);
+  color: white;
+  padding: 7px 18px;
+  font-size: 11.5px;
+  font-style: italic;
+  font-weight: 600;
+  border-left: 3px solid var(--brand-accent);
+  line-height: 1.4;
+}
+
+/* Footer */
+.footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  padding: 0 48px;
+  font-size: 9.5px;
+  color: var(--text-faint);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-top: 1px solid var(--card-border);
+  background: #FBFAFD;
+}
+.footer-right {
+  margin-left: auto;
+}
+</style>
+</head>
+<body>
+<div class="slide">
+
+  <!-- Chrome -->
+  <div class="chrome-label">Accenture Internal</div>
+
+  <!-- Title block -->
+  <div class="title-block">
+    <div class="title-text">
+      <div class="action-title"><strong>AI capabilities must move from custom to product</strong> — cloud and auth already commoditized</div>
+      <div class="subhead">Wardley map · strategic capability evolution · value chain visibility vs. maturity stage</div>
+      <div class="title-rule"></div>
+    </div>
+    <!-- Legend — PRIMARY placement: right-aligned in title zone -->
+    <div class="legend">
+      <div class="legend-box">
+        <div class="legend-title">Node type</div>
+        <div class="legend-row">
+          <div class="leg-circle"></div>
+          <span>Capability</span>
+        </div>
+        <div class="legend-row">
+          <div class="leg-circle accent"></div>
+          <span>Needs investment</span>
+        </div>
+      </div>
+      <div class="legend-box">
+        <div class="legend-title">Arrows</div>
+        <div class="legend-row">
+          <div class="leg-line"></div>
+          <span>Dependency</span>
+        </div>
+        <div class="legend-row">
+          <div class="leg-dash"></div>
+          <span>Evolve toward</span>
+        </div>
+      </div>
+      <div class="legend-box" style="background:rgba(161,0,255,0.06); border-color:var(--brand-accent);">
+        <div class="legend-title" style="color:var(--brand-accent);">Invest now</div>
+        <div style="font-size:10px; color:var(--text-dark); line-height:1.45;">
+          AI Recs, Analytics Engine, and ML Models must industrialise to product/commodity or fall behind.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SVG Map -->
+  <!-- Map sits left of legend. We'll manually compute it within map-area but exclude legend width -->
+  <div class="map-area">
+    <!--
+      Map dimensions (SVG viewBox): 0 0 960 480
+      X-axis: Evolution stages — Genesis(0) | Custom(1) | Product(2) | Commodity(3)
+      Y-axis: Visibility — Visible(top=0) .. Invisible/Foundational(bottom=480)
+
+      Axis layout:
+        Left margin: 56px (for Y labels)
+        Right margin: 20px
+        Top margin: 8px
+        Bottom margin: 44px (for X labels)
+        Plot area: x: 56..940, y: 8..436
+
+      Stage x-positions (centre of each zone, 4 zones across 884px):
+        Genesis:    56 + 884*0.125 = 56 + 110.5 ≈ 167
+        Custom:     56 + 884*0.375 = 56 + 331.5 ≈ 388
+        Product:    56 + 884*0.625 = 56 + 552.5 ≈ 609
+        Commodity:  56 + 884*0.875 = 56 + 773.5 ≈ 830
+
+      Stage zone boundaries x:
+        0→Genesis: 56
+        Genesis→Custom: 56 + 884*0.25 = 56+221 = 277
+        Custom→Product: 56 + 884*0.5  = 56+442 = 498
+        Product→Commodity: 56 + 884*0.75 = 56+663 = 719
+        Commodity→end: 940
+
+      Y visibility bands (plot area 8..436 = 428px):
+        Visible (top): 8..145
+        Mid: 145..290
+        Foundational/Invisible (bottom): 290..436
+
+      Nodes (cx, cy):
+        "Customer Interface"  → top, Product stage     → cx=609, cy=78
+        "AI Recommendations"  → top, Custom stage      → cx=388, cy=95  [accent]
+        "Data Platform"       → mid, Custom→Product    → cx=490, cy=200  [accent]
+        "API Gateway"         → mid, Product stage     → cx=625, cy=220
+        "Cloud Infrastructure"→ bottom, Commodity      → cx=830, cy=390
+        "Analytics Engine"    → mid, Custom stage      → cx=350, cy=250  [accent]
+        "Identity/Auth"       → bottom, Product stage  → cx=660, cy=380
+        "ML Models"           → mid, Genesis→Custom    → cx=250, cy=185  [accent]
+
+      Dependency edges (from→to — cap of dependent depends on provider):
+        Customer Interface → AI Recommendations
+        Customer Interface → API Gateway
+        AI Recommendations → Data Platform
+        AI Recommendations → ML Models
+        Data Platform → Analytics Engine
+        Data Platform → Cloud Infrastructure
+        API Gateway → Cloud Infrastructure
+        API Gateway → Identity/Auth
+        Analytics Engine → Cloud Infrastructure
+        ML Models → Data Platform
+
+      Movement arrows (dashed, brand-accent):
+        AI Recommendations: cx=388,cy=95 → cx=609,cy=78  (move toward Product)
+        ML Models: cx=250,cy=185 → cx=388,cy=175  (move toward Custom)
+        Data Platform: cx=490,cy=200 → cx=609,cy=200  (move toward Product)
+        Analytics Engine: cx=350,cy=250 → cx=490,cy=250  (move toward Product)
+    -->
+    <svg class="map-svg" viewBox="0 0 960 480" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <!-- Arrow marker — dependency (gray) -->
+        <marker id="arrow-dep" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#94A3B8"/>
+        </marker>
+        <!-- Arrow marker — movement (accent) -->
+        <marker id="arrow-move" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <path d="M0,0 L8,3 L0,6 Z" fill="#A100FF"/>
+        </marker>
+      </defs>
+
+      <!-- ── Background zone bands (subtle) ── -->
+      <rect x="56"  y="8" width="221" height="428" fill="#F8F8FB" rx="0"/>
+      <rect x="277" y="8" width="221" height="428" fill="#F3F2F8" rx="0"/>
+      <rect x="498" y="8" width="221" height="428" fill="#EEF0F6" rx="0"/>
+      <rect x="719" y="8" width="221" height="428" fill="#E9EAF2" rx="0"/>
+
+      <!-- ── Grid lines horizontal ── -->
+      <line x1="56" y1="145" x2="940" y2="145" stroke="#E5D5F0" stroke-width="1" stroke-dasharray="4 4"/>
+      <line x1="56" y1="290" x2="940" y2="290" stroke="#E5D5F0" stroke-width="1" stroke-dasharray="4 4"/>
+
+      <!-- ── Grid lines vertical (stage boundaries) ── -->
+      <line x1="277" y1="8" x2="277" y2="436" stroke="#D9D0EA" stroke-width="1"/>
+      <line x1="498" y1="8" x2="498" y2="436" stroke="#D9D0EA" stroke-width="1"/>
+      <line x1="719" y1="8" x2="719" y2="436" stroke="#D9D0EA" stroke-width="1"/>
+
+      <!-- ── Axes ── -->
+      <!-- Y-axis line -->
+      <line x1="56" y1="8" x2="56" y2="436" stroke="#2D0A4E" stroke-width="2"/>
+      <!-- X-axis line -->
+      <line x1="56" y1="436" x2="940" y2="436" stroke="#2D0A4E" stroke-width="2"/>
+
+      <!-- ── Y-axis label (rotated) ── -->
+      <text transform="translate(14,222) rotate(-90)" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="700" letter-spacing="2" fill="#2D0A4E" text-transform="uppercase">VALUE CHAIN POSITION</text>
+
+      <!-- ── Y-axis ticks ── -->
+      <text x="50" y="78"  text-anchor="end" font-family="Inter,sans-serif" font-size="9" font-weight="600" fill="#64748B" letter-spacing="1">VISIBLE</text>
+      <text x="50" y="220" text-anchor="end" font-family="Inter,sans-serif" font-size="9" font-weight="600" fill="#64748B" letter-spacing="1">MID</text>
+      <text x="50" y="380" text-anchor="end" font-family="Inter,sans-serif" font-size="9" font-weight="600" fill="#64748B" letter-spacing="1">INVISIBLE</text>
+      <!-- tick marks -->
+      <line x1="52" y1="76" x2="60" y2="76" stroke="#64748B" stroke-width="1.5"/>
+      <line x1="52" y1="218" x2="60" y2="218" stroke="#64748B" stroke-width="1.5"/>
+      <line x1="52" y1="378" x2="60" y2="378" stroke="#64748B" stroke-width="1.5"/>
+
+      <!-- ── X-axis stage labels ── -->
+      <text x="167" y="455" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#2D0A4E" letter-spacing="1">GENESIS</text>
+      <text x="388" y="455" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#2D0A4E" letter-spacing="1">CUSTOM</text>
+      <text x="609" y="455" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#2D0A4E" letter-spacing="1">PRODUCT</text>
+      <text x="830" y="455" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#2D0A4E" letter-spacing="1">COMMODITY</text>
+
+      <!-- X-axis arrow label -->
+      <text x="940" y="440" text-anchor="end" font-family="Inter,sans-serif" font-size="9" font-weight="600" fill="#64748B" letter-spacing="1">EVOLUTION →</text>
+
+      <!-- ── DEPENDENCY LINES (behind nodes) ── -->
+      <!-- Customer Interface → AI Recommendations -->
+      <line x1="601" y1="92" x2="404" y2="91" stroke="#94A3B8" stroke-width="1.2" marker-end="url(#arrow-dep)"/>
+      <!-- Customer Interface → API Gateway -->
+      <line x1="617" y1="100" x2="625" y2="206" stroke="#94A3B8" stroke-width="1.2" marker-end="url(#arrow-dep)"/>
+      <!-- AI Recommendations → Data Platform -->
+      <line x1="404" y1="108" x2="480" y2="188" stroke="#94A3B8" stroke-width="1.2" marker-end="url(#arrow-dep)"/>
+      <!-- AI Recommendations → ML Models -->
+      <line x1="371" y1="100" x2="268" y2="178" stroke="#94A3B8" stroke-width="1.2" marker-end="url(#arrow-dep)"/>
+      <!-- Data Platform → Analytics Engine -->
+      <line x1="474" y1="213" x2="368" y2="242" stroke="#94A3B8" stroke-width="1.2" marker-end="url(#arrow-dep)"/>
+      <!-- Data Platform → Cloud Infrastructure -->
+      <line x1="506" y1="212" x2="806" y2="382" stroke="#94A3B8" stroke-width="1.2" marker-end="url(#arrow-dep)"/>
+      <!-- API Gateway → Cloud Infrastructure -->
+      <line x1="641" y1="232" x2="816" y2="383" stroke="#94A3B8" stroke-width="1.2" marker-end="url(#arrow-dep)"/>
+      <!-- API Gateway → Identity/Auth -->
+      <line x1="641" y1="226" x2="645" y2="368" stroke="#94A3B8" stroke-width="1.2" marker-end="url(#arrow-dep)"/>
+      <!-- Analytics Engine → Cloud Infrastructure -->
+      <line x1="368" y1="262" x2="806" y2="386" stroke="#94A3B8" stroke-width="1.2" marker-end="url(#arrow-dep)"/>
+      <!-- ML Models → Data Platform -->
+      <line x1="268" y1="192" x2="474" y2="200" stroke="#94A3B8" stroke-width="1.2" marker-end="url(#arrow-dep)"/>
+
+      <!-- ── MOVEMENT ARROWS (dashed accent, behind nodes) ── -->
+      <!-- AI Recommendations: Custom → Product -->
+      <line x1="410" y1="88" x2="580" y2="76" stroke="#A100FF" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#arrow-move)"/>
+      <!-- ML Models: Genesis→Custom → Custom (center) -->
+      <line x1="272" y1="178" x2="370" y2="170" stroke="#A100FF" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#arrow-move)"/>
+      <!-- Data Platform: toward Product -->
+      <line x1="508" y1="200" x2="590" y2="200" stroke="#A100FF" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#arrow-move)"/>
+      <!-- Analytics Engine: toward Product -->
+      <line x1="372" y1="250" x2="470" y2="250" stroke="#A100FF" stroke-width="1.8" stroke-dasharray="6 4" marker-end="url(#arrow-move)"/>
+
+      <!-- ══════════════════════════════════════════════
+           CAPABILITY NODES
+           Standard: fill=#F8F4FC, stroke=#2D0A4E, r=22
+           Accent (invest): fill=rgba(161,0,255,0.10), stroke=#A100FF, stroke-width=2.5
+      ═══════════════════════════════════════════════ -->
+
+      <!-- 1. Customer Interface — top, Product — standard -->
+      <circle cx="609" cy="78" r="22" fill="#F8F4FC" stroke="#2D0A4E" stroke-width="2"/>
+      <text x="609" y="130" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="#2D0A4E">Customer</text>
+      <text x="609" y="142" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="#2D0A4E">Interface</text>
+
+      <!-- 2. AI Recommendations — top, Custom — ACCENT (invest) -->
+      <circle cx="388" cy="95" r="24" fill="rgba(161,0,255,0.09)" stroke="#A100FF" stroke-width="2.5"/>
+      <text x="388" y="147" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#A100FF">AI</text>
+      <text x="388" y="158" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#A100FF">Recommendations</text>
+
+      <!-- 3. Data Platform — mid, Custom→Product — ACCENT (invest) -->
+      <circle cx="490" cy="200" r="22" fill="rgba(161,0,255,0.09)" stroke="#A100FF" stroke-width="2.5"/>
+      <text x="490" y="252" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#A100FF">Data</text>
+      <text x="490" y="263" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#A100FF">Platform</text>
+
+      <!-- 4. API Gateway — mid, Product — standard -->
+      <circle cx="625" cy="220" r="22" fill="#F8F4FC" stroke="#2D0A4E" stroke-width="2"/>
+      <text x="625" y="272" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="#2D0A4E">API</text>
+      <text x="625" y="283" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="#2D0A4E">Gateway</text>
+
+      <!-- 5. Cloud Infrastructure — bottom, Commodity — standard (faint, already commodity) -->
+      <circle cx="830" cy="390" r="26" fill="#F0EEF8" stroke="#5C2D87" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <text x="830" y="424" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="#5C2D87">Cloud</text>
+      <text x="830" y="435" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="#5C2D87">Infrastructure</text>
+
+      <!-- 6. Analytics Engine — mid, Custom — ACCENT (invest) -->
+      <circle cx="350" cy="250" r="22" fill="rgba(161,0,255,0.09)" stroke="#A100FF" stroke-width="2.5"/>
+      <text x="350" y="302" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#A100FF">Analytics</text>
+      <text x="350" y="313" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#A100FF">Engine</text>
+
+      <!-- 7. Identity/Auth — bottom, Product — standard (faint, already commoditising) -->
+      <circle cx="660" cy="380" r="22" fill="#F0EEF8" stroke="#5C2D87" stroke-width="1.5" stroke-dasharray="4 3"/>
+      <text x="660" y="411" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="#5C2D87">Identity</text>
+      <text x="660" y="422" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="#5C2D87">/Auth</text>
+
+      <!-- 8. ML Models — mid, Genesis→Custom — ACCENT (invest, most nascent) -->
+      <circle cx="250" cy="185" r="24" fill="rgba(161,0,255,0.09)" stroke="#A100FF" stroke-width="2.5"/>
+      <text x="250" y="237" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#A100FF">ML</text>
+      <text x="250" y="248" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#A100FF">Models</text>
+
+      <!-- Node inner text (abbreviated in circle) -->
+      <text x="609" y="82" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" font-weight="700" fill="#2D0A4E">CI</text>
+      <text x="388" y="99" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" font-weight="700" fill="#A100FF">AI</text>
+      <text x="490" y="204" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" font-weight="700" fill="#A100FF">DP</text>
+      <text x="625" y="224" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" font-weight="700" fill="#2D0A4E">API</text>
+      <text x="830" y="393" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" font-weight="700" fill="#5C2D87">☁</text>
+      <text x="350" y="254" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" font-weight="700" fill="#A100FF">AE</text>
+      <text x="660" y="383" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" font-weight="700" fill="#5C2D87">ID</text>
+      <text x="250" y="188" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" font-weight="700" fill="#A100FF">ML</text>
+
+    </svg>
+  </div>
+
+  <!-- Convergence bar -->
+  <div class="convergence">
+    4 capabilities need investment to evolve — AI Recommendations, Analytics Engine, Data Platform, and ML Models remain custom-built while competitors productise.
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span>Slide Lab · Confidential · Capability evolution</span>
+    <span class="footer-right">114 / 200</span>
+  </div>
+
+</div>
+</body>
+</html>

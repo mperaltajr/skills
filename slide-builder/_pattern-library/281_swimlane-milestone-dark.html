@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>281 · Swimlane milestone timeline — dark mode</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 1280px; height: 720px;
+  background: var(--brand-primary);
+  font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  color: #FFFFFF;
+  overflow: hidden;
+}
+body { position: relative; }
+
+/* ---- Top chrome ---- */
+.project-label {
+  position: absolute; top: 9px; left: 24px;
+  color: rgba(255,255,255,0.5);
+  font-size: 9px; font-weight: 600;
+  letter-spacing: 0.15em; text-transform: uppercase;
+  z-index: 10;
+}
+.draft-badge {
+  position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
+  background: var(--draft-bg); color: var(--draft-text);
+  font-size: 11px; font-weight: 700;
+  padding: 4px 16px; letter-spacing: 1px;
+  border-radius: 0;
+  z-index: 10;
+}
+
+/* ---- Title block ---- */
+.title-block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 0;
+  overflow: visible;
+
+}
+.action-title {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+  font-size: 24px; font-weight: 700;
+  color: #FFFFFF;  letter-spacing: -0.3px;
+}
+.action-title strong { color: var(--brand-accent-soft); font-weight: 700; }
+.title-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+
+  background: var(--brand-accent);
+}
+
+/* ---- Footer ---- */
+.footer-rule {
+  position: absolute; left: 0; right: 0; bottom: 28px;
+  height: 1px; background: rgba(255,255,255,0.12);
+}
+.footer-left {
+  position: absolute; bottom: 10px; left: 24px;
+  color: rgba(255,255,255,0.4);
+  font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+}
+.footer-right {
+  position: absolute; bottom: 10px; right: 24px;
+  color: rgba(255,255,255,0.4);
+  font-size: 11px;
+}
+
+/* ---- Chart wrapper ---- */
+.chart-wrap {
+  position: absolute;
+  top: 96px; left: 40px; right: 40px; bottom: 44px;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0;
+}
+.chart-main {
+  flex: 1 1 0;
+  min-width: 0;
+  position: relative;
+}
+.chart-legend {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 4px;
+  padding: 8px 10px;
+  z-index: 5;
+}
+.legend-title {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.45);
+}
+.legend-item {
+  display: flex; align-items: center; gap: 8px;
+  font-size: 10px; color: rgba(255,255,255,0.65);
+  line-height: 1.3;
+}
+.legend-diamond {
+  width: 10px; height: 10px;
+  background: var(--brand-accent);
+  transform: rotate(45deg);
+  flex-shrink: 0;
+  box-shadow: 0 0 6px rgba(161,0,255,0.8);
+}
+.legend-bar-ip {
+  width: 20px; height: 9px;
+  background: rgba(161,0,255,0.55);
+  flex-shrink: 0;
+  border-radius: 2px;
+}
+.legend-bar-pl {
+  width: 20px; height: 9px;
+  background: rgba(255,255,255,0.18);
+  flex-shrink: 0;
+  border-radius: 2px;
+}
+</style>
+</head>
+<body>
+
+  <!-- Chrome -->
+
+  <!-- Title -->
+  <div class="title-block" data-shape-id="title-block">
+    <div class="action-title" data-shape-id="title">2026 Program Roadmap — <strong>four workstreams, one delivery timeline</strong>.</div>
+    <div class="title-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- Chart wrapper -->
+  <div class="chart-wrap">
+    <div class="chart-main" id="chartMain">
+
+      <!--
+        SVG coordinate system:
+        Full SVG width  = 100% of .chart-main (approx 1090px at runtime, but SVG viewBox drives layout)
+        viewBox: 0 0 1090 560
+        Left label col: 0–120px
+        Chart area: 120–1090px → width = 970px
+        12 month columns → each = 970/12 ≈ 80.83px
+        4 swimlane rows, header row height = 34px, each lane = (560-34)/4 = 131.5px → 131px
+        TODAY = col index 4 (0-based) from Jan → x = 120 + 4.5 * 80.83 = 120 + 363.75 = 483.75
+      -->
+
+      <svg
+        data-shape-id="timeline-svg"
+        viewBox="0 0 1090 580"
+        width="100%" height="100%"
+        xmlns="http://www.w3.org/2000/svg"
+        style="display:block; overflow:visible;"
+      >
+        <defs>
+          <!-- Glow filter for milestones -->
+          <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+            <feMerge>
+              <feMergeNode in="coloredBlur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+          <!-- Subtle glow for TODAY line -->
+          <filter id="todayGlow" x="-100%" y="-5%" width="300%" height="110%">
+            <feGaussianBlur stdDeviation="2" result="blur"/>
+            <feMerge>
+              <feMergeNode in="blur"/>
+              <feMergeNode in="SourceGraphic"/>
+            </feMerge>
+          </filter>
+        </defs>
+
+        <!-- ============================================================
+             CONSTANTS:
+             LABEL_W  = 120
+             CHART_W  = 970   (1090 - 120)
+             COL_W    = 80.833 (970 / 12)
+             HDR_H    = 34
+             LANE_H   = 136   ((580 - 34) / 4 = 136.5)
+             Total height used = 34 + 4*136 = 578
+             LANE tops:
+               L1_Y = 34
+               L2_Y = 170
+               L3_Y = 306
+               L4_Y = 442
+        ============================================================ -->
+
+        <!-- ============================================================
+             MONTH HEADER ROW  (y=0..34)
+        ============================================================ -->
+        <!-- Alternating column shading (even cols shaded) -->
+        <!-- Jan=col0, Feb=col1, Mar=col2, Apr=col3, May=col4, Jun=col5, Jul=col6, Aug=col7, Sep=col8, Oct=col9, Nov=col10, Dec=col11 -->
+        <!-- Shaded: Jan(0), Mar(2), May(4), Jul(6), Sep(8), Nov(10) -->
+        <rect data-shape-id="col-shade-0"  x="120"       y="0"  width="80.83" height="580" fill="rgba(255,255,255,0.00)"/>
+        <rect data-shape-id="col-shade-1"  x="200.83"    y="0"  width="80.83" height="580" fill="rgba(255,255,255,0.04)"/>
+        <rect data-shape-id="col-shade-2"  x="281.67"    y="0"  width="80.83" height="580" fill="rgba(255,255,255,0.00)"/>
+        <rect data-shape-id="col-shade-3"  x="362.5"     y="0"  width="80.83" height="580" fill="rgba(255,255,255,0.04)"/>
+        <rect data-shape-id="col-shade-4"  x="443.33"    y="0"  width="80.83" height="580" fill="rgba(255,255,255,0.00)"/>
+        <rect data-shape-id="col-shade-5"  x="524.17"    y="0"  width="80.83" height="580" fill="rgba(255,255,255,0.04)"/>
+        <rect data-shape-id="col-shade-6"  x="605"       y="0"  width="80.83" height="580" fill="rgba(255,255,255,0.00)"/>
+        <rect data-shape-id="col-shade-7"  x="685.83"    y="0"  width="80.83" height="580" fill="rgba(255,255,255,0.04)"/>
+        <rect data-shape-id="col-shade-8"  x="766.67"    y="0"  width="80.83" height="580" fill="rgba(255,255,255,0.00)"/>
+        <rect data-shape-id="col-shade-9"  x="847.5"     y="0"  width="80.83" height="580" fill="rgba(255,255,255,0.04)"/>
+        <rect data-shape-id="col-shade-10" x="928.33"    y="0"  width="80.83" height="580" fill="rgba(255,255,255,0.00)"/>
+        <rect data-shape-id="col-shade-11" x="1009.17"   y="0"  width="80.83" height="580" fill="rgba(255,255,255,0.04)"/>
+
+        <!-- Column shades extend to full height -->
+        <!-- Header background bar -->
+        <rect x="0" y="0" width="1090" height="34" fill="rgba(255,255,255,0.06)" data-shape-id="header-bg"/>
+
+        <!-- Month labels  (centered in each col: x = 120 + (colIdx + 0.5) * 80.83) -->
+        <text data-shape-id="month-jan" x="160.42" y="22" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="rgba(255,255,255,0.6)" letter-spacing="0.08em">JAN</text>
+        <text data-shape-id="month-feb" x="241.25" y="22" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="rgba(255,255,255,0.6)" letter-spacing="0.08em">FEB</text>
+        <text data-shape-id="month-mar" x="322.08" y="22" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="rgba(255,255,255,0.6)" letter-spacing="0.08em">MAR</text>
+        <text data-shape-id="month-apr" x="402.92" y="22" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="rgba(255,255,255,0.6)" letter-spacing="0.08em">APR</text>
+        <text data-shape-id="month-may" x="483.75" y="22" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="rgba(255,255,255,0.85)" letter-spacing="0.08em">MAY</text>
+        <text data-shape-id="month-jun" x="564.58" y="22" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="rgba(255,255,255,0.6)" letter-spacing="0.08em">JUN</text>
+        <text data-shape-id="month-jul" x="645.42" y="22" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="rgba(255,255,255,0.6)" letter-spacing="0.08em">JUL</text>
+        <text data-shape-id="month-aug" x="726.25" y="22" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="rgba(255,255,255,0.6)" letter-spacing="0.08em">AUG</text>
+        <text data-shape-id="month-sep" x="807.08" y="22" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="rgba(255,255,255,0.6)" letter-spacing="0.08em">SEP</text>
+        <text data-shape-id="month-oct" x="887.92" y="22" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="rgba(255,255,255,0.6)" letter-spacing="0.08em">OCT</text>
+        <text data-shape-id="month-nov" x="968.75" y="22" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="rgba(255,255,255,0.6)" letter-spacing="0.08em">NOV</text>
+        <text data-shape-id="month-dec" x="1049.58" y="22" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="600" fill="rgba(255,255,255,0.6)" letter-spacing="0.08em">DEC</text>
+
+        <!-- Header left cell (workstream label heading) -->
+        <text data-shape-id="header-workstream-label" x="8" y="22" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="rgba(255,255,255,0.4)" letter-spacing="0.12em" text-transform="uppercase">WORKSTREAM</text>
+
+        <!-- ============================================================
+             TODAY MARKER at May midpoint = x=483.75
+             (May = col 4, midpoint = 120 + 4.5 * 80.83 = 483.75)
+        ============================================================ -->
+        <line data-shape-id="today-line"
+          x1="483.75" y1="6"
+          x2="483.75" y2="574"
+          stroke="rgba(255,255,255,0.4)"
+          stroke-width="1.5"
+          stroke-dasharray="4 4"
+          filter="url(#todayGlow)"
+        />
+        <!-- TODAY label pill -->
+        <rect data-shape-id="today-pill" x="463.75" y="0" width="40" height="14" rx="2" fill="rgba(161,0,255,0.55)"/>
+        <text data-shape-id="today-label" x="483.75" y="10" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" font-weight="700" fill="#FFFFFF" letter-spacing="0.1em">TODAY</text>
+
+        <!-- ============================================================
+             ROW SEPARATORS (between lanes)
+             y = 34, 160, 286, 412, 538
+        ============================================================ -->
+        <line data-shape-id="sep-0" x1="0"   y1="34"  x2="1090" y2="34"  stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+        <line data-shape-id="sep-1" x1="0"   y1="170" x2="1090" y2="170" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+        <line data-shape-id="sep-2" x1="0"   y1="306" x2="1090" y2="306" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+        <line data-shape-id="sep-3" x1="0"   y1="442" x2="1090" y2="442" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+        <line data-shape-id="sep-4" x1="0"   y1="578" x2="1090" y2="578" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+
+        <!-- ============================================================
+             LANE 1 — Strategy & Design  (y=34..170, center=102)
+        ============================================================ -->
+        <!-- Lane 1 label -->
+        <text data-shape-id="lane-1-label" x="8" y="107" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="rgba(255,255,255,0.8)" letter-spacing="0.05em">STRATEGY</text>
+        <text data-shape-id="lane-1-label-2" x="8" y="119" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="rgba(255,255,255,0.8)" letter-spacing="0.05em">&amp; DESIGN</text>
+
+        <!-- Bar 1a: Jan–Mar -->
+        <rect data-shape-id="lane-1-bar-a"
+          x="124" y="90" width="238.5" height="24" rx="3"
+          fill="rgba(161,0,255,0.4)"
+        />
+        <text data-shape-id="lane-1-bar-a-label" x="135" y="106" font-family="Inter,sans-serif" font-size="9" font-weight="600" fill="rgba(255,255,255,0.8)">Discovery</text>
+
+        <!-- Bar 1b: Apr–May -->
+        <rect data-shape-id="lane-1-bar-b"
+          x="366.5" y="90" width="153.67" height="24" rx="3"
+          fill="rgba(161,0,255,0.6)"
+        />
+        <text data-shape-id="lane-1-bar-b-label" x="377" y="106" font-family="Inter,sans-serif" font-size="9" font-weight="600" fill="rgba(255,255,255,0.9)">Design Sprint</text>
+
+        <!-- Milestone 1: end of May → x=524.17, y center=102 -->
+        <polygon
+          data-shape-id="milestone-1-diamond"
+          points="524.17,88 539.17,102 524.17,116 509.17,102"
+          fill="var(--brand-accent)"
+          filter="url(#glow)"
+        />
+        <text data-shape-id="milestone-1-label" x="524.17" y="132" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="rgba(255,255,255,0.9)">Design Approved</text>
+
+        <!-- ============================================================
+             LANE 2 — Technology Build  (y=170..306, center=238)
+        ============================================================ -->
+        <text data-shape-id="lane-2-label" x="8" y="241" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="rgba(255,255,255,0.8)" letter-spacing="0.05em">TECHNOLOGY</text>
+        <text data-shape-id="lane-2-label-2" x="8" y="253" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="rgba(255,255,255,0.8)" letter-spacing="0.05em">BUILD</text>
+
+        <!-- Bar: Mar–Jul -->
+        <rect data-shape-id="lane-2-bar"
+          x="285.67" y="226" width="396.17" height="24" rx="3"
+          fill="rgba(92,45,135,0.5)"
+        />
+        <text data-shape-id="lane-2-bar-label" x="296" y="242" font-family="Inter,sans-serif" font-size="9" font-weight="600" fill="rgba(255,255,255,0.8)">Platform Development</text>
+
+        <!-- Milestone 2: end of Jul → x=685.83, y=238 -->
+        <polygon
+          data-shape-id="milestone-2-diamond"
+          points="685.83,224 699.83,238 685.83,252 671.83,238"
+          fill="var(--brand-accent)"
+          filter="url(#glow)"
+        />
+        <text data-shape-id="milestone-2-label" x="685.83" y="270" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="rgba(255,255,255,0.9)">MVP Ready</text>
+
+        <!-- ============================================================
+             LANE 3 — Change Management  (y=306..442, center=374)
+        ============================================================ -->
+        <text data-shape-id="lane-3-label" x="8" y="377" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="rgba(255,255,255,0.8)" letter-spacing="0.05em">CHANGE</text>
+        <text data-shape-id="lane-3-label-2" x="8" y="389" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="rgba(255,255,255,0.8)" letter-spacing="0.05em">MGMT</text>
+
+        <!-- Bar: Feb–Sep -->
+        <rect data-shape-id="lane-3-bar"
+          x="204.83" y="362" width="638.67" height="24" rx="3"
+          fill="rgba(255,255,255,0.15)"
+        />
+        <text data-shape-id="lane-3-bar-label" x="215" y="378" font-family="Inter,sans-serif" font-size="9" font-weight="600" fill="rgba(255,255,255,0.75)">Stakeholder Engagement &amp; Training Design</text>
+
+        <!-- Milestone 3: end of Sep → x=847.5, y=374 -->
+        <polygon
+          data-shape-id="milestone-3-diamond"
+          points="847.5,360 861.5,374 847.5,388 833.5,374"
+          fill="var(--brand-accent)"
+          filter="url(#glow)"
+        />
+        <text data-shape-id="milestone-3-label" x="847.5" y="406" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="rgba(255,255,255,0.9)">Training Complete</text>
+
+        <!-- ============================================================
+             LANE 4 — Deployment  (y=442..578, center=510)
+        ============================================================ -->
+        <text data-shape-id="lane-4-label" x="8" y="509" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="rgba(255,255,255,0.8)" letter-spacing="0.05em">DEPLOYMENT</text>
+
+        <!-- Bar: Aug–Nov -->
+        <rect data-shape-id="lane-4-bar"
+          x="689.83" y="498" width="315.33" height="24" rx="3"
+          fill="rgba(56,161,105,0.5)"
+        />
+        <text data-shape-id="lane-4-bar-label" x="700" y="514" font-family="Inter,sans-serif" font-size="9" font-weight="600" fill="rgba(255,255,255,0.8)">Phased Rollout</text>
+
+        <!-- Milestone 4: end of Nov → x=1009.17, y=510 -->
+        <polygon
+          data-shape-id="milestone-4-diamond"
+          points="1009.17,496 1023.17,510 1009.17,524 995.17,510"
+          fill="var(--brand-accent)"
+          filter="url(#glow)"
+        />
+        <text data-shape-id="milestone-4-label" x="1009.17" y="542" text-anchor="middle" font-family="Inter,sans-serif" font-size="9" font-weight="700" fill="rgba(255,255,255,0.9)">Go-Live</text>
+
+        <!-- ============================================================
+             LABEL COLUMN SEPARATOR LINE
+        ============================================================ -->
+        <line data-shape-id="label-col-sep" x1="120" y1="34" x2="120" y2="578" stroke="rgba(255,255,255,0.12)" stroke-width="1"/>
+
+      </svg>
+      <!-- ============================================================
+           LEGEND (chart-container top-right, absolute)
+      ============================================================ -->
+      <div class="chart-legend" data-shape-id="legend-panel">
+        <div class="legend-title" data-shape-id="legend-heading">KEY</div>
+
+        <div class="legend-item" data-shape-id="legend-milestone">
+          <div class="legend-diamond" data-shape-id="legend-diamond-swatch"></div>
+          <span>Milestone</span>
+        </div>
+
+        <div class="legend-item" data-shape-id="legend-inprogress">
+          <div class="legend-bar-ip" data-shape-id="legend-ip-swatch"></div>
+          <span>In Progress</span>
+        </div>
+
+        <div class="legend-item" data-shape-id="legend-planned">
+          <div class="legend-bar-pl" data-shape-id="legend-pl-swatch"></div>
+          <span>Planned</span>
+        </div>
+      </div>
+    </div><!-- /.chart-main -->
+  </div><!-- /.chart-wrap -->
+
+  <!-- Footer -->
+  <div class="footer-left" data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+
+</body>
+</html>

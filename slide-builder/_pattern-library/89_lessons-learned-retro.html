@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>89 — Lessons learned / retrospective</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --tint-worked-bg: #ECFDF5;
+  --tint-worked-band: #047857;
+  --tint-worked-mark: #059669;
+  --tint-worked-border: #BBF0D6;
+  --tint-didnt-bg: #FFFBEB;
+  --tint-didnt-band: #B45309;
+  --tint-didnt-mark: #D97706;
+  --tint-didnt-border: #FCE3A8;
+  --tint-next-bg: #F8F4FC;
+  --tint-next-band: var(--brand-primary);
+  --tint-next-mark: var(--brand-accent);
+  --tint-next-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #4a4a4a;
+  font-family: 'Inter', -apple-system, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.slide {
+  width: 1280px;
+  height: 720px;
+  background: var(--slide-bg);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.35);
+}
+
+/* ===== Top-row chrome (standard Style A) ===== */
+.draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; z-index: 5; }
+.project-label { position: absolute; top: 24px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; z-index: 5; }
+
+/* ===== Title block ===== */
+.title-block {
+  position: absolute;
+  top: 48px;
+  left: 48px;
+  right: 48px;
+}
+.eyebrow {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--brand-accent);
+  margin-bottom: 8px;
+}
+.title {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-dark);
+  letter-spacing: -0.4px;
+  line-height: 1.2;
+  max-width: 1100px;
+}
+.subhead {
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--text-mid);
+  font-weight: 400;
+  line-height: 1.45;
+  max-width: 1000px;
+}
+.accent-rule {
+  margin-top: 14px;
+  width: 40px;
+  height: 3px;
+  background: var(--brand-accent);
+  border-radius: 2px;
+}
+
+/* ===== Columns ===== */
+.columns {
+  position: absolute;
+  top: 196px;
+  left: 48px;
+  right: 48px;
+  bottom: 132px;
+  display: flex; flex-wrap: wrap;
+  gap: 16px;
+}
+
+.col {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.col-band {
+  padding: 12px 16px 11px 16px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.col-band .band-label {
+  font-size: 14px;
+  font-weight: 800;
+  letter-spacing: 2.4px;
+  text-transform: uppercase;
+}
+.col-band .band-meta {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.72);
+}
+
+.col-body {
+  flex: 1;
+  padding: 16px 16px 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.item {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--text-dark);
+}
+.mark {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+  margin-top: 1px;
+  line-height: 1;
+}
+
+/* ---- WORKED (green) ---- */
+.col-worked { border-color: var(--tint-worked-border); }
+.col-worked .col-band { background: var(--tint-worked-band); }
+.col-worked .col-body { background: var(--tint-worked-bg); }
+.col-worked .mark { background: var(--tint-worked-mark); }
+
+/* ---- DIDN'T (amber) ---- */
+.col-didnt { border-color: var(--tint-didnt-border); }
+.col-didnt .col-band { background: var(--tint-didnt-band); }
+.col-didnt .col-body { background: var(--tint-didnt-bg); }
+.col-didnt .mark { background: var(--tint-didnt-mark); }
+
+/* ---- NEXT (brand) ---- */
+.col-next { border-color: var(--tint-next-border); }
+.col-next .col-band { background: var(--tint-next-band); }
+.col-next .col-body { background: var(--tint-next-bg); }
+.col-next .mark { background: var(--tint-next-mark); }
+
+/* ===== Convergence line ===== */
+.convergence {
+  position: absolute;
+  bottom: 56px;
+  left: 48px;
+  right: 48px;
+  padding: 14px 18px;
+  background: linear-gradient(90deg, var(--brand-primary) 0%, var(--brand-primary-mid) 100%);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.convergence .conv-tag {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  color: var(--brand-accent-soft);
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border: 1px solid rgba(199, 128, 255, 0.4);
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.convergence .conv-text {
+  font-size: 14px;
+  color: #fff;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  line-height: 1.4;
+}
+.convergence .conv-text strong {
+  color: var(--brand-accent-soft);
+  font-weight: 700;
+}
+
+/* ===== Footer ===== */
+.footer {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  padding: 0 48px;
+  font-size: 9.5px;
+  color: var(--text-faint);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-top: 1px solid #F0EAF6;
+  background: #FBFAFD;
+}
+.footer .pg { margin-left: auto; font-variant-numeric: tabular-nums; }
+
+</style>
+</head>
+<body>
+
+<div class="slide">
+
+  <!-- Top-row chrome (standard Style A) -->
+
+  <!-- Title -->
+  <div class="title-block">
+    <div class="eyebrow" data-shape-id="eyebrow">Lessons learned</div>
+    <div class="title" data-shape-id="title">Four weeks of Slide Lab pilot &mdash; what worked, what didn&rsquo;t, what&rsquo;s next.</div>
+    <div class="subhead" data-shape-id="subtitle">Wins and challenges came out roughly even. The &ldquo;try next time&rdquo; list is where half the value of this retro lives &mdash; carry it into Wave 2.</div>
+    <div class="accent-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- Columns -->
+  <div class="columns">
+
+    <!-- WORKED -->
+    <div class="col col-worked" data-shape-id="compare-col-1">
+      <div class="col-band">
+        <span class="band-label" data-shape-id="compare-col-1-header">What worked</span>
+        <span class="band-meta" data-shape-id="compare-col-1-meta">4 wins</span>
+      </div>
+      <div class="col-body">
+        <div class="item" data-shape-id="compare-col-1-item-1"><span class="mark">&#10003;</span><span>Pre-deck storyline session as default &mdash; consultants showed up with a sharper governing thought.</span></div>
+        <div class="item" data-shape-id="compare-col-1-item-2"><span class="mark">&#10003;</span><span>Brand-template integration was clean &mdash; no rework needed on slides handed to PMO.</span></div>
+        <div class="item" data-shape-id="compare-col-1-item-3"><span class="mark">&#10003;</span><span>Pattern library accelerated build &mdash; first-draft slides in ~8 min vs. 35 baseline.</span></div>
+        <div class="item" data-shape-id="compare-col-1-item-4"><span class="mark">&#10003;</span><span>Coach-driven feedback loop kept quality high without slowing the team down.</span></div>
+      </div>
+    </div>
+
+    <!-- DIDN'T -->
+    <div class="col col-didnt" data-shape-id="compare-col-2">
+      <div class="col-band">
+        <span class="band-label" data-shape-id="compare-col-2-header">What didn&rsquo;t</span>
+        <span class="band-meta" data-shape-id="compare-col-2-meta">4 gaps</span>
+      </div>
+      <div class="col-body">
+        <div class="item" data-shape-id="compare-col-2-item-1"><span class="mark">&#10005;</span><span>Wave 2 IT provisioning was late &mdash; users sat idle for the first three days of the wave.</span></div>
+        <div class="item" data-shape-id="compare-col-2-item-2"><span class="mark">&#10005;</span><span>Junior team couldn&rsquo;t self-serve patterns &mdash; the picker assumes prior storyline fluency.</span></div>
+        <div class="item" data-shape-id="compare-col-2-item-3"><span class="mark">&#10005;</span><span>Two senior managers resisted change &mdash; defaulted to their own templates and stalled adoption on their pods.</span></div>
+        <div class="item" data-shape-id="compare-col-2-item-4"><span class="mark">&#10005;</span><span>HTML preview broke on Edge &mdash; only Chrome rendered reliably, blocking non-default users.</span></div>
+      </div>
+    </div>
+
+    <!-- TRY NEXT TIME -->
+    <div class="col col-next" data-shape-id="compare-col-3">
+      <div class="col-band">
+        <span class="band-label" data-shape-id="compare-col-3-header">Try next time</span>
+        <span class="band-meta" data-shape-id="compare-col-3-meta">4 moves</span>
+      </div>
+      <div class="col-body">
+        <div class="item" data-shape-id="compare-col-3-item-1"><span class="mark">&#8594;</span><span>Pre-provision IT 2 weeks ahead of each wave &mdash; treat it as a hard gate, not a parallel track.</span></div>
+        <div class="item" data-shape-id="compare-col-3-item-2"><span class="mark">&#8594;</span><span>Build a junior-friendly pattern picker UI &mdash; intent-first prompts, not pattern names.</span></div>
+        <div class="item" data-shape-id="compare-col-3-item-3"><span class="mark">&#8594;</span><span>Skeptic-as-coach assignment &mdash; turn the loudest resistors into the rollout&rsquo;s peer reviewers.</span></div>
+        <div class="item" data-shape-id="compare-col-3-item-4"><span class="mark">&#8594;</span><span>QC checklist printed on every preview &mdash; make hygiene checks visible at the point of build.</span></div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Convergence -->
+  <div class="convergence" data-shape-id="convergence">
+    <div class="conv-tag" data-shape-id="convergence-mark">So what</div>
+    <div class="conv-text" data-shape-id="convergence-text">Wins and challenges came out roughly even &mdash; that&rsquo;s honest, not a failure. <strong>The &ldquo;try next time&rdquo; list is half the value of this retro</strong>; the four moves carry directly into the Wave 2 plan.</div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer" data-shape-id="footer-rule">
+    <span data-shape-id="footer-left">Slide Lab &middot; Confidential &middot; Pilot retrospective</span>
+    <span class="pg" data-shape-id="footer-right">89 / 100</span>
+  </div>
+
+</div>
+
+</body>
+</html>

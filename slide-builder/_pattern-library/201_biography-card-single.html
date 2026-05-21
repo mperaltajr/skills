@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>Pattern 201 — Biography Card (Single Person)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --brand-primary:#2D0A4E;
+    --brand-primary-mid:#5C2D87;
+    --brand-accent:#A100FF;
+    --brand-accent-soft:#C780FF;
+    --text-dark:#1A1A2E;
+    --text-mid:#64748B;
+    --text-faint:#94A3B8;
+    --slide-bg:#FFFFFF;
+    --card-bg:#F8F4FC;
+    --card-border:#E5D5F0;
+    --draft-bg:#FFD600;
+    --draft-text:#B71C1C;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: Inter, system-ui, sans-serif;
+    background: var(--slide-bg);
+    position: relative;
+  }
+
+  /* ── Invariant chrome ── */
+
+  .label-internal {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    font-weight: 500;
+    text-transform: uppercase;
+  }
+
+  .badge-draft {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 0;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .title-block {
+    position: absolute; top: 0; left: 0; right: 0; height: 160px;
+  }
+
+  .title-block h1 {
+    position: absolute; top: 28px; left: 64px; right: 64px; min-height: 36px;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.15;
+  }
+
+  .title-block h1 strong {
+    color: var(--brand-accent);
+    font-weight: 700;
+  }
+
+  .title-block .sub-headline {
+    position: absolute; top: 108px; left: 64px; right: 64px;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+
+}
+
+  .title-block .accent-rule {
+  position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+
+  }
+
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+  }
+
+  .footer span {
+    font-size: 8px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* ── Content area ── */
+
+  .content-area {
+    position: absolute;
+    top: 108px;
+    left: 48px;
+    right: 48px;
+    bottom: 56px;
+    display: flex;
+    gap: 0;
+  }
+
+  /* ── Left panel ── */
+
+  .left-panel {
+    width: 38%;
+    flex-shrink: 0;
+    background: var(--card-bg);
+    border-left: 4px solid var(--brand-accent);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px 24px 20px 24px;
+    gap: 0;
+  }
+
+  .avatar {
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    background: var(--brand-primary-mid);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    box-shadow: 0 4px 18px rgba(92,45,135,0.22);
+  }
+
+  .avatar span {
+    font-size: 36px;
+    font-weight: 700;
+    color: #FFFFFF;
+    letter-spacing: 0.02em;
+  }
+
+  .person-name {
+
+    top: 18px;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    text-align: center;
+    line-height: 1.2;
+  }
+
+  .person-title {
+
+    top: 5px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--brand-primary-mid);
+    text-align: center;
+    line-height: 1.3;
+  }
+
+  .person-company {
+
+    top: 3px;
+    font-size: 14px;
+    color: var(--text-mid);
+    text-align: center;
+  }
+
+  .divider-line {
+    width: 100%;
+    height: 1px;
+    background: var(--card-border);
+    margin: 16px 0;
+  }
+
+  .contact-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .linkedin-icon {
+    width: 18px;
+    height: 18px;
+    background: var(--brand-primary-mid);
+    border-radius: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .linkedin-icon svg {
+    width: 11px;
+    height: 11px;
+    fill: #FFFFFF;
+  }
+
+  .contact-row span {
+    font-size: 10px;
+    color: var(--text-faint);
+  }
+
+  /* ── Right panel ── */
+
+  .right-panel {
+    flex: 1;
+    background: var(--slide-bg);
+    padding: 20px 0 12px 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    overflow: hidden;
+    justify-content: space-between;
+  }
+
+  .section-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--brand-accent);
+
+    bottom: 7px;
+  }
+
+  .about-text p {
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--text-dark);
+
+    bottom: 6px;
+  }
+
+  .section-divider {
+    height: 1px;
+    background: var(--card-border);
+    margin: 12px 0;
+  }
+
+  .bullet-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .bullet-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-dark);
+  }
+
+  .bullet-list li::before {
+    content: '';
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--brand-accent);
+    flex-shrink: 0;
+
+    top: 4px;
+  }
+
+  .education-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    top: 2px;
+  }
+
+  .edu-item {
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--text-dark);
+    line-height: 1.45;
+  }
+
+  .edu-item .degree {
+    font-weight: 600;
+    color: var(--brand-primary);
+  }
+
+  .edu-item .institution {
+    color: var(--text-mid);
+  }
+
+  .stats-row {
+    display: flex;
+    gap: 16px;
+
+    top: 4px;
+  }
+
+  .stat-callout {
+    flex: 1;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 4px;
+    padding: 10px 14px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+
+  .stat-number {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 10px;
+    color: var(--text-mid);
+    line-height: 1.3;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Invariant chrome -->
+  <div class="label-internal">Accenture Internal</div>
+  <div class="badge-draft">Draft</div>
+
+  <div class="title-block">
+    <h1>Introducing Our <strong>Expert</strong> — Biography Overview</h1>
+    <div class="sub-headline">Senior talent profile · Strategy &amp; Consulting Practice</div>
+    <div class="accent-rule"></div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <!-- Left panel -->
+    <div class="left-panel">
+      <div class="avatar"><span>JP</span></div>
+      <div class="person-name">Jordan Phillips</div>
+      <div class="person-title">Managing Director,<br>Digital Transformation</div>
+      <div class="person-company">Accenture Strategy &amp; Consulting</div>
+
+      <div class="divider-line"></div>
+
+      <div class="contact-row">
+        <div class="linkedin-icon">
+          <!-- LinkedIn "in" icon -->
+          <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20.447 20.452h-3.554v-5.569c0-1.327-.027-3.037-1.852-3.037-1.853
+            0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9
+            1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337
+            7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063
+            2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0
+            .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24
+            23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+          </svg>
+        </div>
+        <span>j.phillips@accenture.com</span>
+      </div>
+
+      <div class="divider-line"></div>
+
+      <!-- About — left panel bottom -->
+      <div class="section-label" style="text-align:left;width:100%;">About</div>
+      <div class="about-text" style="width:100%;text-align:left;">
+        <p>Jordan is a Managing Director with over 18 years of experience advising Fortune 500 clients on large-scale digital and operating model transformations across financial services, energy, and the public sector.</p>
+      </div>
+
+      <div class="section-divider"></div>
+
+      <!-- Experience — left panel bottom -->
+      <div class="section-label" style="text-align:left;width:100%;">Experience</div>
+      <div class="education-row" style="width:100%;">
+        <div class="edu-item">
+          <span class="degree">MBA, Strategy &amp; Finance</span>
+          <span class="institution">— London Business School</span>
+        </div>
+        <div class="edu-item">
+          <span class="degree">BSc Computer Science</span>
+          <span class="institution">— University of Edinburgh</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right panel — Past Experience fills full right -->
+    <div class="right-panel">
+
+      <!-- Past Experience -->
+      <div class="section-label">Past Experience</div>
+      <ul class="bullet-list">
+        <li>Led a $220M core banking modernisation for a Tier-1 North American financial institution, reducing time-to-market by 40% and enabling same-day settlement capability across 3 product lines.</li>
+        <li>Designed and implemented an enterprise AI strategy for a global energy major, enabling $80M in annual operational savings through predictive maintenance and demand-sensing models.</li>
+        <li>Directed a cross-border regulatory compliance programme spanning 14 jurisdictions for a multinational insurer, delivering zero audit findings at first review.</li>
+        <li>Spearheaded a cloud-first operating model redesign for a public sector client, consolidating 11 legacy platforms into a single integrated environment within 18 months.</li>
+        <li>Built and led a 80-person cross-functional delivery team across North America and Europe, achieving programme on-time delivery in all five years of engagement.</li>
+      </ul>
+
+      <div class="section-divider"></div>
+
+      <!-- Stats -->
+      <div class="stats-row">
+        <div class="stat-callout">
+          <div class="stat-number">18+</div>
+          <div class="stat-label">Years of consulting<br>and industry experience</div>
+        </div>
+        <div class="stat-callout">
+          <div class="stat-number">$1.4B</div>
+          <div class="stat-label">Total programme value<br>delivered to clients</div>
+        </div>
+        <div class="stat-callout">
+          <div class="stat-number">14</div>
+          <div class="stat-label">Jurisdictions covered<br>in compliance work</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span>Confidential — Accenture Internal</span>
+    <span>Slide Lab · 2026 · 201</span>
+  </div>
+
+</body>
+</html>

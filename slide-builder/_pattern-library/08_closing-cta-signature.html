@@ -1,0 +1,143 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>08 · Closing CTA — single focal point</title>
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1280px; height: 720px; background: var(--slide-bg); font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; color: var(--text-dark); overflow: hidden; }
+body { padding: 50px 64px 80px 64px; position: relative; }
+.draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; }
+.project-label { position: absolute; top: 24px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
+
+/* Title block — small, orienting only. Carries no weight. */
+.section-label { color: var(--brand-accent); font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
+.action-title { position: absolute; left: 64px; right: 64px; top: 28px; min-height: 72px; font-size: 22px; font-weight: 700; line-height: 1.25; color: var(--text-dark); }
+.subhead { position: absolute; left: 64px; right: 64px; top: 100px; font-size: 14px; color: var(--text-mid); font-style: italic; }
+.title-rule { position: absolute; left: 64px; top: 128px; width: 40px; height: 3px; background: var(--brand-accent); }
+
+/* THE FOCAL POINT — primary ask band. Generous breathing room above + below. */
+.primary-ask {
+  background: var(--brand-primary);
+  color: white;
+  margin-top: 70px;
+  padding: 56px 64px;
+  position: relative;
+  box-shadow: 0 24px 48px -24px rgba(45, 10, 78, 0.35);
+}
+.primary-ask::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 6px;
+  background: var(--brand-accent);
+}
+.primary-ask-label {
+  font-size: 14px;
+  letter-spacing: 3px;
+  color: var(--brand-accent-soft);
+  text-transform: uppercase;
+  font-weight: 700;
+  margin-bottom: 18px;
+}
+.primary-ask-text {
+  font-size: 34px;
+  font-weight: 700;
+  line-height: 1.22;
+  letter-spacing: -0.5px;
+  max-width: 980px;
+}
+.primary-ask-text em {
+  font-style: normal;
+  color: var(--brand-accent-soft);
+}
+
+/* Sub-asks — DEMOTED. Conditions of the ask, not co-equal cards.
+   Lighter background, smaller heading, less padding, no left rule. */
+.sub-asks {
+  display: flex; flex-wrap: wrap;
+  gap: 1px;
+  margin-top: 28px;
+  background: var(--card-border);
+  border: 1px solid var(--card-border);
+}
+.sub-ask {
+  background: var(--slide-bg);
+  padding: 14px 18px;
+}
+.sub-ask-label {
+  font-size: 9px;
+  letter-spacing: 1.5px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  font-weight: 700;
+  margin-bottom: 3px;
+}
+.sub-ask-heading {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--brand-primary);
+  margin-bottom: 3px;
+}
+.sub-ask-body {
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--text-mid);
+}
+
+/* Footer zone — signature inlined as small author meta, not its own band */
+.footer-rule { position: absolute; left: 0; right: 0; bottom: 32px; height: 1px; background: var(--card-border); }
+.footer-left { position: absolute; bottom: 14px; left: 24px; color: var(--text-faint); font-size: 11px; letter-spacing: 1px; }
+.footer-center { position: absolute; bottom: 14px; left: 50%; transform: translateX(-50%); color: var(--text-faint); font-size: 11px; letter-spacing: 0.5px; }
+.footer-center strong { color: var(--text-mid); font-weight: 700; }
+.footer-right { position: absolute; bottom: 14px; right: 24px; color: var(--text-faint); font-size: 11px; }
+</style>
+</head>
+<body>
+
+  <div class="section-label">The Ask</div>
+  <div class="action-title">One commitment from program leadership.</div>
+  <div class="subhead">Everything below the ask is a condition of making it real.</div>
+  <div class="title-rule"></div>
+
+  <div class="primary-ask">
+    <div class="primary-ask-label">Primary ask</div>
+    <div class="primary-ask-text">Sponsor a <em>four-week pilot</em> on one priority workstream — and measure it against the baseline.</div>
+  </div>
+
+  <div class="sub-asks">
+    <div class="sub-ask">
+      <div class="sub-ask-label">Tooling</div>
+      <div class="sub-ask-heading">Access for 4 people</div>
+      <div class="sub-ask-body">Two leads, two analysts. ~2 hours of onboarding, recorded.</div>
+    </div>
+    <div class="sub-ask">
+      <div class="sub-ask-label">Time</div>
+      <div class="sub-ask-heading">90 minutes per deck</div>
+      <div class="sub-ask-body">One coached storyline session before drafting.</div>
+    </div>
+    <div class="sub-ask">
+      <div class="sub-ask-label">Visibility</div>
+      <div class="sub-ask-heading">Weekly 15-min review</div>
+      <div class="sub-ask-body">Standing slot with the program MD to refine before scaling.</div>
+    </div>
+  </div>
+  <div class="footer-left"></div>
+  <div class="footer-center"><strong>Mario Peralta</strong> · Strategy Manager</div>
+  <div class="footer-right"></div>
+</body>
+</html>

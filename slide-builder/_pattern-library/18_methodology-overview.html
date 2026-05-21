@@ -1,0 +1,358 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>18 · Methodology overview — five steps, activities and deliverables</title>
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1280px; height: 720px; background: var(--slide-bg); font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; color: var(--text-dark); overflow: hidden; }
+body { padding: 50px 56px 80px 56px; position: relative; }
+.draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; }
+.project-label { position: absolute; top: 24px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
+
+/* ---- Title block ---- */
+.action-title { position: absolute; left: 56px; right: 56px; top: 28px; min-height: 72px; font-size: 28px; font-weight: 700; line-height: 1.2; max-width: 1100px; }
+.action-title strong { color: var(--brand-primary); }
+.subhead { position: absolute; left: 56px; right: 56px; top: 100px; font-size: 14px; color: var(--text-mid); font-style: italic; }
+.title-rule { position: absolute; left: 56px; top: 128px; width: 40px; height: 3px; background: var(--brand-accent); }
+
+/* ---- Content block ---- */
+.content-block {
+  position: absolute;
+  left: 56px;
+  right: 56px;
+  top: 200px;
+  bottom: 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+}
+
+/* ---- 5-step grid ---- */
+.steps {
+  display: flex; flex-wrap: wrap;
+  gap: 14px;
+}
+
+/* Each card is itself a grid with FIXED row heights so zones align across all 5 cards */
+.step-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-top: 3px solid var(--brand-accent);
+  display: flex; flex-wrap: wrap;  /* head | activities | deliverables */
+  height: 400px;
+  overflow: hidden;
+}
+
+/* Zone 1 — Step head: circle + name + description */
+.step-head {
+  padding: 14px 12px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+  border-bottom: 1px dashed var(--card-border);
+  overflow: hidden;
+}
+.step-circle {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: var(--brand-accent);
+  color: white;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 2px;
+  flex-shrink: 0;
+}
+.step-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--brand-primary);
+  letter-spacing: 0.8px;
+}
+.step-desc {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--text-mid);
+  line-height: 1.35;
+}
+
+/* Zones 2 & 3 share padding and label */
+.step-zone {
+  padding: 10px 14px 12px 14px;
+  overflow: hidden;
+}
+.activities-zone {
+  border-bottom: 1px dashed var(--card-border);
+}
+.deliverables-zone {
+  background: white;
+}
+.zone-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--brand-accent);
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+/* Activities list */
+.activities-zone ul { list-style: none; }
+.activities-zone li {
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: var(--text-dark);
+  padding-left: 10px;
+  position: relative;
+  margin-bottom: 5px;
+}
+.activities-zone li:last-child { margin-bottom: 0; }
+.activities-zone li::before {
+  content: "·";
+  position: absolute;
+  left: 0;
+  top: -5px;
+  color: var(--brand-accent);
+  font-size: 20px;
+  font-weight: 700;
+}
+
+/* Deliverables */
+.deliverable-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.deliverable-item:last-child { margin-bottom: 0; }
+.deliverable-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+}
+.deliverable-icon svg { width: 13px; height: 13px; stroke: var(--brand-accent); fill: none; stroke-width: 2; }
+.deliverable-name {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--brand-primary);
+  line-height: 1.35;
+  padding-top: 2px;
+}
+
+/* ---- Takeaway band ---- */
+.takeaway {
+  background: var(--brand-primary);
+  color: white;
+  padding: 12px 22px;
+  font-size: 14px;
+  font-style: italic;
+  font-weight: 500;
+  line-height: 1.4;
+}
+
+/* ---- Footer invariant ---- */
+.footer-rule { position: absolute; left: 0; right: 0; bottom: 32px; height: 1px; background: var(--card-border); }
+.footer-left { position: absolute; bottom: 14px; left: 24px; color: var(--text-faint); font-size: 11px; letter-spacing: 1px; }
+.footer-right { position: absolute; bottom: 14px; right: 24px; color: var(--text-faint); font-size: 11px; }
+</style>
+</head>
+<body>
+
+  <div class="action-title" data-shape-id="title">Our approach — <strong>five steps, each with activities and a deliverable</strong>.</div>
+  <div class="subhead" data-shape-id="subtitle">Each step ends with an artefact a stakeholder can react to — never an internal-only milestone.</div>
+  <div class="title-rule" data-shape-id="brand-rule"></div>
+
+  <div class="content-block">
+
+    <div class="steps">
+
+      <!-- Step 01 -->
+      <div class="step-card">
+        <div class="step-head">
+          <div class="step-circle" data-shape-id="step-1-num">01</div>
+          <div class="step-name" data-shape-id="step-1-name">DISCOVER</div>
+          <div class="step-desc" data-shape-id="step-1-desc">Frame the problem and align stakeholders</div>
+        </div>
+        <div class="step-zone activities-zone">
+          <div class="zone-label" data-shape-id="step-1-activities-label">Activities</div>
+          <ul data-shape-id="step-1-body">
+            <li>Stakeholder interviews</li>
+            <li>Problem framing</li>
+            <li>Pain point inventory</li>
+          </ul>
+        </div>
+        <div class="step-zone deliverables-zone">
+          <div class="zone-label" data-shape-id="step-1-deliverables-label">Deliverables</div>
+          <div class="deliverable-item">
+            <div class="deliverable-icon" data-shape-id="step-1-deliverable-1-icon">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="3"/><path d="M6 20c0-3 2.7-5 6-5s6 2 6 5"/></svg>
+            </div>
+            <div class="deliverable-name" data-shape-id="step-1-deliverable-1-name">Stakeholder map</div>
+          </div>
+          <div class="deliverable-item">
+            <div class="deliverable-icon" data-shape-id="step-1-deliverable-2-icon">
+              <svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="16" rx="1"/><path d="M8 9h8"/><path d="M8 13h8"/><path d="M8 17h5"/></svg>
+            </div>
+            <div class="deliverable-name" data-shape-id="step-1-deliverable-2-name">Problem statement</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 02 -->
+      <div class="step-card">
+        <div class="step-head">
+          <div class="step-circle" data-shape-id="step-2-num">02</div>
+          <div class="step-name" data-shape-id="step-2-name">DIAGNOSE</div>
+          <div class="step-desc" data-shape-id="step-2-desc">Surface root causes from evidence</div>
+        </div>
+        <div class="step-zone activities-zone">
+          <div class="zone-label" data-shape-id="step-2-activities-label">Activities</div>
+          <ul data-shape-id="step-2-body">
+            <li>Root cause analysis</li>
+            <li>Data analysis</li>
+            <li>Pattern identification</li>
+          </ul>
+        </div>
+        <div class="step-zone deliverables-zone">
+          <div class="zone-label" data-shape-id="step-2-deliverables-label">Deliverables</div>
+          <div class="deliverable-item">
+            <div class="deliverable-icon" data-shape-id="step-2-deliverable-1-icon">
+              <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M15.5 15.5 21 21"/></svg>
+            </div>
+            <div class="deliverable-name" data-shape-id="step-2-deliverable-1-name">Diagnostic memo</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 03 -->
+      <div class="step-card">
+        <div class="step-head">
+          <div class="step-circle" data-shape-id="step-3-num">03</div>
+          <div class="step-name" data-shape-id="step-3-name">DESIGN</div>
+          <div class="step-desc" data-shape-id="step-3-desc">Develop options, trade-offs, recommendation</div>
+        </div>
+        <div class="step-zone activities-zone">
+          <div class="zone-label" data-shape-id="step-3-activities-label">Activities</div>
+          <ul data-shape-id="step-3-body">
+            <li>Options framing</li>
+            <li>Trade-off analysis</li>
+            <li>Recommendation drafting</li>
+          </ul>
+        </div>
+        <div class="step-zone deliverables-zone">
+          <div class="zone-label" data-shape-id="step-3-deliverables-label">Deliverables</div>
+          <div class="deliverable-item">
+            <div class="deliverable-icon" data-shape-id="step-3-deliverable-1-icon">
+              <svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="16" rx="1"/><path d="M8 9h8"/><path d="M8 13h8"/><path d="M8 17h5"/></svg>
+            </div>
+            <div class="deliverable-name" data-shape-id="step-3-deliverable-1-name">Options memo</div>
+          </div>
+          <div class="deliverable-item">
+            <div class="deliverable-icon" data-shape-id="step-3-deliverable-2-icon">
+              <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="14" rx="1"/><path d="M3 9h18"/><path d="M8 14h8"/></svg>
+            </div>
+            <div class="deliverable-name" data-shape-id="step-3-deliverable-2-name">Recommendation deck</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 04 -->
+      <div class="step-card">
+        <div class="step-head">
+          <div class="step-circle" data-shape-id="step-4-num">04</div>
+          <div class="step-name" data-shape-id="step-4-name">PILOT</div>
+          <div class="step-desc" data-shape-id="step-4-desc">Run a measured pilot before scaling</div>
+        </div>
+        <div class="step-zone activities-zone">
+          <div class="zone-label" data-shape-id="step-4-activities-label">Activities</div>
+          <ul data-shape-id="step-4-body">
+            <li>Pilot scoping</li>
+            <li>Implementation</li>
+            <li>Measurement</li>
+          </ul>
+        </div>
+        <div class="step-zone deliverables-zone">
+          <div class="zone-label" data-shape-id="step-4-deliverables-label">Deliverables</div>
+          <div class="deliverable-item">
+            <div class="deliverable-icon" data-shape-id="step-4-deliverable-1-icon">
+              <svg viewBox="0 0 24 24"><path d="M5 4h11l4 4v12H5z"/><path d="M9 12h7"/><path d="M9 16h5"/><path d="M9 8h4"/></svg>
+            </div>
+            <div class="deliverable-name" data-shape-id="step-4-deliverable-1-name">Pilot plan</div>
+          </div>
+          <div class="deliverable-item">
+            <div class="deliverable-icon" data-shape-id="step-4-deliverable-2-icon">
+              <svg viewBox="0 0 24 24"><path d="M3 20h18"/><rect x="5" y="13" width="3" height="7"/><rect x="10.5" y="9" width="3" height="11"/><rect x="16" y="5" width="3" height="15"/></svg>
+            </div>
+            <div class="deliverable-name" data-shape-id="step-4-deliverable-2-name">Measurement framework</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 05 -->
+      <div class="step-card">
+        <div class="step-head">
+          <div class="step-circle" data-shape-id="step-5-num">05</div>
+          <div class="step-name" data-shape-id="step-5-name">SCALE</div>
+          <div class="step-desc" data-shape-id="step-5-desc">Roll out the validated approach</div>
+        </div>
+        <div class="step-zone activities-zone">
+          <div class="zone-label" data-shape-id="step-5-activities-label">Activities</div>
+          <ul data-shape-id="step-5-body">
+            <li>Rollout planning</li>
+            <li>Wave 2 prep</li>
+            <li>Governance handoff</li>
+          </ul>
+        </div>
+        <div class="step-zone deliverables-zone">
+          <div class="zone-label" data-shape-id="step-5-deliverables-label">Deliverables</div>
+          <div class="deliverable-item">
+            <div class="deliverable-icon" data-shape-id="step-5-deliverable-1-icon">
+              <svg viewBox="0 0 24 24"><path d="M3 20h18"/><rect x="5" y="13" width="3" height="7"/><rect x="10.5" y="9" width="3" height="11"/><rect x="16" y="5" width="3" height="15"/></svg>
+            </div>
+            <div class="deliverable-name" data-shape-id="step-5-deliverable-1-name">Scorecard</div>
+          </div>
+          <div class="deliverable-item">
+            <div class="deliverable-icon" data-shape-id="step-5-deliverable-2-icon">
+              <svg viewBox="0 0 24 24"><path d="M4 7h16"/><path d="M4 12h16"/><path d="M4 17h10"/><path d="M18 15l3 3-3 3"/></svg>
+            </div>
+            <div class="deliverable-name" data-shape-id="step-5-deliverable-2-name">Governance handoff</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="takeaway" data-shape-id="convergence">Every step produces something a stakeholder can react to — nothing is internal-only.</div>
+
+  </div>
+  <div class="footer-left" data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+</body>
+</html>

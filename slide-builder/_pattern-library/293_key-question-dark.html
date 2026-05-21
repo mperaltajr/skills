@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>293 Key Question Dark</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    background: #2D0A4E;
+    font-family: 'Inter', sans-serif;
+    overflow: hidden;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Chrome: header ── */
+  .header {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 48px;
+    z-index: 10;
+  }
+
+  .header-label {
+    position: absolute;
+    left: 48px;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    color: rgba(255, 255, 255, 0.5);
+    text-transform: uppercase;
+    line-height: 1;
+  }
+
+  .draft-badge {
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 4px 8px;
+    border-radius: 0;
+    line-height: 1;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    z-index: 10;
+  }
+
+  .footer span {
+    font-size: 9px;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.4);
+    letter-spacing: 0.05em;
+  }
+
+  /* ── Content area ── */
+  .content {
+    position: absolute;
+    top: 40px;
+    bottom: 36px;
+    left: 0;
+    right: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 0 48px;
+    gap: 0;
+  }
+
+  /* KEY QUESTION label */
+  .kq-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--brand-accent-soft);
+    text-align: center;
+}
+
+  /* Main question */
+  .kq-question {
+    font-size: 36px;
+    font-weight: 700;
+    color: #FFFFFF;
+    text-align: center;
+    max-width: 860px;
+    line-height: 1.25;
+}
+
+  /* Accent rule */
+  .kq-rule {
+    width: 80px;
+    height: 4px;
+    background: var(--brand-accent);
+    margin: 0 auto 32px;
+    flex-shrink: 0;
+  }
+
+  /* Context paragraph */
+  .kq-context {
+    font-size: 15px;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.7);
+    text-align: center;
+    max-width: 680px;
+    line-height: 1.65;
+}
+
+  /* Sub-question pills row */
+  .kq-pills {
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    justify-content: center;
+    gap: 14px;
+  }
+
+  .kq-pill {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 12px;
+    padding: 16px 22px;
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    max-width: 280px;
+    min-width: 220px;
+  }
+
+  .kq-pill-prefix {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--brand-accent-soft);
+    white-space: nowrap;
+    line-height: 1.5;
+    flex-shrink: 0;
+  }
+
+  .kq-pill-text {
+    font-size: 14px;
+    font-weight: 400;
+    color: #FFFFFF;
+    line-height: 1.5;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Header chrome -->
+  <div class="header">
+    <span class="header-label">Accenture Internal</span>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+    <div class="kq-label">Key Question</div>
+
+    <div class="kq-question">
+      How do we accelerate growth while managing risk across an increasingly fragmented market?
+    </div>
+
+    <div class="kq-rule"></div>
+
+    <p class="kq-context">
+      As competitive pressure intensifies and customer expectations shift, leadership must align on a clear strategic direction. This session examines the core tensions shaping our path forward and frames the choices that will define the next chapter.
+    </p>
+
+    <div class="kq-pills">
+      <div class="kq-pill">
+        <span class="kq-pill-prefix">1.</span>
+        <span class="kq-pill-text">Where are we winning today, and why does it matter?</span>
+      </div>
+      <div class="kq-pill">
+        <span class="kq-pill-prefix">2.</span>
+        <span class="kq-pill-text">What capabilities do we need to build or acquire?</span>
+      </div>
+      <div class="kq-pill">
+        <span class="kq-pill-prefix">3.</span>
+        <span class="kq-pill-text">Which trade-offs are we prepared to make to move fast?</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer chrome -->
+  <div class="footer">
+    <span>Accenture Confidential — For Internal Use Only</span>
+    <span>© 2026 Accenture. All rights reserved.</span>
+  </div>
+
+</body>
+</html>

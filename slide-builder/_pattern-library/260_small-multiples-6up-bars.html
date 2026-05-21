@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>260 · Small multiples — 6-up bar charts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary:     #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent:      #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark:         #1A1A2E;
+  --text-mid:          #64748B;
+  --text-faint:        #94A3B8;
+  --slide-bg:          #FFFFFF;
+  --card-bg:           #F8F4FC;
+  --card-border:       #E5D5F0;
+  --draft-bg:          #FFD600;
+  --draft-text:        #B71C1C;
+  --bar-last:          #6B00CC;   /* darker accent for FY26 */
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 1280px;
+  height: 720px;
+  background: var(--slide-bg);
+  font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  color: var(--text-dark);
+  overflow: hidden;
+}
+
+/* ── Chrome ─────────────────────────────────────────── */
+.project-label {
+  position: absolute;
+  top: 18px;
+  left: 24px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+
+.draft-badge {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--draft-bg);
+  color: var(--draft-text);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  padding: 3px 14px;
+  text-transform: uppercase;
+}
+
+/* ── Title block ─────────────────────────────────────── */
+.title-block {
+  position: absolute; top: 0; left: 0; right: 0; height: 160px;
+}
+
+.slide-title {
+  position: absolute; top: 28px; left: 64px; right: 64px; min-height: 36px;
+  font-size: 29px;
+  font-weight: 700;
+  color: var(--brand-primary);
+  line-height: 1.2;
+}
+
+.slide-title strong {
+  color: var(--brand-accent);
+}
+
+.slide-subhead {
+  position: absolute; top: 108px; left: 64px; right: 64px;
+  font-size: 14px;
+  font-style: italic;
+  color: var(--text-mid);
+
+}
+
+.title-rule {
+  position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+
+}
+
+/* ── 3×2 grid ────────────────────────────────────────── */
+.grid {
+  position: absolute;
+  top: 120px;
+  left: 56px;
+  right: 56px;
+  bottom: 44px;
+  display: flex; flex-wrap: wrap;
+  gap: 14px;
+}
+
+/* ── Card ────────────────────────────────────────────── */
+.card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 8px;
+  padding: 12px 14px 10px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--brand-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+
+/* ── Bar chart (SVG) ─────────────────────────────────── */
+.chart-wrap {
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.chart-wrap svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* ── Callout row ──────────────────────────────────────── */
+.callout-row {
+  display: flex;
+  align-items: baseline;
+  gap: 5px;
+  flex-shrink: 0;
+  padding-top: 2px;
+  border-top: 1px solid var(--card-border);
+}
+
+.callout-number {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--brand-accent);
+  line-height: 1;
+}
+
+.callout-label {
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-mid);
+}
+
+/* ── Footer ──────────────────────────────────────────── */
+.footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 42px;
+  border-top: 1px solid var(--card-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 56px;
+}
+
+.footer-left,
+.footer-right {
+  font-size: 11px;
+  color: var(--text-faint);
+  letter-spacing: 0.04em;
+}
+</style>
+</head>
+<body>
+
+<!-- Chrome -->
+
+<!-- Title -->
+<div class="title-block">
+  <div class="slide-title">Revenue by segment — <strong>consistent scale, 5-year view</strong></div>
+  <div class="slide-subhead">FY22–FY26 · Revenue $M · Consistent scale 0–$300M across all panels</div>
+  <div class="title-rule"></div>
+</div>
+
+<!-- Grid -->
+<div class="grid">
+
+  <!-- 1 · Retail -->
+  <div class="card">
+    <div class="card-title">Retail</div>
+    <div class="chart-wrap">
+      <svg viewBox="0 0 220 80" preserveAspectRatio="none" aria-label="Retail bar chart FY22–FY26">
+        <!-- bars: scale 0–300 → height 70px, baseline y=75 -->
+        <!-- FY22 120 → h=28 --> <rect x="10"  y="47" width="28" height="28" fill="var(--brand-accent)" rx="2"/>
+        <!-- FY23 145 → h=34 --> <rect x="52"  y="41" width="28" height="34" fill="var(--brand-accent)" rx="2"/>
+        <!-- FY24 162 → h=38 --> <rect x="94"  y="37" width="28" height="38" fill="var(--brand-accent)" rx="2"/>
+        <!-- FY25 178 → h=41 --> <rect x="136" y="34" width="28" height="41" fill="var(--brand-accent)" rx="2"/>
+        <!-- FY26 201 → h=47 --> <rect x="178" y="28" width="28" height="47" fill="var(--bar-last)"    rx="2"/>
+        <!-- labels -->
+        <text x="24"  y="74" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#94A3B8">FY22</text>
+        <text x="66"  y="74" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#94A3B8">FY23</text>
+        <text x="108" y="74" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#94A3B8">FY24</text>
+        <text x="150" y="74" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#94A3B8">FY25</text>
+        <text x="192" y="74" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#2D0A4E" font-weight="700">FY26</text>
+        <!-- value tops -->
+        <text x="24"  y="44" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#64748B">120</text>
+        <text x="66"  y="38" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#64748B">145</text>
+        <text x="108" y="34" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#64748B">162</text>
+        <text x="150" y="31" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#64748B">178</text>
+        <text x="192" y="25" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#6B00CC" font-weight="700">201</text>
+      </svg>
+    </div>
+    <div class="callout-row">
+      <span class="callout-number">+14%</span>
+      <span class="callout-label">CAGR FY22–26</span>
+    </div>
+  </div>
+
+  <!-- 2 · Healthcare -->
+  <div class="card">
+    <div class="card-title">Healthcare</div>
+    <div class="chart-wrap">
+      <svg viewBox="0 0 220 80" preserveAspectRatio="none" aria-label="Healthcare bar chart FY22–FY26">
+        <!-- FY22 85  → h=20 --> <rect x="10"  y="55" width="28" height="20" fill="var(--brand-accent)" rx="2"/>
+        <!-- FY23 98  → h=23 --> <rect x="52"  y="52" width="28" height="23" fill="var(--brand-accent)" rx="2"/>
+        <!-- FY24 110 → h=26 --> <rect x="94"  y="49" width="28" height="26" fill="var(--brand-accent)" rx="2"/>
+        <!-- FY25 129 → h=30 --> <rect x="136" y="45" width="28" height="30" fill="var(--brand-accent)" rx="2"/>
+        <!-- FY26 158 → h=37 --> <rect x="178" y="38" width="28" height="37" fill="var(--bar-last)"    rx="2"/>
+        <text x="24"  y="74" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#94A3B8">FY22</text>
+        <text x="66"  y="74" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#94A3B8">FY23</text>
+        <text x="108" y="74" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#94A3B8">FY24</text>
+        <text x="150" y="74" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#94A3B8">FY25</text>
+        <text x="192" y="74" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#2D0A4E" font-weight="700">FY26</text>
+        <text x="24"  y="52" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#64748B">85</text>
+        <text x="66"  y="49" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#64748B">98</text>
+        <text x="108" y="46" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#64748B">110</text>
+        <text x="150" y="42" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#64748B">129</text>
+        <text x="192" y="35" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#6B00CC" font-weight="700">158</text>
+      </svg>
+    </div>
+    <div class="callout-row">
+      <span class="callout-number">+17%</span>
+      <span class="callout-label">CAGR FY22–26</span>
+    </div>
+  </div>
+
+  <!-- 3 · Financial Services -->
+  <div class="card">
+    <div class="card-title">Financial Services</div>
+    <div class="chart-wrap">
+      <svg viewBox="0 0 220 80" preserveAspectRatio="none" aria-label="Financial Services bar chart FY22–FY26">
+        <!-- FY22 210 → h=49 --> <rect x="10"  y="26" width="28" height="49" fill="var(--brand-accent)" rx="2"/>
+        <!-- FY23 225 → h=53 --> <rect x="52"  y="22" width="28" height="53" fill="var(--brand-accent)" rx="2"/>
+        <!-- FY24 238 → h=56 --> <rect x="94"  y="19" width="28" height="56" fill="var(--brand-accent)" rx="2"/>
+        <!-- FY25 251 → h=59 --> <rect x="136" y="16" width="28" height="59" fill="var(--brand-accent)" rx="2"/>
+        <!-- FY26 274 → h=64 --> <rect x="178" y="11" width="28" height="64" fill="var(--bar-last)"    rx="2"/>
+        <text x="24"  y="74" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#94A3B8">FY22</text>
+        <text x="66"  y="74" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#94A3B8">FY23</text>
+        <text x="108" y="74" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#94A3B8">FY24</text>
+        <text x="150" y="74" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#94A3B8">FY25</text>
+        <text x="192" y="74" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#2D0A4E" font-weight="700">FY26</text>
+        <text x="24"  y="23" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#64748B">210</text>
+        <text x="66"  y="19" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#64748B">225</text>
+        <text x="108" y="16" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#64748B">238</text>
+        <text x="150" y="13" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#64748B">251</text>
+        <text x="192" y="8"  text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#6B00CC" font-weight="700">274</text>
+      </svg>
+    </div>
+    <div class="callout-row">
+      <span class="callout-number">+7%</span>
+      <span class="callout-label">CAGR FY22–26</span>
+    </div>
+  </div>
+
+  <!-- 4 · Manufacturing -->
+  <div class="card">
+    <div class="card-title">Manufacturing</div>
+    <div class="chart-wrap">
+      <svg viewBox="0 0 220 80" preserveAspectRatio="none" aria-label="Manufacturing bar chart FY22–FY26">
+        <!-- FY22 95  → h=22 --> <rect x="10"  y="53" width="28" height="22" fill="var(--brand-accent)" rx="2"/>
+        <!-- FY23 88  → h=20 --> <rect x="52"  y="55" width="28" height="20" fill="var(--brand-accent)" rx="2"/>
+        <!-- FY24 92  → h=21 --> <rect x="94"  y="54" width="28" height="21" fill="var(--brand-accent)" rx="2"/>
+        <!-- FY25 105 → h=25 --> <rect x="136" y="50" width="28" height="25" fill="var(--brand-accent)" rx="2"/>
+        <!-- FY26 119 → h=28 --> <rect x="178" y="47" width="28" height="28" fill="var(--bar-last)"    rx="2"/>
+        <text x="24"  y="74" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#94A3B8">FY22</text>
+        <text x="66"  y="74" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#94A3B8">FY23</text>
+        <text x="108" y="74" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#94A3B8">FY24</text>
+        <text x="150" y="74" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#94A3B8">FY25</text>
+        <text x="192" y="74" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#2D0A4E" font-weight="700">FY26</text>
+        <text x="24"  y="50" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#64748B">95</text>
+        <text x="66"  y="52" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#64748B">88</text>
+        <text x="108" y="51" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#64748B">92</text>
+        <text x="150" y="47" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#64748B">105</text>
+        <text x="192" y="44" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#6B00CC" font-weight="700">119</text>
+      </svg>
+    </div>
+    <div class="callout-row">
+      <span class="callout-number">+6%</span>
+      <span class="callout-label">CAGR FY22–26</span>
+    </div>
+  </div>
+
+  <!-- 5 · Technology -->
+  <div class="card">
+    <div class="card-title">Technology</div>
+    <div class="chart-wrap">
+      <svg viewBox="0 0 220 80" preserveAspectRatio="none" aria-label="Technology bar chart FY22–FY26">
+        <!-- FY22 67  → h=16 --> <rect x="10"  y="59" width="28" height="16" fill="var(--brand-accent)" rx="2"/>
+        <!-- FY23 89  → h=21 --> <rect x="52"  y="54" width="28" height="21" fill="var(--brand-accent)" rx="2"/>
+        <!-- FY24 124 → h=29 --> <rect x="94"  y="46" width="28" height="29" fill="var(--brand-accent)" rx="2"/>
+        <!-- FY25 165 → h=39 --> <rect x="136" y="36" width="28" height="39" fill="var(--brand-accent)" rx="2"/>
+        <!-- FY26 214 → h=50 --> <rect x="178" y="25" width="28" height="50" fill="var(--bar-last)"    rx="2"/>
+        <text x="24"  y="74" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#94A3B8">FY22</text>
+        <text x="66"  y="74" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#94A3B8">FY23</text>
+        <text x="108" y="74" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#94A3B8">FY24</text>
+        <text x="150" y="74" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#94A3B8">FY25</text>
+        <text x="192" y="74" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#2D0A4E" font-weight="700">FY26</text>
+        <text x="24"  y="56" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#64748B">67</text>
+        <text x="66"  y="51" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#64748B">89</text>
+        <text x="108" y="43" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#64748B">124</text>
+        <text x="150" y="33" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#64748B">165</text>
+        <text x="192" y="22" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#6B00CC" font-weight="700">214</text>
+      </svg>
+    </div>
+    <div class="callout-row">
+      <span class="callout-number">+34%</span>
+      <span class="callout-label">CAGR FY22–26</span>
+    </div>
+  </div>
+
+  <!-- 6 · Government -->
+  <div class="card">
+    <div class="card-title">Government</div>
+    <div class="chart-wrap">
+      <svg viewBox="0 0 220 80" preserveAspectRatio="none" aria-label="Government bar chart FY22–FY26">
+        <!-- FY22 180 → h=42 --> <rect x="10"  y="33" width="28" height="42" fill="var(--brand-accent)" rx="2"/>
+        <!-- FY23 184 → h=43 --> <rect x="52"  y="32" width="28" height="43" fill="var(--brand-accent)" rx="2"/>
+        <!-- FY24 179 → h=42 --> <rect x="94"  y="33" width="28" height="42" fill="var(--brand-accent)" rx="2"/>
+        <!-- FY25 188 → h=44 --> <rect x="136" y="31" width="28" height="44" fill="var(--brand-accent)" rx="2"/>
+        <!-- FY26 195 → h=46 --> <rect x="178" y="29" width="28" height="46" fill="var(--bar-last)"    rx="2"/>
+        <text x="24"  y="74" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#94A3B8">FY22</text>
+        <text x="66"  y="74" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#94A3B8">FY23</text>
+        <text x="108" y="74" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#94A3B8">FY24</text>
+        <text x="150" y="74" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#94A3B8">FY25</text>
+        <text x="192" y="74" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#2D0A4E" font-weight="700">FY26</text>
+        <text x="24"  y="30" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#64748B">180</text>
+        <text x="66"  y="29" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#64748B">184</text>
+        <text x="108" y="30" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#64748B">179</text>
+        <text x="150" y="28" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#64748B">188</text>
+        <text x="192" y="26" text-anchor="middle" font-family="Inter,sans-serif" font-size="8" fill="#6B00CC" font-weight="700">195</text>
+      </svg>
+    </div>
+    <div class="callout-row">
+      <span class="callout-number">+2%</span>
+      <span class="callout-label">CAGR FY22–26</span>
+    </div>
+  </div>
+
+</div><!-- /grid -->
+
+<!-- Footer -->
+<div class="footer">
+  <span class="footer-left">CONFIDENTIAL &nbsp;·&nbsp; Consistent scale 0–$300M across all panels. Source: Internal Revenue System, FY26.</span>
+  <span class="footer-right">Slide Lab · 2026 · 260</span>
+</div>
+
+</body>
+</html>

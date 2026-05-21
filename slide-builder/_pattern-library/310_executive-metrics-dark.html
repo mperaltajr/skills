@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>310 – Executive Metrics Dashboard (Dark)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html, body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+    background: var(--brand-primary);
+    color: #fff;
+  }
+
+  .slide {
+    position: relative;
+    width: 1280px;
+    height: 720px;
+    background: var(--brand-primary);
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── Chrome: top bar ── */
+  .top-bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    z-index: 10;
+  }
+
+  .label-internal {
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.5);
+  }
+
+  .draft-badge {
+    font-size: 7px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    padding: 3px 8px;
+    border-radius: 0;
+  }
+
+  /* spacer to push badge to center */
+  .top-bar-spacer {
+    flex: 1;
+  }
+  .top-bar-left  { flex: 1; display: flex; align-items: center; }
+  .top-bar-center { display: flex; align-items: center; justify-content: center; }
+  .top-bar-right  { flex: 1; }
+
+  /* ── Main content area ── */
+  .content {
+    position: absolute;
+    top: 36px;
+    left: 48px;
+    right: 48px;
+    bottom: 36px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* ── Header ── */
+  .header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 0;
+  overflow: visible;
+}
+
+  .title {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+    font-size: 28px;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .title strong {
+    color: var(--brand-accent-soft);
+  }
+
+  .sub-headline {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 108px;
+    font-size: 14px;
+    font-style: italic;
+    color: rgba(255,255,255,0.6);
+  }
+
+  .accent-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+
+
+    background: var(--brand-accent);
+  }
+
+  /* ── KPI row ── */
+  .kpi-row {
+    display: flex; flex-wrap: wrap;
+    gap: 14px;
+    flex-shrink: 0;
+}
+
+  .kpi-tile {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    padding: 18px 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+  }
+
+  .kpi-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.5);
+  }
+
+  .kpi-value {
+    font-size: 40px;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1;
+  }
+
+  .kpi-delta {
+    font-size: 14px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .delta-up   { color: #4ADE80; }
+  .delta-down { color: #F87171; }
+
+  /* ── Bottom zone ── */
+  .bottom-zone {
+    display: flex; flex-wrap: wrap;
+    gap: 14px;
+    flex: 1;
+    min-height: 0;
+  }
+
+  /* Chart card */
+  .chart-card {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    padding: 16px 18px 14px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .chart-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.5);
+}
+
+  .chart-area {
+    flex: 1;
+    min-height: 0;
+  }
+
+  .chart-area svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  /* Alerts card */
+  .alerts-card {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 6px;
+    padding: 16px 18px 14px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .alerts-title {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.5);
+}
+
+  .alerts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex: 1;
+    justify-content: space-between;
+  }
+
+  .alert-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    background: rgba(255,255,255,0.05);
+    border-radius: 4px;
+    border-left: 3px solid transparent;
+  }
+
+  .alert-item.red    { border-left-color: #F87171; }
+  .alert-item.amber  { border-left-color: #FBBF24; }
+  .alert-item.green  { border-left-color: #4ADE80; }
+
+  .alert-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .alert-text {
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.8);
+    line-height: 1.4;
+  }
+
+  .alert-date {
+    font-size: 10px;
+    color: rgba(255,255,255,0.4);
+}
+
+  /* ── Footer ── */
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    z-index: 10;
+  }
+
+  .footer-text {
+    font-size: 9px;
+    color: rgba(255,255,255,0.4);
+    letter-spacing: 0.05em;
+  }
+</style>
+</head>
+<body>
+<div class="slide">
+
+  <!-- Top bar -->
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <span class="label-internal">Accenture Internal</span>
+    </div>
+    <div class="top-bar-center">
+    </div>
+    <div class="top-bar-right"></div>
+  </div>
+
+  <!-- Content -->
+  <div class="content">
+
+    <!-- Header -->
+    <div class="header">
+      <div class="title">Q2 2026 <strong>Executive Performance Dashboard</strong></div>
+      <div class="sub-headline">Portfolio-level metrics across all active workstreams — as of May 2026</div>
+      <div class="accent-rule"></div>
+    </div>
+
+    <!-- KPI row -->
+    <div class="kpi-row">
+      <div class="kpi-tile">
+        <div class="kpi-label">Revenue (USD)</div>
+        <div class="kpi-value">$4.2B</div>
+        <div class="kpi-delta delta-up">&#9650; 8.3% vs Q1</div>
+      </div>
+      <div class="kpi-tile">
+        <div class="kpi-label">EBITDA Margin</div>
+        <div class="kpi-value">23.7%</div>
+        <div class="kpi-delta delta-up">&#9650; 1.2pp YoY</div>
+      </div>
+      <div class="kpi-tile">
+        <div class="kpi-label">Active Projects</div>
+        <div class="kpi-value">148</div>
+        <div class="kpi-delta delta-down">&#9660; 3 vs target</div>
+      </div>
+      <div class="kpi-tile">
+        <div class="kpi-label">NPS Score</div>
+        <div class="kpi-value">71</div>
+        <div class="kpi-delta delta-up">&#9650; +5 vs Q1</div>
+      </div>
+    </div>
+
+    <!-- Bottom zone -->
+    <div class="bottom-zone">
+
+      <!-- Chart -->
+      <div class="chart-card">
+        <div class="chart-title">Performance Trend — 8-Quarter View</div>
+        <div class="chart-area">
+          <svg viewBox="0 0 680 200" preserveAspectRatio="xMidYMid meet" xmlns="http://www.w3.org/2000/svg">
+
+            <!-- Grid lines -->
+            <line x1="0"   y1="160" x2="680" y2="160" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+            <line x1="0"   y1="120" x2="680" y2="120" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+            <line x1="0"   y1="80"  x2="680" y2="80"  stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+            <line x1="0"   y1="40"  x2="680" y2="40"  stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+
+            <!-- X-axis baseline -->
+            <line x1="0" y1="162" x2="680" y2="162" stroke="rgba(255,255,255,0.15)" stroke-width="1"/>
+
+            <!-- Quarter labels -->
+            <text x="10"  y="178" fill="rgba(255,255,255,0.35)" font-size="9" font-family="Inter,sans-serif">Q3'24</text>
+            <text x="97"  y="178" fill="rgba(255,255,255,0.35)" font-size="9" font-family="Inter,sans-serif">Q4'24</text>
+            <text x="184" y="178" fill="rgba(255,255,255,0.35)" font-size="9" font-family="Inter,sans-serif">Q1'25</text>
+            <text x="271" y="178" fill="rgba(255,255,255,0.35)" font-size="9" font-family="Inter,sans-serif">Q2'25</text>
+            <text x="358" y="178" fill="rgba(255,255,255,0.35)" font-size="9" font-family="Inter,sans-serif">Q3'25</text>
+            <text x="445" y="178" fill="rgba(255,255,255,0.35)" font-size="9" font-family="Inter,sans-serif">Q4'25</text>
+            <text x="532" y="178" fill="rgba(255,255,255,0.35)" font-size="9" font-family="Inter,sans-serif">Q1'26</text>
+            <text x="619" y="178" fill="rgba(255,255,255,0.35)" font-size="9" font-family="Inter,sans-serif">Q2'26</text>
+
+            <!-- Defs: gradients & glow filters -->
+            <defs>
+              <filter id="glow-white" x="-20%" y="-40%" width="140%" height="180%">
+                <feGaussianBlur stdDeviation="2" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+              <filter id="glow-accent" x="-20%" y="-40%" width="140%" height="180%">
+                <feGaussianBlur stdDeviation="2.5" result="blur"/>
+                <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+              </filter>
+              <linearGradient id="fill-white" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="rgba(255,255,255,0.12)"/>
+                <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+              </linearGradient>
+              <linearGradient id="fill-accent" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="rgba(161,0,255,0.18)"/>
+                <stop offset="100%" stop-color="rgba(161,0,255,0)"/>
+              </linearGradient>
+              <linearGradient id="fill-soft" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stop-color="rgba(199,128,255,0.14)"/>
+                <stop offset="100%" stop-color="rgba(199,128,255,0)"/>
+              </linearGradient>
+            </defs>
+
+            <!-- Line 1: Revenue (white) — points across 8 quarters x=18,105,192,279,366,453,540,627 -->
+            <!-- Values (y) scaled to 160px range, 0=160, peak~30 -->
+            <!-- Revenue trend: 130,120,115,105,95,85,72,55 -->
+            <polygon
+              points="18,130 105,120 192,115 279,105 366,95 453,85 540,72 627,55 627,162 18,162"
+              fill="url(#fill-white)" opacity="0.7"/>
+            <polyline
+              points="18,130 105,120 192,115 279,105 366,95 453,85 540,72 627,55"
+              fill="none" stroke="rgba(255,255,255,0.85)" stroke-width="2"
+              stroke-linejoin="round" stroke-linecap="round"
+              filter="url(#glow-white)"/>
+            <!-- dots -->
+            <circle cx="18"  cy="130" r="3" fill="#fff" opacity="0.9"/>
+            <circle cx="105" cy="120" r="3" fill="#fff" opacity="0.9"/>
+            <circle cx="192" cy="115" r="3" fill="#fff" opacity="0.9"/>
+            <circle cx="279" cy="105" r="3" fill="#fff" opacity="0.9"/>
+            <circle cx="366" cy="95"  r="3" fill="#fff" opacity="0.9"/>
+            <circle cx="453" cy="85"  r="3" fill="#fff" opacity="0.9"/>
+            <circle cx="540" cy="72"  r="3" fill="#fff" opacity="0.9"/>
+            <circle cx="627" cy="55"  r="4" fill="#fff"/>
+
+            <!-- Line 2: EBITDA (accent purple) -->
+            <!-- Values: 145,140,135,128,118,108,96,78 -->
+            <polygon
+              points="18,145 105,140 192,135 279,128 366,118 453,108 540,96 627,78 627,162 18,162"
+              fill="url(#fill-accent)" opacity="0.7"/>
+            <polyline
+              points="18,145 105,140 192,135 279,128 366,118 453,108 540,96 627,78"
+              fill="none" stroke="#A100FF" stroke-width="2"
+              stroke-linejoin="round" stroke-linecap="round"
+              filter="url(#glow-accent)"/>
+            <circle cx="18"  cy="145" r="3" fill="#A100FF"/>
+            <circle cx="105" cy="140" r="3" fill="#A100FF"/>
+            <circle cx="192" cy="135" r="3" fill="#A100FF"/>
+            <circle cx="279" cy="128" r="3" fill="#A100FF"/>
+            <circle cx="366" cy="118" r="3" fill="#A100FF"/>
+            <circle cx="453" cy="108" r="3" fill="#A100FF"/>
+            <circle cx="540" cy="96"  r="3" fill="#A100FF"/>
+            <circle cx="627" cy="78"  r="4" fill="#A100FF"/>
+
+            <!-- Line 3: NPS (soft purple) — non-financial, different range -->
+            <!-- Values: 155,148,142,138,130,122,112,95 -->
+            <polygon
+              points="18,155 105,148 192,142 279,138 366,130 453,122 540,112 627,95 627,162 18,162"
+              fill="url(#fill-soft)" opacity="0.7"/>
+            <polyline
+              points="18,155 105,148 192,142 279,138 366,130 453,122 540,112 627,95"
+              fill="none" stroke="#C780FF" stroke-width="1.5" stroke-dasharray="4 3"
+              stroke-linejoin="round" stroke-linecap="round"/>
+            <circle cx="18"  cy="155" r="2.5" fill="#C780FF"/>
+            <circle cx="105" cy="148" r="2.5" fill="#C780FF"/>
+            <circle cx="192" cy="142" r="2.5" fill="#C780FF"/>
+            <circle cx="279" cy="138" r="2.5" fill="#C780FF"/>
+            <circle cx="366" cy="130" r="2.5" fill="#C780FF"/>
+            <circle cx="453" cy="122" r="2.5" fill="#C780FF"/>
+            <circle cx="540" cy="112" r="2.5" fill="#C780FF"/>
+            <circle cx="627" cy="95"  r="3.5" fill="#C780FF"/>
+
+            <!-- Legend -->
+            <line x1="0" y1="194" x2="16" y2="194" stroke="rgba(255,255,255,0.85)" stroke-width="2"/>
+            <text x="20" y="197" fill="rgba(255,255,255,0.6)" font-size="9" font-family="Inter,sans-serif">Revenue</text>
+            <line x1="88"  y1="194" x2="104" y2="194" stroke="#A100FF" stroke-width="2"/>
+            <text x="108" y="197" fill="rgba(255,255,255,0.6)" font-size="9" font-family="Inter,sans-serif">EBITDA</text>
+            <line x1="172" y1="194" x2="188" y2="194" stroke="#C780FF" stroke-width="1.5" stroke-dasharray="4 3"/>
+            <text x="192" y="197" fill="rgba(255,255,255,0.6)" font-size="9" font-family="Inter,sans-serif">NPS Index</text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- Alerts -->
+      <div class="alerts-card">
+        <div class="alerts-title">Alerts &amp; Flags</div>
+        <div class="alerts-list">
+          <div class="alert-item red">
+            <div class="alert-body">
+              <div class="alert-text">APAC delivery milestone at risk — resource shortfall flagged by PMO</div>
+              <div class="alert-date">Raised 14 May 2026</div>
+            </div>
+          </div>
+          <div class="alert-item amber">
+            <div class="alert-body">
+              <div class="alert-text">NA cost run-rate trending 4% above budget; variance review scheduled</div>
+              <div class="alert-date">Updated 16 May 2026</div>
+            </div>
+          </div>
+          <div class="alert-item green">
+            <div class="alert-body">
+              <div class="alert-text">EMEA client NPS recovered to 74 following Q1 remediation actions</div>
+              <div class="alert-date">Confirmed 19 May 2026</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /bottom-zone -->
+  </div><!-- /content -->
+
+  <!-- Footer -->
+  <div class="footer">
+    <span class="footer-text">Accenture Confidential &mdash; For Internal Use Only</span>
+    <span class="footer-text">Q2 2026 Executive Review &nbsp;|&nbsp; Slide Lab v2.5</span>
+  </div>
+
+</div><!-- /slide -->
+</body>
+</html>

@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>188 — Go-to-Market Motion</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --brand-primary:#2D0A4E;
+    --brand-primary-mid:#5C2D87;
+    --brand-accent:#A100FF;
+    --brand-accent-soft:#C780FF;
+    --text-dark:#1A1A2E;
+    --text-mid:#64748B;
+    --text-faint:#94A3B8;
+    --slide-bg:#FFFFFF;
+    --card-bg:#F8F4FC;
+    --card-border:#E5D5F0;
+    --draft-bg:#FFD600;
+    --draft-text:#B71C1C;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    background: var(--slide-bg);
+    font-family: Inter, system-ui, sans-serif;
+    position: relative;
+  }
+
+  /* ── Invariant chrome ── */
+
+  .label-internal {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .badge-draft {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 0;
+    letter-spacing: 0.08em;
+    white-space: nowrap;
+  }
+
+  .title-block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+  .title-block h1 {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+  pointer-events: auto;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.15;
+  }
+
+  .title-block h1 strong {
+    color: var(--brand-accent);
+  }
+
+  .title-block .sub {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 108px;
+  pointer-events: auto;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+    }
+
+  .accent-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+  pointer-events: none;
+    
+    
+    background: var(--brand-accent);
+    }
+
+  footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+  }
+
+  footer span {
+    font-size: 8px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* ── Content area ── */
+
+  .content-area {
+    position: absolute;
+    top: 130px;
+    left: 48px;
+    right: 48px;
+    bottom: 56px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* ── Funnel stages ── */
+
+  .stages-row {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    flex: 1;
+    min-height: 0;
+  }
+
+  .stage-wrapper {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .stage-wrapper:last-child {
+    flex: 1;
+  }
+
+  .stage {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border-radius: 4px;
+    overflow: hidden;
+    border: 1px solid var(--card-border);
+    min-width: 0;
+    height: 100%;
+  }
+
+  .stage-header {
+    padding: 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .stage-number {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.25);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .stage-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .stage-body {
+    background: var(--card-bg);
+    flex: 1;
+    padding: 10px 12px 8px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .stage-bullets {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    flex: 1;
+  }
+
+  .stage-bullets li {
+    font-size: 11px;
+    color: var(--text-dark);
+    line-height: 1.4;
+    padding-left: 10px;
+    position: relative;
+  }
+
+  .stage-bullets li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 6px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--brand-accent-soft);
+  }
+
+  .stage-metric {
+    margin-top: 8px;
+    padding-top: 7px;
+    border-top: 1px dashed var(--card-border);
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--brand-primary-mid);
+    letter-spacing: 0.02em;
+  }
+
+  .stage-metric span {
+    font-weight: 400;
+    color: var(--text-mid);
+  }
+
+  /* Stage header colors */
+  .stage-1 .stage-header { background: #7B3FBF; }
+  .stage-2 .stage-header { background: #5C2D87; }
+  .stage-3 .stage-header { background: #431F6B; }
+  .stage-4 .stage-header { background: var(--brand-primary); }
+
+  /* Arrow connectors */
+  .arrow-connector {
+    width: 28px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding-bottom: 24px;
+  }
+
+  .arrow-connector svg {
+    width: 20px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  /* ── Channel strip ── */
+
+  .channel-strip {
+    padding: 8px 0 6px;
+    display: flex;
+    align-items: center;
+    gap: 0;
+    flex-shrink: 0;
+  }
+
+  .channel-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    width: 64px;
+    flex-shrink: 0;
+  }
+
+  .channel-pills-row {
+    flex: 1;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: nowrap;
+  }
+
+  .channel-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    flex: 1;
+  }
+
+  .channel-group-pills {
+    display: flex;
+    gap: 5px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .pill {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    padding: 2px 8px;
+    border-radius: 10px;
+    white-space: nowrap;
+  }
+
+  /* All pills get dark override */
+  .pill-paid, .pill-organic, .pill-partner, .pill-events,
+  .pill-email, .pill-social, .pill-sdr, .pill-demo,
+  .pill-trial, .pill-cs, .pill-onboard, .pill-upsell {
+    background: rgba(161,0,255,0.2);
+    color: #C780FF;
+    border: 1px solid rgba(161,0,255,0.3);
+  }
+
+  .channel-dotted-line {
+    width: 1px;
+    height: 10px;
+    border-left: 1px dotted var(--text-faint);
+  }
+
+  .channel-arrow-gap {
+    width: 28px;
+    flex-shrink: 0;
+  }
+
+  /* DARK THEME */
+  :root {
+    --card-bg: rgba(255,255,255,0.07);
+    --card-border: rgba(255,255,255,0.12);
+    --text-dark: #FFFFFF;
+    --text-mid: rgba(255,255,255,0.6);
+    --slide-bg: #2D0A4E;
+  }
+
+  body, .slide { background: #2D0A4E; }
+
+  .label-internal { color: rgba(255,255,255,0.4); }
+
+  .title-block h1 {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+  pointer-events: auto; color: #FFFFFF; }
+  .title-block h1 strong { color: #C780FF; }
+  .title-block .sub { color: rgba(255,255,255,0.6); }
+
+  .accent-rule { background: #A100FF; }
+
+  .stage {
+    border: 1px solid rgba(255,255,255,0.12);
+  }
+
+  .stage-body {
+    background: rgba(255,255,255,0.07);
+  }
+
+  .stage-bullets li { color: rgba(255,255,255,0.85); }
+
+  .stage-metric {
+    color: #C780FF;
+    border-top: 1px dashed rgba(255,255,255,0.2);
+  }
+
+  .stage-metric span { color: rgba(255,255,255,0.6); }
+
+  .channel-label { color: rgba(255,255,255,0.5); }
+  .channel-dotted-line { border-left: 1px dotted rgba(255,255,255,0.3); }
+
+  footer { border-top: 1px solid rgba(255,255,255,0.1); }
+  footer span { color: rgba(255,255,255,0.4); }
+</style>
+</head>
+<body>
+
+  <!-- Invariant chrome -->
+  <div class="label-internal" data-shape-id="accenture-tag">ACCENTURE INTERNAL</div>
+  <div class="badge-draft" data-shape-id="draft-badge">DRAFT</div>
+
+  <div class="title-block">
+    <h1 data-shape-id="title">Go-to-Market <strong>Motion</strong></h1>
+    <div class="sub" data-shape-id="subtitle">Four-stage demand engine — from awareness to action, with channel orchestration</div>
+    <div class="accent-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <!-- Stages row -->
+    <div class="stages-row">
+
+      <!-- Stage 1: Awareness -->
+      <div class="stage-wrapper">
+        <div class="stage stage-1">
+          <div class="stage-header">
+            <div class="stage-number" data-shape-id="step-1-num">1</div>
+            <div class="stage-label" data-shape-id="step-1-name">Awareness</div>
+          </div>
+          <div class="stage-body">
+            <ul class="stage-bullets" data-shape-id="step-1-body">
+              <li>Broad-reach brand campaigns across digital and offline</li>
+              <li>Thought leadership content &amp; SEO-optimised publishing</li>
+              <li>Paid social targeting lookalike audiences</li>
+            </ul>
+            <div class="stage-metric" data-shape-id="step-1-meta-right">Target: <span>500K reach / qtr</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Arrow 1→2 -->
+      <div class="arrow-connector">
+        <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 10h12M11 6l4 4-4 4" stroke="#A100FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+
+      <!-- Stage 2: Interest -->
+      <div class="stage-wrapper">
+        <div class="stage stage-2">
+          <div class="stage-header">
+            <div class="stage-number" data-shape-id="step-2-num">2</div>
+            <div class="stage-label" data-shape-id="step-2-name">Interest</div>
+          </div>
+          <div class="stage-body">
+            <ul class="stage-bullets" data-shape-id="step-2-body">
+              <li>Gated content, webinars &amp; virtual events</li>
+              <li>Partner co-marketing and referral activation</li>
+              <li>Retargeting sequences for engaged visitors</li>
+            </ul>
+            <div class="stage-metric" data-shape-id="step-2-meta-right">Target: <span>12K MQLs / qtr</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Arrow 2→3 -->
+      <div class="arrow-connector">
+        <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 10h12M11 6l4 4-4 4" stroke="#A100FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+
+      <!-- Stage 3: Decision -->
+      <div class="stage-wrapper">
+        <div class="stage stage-3">
+          <div class="stage-header">
+            <div class="stage-number" data-shape-id="step-3-num">3</div>
+            <div class="stage-label" data-shape-id="step-3-name">Decision</div>
+          </div>
+          <div class="stage-body">
+            <ul class="stage-bullets" data-shape-id="step-3-body">
+              <li>SDR outreach, discovery calls &amp; product demos</li>
+              <li>Free-trial or POC with success milestones</li>
+              <li>Competitive battle-cards &amp; ROI calculators</li>
+            </ul>
+            <div class="stage-metric" data-shape-id="step-3-meta-right">Target: <span>2.4K SQLs / qtr</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Arrow 3→4 -->
+      <div class="arrow-connector">
+        <svg viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M3 10h12M11 6l4 4-4 4" stroke="#A100FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+
+      <!-- Stage 4: Action -->
+      <div class="stage-wrapper">
+        <div class="stage stage-4">
+          <div class="stage-header">
+            <div class="stage-number" data-shape-id="step-4-num">4</div>
+            <div class="stage-label" data-shape-id="step-4-name">Action</div>
+          </div>
+          <div class="stage-body">
+            <ul class="stage-bullets" data-shape-id="step-4-body">
+              <li>Structured onboarding &amp; customer success handoff</li>
+              <li>Expansion plays: upsell, cross-sell, renewal</li>
+              <li>NPS loop feeding advocacy &amp; referral programs</li>
+            </ul>
+            <div class="stage-metric" data-shape-id="step-4-meta-right">Target: <span>480 closed-won / qtr</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div><!-- /stages-row -->
+
+    <!-- Channel strip -->
+    <div class="channel-strip">
+      <div class="channel-label" data-shape-id="channels-label">Channels</div>
+      <div class="channel-pills-row">
+
+        <!-- Awareness channels -->
+        <div class="channel-group">
+          <div class="channel-dotted-line"></div>
+          <div class="channel-group-pills" data-shape-id="step-1-channels">
+            <span class="pill pill-paid">Paid</span>
+            <span class="pill pill-organic">Organic</span>
+            <span class="pill pill-social">Social</span>
+          </div>
+        </div>
+
+        <div class="channel-arrow-gap"></div>
+
+        <!-- Interest channels -->
+        <div class="channel-group">
+          <div class="channel-dotted-line"></div>
+          <div class="channel-group-pills" data-shape-id="step-2-channels">
+            <span class="pill pill-events">Events</span>
+            <span class="pill pill-partner">Partner</span>
+            <span class="pill pill-email">Email</span>
+          </div>
+        </div>
+
+        <div class="channel-arrow-gap"></div>
+
+        <!-- Decision channels -->
+        <div class="channel-group">
+          <div class="channel-dotted-line"></div>
+          <div class="channel-group-pills" data-shape-id="step-3-channels">
+            <span class="pill pill-sdr">SDR</span>
+            <span class="pill pill-demo">Demo</span>
+            <span class="pill pill-trial">Trial</span>
+          </div>
+        </div>
+
+        <div class="channel-arrow-gap"></div>
+
+        <!-- Action channels -->
+        <div class="channel-group">
+          <div class="channel-dotted-line"></div>
+          <div class="channel-group-pills" data-shape-id="step-4-channels">
+            <span class="pill pill-cs">CS</span>
+            <span class="pill pill-onboard">Onboard</span>
+            <span class="pill pill-upsell">Upsell</span>
+          </div>
+        </div>
+
+      </div>
+    </div><!-- /channel-strip -->
+
+  </div><!-- /content-area -->
+
+  <footer data-shape-id="footer-rule">
+    <span data-shape-id="footer-left">Confidential — Accenture Internal</span>
+    <span data-shape-id="footer-right">Slide Lab · 2026 · 188d</span>
+  </footer>
+
+</body>
+</html>

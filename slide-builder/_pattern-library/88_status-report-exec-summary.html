@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>88 · Status report — executive summary</title>
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --rag-green: #2ECC71;
+  --rag-green-soft: #D6F5E3;
+  --rag-amber: #F39C12;
+  --rag-amber-bg: #FFFBF4;
+  --rag-red: #DC2626;
+  --rag-red-bg: #FDECEC;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1280px; height: 720px; background: var(--slide-bg); font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; color: var(--text-dark); overflow: hidden; }
+body { position: relative; }
+
+/* ---- Top chrome (above the brand bar) ---- */
+.project-label { position: absolute; top: 10px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; z-index: 5; }
+.draft-badge { position: absolute; top: 6px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; z-index: 5; }
+
+/* ---- Brand header bar with action title ---- */
+.header-bar { position: absolute; top: 36px; left: 0; width: 1280px; height: 68px; background: var(--brand-primary); }
+.action-title { position: absolute; top: 50px; left: 40px; width: 1100px; color: #FFFFFF; font-size: 22px; font-weight: 600; line-height: 1.25; letter-spacing: 0.2px; }
+.action-title strong { color: var(--brand-accent-soft); font-weight: 700; }
+.title-rule { position: absolute; top: 104px; left: 0; width: 1280px; height: 4px; background: var(--brand-accent); }
+
+/* ---- Section label ---- */
+.section-label { position: absolute; top: 120px; left: 40px; font-size: 14px; font-weight: 700; color: var(--brand-primary); letter-spacing: 1.8px; text-transform: uppercase; }
+.period-label { position: absolute; top: 120px; right: 40px; font-size: 14px; font-weight: 700; color: var(--text-mid); letter-spacing: 1.5px; text-transform: uppercase; }
+
+/* ---- 2x2 quadrant grid ---- */
+.quad { position: absolute; width: 590px; height: 220px; border-radius: 4px; overflow: hidden; border: 1px solid var(--card-border); display: flex; flex-direction: column; }
+.q-tl { top: 148px; left: 40px;  }
+.q-tr { top: 148px; left: 650px; }
+.q-bl { top: 384px; left: 40px;  height: 232px; }
+.q-br { top: 384px; left: 650px; height: 232px; }
+
+.q-head {
+  padding: 10px 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  white-space: nowrap;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+.q-head .icon { width: 16px; height: 16px; flex-shrink: 0; display: inline-flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 800; }
+.q-head .meta { margin-left: auto; font-size: 11px; font-weight: 700; letter-spacing: 1px; opacity: 0.85; }
+
+/* Top row: brand-primary fill, white text */
+.q-tl .q-head, .q-tr .q-head { background: var(--brand-primary); color: #FFFFFF; }
+.q-tl .q-head .meta { color: var(--brand-accent-soft); }
+.q-tr .q-head .meta { color: var(--brand-accent-soft); }
+
+/* Bottom-left RISKS: red-tinted head */
+.q-bl .q-head { background: var(--rag-red); color: #FFFFFF; }
+.q-bl .q-head .meta { color: #FFE8E8; }
+
+/* Bottom-right DECISIONS: brand-accent head */
+.q-br .q-head { background: var(--brand-accent); color: #FFFFFF; }
+.q-br .q-head .meta { color: #F4E3FF; }
+
+.q-body { flex: 1; padding: 14px 18px 14px 18px; background: var(--card-bg); }
+.q-tl .q-body { background: var(--card-bg); display: flex; flex-direction: column; justify-content: center; align-items: flex-start; gap: 10px; padding: 16px 20px; }
+.q-bl .q-body { background: var(--rag-red-bg); }
+.q-br .q-body { background: var(--card-bg); }
+
+/* ---- TL: Overall RAG ---- */
+.rag-row { display: flex; align-items: center; gap: 16px; }
+.rag-dot-lg { width: 56px; height: 56px; border-radius: 50%; background: var(--rag-green); box-shadow: 0 0 0 6px var(--rag-green-soft); flex-shrink: 0; }
+.rag-block { display: flex; flex-direction: column; gap: 2px; }
+.rag-label { font-size: 22px; font-weight: 800; color: var(--rag-green); letter-spacing: 2px; line-height: 1; }
+.rag-status { font-size: 11px; font-weight: 700; color: var(--text-mid); letter-spacing: 1.5px; text-transform: uppercase; }
+.rag-summary { font-size: 13.5px; color: var(--text-dark); line-height: 1.45; max-width: 540px; }
+.rag-summary strong { color: var(--brand-primary); font-weight: 700; }
+
+/* ---- TR & BL: bullet lists ---- */
+.bullets { font-size: 14px; color: var(--text-dark); line-height: 1.45; }
+.bullet { display: flex; gap: 10px; margin-bottom: 7px; align-items: flex-start; }
+.bullet:last-child { margin-bottom: 0; }
+.bullet .glyph { flex-shrink: 0; font-weight: 800; font-size: 14px; line-height: 1.3; width: 16px; text-align: center; }
+.bullet.win .glyph { color: var(--rag-green); }
+.bullet.risk .glyph { color: var(--rag-red); }
+.bullet.risk-amber .glyph { color: var(--rag-amber); }
+
+/* ---- BR: Decisions, numbered ---- */
+.decisions { display: flex; flex-direction: column; gap: 10px; }
+.decision {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  background: #FFFFFF;
+  border: 1px solid var(--card-border);
+  border-left: 3px solid var(--brand-accent);
+  padding: 9px 12px;
+  border-radius: 3px;
+}
+.decision .num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--brand-accent);
+  color: #FFFFFF;
+  font-size: 14px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+.decision .d-body { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.decision .d-ask { font-size: 14px; font-weight: 600; color: var(--text-dark); line-height: 1.35; }
+.decision .d-owner { font-size: 10.5px; font-weight: 700; color: var(--brand-primary); letter-spacing: 1px; text-transform: uppercase; }
+
+/* ---- Convergence line ---- */
+.convergence {
+  position: absolute;
+  left: 40px;
+  right: 40px;
+  bottom: 56px;
+  background: var(--brand-primary);
+  color: #FFFFFF;
+  padding: 10px 18px;
+  font-size: 13.5px;
+  font-style: italic;
+  font-weight: 600;
+  border-left: 3px solid var(--brand-accent);
+  letter-spacing: 0.2px;
+}
+
+/* ---- Footer invariant ---- */
+.footer-rule { position: absolute; left: 0; right: 0; bottom: 32px; height: 1px; background: var(--card-border); }
+.footer-left { position: absolute; bottom: 14px; left: 24px; color: var(--text-faint); font-size: 11px; letter-spacing: 1px; }
+.footer-right { position: absolute; bottom: 14px; right: 24px; color: var(--text-faint); font-size: 11px; }
+</style>
+</head>
+<body>
+
+  <div class="header-bar" data-shape-id="header-bar"></div>
+  <div class="action-title" data-shape-id="title">Pilot status &middot; Week 3 &middot; <strong>Green overall, three decisions needed.</strong></div>
+  <div class="title-rule" data-shape-id="brand-rule"></div>
+
+  <div class="section-label" data-shape-id="eyebrow">Executive Summary</div>
+  <div class="period-label" data-shape-id="eyebrow-meta">Week 3 of 4 &middot; Steering Committee</div>
+
+  <!-- Top-Left: OVERALL RAG -->
+  <div class="quad q-tl" data-shape-id="quadrant-tl">
+    <div class="q-head">
+      <span class="icon" data-shape-id="quad-tl-icon">&#9679;</span>
+      <span data-shape-id="quadrant-tl-name">Overall Status</span>
+      <span class="meta" data-shape-id="quad-tl-meta">Week 3 of 4</span>
+    </div>
+    <div class="q-body">
+      <div class="rag-row">
+        <div class="rag-dot-lg" data-shape-id="quadrant-tl-rag-dot"></div>
+        <div class="rag-block">
+          <div class="rag-label" data-shape-id="quadrant-tl-rag-label">GREEN</div>
+          <div class="rag-status" data-shape-id="quadrant-tl-rag-status">On Track</div>
+        </div>
+      </div>
+      <div class="rag-summary" data-shape-id="quadrant-tl-body">Pilot on track for <strong>all 4 success metrics</strong>. No escalations this week. Wave 2 scope ready for steering approval.</div>
+    </div>
+  </div>
+
+  <!-- Top-Right: KEY WINS -->
+  <div class="quad q-tr" data-shape-id="quadrant-tr">
+    <div class="q-head">
+      <span class="icon" data-shape-id="quad-tr-icon">&#10003;</span>
+      <span data-shape-id="quadrant-tr-name">Key Wins This Period</span>
+      <span class="meta" data-shape-id="quad-tr-meta">4 wins</span>
+    </div>
+    <div class="q-body">
+      <div class="bullets" data-shape-id="quadrant-tr-body">
+        <div class="bullet win"><span class="glyph">&#10003;</span><span>Cycle time <strong>&minus;64% vs baseline</strong> &mdash; exceeded 50% target</span></div>
+        <div class="bullet win"><span class="glyph">&#10003;</span><span><strong>94% first-review sign-off</strong> &mdash; target was 85%</span></div>
+        <div class="bullet win"><span class="glyph">&#10003;</span><span>All 4 pilot users <strong>actively engaged</strong>, no drop-offs</span></div>
+        <div class="bullet win"><span class="glyph">&#10003;</span><span>Pattern library at <strong>80 patterns</strong>; on track for 100 by EOM</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom-Left: KEY RISKS -->
+  <div class="quad q-bl" data-shape-id="quadrant-bl">
+    <div class="q-head">
+      <span class="icon" data-shape-id="quad-bl-icon">&#9888;</span>
+      <span data-shape-id="quadrant-bl-name">Key Risks</span>
+      <span class="meta" data-shape-id="quad-bl-meta">3 open</span>
+    </div>
+    <div class="q-body">
+      <div class="bullets" data-shape-id="quadrant-bl-body">
+        <div class="bullet risk-amber"><span class="glyph">&#9873;</span><span><strong>Amber:</strong> 2 senior managers still ramping &mdash; coaching scheduled this week</span></div>
+        <div class="bullet risk-amber"><span class="glyph">&#9873;</span><span><strong>Amber:</strong> CFO transition mid-pilot &mdash; stakeholder re-alignment underway</span></div>
+        <div class="bullet risk"><span class="glyph">&#9873;</span><span><strong>Red:</strong> IT provisioning for Wave 2 not started &mdash; blocks 6/1 kickoff</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom-Right: DECISIONS NEEDED -->
+  <div class="quad q-br" data-shape-id="quadrant-br">
+    <div class="q-head">
+      <span class="icon" data-shape-id="quad-br-icon">&#9998;</span>
+      <span data-shape-id="quadrant-br-name">Decisions Needed</span>
+      <span class="meta" data-shape-id="quad-br-meta">3 asks</span>
+    </div>
+    <div class="q-body">
+      <div class="decisions">
+        <div class="decision" data-shape-id="sub-ask-1">
+          <div class="num" data-shape-id="sub-ask-1-num">1</div>
+          <div class="d-body">
+            <div class="d-ask" data-shape-id="sub-ask-1-body">Approve Wave 2 scope (+12 users, 3 new use cases)</div>
+            <div class="d-owner" data-shape-id="sub-ask-1-meta">Mario &middot; by Fri</div>
+          </div>
+        </div>
+        <div class="decision" data-shape-id="sub-ask-2">
+          <div class="num" data-shape-id="sub-ask-2-num">2</div>
+          <div class="d-body">
+            <div class="d-ask" data-shape-id="sub-ask-2-body">Greenlight pattern library investment to 100 patterns</div>
+            <div class="d-owner" data-shape-id="sub-ask-2-meta">MD &middot; by Fri</div>
+          </div>
+        </div>
+        <div class="decision" data-shape-id="sub-ask-3">
+          <div class="num" data-shape-id="sub-ask-3-num">3</div>
+          <div class="d-body">
+            <div class="d-ask" data-shape-id="sub-ask-3-body">Hire 1 designer-engineer to sustain pattern velocity</div>
+            <div class="d-owner" data-shape-id="sub-ask-3-meta">HR &middot; by next week</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="convergence" data-shape-id="convergence">Three items need MD decision by Friday &mdash; without them, Wave 2 slips two weeks.</div>
+  <div class="footer-left" data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+</body>
+</html>

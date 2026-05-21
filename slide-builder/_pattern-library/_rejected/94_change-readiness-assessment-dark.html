@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>94 · Change readiness assessment (ADKAR)</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+  --status-green: #16A34A;
+  --status-amber: #F59E0B;
+  --status-red: #DC2626;
+  --status-green-soft: #DCFCE7;
+  --status-amber-soft: #FEF3C7;
+  --status-red-soft: #FEE2E2;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1280px; height: 720px; background: var(--slide-bg); font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; color: var(--text-dark); overflow: hidden; }
+body { padding: 50px 56px 80px 56px; position: relative; }
+.draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; }
+.project-label { position: absolute; top: 24px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
+
+/* ---- Title block ---- */
+.action-title { font-size: 27px; font-weight: 700; line-height: 1.22; max-width: 1120px; letter-spacing: -0.01em; }
+.action-title strong { color: var(--brand-primary); }
+.subhead { font-size: 13.5px; color: var(--text-mid); margin-top: 8px; font-style: italic; line-height: 1.4; max-width: 1120px; }
+.title-rule { width: 56px; height: 3px; background: var(--brand-accent); margin: 16px 0 0 0; border-radius: 2px; }
+
+/* ---- Framework label strip ---- */
+.framework-label {
+  position: absolute;
+  left: 56px;
+  top: 188px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--brand-primary-mid);
+}
+.framework-label .sep { color: var(--text-faint); margin: 0 10px; font-weight: 500; }
+
+/* ---- Body: 5 stage cards in a row ---- */
+.stage-row {
+  position: absolute;
+  left: 56px;
+  right: 56px;
+  top: 220px;
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 14px;
+}
+
+.stage-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-top: 4px solid var(--brand-accent);
+  padding: 16px 14px 14px 14px;
+  display: flex;
+  flex-direction: column;
+  min-height: 330px;
+  position: relative;
+}
+
+.stage-card .letter {
+  font-size: 56px;
+  font-weight: 900;
+  color: var(--brand-accent);
+  line-height: 1;
+  letter-spacing: -0.04em;
+  margin-bottom: 6px;
+}
+.stage-card .name {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--brand-primary);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+.stage-card .definition {
+  font-size: 11px;
+  color: var(--text-mid);
+  line-height: 1.4;
+  margin-bottom: 14px;
+  min-height: 32px;
+}
+
+.meter-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  margin-bottom: 5px;
+}
+.meter {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 4px;
+}
+.dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #EDE2F6;
+  border: 1px solid var(--card-border);
+}
+.dot.on {
+  background: var(--brand-accent);
+  border-color: var(--brand-accent);
+}
+.meter-score {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--brand-primary-mid);
+  letter-spacing: 0.4px;
+  margin-bottom: 12px;
+}
+
+.status-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: 3px;
+  margin-bottom: 10px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+}
+.status-row.green { background: var(--status-green-soft); color: var(--status-green); }
+.status-row.amber { background: var(--status-amber-soft); color: #B45309; }
+.status-row.red   { background: var(--status-red-soft); color: var(--status-red); }
+.status-pip {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.status-pip.green { background: var(--status-green); }
+.status-pip.amber { background: var(--status-amber); }
+.status-pip.red   { background: var(--status-red); }
+
+.observation {
+  font-size: 10.5px;
+  color: var(--text-dark);
+  line-height: 1.42;
+  margin-top: auto;
+  padding-top: 8px;
+  border-top: 1px dashed var(--card-border);
+}
+
+/* ---- Overall readiness strip ---- */
+.readiness-strip {
+  position: absolute;
+  left: 56px;
+  right: 56px;
+  bottom: 128px;
+  background: #FFFFFF;
+  border: 1px solid var(--card-border);
+  padding: 12px 20px;
+  display: grid;
+  grid-template-columns: 220px 1fr 180px;
+  gap: 20px;
+  align-items: center;
+}
+.readiness-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.8px;
+  text-transform: uppercase;
+  color: var(--brand-primary-mid);
+}
+.readiness-label .score {
+  display: block;
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--brand-primary);
+  letter-spacing: -0.02em;
+  text-transform: none;
+  margin-top: 2px;
+}
+.readiness-bar-wrap {
+  position: relative;
+  height: 14px;
+  background: #EDE2F6;
+  border-radius: 7px;
+  overflow: hidden;
+}
+.readiness-bar-fill {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 65%;
+  background: linear-gradient(90deg, var(--brand-accent-soft), var(--brand-accent));
+  border-radius: 7px;
+}
+.readiness-ticks {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: -14px;
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--text-faint);
+  letter-spacing: 0.5px;
+}
+.readiness-verdict {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--status-amber);
+  background: var(--status-amber-soft);
+  padding: 6px 12px;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  text-align: center;
+  border-left: 3px solid var(--status-amber);
+}
+
+/* ---- Convergence ---- */
+.convergence {
+  position: absolute;
+  left: 56px;
+  right: 56px;
+  bottom: 60px;
+  background: var(--brand-primary);
+  color: white;
+  padding: 12px 22px;
+  font-size: 14px;
+  font-style: italic;
+  font-weight: 500;
+}
+
+.footer-rule { position: absolute; left: 0; right: 0; bottom: 32px; height: 1px; background: var(--card-border); }
+.footer-left { position: absolute; bottom: 14px; left: 24px; color: var(--text-faint); font-size: 10px; letter-spacing: 1px; }
+.footer-right { position: absolute; bottom: 14px; right: 24px; color: var(--text-faint); font-size: 11px; }
+
+/* DARK THEME */
+:root {
+  --card-bg: rgba(255,255,255,0.07);
+  --card-border: rgba(255,255,255,0.12);
+  --text-dark: #FFFFFF;
+  --text-mid: rgba(255,255,255,0.6);
+  --slide-bg: #2D0A4E;
+}
+html, body { background: #2D0A4E; color: #FFFFFF; }
+.project-label { color: rgba(255,255,255,0.4); }
+.action-title { color: #FFFFFF; }
+.action-title strong { color: #C780FF; }
+.subhead { color: rgba(255,255,255,0.6); }
+.framework-label { color: #C780FF; }
+.framework-label .sep { color: rgba(255,255,255,0.3); }
+.stage-card { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); border-top: 4px solid var(--brand-accent); }
+.stage-card .name { color: #C780FF; }
+.stage-card .definition { color: rgba(255,255,255,0.6); }
+.meter-label { color: rgba(255,255,255,0.5); }
+.dot { background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.12); }
+.meter-score { color: #C780FF; }
+.observation { color: rgba(255,255,255,0.85); border-top: 1px dashed rgba(255,255,255,0.12); }
+.readiness-strip { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); }
+.readiness-label { color: #C780FF; }
+.readiness-label .score { color: #FFFFFF; }
+.readiness-bar-wrap { background: rgba(255,255,255,0.1); }
+.readiness-ticks { color: rgba(255,255,255,0.4); }
+.footer-rule { background: rgba(255,255,255,0.1); }
+.footer-left, .footer-right { color: rgba(255,255,255,0.4); }
+</style>
+</head>
+<body>
+  <div class="project-label" data-shape-id="accenture-tag">ACCENTURE INTERNAL</div>
+  <div class="draft-badge" data-shape-id="draft-badge">DRAFT</div>
+
+  <div class="action-title" data-shape-id="title">Wave 2 change readiness &mdash; <strong>awareness is there, ability isn&rsquo;t.</strong></div>
+  <div class="subhead" data-shape-id="subtitle">ADKAR scoring across the consulting org: people know Slide Lab exists and roughly half want it, but knowledge and ability gaps will stall adoption unless coaching and reinforcement land before Wave 2 kicks off.</div>
+  <div class="title-rule" data-shape-id="brand-rule"></div>
+
+  <div class="framework-label" data-shape-id="eyebrow">ADKAR readiness model <span class="sep">&middot;</span> N = 142 respondents <span class="sep">&middot;</span> survey + manager interviews, Apr 2026</div>
+
+  <!-- ===== 5 STAGE CARDS ===== -->
+  <div class="stage-row">
+
+    <!-- A · AWARENESS -->
+    <div class="stage-card">
+      <div class="letter" data-shape-id="stage-1-letter">A</div>
+      <div class="name" data-shape-id="stage-1-name">Awareness</div>
+      <div class="definition" data-shape-id="stage-1-definition">Know the change is happening and why.</div>
+      <div class="meter-label" data-shape-id="stage-1-meter-label">Current level</div>
+      <div class="meter" data-shape-id="stage-1-meter">
+        <div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot"></div>
+      </div>
+      <div class="meter-score" data-shape-id="stage-1-score">4 / 5</div>
+      <div class="status-row green" data-shape-id="stage-1-status">
+        <div class="status-pip green" data-shape-id="stage-1-status-pip"></div>
+        <div>On track</div>
+      </div>
+      <div class="observation" data-shape-id="stage-1-observation">Most consultants know Slide Lab exists; town hall and MD email drove broad reach.</div>
+    </div>
+
+    <!-- D · DESIRE -->
+    <div class="stage-card">
+      <div class="letter" data-shape-id="stage-2-letter">D</div>
+      <div class="name" data-shape-id="stage-2-name">Desire</div>
+      <div class="definition" data-shape-id="stage-2-definition">Want to participate and support the change.</div>
+      <div class="meter-label" data-shape-id="stage-2-meter-label">Current level</div>
+      <div class="meter" data-shape-id="stage-2-meter">
+        <div class="dot on"></div><div class="dot on"></div><div class="dot on"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+      <div class="meter-score" data-shape-id="stage-2-score">3 / 5</div>
+      <div class="status-row amber" data-shape-id="stage-2-status">
+        <div class="status-pip amber" data-shape-id="stage-2-status-pip"></div>
+        <div>Watch</div>
+      </div>
+      <div class="observation" data-shape-id="stage-2-observation">~50% actively want it; the other half see it as &ldquo;another tool&rdquo; on top of existing workflow.</div>
+    </div>
+
+    <!-- K · KNOWLEDGE -->
+    <div class="stage-card">
+      <div class="letter" data-shape-id="stage-3-letter">K</div>
+      <div class="name" data-shape-id="stage-3-name">Knowledge</div>
+      <div class="definition" data-shape-id="stage-3-definition">Know how to change &mdash; the skills and steps.</div>
+      <div class="meter-label" data-shape-id="stage-3-meter-label">Current level</div>
+      <div class="meter" data-shape-id="stage-3-meter">
+        <div class="dot on"></div><div class="dot on"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+      <div class="meter-score" data-shape-id="stage-3-score">2 / 5</div>
+      <div class="status-row red" data-shape-id="stage-3-status">
+        <div class="status-pip red" data-shape-id="stage-3-status-pip"></div>
+        <div>Gap</div>
+      </div>
+      <div class="observation" data-shape-id="stage-3-observation">Only the 14 champions know how it actually works; no enablement materials yet for the broader org.</div>
+    </div>
+
+    <!-- A · ABILITY -->
+    <div class="stage-card">
+      <div class="letter" data-shape-id="stage-4-letter">A</div>
+      <div class="name" data-shape-id="stage-4-name">Ability</div>
+      <div class="definition" data-shape-id="stage-4-definition">Can demonstrate the change in real work.</div>
+      <div class="meter-label" data-shape-id="stage-4-meter-label">Current level</div>
+      <div class="meter" data-shape-id="stage-4-meter">
+        <div class="dot on"></div><div class="dot on"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+      <div class="meter-score" data-shape-id="stage-4-score">2 / 5</div>
+      <div class="status-row red" data-shape-id="stage-4-status">
+        <div class="status-pip red" data-shape-id="stage-4-status-pip"></div>
+        <div>Gap</div>
+      </div>
+      <div class="observation" data-shape-id="stage-4-observation">Low &mdash; first attempts stall on framing and briefs; needs structured coaching, not just docs.</div>
+    </div>
+
+    <!-- R · REINFORCEMENT -->
+    <div class="stage-card">
+      <div class="letter" data-shape-id="stage-5-letter">R</div>
+      <div class="name" data-shape-id="stage-5-name">Reinforcement</div>
+      <div class="definition" data-shape-id="stage-5-definition">Sustain the change &mdash; recognition, metrics, rituals.</div>
+      <div class="meter-label" data-shape-id="stage-5-meter-label">Current level</div>
+      <div class="meter" data-shape-id="stage-5-meter">
+        <div class="dot on"></div><div class="dot on"></div><div class="dot"></div><div class="dot"></div><div class="dot"></div>
+      </div>
+      <div class="meter-score" data-shape-id="stage-5-score">2 / 5</div>
+      <div class="status-row red" data-shape-id="stage-5-status">
+        <div class="status-pip red" data-shape-id="stage-5-status-pip"></div>
+        <div>Gap</div>
+      </div>
+      <div class="observation" data-shape-id="stage-5-observation">Scoreboard exists but nobody watches it; no MD recognition tied to Slide Lab usage.</div>
+    </div>
+
+  </div>
+
+  <!-- ===== OVERALL READINESS STRIP ===== -->
+  <div class="readiness-strip">
+    <div class="readiness-label" data-shape-id="readiness-label">
+      Overall readiness
+      <span class="score" data-shape-id="readiness-score">65%</span>
+    </div>
+    <div class="readiness-bar-wrap" data-shape-id="readiness-bar-track">
+      <div class="readiness-bar-fill" data-shape-id="readiness-bar-fill"></div>
+      <div class="readiness-ticks" data-shape-id="readiness-ticks">
+        <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
+      </div>
+    </div>
+    <div class="readiness-verdict" data-shape-id="readiness-verdict">Needs work</div>
+  </div>
+
+  <div class="convergence" data-shape-id="convergence">Awareness is solved; the next 6 weeks have to move K, A, and R from red to amber &mdash; or Wave 2 launches into an org that can&rsquo;t actually use the tool.</div>
+
+  <div class="footer-rule" data-shape-id="footer-rule"></div>
+  <div class="footer-left" data-shape-id="footer-left">CONFIDENTIAL &mdash; ACCENTURE INTERNAL</div>
+  <div class="footer-right" data-shape-id="footer-right">Slide Lab &middot; 2026 &middot; 94d</div>
+</body>
+</html>

@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>272 · PESTLE analysis grid</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+
+  /* Cell accent colours */
+  --col-political: #1D4ED8;
+  --col-economic: #1A6B3C;
+  --col-social: #5C2D87;
+  --col-tech: #A100FF;
+  --col-legal: #C53030;
+  --col-env: #2D6A4F;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 1280px; height: 720px;
+  background: var(--slide-bg);
+  font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  color: var(--text-dark);
+  overflow: hidden;
+}
+body { padding: 0 48px 58px 48px; position: relative; }
+
+/* ---- Chrome: top labels ---- */
+.project-label {
+  position: absolute; top: 20px; left: 24px;
+  color: var(--text-faint); font-size: 9px; font-weight: 600;
+  letter-spacing: 0.15em; text-transform: uppercase;
+}
+.draft-badge {
+  position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--draft-bg); color: var(--draft-text);
+  font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px;
+}
+
+/* ---- Title block ---- */
+.action-title {
+  position: absolute; top: 28px; left: 64px; right: 64px; min-height: 36px;
+  font-size: 29px; font-weight: 700; line-height: 1.2;
+  color: var(--brand-primary);}
+.action-title strong { color: var(--brand-accent); }
+.subhead {
+  position: absolute; top: 108px; left: 64px; right: 64px;
+  font-size: 14px; color: var(--text-mid);
+
+    font-style: italic;
+}
+.title-rule {
+  position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);}
+
+/* ---- PESTLE grid ---- */
+.grid-wrap {
+  position: absolute;
+  top: 152px; left: 48px; right: 48px; bottom: 58px;
+  display: flex; flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* ---- Cell ---- */
+.cell {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Colored top band */
+.cell-band {
+  height: 8px;
+  flex-shrink: 0;
+}
+
+/* Cell header row */
+.cell-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 16px 10px 16px;
+  border-bottom: 1px solid var(--card-border);
+  flex-shrink: 0;
+}
+.cell-letter {
+  font-size: 28px;
+  font-weight: 800;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.cell-name {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dark);
+  flex: 1;
+}
+
+/* Impact pill */
+.impact-pill {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 20px;
+  flex-shrink: 0;
+}
+.impact-high   { background: #FEE2E2; color: #991B1B; }
+.impact-medium { background: #FEF3C7; color: #92400E; }
+.impact-low    { background: #DCFCE7; color: #166534; }
+
+/* Bullets */
+.cell-body {
+  flex: 1;
+  padding: 14px 16px 14px 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 10px;
+}
+.bullet {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--text-dark);
+}
+.bullet::before {
+  content: "";
+  width: 4px; height: 4px;
+  border-radius: 50%;
+
+    top: 6px;
+  flex-shrink: 0;
+}
+
+/* Per-cell accent colours */
+.cell-political .cell-band   { background: var(--col-political); }
+.cell-political .cell-letter { color: var(--col-political); }
+.cell-political .bullet::before { background: var(--col-political); }
+
+.cell-economic .cell-band   { background: var(--col-economic); }
+.cell-economic .cell-letter { color: var(--col-economic); }
+.cell-economic .bullet::before { background: var(--col-economic); }
+
+.cell-social .cell-band   { background: var(--col-social); }
+.cell-social .cell-letter { color: var(--col-social); }
+.cell-social .bullet::before { background: var(--col-social); }
+
+.cell-tech .cell-band   { background: var(--col-tech); }
+.cell-tech .cell-letter { color: var(--col-tech); }
+.cell-tech .bullet::before { background: var(--col-tech); }
+
+.cell-legal .cell-band   { background: var(--col-legal); }
+.cell-legal .cell-letter { color: var(--col-legal); }
+.cell-legal .bullet::before { background: var(--col-legal); }
+
+.cell-env .cell-band   { background: var(--col-env); }
+.cell-env .cell-letter { color: var(--col-env); }
+.cell-env .bullet::before { background: var(--col-env); }
+
+/* ---- Footer ---- */
+.footer-rule { position: absolute; left: 0; right: 0; bottom: 28px; height: 1px; background: var(--card-border); }
+.footer-left  { position: absolute; bottom: 10px; left: 24px; color: var(--text-faint); font-size: 11px; letter-spacing: 1px; }
+.footer-right { position: absolute; bottom: 10px; right: 24px; color: var(--text-faint); font-size: 11px; letter-spacing: 0.5px; }
+</style>
+</head>
+<body>
+
+  <div class="action-title" data-shape-id="title">PESTLE analysis — <strong>macro forces shaping the strategic landscape.</strong></div>
+  <div class="subhead"      data-shape-id="subtitle">Six environmental dimensions assessed for impact on current and future operating context.</div>
+  <div class="title-rule"   data-shape-id="brand-rule"></div>
+
+  <!-- =================== 3×2 GRID =================== -->
+  <div class="grid-wrap" data-shape-id="pestle-grid">
+
+    <!-- 1 · POLITICAL -->
+    <div class="cell cell-political" data-shape-id="cell-political">
+      <div class="cell-band" data-shape-id="cell-political-band"></div>
+      <div class="cell-header">
+        <div class="cell-letter" data-shape-id="cell-political-letter">P</div>
+        <div class="cell-name"   data-shape-id="cell-political-name">Political</div>
+        <div class="impact-pill impact-high" data-shape-id="cell-political-impact">High</div>
+      </div>
+      <div class="cell-body">
+        <div class="bullet" data-shape-id="cell-political-b1">Regulatory reform under new administration</div>
+        <div class="bullet" data-shape-id="cell-political-b2">Trade policy uncertainty</div>
+        <div class="bullet" data-shape-id="cell-political-b3">Government digitization agenda</div>
+      </div>
+    </div>
+
+    <!-- 2 · ECONOMIC -->
+    <div class="cell cell-economic" data-shape-id="cell-economic">
+      <div class="cell-band" data-shape-id="cell-economic-band"></div>
+      <div class="cell-header">
+        <div class="cell-letter" data-shape-id="cell-economic-letter">E</div>
+        <div class="cell-name"   data-shape-id="cell-economic-name">Economic</div>
+        <div class="impact-pill impact-high" data-shape-id="cell-economic-impact">High</div>
+      </div>
+      <div class="cell-body">
+        <div class="bullet" data-shape-id="cell-economic-b1">Inflationary pressure on costs</div>
+        <div class="bullet" data-shape-id="cell-economic-b2">Interest rate normalisation</div>
+        <div class="bullet" data-shape-id="cell-economic-b3">FX volatility in key markets</div>
+      </div>
+    </div>
+
+    <!-- 3 · SOCIAL -->
+    <div class="cell cell-social" data-shape-id="cell-social">
+      <div class="cell-band" data-shape-id="cell-social-band"></div>
+      <div class="cell-header">
+        <div class="cell-letter" data-shape-id="cell-social-letter">S</div>
+        <div class="cell-name"   data-shape-id="cell-social-name">Social</div>
+        <div class="impact-pill impact-medium" data-shape-id="cell-social-impact">Medium</div>
+      </div>
+      <div class="cell-body">
+        <div class="bullet" data-shape-id="cell-social-b1">Workforce skill gap in digital roles</div>
+        <div class="bullet" data-shape-id="cell-social-b2">ESG expectations from stakeholders</div>
+        <div class="bullet" data-shape-id="cell-social-b3">Remote work normalisation</div>
+      </div>
+    </div>
+
+    <!-- 4 · TECHNOLOGICAL -->
+    <div class="cell cell-tech" data-shape-id="cell-tech">
+      <div class="cell-band" data-shape-id="cell-tech-band"></div>
+      <div class="cell-header">
+        <div class="cell-letter" data-shape-id="cell-tech-letter">T</div>
+        <div class="cell-name"   data-shape-id="cell-tech-name">Technological</div>
+        <div class="impact-pill impact-high" data-shape-id="cell-tech-impact">High</div>
+      </div>
+      <div class="cell-body">
+        <div class="bullet" data-shape-id="cell-tech-b1">GenAI adoption accelerating</div>
+        <div class="bullet" data-shape-id="cell-tech-b2">Cybersecurity threat landscape</div>
+        <div class="bullet" data-shape-id="cell-tech-b3">Cloud-first procurement mandates</div>
+      </div>
+    </div>
+
+    <!-- 5 · LEGAL -->
+    <div class="cell cell-legal" data-shape-id="cell-legal">
+      <div class="cell-band" data-shape-id="cell-legal-band"></div>
+      <div class="cell-header">
+        <div class="cell-letter" data-shape-id="cell-legal-letter">L</div>
+        <div class="cell-name"   data-shape-id="cell-legal-name">Legal</div>
+        <div class="impact-pill impact-medium" data-shape-id="cell-legal-impact">Medium</div>
+      </div>
+      <div class="cell-body">
+        <div class="bullet" data-shape-id="cell-legal-b1">Data privacy regulation (GDPR v2)</div>
+        <div class="bullet" data-shape-id="cell-legal-b2">AI liability frameworks</div>
+        <div class="bullet" data-shape-id="cell-legal-b3">Employment law changes</div>
+      </div>
+    </div>
+
+    <!-- 6 · ENVIRONMENTAL -->
+    <div class="cell cell-env" data-shape-id="cell-env">
+      <div class="cell-band" data-shape-id="cell-env-band"></div>
+      <div class="cell-header">
+        <div class="cell-letter" data-shape-id="cell-env-letter">E²</div>
+        <div class="cell-name"   data-shape-id="cell-env-name">Environmental</div>
+        <div class="impact-pill impact-low" data-shape-id="cell-env-impact">Low</div>
+      </div>
+      <div class="cell-body">
+        <div class="bullet" data-shape-id="cell-env-b1">Net zero commitments</div>
+        <div class="bullet" data-shape-id="cell-env-b2">Supply chain sustainability</div>
+        <div class="bullet" data-shape-id="cell-env-b3">Carbon reporting requirements</div>
+      </div>
+    </div>
+
+  </div>
+  <!-- =================== END GRID =================== -->
+  <div class="footer-left"  data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+
+</body>
+</html>

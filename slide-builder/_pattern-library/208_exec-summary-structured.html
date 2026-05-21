@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>208 — Executive Summary (Structured 4-Zone)</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --brand-primary:#2D0A4E; --brand-primary-mid:#5C2D87; --brand-accent:#A100FF;
+    --brand-accent-soft:#C780FF; --text-dark:#1A1A2E; --text-mid:#64748B;
+    --text-faint:#94A3B8; --slide-bg:#FFFFFF; --card-bg:#F8F4FC;
+    --card-border:#E5D5F0; --draft-bg:#FFD600; --draft-text:#B71C1C;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: Inter, system-ui, sans-serif;
+    background: var(--slide-bg);
+    position: relative;
+  }
+
+  /* ── Invariant chrome ── */
+
+  .label-internal {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .badge-draft {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 0;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  /* ── Title block ── */
+
+  .title-block {
+    position: absolute; top: 0; left: 0; right: 0; height: 160px;
+  }
+
+  .title-block h1 {
+    position: absolute; top: 28px; left: 64px; right: 64px; min-height: 36px;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.2;
+  }
+
+  .title-block h1 strong {
+    color: var(--brand-accent);
+    font-weight: 700;
+  }
+
+  .title-block .sub-headline {
+    position: absolute; top: 108px; left: 64px; right: 64px;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+
+}
+
+  .title-block .accent-rule {
+  position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+
+  }
+
+  /* ── 2×2 grid ── */
+
+  .grid {
+    position: absolute;
+    top: 120px;
+    left: 48px;
+    right: 48px;
+    bottom: 56px;
+    display: flex; flex-wrap: wrap;
+    gap: 0;
+    border: 1px solid var(--card-border);
+  }
+
+  /* thin cross-dividers are achieved via borders on cells */
+
+  .zone {
+    padding: 18px 20px 16px 20px;
+    border: 1px solid var(--card-border);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* collapse double-borders between cells */
+  .zone { margin: -1px; }
+
+  .zone-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--brand-accent);
+    padding-left: 8px;
+    border-left: 3px solid var(--brand-accent);
+
+    bottom: 10px;
+    line-height: 1.2;
+  }
+
+  /* Zone 1 — CONTEXT */
+  .zone-context {
+    background: var(--slide-bg);
+  }
+
+  .zone-context .body-text {
+    font-size: 14px;
+    color: var(--text-dark);
+    line-height: 1.7;
+  }
+
+  /* Zone 2 — FINDINGS */
+  .zone-findings {
+    background: var(--slide-bg);
+  }
+
+  .zone-findings ol {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .zone-findings ol li {
+    font-size: 14px;
+    color: var(--text-dark);
+    line-height: 1.55;
+    display: flex;
+    gap: 8px;
+    align-items: flex-start;
+  }
+
+  .zone-findings ol li .num {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--brand-accent-soft);
+    color: var(--brand-primary);
+    font-size: 10px;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    top: 1px;
+  }
+
+  /* Zone 3 — RECOMMENDATION (dominant) */
+  .zone-recommendation {
+    background: var(--card-bg);
+    border-left: 3px solid var(--brand-primary) !important;
+  }
+
+  .zone-recommendation .zone-label {
+    color: var(--brand-primary);
+    border-left-color: var(--brand-primary);
+  }
+
+  .zone-recommendation .rec-statement {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.5;
+
+    bottom: 12px;
+  }
+
+  .zone-recommendation ul {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .zone-recommendation ul li {
+    font-size: 14px;
+    color: var(--text-dark);
+    line-height: 1.55;
+    display: flex;
+    gap: 7px;
+    align-items: flex-start;
+  }
+
+  .zone-recommendation ul li::before {
+    content: "›";
+    color: var(--brand-accent);
+    font-size: 14px;
+    font-weight: 700;
+    flex-shrink: 0;
+    line-height: 1.4;
+  }
+
+  /* Zone 4 — NEXT STEPS */
+  .zone-next-steps {
+    background: var(--slide-bg);
+  }
+
+  .zone-next-steps .actions {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .zone-next-steps .action-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .zone-next-steps .action-text {
+    font-size: 14px;
+    color: var(--text-dark);
+    line-height: 1.5;
+  }
+
+  .zone-next-steps .chips {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  .chip {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    padding: 2px 7px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  .chip-owner {
+    background: var(--brand-accent-soft);
+    color: var(--brand-primary);
+  }
+
+  .chip-date {
+    background: var(--card-bg);
+    color: var(--text-mid);
+    border: 1px solid var(--card-border);
+  }
+
+  /* ── Footer ── */
+
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 20px 10px 20px;
+  }
+
+  .footer span {
+    font-size: 8px;
+    color: var(--text-faint);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Invariant chrome -->
+  <div class="label-internal" data-shape-id="accenture-tag">Accenture Internal</div>
+  <div class="badge-draft" data-shape-id="draft-badge">DRAFT</div>
+
+  <!-- Title block -->
+  <div class="title-block">
+    <h1 data-shape-id="title">Client Program Needs a <strong>Decisive Pivot</strong> Before Q3 Gate</h1>
+    <p class="sub-headline" data-shape-id="subtitle">Executive Summary — Program Health Review · May 2026</p>
+    <div class="accent-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- 2×2 grid -->
+  <div class="grid">
+
+    <!-- Zone 1: CONTEXT (top-left) -->
+    <div class="zone zone-context">
+      <div class="zone-label" data-shape-id="quadrant-tl-label">Context</div>
+      <p class="body-text" data-shape-id="quadrant-tl-body">
+        The Orion transformation program entered Phase 3 four months ago with three workstreams running in parallel. Despite on-schedule delivery of two streams, the data migration workstream has accumulated a 6-week lag, putting the Q3 go-live at material risk. Steering has not yet been formally notified of scope implications.
+      </p>
+    </div>
+
+    <!-- Zone 2: FINDINGS (top-right) -->
+    <div class="zone zone-findings">
+      <div class="zone-label" data-shape-id="quadrant-tr-label">Findings</div>
+      <ol>
+        <li>
+          <span class="num" data-shape-id="quadrant-tr-1-num">1</span>
+          <span data-shape-id="quadrant-tr-1-body">Data migration lag is systemic — root cause is an under-resourced ETL team, not a tooling defect; adding sprint cycles will not close the gap without headcount.</span>
+        </li>
+        <li>
+          <span class="num" data-shape-id="quadrant-tr-2-num">2</span>
+          <span data-shape-id="quadrant-tr-2-body">Change management readiness scores dropped from 74% to 61% in the last pulse survey, signaling user adoption risk at launch.</span>
+        </li>
+        <li>
+          <span class="num" data-shape-id="quadrant-tr-3-num">3</span>
+          <span data-shape-id="quadrant-tr-3-body">Budget contingency is 80% consumed with two months remaining; current burn rate projects a $1.2M overrun unless scope is re-baselined.</span>
+        </li>
+      </ol>
+    </div>
+
+    <!-- Zone 3: RECOMMENDATION (bottom-left) -->
+    <div class="zone zone-recommendation">
+      <div class="zone-label" data-shape-id="quadrant-bl-label">Recommendation</div>
+      <p class="rec-statement" data-shape-id="quadrant-bl-statement">Approve a 6-week schedule extension and immediate resource augmentation for the data workstream to protect go-live quality and contain budget exposure.</p>
+      <ul data-shape-id="quadrant-bl-body">
+        <li>Onboard 2 senior ETL engineers from the bench by end of May to restore migration velocity to target.</li>
+        <li>Re-baseline scope with Steering at the June 3 gate to formally absorb the extension and reset the budget ceiling.</li>
+      </ul>
+    </div>
+
+    <!-- Zone 4: NEXT STEPS (bottom-right) -->
+    <div class="zone zone-next-steps">
+      <div class="zone-label" data-shape-id="quadrant-br-label">Next Steps</div>
+      <div class="actions">
+        <div class="action-row">
+          <span class="action-text" data-shape-id="quadrant-br-1-text">Raise resource request for 2 ETL engineers through the Talent Deployment board.</span>
+          <div class="chips">
+            <span class="chip chip-owner" data-shape-id="quadrant-br-1-owner">J. Reyes · Delivery Lead</span>
+            <span class="chip chip-date" data-shape-id="quadrant-br-1-date">May 23</span>
+          </div>
+        </div>
+        <div class="action-row">
+          <span class="action-text" data-shape-id="quadrant-br-2-text">Prepare revised program baseline (schedule + budget) for Steering deck.</span>
+          <div class="chips">
+            <span class="chip chip-owner" data-shape-id="quadrant-br-2-owner">A. Müller · PMO</span>
+            <span class="chip chip-date" data-shape-id="quadrant-br-2-date">May 30</span>
+          </div>
+        </div>
+        <div class="action-row">
+          <span class="action-text" data-shape-id="quadrant-br-3-text">Present extension recommendation and re-baselined plan at Steering gate.</span>
+          <div class="chips">
+            <span class="chip chip-owner" data-shape-id="quadrant-br-3-owner">C. Okafor · Sponsor</span>
+            <span class="chip chip-date" data-shape-id="quadrant-br-3-date">Jun 3</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer" data-shape-id="footer-rule">
+    <span data-shape-id="footer-left">Confidential — Accenture Internal</span>
+    <span data-shape-id="footer-right">Slide Lab · 2026 · 208</span>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=1280" />
+<title>279 — Value stream map</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --brand-primary:     #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent:      #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark:         #1A1A2E;
+    --text-mid:          #64748B;
+    --text-faint:        #94A3B8;
+    --slide-bg:          #FFFFFF;
+    --card-bg:           #F8F4FC;
+    --card-border:       #E5D5F0;
+    --draft-bg:          #FFD600;
+    --draft-text:        #B71C1C;
+    --va-color:          #15803D;
+    --nva-color:         #DC2626;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body {
+    background: #E8E8EC;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    color: var(--text-dark);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 0;
+  }
+
+  .slide {
+    width: 1280px;
+    height: 720px;
+    background: var(--slide-bg);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  }
+
+  /* ===== Chrome ===== */
+  .project-label {
+    position: absolute;
+    top: 24px; left: 24px;
+    color: var(--text-faint);
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    z-index: 5;
+  }
+  .draft-badge {
+    position: absolute;
+    top: 20px; left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 4px 16px;
+    letter-spacing: 1px;
+    z-index: 5;
+  }
+
+  /* ===== Title block ===== */
+  .title-block {
+    position: absolute; top: 0; left: 0; right: 0; height: 160px;
+  }
+  .title-main {
+    font-size: 29px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.18;
+    letter-spacing: -0.3px;
+  }
+  .title-main strong {
+    color: var(--brand-accent);
+    font-weight: 700;
+  }
+  .title-sub {
+    font-size: 14px;
+    font-style: italic;
+    font-weight: 400;
+    color: var(--text-mid);
+
+    top: 5px;
+  }
+  .brand-rule {
+    position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+
+}
+
+  /* ===== Section header ===== */
+  .section-header {
+    position: absolute;
+    top: 148px; left: 56px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--brand-primary);
+  }
+
+  /* ===== Process row ===== */
+  .process-row {
+    position: absolute;
+    top: 168px;
+    left: 56px;
+    right: 56px;
+    height: 165px;
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+
+  .step-box {
+    flex: 1;
+    height: 150px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-top: 3px solid var(--brand-accent);
+    border-radius: 4px;
+    padding: 10px 10px 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: relative;
+    z-index: 1;
+  }
+
+  .step-num {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    color: var(--brand-accent-soft);
+    text-transform: uppercase;
+  }
+  .step-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.25;
+
+    top: 2px;
+  }
+  .step-divider {
+    width: 100%;
+    height: 1px;
+    background: var(--card-border);
+    margin: 4px 0 2px;
+  }
+  .step-va {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--va-color);
+    line-height: 1.4;
+  }
+  .step-nva {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--nva-color);
+    line-height: 1.4;
+  }
+  .step-label {
+    font-size: 9px;
+    font-weight: 500;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    letter-spacing: 0.8px;
+
+    top: 3px;
+  }
+
+  /* Arrow connectors between step boxes */
+  .step-arrow {
+    width: 22px;
+    flex-shrink: 0;
+    height: 150px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+    position: relative;
+  }
+  .step-arrow svg {
+    width: 22px;
+    height: 16px;
+  }
+
+  /* ===== Timeline bar area ===== */
+  .timeline-area {
+    position: absolute;
+    top: 352px;
+    left: 56px;
+    right: 56px;
+    height: 72px;
+  }
+  .timeline-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-faint);
+
+    bottom: 6px;
+  }
+  .timeline-track {
+    position: relative;
+    height: 28px;
+    background: #F0EBF8;
+    border-radius: 3px;
+    overflow: hidden;
+    border: 1px solid var(--card-border);
+  }
+  /* Segments: each step gets a portion of the 72h total */
+  /* Total NVA = 63h, VA = 9h, Grand Total = 72h */
+  /* Proportions of 72h: step widths */
+  /* Step 1: 4.5h / 72h = 6.25% */
+  /* Step 2: 25h / 72h = 34.72% */
+  /* Step 3: 2.5h / 72h = 3.47% */
+  /* Step 4: 5h / 72h = 6.94% */
+  /* Step 5: 10h / 72h = 13.89% */
+  /* Step 6: 25h / 72h = 34.72% */
+
+  .seg {
+    position: absolute;
+    top: 0; height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+  .seg-va   { background: #DCFCE7; border-right: 1px solid #A7E5BF; color: var(--va-color);  }
+  .seg-nva  { background: #FEE2E2; border-right: 1px solid #FECACA; color: var(--nva-color); }
+  .seg-nva.last { border-right: none; }
+
+  /* Timeline tick marks */
+  .timeline-ticks {
+    display: flex;
+
+    top: 4px;
+    position: relative;
+    height: 20px;
+  }
+  .tick {
+    flex: 1;
+    text-align: right;
+    font-size: 9px;
+    color: var(--text-faint);
+    font-variant-numeric: tabular-nums;
+    padding-right: 2px;
+  }
+  .tick:first-child { text-align: left; padding-left: 0; padding-right: 0; }
+
+  /* ===== Summary callout ===== */
+  .summary-row {
+    position: absolute;
+    top: 444px;
+    left: 56px;
+    right: 56px;
+    bottom: 40px;
+    display: flex;
+    gap: 16px;
+    align-items: stretch;
+  }
+
+  /* KPI tiles */
+  .kpi-strip {
+    display: flex;
+    gap: 12px;
+    flex-shrink: 0;
+  }
+  .kpi-tile {
+    width: 140px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 4px;
+    padding: 16px 14px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .kpi-tile.accent {
+    background: var(--brand-primary);
+    border-color: var(--brand-primary);
+  }
+  .kpi-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+    color: var(--text-faint);
+  }
+  .kpi-tile.accent .kpi-label { color: var(--brand-accent-soft); }
+  .kpi-value {
+    font-size: 32px;
+    font-weight: 800;
+    color: var(--brand-primary);
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -1px;
+  }
+  .kpi-tile.accent .kpi-value { color: #fff; }
+  .kpi-unit {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text-mid);
+  }
+  .kpi-tile.accent .kpi-unit { color: var(--brand-accent-soft); }
+
+  /* Legend */
+  .legend {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    justify-content: flex-end;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-mid);
+  }
+  .legend-swatch {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+    flex-shrink: 0;
+  }
+
+  /* Opportunity callout */
+  .opportunity-box {
+    flex: 1;
+    background: #FFF7ED;
+    border: 1px solid #FDE68A;
+    border-left: 4px solid #F59E0B;
+    border-radius: 4px;
+    padding: 14px 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+  }
+  .opp-tag {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: #92400E;
+  }
+  .opp-text {
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-dark);
+    line-height: 1.5;
+  }
+  .opp-text strong {
+    font-weight: 700;
+    color: #92400E;
+  }
+
+  /* KPI + legend column wrapper */
+  .kpi-col {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    flex-shrink: 0;
+  }
+
+  /* ===== Footer ===== */
+  .footer-rule  { position: absolute; left: 0; right: 0; bottom: 32px; height: 1px; background: var(--card-border); }
+  .footer-left  { position: absolute; bottom: 14px; left: 24px; color: var(--text-faint); font-size: 11px; letter-spacing: 1px; text-transform: uppercase; }
+  .footer-right { position: absolute; bottom: 14px; right: 24px; color: var(--text-faint); font-size: 11px; letter-spacing: 0.5px; }
+</style>
+</head>
+<body>
+<div class="slide">
+
+  <!-- Chrome -->
+
+  <!-- Title -->
+  <div class="title-block" data-shape-id="title-block">
+    <div class="title-main" data-shape-id="title">Value Stream Map &mdash; <strong>Order-to-Cash</strong></div>
+    <div class="title-sub"  data-shape-id="subtitle">Cycle time, wait time, and efficiency ratio across 6 process steps</div>
+    <div class="brand-rule" data-shape-id="brand-rule"></div>
+    <div class="legend" data-shape-id="legend" style="
+    top:10px;">
+      <div class="legend-item"><div class="legend-swatch" style="background:#DCFCE7;border:1px solid #A7E5BF;"></div>Value-Add (VA)</div>
+      <div class="legend-item"><div class="legend-swatch" style="background:#FEE2E2;border:1px solid #FECACA;"></div>Non-Value-Add (NVA / Wait)</div>
+    </div>
+  </div>
+
+  <!-- Section sub-header -->
+  <div class="section-header" data-shape-id="section-header">CURRENT STATE &mdash; Order-to-Cash Process</div>
+
+  <!-- Process row: 6 step boxes + arrows -->
+  <div class="process-row" data-shape-id="process-row">
+
+    <!-- Step 1 -->
+    <div class="step-box" data-shape-id="step-1">
+      <div class="step-num">01</div>
+      <div class="step-name" data-shape-id="step-1-name">Order<br>Receipt</div>
+      <div class="step-divider"></div>
+      <div class="step-va"  data-shape-id="step-1-va">VA: 0.5h</div>
+      <div class="step-nva" data-shape-id="step-1-nva">NVA: 4h</div>
+      <div class="step-label">Cycle + Wait</div>
+    </div>
+
+    <div class="step-arrow" aria-hidden="true">
+      <svg viewBox="0 0 22 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0 8 H16 M12 3 L20 8 L12 13" stroke="#C780FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <!-- Step 2 -->
+    <div class="step-box" data-shape-id="step-2">
+      <div class="step-num">02</div>
+      <div class="step-name" data-shape-id="step-2-name">Credit<br>Check</div>
+      <div class="step-divider"></div>
+      <div class="step-va"  data-shape-id="step-2-va">VA: 1h</div>
+      <div class="step-nva" data-shape-id="step-2-nva">NVA: 24h</div>
+      <div class="step-label">Cycle + Wait</div>
+    </div>
+
+    <div class="step-arrow" aria-hidden="true">
+      <svg viewBox="0 0 22 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0 8 H16 M12 3 L20 8 L12 13" stroke="#C780FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <!-- Step 3 -->
+    <div class="step-box" data-shape-id="step-3">
+      <div class="step-num">03</div>
+      <div class="step-name" data-shape-id="step-3-name">Inventory<br>Confirm</div>
+      <div class="step-divider"></div>
+      <div class="step-va"  data-shape-id="step-3-va">VA: 0.5h</div>
+      <div class="step-nva" data-shape-id="step-3-nva">NVA: 2h</div>
+      <div class="step-label">Cycle + Wait</div>
+    </div>
+
+    <div class="step-arrow" aria-hidden="true">
+      <svg viewBox="0 0 22 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0 8 H16 M12 3 L20 8 L12 13" stroke="#C780FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <!-- Step 4 -->
+    <div class="step-box" data-shape-id="step-4">
+      <div class="step-num">04</div>
+      <div class="step-name" data-shape-id="step-4-name">Pick &amp;<br>Pack</div>
+      <div class="step-divider"></div>
+      <div class="step-va"  data-shape-id="step-4-va">VA: 4h</div>
+      <div class="step-nva" data-shape-id="step-4-nva">NVA: 1h</div>
+      <div class="step-label">Cycle + Wait</div>
+    </div>
+
+    <div class="step-arrow" aria-hidden="true">
+      <svg viewBox="0 0 22 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0 8 H16 M12 3 L20 8 L12 13" stroke="#C780FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <!-- Step 5 -->
+    <div class="step-box" data-shape-id="step-5">
+      <div class="step-num">05</div>
+      <div class="step-name" data-shape-id="step-5-name">Dispatch</div>
+      <div class="step-divider"></div>
+      <div class="step-va"  data-shape-id="step-5-va">VA: 2h</div>
+      <div class="step-nva" data-shape-id="step-5-nva">NVA: 8h</div>
+      <div class="step-label">Cycle + Wait</div>
+    </div>
+
+    <div class="step-arrow" aria-hidden="true">
+      <svg viewBox="0 0 22 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M0 8 H16 M12 3 L20 8 L12 13" stroke="#C780FF" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <!-- Step 6 -->
+    <div class="step-box" data-shape-id="step-6">
+      <div class="step-num">06</div>
+      <div class="step-name" data-shape-id="step-6-name">Invoice</div>
+      <div class="step-divider"></div>
+      <div class="step-va"  data-shape-id="step-6-va">VA: 1h</div>
+      <div class="step-nva" data-shape-id="step-6-nva">NVA: 24h</div>
+      <div class="step-label">Cycle + Wait</div>
+    </div>
+
+  </div>
+
+  <!-- Timeline bar -->
+  <div class="timeline-area" data-shape-id="timeline-area">
+    <div class="timeline-label">CUMULATIVE LEAD TIME &mdash; 72h TOTAL</div>
+    <div class="timeline-track" data-shape-id="timeline-track">
+      <!--
+        Proportions of 72h:
+        Step 1: 4.5h = 6.25%     (VA 0.5h + NVA 4h)
+        Step 2: 25h  = 34.72%    (VA 1h   + NVA 24h)
+        Step 3: 2.5h = 3.47%     (VA 0.5h + NVA 2h)
+        Step 4: 5h   = 6.94%     (VA 4h   + NVA 1h)
+        Step 5: 10h  = 13.89%    (VA 2h   + NVA 8h)
+        Step 6: 25h  = 34.72%    (VA 1h   + NVA 24h)
+        Cumulative lefts:
+        S1 VA start=0%, width=0.69%
+        S1 NVA start=0.69%, width=5.56%
+        S2 VA start=6.25%, width=1.39%
+        S2 NVA start=7.64%, width=33.33%
+        S3 VA start=40.97%, width=0.69%
+        S3 NVA start=41.67%, width=2.78%
+        S4 VA start=44.44%, width=5.56%
+        S4 NVA start=50%, width=1.39%
+        S5 VA start=51.39%, width=2.78%
+        S5 NVA start=54.17%, width=11.11%
+        S6 VA start=65.28%, width=1.39%
+        S6 NVA start=66.67%, width=33.33%
+      -->
+      <!-- Step 1 VA -->
+      <div class="seg seg-va"  data-shape-id="seg-1-va"  style="left:0%;      width:0.69%"></div>
+      <!-- Step 1 NVA -->
+      <div class="seg seg-nva" data-shape-id="seg-1-nva" style="left:0.69%;   width:5.56%"></div>
+      <!-- Step 2 VA -->
+      <div class="seg seg-va"  data-shape-id="seg-2-va"  style="left:6.25%;   width:1.39%"></div>
+      <!-- Step 2 NVA -->
+      <div class="seg seg-nva" data-shape-id="seg-2-nva" style="left:7.64%;   width:33.33%"></div>
+      <!-- Step 3 VA -->
+      <div class="seg seg-va"  data-shape-id="seg-3-va"  style="left:40.97%;  width:0.69%"></div>
+      <!-- Step 3 NVA -->
+      <div class="seg seg-nva" data-shape-id="seg-3-nva" style="left:41.67%;  width:2.78%"></div>
+      <!-- Step 4 VA -->
+      <div class="seg seg-va"  data-shape-id="seg-4-va"  style="left:44.44%;  width:5.56%"></div>
+      <!-- Step 4 NVA -->
+      <div class="seg seg-nva" data-shape-id="seg-4-nva" style="left:50%;     width:1.39%"></div>
+      <!-- Step 5 VA -->
+      <div class="seg seg-va"  data-shape-id="seg-5-va"  style="left:51.39%;  width:2.78%"></div>
+      <!-- Step 5 NVA -->
+      <div class="seg seg-nva" data-shape-id="seg-5-nva" style="left:54.17%;  width:11.11%"></div>
+      <!-- Step 6 VA -->
+      <div class="seg seg-va"  data-shape-id="seg-6-va"  style="left:65.28%;  width:1.39%"></div>
+      <!-- Step 6 NVA -->
+      <div class="seg seg-nva last" data-shape-id="seg-6-nva" style="left:66.67%; width:33.33%"></div>
+    </div>
+    <!-- Tick marks at cumulative milestones -->
+    <div class="timeline-ticks" data-shape-id="timeline-ticks">
+      <span class="tick" style="flex:0 0 6.25%; text-align:left;">0h</span>
+      <span class="tick" style="flex:0 0 34.72%; text-align:right;">4.5h</span>
+      <span class="tick" style="flex:0 0 3.47%;  text-align:right;">29.5h</span>
+      <span class="tick" style="flex:0 0 6.94%;  text-align:right;">32h</span>
+      <span class="tick" style="flex:0 0 13.89%; text-align:right;">37h</span>
+      <span class="tick" style="flex:0 0 34.72%; text-align:right;">47h</span>
+      <span class="tick" style="flex:1;          text-align:right;">72h</span>
+    </div>
+  </div>
+
+  <!-- Summary row: KPI tiles + Opportunity callout -->
+  <div class="summary-row" data-shape-id="summary-row">
+
+    <div class="kpi-col" data-shape-id="kpi-col">
+      <div class="kpi-strip" data-shape-id="kpi-strip">
+        <div class="kpi-tile" data-shape-id="kpi-lead-time">
+          <div class="kpi-label">Total Lead Time</div>
+          <div class="kpi-value">72</div>
+          <div class="kpi-unit">hours</div>
+        </div>
+        <div class="kpi-tile" data-shape-id="kpi-va-time">
+          <div class="kpi-label">Value-Add Time</div>
+          <div class="kpi-value" style="color:var(--va-color);">9</div>
+          <div class="kpi-unit">hours</div>
+        </div>
+        <div class="kpi-tile accent" data-shape-id="kpi-efficiency">
+          <div class="kpi-label">Efficiency</div>
+          <div class="kpi-value">12.5<span style="font-size:16px;font-weight:700;">%</span></div>
+          <div class="kpi-unit">of time adds value</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="opportunity-box" data-shape-id="opportunity-box">
+      <div class="opp-tag">Opportunity</div>
+      <div class="opp-text" data-shape-id="opp-text">
+        Eliminating wait time in <strong>Credit Check</strong> and <strong>Invoice</strong> steps alone reduces lead time by
+        <strong>48h (67% reduction)</strong>, cutting the process from 72h to 24h without changing any value-add activity.
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer-left"  data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+
+</div>
+</body>
+</html>

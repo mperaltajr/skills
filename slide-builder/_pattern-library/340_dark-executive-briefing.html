@@ -1,0 +1,553 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>340 – Dark Executive Briefing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #2D0A4E;
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  /* ── Chrome ── */
+  .chrome-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    z-index: 10;
+  }
+
+  .label-internal {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.5);
+  }
+
+  .badge-draft {
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 7px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 3px 8px;
+    border-radius: 0;
+    line-height: 1;
+  }
+
+  .chrome-top-right {
+    width: 180px; /* balance left side */
+  }
+
+  /* ── Main layout ── */
+  .slide {
+    position: absolute;
+    top: 32px;
+    left: 0;
+    right: 0;
+    bottom: 28px;
+    padding: 16px 48px 16px 48px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* ── Memo Header Block ── */
+  .memo-header {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 3px;
+    padding: 12px 18px;
+    display: flex;
+    align-items: flex-start;
+    gap: 28px;
+  }
+
+  .memo-header-left {
+    flex: 0 0 auto;
+  }
+
+  .memo-type-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--brand-accent-soft);
+}
+
+  .memo-meta {
+    display: flex; flex-wrap: wrap;
+    column-gap: 10px;
+    row-gap: 5px;
+    align-items: baseline;
+  }
+
+  .meta-label {
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+
+  .meta-value {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+    white-space: nowrap;
+  }
+
+  .memo-header-divider {
+    width: 1px;
+    background: rgba(255,255,255,0.12);
+    align-self: stretch;
+    flex-shrink: 0;
+  }
+
+  /* ── Title block ── */
+  .title-block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 0;
+  overflow: visible;
+
+  }
+
+  .slide-title {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+    font-size: 28px;
+    font-weight: 700;
+    color: #ffffff;
+    letter-spacing: -0.01em;
+  }
+
+  .slide-title strong {
+    color: var(--brand-accent-soft);
+  }
+
+  .slide-subtitle {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 108px;
+    font-size: 14px;
+    font-style: italic;
+    color: rgba(255,255,255,0.6);
+  }
+
+  .accent-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+
+
+    background: var(--brand-accent);
+  }
+
+  /* ── Body columns ── */
+  .body-columns {
+    flex: 1 1 0;
+    display: flex;
+    gap: 20px;
+    min-height: 0;
+  }
+
+  /* Left: Key Points */
+  .col-left {
+    flex: 0 0 60%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 0;
+  }
+
+  .section-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--brand-accent-soft);
+}
+
+  .key-points-list {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  .key-point {
+    display: flex;
+    gap: 12px;
+    align-items: flex-start;
+  }
+
+  .kp-number {
+    flex: 0 0 22px;
+    width: 22px;
+    height: 22px;
+    background: var(--brand-accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 800;
+    color: #ffffff;
+}
+
+  .kp-body {
+    flex: 1;
+  }
+
+  .kp-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: #ffffff;
+    line-height: 1.3;
+}
+
+  .kp-text {
+    font-size: 11.5px;
+    font-weight: 400;
+    color: rgba(255,255,255,0.7);
+    line-height: 1.45;
+  }
+
+  /* Right: Decision + Action cards */
+  .col-right {
+    flex: 0 0 calc(40% - 20px);
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+  }
+
+  .side-card {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 3px;
+    padding: 12px 14px;
+    flex: 1 1 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .side-card-title {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--brand-accent-soft);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+  /* Decision items */
+  .decision-items {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .decision-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 9px;
+  }
+
+  .checkbox-outline {
+    flex-shrink: 0;
+    width: 14px;
+    height: 14px;
+    border: 1.5px solid rgba(255,255,255,0.4);
+    border-radius: 2px;
+}
+
+  .decision-text {
+    font-size: 14px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.88);
+    line-height: 1.35;
+  }
+
+  /* Action items */
+  .action-items {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .action-item {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+  }
+
+  .owner-circle {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--brand-primary-mid);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.9);
+    letter-spacing: 0.02em;
+    flex: 0 0 22px;
+  }
+
+  .action-body {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .action-text {
+    font-size: 11.5px;
+    font-weight: 500;
+    color: rgba(255,255,255,0.85);
+    line-height: 1.3;
+  }
+
+  .deadline-pill {
+    flex-shrink: 0;
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--brand-accent-soft);
+    background: rgba(161,0,255,0.18);
+    border: 1px solid rgba(161,0,255,0.35);
+    border-radius: 20px;
+    padding: 2px 7px;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+  }
+
+  /* ── Footer ── */
+  .footer-strip {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 28px;
+    border-top: 1px solid rgba(255,255,255,0.1);
+    background: rgba(255,255,255,0.0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 32px;
+    padding: 0 48px;
+  }
+
+  .footer-classification {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,0.08);
+    height: 100%;
+  }
+
+  .footer-text {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,0.4);
+  }
+</style>
+</head>
+<body>
+
+<!-- ── Chrome top bar ── -->
+<div class="chrome-top">
+  <span class="label-internal">Accenture Internal</span>
+  <span class="badge-draft">Draft</span>
+  <div class="chrome-top-right"></div>
+</div>
+
+<!-- ── Slide canvas ── -->
+<div class="slide">
+
+  <!-- Memo header block -->
+  <div class="memo-header">
+    <div class="memo-header-left">
+      <div class="memo-type-label">Executive Briefing</div>
+      <div class="memo-meta">
+        <span class="meta-label">TO:</span>
+        <span class="meta-value">Global Leadership Committee</span>
+        <span class="meta-label">FROM:</span>
+        <span class="meta-value">Chief Strategy Office</span>
+
+        <span class="meta-label">RE:</span>
+        <span class="meta-value">Q2 Portfolio Rebalancing Initiative</span>
+        <span class="meta-label">DATE:</span>
+        <span class="meta-value">19 May 2026</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Title block -->
+  <div class="title-block">
+    <div class="slide-title">Strategic Rebalancing:<br><strong>Accelerating High-Margin Growth</strong></div>
+    <div class="slide-subtitle">Quarterly performance divergence requires immediate portfolio decisions across three business units</div>
+    <div class="accent-rule"></div>
+  </div>
+
+  <!-- Body: two columns -->
+  <div class="body-columns">
+
+    <!-- Left: Key Points -->
+    <div class="col-left">
+      <div class="section-label">Key Points</div>
+      <div class="key-points-list">
+
+        <div class="key-point">
+          <div class="kp-number">1</div>
+          <div class="kp-body">
+            <div class="kp-title">Revenue concentration risk has crossed threshold</div>
+            <div class="kp-text">Top two clients now represent 41% of gross revenue, exceeding the 35% policy ceiling. Diversification action is required within 90 days.</div>
+          </div>
+        </div>
+
+        <div class="key-point">
+          <div class="kp-number">2</div>
+          <div class="kp-body">
+            <div class="kp-title">Cloud & AI segment outperforms by 18 pts</div>
+            <div class="kp-text">Margin in the Cloud & AI practice reached 34% vs. 16% portfolio average. Reallocation of BD resources can compound this advantage in H2.</div>
+          </div>
+        </div>
+
+        <div class="key-point">
+          <div class="kp-number">3</div>
+          <div class="kp-body">
+            <div class="kp-title">Legacy managed services unit is diluting EBITDA</div>
+            <div class="kp-text">Three legacy contracts running at negative margin due to scope creep. Renegotiation or structured exit paths are modeled in the appendix.</div>
+          </div>
+        </div>
+
+        <div class="key-point">
+          <div class="kp-number">4</div>
+          <div class="kp-body">
+            <div class="kp-title">Talent pipeline aligned to wrong growth vector</div>
+            <div class="kp-text">Current hiring plan adds 120 FTEs in declining-demand roles. Workforce plan revision can redirect $4.2M annually toward high-demand specialisms.</div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Right: Decision + Action -->
+    <div class="col-right">
+
+      <!-- For Decision card -->
+      <div class="side-card">
+        <div class="side-card-title">For Decision</div>
+        <div class="decision-items">
+          <div class="decision-item">
+            <div class="checkbox-outline"></div>
+            <div class="decision-text">Approve portfolio rebalancing framework and 90-day execution mandate</div>
+          </div>
+          <div class="decision-item">
+            <div class="checkbox-outline"></div>
+            <div class="decision-text">Authorize BD resource shift: 60% allocation to Cloud & AI through Q3</div>
+          </div>
+          <div class="decision-item">
+            <div class="checkbox-outline"></div>
+            <div class="decision-text">Ratify revised hiring plan — freeze legacy roles, open 40 AI/data positions</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Action Required card -->
+      <div class="side-card">
+        <div class="side-card-title">Action Required</div>
+        <div class="action-items">
+          <div class="action-item">
+            <div class="owner-circle">CSO</div>
+            <div class="action-body">
+              <span class="action-text">Finalize rebalancing playbook and distribute to BU leads</span>
+              <span class="deadline-pill">30 May</span>
+            </div>
+          </div>
+          <div class="action-item">
+            <div class="owner-circle">CFO</div>
+            <div class="action-body">
+              <span class="action-text">Model exit scenarios for three legacy contracts</span>
+              <span class="deadline-pill">6 Jun</span>
+            </div>
+          </div>
+          <div class="action-item">
+            <div class="owner-circle">CPO</div>
+            <div class="action-body">
+              <span class="action-text">Submit revised workforce plan with cost delta analysis</span>
+              <span class="deadline-pill">13 Jun</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ── Footer strip ── -->
+<div class="footer-strip">
+  <div class="footer-classification">
+    <span class="footer-text">Classification: Confidential &nbsp;·&nbsp; For internal distribution only &nbsp;·&nbsp; Do not forward outside Accenture</span>
+  </div>
+</div>
+
+</body>
+</html>

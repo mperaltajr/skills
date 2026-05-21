@@ -1,0 +1,24 @@
+{
+  "id": "01_executive_summary__slide_7",
+  "layout_pattern": "dual-section",
+  "page_types": [
+    "Executive Summary",
+    "Status Update"
+  ],
+  "title": {
+    "x": 58,
+    "y": 37,
+    "w": 1164,
+    "h": 76,
+    "slot": "action_title"
+  },
+  "body": {
+    "x": 58,
+    "y": 151,
+    "w": 1164,
+    "h": 481,
+    "kind": "dual_section",
+    "halves_slot": "halves"
+  },
+  "invariant": true
+}

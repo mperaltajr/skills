@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>77 · Multi-image grid with captions</title>
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --image-placeholder-bg: #F1F5F9;
+  --image-placeholder-border: #CBD5E1;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1280px; height: 720px; background: var(--slide-bg); font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; color: var(--text-dark); overflow: hidden; }
+body { padding: 0px 64px; position: relative; }
+.draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; }
+.project-label { position: absolute; top: 24px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
+
+.action-title { position: absolute; left: 64px; right: 64px; top: 28px; min-height: 36px; font-size: 27px; font-weight: 700; line-height: 1.2; }
+.action-title strong { color: var(--brand-primary); }
+.subhead { position: absolute; left: 64px; right: 64px; top: 108px; font-size: 14px; color: var(--text-mid); font-style: italic; }
+.title-rule { position: absolute; left: 64px; top: 136px; width: 40px; height: 3px; background: var(--brand-accent); }
+
+/* 3-column x 2-row grid of image cards */
+.image-grid { display: flex; flex-wrap: wrap; gap: 18px; position: absolute; left: 64px; right: 64px; top: 178px; bottom: 132px; }
+
+.card { background: var(--card-bg); border: 1px solid var(--card-border); display: flex; flex-direction: column; position: relative; padding: 10px 12px 12px 12px; }
+.card.featured { border: 2px solid var(--brand-accent); background: #FFFFFF; box-shadow: 0 0 0 1px var(--brand-accent-soft) inset; }
+
+.image-zone { flex: 1; background: var(--image-placeholder-bg); border: 1.5px dashed var(--image-placeholder-border); display: flex; align-items: center; justify-content: center; position: relative; min-height: 0; opacity: 0.7; }
+.card.featured .image-zone { background: #FAF5FF; border-color: var(--brand-accent-soft); }
+.image-corner { position: absolute; top: 8px; left: 10px; color: var(--brand-accent); font-size: 9px; font-weight: 700; letter-spacing: 1.2px; background: white; padding: 3px 7px; }
+.card.featured .image-corner { background: var(--brand-accent); color: white; }
+.image-label { color: var(--text-faint); font-size: 11px; font-weight: 600; letter-spacing: 0.8px; text-align: center; padding: 0 12px; }
+
+.featured-flag { position: absolute; top: 8px; right: 10px; background: var(--brand-accent); color: white; font-size: 9px; font-weight: 700; letter-spacing: 1.2px; padding: 3px 7px; }
+
+.caption { padding-top: 10px; }
+.caption-head { font-size: 14px; font-weight: 700; color: var(--brand-primary); line-height: 1.25; }
+.caption-desc { font-size: 11px; color: var(--text-mid); line-height: 1.35; margin-top: 3px; }
+
+.convergence { position: absolute; left: 64px; right: 64px; bottom: 70px; background: var(--brand-primary); color: white; padding: 14px 22px; font-size: 14px; font-style: italic; font-weight: 600; border-left: 4px solid var(--brand-accent); line-height: 1.4; }
+
+.footer-rule { position: absolute; left: 0; right: 0; bottom: 32px; height: 1px; background: var(--card-border); }
+.footer-left { position: absolute; bottom: 14px; left: 24px; color: var(--text-faint); font-size: 11px; letter-spacing: 1px; }
+.footer-right { position: absolute; bottom: 14px; right: 24px; color: var(--text-faint); font-size: 11px; }
+
+/* DARK THEME */
+:root {
+  --card-bg: rgba(255,255,255,0.07);
+  --card-border: rgba(255,255,255,0.12);
+  --text-dark: #FFFFFF;
+  --text-mid: rgba(255,255,255,0.6);
+  --slide-bg: #2D0A4E;
+  --image-placeholder-bg: rgba(255,255,255,0.05);
+  --image-placeholder-border: rgba(255,255,255,0.2);
+}
+body, .slide { background: #2D0A4E; }
+.project-label { color: rgba(255,255,255,0.4); }
+.action-title { color: #FFFFFF; }
+.action-title strong { color: #C780FF; }
+.subhead { color: rgba(255,255,255,0.6); }
+.title-rule { background: #A100FF; }
+.card { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); }
+.card.featured { background: rgba(161,0,255,0.12); border: 2px solid #A100FF; box-shadow: none; }
+.image-corner { background: rgba(45,10,78,0.8); color: #C780FF; }
+.image-label { color: rgba(255,255,255,0.5); }
+.caption-head { color: #FFFFFF; }
+.caption-desc { color: rgba(255,255,255,0.6); }
+.footer-rule { background: rgba(255,255,255,0.1); }
+.footer-left, .footer-right { color: rgba(255,255,255,0.4); }
+</style>
+</head>
+<body>
+
+  <div class="action-title" data-shape-id="title">Pilot deck galleries &mdash; <strong>six pages, six redos</strong>.</div>
+  <div class="subhead" data-shape-id="subtitle">Side-by-side before and after for the three slides reviewers flagged hardest. One redo carries the deck.</div>
+  <div class="title-rule" data-shape-id="brand-rule"></div>
+
+  <div class="image-grid">
+
+    <div class="card" data-shape-id="photo-1-card">
+      <div class="image-zone" data-shape-id="photo-1-zone">
+        <div class="image-corner" data-shape-id="photo-1-corner-tag">SLIDE 2 &middot; BEFORE</div>
+        <div class="image-label" data-shape-id="photo-1-label">[ Wall-of-bullets layout, no visual hierarchy ]</div>
+      </div>
+      <div class="caption">
+        <div class="caption-head" data-shape-id="photo-1-caption">Slide 2 &mdash; Before</div>
+        <div class="caption-desc" data-shape-id="photo-1-caption-desc">Wall of bullets, no structure.</div>
+      </div>
+    </div>
+
+    <div class="card" data-shape-id="photo-2-card">
+      <div class="image-zone" data-shape-id="photo-2-zone">
+        <div class="image-corner" data-shape-id="photo-2-corner-tag">SLIDE 2 &middot; AFTER</div>
+        <div class="image-label" data-shape-id="photo-2-label">[ Anchor statement with three supporting cards ]</div>
+      </div>
+      <div class="caption">
+        <div class="caption-head" data-shape-id="photo-2-caption">Slide 2 &mdash; After</div>
+        <div class="caption-desc" data-shape-id="photo-2-caption-desc">Anchor + three cards.</div>
+      </div>
+    </div>
+
+    <div class="card" data-shape-id="photo-3-card">
+      <div class="image-zone" data-shape-id="photo-3-zone">
+        <div class="image-corner" data-shape-id="photo-3-corner-tag">SLIDE 5 &middot; BEFORE</div>
+        <div class="image-label" data-shape-id="photo-3-label">[ Three-column table, undifferentiated rows ]</div>
+      </div>
+      <div class="caption">
+        <div class="caption-head" data-shape-id="photo-3-caption">Slide 5 &mdash; Before</div>
+        <div class="caption-desc" data-shape-id="photo-3-caption-desc">3-col table, no story.</div>
+      </div>
+    </div>
+
+    <div class="card featured" data-shape-id="photo-4-card">
+      <div class="featured-flag" data-shape-id="photo-4-featured-flag">FEATURED</div>
+      <div class="image-zone" data-shape-id="photo-4-zone">
+        <div class="image-corner" data-shape-id="photo-4-corner-tag">SLIDE 5 &middot; AFTER</div>
+        <div class="image-label" data-shape-id="photo-4-label">[ Three vertical pillars, headline-first logic ]</div>
+      </div>
+      <div class="caption">
+        <div class="caption-head" data-shape-id="photo-4-caption">Slide 5 &mdash; After</div>
+        <div class="caption-desc" data-shape-id="photo-4-caption-desc">Vertical pillars, clear logic.</div>
+      </div>
+    </div>
+
+    <div class="card" data-shape-id="photo-5-card">
+      <div class="image-zone" data-shape-id="photo-5-zone">
+        <div class="image-corner" data-shape-id="photo-5-corner-tag">SLIDE 7 &middot; BEFORE</div>
+        <div class="image-label" data-shape-id="photo-5-label">[ Generic ask slide, mixed formats ]</div>
+      </div>
+      <div class="caption">
+        <div class="caption-head" data-shape-id="photo-5-caption">Slide 7 &mdash; Before</div>
+        <div class="caption-desc" data-shape-id="photo-5-caption-desc">Generic ask, generic format.</div>
+      </div>
+    </div>
+
+    <div class="card" data-shape-id="photo-6-card">
+      <div class="image-zone" data-shape-id="photo-6-zone">
+        <div class="image-corner" data-shape-id="photo-6-corner-tag">SLIDE 7 &middot; AFTER</div>
+        <div class="image-label" data-shape-id="photo-6-label">[ Single focal-point ask, isolated on slide ]</div>
+      </div>
+      <div class="caption">
+        <div class="caption-head" data-shape-id="photo-6-caption">Slide 7 &mdash; After</div>
+        <div class="caption-desc" data-shape-id="photo-6-caption-desc">Single focal point ask.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="convergence" data-shape-id="convergence">Slide 5 is the one that flipped the room &mdash; pillars beat tables when the audience has to repeat the argument later.</div>
+  <div class="footer-left" data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+</body>
+</html>

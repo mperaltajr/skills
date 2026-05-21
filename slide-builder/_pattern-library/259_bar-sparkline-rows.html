@@ -1,0 +1,492 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>Pattern 259 — Bar + Sparkline Rows</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary:     #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent:      #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark:         #1A1A2E;
+    --text-mid:          #64748B;
+    --text-faint:        #94A3B8;
+    --slide-bg:          #FFFFFF;
+    --card-bg:           #F8F4FC;
+    --card-border:       #E5D5F0;
+    --draft-bg:          #FFD600;
+    --draft-text:        #B71C1C;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    background: var(--slide-bg);
+    font-family: 'Inter', sans-serif;
+    color: var(--text-dark);
+    position: relative;
+  }
+
+  /* ── Chrome ── */
+  .internal-label {
+    position: absolute;
+    top: 9px;
+    left: 16px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .draft-badge {
+    position: absolute;
+    top: 9px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    line-height: 16px;
+  }
+
+  /* ── Header ── */
+  .slide-header {
+    position: absolute; top: 0; left: 0; right: 0; height: 160px;
+  }
+
+  .slide-title {
+    position: absolute; top: 28px; left: 64px; right: 64px; min-height: 36px;
+    font-size: 29px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.15;
+  }
+
+  .slide-title strong {
+    color: var(--brand-accent);
+  }
+
+  .slide-subtitle {
+    position: absolute; top: 108px; left: 64px; right: 64px;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+
+}
+
+  .accent-rule {
+    position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+
+}
+
+  /* ── Body layout ── */
+  .body {
+    display: flex;
+    gap: 0;
+    padding: 0 32px 0 32px;
+    height: calc(720px - 100px - 28px);
+  }
+
+  /* ── Main table area ── */
+  .table-area {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .col-headers {
+    display: flex; flex-wrap: wrap;
+    padding: 0 10px;
+
+    bottom: 2px;
+  }
+
+  .col-header {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    padding: 3px 0;
+  }
+
+  .col-header.right { text-align: right; }
+  .col-header.center { text-align: center; }
+
+  .rows-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .data-row {
+    display: flex; flex-wrap: wrap;
+    align-items: center;
+    padding: 0 10px;
+    min-height: 62px;
+  }
+
+  .data-row.alt { background: var(--card-bg); }
+
+  /* Category */
+  .cat-label {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-dark);
+    padding-right: 8px;
+  }
+
+  /* Bar cell */
+  .bar-cell {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding-right: 12px;
+  }
+
+  .bar-svg {
+    flex: 1;
+    height: 18px;
+  }
+
+  .bar-value {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    white-space: nowrap;
+    min-width: 40px;
+    text-align: right;
+  }
+
+  /* Sparkline */
+  .sparkline-cell {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+
+  /* Delta */
+  .delta-cell {
+    text-align: right;
+    font-size: 11px;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+
+  .delta-pos      { color: #16A34A; }
+  .delta-pos-mild { color: var(--text-mid); }
+  .delta-neg      { color: #DC2626; }
+
+  /* ── Right panel ── */
+  .right-panel {
+    width: 25%;
+    padding-left: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border-left: 1px solid var(--card-border);
+
+    left: 16px;
+  }
+
+  .panel-heading {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+
+    bottom: 2px;
+  }
+
+  .insight-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-left: 3px solid var(--brand-accent);
+    padding: 16px 14px;
+    border-radius: 2px;
+  }
+
+  .insight-card p {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text-dark);
+  }
+
+  .insight-card .insight-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--brand-accent);
+
+    bottom: 4px;
+  }
+
+  .source-note {
+
+    top: auto;
+    font-size: 9px;
+    color: var(--text-faint);
+    line-height: 1.4;
+  }
+
+  /* ── Footer ── */
+  .slide-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 28px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 32px;
+  }
+
+  .footer-left,
+  .footer-right {
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+
+<!-- Chrome -->
+<span class="internal-label">Accenture Internal</span>
+
+<!-- Header -->
+<div class="slide-header">
+  <div class="slide-title">Regional Revenue Performance <strong>FY2026</strong></div>
+  <div class="slide-subtitle">Ranked by absolute value with six-year trend and year-on-year delta · All figures in USD millions</div>
+  <div class="accent-rule"></div>
+</div>
+
+<!-- Body -->
+<div class="body">
+
+  <!-- Table area -->
+  <div class="table-area">
+
+    <!-- Column headers -->
+    <div class="col-headers">
+      <div class="col-header">Category</div>
+      <div class="col-header">Value (FY26)</div>
+      <div class="col-header center">Trend (FY21–26)</div>
+      <div class="col-header right">ΔYOY</div>
+    </div>
+
+    <!-- Rows -->
+    <div class="rows-container">
+
+      <!-- Row 1: North America $847M +18% -->
+      <div class="data-row">
+        <div class="cat-label">North America</div>
+        <div class="bar-cell">
+          <svg class="bar-svg" viewBox="0 0 400 18" preserveAspectRatio="none">
+            <rect x="0" y="2" width="400" height="14" rx="2" fill="#A100FF" opacity="0.92"/>
+          </svg>
+          <span class="bar-value">$847M</span>
+        </div>
+        <div class="sparkline-cell">
+          <!-- FY21–26 up trend: 480,510,560,620,700,847 -->
+          <svg width="80" height="20" viewBox="0 0 80 20">
+            <polyline
+              points="0,17 16,15 32,12 48,9 64,5 80,1"
+              fill="none" stroke="#C780FF" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="delta-cell delta-pos">+18% ↑</div>
+      </div>
+
+      <!-- Row 2: EMEA $612M +7% -->
+      <div class="data-row alt">
+        <div class="cat-label">EMEA</div>
+        <div class="bar-cell">
+          <svg class="bar-svg" viewBox="0 0 400 18" preserveAspectRatio="none">
+            <rect x="0" y="2" width="289" height="14" rx="2" fill="#A100FF" opacity="0.92"/>
+          </svg>
+          <span class="bar-value">$612M</span>
+        </div>
+        <div class="sparkline-cell">
+          <!-- flat-up: 490,500,510,540,570,612 -->
+          <svg width="80" height="20" viewBox="0 0 80 20">
+            <polyline
+              points="0,10 16,10 32,9 48,7 64,5 80,2"
+              fill="none" stroke="#C780FF" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="delta-cell delta-pos">+7% ↑</div>
+      </div>
+
+      <!-- Row 3: Asia Pacific $441M +31% bold green -->
+      <div class="data-row">
+        <div class="cat-label">Asia Pacific</div>
+        <div class="bar-cell">
+          <svg class="bar-svg" viewBox="0 0 400 18" preserveAspectRatio="none">
+            <rect x="0" y="2" width="208" height="14" rx="2" fill="#A100FF" opacity="0.92"/>
+          </svg>
+          <span class="bar-value">$441M</span>
+        </div>
+        <div class="sparkline-cell">
+          <!-- steep up: 210,240,280,320,380,441 -->
+          <svg width="80" height="20" viewBox="0 0 80 20">
+            <polyline
+              points="0,18 16,16 32,13 48,9 64,5 80,1"
+              fill="none" stroke="#C780FF" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="delta-cell delta-pos" style="font-size:12px;">+31% ↑</div>
+      </div>
+
+      <!-- Row 4: Latin America $198M +3% gray -->
+      <div class="data-row alt">
+        <div class="cat-label">Latin America</div>
+        <div class="bar-cell">
+          <svg class="bar-svg" viewBox="0 0 400 18" preserveAspectRatio="none">
+            <rect x="0" y="2" width="94" height="14" rx="2" fill="#A100FF" opacity="0.92"/>
+          </svg>
+          <span class="bar-value">$198M</span>
+        </div>
+        <div class="sparkline-cell">
+          <!-- down-up: 220,200,185,175,192,198 -->
+          <svg width="80" height="20" viewBox="0 0 80 20">
+            <polyline
+              points="0,5 16,8 32,12 48,15 64,11 80,10"
+              fill="none" stroke="#C780FF" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="delta-cell delta-pos-mild">+3% ↑</div>
+      </div>
+
+      <!-- Row 5: Middle East $124M +22% -->
+      <div class="data-row">
+        <div class="cat-label">Middle East</div>
+        <div class="bar-cell">
+          <svg class="bar-svg" viewBox="0 0 400 18" preserveAspectRatio="none">
+            <rect x="0" y="2" width="59" height="14" rx="2" fill="#A100FF" opacity="0.92"/>
+          </svg>
+          <span class="bar-value">$124M</span>
+        </div>
+        <div class="sparkline-cell">
+          <!-- up: 55,65,75,88,102,124 -->
+          <svg width="80" height="20" viewBox="0 0 80 20">
+            <polyline
+              points="0,17 16,14 32,12 48,9 64,6 80,2"
+              fill="none" stroke="#C780FF" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="delta-cell delta-pos">+22% ↑</div>
+      </div>
+
+      <!-- Row 6: Africa $89M -4% red -->
+      <div class="data-row alt">
+        <div class="cat-label">Africa</div>
+        <div class="bar-cell">
+          <svg class="bar-svg" viewBox="0 0 400 18" preserveAspectRatio="none">
+            <rect x="0" y="2" width="42" height="14" rx="2" fill="#A100FF" opacity="0.92"/>
+          </svg>
+          <span class="bar-value">$89M</span>
+        </div>
+        <div class="sparkline-cell">
+          <!-- down: 105,100,98,95,93,89 -->
+          <svg width="80" height="20" viewBox="0 0 80 20">
+            <polyline
+              points="0,3 16,5 32,7 48,10 64,12 80,16"
+              fill="none" stroke="#C780FF" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="delta-cell delta-neg">-4% ↓</div>
+      </div>
+
+      <!-- Row 7: Central Asia $54M +1% gray -->
+      <div class="data-row">
+        <div class="cat-label">Central Asia</div>
+        <div class="bar-cell">
+          <svg class="bar-svg" viewBox="0 0 400 18" preserveAspectRatio="none">
+            <rect x="0" y="2" width="26" height="14" rx="2" fill="#A100FF" opacity="0.92"/>
+          </svg>
+          <span class="bar-value">$54M</span>
+        </div>
+        <div class="sparkline-cell">
+          <!-- flat: 50,51,52,53,53,54 -->
+          <svg width="80" height="20" viewBox="0 0 80 20">
+            <polyline
+              points="0,10 16,10 32,9 48,9 64,9 80,9"
+              fill="none" stroke="#C780FF" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="delta-cell delta-pos-mild">+1% ↑</div>
+      </div>
+
+      <!-- Row 8: ANZ $47M -11% red -->
+      <div class="data-row alt">
+        <div class="cat-label">ANZ</div>
+        <div class="bar-cell">
+          <svg class="bar-svg" viewBox="0 0 400 18" preserveAspectRatio="none">
+            <rect x="0" y="2" width="22" height="14" rx="2" fill="#A100FF" opacity="0.92"/>
+          </svg>
+          <span class="bar-value">$47M</span>
+        </div>
+        <div class="sparkline-cell">
+          <!-- down: 70,65,60,55,53,47 -->
+          <svg width="80" height="20" viewBox="0 0 80 20">
+            <polyline
+              points="0,2 16,5 32,8 48,11 64,13 80,17"
+              fill="none" stroke="#C780FF" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="delta-cell delta-neg">-11% ↓</div>
+      </div>
+
+    </div><!-- /rows-container -->
+  </div><!-- /table-area -->
+
+  <!-- Right panel -->
+  <div class="right-panel">
+    <div class="panel-heading">Key Insights</div>
+
+    <div class="insight-card">
+      <div class="insight-label">Growth Leader</div>
+      <p>Asia Pacific posted the strongest YOY growth at <strong>+31%</strong>, driven by accelerated digital transformation investment across SEA markets. Momentum is steepening — FY27 could surpass Latin America in absolute scale.</p>
+    </div>
+
+    <div class="insight-card">
+      <div class="insight-label">Watch List</div>
+      <p>Africa and ANZ are in structural decline. Combined revenue contraction of <strong>−$14M</strong> YOY warrants portfolio review. Flat trend in Central Asia signals limited near-term upside without new market activation.</p>
+    </div>
+
+    <div class="source-note">
+      Source: Global Revenue Operations Dashboard, FY2026 Q4 Close · Figures rounded to nearest $1M · Exchange rates fixed at FY26 annual average
+    </div>
+  </div>
+
+</div><!-- /body -->
+
+<!-- Footer -->
+<div class="slide-footer">
+  <span class="footer-left">Confidential</span>
+  <span class="footer-right">Slide Lab · 2026 · 259</span>
+</div>
+
+</body>
+</html>

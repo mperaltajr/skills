@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pattern 190 — Core Competency Tree</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: Inter, system-ui, sans-serif;
+    background: var(--slide-bg);
+    position: relative;
+  }
+
+  /* ── Invariant chrome ── */
+
+  .badge-internal {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  .badge-draft {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 0;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .title-block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+  .title-block h1 {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+  pointer-events: auto;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.15;
+  }
+
+  .title-block h1 strong {
+    color: var(--brand-accent);
+  }
+
+  .title-block .sub {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 108px;
+  pointer-events: auto;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+    }
+
+  .title-block .accent-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+  pointer-events: none;
+    
+    
+    background: var(--brand-accent);
+    border-radius: 0;
+  }
+
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 20px 10px;
+  }
+
+  .footer span {
+    font-size: 8px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* ── Tree layout ── */
+
+  .tree-area {
+    position: absolute;
+    top: 128px;
+    left: 48px;
+    right: 48px;
+    bottom: 72px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+  }
+
+  /* SVG connector layer */
+  .connector-svg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    overflow: visible;
+  }
+
+  /* Root node */
+  .root-node {
+    background: var(--brand-primary);
+    color: #FFFFFF;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 10px 28px;
+    text-align: center;
+    line-height: 1.3;
+    position: relative;
+    z-index: 2;
+    white-space: nowrap;
+  }
+
+  /* Branch row */
+  .branch-row {
+    display: flex;
+    gap: 32px;
+    margin-top: 36px;
+    position: relative;
+    z-index: 2;
+  }
+
+  .branch-col {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    width: 244px;
+  }
+
+  .branch-node {
+    background: var(--brand-primary-mid);
+    color: #FFFFFF;
+    font-size: 14px;
+    font-weight: 700;
+    padding: 9px 16px;
+    text-align: center;
+    width: 100%;
+    line-height: 1.3;
+  }
+
+  /* Leaf row per branch */
+  .leaf-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 28px;
+    width: 100%;
+    align-items: center;
+  }
+
+  .leaf-node {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    color: var(--text-dark);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 7px 12px;
+    text-align: center;
+    width: 100%;
+    line-height: 1.3;
+  }
+
+  .leaf-node .leaf-sub {
+    font-size: 10px;
+    font-weight: 400;
+    color: var(--text-mid);
+    margin-top: 2px;
+  }
+
+  /* Differentiator band */
+  .diff-band {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 0 8px;
+    height: 44px;
+  }
+
+  .diff-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: var(--text-mid);
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .diff-chips {
+    display: flex;
+    gap: 12px;
+    flex: 1;
+    justify-content: center;
+  }
+
+  .diff-chip {
+    background: var(--brand-primary);
+    color: #FFFFFF;
+    font-size: 11px;
+    font-weight: 600;
+    padding: 6px 18px;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    flex: 1;
+    text-align: center;
+    max-width: 300px;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Invariant chrome -->
+  <div class="badge-internal" data-shape-id="accenture-tag">Accenture Internal</div>
+  <div class="badge-draft" data-shape-id="draft-badge">Draft</div>
+
+  <div class="title-block">
+    <h1 data-shape-id="title">Building a <strong>Competitive Edge</strong> Through Core Competencies</h1>
+    <p class="sub" data-shape-id="subtitle">Structured view of capability domains, key disciplines, and differentiation drivers</p>
+    <div class="accent-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- Tree -->
+  <div class="tree-area" id="treeArea" data-shape-id="chart-canvas">
+
+    <!-- SVG connectors drawn after layout -->
+    <svg class="connector-svg" id="connectorSvg"></svg>
+
+    <!-- Root -->
+    <div class="root-node" id="rootNode" data-shape-id="tree-root">Core Competency Platform</div>
+
+    <!-- Branches -->
+    <div class="branch-row" id="branchRow">
+
+      <!-- Branch 1 -->
+      <div class="branch-col" id="col0">
+        <div class="branch-node" id="branch0" data-shape-id="tree-branch-1-name">Technology &amp; Engineering</div>
+        <div class="leaf-row">
+          <div class="leaf-node" data-shape-id="tree-branch-1-leaf-1">Cloud Architecture<div class="leaf-sub">Multi-cloud &amp; hybrid platforms</div></div>
+          <div class="leaf-node" data-shape-id="tree-branch-1-leaf-2">AI / ML Solutions<div class="leaf-sub">Applied intelligence at scale</div></div>
+          <div class="leaf-node" data-shape-id="tree-branch-1-leaf-3">Cybersecurity<div class="leaf-sub">Zero-trust &amp; threat response</div></div>
+        </div>
+      </div>
+
+      <!-- Branch 2 -->
+      <div class="branch-col" id="col1">
+        <div class="branch-node" id="branch1" data-shape-id="tree-branch-2-name">Industry Expertise</div>
+        <div class="leaf-row">
+          <div class="leaf-node" data-shape-id="tree-branch-2-leaf-1">Sector Knowledge<div class="leaf-sub">Deep domain specialists</div></div>
+          <div class="leaf-node" data-shape-id="tree-branch-2-leaf-2">Regulatory Acumen<div class="leaf-sub">Compliance &amp; policy alignment</div></div>
+          <div class="leaf-node" data-shape-id="tree-branch-2-leaf-3">Market Intelligence<div class="leaf-sub">Trend analysis &amp; benchmarking</div></div>
+        </div>
+      </div>
+
+      <!-- Branch 3 -->
+      <div class="branch-col" id="col2">
+        <div class="branch-node" id="branch2" data-shape-id="tree-branch-3-name">Delivery &amp; Operations</div>
+        <div class="leaf-row">
+          <div class="leaf-node" data-shape-id="tree-branch-3-leaf-1">Agile Execution<div class="leaf-sub">Iterative delivery frameworks</div></div>
+          <div class="leaf-node" data-shape-id="tree-branch-3-leaf-2">Talent &amp; Culture<div class="leaf-sub">High-performance teaming</div></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Differentiator band -->
+    <div class="diff-band">
+      <span class="diff-label" data-shape-id="diff-label">Competitive Differentiation</span>
+      <div class="diff-chips">
+        <div class="diff-chip" data-shape-id="diff-chip-1">End-to-End Integration</div>
+        <div class="diff-chip" data-shape-id="diff-chip-2">Proprietary Toolchain</div>
+        <div class="diff-chip" data-shape-id="diff-chip-3">Global Talent Network</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer" data-shape-id="footer-rule">
+    <span data-shape-id="footer-left">Confidential — Accenture Internal</span>
+    <span data-shape-id="footer-right">Slide Lab · 2026 · 190</span>
+  </div>
+
+<script>
+  // Draw SVG connectors after layout is painted
+  window.addEventListener('load', function () {
+    const area    = document.getElementById('treeArea');
+    const svg     = document.getElementById('connectorSvg');
+    const root    = document.getElementById('rootNode');
+    const branches = [
+      document.getElementById('branch0'),
+      document.getElementById('branch1'),
+      document.getElementById('branch2')
+    ];
+
+    const areaRect  = area.getBoundingClientRect();
+
+    function rel(el) {
+      const r = el.getBoundingClientRect();
+      return {
+        top:    r.top    - areaRect.top,
+        left:   r.left   - areaRect.left,
+        bottom: r.bottom - areaRect.top,
+        right:  r.right  - areaRect.left,
+        cx: (r.left + r.right)  / 2 - areaRect.left,
+        cy: (r.top  + r.bottom) / 2 - areaRect.top
+      };
+    }
+
+    const r   = rel(root);
+    const brs = branches.map(rel);
+
+    const rootExitY  = r.bottom;
+    const rootCX     = r.cx;
+
+    // Horizontal mid-rail Y
+    const midY = rootExitY + (brs[0].top - rootExitY) / 2;
+
+    let paths = '';
+    const stroke = '#C780FF';
+    const sw = 1.5;
+
+    // Vertical from root down to mid rail
+    paths += `<line x1="${rootCX}" y1="${rootExitY}" x2="${rootCX}" y2="${midY}" stroke="${stroke}" stroke-width="${sw}"/>`;
+
+    // Horizontal rail across all branch midpoints
+    const leftX  = brs[0].cx;
+    const rightX = brs[brs.length - 1].cx;
+    paths += `<line x1="${leftX}" y1="${midY}" x2="${rightX}" y2="${midY}" stroke="${stroke}" stroke-width="${sw}"/>`;
+
+    // Verticals from rail down to each branch
+    brs.forEach(function (b) {
+      paths += `<line x1="${b.cx}" y1="${midY}" x2="${b.cx}" y2="${b.top}" stroke="${stroke}" stroke-width="${sw}"/>`;
+    });
+
+    svg.innerHTML = paths;
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>278 · Decision Gate Process</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    background: var(--slide-bg);
+    font-family: 'Inter', sans-serif;
+    color: var(--text-dark);
+  }
+
+  /* ── CHROME: top bar ── */
+  .top-bar {
+    position: absolute;
+    top: 10px;
+    left: 0;
+    right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+  }
+  .internal-label {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+  }
+  .draft-badge {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    padding: 2px 8px;
+    /* flat rectangle — no border-radius */
+  }
+
+  /* ── HEADER ── */
+  .header {
+    position: absolute; top: 0; left: 0; right: 0; height: 160px;
+  }
+  .title {
+    position: absolute; top: 28px; left: 64px; right: 64px; min-height: 36px;
+    font-size: 29px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.15;
+  }
+  .title strong {
+    color: var(--brand-accent);
+  }
+  .subtitle {
+    position: absolute; top: 108px; left: 64px; right: 64px;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+
+}
+  .accent-rule {
+    position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+
+}
+
+  /* ── MAIN CONTENT AREA ── */
+  .content {
+    position: absolute;
+    top: 118px;
+    left: 24px;
+    right: 24px;
+    bottom: 38px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* ── TOP ROW: phase flow ── */
+  .flow-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+  }
+
+  .phase-box {
+    background: var(--brand-primary);
+    color: #fff;
+    font-size: 14px;
+    font-weight: 700;
+    text-align: center;
+    padding: 16px 0;
+    border-radius: 4px;
+    line-height: 1.3;
+  }
+  .phase-box .phase-num {
+    font-size: 9px;
+    font-weight: 500;
+    opacity: 0.7;
+    display: block;
+
+    bottom: 2px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .arrow {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    color: var(--brand-accent);
+  }
+  .arrow svg {
+    display: block;
+  }
+
+  /* Diamond gate in the flow row */
+  .gate-diamond-wrap {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: relative;
+  }
+  .gate-diamond {
+    width: 62px;
+    height: 62px;
+    background: var(--brand-accent);
+    transform: rotate(45deg);
+    border-radius: 4px;
+    position: relative;
+  }
+  .gate-diamond-label {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    text-align: center;
+    line-height: 1.25;
+    white-space: nowrap;
+    letter-spacing: 0.04em;
+  }
+
+  /* ── BOTTOM ROW: cards ── */
+  .cards-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex: 1;
+    gap: 0;
+  }
+
+  /* spacer to align cards with flow elements */
+  .card-slot {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .phase-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 4px;
+    padding: 14px 12px;
+    flex: 1;
+  }
+  .phase-card .card-title {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--brand-primary-mid);
+
+    bottom: 10px;
+  }
+  .phase-card ul {
+    list-style: none;
+    padding: 0;
+  }
+  .phase-card ul li {
+    font-size: 11px;
+    color: var(--text-mid);
+    line-height: 1.55;
+    padding-left: 10px;
+    position: relative;
+
+    bottom: 4px;
+  }
+  .phase-card ul li::before {
+    content: '·';
+    position: absolute;
+    left: 2px;
+    color: var(--brand-accent);
+    font-size: 14px;
+    line-height: 1.3;
+  }
+
+  .gate-card {
+    background: #fff;
+    border: 1px solid var(--card-border);
+    border-top: 3px solid var(--brand-accent);
+    border-radius: 4px;
+    padding: 12px 9px;
+    flex: 1;
+  }
+  .gate-card .gc-section-label {
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--brand-accent);
+
+    bottom: 6px;
+
+    top: 0;
+  }
+  .gate-card .gc-section-label.exit-label {
+
+    top: 12px;
+  }
+  .gate-card ul {
+    list-style: none;
+    padding: 0;
+  }
+  .gate-card ul li {
+    font-size: 10px;
+    color: var(--text-mid);
+    line-height: 1.5;
+    padding-left: 10px;
+    position: relative;
+
+    bottom: 4px;
+  }
+  .gate-card ul li::before {
+    content: '›';
+    position: absolute;
+    left: 1px;
+    color: var(--brand-accent-soft);
+    font-size: 11px;
+    line-height: 1.3;
+  }
+
+  /* ── FOOTER ── */
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 24px;
+  }
+  .footer span {
+    font-size: 9px;
+    color: var(--text-faint);
+    letter-spacing: 0.04em;
+  }
+</style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <span class="internal-label">Accenture Internal</span>
+  <span style="width:110px"></span><!-- balance -->
+</div>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="title">Decision <strong>Gate Process</strong></div>
+  <div class="subtitle">Horizontal phase flow with structured gate reviews — entry &amp; exit criteria per gate</div>
+  <div class="accent-rule"></div>
+</div>
+
+<!-- MAIN CONTENT -->
+<div class="content">
+
+  <!-- FLOW ROW -->
+  <div class="flow-row">
+
+    <!-- Phase 1 -->
+    <div class="phase-box" style="width:148px;">
+      <span class="phase-num">Phase 1</span>
+      Initiate
+    </div>
+
+    <!-- Arrow -->
+    <div class="arrow">
+      <svg width="18" height="14" viewBox="0 0 18 14" fill="none">
+        <path d="M0 7h14M10 2l6 5-6 5" stroke="#A100FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <!-- Gate 1 -->
+    <div class="gate-diamond-wrap">
+      <div class="gate-diamond">
+        <div class="gate-diamond-label">Gate<br>1</div>
+      </div>
+    </div>
+
+    <!-- Arrow -->
+    <div class="arrow">
+      <svg width="18" height="14" viewBox="0 0 18 14" fill="none">
+        <path d="M0 7h14M10 2l6 5-6 5" stroke="#A100FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <!-- Phase 2 -->
+    <div class="phase-box" style="width:148px;">
+      <span class="phase-num">Phase 2</span>
+      Diagnose
+    </div>
+
+    <!-- Arrow -->
+    <div class="arrow">
+      <svg width="18" height="14" viewBox="0 0 18 14" fill="none">
+        <path d="M0 7h14M10 2l6 5-6 5" stroke="#A100FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <!-- Gate 2 -->
+    <div class="gate-diamond-wrap">
+      <div class="gate-diamond">
+        <div class="gate-diamond-label">Gate<br>2</div>
+      </div>
+    </div>
+
+    <!-- Arrow -->
+    <div class="arrow">
+      <svg width="18" height="14" viewBox="0 0 18 14" fill="none">
+        <path d="M0 7h14M10 2l6 5-6 5" stroke="#A100FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <!-- Phase 3 -->
+    <div class="phase-box" style="width:148px;">
+      <span class="phase-num">Phase 3</span>
+      Design
+    </div>
+
+    <!-- Arrow -->
+    <div class="arrow">
+      <svg width="18" height="14" viewBox="0 0 18 14" fill="none">
+        <path d="M0 7h14M10 2l6 5-6 5" stroke="#A100FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <!-- Gate 3 -->
+    <div class="gate-diamond-wrap">
+      <div class="gate-diamond">
+        <div class="gate-diamond-label">Gate<br>3</div>
+      </div>
+    </div>
+
+    <!-- Arrow -->
+    <div class="arrow">
+      <svg width="18" height="14" viewBox="0 0 18 14" fill="none">
+        <path d="M0 7h14M10 2l6 5-6 5" stroke="#A100FF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </div>
+
+    <!-- Phase 4 -->
+    <div class="phase-box" style="width:148px;">
+      <span class="phase-num">Phase 4</span>
+      Deliver
+    </div>
+
+  </div><!-- /flow-row -->
+
+  <!-- CARDS ROW -->
+  <div class="cards-row">
+
+    <!-- Phase 1 card -->
+    <div class="card-slot" style="width:148px;">
+      <div class="phase-card">
+        <div class="card-title">Key Activities</div>
+        <ul>
+          <li>Define scope</li>
+          <li>Mobilise team</li>
+          <li>Align stakeholders</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Gate 1 spacer + card -->
+    <div class="card-slot" style="width:98px; padding: 0 6px;">
+      <div class="gate-card">
+        <div class="gc-section-label">Entry Criteria</div>
+        <ul>
+          <li>Sponsor sign-off</li>
+        </ul>
+        <div class="gc-section-label exit-label">Exit Deliverable</div>
+        <ul>
+          <li>Project charter approved</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Phase 2 card -->
+    <div class="card-slot" style="width:148px;">
+      <div class="phase-card">
+        <div class="card-title">Key Activities</div>
+        <ul>
+          <li>Current state analysis</li>
+          <li>Benchmarking</li>
+          <li>Hypothesis framing</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Gate 2 spacer + card -->
+    <div class="card-slot" style="width:98px; padding: 0 6px;">
+      <div class="gate-card">
+        <div class="gc-section-label">Entry Criteria</div>
+        <ul>
+          <li>Findings validated</li>
+        </ul>
+        <div class="gc-section-label exit-label">Exit Deliverable</div>
+        <ul>
+          <li>Business case approved</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Phase 3 card -->
+    <div class="card-slot" style="width:148px;">
+      <div class="phase-card">
+        <div class="card-title">Key Activities</div>
+        <ul>
+          <li>Solution design</li>
+          <li>Pilot plan</li>
+          <li>Change strategy</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Gate 3 spacer + card -->
+    <div class="card-slot" style="width:98px; padding: 0 6px;">
+      <div class="gate-card">
+        <div class="gc-section-label">Entry Criteria</div>
+        <ul>
+          <li>Design reviewed</li>
+        </ul>
+        <div class="gc-section-label exit-label">Exit Deliverable</div>
+        <ul>
+          <li>Build approved</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Phase 4 card -->
+    <div class="card-slot" style="width:148px;">
+      <div class="phase-card">
+        <div class="card-title">Key Activities</div>
+        <ul>
+          <li>Build &amp; test</li>
+          <li>Training</li>
+          <li>Go-live support</li>
+        </ul>
+      </div>
+    </div>
+
+  </div><!-- /cards-row -->
+
+</div><!-- /content -->
+
+<!-- FOOTER -->
+<div class="footer">
+  <span>Confidential</span>
+  <span>Slide Lab · 2026 · 278</span>
+</div>
+
+</body>
+</html>

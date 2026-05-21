@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>286 · Cutover / Go-Live Plan (dark)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+html, body {
+  width: 1280px;
+  height: 720px;
+  background: var(--brand-primary);
+  font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  color: #FFFFFF;
+  overflow: hidden;
+}
+
+body { position: relative; }
+
+/* ── Chrome ── */
+.accenture-tag {
+  position: absolute;
+  top: 18px;
+  left: 24px;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.5);
+}
+
+.draft-badge {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--draft-bg);
+  color: var(--draft-text);
+  font-size: 7px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 3px 14px;
+  border-radius: 0;
+}
+
+/* ── Header ── */
+.header {
+  position: absolute;
+  top: 42px;
+  left: 48px;
+  right: 48px;
+}
+
+.action-title {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+  color: #FFFFFF;
+}
+
+.action-title strong {
+  color: var(--brand-accent-soft);
+}
+
+.subhead {
+  font-size: 13px;
+  font-style: italic;
+  color: rgba(255,255,255,0.6);
+  margin-top: 6px;
+}
+
+.title-rule {
+  width: 64px;
+  height: 3px;
+  background: var(--brand-accent);
+  margin-top: 14px;
+}
+
+/* ── Main layout ── */
+.main {
+  position: absolute;
+  top: 148px;
+  left: 48px;
+  right: 48px;
+  bottom: 98px;
+  display: flex;
+  gap: 0;
+}
+
+/* ── Left: vertical timeline axis ── */
+.timeline-col {
+  width: 124px;
+  flex-shrink: 0;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.axis-line {
+  position: absolute;
+  left: 50%;
+  top: 10px;
+  bottom: 10px;
+  width: 2px;
+  background: rgba(255,255,255,0.15);
+  transform: translateX(-50%);
+}
+
+/* ── Right: activity cards column ── */
+.cards-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-left: 12px;
+}
+
+/* ── Timeline rows (each row = node + card side-by-side) ── */
+.row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  flex: 1;
+  min-height: 0;
+  padding: 3px 0;
+}
+
+/* ── Node ── */
+.node {
+  width: 124px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  position: relative;
+  z-index: 1;
+}
+
+.node-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.25);
+  border: 2px solid rgba(255,255,255,0.4);
+  flex-shrink: 0;
+}
+
+.node-dot.golive {
+  width: 20px;
+  height: 20px;
+  background: var(--brand-accent);
+  border: 3px solid var(--brand-accent-soft);
+  box-shadow: 0 0 16px rgba(161,0,255,0.6);
+}
+
+.node-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.55);
+  text-align: center;
+  line-height: 1.2;
+}
+
+.node-label.golive {
+  color: var(--brand-accent-soft);
+  font-size: 10px;
+}
+
+/* ── Activity card ── */
+.card {
+  flex: 1;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 4px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 0;
+  margin-left: 10px;
+}
+
+.card.golive-card {
+  background: rgba(161,0,255,0.14);
+  border-color: rgba(161,0,255,0.4);
+}
+
+/* Owner initials circle */
+.owner {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--brand-primary-mid);
+  border: 1px solid rgba(255,255,255,0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.85);
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+.owner.golive {
+  background: rgba(161,0,255,0.5);
+  border-color: var(--brand-accent-soft);
+}
+
+/* Activity text block */
+.activity {
+  flex: 1;
+  min-width: 0;
+}
+
+.activity-bullets {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.activity-bullets li {
+  font-size: 11px;
+  color: rgba(255,255,255,0.72);
+  line-height: 1.4;
+  padding-left: 10px;
+  position: relative;
+}
+
+.activity-bullets li::before {
+  content: '·';
+  position: absolute;
+  left: 2px;
+  color: var(--brand-accent-soft);
+  font-size: 12px;
+  line-height: 1;
+  top: 0;
+}
+
+.golive-card .activity-bullets li {
+  color: rgba(255,255,255,0.9);
+  font-weight: 500;
+}
+
+/* RAG status pill */
+.rag {
+  flex-shrink: 0;
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 2px;
+}
+
+.rag-g { background: rgba(34,197,94,0.2); color: #4ADE80; border: 1px solid rgba(34,197,94,0.35); }
+.rag-a { background: rgba(251,191,36,0.2); color: #FCD34D; border: 1px solid rgba(251,191,36,0.35); }
+.rag-r { background: rgba(239,68,68,0.2);  color: #F87171; border: 1px solid rgba(239,68,68,0.35); }
+
+/* ── Readiness bar ── */
+.readiness-area {
+  position: absolute;
+  bottom: 36px;
+  left: 48px;
+  right: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.readiness-label {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.55);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.readiness-label span {
+  color: var(--brand-accent-soft);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.bar-track {
+  flex: 1;
+  height: 6px;
+  background: rgba(255,255,255,0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.bar-fill {
+  height: 100%;
+  width: 87%;
+  background: linear-gradient(90deg, var(--brand-primary-mid) 0%, var(--brand-accent) 100%);
+  border-radius: 3px;
+}
+
+/* ── Footer ── */
+.footer {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 32px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 24px;
+}
+
+.footer-left {
+  font-size: 9px;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.footer-right {
+  font-size: 9px;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 0.05em;
+}
+</style>
+</head>
+<body>
+
+  <!-- Chrome -->
+  <div class="accenture-tag" data-shape-id="accenture-tag">Accenture Internal</div>
+  <div class="draft-badge" data-shape-id="draft-badge">DRAFT</div>
+
+  <!-- Header -->
+  <div class="header" data-shape-id="header-block">
+    <div class="action-title" data-shape-id="title">
+      System cutover is on track — <strong>Go-Live confirmed for Day 0.</strong>
+    </div>
+    <div class="subhead" data-shape-id="subhead">T-minus plan · ERP Program · Wave 2 Cutover · Owner: Delivery Lead</div>
+    <div class="title-rule" data-shape-id="title-rule"></div>
+  </div>
+
+  <!-- Main: timeline nodes + activity cards -->
+  <div class="main" data-shape-id="main-layout">
+
+    <!-- Row 1: T-7 -->
+    <div class="row" data-shape-id="row-t7">
+      <div class="node" data-shape-id="node-t7">
+        <div class="node-dot"></div>
+        <div class="node-label">T − 7d</div>
+      </div>
+      <div class="card" data-shape-id="card-t7">
+        <div class="owner" data-shape-id="owner-t7">PB</div>
+        <div class="activity" data-shape-id="activity-t7">
+          <ul class="activity-bullets">
+            <li>Freeze all non-critical change requests</li>
+            <li>Baseline data migration dry-run complete</li>
+            <li>Confirm hypercare team rosters &amp; shifts</li>
+          </ul>
+        </div>
+        <div class="rag rag-g" data-shape-id="rag-t7">ON</div>
+      </div>
+    </div>
+
+    <!-- Row 2: T-3 -->
+    <div class="row" data-shape-id="row-t3">
+      <div class="node" data-shape-id="node-t3">
+        <div class="node-dot"></div>
+        <div class="node-label">T − 3d</div>
+      </div>
+      <div class="card" data-shape-id="card-t3">
+        <div class="owner" data-shape-id="owner-t3">SR</div>
+        <div class="activity" data-shape-id="activity-t3">
+          <ul class="activity-bullets">
+            <li>Prod environment smoke tests passed</li>
+            <li>Cutover runbook distributed to all workstreams</li>
+            <li>Rollback decision point signed off by sponsor</li>
+          </ul>
+        </div>
+        <div class="rag rag-a" data-shape-id="rag-t3">AT</div>
+      </div>
+    </div>
+
+    <!-- Row 3: T-1 -->
+    <div class="row" data-shape-id="row-t1">
+      <div class="node" data-shape-id="node-t1">
+        <div class="node-dot"></div>
+        <div class="node-label">T − 1d</div>
+      </div>
+      <div class="card" data-shape-id="card-t1">
+        <div class="owner" data-shape-id="owner-t1">KL</div>
+        <div class="activity" data-shape-id="activity-t1">
+          <ul class="activity-bullets">
+            <li>Legacy system read-only lock at 18:00</li>
+            <li>Final data extract &amp; load initiated</li>
+            <li>War-room bridge line opened; all leads dial-in</li>
+          </ul>
+        </div>
+        <div class="rag rag-g" data-shape-id="rag-t1">ON</div>
+      </div>
+    </div>
+
+    <!-- Row 4: GO-LIVE (focal) -->
+    <div class="row" data-shape-id="row-golive">
+      <div class="node" data-shape-id="node-golive">
+        <div class="node-dot golive"></div>
+        <div class="node-label golive">GO LIVE</div>
+      </div>
+      <div class="card golive-card" data-shape-id="card-golive">
+        <div class="owner golive" data-shape-id="owner-golive">DL</div>
+        <div class="activity" data-shape-id="activity-golive">
+          <ul class="activity-bullets">
+            <li>New system live at 06:00 · users notified via broadcast</li>
+            <li>Hypercare squad on-site; P1 SLA = 30 min</li>
+            <li>Executive dashboard refreshed every 2 hours</li>
+          </ul>
+        </div>
+        <div class="rag rag-g" data-shape-id="rag-golive">LIVE</div>
+      </div>
+    </div>
+
+    <!-- Row 5: T+1 -->
+    <div class="row" data-shape-id="row-tp1">
+      <div class="node" data-shape-id="node-tp1">
+        <div class="node-dot"></div>
+        <div class="node-label">T + 1d</div>
+      </div>
+      <div class="card" data-shape-id="card-tp1">
+        <div class="owner" data-shape-id="owner-tp1">MR</div>
+        <div class="activity" data-shape-id="activity-tp1">
+          <ul class="activity-bullets">
+            <li>Incident triage &amp; resolution log reviewed</li>
+            <li>Business volume vs. baseline check (orders / transactions)</li>
+            <li>Rollback window formally closed if criteria met</li>
+          </ul>
+        </div>
+        <div class="rag rag-g" data-shape-id="rag-tp1">ON</div>
+      </div>
+    </div>
+
+    <!-- Row 6: T+3 -->
+    <div class="row" data-shape-id="row-tp3">
+      <div class="node" data-shape-id="node-tp3">
+        <div class="node-dot"></div>
+        <div class="node-label">T + 3d</div>
+      </div>
+      <div class="card" data-shape-id="card-tp3">
+        <div class="owner" data-shape-id="owner-tp3">JT</div>
+        <div class="activity" data-shape-id="activity-tp3">
+          <ul class="activity-bullets">
+            <li>Hypercare retrospective — issues catalogued</li>
+            <li>Legacy system decommission checklist initiated</li>
+            <li>Lessons-learned session scheduled with PMO</li>
+          </ul>
+        </div>
+        <div class="rag rag-r" data-shape-id="rag-tp3">AT</div>
+      </div>
+    </div>
+
+  </div><!-- /main -->
+
+  <!-- Readiness bar -->
+  <div class="readiness-area" data-shape-id="readiness-area">
+    <div class="readiness-label" data-shape-id="readiness-label">Overall Readiness &nbsp;<span>87%</span></div>
+    <div class="bar-track" data-shape-id="bar-track">
+      <div class="bar-fill" data-shape-id="bar-fill"></div>
+    </div>
+  </div>
+
+  <!-- Vertical axis line (decorative, behind nodes) -->
+  <svg
+    style="position:absolute;left:48px;top:148px;width:124px;pointer-events:none;z-index:0;"
+    height="474"
+    xmlns="http://www.w3.org/2000/svg"
+    data-shape-id="timeline-axis-svg"
+  >
+    <line x1="62" y1="8" x2="62" y2="466" stroke="rgba(255,255,255,0.13)" stroke-width="2"/>
+  </svg>
+
+  <!-- Footer -->
+  <div class="footer" data-shape-id="footer">
+    <div class="footer-left" data-shape-id="footer-left">CONFIDENTIAL</div>
+    <div class="footer-right" data-shape-id="footer-right">Slide Lab · 2026 · 286</div>
+  </div>
+
+</body>
+</html>

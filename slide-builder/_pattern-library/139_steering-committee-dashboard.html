@@ -1,0 +1,531 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>139 · Steering committee dashboard — 3-zone</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+  --rag-green: #16A34A;
+  --rag-green-soft: #DCFCE7;
+  --rag-green-text: #14532D;
+  --rag-amber: #D97706;
+  --rag-amber-soft: #FEF3C7;
+  --rag-amber-text: #78350F;
+  --rag-red: #DC2626;
+  --rag-red-soft: #FEE2E2;
+  --rag-red-text: #7F1D1D;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: #4a4a4a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  margin: 0;
+  padding: 24px;
+  box-sizing: border-box;
+}
+.slide {
+  width: 1280px;
+  height: 720px;
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.35);
+  flex-shrink: 0;
+}
+
+/* ---- Top chrome ---- */
+.accenture-tag {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  font-size: 10px;
+  color: var(--text-faint);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  z-index: 5;
+}
+.draft-badge {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--draft-bg);
+  color: var(--draft-text);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 16px;
+  letter-spacing: 1px;
+  z-index: 5;
+}
+
+/* ---- Title block ---- */
+.title-block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+.title-text {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+  pointer-events: auto;
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--text-dark);
+  line-height: 1.25;
+  letter-spacing: 0.1px;
+}
+.title-text strong {
+  color: var(--brand-primary);
+  font-weight: 800;
+}
+.title-sub {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 108px;
+  pointer-events: auto;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--text-mid);
+  line-height: 1.4;
+}
+.title-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+  pointer-events: none;
+  
+  background: var(--brand-accent);
+  
+}
+
+/* ---- Layout area ---- */
+/* top:145px; left:48px; right:48px; bottom:36px */
+/* Three rows: top 90px, middle 160px, bottom 140px; gaps 12px */
+
+/* ---- Section headers ---- */
+.zone-header {
+  font-size: 10px;
+  font-weight: 800;
+  color: var(--brand-accent);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.zone-separator {
+  position: absolute;
+  left: 48px;
+  right: 48px;
+  height: 1px;
+  background: var(--card-border);
+}
+
+/* ---- TOP ZONE: RAG health (3 equal tiles) ---- */
+.zone-top {
+  position: absolute;
+  top: 145px;
+  left: 48px;
+  right: 48px;
+}
+.rag-row {
+  display: flex;
+  gap: 12px;
+  height: 74px;
+}
+.rag-tile {
+  flex: 1;
+  border-radius: 6px;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 18px;
+  overflow: hidden;
+}
+.rag-tile.green {
+  border-left: 4px solid var(--rag-green);
+  background: var(--rag-green-soft);
+  border-color: var(--rag-green);
+}
+.rag-tile.amber {
+  border-left: 4px solid var(--rag-amber);
+  background: var(--rag-amber-soft);
+  border-color: var(--rag-amber);
+}
+.rag-tile.red {
+  border-left: 4px solid var(--rag-red);
+  background: var(--rag-red-soft);
+  border-color: var(--rag-red);
+}
+.rag-dot {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.rag-tile.green .rag-dot { background: var(--rag-green); }
+.rag-tile.amber .rag-dot { background: var(--rag-amber); }
+.rag-tile.red .rag-dot { background: var(--rag-red); }
+
+.rag-tile-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.rag-tile-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-dark);
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+.rag-tile-status {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+}
+.rag-tile.green .rag-tile-status { color: var(--rag-green-text); }
+.rag-tile.amber .rag-tile-status { color: var(--rag-amber-text); }
+.rag-tile.red .rag-tile-status { color: var(--rag-red-text); }
+
+.rag-tile-note {
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--text-dark);
+  line-height: 1.35;
+}
+
+/* ---- Separator 1: after top zone (145 + 90 + 6 = 241) ---- */
+.sep-1 { top: 241px; }
+
+/* ---- MIDDLE ZONE: Decisions needed ---- */
+.zone-mid {
+  position: absolute;
+  top: 253px;
+  left: 48px;
+  right: 48px;
+}
+.decisions-row {
+  display: flex;
+  gap: 12px;
+  height: 140px;
+}
+.decision-card {
+  flex: 1;
+  border-radius: 6px;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  border-top: 3px solid var(--brand-accent);
+  padding: 14px 16px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.decision-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--brand-accent);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.decision-ask {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-dark);
+  line-height: 1.35;
+  flex: 1;
+}
+.decision-meta {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.decision-owner {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--brand-primary);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+.decision-due {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-mid);
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  background: #fff;
+  border: 1px solid var(--card-border);
+  border-radius: 3px;
+}
+.decision-due.urgent {
+  background: var(--rag-red-soft);
+  color: var(--rag-red-text);
+  border-color: var(--rag-red);
+}
+
+/* ---- Separator 2: after mid zone (253 + 160 + 6 = 419) ---- */
+.sep-2 { top: 419px; }
+
+/* ---- BOTTOM ZONE: Escalated risks ---- */
+.zone-bot {
+  position: absolute;
+  top: 431px;
+  left: 48px;
+  right: 48px;
+}
+.risks-row {
+  display: flex;
+  gap: 12px;
+  height: 116px;
+}
+.risk-card {
+  flex: 1;
+  border-radius: 6px;
+  border: 1px solid var(--card-border);
+  background: var(--card-bg);
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.risk-card.high {
+  border-left: 4px solid var(--rag-red);
+  background: var(--rag-red-soft);
+  border-color: var(--rag-red);
+}
+.risk-card.medium {
+  border-left: 4px solid var(--rag-amber);
+  background: var(--rag-amber-soft);
+  border-color: var(--rag-amber);
+}
+.risk-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.risk-impact-badge {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  padding: 2px 8px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.risk-card.high .risk-impact-badge {
+  background: var(--rag-red);
+  color: #fff;
+}
+.risk-card.medium .risk-impact-badge {
+  background: var(--rag-amber);
+  color: #fff;
+}
+.risk-desc {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-dark);
+  line-height: 1.35;
+  flex: 1;
+}
+.risk-mitigation-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+.mitigation-label {
+  font-size: 9.5px;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-mid);
+  white-space: nowrap;
+  flex-shrink: 0;
+  padding-top: 1px;
+}
+.mitigation-text {
+  font-size: 11.5px;
+  font-weight: 400;
+  color: var(--text-dark);
+  line-height: 1.35;
+}
+
+/* ---- Footer ---- */
+.footer {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  padding: 0 48px;
+  font-size: 9.5px;
+  color: var(--text-faint);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-top: 1px solid var(--card-border);
+  background: #FBFAFD;
+}
+.footer-right {
+  margin-left: auto;
+}
+</style>
+</head>
+<body>
+<div class="slide" data-shape-id="slide">
+
+  <!-- Top chrome -->
+  <div class="accenture-tag" data-shape-id="accenture-tag">Accenture Internal</div>
+
+  <!-- Title block -->
+  <div class="title-block" data-shape-id="title-block">
+    <div class="title-text" data-shape-id="title"><strong>One red, two decisions need sign-off today</strong> &mdash; timeline delay and vendor contract are the critical path items</div>
+    <div class="title-rule" data-shape-id="title-rule"></div>
+  </div>
+
+  <!-- ZONE SEPARATOR 1 -->
+  <div class="zone-separator sep-1" data-shape-id="sep-1"></div>
+
+  <!-- TOP ZONE: RAG Health -->
+  <div class="zone-top" data-shape-id="zone-top">
+    <div class="zone-header" data-shape-id="zone-top-header">RAG Health</div>
+    <div class="rag-row" data-shape-id="rag-row">
+
+      <div class="rag-tile green" data-shape-id="rag-tile-1">
+        <div class="rag-dot" data-shape-id="rag-dot-1"></div>
+        <div class="rag-tile-body">
+          <div class="rag-tile-name" data-shape-id="rag-name-1">People &amp; Change</div>
+          <div class="rag-tile-status" data-shape-id="rag-status-1">Green &mdash; On Track</div>
+          <div class="rag-tile-note" data-shape-id="rag-note-1">94% change readiness score</div>
+        </div>
+      </div>
+
+      <div class="rag-tile amber" data-shape-id="rag-tile-2">
+        <div class="rag-dot" data-shape-id="rag-dot-2"></div>
+        <div class="rag-tile-body">
+          <div class="rag-tile-name" data-shape-id="rag-name-2">Budget</div>
+          <div class="rag-tile-status" data-shape-id="rag-status-2">Amber &mdash; Under Review</div>
+          <div class="rag-tile-note" data-shape-id="rag-note-2">3% over plan, variance under review</div>
+        </div>
+      </div>
+
+      <div class="rag-tile red" data-shape-id="rag-tile-3">
+        <div class="rag-dot" data-shape-id="rag-dot-3"></div>
+        <div class="rag-tile-body">
+          <div class="rag-tile-name" data-shape-id="rag-name-3">Timeline</div>
+          <div class="rag-tile-status" data-shape-id="rag-status-3">Red &mdash; Delayed</div>
+          <div class="rag-tile-note" data-shape-id="rag-note-3">2-week delay in Phase 2 delivery</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ZONE SEPARATOR 2 -->
+  <div class="zone-separator sep-2" data-shape-id="sep-2"></div>
+
+  <!-- MIDDLE ZONE: Decisions Required Today -->
+  <div class="zone-mid" data-shape-id="zone-mid">
+    <div class="zone-header" data-shape-id="zone-mid-header">Decisions Required Today</div>
+    <div class="decisions-row" data-shape-id="decisions-row">
+
+      <div class="decision-card" data-shape-id="decision-1">
+        <div class="decision-num" data-shape-id="decision-1-num">1</div>
+        <div class="decision-ask" data-shape-id="decision-1-ask">Approve Phase 3 scope expansion</div>
+        <div class="decision-meta">
+          <span class="decision-owner" data-shape-id="decision-1-owner">Owner: CTO</span>
+          <span class="decision-due urgent" data-shape-id="decision-1-due">This session</span>
+        </div>
+      </div>
+
+      <div class="decision-card" data-shape-id="decision-2">
+        <div class="decision-num" data-shape-id="decision-2-num">2</div>
+        <div class="decision-ask" data-shape-id="decision-2-ask">Authorize vendor backup contract</div>
+        <div class="decision-meta">
+          <span class="decision-owner" data-shape-id="decision-2-owner">Owner: CFO</span>
+          <span class="decision-due" data-shape-id="decision-2-due">Due 2026-05-30</span>
+        </div>
+      </div>
+
+      <div class="decision-card" data-shape-id="decision-3">
+        <div class="decision-num" data-shape-id="decision-3-num">3</div>
+        <div class="decision-ask" data-shape-id="decision-3-ask">Confirm Phase 2 penalty waiver</div>
+        <div class="decision-meta">
+          <span class="decision-owner" data-shape-id="decision-3-owner">Owner: CEO</span>
+          <span class="decision-due" data-shape-id="decision-3-due">Due 2026-06-07</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- BOTTOM ZONE: Escalated Risks -->
+  <div class="zone-bot" data-shape-id="zone-bot">
+    <div class="zone-header" data-shape-id="zone-bot-header">Escalated Risks</div>
+    <div class="risks-row" data-shape-id="risks-row">
+
+      <div class="risk-card high" data-shape-id="risk-1">
+        <div class="risk-header">
+          <span class="risk-impact-badge" data-shape-id="risk-1-impact">High Impact</span>
+        </div>
+        <div class="risk-desc" data-shape-id="risk-1-desc">Integration milestone at risk &mdash; dependency on legacy API resolution</div>
+        <div class="risk-mitigation-row">
+          <span class="mitigation-label" data-shape-id="risk-1-mit-label">Mitigation</span>
+          <span class="mitigation-text" data-shape-id="risk-1-mit-text">Parallel workstream activated</span>
+        </div>
+      </div>
+
+      <div class="risk-card medium" data-shape-id="risk-2">
+        <div class="risk-header">
+          <span class="risk-impact-badge" data-shape-id="risk-2-impact">Medium Impact</span>
+        </div>
+        <div class="risk-desc" data-shape-id="risk-2-desc">Key consultant departure (3 FTE) &mdash; knowledge transfer incomplete</div>
+        <div class="risk-mitigation-row">
+          <span class="mitigation-label" data-shape-id="risk-2-mit-label">Mitigation</span>
+          <span class="mitigation-text" data-shape-id="risk-2-mit-text">SME coverage arranged through Q3</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer" data-shape-id="footer">
+    <span data-shape-id="footer-left">Slide Lab &middot; Confidential &middot; Steering committee</span>
+    <span class="footer-right" data-shape-id="footer-right">139 / 200</span>
+  </div>
+
+</div>
+</body>
+</html>

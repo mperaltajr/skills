@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>68 · Donut breakdown</title>
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1280px; height: 720px; background: var(--slide-bg); font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; color: var(--text-dark); overflow: hidden; }
+body { padding: 0px 64px; position: relative; }
+
+.draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; }
+.project-label { position: absolute; top: 24px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
+
+/* ---- Title block ---- */
+.action-title { position: absolute; left: 64px; right: 64px; top: 28px; min-height: 36px; font-size: 28px; font-weight: 700; line-height: 1.2; max-width: 1100px; }
+.action-title strong { color: var(--brand-primary); }
+.action-title .accent { color: var(--brand-accent); }
+.subhead { position: absolute; left: 64px; right: 64px; top: 108px; font-size: 14px; color: var(--text-mid); font-style: italic; }
+.title-rule { position: absolute; left: 64px; top: 136px; width: 40px; height: 3px; background: var(--brand-accent); }
+
+/* ---- Content block: donut left (~45%) + breakdown right (~55%) ---- */
+.content-block {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 200px;
+  bottom: 110px;
+  display: flex; flex-wrap: wrap;
+  align-items: center;
+  gap: 24px;
+}
+
+/* ---- Donut panel ---- */
+.donut-panel {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.donut-wrap {
+  position: relative;
+  width: 360px;
+  height: 360px;
+}
+.donut-svg {
+  width: 360px;
+  height: 360px;
+  transform: rotate(-90deg);
+  display: block;
+}
+/* Each segment is a stroked circle with dasharray.
+   r = 130, circumference = 2*pi*130 ≈ 816.81.
+   stroke-width 56 = donut thickness. Center hole radius ≈ 130 - 28 = 102.
+   Segments:
+     1) Storyline coaching   17%  → 138.86 | offset   0
+     2) Building slides      33%  → 269.55 | offset 138.86
+     3) Reviewing            20%  → 163.36 | offset 408.41
+     4) Reworking (FOCAL)    30%  → 245.04 | offset 571.77
+   Small 1.5px gap between segments via tiny dasharray gap.
+*/
+.donut-track { fill: none; stroke: var(--card-bg); stroke-width: 56; }
+.seg { fill: none; stroke-width: 56; transform-origin: 180px 180px; }
+.seg.focal { stroke-width: 64; } /* slightly larger ring for the focal segment */
+.focal-ring {
+  fill: none;
+  stroke: var(--brand-accent);
+  stroke-width: 1.5;
+  opacity: 0.55;
+}
+
+/* Donut center text */
+.donut-center {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  text-align: center;
+}
+.center-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.8px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+}
+.center-value {
+  font-size: 56px;
+  font-weight: 800;
+  color: var(--brand-primary);
+  line-height: 1;
+  margin-top: 6px;
+  letter-spacing: -1.5px;
+}
+.center-sub {
+  font-size: 11px;
+  color: var(--text-mid);
+  margin-top: 8px;
+  font-style: italic;
+  max-width: 180px;
+  line-height: 1.35;
+}
+
+/* ---- Breakdown panel (right) ---- */
+.breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-left: 16px;
+  border-left: 1px solid var(--card-border);
+}
+.breakdown-header {
+  display: flex; flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--text-faint);
+  text-transform: uppercase;
+  padding: 0 8px 6px 8px;
+  border-bottom: 1px solid var(--card-border);
+}
+.breakdown-header .num { text-align: right; }
+.breakdown-header .pct { text-align: right; }
+
+.row {
+  display: flex; flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 8px;
+  border-radius: 4px;
+}
+.row .swatch {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+}
+.row .name {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-dark);
+  line-height: 1.25;
+}
+.row .name .sub {
+  display: block;
+  font-size: 10.5px;
+  font-weight: 400;
+  color: var(--text-mid);
+  margin-top: 2px;
+  font-style: italic;
+}
+.row .num {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--brand-primary);
+  text-align: right;
+  letter-spacing: -0.3px;
+  font-variant-numeric: tabular-nums;
+}
+.row .pct {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-mid);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Focal row — accent tint + accent left bar */
+.row.focal {
+  background: var(--card-bg);
+  border-left: 3px solid var(--brand-accent);
+  padding-left: 5px;
+}
+.row.focal .name { color: var(--brand-primary); }
+.row.focal .num { color: var(--brand-accent); }
+.row.focal .pct { color: var(--brand-primary-mid); font-weight: 700; }
+
+/* Focal callout pill above the focal row */
+.focal-tag {
+  display: inline-block;
+  background: var(--brand-accent);
+  color: white;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  margin-bottom: 1px;
+  margin-left: 5px;
+  align-self: flex-start;
+}
+
+/* ---- Convergence line ---- */
+.convergence {
+  position: absolute;
+  left: 64px; right: 64px; bottom: 56px;
+  text-align: center;
+  font-size: 14px;
+  font-style: italic;
+  color: var(--brand-primary);
+  font-weight: 500;
+}
+.convergence strong { color: var(--brand-accent); font-style: normal; font-weight: 700; }
+
+/* ---- Footer chrome ---- */
+.footer-rule { position: absolute; left: 0; right: 0; bottom: 32px; height: 1px; background: var(--card-border); }
+.footer-left { position: absolute; bottom: 14px; left: 24px; color: var(--text-faint); font-size: 11px; letter-spacing: 1px; }
+.footer-right { position: absolute; bottom: 14px; right: 24px; color: var(--text-faint); font-size: 11px; }
+</style>
+</head>
+<body>
+
+  <div class="action-title" data-shape-id="title">Where the time goes — <strong>30% to <span class="accent">rework</span> alone.</strong></div>
+  <div class="subhead" data-shape-id="subtitle">Per-deck baseline across the practice. The rework slice is the kill — Slide Lab targets it directly.</div>
+  <div class="title-rule" data-shape-id="brand-rule"></div>
+
+  <div class="content-block">
+
+    <!-- LEFT: donut -->
+    <div class="donut-panel">
+      <div class="donut-wrap">
+        <!-- 360 × 360 viewBox; center (180,180); r = 130; circumference ≈ 816.81
+             Each segment uses stroke-dasharray: "<len> <gap>" and stroke-dashoffset to position.
+             We use a -90deg rotation on the SVG so the first segment starts at 12 o'clock.
+             Small visual gap between segments via 4px subtraction from each length.
+        -->
+        <svg class="donut-svg" viewBox="0 0 360 360" xmlns="http://www.w3.org/2000/svg">
+          <!-- Background track (full ring) -->
+          <circle class="donut-track" data-shape-id="donut-track" cx="180" cy="180" r="130"/>
+
+          <!-- Seg 1: Storyline coaching — 17% — length 138.86, start offset 0 -->
+          <circle class="seg" data-shape-id="donut-slice-1" cx="180" cy="180" r="130"
+                  stroke="#2D0A4E"
+                  stroke-dasharray="135 681.81"
+                  stroke-dashoffset="0"/>
+
+          <!-- Seg 2: Building slides — 33% — length 269.55, start offset -138.86 -->
+          <circle class="seg" data-shape-id="donut-slice-2" cx="180" cy="180" r="130"
+                  stroke="#5C2D87"
+                  stroke-dasharray="265.55 551.26"
+                  stroke-dashoffset="-138.86"/>
+
+          <!-- Seg 3: Reviewing — 20% — length 163.36, start offset -408.41 -->
+          <circle class="seg" data-shape-id="donut-slice-3" cx="180" cy="180" r="130"
+                  stroke="#C780FF"
+                  stroke-dasharray="159.36 657.45"
+                  stroke-dashoffset="-408.41"/>
+
+          <!-- Seg 4: Reworking — 30% — length 245.04, start offset -571.77 — FOCAL (thicker) -->
+          <circle class="seg focal" data-shape-id="donut-slice-4" cx="180" cy="180" r="130"
+                  stroke="#A100FF"
+                  stroke-dasharray="241.04 575.77"
+                  stroke-dashoffset="-571.77"/>
+
+          <!-- Subtle accent ring outside focal segment for reinforcement -->
+          <circle class="focal-ring" data-shape-id="donut-focal-ring" cx="180" cy="180" r="166"/>
+        </svg>
+
+        <div class="donut-center">
+          <div class="center-label" data-shape-id="donut-center-label">PER DECK</div>
+          <div class="center-value" data-shape-id="donut-center-value">60<span style="font-size:24px;font-weight:700;margin-left:4px;letter-spacing:0;">hr</span></div>
+          <div class="center-sub" data-shape-id="donut-center-sub">baseline effort, end to end</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: breakdown -->
+    <div class="breakdown">
+      <div class="breakdown-header">
+        <div></div>
+        <div data-shape-id="breakdown-col-name-header">Activity</div>
+        <div class="num" data-shape-id="breakdown-col-num-header">Hours</div>
+        <div class="pct" data-shape-id="breakdown-col-pct-header">Share</div>
+      </div>
+
+      <div class="row">
+        <div class="swatch" data-shape-id="breakdown-1-swatch" style="background:#2D0A4E;"></div>
+        <div class="name" data-shape-id="breakdown-1-name">Storyline coaching<span class="sub">framing, governing thought, structure</span></div>
+        <div class="num" data-shape-id="breakdown-1-num">10 hr</div>
+        <div class="pct" data-shape-id="breakdown-1-pct">17%</div>
+      </div>
+
+      <div class="row">
+        <div class="swatch" data-shape-id="breakdown-2-swatch" style="background:#5C2D87;"></div>
+        <div class="name" data-shape-id="breakdown-2-name">Building slides<span class="sub">layout, charts, visuals, formatting</span></div>
+        <div class="num" data-shape-id="breakdown-2-num">20 hr</div>
+        <div class="pct" data-shape-id="breakdown-2-pct">33%</div>
+      </div>
+
+      <div class="row">
+        <div class="swatch" data-shape-id="breakdown-3-swatch" style="background:#C780FF;"></div>
+        <div class="name" data-shape-id="breakdown-3-name">Reviewing<span class="sub">partner reads, comments, sign-off</span></div>
+        <div class="num" data-shape-id="breakdown-3-num">12 hr</div>
+        <div class="pct" data-shape-id="breakdown-3-pct">20%</div>
+      </div>
+
+      <div class="focal-tag" data-shape-id="breakdown-focal-tag">THE KILL · SLIDE LAB TARGETS THIS</div>
+      <div class="row focal">
+        <div class="swatch" data-shape-id="breakdown-4-swatch" style="background:#A100FF;"></div>
+        <div class="name" data-shape-id="breakdown-4-name">Reworking after reviews<span class="sub">redo cycles, late-stage edits, version churn</span></div>
+        <div class="num" data-shape-id="breakdown-4-num">18 hr</div>
+        <div class="pct" data-shape-id="breakdown-4-pct">30%</div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="convergence" data-shape-id="convergence">
+    <strong>30% of deck time goes to rework.</strong> Slide Lab kills this — structure-first means edits land once.
+  </div>
+  <div class="footer-left" data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+</body>
+</html>

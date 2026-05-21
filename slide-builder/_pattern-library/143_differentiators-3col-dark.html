@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>143 · Differentiators (3 columns)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary:     #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent:      #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark:         #1A1A2E;
+  --text-mid:          #64748B;
+  --text-faint:        #94A3B8;
+  --slide-bg:          #FFFFFF;
+  --card-bg:           #F8F4FC;
+  --card-border:       #E5D5F0;
+  --draft-bg:          #FFD600;
+  --draft-text:        #B71C1C;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  background: #4a4a4a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  font-family: 'Inter', sans-serif;
+  margin: 0;
+  padding: 24px;
+  box-sizing: border-box;
+}
+
+.slide {
+  width: 1280px;
+  height: 720px;
+  position: relative;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.35);
+  color: var(--text-dark);
+  flex-shrink: 0;
+}
+
+/* ---- Top chrome ---- */
+.draft-badge {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--draft-bg);
+  color: var(--draft-text);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 16px;
+  letter-spacing: 1px;
+  z-index: 50;
+}
+
+.project-label {
+  position: absolute;
+  top: 24px;
+  left: 24px;
+  color: var(--text-faint);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  z-index: 50;
+}
+
+/* ---- Title block ---- */
+.title-block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+.action-title {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+  pointer-events: auto;
+  font-size: 26px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--text-dark);
+  max-width: 1000px;
+}
+
+.action-title strong {
+  color: var(--brand-primary);
+}
+
+.title-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+  pointer-events: none;
+  
+  
+  background: var(--brand-accent);
+  }
+
+/* ---- Columns area ---- */
+.columns-area {
+  position: absolute;
+  top: 148px;
+  left: 48px;
+  right: 48px;
+  bottom: 100px;
+  display: flex;
+  gap: 0;
+}
+
+.col {
+  flex: 1;
+  padding: 24px 28px;
+  border-top: 4px solid var(--brand-accent);
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+/* Vertical divider between columns */
+.col + .col {
+  border-left: 1px solid var(--card-border);
+}
+
+.col-number {
+  display: block;
+  font-size: 52px;
+  font-weight: 800;
+  color: var(--brand-accent);
+  line-height: 1;
+}
+
+.col-title {
+  margin-top: 8px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--brand-primary);
+  line-height: 1.3;
+}
+
+.col-desc {
+  margin-top: 12px;
+  font-size: 12.5px;
+  color: var(--text-dark);
+  line-height: 1.6;
+  flex: 1;
+}
+
+/* Proof stat box */
+.proof-box {
+  margin-top: auto;
+  padding: 10px 12px;
+  background: var(--card-bg);
+  border-radius: 6px;
+  margin-top: 16px;
+}
+
+.proof-metric {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--brand-primary-mid);
+  line-height: 1.2;
+}
+
+.proof-label {
+  font-size: 11px;
+  color: var(--text-mid);
+  margin-top: 3px;
+  line-height: 1.4;
+}
+
+/* ---- Convergence bar ---- */
+.convergence-bar {
+  position: absolute;
+  bottom: 50px;
+  left: 48px;
+  right: 48px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.conv-line {
+  flex: 1;
+  height: 2px;
+  background: linear-gradient(90deg, var(--brand-primary) 0%, var(--brand-primary-mid) 50%, var(--brand-accent) 100%);
+}
+
+.conv-text {
+  font-size: 10.5px;
+  font-style: italic;
+  color: var(--brand-primary-mid);
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  white-space: nowrap;
+}
+
+/* ---- Footer ---- */
+.footer-rule {
+  position: absolute;
+  bottom: 32px;
+  left: 56px;
+  right: 56px;
+  height: 1px;
+  background: #EFE6F6;
+}
+
+.footer-left {
+  position: absolute;
+  bottom: 14px;
+  left: 24px;
+  color: var(--text-faint);
+  font-size: 11px;
+  letter-spacing: 1px;
+}
+
+.footer-right {
+  position: absolute;
+  bottom: 14px;
+  right: 24px;
+  color: var(--text-faint);
+  font-size: 11px;
+}
+
+/* DARK THEME */
+:root {
+  --card-bg: rgba(255,255,255,0.07);
+  --card-border: rgba(255,255,255,0.12);
+  --text-dark: #FFFFFF;
+  --text-mid: rgba(255,255,255,0.6);
+  --slide-bg: #2D0A4E;
+}
+body { background: #2D0A4E; }
+.slide { background: #2D0A4E; color: rgba(255,255,255,0.85); }
+.project-label { color: rgba(255,255,255,0.4); }
+.action-title { color: #FFFFFF; }
+.action-title strong { color: #C780FF; }
+.col { background: rgba(255,255,255,0.02); }
+.col + .col { border-left: 1px solid rgba(255,255,255,0.12); }
+.col-title { color: #C780FF; }
+.col-desc { color: rgba(255,255,255,0.85); }
+.proof-box { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); }
+.proof-metric { color: #C780FF; }
+.proof-label { color: rgba(255,255,255,0.6); }
+.conv-text { color: rgba(255,255,255,0.6); }
+.conv-line { background: linear-gradient(90deg, rgba(255,255,255,0.2) 0%, rgba(199,128,255,0.5) 50%, #A100FF 100%); }
+.footer-rule { background: rgba(255,255,255,0.1); }
+.footer-left, .footer-right { color: rgba(255,255,255,0.4); }
+</style>
+</head>
+<body>
+<div class="slide">
+
+  <!-- Top chrome -->
+
+  <!-- Title block -->
+  <div class="title-block">
+    <div class="action-title" data-shape-id="title"><strong>Three structural advantages</strong> competitors cannot replicate — speed, depth, and accountability</div>
+    <div class="title-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- Three columns -->
+  <div class="columns-area">
+
+    <!-- Column 01 -->
+    <div class="col" data-shape-id="card-1-bg">
+      <span class="col-number" data-shape-id="card-1-num">01</span>
+      <div class="col-title" data-shape-id="card-1-heading">Integrated Delivery Model</div>
+      <div class="col-desc" data-shape-id="card-1-body">We embed strategy, technology, and change in one team — no handoffs, no gaps. Your program doesn't get translated between three firms.</div>
+      <div class="proof-box" data-shape-id="card-1-footer-bg">
+        <div class="proof-metric" data-shape-id="card-1-footer-stat">3.2×</div>
+        <div class="proof-label" data-shape-id="card-1-footer">faster time to value vs. multi-vendor approach</div>
+      </div>
+    </div>
+
+    <!-- Column 02 -->
+    <div class="col" data-shape-id="card-2-bg">
+      <span class="col-number" data-shape-id="card-2-num">02</span>
+      <div class="col-title" data-shape-id="card-2-heading">Proprietary Accelerators</div>
+      <div class="col-desc" data-shape-id="card-2-body">Our pre-built tools reduce design and build phases by 40%. Components are tested at scale and maintained by 200+ practitioners.</div>
+      <div class="proof-box" data-shape-id="card-2-footer-bg">
+        <div class="proof-metric" data-shape-id="card-2-footer-stat">40%</div>
+        <div class="proof-label" data-shape-id="card-2-footer">reduction in build phase cost</div>
+      </div>
+    </div>
+
+    <!-- Column 03 -->
+    <div class="col" data-shape-id="card-3-bg">
+      <span class="col-number" data-shape-id="card-3-num">03</span>
+      <div class="col-title" data-shape-id="card-3-heading">Outcome Accountability</div>
+      <div class="col-desc" data-shape-id="card-3-body">We put skin in the game. Fees tied to adoption and benefit realization — not just deliverables. We succeed when you succeed.</div>
+      <div class="proof-box" data-shape-id="card-3-footer-bg">
+        <div class="proof-metric" data-shape-id="card-3-footer-stat">94%</div>
+        <div class="proof-label" data-shape-id="card-3-footer">of outcomes delivered to target within 6 months</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Convergence bar -->
+  <div class="convergence-bar" data-shape-id="convergence-bar">
+    <div class="conv-line"></div>
+    <div class="conv-text" data-shape-id="convergence">Speed · Depth · Accountability</div>
+    <div class="conv-line"></div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer-left" data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+
+</div>
+</body>
+</html>

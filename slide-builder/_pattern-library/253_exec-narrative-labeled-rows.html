@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>253 – Executive Narrative Labeled Rows</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  /* ── CSS VARS ───────────────────────────────────────────────── */
+  :root {
+    --brand-primary:     #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent:      #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark:         #1A1A2E;
+    --text-mid:          #64748B;
+    --text-faint:        #94A3B8;
+    --slide-bg:          #FFFFFF;
+    --card-bg:           #F8F4FC;
+    --card-border:       #E5D5F0;
+    --draft-bg:          #FFD600;
+    --draft-text:        #B71C1C;
+  }
+
+  /* ── RESET ──────────────────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  /* ── SLIDE CANVAS ───────────────────────────────────────────── */
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    background: var(--slide-bg);
+    font-family: 'Inter', sans-serif;
+    color: var(--text-dark);
+  }
+
+  .slide {
+    position: relative;
+    width: 1280px;
+    height: 720px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── CHROME: TOP BAR ────────────────────────────────────────── */
+  .chrome-top {
+    position: absolute;
+    top: 10px;
+    left: 48px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  /* ── DRAFT BADGE ────────────────────────────────────────────── */
+  .draft-badge {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 4px 14px;
+    border-radius: 0;          /* flat — no border-radius */
+  }
+
+  /* ── TITLE BLOCK ────────────────────────────────────────────── */
+  .title-block {
+    position: absolute; top: 0; left: 0; right: 0; height: 160px;
+  }
+
+  .title-block h1 {
+    position: absolute; top: 28px; left: 64px; right: 64px; min-height: 36px;
+    font-size: 29px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.2;
+
+    bottom: 6px;
+  }
+
+  .title-block h1 strong {
+    color: var(--brand-accent);
+    font-weight: 700;
+  }
+
+  .title-block .sub {
+    position: absolute; top: 108px; left: 64px; right: 64px;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+
+    bottom: 10px;
+  }
+
+  .accent-rule {
+    position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+    border: none;
+  }
+
+  /* ── ROWS AREA ──────────────────────────────────────────────── */
+  .rows-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    padding: 14px 48px 8px 48px;
+    gap: 0;
+  }
+
+  .row-band {
+    display: flex;
+    align-items: center;
+    flex: 1;
+    min-height: 80px;
+    padding: 12px 0;
+    gap: 20px;
+  }
+
+  /* dashed divider between rows */
+  .row-band + .row-band {
+    border-top: 1px dashed var(--card-border);
+  }
+
+  /* ── LABEL PILL ─────────────────────────────────────────────── */
+  .label-pill {
+    flex-shrink: 0;
+    width: 148px;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: #FFFFFF;
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .pill-context        { background: var(--text-mid); }
+  .pill-challenge      { background: #C53030; }
+  .pill-insight        { background: var(--brand-accent); }
+  .pill-recommendation { background: #1A6B3C; }
+  .pill-nextsteps      { background: var(--brand-primary); }
+
+  /* ── ROW PARAGRAPH ──────────────────────────────────────────── */
+  .row-text {
+    font-size: 14px;
+    line-height: 1.55;
+    color: var(--text-dark);
+    flex: 1;
+  }
+
+  /* ── FOOTER ─────────────────────────────────────────────────── */
+  .footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 48px;
+    border-top: 1px solid var(--card-border);
+    font-size: 9px;
+    letter-spacing: 0.05em;
+    color: var(--text-faint);
+    font-weight: 400;
+
+    top: auto;
+  }
+</style>
+</head>
+<body>
+<div class="slide">
+
+  <!-- Chrome -->
+  <span class="chrome-top">Accenture Internal</span>
+
+  <!-- Draft badge -->
+
+  <!-- Title block -->
+  <div class="title-block">
+    <h1>Procurement Transformation — <strong>Strategic Narrative</strong></h1>
+    <p class="sub">Executive summary across context, challenge, insight, recommendation and next steps</p>
+    <div class="accent-rule"></div>
+  </div>
+
+  <!-- Rows -->
+  <div class="rows-area">
+
+    <!-- Row 1: Context -->
+    <div class="row-band">
+      <div class="label-pill pill-context">Context</div>
+      <p class="row-text">Global procurement costs have risen 23% since 2023, driven by supply chain volatility and inflationary pressure on key input categories.</p>
+    </div>
+
+    <!-- Row 2: Challenge -->
+    <div class="row-band">
+      <div class="label-pill pill-challenge">Challenge</div>
+      <p class="row-text">Current category management practices are fragmented across 14 business units with no unified sourcing strategy or shared vendor panel.</p>
+    </div>
+
+    <!-- Row 3: Insight -->
+    <div class="row-band">
+      <div class="label-pill pill-insight">Insight</div>
+      <p class="row-text">Analysis of $2.4B in annual spend reveals 60% concentration in 8 categories where consolidation alone could yield $180M in savings.</p>
+    </div>
+
+    <!-- Row 4: Recommendation -->
+    <div class="row-band">
+      <div class="label-pill pill-recommendation">Recommendation</div>
+      <p class="row-text">Establish a Centre-Led Procurement model with category ownership, shared supplier contracts, and analytics capability by Q3 2026.</p>
+    </div>
+
+    <!-- Row 5: Next Steps -->
+    <div class="row-band">
+      <div class="label-pill pill-nextsteps">Next Steps</div>
+      <p class="row-text">Approve business case (week 1), appoint Category Leads (week 3), launch supplier renegotiation pilots in top 3 categories (week 8).</p>
+    </div>
+
+  </div><!-- /rows-area -->
+
+  <!-- Footer -->
+  <div class="footer">
+    <span>Confidential</span>
+    <span>Slide Lab · 2026 · 253</span>
+  </div>
+
+</div><!-- /slide -->
+</body>
+</html>

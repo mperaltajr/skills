@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>13 · 2x2 framework quadrants</title>
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1280px; height: 720px; background: var(--slide-bg); font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; color: var(--text-dark); overflow: hidden; }
+body { padding: 50px 56px 80px 56px; position: relative; }
+.draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; }
+.project-label { position: absolute; top: 24px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
+
+/* ---- Title block ---- */
+.action-title { font-size: 28px; font-weight: 700; line-height: 1.2; max-width: 1050px; }
+.action-title strong { color: var(--brand-primary); }
+.subhead { font-size: 14px; color: var(--text-mid); margin-top: 10px; font-style: italic; }
+.title-rule { width: 56px; height: 3px; background: var(--brand-accent); margin: 18px 0 0 0; }
+
+/* ---- Content block: vertically centered ---- */
+.content-block {
+  position: absolute;
+  left: 56px;
+  right: 56px;
+  top: 200px;
+  bottom: 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 16px;
+}
+
+/* ---- Matrix layout: y-axis label + grid, with x-axis below ---- */
+.matrix-wrap { display: flex; align-items: stretch; gap: 14px; }
+
+.y-axis {
+  width: 40px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 0;
+  position: relative;
+}
+.y-axis-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: var(--brand-primary);
+  text-transform: uppercase;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%) rotate(180deg);
+}
+.y-tick {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--text-mid);
+  text-transform: uppercase;
+  margin-left: 22px;
+}
+
+.grid-wrap { flex: 1; display: flex; flex-direction: column; }
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr 1fr;
+  gap: 4px;
+  background: var(--card-border);
+  padding: 4px;
+  height: 440px;
+}
+
+.quadrant {
+  padding: 18px 22px;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+.q-label {
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  opacity: 0.75;
+  margin-bottom: 4px;
+}
+.q-name {
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.15;
+  margin-bottom: 4px;
+}
+.q-directive {
+  font-size: 12px;
+  font-style: italic;
+  line-height: 1.4;
+  opacity: 0.85;
+  margin-bottom: 10px;
+}
+.q-dots { display: flex; flex-direction: column; gap: 8px; margin-top: auto; }
+.dot-row { display: flex; align-items: center; gap: 10px; font-size: 12px; line-height: 1.3; }
+.dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+/* Top-left: Quick wins — brand-accent, the focal point */
+.q-quickwins {
+  background: var(--brand-accent);
+  color: white;
+  outline: 3px solid var(--brand-primary);
+  outline-offset: -3px;
+  z-index: 2;
+}
+.q-quickwins .q-label { color: rgba(255,255,255,0.9); }
+.q-quickwins .dot { background: white; }
+
+/* Top-right: Strategic bets — brand-primary fill */
+.q-bets {
+  background: var(--brand-primary);
+  color: white;
+}
+.q-bets .q-label { color: var(--brand-accent-soft); }
+.q-bets .dot { background: var(--brand-accent-soft); }
+
+/* Bottom-left: Fillers — card-bg */
+.q-fillers {
+  background: var(--card-bg);
+  color: var(--text-dark);
+}
+.q-fillers .q-label { color: var(--text-mid); }
+.q-fillers .dot { background: var(--brand-primary-mid); }
+
+/* Bottom-right: Avoid — card-bg, faded */
+.q-avoid {
+  background: var(--card-bg);
+  color: var(--text-faint);
+}
+.q-avoid .q-name { color: var(--text-mid); }
+.q-avoid .q-label { color: var(--text-faint); }
+.q-avoid .dot { background: var(--text-faint); }
+
+/* ---- X-axis: ticks then label ---- */
+.x-axis {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.x-ticks {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  padding: 0 8px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 1.5px;
+  color: var(--text-mid);
+  text-transform: uppercase;
+}
+.x-axis-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 3px;
+  color: var(--brand-primary);
+  text-transform: uppercase;
+}
+
+/* ---- Convergence line ---- */
+.convergence {
+  background: var(--brand-primary);
+  color: white;
+  padding: 12px 22px;
+  font-size: 14px;
+  font-style: italic;
+  font-weight: 600;
+  border-left: 3px solid var(--brand-accent);
+}
+
+/* ---- Footer invariant ---- */
+.footer-rule { position: absolute; left: 0; right: 0; bottom: 32px; height: 1px; background: var(--card-border); }
+.footer-left { position: absolute; bottom: 14px; left: 24px; color: var(--text-faint); font-size: 10px; letter-spacing: 1px; }
+.footer-right { position: absolute; bottom: 14px; right: 24px; color: var(--text-faint); font-size: 11px; }
+
+/* DARK THEME */
+:root {
+  --card-bg: rgba(255,255,255,0.07);
+  --card-border: rgba(255,255,255,0.12);
+  --text-dark: #FFFFFF;
+  --text-mid: rgba(255,255,255,0.6);
+  --text-faint: rgba(255,255,255,0.4);
+  --slide-bg: #2D0A4E;
+}
+body, .slide { background: #2D0A4E; }
+.project-label { color: rgba(255,255,255,0.4); }
+.action-title { color: #FFFFFF; }
+.action-title strong { color: #C780FF; }
+.subhead { color: rgba(255,255,255,0.6); }
+.y-axis-label { color: rgba(255,255,255,0.85); }
+.y-tick { color: rgba(255,255,255,0.6); }
+.x-ticks { color: rgba(255,255,255,0.6); }
+.x-axis-label { color: rgba(255,255,255,0.85); }
+.grid { background: rgba(255,255,255,0.12); }
+.q-fillers { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.85); }
+.q-fillers .q-label { color: rgba(255,255,255,0.5); }
+.q-avoid { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); color: rgba(255,255,255,0.4); }
+.q-avoid .q-name { color: rgba(255,255,255,0.6); }
+.q-avoid .q-label { color: rgba(255,255,255,0.4); }
+.q-avoid .dot { background: rgba(255,255,255,0.4); }
+.footer-rule { background: rgba(255,255,255,0.1); }
+.footer-left, .footer-right { color: rgba(255,255,255,0.4); }
+</style>
+</head>
+<body>
+  <div class="project-label" data-shape-id="accenture-tag">ACCENTURE INTERNAL</div>
+  <div class="draft-badge" data-shape-id="draft-badge">DRAFT</div>
+
+  <div class="action-title" data-shape-id="title">Where to focus first — <strong>high-impact, low-effort wins</strong>.</div>
+  <div class="subhead" data-shape-id="subtitle">Bank credibility in the top-left before spending capital on the strategic bet.</div>
+  <div class="title-rule" data-shape-id="brand-rule"></div>
+
+  <div class="content-block">
+    <div class="matrix-wrap">
+      <div class="y-axis">
+        <div class="y-axis-label" data-shape-id="quadrant-y-axis-label">Impact</div>
+        <div class="y-tick" data-shape-id="quadrant-y-high">High</div>
+        <div class="y-tick" data-shape-id="quadrant-y-low">Low</div>
+      </div>
+
+      <div class="grid-wrap">
+        <div class="grid">
+          <!-- Top-left: Quick wins (focal) -->
+          <div class="quadrant q-quickwins">
+            <div class="q-label" data-shape-id="quadrant-tl-label">Start here</div>
+            <div class="q-name" data-shape-id="quadrant-tl-name">Quick wins</div>
+            <div class="q-directive" data-shape-id="quadrant-tl-directive">Ship in weeks. Earn the right to do the hard work.</div>
+            <div class="q-dots" data-shape-id="quadrant-tl-body">
+              <div class="dot-row"><span class="dot"></span>Pilot Slide Lab on one live engagement</div>
+              <div class="dot-row"><span class="dot"></span>Roll out QC framework to two teams</div>
+              <div class="dot-row"><span class="dot"></span>Publish the pattern library internally</div>
+            </div>
+          </div>
+
+          <!-- Top-right: Strategic bets -->
+          <div class="quadrant q-bets">
+            <div class="q-label" data-shape-id="quadrant-tr-label">Plan deliberately</div>
+            <div class="q-name" data-shape-id="quadrant-tr-name">Strategic bets</div>
+            <div class="q-directive" data-shape-id="quadrant-tr-directive">Sequence after wins land. Requires sponsor air-cover.</div>
+            <div class="q-dots" data-shape-id="quadrant-tr-body">
+              <div class="dot-row"><span class="dot"></span>Rebuild brand asset system</div>
+              <div class="dot-row"><span class="dot"></span>Firm-wide narrative coaching program</div>
+            </div>
+          </div>
+
+          <!-- Bottom-left: Fillers -->
+          <div class="quadrant q-fillers">
+            <div class="q-label" data-shape-id="quadrant-bl-label">Fit in the gaps</div>
+            <div class="q-name" data-shape-id="quadrant-bl-name">Fillers</div>
+            <div class="q-directive" data-shape-id="quadrant-bl-directive">Low cost, low signal. Use only when capacity is idle.</div>
+            <div class="q-dots" data-shape-id="quadrant-bl-body">
+              <div class="dot-row"><span class="dot"></span>Refresh internal slide template</div>
+              <div class="dot-row"><span class="dot"></span>Tidy shared drive folder structure</div>
+            </div>
+          </div>
+
+          <!-- Bottom-right: Avoid -->
+          <div class="quadrant q-avoid">
+            <div class="q-label" data-shape-id="quadrant-br-label">Decline politely</div>
+            <div class="q-name" data-shape-id="quadrant-br-name">Avoid</div>
+            <div class="q-directive" data-shape-id="quadrant-br-directive">Costly distractions dressed up as priorities.</div>
+            <div class="q-dots" data-shape-id="quadrant-br-body">
+              <div class="dot-row"><span class="dot"></span>Custom AI model fine-tuning</div>
+              <div class="dot-row"><span class="dot"></span>Bespoke per-partner UI themes</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="x-axis">
+          <div class="x-ticks">
+            <span data-shape-id="quadrant-x-low">Low</span>
+            <span data-shape-id="quadrant-x-high">High</span>
+          </div>
+          <div class="x-axis-label" data-shape-id="quadrant-x-axis-label">Effort</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="convergence" data-shape-id="convergence">Start with quick wins; bank credibility before the strategic bet.</div>
+  </div>
+
+  <div class="footer-rule" data-shape-id="footer-rule"></div>
+  <div class="footer-left" data-shape-id="footer-left">CONFIDENTIAL — ACCENTURE INTERNAL</div>
+  <div class="footer-right" data-shape-id="footer-right">Slide Lab · 2026 · 13d</div>
+</body>
+</html>

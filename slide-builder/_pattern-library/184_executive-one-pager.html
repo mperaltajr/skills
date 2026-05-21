@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>Pattern 184 — Executive One-Pager</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap');
+
+  :root {
+    --brand-primary:#2D0A4E; --brand-primary-mid:#5C2D87; --brand-accent:#A100FF;
+    --brand-accent-soft:#C780FF; --text-dark:#1A1A2E; --text-mid:#64748B;
+    --text-faint:#94A3B8; --slide-bg:#FFFFFF; --card-bg:#F8F4FC;
+    --card-border:#E5D5F0; --draft-bg:#FFD600; --draft-text:#B71C1C;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: Inter, system-ui, sans-serif;
+    background: var(--slide-bg);
+    position: relative;
+  }
+
+  /* ── Invariant chrome ── */
+
+  .chrome-internal {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    z-index: 10;
+  }
+
+  .chrome-draft {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 0;
+    letter-spacing: 0.08em;
+    z-index: 10;
+    white-space: nowrap;
+  }
+
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 20px 10px;
+    z-index: 10;
+  }
+
+  .footer-left,
+  .footer-right {
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  /* ── Title block ── */
+
+  .title-block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+  .title-block h1 {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+  pointer-events: auto;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+
+  .title-block h1 strong {
+    color: var(--brand-accent);
+    font-weight: 900;
+  }
+
+  .title-block .sub-headline {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 108px;
+  pointer-events: auto;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+    font-weight: 400;
+  }
+
+  .accent-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+  pointer-events: none;
+    
+    
+    background: var(--brand-accent);
+    border-radius: 0;
+  }
+
+  /* ── Body grid ── */
+
+  .body-grid {
+    position: absolute;
+    top: 148px;
+    left: 48px;
+    right: 48px;
+    bottom: 66px;
+    display: flex; flex-wrap: wrap;
+    gap: 0;
+  }
+
+  /* Vertical dividers */
+  .body-grid::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(35% );
+    width: 1px;
+    background: var(--brand-accent);
+    opacity: 0.25;
+    z-index: 2;
+  }
+
+  .body-grid::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    left: calc(70%);
+    width: 1px;
+    background: var(--brand-accent);
+    opacity: 0.25;
+    z-index: 2;
+  }
+
+  /* Horizontal divider (pseudo via zone borders) */
+  .zone {
+    padding: 16px 20px 14px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* All top-row zones have a bottom divider */
+  .zone.top {
+    border-bottom: 1px solid rgba(161,0,255,0.2);
+  }
+
+  .zone-label {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--brand-accent);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .zone-label::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--brand-accent);
+    opacity: 0.2;
+  }
+
+  .zone-body {
+    font-size: 11px;
+    color: var(--text-dark);
+    line-height: 1.55;
+    font-weight: 400;
+  }
+
+  .metric {
+    margin-top: 10px;
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+  }
+
+  .metric-number {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+
+  .metric-label {
+    font-size: 10px;
+    color: var(--text-mid);
+    font-weight: 500;
+    letter-spacing: 0.04em;
+  }
+
+  /* Situation — top-left */
+  .zone-situation {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
+  /* Opportunity — top-right spans columns 2–3 */
+  .zone-opportunity {
+    grid-column: 2 / 4;
+    grid-row: 1;
+  }
+
+  /* Recommendation — bottom-left, wider (spans cols 1–2) */
+  .zone-recommendation {
+    grid-column: 1 / 3;
+    grid-row: 2;
+    border-left: 3px solid var(--brand-primary);
+    background: var(--card-bg);
+    padding-left: 17px;
+  }
+
+  /* Next Steps — bottom-right */
+  .zone-next-steps {
+    grid-column: 3;
+    grid-row: 2;
+  }
+
+  .next-steps-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    font-size: 11px;
+    color: var(--text-dark);
+    line-height: 1.5;
+  }
+
+  .next-steps-list li {
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    margin-bottom: 5px;
+  }
+
+  .next-steps-list li::before {
+    content: '→';
+    color: var(--brand-accent);
+    font-weight: 700;
+    font-size: 10px;
+    margin-top: 1px;
+    flex-shrink: 0;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Invariant chrome -->
+  <span class="chrome-internal">Accenture Internal</span>
+  <span class="chrome-draft">DRAFT</span>
+
+  <!-- Title block -->
+  <div class="title-block">
+    <h1>Strategic Initiative Requires <strong>Immediate Action</strong></h1>
+    <p class="sub-headline">Executive summary — Q2 2026 · Technology &amp; Growth Pillar · Prepared for C-Suite review</p>
+    <div class="accent-rule"></div>
+  </div>
+
+  <!-- Body grid -->
+  <div class="body-grid">
+
+    <!-- Situation -->
+    <div class="zone zone-situation top">
+      <div class="zone-label">Situation</div>
+      <div class="zone-body">
+        Current platform architecture cannot support projected demand growth through Q4 2026.
+        Legacy infrastructure incurs elevated ops overhead and limits time-to-market for new features.
+        Three consecutive sprints have slipped due to technical debt accumulation.
+      </div>
+      <div class="metric">
+        <span class="metric-number">37%</span>
+        <span class="metric-label">increase in P1 incidents YTD</span>
+      </div>
+    </div>
+
+    <!-- Opportunity -->
+    <div class="zone zone-opportunity top">
+      <div class="zone-label">Opportunity</div>
+      <div class="zone-body">
+        Modernising the core data pipeline and adopting a microservices chassis will unlock
+        self-service capabilities for seven downstream teams. Early adopter programmes in the
+        FS and Health verticals have demonstrated 2× faster release cadence after similar transitions.
+        Market window closes in Q3 as competitor parity narrows.
+      </div>
+      <div class="metric">
+        <span class="metric-number">$14M</span>
+        <span class="metric-label">addressable efficiency gain over 24 months</span>
+      </div>
+    </div>
+
+    <!-- Recommendation -->
+    <div class="zone zone-recommendation">
+      <div class="zone-label">Recommendation</div>
+      <div class="zone-body">
+        Approve a phased modernisation programme in three tracks: <strong style="color:var(--brand-primary)">Track 1</strong> — decouple
+        the monolith into four bounded-context services by end of Q3 (8-week sprint, 6 engineers).
+        <strong style="color:var(--brand-primary)">Track 2</strong> — migrate batch pipelines to event-driven architecture by Q4, eliminating
+        the 6-hour processing lag. <strong style="color:var(--brand-primary)">Track 3</strong> — implement observability layer and
+        automated runbooks to reduce MTTR by 60%. Total investment envelope: $2.4M capex + $380K annual opex.
+      </div>
+      <div class="metric">
+        <span class="metric-number">5.8×</span>
+        <span class="metric-label">projected ROI at 24-month horizon</span>
+      </div>
+    </div>
+
+    <!-- Next Steps -->
+    <div class="zone zone-next-steps">
+      <div class="zone-label">Next Steps</div>
+      <ul class="next-steps-list">
+        <li>Approve programme charter and funding by 30 May</li>
+        <li>Stand up steering committee and assign exec sponsor</li>
+        <li>Finalise vendor shortlist for observability tooling</li>
+        <li>Kick off Track 1 sprint planning week of 9 Jun</li>
+        <li>30-day progress review scheduled for 18 Jul</li>
+      </ul>
+      <div class="metric">
+        <span class="metric-number">Jun 9</span>
+        <span class="metric-label">programme kick-off target</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span class="footer-left">Confidential — Accenture Internal</span>
+    <span class="footer-right">Slide Lab · 2026 · 184</span>
+  </div>
+
+</body>
+</html>

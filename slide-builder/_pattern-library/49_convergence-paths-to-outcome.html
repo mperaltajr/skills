@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>49 — Convergence paths to outcome</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', -apple-system, sans-serif;
+    background: #E5E7EB;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    padding: 24px;
+  }
+
+  .slide {
+    width: 1280px;
+    height: 720px;
+    background: var(--slide-bg);
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  }
+
+  .draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; z-index: 5; }
+  .project-label { position: absolute; top: 24px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; z-index: 5; }
+
+  /* Title */
+  .title-block {
+    position: absolute;
+    top: 48px;
+    left: 56px;
+    right: 56px;
+  }
+  .title {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--text-dark);
+    line-height: 1.25;
+    letter-spacing: -0.01em;
+  }
+  .sub-headline {
+    font-size: 14px;
+    font-weight: 400;
+    color: var(--text-mid);
+    margin-top: 8px;
+    line-height: 1.4;
+  }
+  .accent-rule {
+    width: 48px;
+    height: 3px;
+    background: var(--brand-accent);
+    margin-top: 14px;
+    border-radius: 2px;
+  }
+
+  /* ===== Convergence canvas =====
+     Two horizontal lanes stacked, each with 3 nodes (start → mid → end),
+     both feeding a right-edge dark outcome column. Connector SVG draws
+     the joining lines so the convergence reads as one diagram, not three. */
+  .river {
+    position: absolute;
+    top: 190px;
+    left: 56px;
+    right: 56px;
+    height: 360px;
+  }
+
+  .river-svg {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* Two lanes: top y=0..150, bottom y=210..360. Each lane stops 240px
+     short of the right edge so the outcome panel can sit on top. */
+  .lane {
+    position: absolute;
+    left: 0;
+    right: 240px;
+    height: 150px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    z-index: 1;
+  }
+  .lane.top { top: 0; }
+  .lane.bot { bottom: 0; }
+
+  .lane .tag {
+    width: 110px;
+    flex-shrink: 0;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 1.6px;
+    text-transform: uppercase;
+    color: var(--brand-primary);
+    line-height: 1.25;
+  }
+  .lane.bot .tag { color: var(--brand-accent); }
+  .lane .tag .tag-sub {
+    display: block;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-dark);
+    text-transform: none;
+    letter-spacing: -0.2px;
+    margin-top: 4px;
+    line-height: 1.2;
+  }
+
+  .lane .node {
+    flex: 1;
+    min-width: 0;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    padding: 12px 14px;
+    min-height: 96px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .lane.bot .node {
+    background: #FAF3FF;
+    border-color: #E8C9FF;
+  }
+  .lane .node .n-name {
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.25;
+  }
+  .lane.bot .node .n-name { color: var(--brand-accent); }
+  .lane .node .n-desc {
+    font-size: 10.5px;
+    line-height: 1.4;
+    color: var(--text-mid);
+    margin-top: 4px;
+  }
+
+  /* Lane start = the "source" node, filled brand */
+  .lane .node.start {
+    background: var(--brand-primary);
+    border: none;
+    color: #fff;
+  }
+  .lane.bot .node.start {
+    background: var(--brand-accent);
+  }
+  .lane .node.start .n-name { color: #fff; }
+  .lane .node.start .n-desc { color: rgba(255,255,255,0.88); }
+
+  /* Chevron arrows between nodes */
+  .lane .chev {
+    flex-shrink: 0;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1;
+  }
+  .lane.bot .chev { color: var(--brand-accent); }
+
+  /* Right-edge outcome column — full height, dark */
+  .outcome {
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 220px;
+    background: var(--brand-primary);
+    color: #fff;
+    padding: 22px 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 8px;
+    z-index: 2;
+    box-shadow: -8px 0 24px rgba(45, 10, 78, 0.18);
+  }
+  .outcome .o-lbl {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.8px;
+    text-transform: uppercase;
+    color: var(--brand-accent-soft);
+  }
+  .outcome .o-head {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-top: 4px;
+  }
+  .outcome .o-body {
+    font-size: 11.5px;
+    line-height: 1.45;
+    color: rgba(255,255,255,0.88);
+    margin-top: 8px;
+  }
+  .outcome .o-body strong { color: #fff; }
+
+  /* Convergence line */
+  .convergence {
+    position: absolute;
+    bottom: 56px;
+    left: 56px;
+    right: 56px;
+    padding-top: 14px;
+    border-top: 1px solid var(--card-border);
+    font-size: 14px;
+    color: var(--text-dark);
+    font-style: italic;
+    line-height: 1.4;
+  }
+  .convergence::before {
+    content: '';
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    background: var(--brand-accent);
+    border-radius: 50%;
+    margin-right: 10px;
+    transform: translateY(-2px);
+  }
+
+  /* Footer */
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 32px;
+    padding: 0 56px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 10px;
+    color: var(--text-faint);
+    letter-spacing: 0.06em;
+  }
+  .footer .pagenum { font-weight: 600; color: var(--text-mid); }
+</style>
+</head>
+<body>
+<div class="slide">
+
+  <!-- Title -->
+  <div class="title-block">
+    <div class="title" data-shape-id="title">Two parallel paths feed one outcome &mdash; together they produce influence plus credibility.</div>
+    <div class="sub-headline" data-shape-id="subtitle">Each lane runs independently from source to result. Both lines converge at the right-edge outcome &mdash; either alone gets you halfway.</div>
+    <div class="accent-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- River / convergence canvas -->
+  <div class="river">
+
+    <!-- Joiner SVG: pulls the two lanes into the outcome panel.
+         Container is 1168x360. Top lane mid-y ~75. Bottom lane mid-y ~285.
+         Lanes end at right=240 (x=928 inside the 1168 viewBox).
+         Outcome panel left edge at x=948. Lines bend toward y=180 (centerline). -->
+    <svg class="river-svg" data-shape-id="chart-canvas" viewBox="0 0 1168 360" preserveAspectRatio="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <marker id="conv-arrow" viewBox="0 0 8 8" refX="8" refY="4"
+                markerWidth="8" markerHeight="8" markerUnits="strokeWidth" orient="auto">
+          <path d="M0,0 L8,4 L0,8 z" fill="#2D0A4E"/>
+        </marker>
+      </defs>
+      <!-- Top lane convergence: from (928, 75) curve into (948, 180) -->
+      <path d="M 928 75 C 938 75, 948 130, 948 180"
+            stroke="#2D0A4E" stroke-width="2" fill="none" marker-end="url(#conv-arrow)"/>
+      <!-- Bottom lane convergence: from (928, 285) curve into (948, 180) -->
+      <path d="M 928 285 C 938 285, 948 230, 948 180"
+            stroke="#A100FF" stroke-width="2" fill="none" marker-end="url(#conv-arrow)"/>
+    </svg>
+
+    <!-- Top lane: Prong 1 -->
+    <div class="lane top">
+      <div class="tag" data-shape-id="lane-1-tag">
+        Prong 1
+        <span class="tag-sub">Mindset shift</span>
+      </div>
+      <div class="node start">
+        <div class="n-name" data-shape-id="lane-1-node-1-name">Mindset shift</div>
+        <div class="n-desc" data-shape-id="lane-1-node-1-desc">How we think and operate.</div>
+      </div>
+      <span class="chev">&rsaquo;</span>
+      <div class="node">
+        <div class="n-name" data-shape-id="lane-1-node-2-name">Trusted relationships</div>
+        <div class="n-desc" data-shape-id="lane-1-node-2-desc">Teams frame problems and engage at the right level.</div>
+      </div>
+      <span class="chev">&rsaquo;</span>
+      <div class="node">
+        <div class="n-name" data-shape-id="lane-1-node-3-name">Influence</div>
+        <div class="n-desc" data-shape-id="lane-1-node-3-desc">We shape decisions before they are made.</div>
+      </div>
+    </div>
+
+    <!-- Bottom lane: Prong 2 -->
+    <div class="lane bot">
+      <div class="tag" data-shape-id="lane-2-tag">
+        Prong 2
+        <span class="tag-sub">Ops engine</span>
+      </div>
+      <div class="node start">
+        <div class="n-name" data-shape-id="lane-2-node-1-name">Ops intelligence engine</div>
+        <div class="n-desc" data-shape-id="lane-2-node-1-desc">What we know and deliver.</div>
+      </div>
+      <span class="chev">&rsaquo;</span>
+      <div class="node">
+        <div class="n-name" data-shape-id="lane-2-node-2-name">Insights</div>
+        <div class="n-desc" data-shape-id="lane-2-node-2-desc">Grounded in how the business actually makes money.</div>
+      </div>
+      <span class="chev">&rsaquo;</span>
+      <div class="node">
+        <div class="n-name" data-shape-id="lane-2-node-3-name">Credibility</div>
+        <div class="n-desc" data-shape-id="lane-2-node-3-desc">Teams identify, quantify, and capture value.</div>
+      </div>
+    </div>
+
+    <!-- Outcome -->
+    <div class="outcome">
+      <div class="o-lbl" data-shape-id="outcome-label">Together</div>
+      <div class="o-head" data-shape-id="outcome-name">New and expanded opportunities</div>
+      <div class="o-body" data-shape-id="outcome-body"><strong>Influence + credibility</strong> drive new work won and expansion of existing engagements &mdash; durable, structural success.</div>
+    </div>
+
+  </div>
+
+  <!-- Convergence -->
+  <div class="convergence" data-shape-id="convergence">
+    Without both prongs we leave value on the table &mdash; where we are today.
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <div data-shape-id="footer-left">Slide Lab &middot; Pattern Library</div>
+    <div class="pagenum" data-shape-id="footer-right">49 / Convergence paths</div>
+  </div>
+
+</div>
+</body>
+</html>

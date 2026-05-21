@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>06 · Section divider with hero numeral + brand accents</title>
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #2D0A4E;          /* dark mode divider */
+  --text-on-dark: #FFFFFF;
+  --text-on-dark-mid: #C780FF;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1280px; height: 720px; background: var(--slide-bg); font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; color: var(--text-on-dark); overflow: hidden; }
+body { padding: 0; position: relative; }
+.draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; }
+.project-label { position: absolute; top: 24px; left: 24px; color: var(--text-on-dark-mid); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; opacity: 0.7; }
+
+/* Two-column layout — section title left, mega numeral right */
+.divider-grid { display: flex; flex-wrap: wrap; height: 100vh; align-items: center; padding: 0 80px; gap: 60px; }
+.section-meta { font-size: 14px; color: var(--text-on-dark-mid); font-weight: 700; letter-spacing: 3px; text-transform: uppercase; margin-bottom: 18px; }
+.section-title { font-size: 56px; font-weight: 800; line-height: 1.05; color: white; max-width: 540px; }
+.section-rule { width: 80px; height: 4px; background: var(--brand-accent); margin-top: 32px; }
+.section-sub { font-size: 16px; color: var(--text-on-dark-mid); margin-top: 24px; max-width: 480px; line-height: 1.5; }
+
+.numeral { font-size: 360px; font-weight: 900; line-height: 0.85; color: var(--brand-accent); text-align: right; font-feature-settings: "tnum"; letter-spacing: -8px; }
+
+/* Top and bottom accent rules */
+.top-rule { position: absolute; top: 0; left: 0; right: 0; height: 6px; background: var(--brand-accent); }
+.bottom-rule { position: absolute; bottom: 0; left: 0; right: 0; height: 6px; background: var(--brand-accent); }
+
+.footer-left { position: absolute; bottom: 18px; left: 24px; color: var(--text-on-dark-mid); font-size: 11px; letter-spacing: 1px; opacity: 0.7; }
+.footer-right { position: absolute; bottom: 18px; right: 24px; color: var(--text-on-dark-mid); font-size: 11px; opacity: 0.7; }
+
+/* DARK THEME — this slide is already dark by design; apply subtle reinforcements */
+html, body { background: #2D0A4E; }
+.project-label { color: rgba(255,255,255,0.4); opacity: 1; }
+.section-meta { color: rgba(255,255,255,0.5); }
+.section-title { color: #FFFFFF; }
+.section-sub { color: rgba(255,255,255,0.6); }
+.footer-left, .footer-right { color: rgba(255,255,255,0.4); opacity: 1; }
+</style>
+</head>
+<body>
+  <div class="top-rule" data-shape-id="divider-top-rule"></div>
+
+  <div class="divider-grid">
+    <div>
+      <div class="section-meta" data-shape-id="divider-section-label">Section · 03</div>
+      <div class="section-title" data-shape-id="divider-title">What Slide Lab actually is</div>
+      <div class="section-rule" data-shape-id="divider-rule"></div>
+      <div class="section-sub" data-shape-id="divider-subtitle">The mechanics behind the thought partner — how it sharpens the thesis before it builds anything.</div>
+    </div>
+    <div class="numeral" data-shape-id="divider-numeral">03</div>
+  </div>
+
+  <div class="bottom-rule" data-shape-id="divider-bottom-rule"></div>
+  <div class="footer-left" data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+</body>
+</html>

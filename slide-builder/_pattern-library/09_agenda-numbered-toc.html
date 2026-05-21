@@ -1,0 +1,167 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>09 · Agenda — numbered table of contents</title>
+<style>
+/*
+  Layout: two-column agenda + objectives (55/45).
+  LEFT: eight numbered agenda items — the focal point.
+  RIGHT: four "session objectives" — what the audience should walk away
+  having decided. The right side is deliberately quieter (lighter weight,
+  no big numerals) so it supports the agenda rather than competing with it.
+  Both columns snap to the same baseline grid; column rule provides the
+  visible alignment edge.
+*/
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1280px; height: 720px; background: var(--slide-bg); font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; color: var(--text-dark); overflow: hidden; }
+body { padding: 50px 56px; position: relative; }
+
+.draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; text-transform: uppercase; }
+.project-label { position: absolute; top: 24px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
+
+.action-title { position: absolute; left: 56px; right: 56px; top: 28px; min-height: 72px; font-size: 30px; font-weight: 700; line-height: 1.2; color: var(--text-dark); }
+.action-title strong { color: var(--brand-primary); }
+.subhead { position: absolute; left: 56px; right: 56px; top: 100px; font-size: 14px; color: var(--text-mid); font-style: italic; }
+.title-rule { position: absolute; left: 56px; top: 128px; width: 64px; height: 3px; background: var(--brand-accent); }
+
+/* Two-column body: agenda 55% / objectives 45% with a hairline column rule */
+.body-grid { display: flex; flex-wrap: wrap; gap: 48px; align-items: start; position: relative; }
+.body-grid::before { content: ""; position: absolute; top: 4px; bottom: 4px; left: calc(55% - 4px); width: 1px; background: var(--card-border); }
+
+/* Left: numbered agenda — the focal point */
+.toc { display: flex; flex-wrap: wrap; row-gap: 0; }
+.toc-item { display: flex; flex-wrap: wrap; column-gap: 18px; align-items: center; min-height: 46px; padding: 8px 0; border-bottom: 1px solid var(--card-border); }
+.toc-item:last-child { border-bottom: none; }
+.toc-num { font-size: 28px; font-weight: 800; line-height: 1; color: var(--brand-accent); font-feature-settings: "tnum"; letter-spacing: -1px; text-align: left; }
+.toc-text { display: flex; flex-direction: column; gap: 2px; }
+.toc-title { font-size: 15px; font-weight: 700; color: var(--brand-primary); line-height: 1.25; letter-spacing: -0.1px; }
+.toc-desc { font-size: 14px; font-style: italic; color: var(--text-mid); line-height: 1.35; }
+
+/* Right: session objectives — supporting panel */
+.obj { padding-top: 4px; }
+.obj-label { font-size: 11px; font-weight: 700; letter-spacing: 2.5px; text-transform: uppercase; color: var(--text-faint); margin-bottom: 6px; }
+.obj-heading { font-size: 18px; font-weight: 700; color: var(--brand-primary); line-height: 1.25; margin-bottom: 20px; }
+.obj-list { display: flex; flex-direction: column; gap: 16px; }
+.obj-item { display: flex; flex-wrap: wrap; column-gap: 12px; align-items: start; }
+.obj-marker { width: 10px; height: 10px; border-radius: 50%; background: var(--brand-accent); margin-top: 6px; justify-self: start; }
+.obj-text { font-size: 13.5px; line-height: 1.45; color: var(--text-dark); }
+.obj-text strong { color: var(--brand-primary); font-weight: 700; }
+.obj-rule { width: 32px; height: 2px; background: var(--card-border); margin: 22px 0 14px 0; }
+.obj-note { font-size: 14px; line-height: 1.55; color: var(--text-mid); font-style: italic; }
+
+/* Footer invariant zone */
+.footer-rule { position: absolute; left: 0; right: 0; bottom: 32px; height: 1px; background: var(--card-border); }
+.footer-left { position: absolute; bottom: 14px; left: 24px; color: var(--text-faint); font-size: 11px; letter-spacing: 1px; text-transform: uppercase; }
+.footer-right { position: absolute; bottom: 14px; right: 24px; color: var(--text-faint); font-size: 11px; }
+</style>
+</head>
+<body>
+
+  <div class="action-title" data-shape-id="title">Agenda — <strong>eight sections, four objectives</strong>.</div>
+  <div class="subhead" data-shape-id="subtitle">Each section advances one of the objectives.</div>
+  <div class="title-rule" data-shape-id="brand-rule"></div>
+
+  <div class="body-grid">
+    <div class="toc">
+      <div class="toc-item">
+        <div class="toc-num" data-shape-id="toc-1-num">01</div>
+        <div class="toc-text">
+          <div class="toc-title" data-shape-id="toc-1-title">The problem</div>
+          <div class="toc-desc" data-shape-id="toc-1-desc">Consultants rarely lack ideas — they struggle to cut through them.</div>
+        </div>
+      </div>
+      <div class="toc-item">
+        <div class="toc-num" data-shape-id="toc-2-num">02</div>
+        <div class="toc-text">
+          <div class="toc-title" data-shape-id="toc-2-title">Why existing tools don't fix it</div>
+          <div class="toc-desc" data-shape-id="toc-2-desc">Training gap and GenAI gap share the same root cause.</div>
+        </div>
+      </div>
+      <div class="toc-item">
+        <div class="toc-num" data-shape-id="toc-3-num">03</div>
+        <div class="toc-text">
+          <div class="toc-title" data-shape-id="toc-3-title">What Slide Lab actually is</div>
+          <div class="toc-desc" data-shape-id="toc-3-desc">A thought partner, not a slide machine.</div>
+        </div>
+      </div>
+      <div class="toc-item">
+        <div class="toc-num" data-shape-id="toc-4-num">04</div>
+        <div class="toc-text">
+          <div class="toc-title" data-shape-id="toc-4-title">The ecosystem</div>
+          <div class="toc-desc" data-shape-id="toc-4-desc">Think, Argue, Build — connected, not stacked.</div>
+        </div>
+      </div>
+      <div class="toc-item">
+        <div class="toc-num" data-shape-id="toc-5-num">05</div>
+        <div class="toc-text">
+          <div class="toc-title" data-shape-id="toc-5-title">The proof</div>
+          <div class="toc-desc" data-shape-id="toc-5-desc">Cycle time and partner-edit rates against the baseline.</div>
+        </div>
+      </div>
+      <div class="toc-item">
+        <div class="toc-num" data-shape-id="toc-6-num">06</div>
+        <div class="toc-text">
+          <div class="toc-title" data-shape-id="toc-6-title">Demo: Think &amp; Argue</div>
+          <div class="toc-desc" data-shape-id="toc-6-desc">A 30-second sequence from a real session.</div>
+        </div>
+      </div>
+      <div class="toc-item">
+        <div class="toc-num" data-shape-id="toc-7-num">07</div>
+        <div class="toc-text">
+          <div class="toc-title" data-shape-id="toc-7-title">Demo: Build</div>
+          <div class="toc-desc" data-shape-id="toc-7-desc">From governing thought to a real PPTX.</div>
+        </div>
+      </div>
+      <div class="toc-item">
+        <div class="toc-num" data-shape-id="toc-8-num">08</div>
+        <div class="toc-text">
+          <div class="toc-title" data-shape-id="toc-8-title">Honest expectations and the ask</div>
+          <div class="toc-desc" data-shape-id="toc-8-desc">What works today, what's still growing, what we want.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="obj">
+      <div class="obj-label" data-shape-id="objectives-label">Session objectives</div>
+      <div class="obj-heading" data-shape-id="objectives-heading">By the end of 30 minutes, you should be able to —</div>
+      <div class="obj-list">
+        <div class="obj-item">
+          <div class="obj-marker" data-shape-id="objective-1-marker"></div>
+          <div class="obj-text" data-shape-id="objective-1-text"><strong>Understand</strong> why decks degrade — and why that's a structural problem, not a skill problem.</div>
+        </div>
+        <div class="obj-item">
+          <div class="obj-marker" data-shape-id="objective-2-marker"></div>
+          <div class="obj-text" data-shape-id="objective-2-text"><strong>See</strong> how Slide Lab fixes it differently from training or generic AI.</div>
+        </div>
+        <div class="obj-item">
+          <div class="obj-marker" data-shape-id="objective-3-marker"></div>
+          <div class="obj-text" data-shape-id="objective-3-text"><strong>Decide</strong> whether to sponsor a four-week pilot with one practice.</div>
+        </div>
+        <div class="obj-item">
+          <div class="obj-marker" data-shape-id="objective-4-marker"></div>
+          <div class="obj-text" data-shape-id="objective-4-text"><strong>Align</strong> on what good looks like for the rollout — and what would kill it.</div>
+        </div>
+      </div>
+      <div class="obj-rule" data-shape-id="objectives-rule"></div>
+      <div class="obj-note" data-shape-id="objectives-note">Each section maps to one of the four. Stop me anywhere an objective isn't being served.</div>
+    </div>
+  </div>
+  <div class="footer-left" data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+</body>
+</html>

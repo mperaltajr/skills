@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>46 — Two-tier phase + detail (dark)</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --tint-accent: #F7ECFF;
+  --tint-mid: #F1E5FB;
+  --tint-primary: #ECE3F4;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #4a4a4a;
+  font-family: 'Inter', -apple-system, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.slide {
+  width: 1280px;
+  height: 720px;
+  background: var(--slide-bg);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.35);
+  font-family: 'Inter', -apple-system, sans-serif;
+  color: var(--text-dark);
+}
+
+/* ===== Standard chrome ===== */
+.draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; z-index: 5; }
+.project-label { position: absolute; top: 24px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; z-index: 5; }
+
+/* ===== Title block ===== */
+.title-block {
+  position: absolute;
+  top: 48px;
+  left: 48px;
+  right: 48px;
+}
+.eyebrow {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--brand-accent);
+  margin-bottom: 8px;
+}
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--text-dark);
+  letter-spacing: -0.3px;
+  line-height: 1.2;
+}
+.subhead {
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: var(--text-mid);
+  font-weight: 400;
+  line-height: 1.45;
+  max-width: 980px;
+}
+.accent-rule {
+  margin-top: 12px;
+  width: 40px;
+  height: 3px;
+  background: var(--brand-accent);
+  border-radius: 2px;
+}
+
+/* ===== Two-tier content area ===== */
+.content {
+  position: absolute;
+  top: 198px;
+  left: 48px;
+  right: 48px;
+  bottom: 76px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* ===== TIER 1 — Compact chevron header strip ===== */
+.tier-top {
+  display: flex;
+  height: 64px;
+  flex-shrink: 0;
+}
+.chev {
+  flex: 1;
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 30px 0 18px;
+  color: #fff;
+}
+.chev-1 {
+  background: var(--brand-accent);
+  clip-path: polygon(0 0, calc(100% - 18px) 0, 100% 50%, calc(100% - 18px) 100%, 0 100%);
+}
+.chev-2 {
+  background: var(--brand-primary-mid);
+  margin-left: -18px;
+  padding-left: 36px;
+  z-index: 1;
+  clip-path: polygon(18px 0, calc(100% - 18px) 0, 100% 50%, calc(100% - 18px) 100%, 18px 100%, 0 50%);
+}
+.chev-3 {
+  background: var(--brand-primary);
+  margin-left: -18px;
+  padding-left: 36px;
+  z-index: 0;
+  clip-path: polygon(18px 0, 100% 0, 100% 100%, 18px 100%, 0 50%);
+}
+.chev-num {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.18);
+  border: 2px solid rgba(255,255,255,0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+  color: #fff;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.chev-2 .chev-num { border-color: rgba(255,255,255,0.72); }
+.chev-3 .chev-num { border-color: rgba(255,255,255,0.55); }
+.chev-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.chev-eyebrow {
+  font-size: 9.5px;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.78);
+  font-weight: 600;
+}
+.chev-name {
+  font-size: 18px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1;
+  letter-spacing: 0.4px;
+}
+
+/* ===== TIER 2 — Detail panels ===== */
+.tier-bottom {
+  flex: 1;
+  display: flex;
+  gap: 12px;
+  min-height: 0;
+}
+.panel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid var(--card-border);
+  border-top: 3px solid var(--brand-accent);
+  background: #fff;
+  padding: 14px 16px 14px 16px;
+  min-height: 0;
+}
+.panel-2 { border-top-color: var(--brand-primary-mid); }
+.panel-3 { border-top-color: var(--brand-primary); }
+
+.panel-eyebrow {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--brand-accent);
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--card-border);
+  flex-shrink: 0;
+}
+.panel-2 .panel-eyebrow { color: var(--brand-primary-mid); }
+.panel-3 .panel-eyebrow { color: var(--brand-primary); }
+
+.activities {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-evenly;
+  padding: 4px 0;
+  min-height: 0;
+}
+.act {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+.act-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--brand-accent);
+  color: #fff;
+  font-size: 10.5px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+  font-variant-numeric: tabular-nums;
+}
+.panel-2 .act-num { background: var(--brand-primary-mid); }
+.panel-3 .act-num { background: var(--brand-primary); }
+.act-text {
+  font-size: 14px;
+  color: var(--text-dark);
+  line-height: 1.45;
+}
+.act-text strong {
+  color: var(--text-dark);
+  font-weight: 700;
+}
+
+/* ===== Output strip ===== */
+.output {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: var(--tint-accent);
+  border-left: 3px solid var(--brand-accent);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--brand-accent);
+  flex-shrink: 0;
+  line-height: 1.35;
+}
+.panel-2 .output {
+  background: var(--tint-mid);
+  border-left-color: var(--brand-primary-mid);
+  color: var(--brand-primary-mid);
+}
+.panel-3 .output {
+  background: var(--tint-primary);
+  border-left-color: var(--brand-primary);
+  color: var(--brand-primary);
+}
+
+/* ===== Footer ===== */
+.footer {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  padding: 0 48px;
+  font-size: 9.5px;
+  color: var(--text-faint);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-top: 1px solid #F0EAF6;
+  background: #FBFAFD;
+}
+.footer .pg { margin-left: auto; font-variant-numeric: tabular-nums; }
+
+/* DARK THEME */
+:root {
+  --card-bg: rgba(255,255,255,0.07);
+  --card-border: rgba(255,255,255,0.12);
+  --text-dark: #FFFFFF;
+  --text-mid: rgba(255,255,255,0.6);
+  --slide-bg: #2D0A4E;
+}
+body { background: #2D0A4E; }
+.slide { background: #2D0A4E; }
+.project-label { color: rgba(255,255,255,0.4); }
+.title { color: #FFFFFF; }
+.title strong { color: #C780FF; }
+.subhead { color: rgba(255,255,255,0.6); }
+.accent-rule { background: #A100FF; }
+.panel {
+  background: rgba(255,255,255,0.07);
+  border-color: rgba(255,255,255,0.12);
+}
+.panel-eyebrow {
+  border-bottom-color: rgba(255,255,255,0.12);
+}
+.act-text { color: rgba(255,255,255,0.85); }
+.act-text strong { color: rgba(255,255,255,0.85); }
+.output {
+  background: rgba(161,0,255,0.15);
+  color: #C780FF;
+}
+.panel-2 .output {
+  background: rgba(92,45,135,0.25);
+  color: #C780FF;
+}
+.panel-3 .output {
+  background: rgba(45,10,78,0.4);
+  color: #C780FF;
+}
+.footer {
+  border-top-color: rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.04);
+  color: rgba(255,255,255,0.4);
+}
+</style>
+</head>
+<body>
+
+<div class="slide">
+
+  <!-- Title -->
+  <div class="title-block">
+    <div class="eyebrow" data-shape-id="eyebrow">How the skill works</div>
+    <div class="title" data-shape-id="title">Two skills, one workflow: the thinking is locked before a single slide is designed.</div>
+    <div class="subhead" data-shape-id="subtitle">Three sequential phases — structure, design, deliver. MDs read the chevrons; analysts read the detail underneath.</div>
+    <div class="accent-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- Two-tier content -->
+  <div class="content">
+
+    <!-- TIER 1: chevron phase header strip -->
+    <div class="tier-top">
+      <div class="chev chev-1">
+        <div class="chev-num" data-shape-id="step-1-num">1</div>
+        <div class="chev-text">
+          <div class="chev-eyebrow" data-shape-id="step-1-eyebrow">slide-helper</div>
+          <div class="chev-name" data-shape-id="step-1-name">STRUCTURE</div>
+        </div>
+      </div>
+      <div class="chev chev-2">
+        <div class="chev-num" data-shape-id="step-2-num">2</div>
+        <div class="chev-text">
+          <div class="chev-eyebrow" data-shape-id="step-2-eyebrow">slide-builder</div>
+          <div class="chev-name" data-shape-id="step-2-name">DESIGN</div>
+        </div>
+      </div>
+      <div class="chev chev-3">
+        <div class="chev-num" data-shape-id="step-3-num">3</div>
+        <div class="chev-text">
+          <div class="chev-eyebrow" data-shape-id="step-3-eyebrow">slide-builder</div>
+          <div class="chev-name" data-shape-id="step-3-name">DELIVER</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TIER 2: detail panels -->
+    <div class="tier-bottom">
+
+      <!-- Panel 1 — STRUCTURE -->
+      <div class="panel panel-1">
+        <div class="panel-eyebrow" data-shape-id="step-1-activities-label">What happens in this phase</div>
+        <div class="activities">
+          <div class="act"><div class="act-num" data-shape-id="step-1-activity-1-num">1</div><div class="act-text" data-shape-id="step-1-activity-1-text"><strong>Template intake</strong> — drop your client .pptx; fonts, colors and layouts read automatically.</div></div>
+          <div class="act"><div class="act-num" data-shape-id="step-1-activity-2-num">2</div><div class="act-text" data-shape-id="step-1-activity-2-text"><strong>Opening question</strong> — "what are you trying to communicate?" starts the structured conversation.</div></div>
+          <div class="act"><div class="act-num" data-shape-id="step-1-activity-3-num">3</div><div class="act-text" data-shape-id="step-1-activity-3-text"><strong>Audience + assumed knowledge</strong> — who sees it and what they already know going in.</div></div>
+          <div class="act"><div class="act-num" data-shape-id="step-1-activity-4-num">4</div><div class="act-text" data-shape-id="step-1-activity-4-text"><strong>Infer + confirm</strong> — page type, mode and governing thought reflected back, then confirmed.</div></div>
+          <div class="act"><div class="act-num" data-shape-id="step-1-activity-5-num">5</div><div class="act-text" data-shape-id="step-1-activity-5-text"><strong>Deepen structure</strong> — 2-4 supporting buckets, evidence and risks locked in.</div></div>
+        </div>
+        <div class="output" data-shape-id="step-1-output">&rarr; Structured brief produced (complete handoff document)</div>
+      </div>
+
+      <!-- Panel 2 — DESIGN -->
+      <div class="panel panel-2">
+        <div class="panel-eyebrow" data-shape-id="step-2-activities-label">What happens in this phase</div>
+        <div class="activities">
+          <div class="act"><div class="act-num" data-shape-id="step-2-activity-1-num">6</div><div class="act-text" data-shape-id="step-2-activity-1-text"><strong>Reads brief + design rules</strong> — applies MBB slide conventions and page-type rules to your content.</div></div>
+          <div class="act"><div class="act-num" data-shape-id="step-2-activity-2-num">7</div><div class="act-text" data-shape-id="step-2-activity-2-text"><strong>Generates 3-4 visual mockup variations</strong> — each a structurally distinct layout bet, with trade-offs explained.</div></div>
+          <div class="act"><div class="act-num" data-shape-id="step-2-activity-3-num">8</div><div class="act-text" data-shape-id="step-2-activity-3-text"><strong>You select + refine</strong> — react, combine options or request changes; nothing locks until you approve.</div></div>
+        </div>
+        <div class="output" data-shape-id="step-2-output">&rarr; Approved mockup produced (visual structure + content confirmed)</div>
+      </div>
+
+      <!-- Panel 3 — DELIVER -->
+      <div class="panel panel-3">
+        <div class="panel-eyebrow" data-shape-id="step-3-activities-label">What happens in this phase</div>
+        <div class="activities">
+          <div class="act"><div class="act-num" data-shape-id="step-3-activity-1-num">9</div><div class="act-text" data-shape-id="step-3-activity-1-text"><strong>Builds slide in PPTX XML</strong> — uses your exact client template: fonts, colors, placeholder positions and dimensions.</div></div>
+          <div class="act"><div class="act-num" data-shape-id="step-3-activity-2-num">10</div><div class="act-text" data-shape-id="step-3-activity-2-text"><strong>QA'd as PDF before delivery</strong> — checked for overlaps, font errors and leftover placeholder text.</div></div>
+          <div class="act"><div class="act-num" data-shape-id="step-3-activity-3-num">11</div><div class="act-text" data-shape-id="step-3-activity-3-text"><strong>Delivered to your folder</strong> — clickable file link, opens in PowerPoint, ready to present.</div></div>
+        </div>
+        <div class="output" data-shape-id="step-3-output">&rarr; Finished .pptx on your client template</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span data-shape-id="footer-left">Slide Lab &middot; Confidential &middot; Internal working document</span>
+    <span class="pg" data-shape-id="footer-right">46d / 60</span>
+  </div>
+
+</div>
+
+</body>
+</html>

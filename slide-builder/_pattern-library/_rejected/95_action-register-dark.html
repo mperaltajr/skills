@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>95 — Action register</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --rag-green: #2ECC71;
+  --rag-amber: #F39C12;
+  --rag-red: #DC2626;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: #4a4a4a;
+  font-family: 'Inter', -apple-system, sans-serif;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.slide {
+  width: 1280px;
+  height: 720px;
+  background: var(--slide-bg);
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 12px 48px rgba(0,0,0,0.35);
+}
+
+/* ===== Top-row chrome (standard Style A) ===== */
+.draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; z-index: 5; }
+.project-label { position: absolute; top: 24px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; z-index: 5; }
+
+/* ===== Title block ===== */
+.title-block {
+  position: absolute;
+  top: 48px;
+  left: 48px;
+  right: 48px;
+}
+.eyebrow {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--brand-accent);
+  margin-bottom: 8px;
+}
+.title {
+  font-size: 26px;
+  font-weight: 700;
+  color: var(--text-dark);
+  letter-spacing: -0.4px;
+  line-height: 1.2;
+}
+.subhead {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--text-mid);
+  font-weight: 400;
+  line-height: 1.45;
+  max-width: 900px;
+}
+.accent-rule {
+  width: 56px;
+  height: 3px;
+  background: var(--brand-accent);
+  border-radius: 2px;
+}
+
+/* ===== Status legend (PRIMARY: right-pushed flex element in title zone) ===== */
+.title-block-footer {
+  display: flex;
+  align-items: center;
+  margin-top: 14px;
+}
+.title-block-footer .accent-rule {
+  margin-top: 0;
+  flex-shrink: 0;
+}
+.status-legend {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 14px;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  background: #FBFAFD;
+}
+.status-legend .legend-title {
+  font-size: 8.5px;
+  font-weight: 700;
+  letter-spacing: 1.4px;
+  text-transform: uppercase;
+  color: var(--text-mid);
+  padding-right: 12px;
+  border-right: 1px solid var(--card-border);
+}
+.status-legend .legend-items {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.status-legend .legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.2px;
+  color: var(--text-dark);
+  text-transform: uppercase;
+}
+.status-legend .legend-item .dot-mini {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Status dot colors */
+.dot-open { background: var(--rag-red); }
+.dot-prog { background: var(--rag-amber); }
+.dot-done { background: var(--rag-green); }
+
+/* ===== Table ===== */
+.table-wrap {
+  position: absolute;
+  top: 224px;
+  left: 48px;
+  right: 48px;
+  border: 1px solid var(--card-border);
+  border-radius: 6px;
+  overflow: hidden;
+  background: #fff;
+}
+
+table.actions {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  color: var(--text-dark);
+  table-layout: fixed;
+}
+
+table.actions col.col-num    { width: 6%; }
+table.actions col.col-action { width: 50%; }
+table.actions col.col-owner  { width: 16%; }
+table.actions col.col-due    { width: 12%; }
+table.actions col.col-status { width: 16%; }
+
+table.actions thead th {
+  background: var(--brand-primary);
+  color: #fff;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  padding: 9px 14px;
+  text-align: left;
+  border-right: 1px solid rgba(255,255,255,0.08);
+  vertical-align: middle;
+  line-height: 1.3;
+}
+table.actions thead th:last-child { border-right: none; }
+table.actions thead th.num-head { text-align: center; }
+
+table.actions tbody td {
+  padding: 9px 14px;
+  border-top: 1px solid var(--card-border);
+  border-right: 1px solid var(--card-border);
+  vertical-align: middle;
+  line-height: 1.35;
+}
+table.actions tbody td:last-child { border-right: none; }
+table.actions tbody tr:first-child td { border-top: none; }
+table.actions tbody tr:nth-child(even) td { background: #FBFAFD; }
+
+/* Number cell */
+.num-cell {
+  text-align: center;
+  font-weight: 700;
+  font-size: 11px;
+  color: var(--brand-accent);
+  letter-spacing: 1px;
+  background: var(--card-bg) !important;
+  border-right: 2px solid var(--card-border) !important;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Action cell */
+.action-cell {
+  font-weight: 600;
+  font-size: 12px;
+  color: var(--text-dark);
+  letter-spacing: 0.05px;
+}
+
+/* Owner cell */
+.owner-cell {
+  font-weight: 500;
+  font-size: 11.5px;
+  color: var(--brand-primary);
+}
+
+/* Due cell */
+.due-cell {
+  font-weight: 600;
+  font-size: 11.5px;
+  color: var(--text-dark);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.2px;
+}
+.due-cell.due-soon {
+  color: var(--rag-red);
+}
+
+/* Status pill */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 10px 4px 8px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.status-pill .pill-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.pill-open {
+  background: rgba(220, 38, 38, 0.08);
+  color: var(--rag-red);
+  border: 1px solid rgba(220, 38, 38, 0.22);
+}
+.pill-open .pill-dot { background: var(--rag-red); }
+.pill-prog {
+  background: rgba(243, 156, 18, 0.10);
+  color: #B8770A;
+  border: 1px solid rgba(243, 156, 18, 0.28);
+}
+.pill-prog .pill-dot { background: var(--rag-amber); }
+.pill-done {
+  background: rgba(46, 204, 113, 0.10);
+  color: #1E8449;
+  border: 1px solid rgba(46, 204, 113, 0.28);
+}
+.pill-done .pill-dot { background: var(--rag-green); }
+
+/* ===== Convergence line ===== */
+.convergence {
+  position: absolute;
+  bottom: 56px;
+  left: 48px;
+  right: 48px;
+  padding: 14px 18px;
+  background: linear-gradient(90deg, var(--brand-primary) 0%, var(--brand-primary-mid) 100%);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.convergence .conv-tag {
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 1.6px;
+  color: var(--brand-accent-soft);
+  text-transform: uppercase;
+  padding: 4px 8px;
+  border: 1px solid rgba(199, 128, 255, 0.4);
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.convergence .conv-text {
+  font-size: 13px;
+  color: #fff;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+  line-height: 1.4;
+}
+.convergence .conv-text strong {
+  color: var(--brand-accent-soft);
+  font-weight: 700;
+}
+
+/* ===== Footer ===== */
+.footer {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  padding: 0 48px;
+  font-size: 9.5px;
+  color: var(--text-faint);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  border-top: 1px solid #F0EAF6;
+  background: #FBFAFD;
+}
+.footer .pg { margin-left: auto; font-variant-numeric: tabular-nums; }
+
+/* DARK THEME */
+:root {
+  --card-bg: rgba(255,255,255,0.07);
+  --card-border: rgba(255,255,255,0.12);
+  --text-dark: #FFFFFF;
+  --text-mid: rgba(255,255,255,0.6);
+  --slide-bg: #2D0A4E;
+}
+body { background: #2D0A4E; }
+.slide { background: #2D0A4E; }
+.project-label { color: rgba(255,255,255,0.4); }
+.title { color: #FFFFFF; }
+.title strong { color: #C780FF; }
+.subhead { color: rgba(255,255,255,0.6); }
+.status-legend { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); }
+.status-legend .legend-title { color: rgba(255,255,255,0.6); border-right: 1px solid rgba(255,255,255,0.12); }
+.status-legend .legend-item { color: rgba(255,255,255,0.85); }
+.table-wrap { background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.12); }
+table.actions { color: rgba(255,255,255,0.85); }
+table.actions tbody td { border-top: 1px solid rgba(255,255,255,0.12); border-right: 1px solid rgba(255,255,255,0.12); }
+table.actions tbody tr:nth-child(even) td { background: rgba(255,255,255,0.04); }
+.num-cell { background: rgba(255,255,255,0.07) !important; border-right: 2px solid rgba(255,255,255,0.12) !important; }
+.action-cell { color: rgba(255,255,255,0.85); }
+.owner-cell { color: #C780FF; }
+.due-cell { color: rgba(255,255,255,0.85); }
+.footer { border-top: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.4); }
+</style>
+</head>
+<body>
+
+<div class="slide">
+
+  <!-- Top-row chrome (standard Style A) -->
+  <div class="project-label" data-shape-id="accenture-tag">ACCENTURE INTERNAL</div>
+  <div class="draft-badge" data-shape-id="draft-badge">DRAFT</div>
+
+  <!-- Title -->
+  <div class="title-block">
+    <div class="eyebrow" data-shape-id="eyebrow">Action register</div>
+    <div class="title" data-shape-id="title">Action register &mdash; eight items from kickoff, three by Friday.</div>
+    <div class="subhead" data-shape-id="subtitle">Ordered by due date. Owners named, status colour-coded. Anything still <strong style="color:var(--rag-red);">OPEN</strong> on Thursday end-of-day escalates to the weekly review.</div>
+    <div class="title-block-footer">
+      <div class="accent-rule" data-shape-id="brand-rule"></div>
+      <div class="status-legend" aria-label="Status legend" data-shape-id="legend">
+        <div class="legend-title" data-shape-id="legend-title">Status key</div>
+        <div class="legend-items">
+          <span class="legend-item" data-shape-id="legend-1-row"><span class="dot-mini dot-open" data-shape-id="legend-1-swatch"></span><span data-shape-id="legend-1-label">Open</span></span>
+          <span class="legend-item" data-shape-id="legend-2-row"><span class="dot-mini dot-prog" data-shape-id="legend-2-swatch"></span><span data-shape-id="legend-2-label">In progress</span></span>
+          <span class="legend-item" data-shape-id="legend-3-row"><span class="dot-mini dot-done" data-shape-id="legend-3-swatch"></span><span data-shape-id="legend-3-label">Done</span></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table class="actions">
+      <colgroup>
+        <col class="col-num">
+        <col class="col-action">
+        <col class="col-owner">
+        <col class="col-due">
+        <col class="col-status">
+      </colgroup>
+      <thead>
+        <tr>
+          <th class="num-head" data-shape-id="table-col-1-header">#</th>
+          <th data-shape-id="table-col-2-header">Action</th>
+          <th data-shape-id="table-col-3-header">Owner</th>
+          <th data-shape-id="table-col-4-header">Due</th>
+          <th data-shape-id="table-col-5-header">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="num-cell" data-shape-id="table-row-1-num">02</td>
+          <td class="action-cell" data-shape-id="table-row-1-cell-2">Send pre-read deck on Slide Lab method</td>
+          <td class="owner-cell" data-shape-id="table-row-1-cell-3">Mario</td>
+          <td class="due-cell" data-shape-id="table-row-1-cell-4">Mon</td>
+          <td><span class="status-pill pill-done" data-shape-id="table-row-1-status-pill"><span class="pill-dot"></span>Done</span></td>
+        </tr>
+        <tr>
+          <td class="num-cell" data-shape-id="table-row-2-num">03</td>
+          <td class="action-cell" data-shape-id="table-row-2-cell-2">Schedule kickoff workshop</td>
+          <td class="owner-cell" data-shape-id="table-row-2-cell-3">PMO</td>
+          <td class="due-cell" data-shape-id="table-row-2-cell-4">Mon</td>
+          <td><span class="status-pill pill-done" data-shape-id="table-row-2-status-pill"><span class="pill-dot"></span>Done</span></td>
+        </tr>
+        <tr>
+          <td class="num-cell" data-shape-id="table-row-3-num">07</td>
+          <td class="action-cell" data-shape-id="table-row-3-cell-2">Print QC checklist for pilot users</td>
+          <td class="owner-cell" data-shape-id="table-row-3-cell-3">Coach</td>
+          <td class="due-cell" data-shape-id="table-row-3-cell-4">Mon</td>
+          <td><span class="status-pill pill-done" data-shape-id="table-row-3-status-pill"><span class="pill-dot"></span>Done</span></td>
+        </tr>
+        <tr>
+          <td class="num-cell" data-shape-id="table-row-4-num">01</td>
+          <td class="action-cell" data-shape-id="table-row-4-cell-2">Provision Claude Code access for 4 pilot users</td>
+          <td class="owner-cell" data-shape-id="table-row-4-cell-3">IT lead</td>
+          <td class="due-cell due-soon" data-shape-id="table-row-4-cell-4">Tue</td>
+          <td><span class="status-pill pill-open" data-shape-id="table-row-4-status-pill"><span class="pill-dot"></span>Open</span></td>
+        </tr>
+        <tr>
+          <td class="num-cell" data-shape-id="table-row-5-num">05</td>
+          <td class="action-cell" data-shape-id="table-row-5-cell-2">Set up weekly review slot</td>
+          <td class="owner-cell" data-shape-id="table-row-5-cell-3">Mario</td>
+          <td class="due-cell due-soon" data-shape-id="table-row-5-cell-4">Wed</td>
+          <td><span class="status-pill pill-open" data-shape-id="table-row-5-status-pill"><span class="pill-dot"></span>Open</span></td>
+        </tr>
+        <tr>
+          <td class="num-cell" data-shape-id="table-row-6-num">04</td>
+          <td class="action-cell" data-shape-id="table-row-6-cell-2">Identify 12 sample decks for baseline</td>
+          <td class="owner-cell" data-shape-id="table-row-6-cell-3">Maria</td>
+          <td class="due-cell due-soon" data-shape-id="table-row-6-cell-4">Fri</td>
+          <td><span class="status-pill pill-prog" data-shape-id="table-row-6-status-pill"><span class="pill-dot"></span>In progress</span></td>
+        </tr>
+        <tr>
+          <td class="num-cell" data-shape-id="table-row-7-num">06</td>
+          <td class="action-cell" data-shape-id="table-row-7-cell-2">Brief skeptical seniors 1:1</td>
+          <td class="owner-cell" data-shape-id="table-row-7-cell-3">MD</td>
+          <td class="due-cell" data-shape-id="table-row-7-cell-4">Next week</td>
+          <td><span class="status-pill pill-open" data-shape-id="table-row-7-status-pill"><span class="pill-dot"></span>Open</span></td>
+        </tr>
+        <tr>
+          <td class="num-cell" data-shape-id="table-row-8-num">08</td>
+          <td class="action-cell" data-shape-id="table-row-8-cell-2">Finalize Wave 2 scope memo</td>
+          <td class="owner-cell" data-shape-id="table-row-8-cell-3">Maria</td>
+          <td class="due-cell" data-shape-id="table-row-8-cell-4">2 weeks</td>
+          <td><span class="status-pill pill-open" data-shape-id="table-row-8-status-pill"><span class="pill-dot"></span>Open</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Convergence -->
+  <div class="convergence" data-shape-id="convergence">
+    <div class="conv-tag" data-shape-id="convergence-mark">So what</div>
+    <div class="conv-text" data-shape-id="convergence-text"><strong>Three actions due by Friday. Four for next week.</strong> The Friday batch unblocks baseline measurement &mdash; if IT access slips past Tuesday, sample decks slip too.</div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer" data-shape-id="footer-rule">
+    <span data-shape-id="footer-left">Slide Lab &middot; Confidential &middot; Pilot kickoff close-out</span>
+    <span class="pg" data-shape-id="footer-right">95d / 95</span>
+  </div>
+
+</div>
+
+</body>
+</html>

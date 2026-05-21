@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Pattern 221 — KPI Dashboard 6-Up</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --brand-primary:#2D0A4E;
+    --brand-primary-mid:#5C2D87;
+    --brand-accent:#A100FF;
+    --brand-accent-soft:#C780FF;
+    --text-dark:#1A1A2E;
+    --text-mid:#64748B;
+    --text-faint:#94A3B8;
+    --slide-bg:#FFFFFF;
+    --card-bg:#F8F4FC;
+    --card-border:#E5D5F0;
+    --draft-bg:#FFD600;
+    --draft-text:#B71C1C;
+    --status-green:#16A34A;
+    --status-amber:#D97706;
+    --status-red:#DC2626;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    background: var(--slide-bg);
+    font-family: Inter, system-ui, sans-serif;
+    position: relative;
+  }
+
+  /* ── Invariant chrome ── */
+
+  .label-internal {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+  }
+
+  .badge-draft {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 0;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .title-block {
+    position: absolute; top: 0; left: 0; right: 0; height: 160px;
+  }
+
+  .title-block h1 {
+    position: absolute; top: 28px; left: 64px; right: 64px; min-height: 36px;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.15;
+  }
+
+  .title-block h1 strong {
+    color: var(--brand-accent);
+    font-weight: 700;
+  }
+
+  .title-block .sub {
+    position: absolute; top: 108px; left: 64px; right: 64px;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+
+}
+
+  .accent-rule {
+    position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+
+}
+
+  footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 20px 8px;
+  }
+
+  footer span {
+    font-size: 8px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* ── KPI Grid ── */
+
+  .kpi-grid {
+    position: absolute;
+    top: 144px;
+    left: 48px;
+    right: 48px;
+    bottom: 64px;
+    display: flex; flex-wrap: wrap;
+    gap: 14px;
+  }
+
+  .kpi-tile {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    padding: 18px 20px 10px 20px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Status dot */
+  .status-dot {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+  .status-dot.green  { background: var(--status-green); box-shadow: 0 0 0 2px rgba(22,163,74,.18); }
+  .status-dot.amber  { background: var(--status-amber); box-shadow: 0 0 0 2px rgba(217,119,6,.18); }
+  .status-dot.red    { background: var(--status-red);   box-shadow: 0 0 0 2px rgba(220,38,38,.18); }
+
+  .metric-name {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+
+    bottom: 6px;
+  }
+
+  .metric-row {
+    display: flex;
+    align-items: baseline;
+    gap: 5px;
+    line-height: 1;
+  }
+
+  .metric-value {
+    font-size: 48px;
+    font-weight: 800;
+    color: var(--brand-primary);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+
+  .metric-unit {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text-mid);
+  }
+
+  .metric-target {
+    font-size: 11px;
+    color: var(--text-faint);
+
+    top: 6px;
+  }
+
+  .metric-delta {
+    font-size: 14px;
+    font-weight: 600;
+
+    top: 4px;
+  }
+  .metric-delta.up   { color: var(--status-green); }
+  .metric-delta.down { color: var(--status-red); }
+  .metric-delta.flat { color: var(--text-mid); }
+
+  /* Progress bar — pinned to tile bottom */
+  .progress-wrap {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 5px;
+    background: var(--card-border);
+  }
+
+  .progress-fill {
+    height: 100%;
+    border-radius: 0;
+  }
+  .progress-fill.green  { background: var(--status-green); }
+  .progress-fill.amber  { background: var(--status-amber); }
+  .progress-fill.red    { background: var(--status-red); }
+</style>
+</head>
+<body>
+
+  <!-- Chrome -->
+  <div class="label-internal" data-shape-id="accenture-tag">Accenture Internal</div>
+  <div class="badge-draft" data-shape-id="draft-badge">Draft</div>
+
+  <!-- Title block -->
+  <div class="title-block">
+    <h1 data-shape-id="title">Performance at a Glance — <strong>KPI Dashboard</strong></h1>
+    <p class="sub" data-shape-id="subtitle">FY2026 · Q2 &nbsp;|&nbsp; As of May 2026 &nbsp;·&nbsp; All figures consolidated</p>
+    <div class="accent-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- KPI Grid -->
+  <div class="kpi-grid">
+
+    <!-- 1: Revenue -->
+    <div class="kpi-tile" data-shape-id="metric-1-tile">
+      <div class="status-dot green" data-shape-id="metric-1-status"></div>
+      <div class="metric-name" data-shape-id="metric-1-label">Revenue</div>
+      <div class="metric-row">
+        <span class="metric-value" data-shape-id="metric-1-value">$2.4</span>
+        <span class="metric-unit" data-shape-id="metric-1-unit">B</span>
+      </div>
+      <div class="metric-target" data-shape-id="metric-1-sublabel">Target: $2.3B</div>
+      <div class="metric-delta up" data-shape-id="metric-1-delta">▲ +4.3% vs Q1</div>
+      <div class="progress-wrap"><div class="progress-fill green" data-shape-id="metric-1-progress" style="width:104%"></div></div>
+    </div>
+
+    <!-- 2: EBITDA -->
+    <div class="kpi-tile" data-shape-id="metric-2-tile">
+      <div class="status-dot amber" data-shape-id="metric-2-status"></div>
+      <div class="metric-name" data-shape-id="metric-2-label">EBITDA</div>
+      <div class="metric-row">
+        <span class="metric-value" data-shape-id="metric-2-value">18.2</span>
+        <span class="metric-unit" data-shape-id="metric-2-unit">%</span>
+      </div>
+      <div class="metric-target" data-shape-id="metric-2-sublabel">Target: 20.0%</div>
+      <div class="metric-delta down" data-shape-id="metric-2-delta">▼ −1.8pp vs Q1</div>
+      <div class="progress-wrap"><div class="progress-fill amber" data-shape-id="metric-2-progress" style="width:91%"></div></div>
+    </div>
+
+    <!-- 3: NPS -->
+    <div class="kpi-tile" data-shape-id="metric-3-tile">
+      <div class="status-dot green" data-shape-id="metric-3-status"></div>
+      <div class="metric-name" data-shape-id="metric-3-label">NPS</div>
+      <div class="metric-row">
+        <span class="metric-value" data-shape-id="metric-3-value">67</span>
+        <span class="metric-unit" data-shape-id="metric-3-unit">pts</span>
+      </div>
+      <div class="metric-target" data-shape-id="metric-3-sublabel">Target: 60 pts</div>
+      <div class="metric-delta up" data-shape-id="metric-3-delta">▲ +5 pts vs Q1</div>
+      <div class="progress-wrap"><div class="progress-fill green" data-shape-id="metric-3-progress" style="width:100%"></div></div>
+    </div>
+
+    <!-- 4: SLA Uptime -->
+    <div class="kpi-tile" data-shape-id="metric-4-tile">
+      <div class="status-dot green" data-shape-id="metric-4-status"></div>
+      <div class="metric-name" data-shape-id="metric-4-label">SLA Uptime</div>
+      <div class="metric-row">
+        <span class="metric-value" data-shape-id="metric-4-value">99.7</span>
+        <span class="metric-unit" data-shape-id="metric-4-unit">%</span>
+      </div>
+      <div class="metric-target" data-shape-id="metric-4-sublabel">Target: 99.5%</div>
+      <div class="metric-delta up" data-shape-id="metric-4-delta">▲ +0.2pp vs Q1</div>
+      <div class="progress-wrap"><div class="progress-fill green" data-shape-id="metric-4-progress" style="width:100%"></div></div>
+    </div>
+
+    <!-- 5: Headcount -->
+    <div class="kpi-tile" data-shape-id="metric-5-tile">
+      <div class="status-dot amber" data-shape-id="metric-5-status"></div>
+      <div class="metric-name" data-shape-id="metric-5-label">Headcount</div>
+      <div class="metric-row">
+        <span class="metric-value" data-shape-id="metric-5-value">4,812</span>
+        <span class="metric-unit" data-shape-id="metric-5-unit">FTE</span>
+      </div>
+      <div class="metric-target" data-shape-id="metric-5-sublabel">Target: 5,000 FTE</div>
+      <div class="metric-delta down" data-shape-id="metric-5-delta">▼ −188 vs target</div>
+      <div class="progress-wrap"><div class="progress-fill amber" data-shape-id="metric-5-progress" style="width:96%"></div></div>
+    </div>
+
+    <!-- 6: Cost Savings -->
+    <div class="kpi-tile" data-shape-id="metric-6-tile">
+      <div class="status-dot red" data-shape-id="metric-6-status"></div>
+      <div class="metric-name" data-shape-id="metric-6-label">Cost Savings</div>
+      <div class="metric-row">
+        <span class="metric-value" data-shape-id="metric-6-value">$38</span>
+        <span class="metric-unit" data-shape-id="metric-6-unit">M</span>
+      </div>
+      <div class="metric-target" data-shape-id="metric-6-sublabel">Target: $60M</div>
+      <div class="metric-delta down" data-shape-id="metric-6-delta">▼ −$22M vs target</div>
+      <div class="progress-wrap"><div class="progress-fill red" data-shape-id="metric-6-progress" style="width:63%"></div></div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <footer data-shape-id="footer-rule">
+    <span data-shape-id="footer-left">Confidential — Accenture Internal</span>
+    <span data-shape-id="footer-right">Slide Lab · 2026 · 221</span>
+  </footer>
+
+</body>
+</html>

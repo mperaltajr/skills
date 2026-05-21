@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>Pattern 161 — 2×2 Deep Axis Labels</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: Inter, system-ui, sans-serif;
+    background: var(--slide-bg);
+    position: relative;
+  }
+
+  /* ── Invariant chrome ── */
+  .internal-label {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  .draft-badge {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 0;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .title-block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+  .title-block h1 {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+  pointer-events: auto;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.2;
+  }
+
+  .title-block h1 strong {
+    color: var(--brand-accent);
+  }
+
+  .title-block .sub-headline {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 108px;
+  pointer-events: auto;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+    }
+
+  .accent-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+  pointer-events: none;
+    
+    
+    background: var(--brand-accent);
+    }
+
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 20px 8px;
+  }
+
+  .footer span {
+    font-size: 8px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* ── Matrix layout ── */
+  .matrix-area {
+    position: absolute;
+    top: 130px;
+    left: 48px;
+    right: 48px;
+    bottom: 60px;
+  }
+
+  /* Y-axis label strip */
+  .y-axis-strip {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 88px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .y-axis-label-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0;
+    writing-mode: vertical-rl;
+    transform: rotate(180deg);
+    height: 100%;
+    justify-content: center;
+  }
+
+  .y-axis-main {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* Non-rotated y-axis end labels */
+  .y-end-labels {
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 88px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    pointer-events: none;
+  }
+
+  .y-end-label {
+    width: 82px;
+    text-align: center;
+  }
+
+  .y-end-label .end-word {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--brand-primary-mid);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    display: block;
+  }
+
+  .y-end-label .end-desc {
+    font-size: 9px;
+    color: var(--text-mid);
+    line-height: 1.3;
+    display: block;
+    margin-top: 2px;
+  }
+
+  /* Grid */
+  .grid-container {
+    position: absolute;
+    left: 92px;
+    right: 0;
+    top: 0;
+    bottom: 32px;
+  }
+
+  .quadrant-grid {
+    width: 100%;
+    height: 100%;
+    display: flex; flex-wrap: wrap;
+    gap: 0;
+    border: 1.5px solid var(--card-border);
+    position: relative;
+  }
+
+  /* Crosshair lines */
+  .crosshair-v {
+    position: absolute;
+    left: 50%;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: var(--brand-accent);
+    transform: translateX(-50%);
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  .crosshair-h {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--brand-accent);
+    transform: translateY(-50%);
+    z-index: 2;
+    pointer-events: none;
+  }
+
+  /* Axis arrows on crosshair */
+  .arrow-up {
+    position: absolute;
+    left: 50%;
+    top: -8px;
+    transform: translateX(-50%);
+    width: 0; height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    border-bottom: 8px solid var(--brand-accent);
+    z-index: 3;
+  }
+
+  .arrow-right {
+    position: absolute;
+    right: -8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0; height: 0;
+    border-top: 5px solid transparent;
+    border-bottom: 5px solid transparent;
+    border-left: 8px solid var(--brand-accent);
+    z-index: 3;
+  }
+
+  /* Quadrant cells */
+  .quadrant {
+    padding: 14px 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* TL = Harvest/Defend */
+  .q-top-left {
+    background: #F0EBF8;
+    border-right: none;
+    border-bottom: none;
+  }
+
+  /* TR = Invest/Grow — card-bg (highlight) */
+  .q-top-right {
+    background: var(--card-bg);
+    border-left: none;
+    border-bottom: none;
+  }
+
+  /* BL = Divest/Exit */
+  .q-bottom-left {
+    background: #FAFAFA;
+    border-right: none;
+    border-top: none;
+  }
+
+  /* BR = Selective/Niche */
+  .q-bottom-right {
+    background: #F5F5F5;
+    border-left: none;
+    border-top: none;
+  }
+
+  .q-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.2;
+  }
+
+  .q-top-right .q-name {
+    color: var(--brand-accent);
+  }
+
+  .q-strategy {
+    font-size: 11px;
+    color: var(--text-mid);
+    line-height: 1.5;
+  }
+
+  .q-items {
+    list-style: none;
+    margin-top: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  .q-items li {
+    font-size: 10px;
+    color: var(--text-dark);
+    line-height: 1.3;
+    padding-left: 10px;
+    position: relative;
+  }
+
+  .q-items li::before {
+    content: '·';
+    position: absolute;
+    left: 0;
+    color: var(--brand-accent);
+    font-size: 14px;
+    line-height: 1;
+    top: -1px;
+  }
+
+  /* Quadrant corner badge */
+  .q-badge {
+    position: absolute;
+    top: 8px;
+    right: 10px;
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    opacity: 0.7;
+  }
+
+  /* X-axis strip */
+  .x-axis-strip {
+    position: absolute;
+    left: 92px;
+    right: 0;
+    bottom: 0;
+    height: 32px;
+    display: flex;
+    align-items: center;
+  }
+
+  .x-axis-main {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .x-end-label {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .x-end-label .end-word {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--brand-primary-mid);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .x-end-label .end-desc {
+    font-size: 9px;
+    color: var(--text-mid);
+    line-height: 1.2;
+    text-align: center;
+  }
+
+  .x-left { margin-right: auto; }
+  .x-right { margin-left: auto; }
+
+  /* DARK THEME */
+  :root {
+    --card-bg: rgba(255,255,255,0.07);
+    --card-border: rgba(255,255,255,0.12);
+    --text-dark: #FFFFFF;
+    --text-mid: rgba(255,255,255,0.6);
+    --slide-bg: #2D0A4E;
+  }
+  body { background: #2D0A4E; }
+  .internal-label { color: rgba(255,255,255,0.4); }
+  .title-block h1 {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+  pointer-events: auto; color: #FFFFFF; }
+  .title-block h1 strong { color: #C780FF; }
+  .title-block .sub-headline { color: rgba(255,255,255,0.6); }
+  .quadrant-grid { border-color: rgba(255,255,255,0.12); }
+  .q-top-left    { background: rgba(255,255,255,0.05); }
+  .q-top-right   { background: rgba(255,255,255,0.07); }
+  .q-bottom-left { background: rgba(255,255,255,0.03); }
+  .q-bottom-right{ background: rgba(255,255,255,0.04); }
+  .q-name { color: #FFFFFF; }
+  .q-top-right .q-name { color: #C780FF; }
+  .q-strategy { color: rgba(255,255,255,0.6); }
+  .q-items li { color: rgba(255,255,255,0.85); }
+  .q-badge { color: rgba(255,255,255,0.4); opacity: 1; }
+  .y-end-label .end-word { color: #C780FF; }
+  .y-end-label .end-desc { color: rgba(255,255,255,0.5); }
+  .x-axis-main { color: rgba(255,255,255,0.85); }
+  .x-end-label .end-word { color: #C780FF; }
+  .x-end-label .end-desc { color: rgba(255,255,255,0.5); }
+  div[data-shape-id="quadrant-y-axis-label"] { color: rgba(255,255,255,0.85) !important; }
+  .footer { border-top-color: rgba(255,255,255,0.1); }
+  .footer span { color: rgba(255,255,255,0.4); }
+</style>
+</head>
+<body>
+
+  <!-- Chrome: internal label -->
+  <div class="internal-label" data-shape-id="accenture-tag">ACCENTURE INTERNAL</div>
+
+  <!-- Chrome: DRAFT badge -->
+
+  <!-- Title block -->
+  <div class="title-block">
+    <h1 data-shape-id="title">Portfolio Positioning Across <strong>Attractiveness &amp; Strength</strong></h1>
+    <div class="sub-headline" data-shape-id="subtitle">Strategic quadrant view — prioritize investment, harvest, or exit decisions by axis position</div>
+    <div class="accent-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- Matrix area -->
+  <div class="matrix-area">
+
+    <!-- Y-axis end labels (top = Strong, bottom = Weak) -->
+    <div class="y-end-labels">
+      <div class="y-end-label">
+        <span class="end-word" data-shape-id="quadrant-y-high">Strong</span>
+        <span class="end-desc" data-shape-id="quadrant-y-high-desc">Structural cost &amp;<br>capability lead</span>
+      </div>
+      <div class="y-end-label" style="margin-top:auto;">
+        <span class="end-word" data-shape-id="quadrant-y-low">Weak</span>
+        <span class="end-desc" data-shape-id="quadrant-y-low-desc">Scale disadvantage,<br>limited differentiation</span>
+      </div>
+    </div>
+
+    <!-- Y-axis rotated title -->
+    <div style="position:absolute; left:0; top:0; bottom:32px; width:88px; display:flex; align-items:center; justify-content:center; pointer-events:none;">
+      <div data-shape-id="quadrant-y-axis-label" style="transform:rotate(-90deg); white-space:nowrap; font-size:11px; font-weight:700; color:rgba(255,255,255,0.85); letter-spacing:0.08em; text-transform:uppercase;">
+        Competitive Strength
+      </div>
+    </div>
+
+    <!-- Grid -->
+    <div class="grid-container">
+      <div class="quadrant-grid">
+
+        <!-- Crosshair -->
+        <div class="crosshair-v" data-shape-id="crosshair-v"></div>
+        <div class="crosshair-h" data-shape-id="crosshair-h"></div>
+        <div class="arrow-up"></div>
+        <div class="arrow-right"></div>
+
+        <!-- TL: Harvest / Defend -->
+        <div class="quadrant q-top-left" data-shape-id="quadrant-tl-bg">
+          <div class="q-badge" data-shape-id="quadrant-tl-label">Q2</div>
+          <div class="q-name" data-shape-id="quadrant-tl-name">Harvest &amp; Defend</div>
+          <div class="q-strategy" data-shape-id="quadrant-tl-directive">Protect margin in a low-growth market. Minimize new spend; extract value from existing position.</div>
+          <ul class="q-items" data-shape-id="quadrant-tl-body">
+            <li>Tighten cost structure, renegotiate vendor contracts</li>
+            <li>Defend key accounts with loyalty programs</li>
+            <li>Harvest cash to fund star quadrant growth</li>
+          </ul>
+        </div>
+
+        <!-- TR: Invest / Grow (highlight) -->
+        <div class="quadrant q-top-right" data-shape-id="quadrant-tr-bg">
+          <div class="q-badge" data-shape-id="quadrant-tr-label">Q1</div>
+          <div class="q-name" data-shape-id="quadrant-tr-name">Invest &amp; Grow</div>
+          <div class="q-strategy" data-shape-id="quadrant-tr-directive">Prime strategic territory. Double down on capability advantage in high-attractiveness segments.</div>
+          <ul class="q-items" data-shape-id="quadrant-tr-body">
+            <li>Accelerate M&amp;A and organic expansion</li>
+            <li>Lock in long-term customer agreements</li>
+            <li>Build moats through IP and ecosystem plays</li>
+          </ul>
+        </div>
+
+        <!-- BL: Divest / Exit -->
+        <div class="quadrant q-bottom-left" data-shape-id="quadrant-bl-bg">
+          <div class="q-badge" data-shape-id="quadrant-bl-label">Q3</div>
+          <div class="q-name" data-shape-id="quadrant-bl-name">Divest or Exit</div>
+          <div class="q-strategy" data-shape-id="quadrant-bl-directive">Unattractive market with weak competitive position. Reallocate capital unless turnaround is credible.</div>
+          <ul class="q-items" data-shape-id="quadrant-bl-body">
+            <li>Run structured divestiture or wind-down process</li>
+            <li>Explore JV to share stranded costs</li>
+            <li>Retain only if strategic linkage is critical</li>
+          </ul>
+        </div>
+
+        <!-- BR: Selective / Niche -->
+        <div class="quadrant q-bottom-right" data-shape-id="quadrant-br-bg">
+          <div class="q-badge" data-shape-id="quadrant-br-label">Q4</div>
+          <div class="q-name" data-shape-id="quadrant-br-name">Selective / Niche</div>
+          <div class="q-strategy" data-shape-id="quadrant-br-directive">Attractive market, but position is weak. Invest selectively or find a defensible niche to enter.</div>
+          <ul class="q-items" data-shape-id="quadrant-br-body">
+            <li>Identify micro-segment where scale less critical</li>
+            <li>Partner or license to acquire position faster</li>
+            <li>Set clear go/no-go milestones at 12 months</li>
+          </ul>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- X-axis strip -->
+    <div class="x-axis-strip">
+      <div class="x-end-label x-left">
+        <span class="end-word" data-shape-id="quadrant-x-low">Low</span>
+        <span class="end-desc" data-shape-id="quadrant-x-low-desc">Slow growth, commoditized,<br>margin pressure</span>
+      </div>
+      <div class="x-axis-main" data-shape-id="quadrant-x-axis-label">Market Attractiveness</div>
+      <div class="x-end-label x-right">
+        <span class="end-word" data-shape-id="quadrant-x-high">High</span>
+        <span class="end-desc" data-shape-id="quadrant-x-high-desc">Fast-growing, profitable,<br>structural tailwinds</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer" data-shape-id="footer-rule">
+    <span data-shape-id="footer-left">Confidential — Accenture Internal</span>
+    <span data-shape-id="footer-right">Slide Lab · 2026 · 161d</span>
+  </div>
+
+</body>
+</html>

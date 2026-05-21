@@ -1,0 +1,424 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>Pattern 186 — Problem / Opportunity Statement</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: Inter, system-ui, sans-serif;
+    background: var(--slide-bg);
+    position: relative;
+  }
+
+  /* ── Invariant chrome ── */
+
+  .label-internal {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .badge-draft {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 0;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .title-block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+  .title-block h1 {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+  pointer-events: auto;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.2;
+  }
+
+  .title-block h1 strong {
+    color: var(--brand-accent);
+  }
+
+  .title-block .sub-headline {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 108px;
+  pointer-events: auto;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+    }
+
+  .accent-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+  pointer-events: none;
+    
+    
+    background: var(--brand-accent);
+    }
+
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+  }
+
+  .footer-left,
+  .footer-right {
+    font-size: 11px;
+    color: var(--text-faint);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* ── Content area ── */
+
+  .content-area {
+    position: absolute;
+    top: 128px;
+    left: 48px;
+    right: 48px;
+    bottom: 80px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .panels-row {
+    display: flex;
+    flex: 1;
+    gap: 0;
+    align-items: stretch;
+    min-height: 0;
+  }
+
+  /* ── Panels ── */
+
+  .panel {
+    flex: 1;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .panel-header {
+    padding: 10px 18px;
+    font-size: 14px;
+    font-weight: 700;
+    color: #FFFFFF;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .panel-problem .panel-header {
+    background: var(--brand-primary);
+  }
+
+  .panel-opportunity .panel-header {
+    background: var(--brand-accent);
+  }
+
+  .panel-body {
+    padding: 16px 18px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .bullet-list {
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .bullet-list li {
+    font-size: 14px;
+    color: var(--text-dark);
+    line-height: 1.45;
+    padding-left: 14px;
+    position: relative;
+  }
+
+  .panel-problem .bullet-list li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 6px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--brand-primary);
+  }
+
+  .panel-opportunity .bullet-list li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 6px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--brand-accent);
+  }
+
+  .panel-stat-block {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px solid var(--card-border);
+  }
+
+  .panel-stat {
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+
+  .panel-problem .panel-stat {
+    color: var(--brand-primary-mid);
+  }
+
+  .panel-opportunity .panel-stat {
+    color: var(--brand-accent);
+  }
+
+  .panel-stat-label {
+    font-size: 11px;
+    color: var(--text-mid);
+    margin-top: 2px;
+  }
+
+  .panel-source {
+    font-size: 9px;
+    color: var(--text-faint);
+    margin-top: 6px;
+    font-style: italic;
+  }
+
+  /* ── Center arrow ── */
+
+  .arrow-col {
+    width: 64px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 2;
+  }
+
+  .arrow-col svg {
+    filter: drop-shadow(0 2px 6px rgba(161,0,255,0.18));
+  }
+
+  /* ── Convergence bar ── */
+
+  .convergence-bar {
+    height: 40px;
+    background: linear-gradient(90deg, var(--brand-primary) 0%, var(--brand-accent) 100%);
+    border-radius: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .convergence-bar span {
+    font-size: 14px;
+    font-weight: 600;
+    color: #FFFFFF;
+    letter-spacing: 0.04em;
+  }
+
+  .convergence-bar strong {
+    font-weight: 800;
+  }
+
+  /* DARK THEME */
+  :root {
+    --card-bg: rgba(255,255,255,0.07);
+    --card-border: rgba(255,255,255,0.12);
+    --text-dark: #FFFFFF;
+    --text-mid: rgba(255,255,255,0.6);
+    --slide-bg: #2D0A4E;
+  }
+
+  body, .slide { background: #2D0A4E; }
+
+  .label-internal { color: rgba(255,255,255,0.4); }
+
+  .title-block h1 {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+  pointer-events: auto; color: #FFFFFF; }
+  .title-block h1 strong { color: #C780FF; }
+  .title-block .sub-headline { color: rgba(255,255,255,0.6); }
+
+  .accent-rule { background: #A100FF; }
+
+  .panel {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+  }
+
+  .bullet-list li { color: rgba(255,255,255,0.85); }
+
+  .panel-problem .bullet-list li::before { background: #C780FF; }
+
+  .panel-stat-block { border-top: 1px solid rgba(255,255,255,0.12); }
+
+  .panel-problem .panel-stat { color: #C780FF; }
+  .panel-opportunity .panel-stat { color: #A100FF; }
+
+  .panel-stat-label { color: rgba(255,255,255,0.6); }
+  .panel-source { color: rgba(255,255,255,0.5); }
+
+  .footer { border-top: 1px solid rgba(255,255,255,0.1); }
+  .footer-left, .footer-right { color: rgba(255,255,255,0.4); }
+</style>
+</head>
+<body>
+
+  <!-- Invariant chrome -->
+  <div class="label-internal" data-shape-id="accenture-tag">Accenture Internal</div>
+  <div class="badge-draft" data-shape-id="draft-badge">DRAFT</div>
+
+  <div class="title-block">
+    <h1 data-shape-id="title">The <strong>Problem</strong> and the Opportunity</h1>
+    <div class="sub-headline" data-shape-id="subtitle">Framing the challenge and the strategic upside of acting now</div>
+    <div class="accent-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <div class="panels-row">
+
+      <!-- Problem panel -->
+      <div class="panel panel-problem">
+        <div class="panel-header" data-shape-id="panel-1-header">The Problem</div>
+        <div class="panel-body">
+          <ul class="bullet-list" data-shape-id="panel-1-body">
+            <li>Fragmented legacy systems create data silos that delay decision-making by an average of 4–6 weeks per cycle.</li>
+            <li>Manual reconciliation processes consume an estimated 30% of analyst capacity, crowding out higher-value work.</li>
+            <li>Rising regulatory complexity exposes the organisation to compounding compliance risk with each quarterly reporting period.</li>
+          </ul>
+          <div class="panel-stat-block">
+            <div class="panel-stat" data-shape-id="panel-1-stat">$120M+</div>
+            <div class="panel-stat-label" data-shape-id="panel-1-stat-label">estimated annual cost of operational inefficiency and rework</div>
+            <div class="panel-source" data-shape-id="panel-1-source">Source: Internal operations audit, Q1 2026</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Arrow -->
+      <div class="arrow-col" data-shape-id="transformation-arrow">
+        <svg width="40" height="48" viewBox="0 0 40 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M4 24H34M34 24L22 10M34 24L22 38" stroke="#A100FF" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+
+      <!-- Opportunity panel -->
+      <div class="panel panel-opportunity">
+        <div class="panel-header" data-shape-id="panel-2-header">The Opportunity</div>
+        <div class="panel-body">
+          <ul class="bullet-list" data-shape-id="panel-2-body">
+            <li>A unified data platform reduces cycle time by up to 70%, enabling real-time insight and faster strategic response.</li>
+            <li>Automating reconciliation and reporting frees analyst bandwidth to focus on analysis, modelling, and stakeholder value.</li>
+            <li>Embedded compliance controls reduce regulatory exposure and build audit-readiness into every process by default.</li>
+          </ul>
+          <div class="panel-stat-block">
+            <div class="panel-stat" data-shape-id="panel-2-stat">3.4× ROI</div>
+            <div class="panel-stat-label" data-shape-id="panel-2-stat-label">projected return over 36 months with phased modernisation</div>
+            <div class="panel-source" data-shape-id="panel-2-source">Basis: Accenture benchmark, Finance Transformation 2025</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Convergence bar -->
+    <div class="convergence-bar" data-shape-id="convergence">
+      <span>Addressing <strong>operational fragmentation</strong> unlocks <strong>$400M+ in recoverable enterprise value</strong> over three years</span>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer" data-shape-id="footer-rule">
+    <div class="footer-left" data-shape-id="footer-left"></div>
+    <div class="footer-right" data-shape-id="footer-right"></div>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>256 · Project status + decision ask — dark mode</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+  --rag-green: #2ECC71;
+  --rag-amber: #F39C12;
+  --rag-red: #DC2626;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 1280px; height: 720px;
+  background: var(--brand-primary);
+  font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  color: #FFFFFF;
+  overflow: hidden;
+}
+body { position: relative; }
+
+/* ---- Top chrome ---- */
+.project-label {
+  position: absolute; top: 9px; left: 24px;
+  color: rgba(255,255,255,0.5);
+  font-size: 9px; font-weight: 600;
+  letter-spacing: 0.15em; text-transform: uppercase;
+  z-index: 10;
+}
+.draft-badge {
+  position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
+  background: var(--draft-bg); color: var(--draft-text);
+  font-size: 11px; font-weight: 700;
+  padding: 4px 16px; letter-spacing: 1px;
+  border-radius: 0;
+  z-index: 10;
+}
+
+/* ---- Title block ---- */
+.title-block {
+  position: absolute; top: 0; left: 0; right: 0; height: 160px;
+}
+.action-title {
+  position: absolute; top: 28px; left: 64px; right: 64px; min-height: 36px;
+  font-size: 29px; font-weight: 700;
+  color: #FFFFFF; line-height: 1.2;
+  letter-spacing: -0.3px;
+}
+.action-title strong { color: var(--brand-accent-soft); font-weight: 700; }
+.subhead {
+  position: absolute; top: 108px; left: 64px; right: 64px;
+  font-size: 14px; font-style: italic;
+  color: rgba(255,255,255,0.65);
+
+    line-height: 1.4;
+}
+.title-rule {
+  position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+  border-radius: 0;
+
+}
+
+/* ---- KPI strip ---- */
+.kpi-strip {
+  position: absolute;
+  top: 116px; left: 40px; right: 40px;
+  display: flex; gap: 14px;
+  height: 68px;
+}
+.kpi-tile {
+  flex: 1;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.15);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 8px 12px;
+  gap: 2px;
+}
+.kpi-number {
+  font-size: 22px; font-weight: 800;
+  color: #FFFFFF;
+  line-height: 1;
+  letter-spacing: -0.5px;
+  font-variant-numeric: tabular-nums;
+}
+.kpi-number.warn { color: var(--rag-amber); }
+.kpi-number.danger { color: var(--rag-red); }
+.kpi-label {
+  font-size: 10px; font-weight: 600;
+  color: rgba(255,255,255,0.55);
+  text-transform: uppercase; letter-spacing: 1.2px;
+  text-align: center; line-height: 1.3;
+}
+
+/* ---- Body layout ---- */
+.body-left {
+  position: absolute;
+  top: 200px; left: 40px;
+  width: 730px;
+  bottom: 40px;
+  display: flex;
+  flex-direction: column;
+}
+.body-right {
+  position: absolute;
+  top: 200px; right: 40px;
+  width: 450px;
+  bottom: 40px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ---- Section label ---- */
+.section-label {
+  font-size: 10px; font-weight: 700;
+  color: var(--brand-accent-soft);
+  text-transform: uppercase; letter-spacing: 2px;
+
+    bottom: 12px;
+}
+
+/* ---- Workstream rows ---- */
+.workstream-list {
+  display: flex; flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+.ws-row {
+  display: flex; align-items: flex-start;
+  gap: 12px;
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.15);
+  padding: 16px 14px;
+  flex: 1;
+}
+.ws-dot {
+  width: 12px; height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+
+    top: 3px;
+}
+.ws-dot.green { background: var(--rag-green); box-shadow: 0 0 0 3px rgba(46,204,113,0.2); }
+.ws-dot.amber { background: var(--rag-amber); box-shadow: 0 0 0 3px rgba(243,156,18,0.2); }
+.ws-dot.red   { background: var(--rag-red);   box-shadow: 0 0 0 3px rgba(220,38,38,0.2); }
+.ws-content { flex: 1; min-width: 0; }
+.ws-header {
+  display: flex; align-items: center; gap: 8px;
+
+    bottom: 3px;
+}
+.ws-name {
+  font-size: 14px; font-weight: 700;
+  color: #FFFFFF;
+  white-space: nowrap;
+}
+.ws-rag-tag {
+  font-size: 9px; font-weight: 800;
+  letter-spacing: 1.2px; text-transform: uppercase;
+  padding: 2px 7px;
+  border-radius: 2px;
+}
+.ws-rag-tag.green { background: rgba(46,204,113,0.18); color: var(--rag-green); }
+.ws-rag-tag.amber { background: rgba(243,156,18,0.18); color: var(--rag-amber); }
+.ws-rag-tag.red   { background: rgba(220,38,38,0.18);  color: #FF6B6B; }
+.ws-status {
+  font-size: 14px; color: rgba(255,255,255,0.65);
+  line-height: 1.4;
+}
+.ws-status strong { color: rgba(255,255,255,0.9); font-weight: 600; }
+
+/* ---- Decision panel ---- */
+.decision-statement {
+  font-size: 16px; font-weight: 700;
+  color: #FFFFFF;
+  line-height: 1.4;
+
+    bottom: 14px;
+}
+
+.option-cards {
+  display: flex; flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+.option-card {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.15);
+  padding: 16px 16px;
+  display: flex; flex-direction: column; gap: 4px;
+  position: relative;
+  overflow: hidden;
+  flex: 1;
+}
+.option-card::before {
+  content: "";
+  position: absolute; top: 0; left: 0;
+  width: 4px; height: 100%;
+}
+.option-card.approve::before { background: var(--rag-green); }
+.option-card.defer::before   { background: var(--rag-amber); }
+.option-card.escalate::before { background: var(--rag-red); }
+.option-card.approve { border-left-color: rgba(46,204,113,0.4); }
+.option-card.defer   { border-left-color: rgba(243,156,18,0.4); }
+.option-card.escalate { border-left-color: rgba(220,38,38,0.4); }
+.option-name {
+  font-size: 14px; font-weight: 800;
+  letter-spacing: 1.2px; text-transform: uppercase;
+}
+.option-card.approve .option-name { color: var(--rag-green); }
+.option-card.defer   .option-name { color: var(--rag-amber); }
+.option-card.escalate .option-name { color: #FF6B6B; }
+.option-implication {
+  font-size: 14px; color: rgba(255,255,255,0.7);
+  line-height: 1.4;
+}
+
+/* ---- Divider between left and right ---- */
+.body-divider {
+  position: absolute;
+  top: 200px;
+  left: 782px;
+  width: 1px;
+  bottom: 40px;
+  background: rgba(255,255,255,0.1);
+}
+
+/* ---- Footer ---- */
+.footer-rule {
+  position: absolute; left: 0; right: 0; bottom: 32px;
+  height: 1px; background: rgba(255,255,255,0.1);
+}
+.footer-left {
+  position: absolute; bottom: 14px; left: 24px;
+  color: rgba(255,255,255,0.4); font-size: 11px;
+  letter-spacing: 1px; text-transform: uppercase;
+}
+.footer-right {
+  position: absolute; bottom: 14px; right: 24px;
+  color: rgba(255,255,255,0.4); font-size: 11px;
+  letter-spacing: 1px;
+}
+</style>
+</head>
+<body>
+
+  <!-- Top chrome -->
+
+  <!-- Title block -->
+  <div class="title-block" data-shape-id="title-block">
+    <div class="action-title" data-shape-id="title">Phoenix Programme &middot; Week 12 of 24 &middot; <strong>Steering Committee decision required.</strong></div>
+    <div class="subhead" data-shape-id="subhead">Four workstreams tracked. One is blocked. This slide asks for a go/no-go on the critical path replan.</div>
+    <div class="title-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- KPI strip -->
+  <div class="kpi-strip" data-shape-id="kpi-strip">
+    <div class="kpi-tile" data-shape-id="kpi-1">
+      <div class="kpi-number" data-shape-id="kpi-1-number">12 / 24</div>
+      <div class="kpi-label" data-shape-id="kpi-1-label">Week</div>
+    </div>
+    <div class="kpi-tile" data-shape-id="kpi-2">
+      <div class="kpi-number warn" data-shape-id="kpi-2-number">94%</div>
+      <div class="kpi-label" data-shape-id="kpi-2-label">Budget Utilized</div>
+    </div>
+    <div class="kpi-tile" data-shape-id="kpi-3">
+      <div class="kpi-number warn" data-shape-id="kpi-3-number">3</div>
+      <div class="kpi-label" data-shape-id="kpi-3-label">Issues Open</div>
+    </div>
+    <div class="kpi-tile" data-shape-id="kpi-4">
+      <div class="kpi-number danger" data-shape-id="kpi-4-number">2</div>
+      <div class="kpi-label" data-shape-id="kpi-4-label">Risks Red</div>
+    </div>
+  </div>
+
+  <!-- Body divider -->
+  <div class="body-divider" data-shape-id="body-divider"></div>
+
+  <!-- Left panel: workstream status -->
+  <div class="body-left" data-shape-id="body-left">
+    <div class="section-label" data-shape-id="ws-section-label">Workstream Status</div>
+    <div class="workstream-list" data-shape-id="workstream-list">
+
+      <div class="ws-row" data-shape-id="ws-1">
+        <div class="ws-dot green" data-shape-id="ws-1-dot"></div>
+        <div class="ws-content">
+          <div class="ws-header">
+            <div class="ws-name" data-shape-id="ws-1-name">Data Migration</div>
+            <div class="ws-rag-tag green" data-shape-id="ws-1-tag">On Track</div>
+          </div>
+          <div class="ws-status" data-shape-id="ws-1-status"><strong>847K records migrated</strong>, target 1.2M &mdash; velocity on plan, delta-load testing complete</div>
+        </div>
+      </div>
+
+      <div class="ws-row" data-shape-id="ws-2">
+        <div class="ws-dot green" data-shape-id="ws-2-dot"></div>
+        <div class="ws-content">
+          <div class="ws-header">
+            <div class="ws-name" data-shape-id="ws-2-name">Process Design</div>
+            <div class="ws-rag-tag green" data-shape-id="ws-2-tag">On Track</div>
+          </div>
+          <div class="ws-status" data-shape-id="ws-2-status"><strong>14 of 18 future-state flows</strong> signed off &mdash; remaining 4 in business review this week</div>
+        </div>
+      </div>
+
+      <div class="ws-row" data-shape-id="ws-3">
+        <div class="ws-dot amber" data-shape-id="ws-3-dot"></div>
+        <div class="ws-content">
+          <div class="ws-header">
+            <div class="ws-name" data-shape-id="ws-3-name">Change &amp; Training</div>
+            <div class="ws-rag-tag amber" data-shape-id="ws-3-tag">At Risk</div>
+          </div>
+          <div class="ws-status" data-shape-id="ws-3-status"><strong>LMS build delayed 2 weeks</strong> &mdash; vendor dependency; contingency plan in review, go-live buffer not yet consumed</div>
+        </div>
+      </div>
+
+      <div class="ws-row" data-shape-id="ws-4">
+        <div class="ws-dot red" data-shape-id="ws-4-dot"></div>
+        <div class="ws-content">
+          <div class="ws-header">
+            <div class="ws-name" data-shape-id="ws-4-name">Integration &amp; Testing</div>
+            <div class="ws-rag-tag red" data-shape-id="ws-4-tag">Blocked</div>
+          </div>
+          <div class="ws-status" data-shape-id="ws-4-status"><strong>UAT environment not provisioned</strong> &mdash; IT access request pending 18 days; blocks full regression cycle by Week 16</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Right panel: decision ask -->
+  <div class="body-right" data-shape-id="body-right">
+    <div class="section-label" data-shape-id="decision-section-label">Decision Required</div>
+    <div class="decision-statement" data-shape-id="decision-statement">UAT environment is 18 days overdue. How should the programme proceed on the critical path?</div>
+    <div class="option-cards" data-shape-id="option-cards">
+
+      <div class="option-card approve" data-shape-id="option-approve">
+        <div class="option-name" data-shape-id="option-approve-name">Approve</div>
+        <div class="option-implication" data-shape-id="option-approve-impl">Escalate IT provisioning to CTO today &mdash; maintains Week 16 regression window, no schedule slip</div>
+      </div>
+
+      <div class="option-card defer" data-shape-id="option-defer">
+        <div class="option-name" data-shape-id="option-defer-name">Defer</div>
+        <div class="option-implication" data-shape-id="option-defer-impl">Accept 2-week regression compression &mdash; increases defect-escape risk, go-live moves to Week 26</div>
+      </div>
+
+      <div class="option-card escalate" data-shape-id="option-escalate">
+        <div class="option-name" data-shape-id="option-escalate-name">Escalate</div>
+        <div class="option-implication" data-shape-id="option-escalate-impl">Invoke programme governance board &mdash; triggers formal replanning and revised business case approval</div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer-left" data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+
+</body>
+</html>

@@ -1,0 +1,172 @@
+<!-- SKELETON
+  id: chart-with-takeaway-third-hero
+  category: chart-with-takeaway
+  page-types: Chart, Data, Analytics, Insight
+  zones: action_title, sub_headline, chart_title, hero_stat, hero_stat_desc, takeaway_text, bullet_1, bullet_2, bullet_3, footnote, source
+  best-for: Chart with a third-page right panel containing a hero statistic and supporting bullets — more annotation space than quarter variant
+  panel: third (x=822, w=400)
+  body: x=58 y=151 w=731 h=521
+-->
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  .slide {
+    position: relative;
+    width: 1280px;
+    height: 720px;
+    background: #ffffff;
+    font-family: Arial, Helvetica, sans-serif;
+    overflow: hidden;
+  }
+
+  .draft-badge {
+    position: absolute;
+    left: 610px; top: 4px; width: 60px; height: 20px;
+    background: #FFC000;
+    border: 2px solid #CC0000;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 9px; font-weight: 700; color: #CC0000;
+  }
+
+  .zone-title {
+    position: absolute;
+    left: 58px; top: 19px; width: 1164px; height: 77px;
+    background: #E6F1FB;
+    border: 1px dashed #378ADD;
+    padding: 10px 14px;
+    display: flex; align-items: center;
+  }
+  .zone-label {
+    display: block; font-size: 7px; color: #888; font-style: italic; margin-bottom: 4px;
+  }
+  .zone-title span:not(.zone-label) {
+    font-size: 20px; font-weight: 700; color: #1a1a1a; line-height: 1.2;
+  }
+
+  .zone-sub {
+    position: absolute;
+    left: 58px; top: 96px; width: 1164px; height: 26px;
+    background: #F0F4FB;
+    border: 1px dashed #85B7EB;
+    padding: 0 14px;
+    display: flex; align-items: center;
+  }
+  .zone-sub span:not(.zone-label) {
+    font-size: 11px; color: #444;
+  }
+
+  .zone-body {
+    position: absolute;
+    left: 58px; top: 151px; width: 731px; height: 521px;
+    background: #EAF3DE;
+    border: 1px dashed #639922;
+    padding: 14px;
+  }
+  .chart-title {
+    font-size: 10px; font-weight: 700; color: #333; margin-bottom: 6px;
+    text-transform: uppercase; letter-spacing: 0.4px;
+  }
+  .chart-placeholder {
+    margin-top: 30px;
+    width: 100%; height: 380px;
+    border: 1px dashed #aaa;
+    display: flex; align-items: center; justify-content: center;
+    color: #888; font-size: 13px; font-style: italic;
+  }
+
+  .zone-takeaway {
+    position: absolute;
+    left: 822px; top: 151px; width: 400px; height: 521px;
+    background: #E1F5EE;
+    border: 1px dashed #0F6E56;
+    padding: 16px 14px;
+  }
+
+  .hero-stat {
+    font-size: 14px; font-weight: 700; color: #0F6E56;
+    text-align: center; line-height: 1;
+    margin-bottom: 4px;
+  }
+  .hero-stat::after { content: '  ← renders at 36pt'; font-size: 8px; font-weight: 400; color: #999; }
+  .hero-stat-desc {
+    font-size: 9px; color: #555;
+    text-align: center; margin-bottom: 20px;
+  }
+  .takeaway-divider {
+    width: 40px; height: 2px; background: #0F6E56;
+    margin: 0 auto 14px auto;
+  }
+  .takeaway-text {
+    font-size: 9px; color: #222; line-height: 1.5;
+    margin-bottom: 14px;
+  }
+  .bullet {
+    font-size: 9px; color: #222; line-height: 1.5;
+    padding-left: 10px; position: relative; margin-bottom: 6px;
+  }
+  .bullet::before {
+    content: "•"; position: absolute; left: 0;
+  }
+
+  .zone-footnote {
+    position: absolute;
+    left: 58px; top: 672px; width: 1164px; height: 16px;
+    background: #F1EFE8; border: 1px solid #BBBBBB;
+    padding: 2px 14px;
+    font-size: 8px; color: #444;
+  }
+  .zone-source {
+    position: absolute;
+    left: 58px; top: 688px; width: 900px; height: 14px;
+    background: #F1EFE8; border: 1px solid #BBBBBB;
+    padding: 1px 14px;
+    font-size: 8px; color: #444;
+  }
+  .page-number {
+    position: absolute;
+    right: 58px; top: 690px;
+    font-size: 8px; color: #666;
+  }
+</style>
+</head>
+<body>
+<div class="slide">
+
+  <div class="draft-badge">DRAFT</div>
+
+  <div class="zone-title">
+    <span class="zone-label">action_title — native placeholder, inherits font/color from client master</span>
+    <span>{{ACTION_TITLE}}</span>
+  </div>
+
+  <div class="zone-sub">
+    <span class="zone-label">sub_headline — native placeholder, inherits from client master</span>
+    <span>{{SUB_HEADLINE}}</span>
+  </div>
+
+  <div class="zone-body">
+    <div class="chart-title">{{CHART_TITLE}}</div>
+    <div class="chart-placeholder">[Chart — bar / line / scatter]</div>
+  </div>
+
+  <div class="zone-takeaway">
+    <div class="hero-stat">{{HERO_STAT}}</div>
+    <div class="hero-stat-desc">{{HERO_STAT_DESC}}</div>
+    <div class="takeaway-divider"></div>
+    <div class="takeaway-text">{{TAKEAWAY_TEXT}}</div>
+    <div class="bullet">{{BULLET_1}}</div>
+    <div class="bullet">{{BULLET_2}}</div>
+    <div class="bullet">{{BULLET_3}}</div>
+  </div>
+
+  <div class="zone-footnote">1. {{FOOTNOTE}}</div>
+  <div class="zone-source">Source: {{SOURCE}}</div>
+  <div class="page-number">1</div>
+
+</div>
+</body>
+</html>

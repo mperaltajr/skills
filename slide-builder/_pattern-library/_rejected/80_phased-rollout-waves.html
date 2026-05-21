@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>80 · Phased rollout — waves</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-primary-soft: #7A4AB0;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1280px; height: 720px; background: var(--slide-bg); font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; color: var(--text-dark); overflow: hidden; }
+body { padding: 50px 56px 80px 56px; position: relative; }
+.draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; }
+.project-label { position: absolute; top: 24px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
+
+/* ---- Title block ---- */
+.action-title { font-size: 28px; font-weight: 700; line-height: 1.2; max-width: 1050px; }
+.action-title strong { color: var(--brand-primary); }
+.subhead { font-size: 14px; color: var(--text-mid); margin-top: 10px; font-style: italic; }
+.title-rule { width: 56px; height: 3px; background: var(--brand-accent); margin: 18px 0 0 0; }
+
+/* ---- Content block: vertically centered between title and footer ---- */
+.content-block {
+  position: absolute;
+  left: 56px;
+  right: 56px;
+  top: 190px;
+  bottom: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* ---- Timeline axis ---- */
+/* Layout grid: 200px label gutter + 4 quarter columns (1fr each). Body width = 1168px.
+   Label gutter = 200px → 4 quarter columns share 968px → 242px per quarter. */
+.timeline-axis {
+  position: relative;
+  height: 44px;
+  display: grid;
+  grid-template-columns: 200px repeat(4, 1fr);
+}
+.axis-corner {
+  display: flex; align-items: flex-end; padding-bottom: 10px;
+  font-size: 10px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase;
+  color: var(--text-faint);
+}
+.axis-quarter {
+  position: relative;
+  display: flex; flex-direction: column; align-items: center; justify-content: flex-end;
+  padding-bottom: 8px;
+  border-left: 1px dashed var(--card-border);
+}
+.axis-quarter .q-label {
+  font-size: 13px; font-weight: 700; color: var(--brand-primary);
+  letter-spacing: 0.3px;
+}
+.axis-quarter .q-year {
+  font-size: 10px; font-weight: 600; color: var(--text-mid);
+  letter-spacing: 0.6px; text-transform: uppercase; margin-top: 1px;
+}
+/* solid axis line under quarter headers */
+.axis-line {
+  position: absolute;
+  left: 200px; right: 0; bottom: 0;
+  height: 2px;
+  background: var(--brand-primary);
+}
+/* right edge tick */
+.axis-right-tick {
+  position: absolute;
+  right: 0; bottom: -4px;
+  width: 1px; height: 6px;
+  background: var(--card-border);
+  border-left: 1px dashed var(--card-border);
+}
+
+/* ---- Wave swimlanes ---- */
+.waves {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.wave-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  height: 72px;
+}
+.wave-label {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-right: 14px;
+}
+.wave-label .wave-tag {
+  font-size: 10px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase;
+  color: var(--text-faint);
+}
+.wave-label .wave-name {
+  font-size: 14px; font-weight: 800; line-height: 1.2; margin-top: 2px;
+  color: var(--text-dark);
+}
+.wave-label .wave-quarter {
+  font-size: 11px; font-weight: 600; margin-top: 2px;
+  color: var(--text-mid);
+}
+
+/* the track holds the wave bar; we position the bar absolutely as a % of the 968px track */
+.wave-track {
+  position: relative;
+  height: 72px;
+  /* faint quarter gridlines on the track */
+  background-image: linear-gradient(to right,
+    transparent calc(25% - 0.5px), var(--card-border) calc(25% - 0.5px), var(--card-border) calc(25% + 0.5px), transparent calc(25% + 0.5px),
+    transparent calc(50% - 0.5px), var(--card-border) calc(50% - 0.5px), var(--card-border) calc(50% + 0.5px), transparent calc(50% + 0.5px),
+    transparent calc(75% - 0.5px), var(--card-border) calc(75% - 0.5px), var(--card-border) calc(75% + 0.5px), transparent calc(75% + 0.5px)
+  );
+  background-repeat: no-repeat;
+}
+
+.wave-bar {
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  border-radius: 6px;
+  padding: 9px 14px 9px 14px;
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  color: white;
+  overflow: hidden;
+}
+.wave-bar .bar-stats {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  flex-shrink: 0;
+}
+.wave-bar .stat-num {
+  font-size: 22px; font-weight: 800; line-height: 1; letter-spacing: -0.3px;
+}
+.wave-bar .stat-num .unit {
+  font-size: 11px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; margin-left: 4px; opacity: 0.85;
+}
+.wave-bar .bar-desc {
+  font-size: 12px; font-weight: 500; line-height: 1.35; opacity: 0.95;
+  flex: 1;
+}
+.wave-bar .milestones {
+  position: absolute;
+  right: 12px;
+  top: 8px;
+  display: flex;
+  gap: 6px;
+}
+.wave-bar .ms-dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: white;
+  box-shadow: 0 0 0 2px rgba(255,255,255,0.35);
+}
+
+/* Color gradient across waves */
+.wave-bar.w1 { background: var(--brand-primary); }
+.wave-bar.w2 { background: var(--brand-primary-mid); }
+.wave-bar.w3 { background: var(--brand-primary-soft); }
+.wave-bar.w4 { background: var(--brand-accent-soft); color: var(--brand-primary); }
+.wave-bar.w4 .ms-dot { background: var(--brand-primary); box-shadow: 0 0 0 2px rgba(45,10,78,0.18); }
+
+/* Wave horizontal extents (% of 968px track).
+   Q1=0–25, Q2=25–50, Q3=50–75, Q4=75–100.
+   We use a single timeline of 4 quarters Q3'26, Q4'26, Q1'27, Q2'27.
+   Wave 1: Q3 → starts 0%, runs through ~ early Q4 (30%)
+   Wave 2: late Q3 → ~ early Q1'27 (22% → 55%)
+   Wave 3: late Q4 → ~ early Q2'27 (48% → 80%)
+   Wave 4: mid Q1'27 → end Q2'27 (70% → 100%) */
+.wave-bar.span-1 { left: 0%;   right: 70%; }
+.wave-bar.span-2 { left: 22%;  right: 45%; }
+.wave-bar.span-3 { left: 48%;  right: 20%; }
+.wave-bar.span-4 { left: 70%;  right: 0%;  }
+
+/* ---- Convergence line ---- */
+.convergence {
+  background: var(--brand-primary);
+  color: white;
+  padding: 11px 22px;
+  font-size: 13px;
+  font-style: italic;
+  font-weight: 500;
+  margin-top: 6px;
+}
+.convergence strong { color: var(--brand-accent-soft); font-style: normal; font-weight: 700; }
+
+/* ---- Footer invariant ---- */
+.footer-rule { position: absolute; left: 0; right: 0; bottom: 32px; height: 1px; background: var(--card-border); }
+.footer-left { position: absolute; bottom: 14px; left: 24px; color: var(--text-faint); font-size: 10px; letter-spacing: 1px; }
+.footer-right { position: absolute; bottom: 14px; right: 24px; color: var(--text-faint); font-size: 11px; }
+</style>
+</head>
+<body>
+  <div class="project-label" data-shape-id="accenture-tag">ACCENTURE INTERNAL</div>
+  <div class="draft-badge" data-shape-id="draft-badge">DRAFT</div>
+
+  <div class="action-title" data-shape-id="title">Phased rollout &mdash; <strong>four waves, one year, eight practices</strong>.</div>
+  <div class="subhead" data-shape-id="subtitle">Each wave starts before the prior one finishes &mdash; the lessons compound, the next cohort lands warm.</div>
+  <div class="title-rule" data-shape-id="brand-rule"></div>
+
+  <div class="content-block">
+
+    <!-- Timeline axis -->
+    <div class="timeline-axis">
+      <div class="axis-corner" data-shape-id="timeline-row-header">Wave</div>
+      <div class="axis-quarter">
+        <div class="q-label" data-shape-id="timeline-tick-1-label">Q3</div>
+        <div class="q-year" data-shape-id="timeline-tick-1-year">2026</div>
+      </div>
+      <div class="axis-quarter">
+        <div class="q-label" data-shape-id="timeline-tick-2-label">Q4</div>
+        <div class="q-year" data-shape-id="timeline-tick-2-year">2026</div>
+      </div>
+      <div class="axis-quarter">
+        <div class="q-label" data-shape-id="timeline-tick-3-label">Q1</div>
+        <div class="q-year" data-shape-id="timeline-tick-3-year">2027</div>
+      </div>
+      <div class="axis-quarter">
+        <div class="q-label" data-shape-id="timeline-tick-4-label">Q2</div>
+        <div class="q-year" data-shape-id="timeline-tick-4-year">2027</div>
+      </div>
+      <div class="axis-line" data-shape-id="timeline-axis"></div>
+    </div>
+
+    <!-- Waves -->
+    <div class="waves">
+
+      <!-- Wave 1 -->
+      <div class="wave-row">
+        <div class="wave-label">
+          <div class="wave-tag" data-shape-id="task-1-tag">Wave 1</div>
+          <div class="wave-name" data-shape-id="task-1-label">Pilot practice</div>
+          <div class="wave-quarter" data-shape-id="task-1-quarter">Q3 2026</div>
+        </div>
+        <div class="wave-track" data-shape-id="task-1-track">
+          <div class="wave-bar w1 span-1" data-shape-id="task-1-bar">
+            <div class="bar-stats">
+              <div class="stat-num" data-shape-id="task-1-stat-1">1<span class="unit">practice</span></div>
+              <div class="stat-num" data-shape-id="task-1-stat-2">4<span class="unit">users</span></div>
+              <div class="stat-num" data-shape-id="task-1-stat-3">12<span class="unit">decks</span></div>
+            </div>
+            <div class="bar-desc" data-shape-id="task-1-bar-text">Prove the loop end-to-end with one team.</div>
+            <div class="milestones">
+              <span class="ms-dot" data-shape-id="task-1-milestone-1" title="Kickoff"></span>
+              <span class="ms-dot" data-shape-id="task-1-milestone-2" title="First deck shipped"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Wave 2 -->
+      <div class="wave-row">
+        <div class="wave-label">
+          <div class="wave-tag" data-shape-id="task-2-tag">Wave 2</div>
+          <div class="wave-name" data-shape-id="task-2-label">Three practices</div>
+          <div class="wave-quarter" data-shape-id="task-2-quarter">Q4 2026</div>
+        </div>
+        <div class="wave-track" data-shape-id="task-2-track">
+          <div class="wave-bar w2 span-2" data-shape-id="task-2-bar">
+            <div class="bar-stats">
+              <div class="stat-num" data-shape-id="task-2-stat-1">3<span class="unit">practices</span></div>
+              <div class="stat-num" data-shape-id="task-2-stat-2">12<span class="unit">users</span></div>
+              <div class="stat-num" data-shape-id="task-2-stat-3">80<span class="unit">decks</span></div>
+            </div>
+            <div class="bar-desc" data-shape-id="task-2-bar-text">Take the proven loop horizontal &mdash; Strategy, Tech, Industry X.</div>
+            <div class="milestones">
+              <span class="ms-dot" data-shape-id="task-2-milestone-1"></span>
+              <span class="ms-dot" data-shape-id="task-2-milestone-2"></span>
+              <span class="ms-dot" data-shape-id="task-2-milestone-3"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Wave 3 -->
+      <div class="wave-row">
+        <div class="wave-label">
+          <div class="wave-tag" data-shape-id="task-3-tag">Wave 3</div>
+          <div class="wave-name" data-shape-id="task-3-label">Full strategy unit</div>
+          <div class="wave-quarter" data-shape-id="task-3-quarter">Q1 2027</div>
+        </div>
+        <div class="wave-track" data-shape-id="task-3-track">
+          <div class="wave-bar w3 span-3" data-shape-id="task-3-bar">
+            <div class="bar-stats">
+              <div class="stat-num" data-shape-id="task-3-stat-1">8<span class="unit">practices</span></div>
+              <div class="stat-num" data-shape-id="task-3-stat-2">30<span class="unit">users</span></div>
+              <div class="stat-num" data-shape-id="task-3-stat-3">300<span class="unit">decks</span></div>
+            </div>
+            <div class="bar-desc" data-shape-id="task-3-bar-text">Strategy unit fully on-platform; senior coaches multiply adoption.</div>
+            <div class="milestones">
+              <span class="ms-dot" data-shape-id="task-3-milestone-1"></span>
+              <span class="ms-dot" data-shape-id="task-3-milestone-2"></span>
+              <span class="ms-dot" data-shape-id="task-3-milestone-3"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Wave 4 -->
+      <div class="wave-row">
+        <div class="wave-label">
+          <div class="wave-tag" data-shape-id="task-4-tag">Wave 4</div>
+          <div class="wave-name" data-shape-id="task-4-label">Cross-firm</div>
+          <div class="wave-quarter" data-shape-id="task-4-quarter">Q2 2027</div>
+        </div>
+        <div class="wave-track" data-shape-id="task-4-track">
+          <div class="wave-bar w4 span-4" data-shape-id="task-4-bar">
+            <div class="bar-stats">
+              <div class="stat-num" data-shape-id="task-4-stat-1">multi<span class="unit">region</span></div>
+              <div class="stat-num" data-shape-id="task-4-stat-2">80+<span class="unit">users</span></div>
+            </div>
+            <div class="bar-desc" data-shape-id="task-4-bar-text">Open to adjacent service lines and regions; governance handed to PMO.</div>
+            <div class="milestones">
+              <span class="ms-dot" data-shape-id="task-4-milestone-1"></span>
+              <span class="ms-dot" data-shape-id="task-4-milestone-2"></span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Convergence line -->
+    <div class="convergence" data-shape-id="convergence">Waves overlap on purpose &mdash; each cohort lands while the prior is <strong>still warm</strong>.</div>
+
+  </div>
+
+  <div class="footer-rule" data-shape-id="footer-rule"></div>
+  <div class="footer-left" data-shape-id="footer-left">CONFIDENTIAL &mdash; ACCENTURE INTERNAL</div>
+  <div class="footer-right" data-shape-id="footer-right">Slide Lab &middot; 2026 &middot; 80</div>
+</body>
+</html>

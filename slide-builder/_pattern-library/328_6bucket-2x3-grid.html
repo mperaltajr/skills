@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>328 · 6-Bucket 2×3 Grid</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: 'Inter', sans-serif;
+    background: var(--slide-bg);
+    color: var(--text-dark);
+  }
+
+  .slide {
+    position: relative;
+    width: 1280px;
+    height: 720px;
+    background: var(--slide-bg);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+
+  /* ── Chrome top bar ── */
+  .chrome-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    z-index: 10;
+  }
+
+  .chrome-internal {
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+  }
+
+  .draft-badge {
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 7px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 2px 8px;
+    border-radius: 0;
+  }
+
+  /* spacer to balance flex layout */
+  .chrome-spacer {
+    width: 160px;
+  }
+
+  /* ── Header / title area ── */
+  .slide-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 0;
+  overflow: visible;
+
+  }
+
+  .slide-title {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+  }
+
+  .slide-title strong {
+    color: var(--brand-accent);
+    font-weight: 700;
+  }
+
+  .slide-sub {
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+}
+
+  .accent-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+
+
+    background: var(--brand-accent);
+  }
+
+  /* ── Grid body ── */
+  .grid-body {
+    flex: 1;
+    padding: 14px 48px 12px 48px;
+    display: flex; flex-wrap: wrap;
+    gap: 10px;
+    min-height: 0;
+  }
+
+  /* ── Card ── */
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    display: flex;
+    flex-direction: row;
+    align-items: stretch;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  .card-accent-bar {
+    width: 3px;
+    flex-shrink: 0;
+  }
+
+  .card-accent-bar.accent { background: var(--brand-accent); }
+  .card-accent-bar.primary-mid { background: var(--brand-primary-mid); }
+
+  .card-content {
+    flex: 1;
+    padding: 12px 14px 12px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+  }
+
+  .card-header {
+    display: flex;
+    align-items: baseline;
+    gap: 7px;
+}
+
+  .bucket-num {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--brand-accent);
+    letter-spacing: 0.04em;
+    flex-shrink: 0;
+  }
+
+  .bucket-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .card-bullets {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex: 1;
+  }
+
+  .card-bullets li {
+    font-size: 11px;
+    color: var(--text-mid);
+    line-height: 1.4;
+}
+
+  .card-bullets li::before {
+    content: "·";
+    position: absolute;
+    left: 0;
+    color: var(--brand-accent-soft);
+    font-size: 14px;
+    line-height: 1.2;
+  }
+
+  .metric-chip {
+    display: inline-flex;
+    align-items: center;
+    background: var(--card-border);
+    padding: 2px 7px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--brand-primary-mid);
+    border-radius: 2px;
+}
+
+  /* ── Footer ── */
+  .slide-footer {
+    flex-shrink: 0;
+    height: 32px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+}
+
+  .footer-left,
+  .footer-right {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+<div class="slide">
+
+  <!-- Chrome top -->
+  <div class="chrome-top">
+    <span class="chrome-internal">Accenture Internal</span>
+    <span class="chrome-spacer"></span>
+  </div>
+
+  <!-- Header -->
+  <div class="slide-header">
+    <div class="slide-title">Six dimensions that define <strong>transformation readiness</strong></div>
+    <div class="slide-sub">A compact reference grid across all capability buckets</div>
+    <div class="accent-rule"></div>
+  </div>
+
+  <!-- 2×3 Card Grid -->
+  <div class="grid-body">
+
+    <!-- Card 01 -->
+    <div class="card">
+      <div class="card-accent-bar accent"></div>
+      <div class="card-content">
+        <div class="card-header">
+          <span class="bucket-num">01</span>
+          <span class="bucket-title">Strategic Alignment</span>
+        </div>
+        <ul class="card-bullets">
+          <li>Leadership vision linked to delivery roadmap</li>
+          <li>KPIs cascade from enterprise objectives</li>
+        </ul>
+        <span class="metric-chip">Avg. maturity: 3.2 / 5</span>
+      </div>
+    </div>
+
+    <!-- Card 02 -->
+    <div class="card">
+      <div class="card-accent-bar accent"></div>
+      <div class="card-content">
+        <div class="card-header">
+          <span class="bucket-num">02</span>
+          <span class="bucket-title">Data &amp; Analytics</span>
+        </div>
+        <ul class="card-bullets">
+          <li>Unified data platform with governed access</li>
+          <li>Self-serve BI adoption above 60 %</li>
+        </ul>
+        <span class="metric-chip">Coverage: 74 % of domains</span>
+      </div>
+    </div>
+
+    <!-- Card 03 -->
+    <div class="card">
+      <div class="card-accent-bar accent"></div>
+      <div class="card-content">
+        <div class="card-header">
+          <span class="bucket-num">03</span>
+          <span class="bucket-title">Technology &amp; Architecture</span>
+        </div>
+        <ul class="card-bullets">
+          <li>Cloud-native services as default deployment target</li>
+          <li>API-first integration fabric in place</li>
+        </ul>
+        <span class="metric-chip">Cloud spend: 48 % of IT</span>
+      </div>
+    </div>
+
+    <!-- Card 04 -->
+    <div class="card">
+      <div class="card-accent-bar primary-mid"></div>
+      <div class="card-content">
+        <div class="card-header">
+          <span class="bucket-num">04</span>
+          <span class="bucket-title">Talent &amp; Skills</span>
+        </div>
+        <ul class="card-bullets">
+          <li>Reskilling pathways funded at programme level</li>
+          <li>Digital fluency baseline assessed annually</li>
+        </ul>
+        <span class="metric-chip">Skill gap: 22 % workforce</span>
+      </div>
+    </div>
+
+    <!-- Card 05 -->
+    <div class="card">
+      <div class="card-accent-bar primary-mid"></div>
+      <div class="card-content">
+        <div class="card-header">
+          <span class="bucket-num">05</span>
+          <span class="bucket-title">Operating Model</span>
+        </div>
+        <ul class="card-bullets">
+          <li>Product-aligned squads with clear P&amp;L ownership</li>
+          <li>Agile at scale frameworks adopted enterprise-wide</li>
+        </ul>
+        <span class="metric-chip">Squad velocity: +18 % YoY</span>
+      </div>
+    </div>
+
+    <!-- Card 06 -->
+    <div class="card">
+      <div class="card-accent-bar primary-mid"></div>
+      <div class="card-content">
+        <div class="card-header">
+          <span class="bucket-num">06</span>
+          <span class="bucket-title">Change &amp; Culture</span>
+        </div>
+        <ul class="card-bullets">
+          <li>Structured OCM programme with executive sponsor</li>
+          <li>Adoption tracked via utilisation dashboards</li>
+        </ul>
+        <span class="metric-chip">Adoption score: 67 / 100</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="slide-footer">
+    <span class="footer-left">Confidential</span>
+    <span class="footer-right">Slide Lab · 2026 · 328</span>
+  </div>
+
+</div>
+</body>
+</html>

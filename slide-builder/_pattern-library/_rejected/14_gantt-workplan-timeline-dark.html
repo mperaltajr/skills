@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>14 · Gantt workplan timeline</title>
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1280px; height: 720px; background: var(--slide-bg); font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; color: var(--text-dark); overflow: hidden; }
+body { padding: 50px 56px 80px 56px; position: relative; }
+.draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; }
+.project-label { position: absolute; top: 24px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
+
+/* ---- Title block ---- */
+.action-title { font-size: 28px; font-weight: 700; line-height: 1.2; max-width: 1050px; }
+.action-title strong { color: var(--brand-primary); }
+.subhead { font-size: 14px; color: var(--text-mid); margin-top: 10px; font-style: italic; }
+.title-rule { width: 56px; height: 3px; background: var(--brand-accent); margin: 18px 0 0 0; }
+
+/* ---- Content block: vertically centered between title and footer ---- */
+.content-block {
+  position: absolute;
+  left: 56px;
+  right: 56px;
+  top: 200px;
+  bottom: 80px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 18px;
+}
+
+/* ---- Gantt grid ---- */
+.gantt {
+  display: grid;
+  grid-template-columns: 200px repeat(12, 1fr);
+  grid-template-rows: 22px 26px repeat(8, 30px);
+  column-gap: 0;
+  row-gap: 0;
+  background: white;
+  border-left: 1px solid var(--card-border);
+  border-right: 1px solid var(--card-border);
+  border-top: 1px solid var(--card-border);
+  border-bottom: 1px solid var(--card-border);
+}
+
+/* phase bands (row 1) */
+.phase-spacer { grid-column: 1 / 2; grid-row: 1 / 2; background: white; }
+.phase {
+  grid-row: 1 / 2;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase;
+  color: white;
+}
+.phase-1 { grid-column: 2 / 6;   background: var(--brand-primary-mid); }
+.phase-2 { grid-column: 6 / 10;  background: var(--brand-accent); }
+.phase-3 { grid-column: 10 / 14; background: var(--brand-primary-mid); }
+
+/* week-number header (row 2) */
+.label-col-head {
+  grid-column: 1 / 2; grid-row: 2 / 3;
+  display: flex; align-items: center;
+  padding-left: 12px;
+  font-size: 10px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase;
+  color: var(--text-faint);
+  background: var(--card-bg);
+  border-right: 1px solid var(--card-border);
+}
+.week-head {
+  grid-row: 2 / 3;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 700;
+  color: var(--brand-primary-mid);
+  background: var(--card-bg);
+  border-right: 1px solid var(--card-border);
+}
+.week-head:last-of-type { border-right: none; }
+
+/* task rows */
+.task-label {
+  grid-column: 1 / 2;
+  display: flex; align-items: center;
+  padding-left: 12px; padding-right: 10px;
+  font-size: 12px; font-weight: 600; color: var(--text-dark);
+  border-right: 1px solid var(--card-border);
+  border-top: 1px solid var(--card-border);
+  background: white;
+}
+.task-cell {
+  display: flex; align-items: center;
+  position: relative;
+  border-right: 1px solid #F1E8F8;
+  border-top: 1px solid var(--card-border);
+  background: white;
+}
+.task-cell:last-of-type { border-right: none; }
+.task-cell.zebra { background: #FBF8FE; }
+
+/* the bar lives inside the leftmost task-cell of its span and stretches across N cells using width:calc */
+.bar {
+  position: absolute;
+  top: 7px;
+  height: 16px;
+  left: 4px;
+  border-radius: 3px;
+  display: flex; align-items: center;
+  padding: 0 8px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.3px;
+  color: white;
+  white-space: nowrap;
+}
+.bar.w1 { width: calc(1 * 81px - 8px); }
+.bar.w2 { width: calc(2 * 81px - 8px); }
+.bar.w3 { width: calc(3 * 81px - 8px); }
+.bar.w4 { width: calc(4 * 81px - 8px); }
+
+.bar.completed { background: var(--text-faint); }
+.bar.in-progress { background: var(--brand-accent); }
+.bar.upcoming { background: var(--brand-primary); }
+
+/* milestone diamond */
+.milestone {
+  position: absolute;
+  top: 50%; left: 50%;
+  width: 16px; height: 16px;
+  transform: translate(-50%, -50%) rotate(45deg);
+  background: var(--brand-accent);
+  border: 2px solid white;
+  box-shadow: 0 0 0 1px var(--brand-accent);
+  z-index: 2;
+}
+.milestone-label {
+  position: absolute;
+  top: -2px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 9px; font-weight: 700; letter-spacing: 0.5px;
+  color: var(--brand-accent);
+  white-space: nowrap;
+  text-transform: uppercase;
+  background: white;
+  padding: 0 4px;
+}
+
+/* legend — PRIMARY placement: right-aligned in title zone */
+.legend {
+  display: flex; align-items: center; gap: 22px;
+  font-size: 11px; color: var(--text-mid);
+  position: absolute; right: 56px; top: 124px;
+}
+.legend-item { display: flex; align-items: center; gap: 8px; }
+.swatch { width: 22px; height: 10px; border-radius: 2px; }
+.swatch.completed { background: var(--text-faint); }
+.swatch.in-progress { background: var(--brand-accent); }
+.swatch.upcoming { background: var(--brand-primary); }
+.swatch.milestone {
+  width: 12px; height: 12px; transform: rotate(45deg);
+  background: var(--brand-accent); border-radius: 0;
+}
+
+/* convergence line */
+.convergence { background: var(--brand-primary); color: white; padding: 12px 22px; font-size: 14px; font-style: italic; font-weight: 500; }
+
+/* ---- Footer invariant ---- */
+.footer-rule { position: absolute; left: 0; right: 0; bottom: 32px; height: 1px; background: var(--card-border); }
+.footer-left { position: absolute; bottom: 14px; left: 24px; color: var(--text-faint); font-size: 10px; letter-spacing: 1px; }
+.footer-right { position: absolute; bottom: 14px; right: 24px; color: var(--text-faint); font-size: 11px; }
+
+/* DARK THEME */
+:root {
+  --card-bg: rgba(255,255,255,0.07);
+  --card-border: rgba(255,255,255,0.12);
+  --text-dark: #FFFFFF;
+  --text-mid: rgba(255,255,255,0.6);
+  --text-faint: rgba(255,255,255,0.4);
+  --slide-bg: #2D0A4E;
+}
+body, .slide { background: #2D0A4E; }
+.project-label { color: rgba(255,255,255,0.4); }
+.action-title { color: #FFFFFF; }
+.action-title strong { color: #C780FF; }
+.subhead { color: rgba(255,255,255,0.6); }
+.gantt { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.12); }
+.phase-spacer { background: rgba(255,255,255,0.07); }
+.label-col-head { background: rgba(255,255,255,0.07); color: rgba(255,255,255,0.4); border-color: rgba(255,255,255,0.12); }
+.week-head { background: rgba(255,255,255,0.07); color: #C780FF; border-color: rgba(255,255,255,0.12); }
+.task-label { background: rgba(255,255,255,0.04); color: rgba(255,255,255,0.85); border-color: rgba(255,255,255,0.12); }
+.task-cell { background: rgba(255,255,255,0.02); border-color: rgba(255,255,255,0.08); }
+.task-cell.zebra { background: rgba(255,255,255,0.04); }
+.bar.completed { background: rgba(255,255,255,0.4); }
+.milestone { border-color: #2D0A4E; }
+.milestone-label { background: #2D0A4E; color: var(--brand-accent); }
+.legend { color: rgba(255,255,255,0.6); }
+.swatch.upcoming { background: rgba(255,255,255,0.5); }
+.footer-rule { background: rgba(255,255,255,0.1); }
+.footer-left, .footer-right { color: rgba(255,255,255,0.4); }
+</style>
+</head>
+<body>
+  <div class="project-label" data-shape-id="accenture-tag">ACCENTURE INTERNAL</div>
+  <div class="draft-badge" data-shape-id="draft-badge">DRAFT</div>
+
+  <div class="action-title" data-shape-id="title">Twelve-week pilot — <strong>what gets done in each phase</strong>.</div>
+  <div class="subhead" data-shape-id="subtitle">Setup is plumbing. Pilot is where the value shows. Scale is the decision we earn the right to make.</div>
+  <div class="title-rule" data-shape-id="brand-rule"></div>
+
+  <!-- Legend — PRIMARY: right-aligned in title zone, below sub-headline/accent-rule -->
+  <div class="legend">
+    <div class="legend-item" data-shape-id="legend-1-label"><span class="swatch completed" data-shape-id="legend-1-swatch"></span>Completed</div>
+    <div class="legend-item" data-shape-id="legend-2-label"><span class="swatch in-progress" data-shape-id="legend-2-swatch"></span>In progress</div>
+    <div class="legend-item" data-shape-id="legend-3-label"><span class="swatch upcoming" data-shape-id="legend-3-swatch"></span>Upcoming</div>
+    <div class="legend-item" data-shape-id="legend-4-label"><span class="swatch milestone" data-shape-id="legend-4-swatch"></span>Milestone · decision point</div>
+  </div>
+
+  <div class="content-block">
+    <div class="gantt">
+      <!-- Row 1: phase bands -->
+      <div class="phase-spacer"></div>
+      <div class="phase phase-1" data-shape-id="phase-band-1-label">Phase 1 · Setup</div>
+      <div class="phase phase-2" data-shape-id="phase-band-2-label">Phase 2 · Pilot</div>
+      <div class="phase phase-3" data-shape-id="phase-band-3-label">Phase 3 · Scale</div>
+
+      <!-- Row 2: week-number header -->
+      <div class="label-col-head" data-shape-id="timeline-row-header">Workstream</div>
+      <div class="week-head" data-shape-id="timeline-tick-1-label" style="grid-column: 2 / 3;">W1</div>
+      <div class="week-head" data-shape-id="timeline-tick-2-label" style="grid-column: 3 / 4;">W2</div>
+      <div class="week-head" data-shape-id="timeline-tick-3-label" style="grid-column: 4 / 5;">W3</div>
+      <div class="week-head" data-shape-id="timeline-tick-4-label" style="grid-column: 5 / 6;">W4</div>
+      <div class="week-head" data-shape-id="timeline-tick-5-label" style="grid-column: 6 / 7;">W5</div>
+      <div class="week-head" data-shape-id="timeline-tick-6-label" style="grid-column: 7 / 8;">W6</div>
+      <div class="week-head" data-shape-id="timeline-tick-7-label" style="grid-column: 8 / 9;">W7</div>
+      <div class="week-head" data-shape-id="timeline-tick-8-label" style="grid-column: 9 / 10;">W8</div>
+      <div class="week-head" data-shape-id="timeline-tick-9-label" style="grid-column: 10 / 11;">W9</div>
+      <div class="week-head" data-shape-id="timeline-tick-10-label" style="grid-column: 11 / 12;">W10</div>
+      <div class="week-head" data-shape-id="timeline-tick-11-label" style="grid-column: 12 / 13;">W11</div>
+      <div class="week-head" data-shape-id="timeline-tick-12-label" style="grid-column: 13 / 14;">W12</div>
+
+      <!-- Row 3: Stakeholder alignment W1-2 (completed) -->
+      <div class="task-label" data-shape-id="task-1-label" style="grid-row: 3 / 4;">Stakeholder alignment</div>
+      <div class="task-cell" style="grid-row: 3 / 4; grid-column: 2 / 3;">
+        <div class="bar completed w2" data-shape-id="task-1-bar">W1–W2</div>
+      </div>
+      <div class="task-cell zebra" style="grid-row: 3 / 4; grid-column: 3 / 4;"></div>
+      <div class="task-cell" style="grid-row: 3 / 4; grid-column: 4 / 5;"></div>
+      <div class="task-cell zebra" style="grid-row: 3 / 4; grid-column: 5 / 6;"></div>
+      <div class="task-cell" style="grid-row: 3 / 4; grid-column: 6 / 7;"></div>
+      <div class="task-cell zebra" style="grid-row: 3 / 4; grid-column: 7 / 8;"></div>
+      <div class="task-cell" style="grid-row: 3 / 4; grid-column: 8 / 9;"></div>
+      <div class="task-cell zebra" style="grid-row: 3 / 4; grid-column: 9 / 10;"></div>
+      <div class="task-cell" style="grid-row: 3 / 4; grid-column: 10 / 11;"></div>
+      <div class="task-cell zebra" style="grid-row: 3 / 4; grid-column: 11 / 12;"></div>
+      <div class="task-cell" style="grid-row: 3 / 4; grid-column: 12 / 13;"></div>
+      <div class="task-cell zebra" style="grid-row: 3 / 4; grid-column: 13 / 14;"></div>
+
+      <!-- Row 4: Tool access provisioning W1-2 (completed) -->
+      <div class="task-label" data-shape-id="task-2-label" style="grid-row: 4 / 5;">Tool access provisioning</div>
+      <div class="task-cell" style="grid-row: 4 / 5; grid-column: 2 / 3;">
+        <div class="bar completed w2" data-shape-id="task-2-bar">W1–W2</div>
+      </div>
+      <div class="task-cell zebra" style="grid-row: 4 / 5; grid-column: 3 / 4;"></div>
+      <div class="task-cell" style="grid-row: 4 / 5; grid-column: 4 / 5;"></div>
+      <div class="task-cell zebra" style="grid-row: 4 / 5; grid-column: 5 / 6;"></div>
+      <div class="task-cell" style="grid-row: 4 / 5; grid-column: 6 / 7;"></div>
+      <div class="task-cell zebra" style="grid-row: 4 / 5; grid-column: 7 / 8;"></div>
+      <div class="task-cell" style="grid-row: 4 / 5; grid-column: 8 / 9;"></div>
+      <div class="task-cell zebra" style="grid-row: 4 / 5; grid-column: 9 / 10;"></div>
+      <div class="task-cell" style="grid-row: 4 / 5; grid-column: 10 / 11;"></div>
+      <div class="task-cell zebra" style="grid-row: 4 / 5; grid-column: 11 / 12;"></div>
+      <div class="task-cell" style="grid-row: 4 / 5; grid-column: 12 / 13;"></div>
+      <div class="task-cell zebra" style="grid-row: 4 / 5; grid-column: 13 / 14;"></div>
+
+      <!-- Row 5: Onboarding sessions W3-4 (completed) -->
+      <div class="task-label" data-shape-id="task-3-label" style="grid-row: 5 / 6;">Onboarding sessions</div>
+      <div class="task-cell" style="grid-row: 5 / 6; grid-column: 2 / 3;"></div>
+      <div class="task-cell zebra" style="grid-row: 5 / 6; grid-column: 3 / 4;"></div>
+      <div class="task-cell" style="grid-row: 5 / 6; grid-column: 4 / 5;">
+        <div class="bar completed w2" data-shape-id="task-3-bar">W3–W4</div>
+      </div>
+      <div class="task-cell zebra" style="grid-row: 5 / 6; grid-column: 5 / 6;"></div>
+      <div class="task-cell" style="grid-row: 5 / 6; grid-column: 6 / 7;"></div>
+      <div class="task-cell zebra" style="grid-row: 5 / 6; grid-column: 7 / 8;"></div>
+      <div class="task-cell" style="grid-row: 5 / 6; grid-column: 8 / 9;"></div>
+      <div class="task-cell zebra" style="grid-row: 5 / 6; grid-column: 9 / 10;"></div>
+      <div class="task-cell" style="grid-row: 5 / 6; grid-column: 10 / 11;"></div>
+      <div class="task-cell zebra" style="grid-row: 5 / 6; grid-column: 11 / 12;"></div>
+      <div class="task-cell" style="grid-row: 5 / 6; grid-column: 12 / 13;"></div>
+      <div class="task-cell zebra" style="grid-row: 5 / 6; grid-column: 13 / 14;"></div>
+
+      <!-- Row 6: First pilot decks W5-7 (in-progress) -->
+      <div class="task-label" data-shape-id="task-4-label" style="grid-row: 6 / 7;">First pilot decks</div>
+      <div class="task-cell" style="grid-row: 6 / 7; grid-column: 2 / 3;"></div>
+      <div class="task-cell zebra" style="grid-row: 6 / 7; grid-column: 3 / 4;"></div>
+      <div class="task-cell" style="grid-row: 6 / 7; grid-column: 4 / 5;"></div>
+      <div class="task-cell zebra" style="grid-row: 6 / 7; grid-column: 5 / 6;"></div>
+      <div class="task-cell" style="grid-row: 6 / 7; grid-column: 6 / 7;">
+        <div class="bar in-progress w3" data-shape-id="task-4-bar">W5–W7 · in flight</div>
+      </div>
+      <div class="task-cell zebra" style="grid-row: 6 / 7; grid-column: 7 / 8;"></div>
+      <div class="task-cell" style="grid-row: 6 / 7; grid-column: 8 / 9;"></div>
+      <div class="task-cell zebra" style="grid-row: 6 / 7; grid-column: 9 / 10;"></div>
+      <div class="task-cell" style="grid-row: 6 / 7; grid-column: 10 / 11;"></div>
+      <div class="task-cell zebra" style="grid-row: 6 / 7; grid-column: 11 / 12;"></div>
+      <div class="task-cell" style="grid-row: 6 / 7; grid-column: 12 / 13;"></div>
+      <div class="task-cell zebra" style="grid-row: 6 / 7; grid-column: 13 / 14;"></div>
+
+      <!-- Row 7: Mid-pilot review (milestone at W6) -->
+      <div class="task-label" data-shape-id="task-5-label" style="grid-row: 7 / 8;">Mid-pilot review</div>
+      <div class="task-cell" style="grid-row: 7 / 8; grid-column: 2 / 3;"></div>
+      <div class="task-cell zebra" style="grid-row: 7 / 8; grid-column: 3 / 4;"></div>
+      <div class="task-cell" style="grid-row: 7 / 8; grid-column: 4 / 5;"></div>
+      <div class="task-cell zebra" style="grid-row: 7 / 8; grid-column: 5 / 6;"></div>
+      <div class="task-cell" style="grid-row: 7 / 8; grid-column: 6 / 7;"></div>
+      <div class="task-cell zebra" style="grid-row: 7 / 8; grid-column: 7 / 8;">
+        <div class="milestone" data-shape-id="milestone-1"></div>
+      </div>
+      <div class="task-cell" style="grid-row: 7 / 8; grid-column: 8 / 9;"></div>
+      <div class="task-cell zebra" style="grid-row: 7 / 8; grid-column: 9 / 10;"></div>
+      <div class="task-cell" style="grid-row: 7 / 8; grid-column: 10 / 11;"></div>
+      <div class="task-cell zebra" style="grid-row: 7 / 8; grid-column: 11 / 12;"></div>
+      <div class="task-cell" style="grid-row: 7 / 8; grid-column: 12 / 13;"></div>
+      <div class="task-cell zebra" style="grid-row: 7 / 8; grid-column: 13 / 14;"></div>
+
+      <!-- Row 8: Refinement W7-9 (in-progress / upcoming) -->
+      <div class="task-label" data-shape-id="task-6-label" style="grid-row: 8 / 9;">Refinement</div>
+      <div class="task-cell" style="grid-row: 8 / 9; grid-column: 2 / 3;"></div>
+      <div class="task-cell zebra" style="grid-row: 8 / 9; grid-column: 3 / 4;"></div>
+      <div class="task-cell" style="grid-row: 8 / 9; grid-column: 4 / 5;"></div>
+      <div class="task-cell zebra" style="grid-row: 8 / 9; grid-column: 5 / 6;"></div>
+      <div class="task-cell" style="grid-row: 8 / 9; grid-column: 6 / 7;"></div>
+      <div class="task-cell zebra" style="grid-row: 8 / 9; grid-column: 7 / 8;"></div>
+      <div class="task-cell" style="grid-row: 8 / 9; grid-column: 8 / 9;">
+        <div class="bar in-progress w3" data-shape-id="task-6-bar">W7–W9</div>
+      </div>
+      <div class="task-cell zebra" style="grid-row: 8 / 9; grid-column: 9 / 10;"></div>
+      <div class="task-cell" style="grid-row: 8 / 9; grid-column: 10 / 11;"></div>
+      <div class="task-cell zebra" style="grid-row: 8 / 9; grid-column: 11 / 12;"></div>
+      <div class="task-cell" style="grid-row: 8 / 9; grid-column: 12 / 13;"></div>
+      <div class="task-cell zebra" style="grid-row: 8 / 9; grid-column: 13 / 14;"></div>
+
+      <!-- Row 9: Scaling readiness check (milestone at W10) -->
+      <div class="task-label" data-shape-id="task-7-label" style="grid-row: 9 / 10;">Scaling readiness check</div>
+      <div class="task-cell" style="grid-row: 9 / 10; grid-column: 2 / 3;"></div>
+      <div class="task-cell zebra" style="grid-row: 9 / 10; grid-column: 3 / 4;"></div>
+      <div class="task-cell" style="grid-row: 9 / 10; grid-column: 4 / 5;"></div>
+      <div class="task-cell zebra" style="grid-row: 9 / 10; grid-column: 5 / 6;"></div>
+      <div class="task-cell" style="grid-row: 9 / 10; grid-column: 6 / 7;"></div>
+      <div class="task-cell zebra" style="grid-row: 9 / 10; grid-column: 7 / 8;"></div>
+      <div class="task-cell" style="grid-row: 9 / 10; grid-column: 8 / 9;"></div>
+      <div class="task-cell zebra" style="grid-row: 9 / 10; grid-column: 9 / 10;"></div>
+      <div class="task-cell" style="grid-row: 9 / 10; grid-column: 10 / 11;"></div>
+      <div class="task-cell zebra" style="grid-row: 9 / 10; grid-column: 11 / 12;">
+        <div class="milestone" data-shape-id="milestone-2"></div>
+      </div>
+      <div class="task-cell" style="grid-row: 9 / 10; grid-column: 12 / 13;"></div>
+      <div class="task-cell zebra" style="grid-row: 9 / 10; grid-column: 13 / 14;"></div>
+
+      <!-- Row 10: Q3 rollout decision (milestone at W12) -->
+      <div class="task-label" data-shape-id="task-8-label" style="grid-row: 10 / 11;">Q3 rollout decision</div>
+      <div class="task-cell" style="grid-row: 10 / 11; grid-column: 2 / 3;"></div>
+      <div class="task-cell zebra" style="grid-row: 10 / 11; grid-column: 3 / 4;"></div>
+      <div class="task-cell" style="grid-row: 10 / 11; grid-column: 4 / 5;"></div>
+      <div class="task-cell zebra" style="grid-row: 10 / 11; grid-column: 5 / 6;"></div>
+      <div class="task-cell" style="grid-row: 10 / 11; grid-column: 6 / 7;"></div>
+      <div class="task-cell zebra" style="grid-row: 10 / 11; grid-column: 7 / 8;"></div>
+      <div class="task-cell" style="grid-row: 10 / 11; grid-column: 8 / 9;"></div>
+      <div class="task-cell zebra" style="grid-row: 10 / 11; grid-column: 9 / 10;"></div>
+      <div class="task-cell" style="grid-row: 10 / 11; grid-column: 10 / 11;"></div>
+      <div class="task-cell zebra" style="grid-row: 10 / 11; grid-column: 11 / 12;"></div>
+      <div class="task-cell" style="grid-row: 10 / 11; grid-column: 12 / 13;"></div>
+      <div class="task-cell zebra" style="grid-row: 10 / 11; grid-column: 13 / 14;">
+        <div class="milestone" data-shape-id="milestone-3"></div>
+      </div>
+    </div>
+
+    <!-- Convergence line -->
+    <div class="convergence" data-shape-id="convergence">Milestones are decision points, not check-ins — each one earns the right to continue.</div>
+  </div>
+
+  <div class="footer-rule" data-shape-id="footer-rule"></div>
+  <div class="footer-left" data-shape-id="footer-left">CONFIDENTIAL — ACCENTURE INTERNAL</div>
+  <div class="footer-right" data-shape-id="footer-right">Slide Lab · 2026 · 14d</div>
+</body>
+</html>

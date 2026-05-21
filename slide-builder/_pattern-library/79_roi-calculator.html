@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>79 · ROI calculator</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 1280px; height: 720px;
+  background: var(--slide-bg);
+  font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  color: var(--text-dark);
+  overflow: hidden;
+}
+body { padding: 0px 64px 80px 64px; position: relative; }
+
+/* ---- Top chrome ---- */
+.draft-badge {
+  position: absolute; top: 20px; left: 50%; transform: translateX(-50%);
+  background: var(--draft-bg); color: var(--draft-text);
+  font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px;
+}
+.project-label {
+  position: absolute; top: 24px; left: 24px;
+  color: var(--text-faint);
+  font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase;
+}
+
+/* ---- Title block ---- */
+.action-title { position: absolute; left: 64px; right: 64px; top: 28px; min-height: 36px; font-size: 26px; font-weight: 700; line-height: 1.2;
+  max-width: 1100px; color: var(--text-dark);
+  letter-spacing: -0.3px;
+}
+.action-title strong { color: var(--brand-primary); }
+.subhead { position: absolute; left: 64px; right: 64px; top: 108px; font-size: 14px; color: var(--text-mid); font-style: italic; max-width: 1000px;
+}
+.title-rule { position: absolute; left: 64px; top: 136px; width: 40px; height: 3px; background: var(--brand-accent); }
+
+/* ---- Body grid: INPUTS | CALCULATION | RESULT ----
+   title-rule ends ~y=180; footer-rule at y=688.
+   Body band: top 200px, bottom 80px from page  -> body sits 200..640
+   Convergence line: 650..672 */
+.body {
+  position: absolute;
+  left: 64px; right: 64px;
+  top: 196px; height: 396px;
+  display: flex; flex-wrap: wrap;  /* inputs | arrow | calc | arrow | result */
+  gap: 0;
+}
+
+/* ---- Column headers (zone labels) ---- */
+.zone-label {
+  font-size: 9.5px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--text-faint);
+  margin-bottom: 10px;
+}
+
+/* ---- INPUTS column ---- */
+.inputs {
+  padding: 0 14px 0 0;
+  display: flex; flex-direction: column;
+}
+.inputs-list {
+  background: var(--card-bg);
+  box-shadow: 0 0 0 1px var(--card-border);
+  border-left: 3px solid var(--brand-accent-soft);
+  flex: 1;
+  padding: 16px 18px;
+  display: flex; flex-direction: column;
+  justify-content: space-between;
+}
+.input-row {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 8px 0;
+  border-bottom: 1px dashed var(--card-border);
+}
+.input-row:last-child { border-bottom: none; }
+.input-row.investment {
+  margin-top: 4px;
+  padding-top: 12px;
+  border-top: 1px solid var(--card-border);
+  border-bottom: none;
+}
+.input-label {
+  font-size: 11.5px; font-weight: 500; color: var(--text-mid);
+  line-height: 1.3; max-width: 60%;
+}
+.input-value {
+  font-size: 15px; font-weight: 800; color: var(--brand-primary);
+  letter-spacing: -0.2px; font-variant-numeric: tabular-nums;
+}
+.input-row.investment .input-label { color: var(--brand-primary); font-weight: 700; }
+.input-row.investment .input-value { color: var(--brand-accent); }
+
+/* ---- Connector arrows between zones ---- */
+.connector {
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding-top: 28px; /* align with content below zone labels */
+}
+.connector-arrow {
+  width: 0; height: 0;
+  border-left: 14px solid var(--brand-accent);
+  border-top: 11px solid transparent;
+  border-bottom: 11px solid transparent;
+}
+.connector-stub {
+  width: 4px; height: 28px;
+  background: var(--brand-accent-soft);
+  margin-bottom: 0;
+}
+
+/* ---- CALCULATION column ---- */
+.calc {
+  padding: 0 6px;
+  display: flex; flex-direction: column;
+}
+.calc-stack {
+  flex: 1;
+  display: flex; flex-direction: column;
+  justify-content: space-between;
+  gap: 4px;
+}
+.calc-step {
+  background: #FFFFFF;
+  box-shadow: 0 0 0 1px var(--card-border);
+  padding: 8px 14px;
+  display: flex; flex-direction: column;
+  position: relative;
+}
+.calc-formula {
+  font-size: 13.5px; font-weight: 700; color: var(--brand-primary);
+  letter-spacing: -0.2px;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+.calc-formula .op { color: var(--brand-accent); font-weight: 800; padding: 0 3px; font-size: 14px; }
+.calc-formula .eq { color: var(--brand-accent); font-weight: 800; padding: 0 5px; font-size: 16px; }
+.calc-formula .result { color: var(--brand-primary); }
+.calc-caption {
+  font-size: 9.5px; color: var(--text-faint);
+  letter-spacing: 0.8px; text-transform: uppercase;
+  margin-top: 3px; font-weight: 600;
+}
+.calc-arrow {
+  align-self: center;
+  width: 0; height: 0;
+  border-top: 9px solid var(--brand-accent-soft);
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  margin: 2px 0;
+}
+.calc-step.net .calc-formula .result { color: var(--brand-accent); }
+
+/* ---- RESULT column ---- */
+.result {
+  padding: 0 0 0 14px;
+  display: flex; flex-direction: column;
+}
+.result-card {
+  background: var(--brand-primary);
+  flex: 1;
+  padding: 16px 22px 16px 22px;
+  color: #FFFFFF;
+  display: flex; flex-direction: column;
+  position: relative;
+  overflow: hidden;
+}
+.result-card::after {
+  content: "";
+  position: absolute;
+  top: 0; right: 0; bottom: 0;
+  width: 4px;
+  background: var(--brand-accent);
+}
+.result-eyebrow {
+  font-size: 9.5px; font-weight: 700; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--brand-accent-soft);
+  margin-bottom: 8px;
+}
+.roi-number {
+  font-size: 76px; font-weight: 900; line-height: 0.9;
+  letter-spacing: -3px;
+  color: #FFFFFF;
+  font-variant-numeric: tabular-nums;
+}
+.roi-number .x { color: var(--brand-accent-soft); font-size: 46px; font-weight: 800; margin-left: 2px; letter-spacing: -1px; }
+.roi-label {
+  font-size: 14px; font-weight: 600; color: rgba(255,255,255,0.85);
+  margin-top: 6px; letter-spacing: 0.2px;
+}
+.divider-line {
+  height: 1px; background: rgba(255,255,255,0.22);
+  margin: 10px 0 10px 0;
+}
+.payback-row {
+  display: flex; align-items: baseline; gap: 10px;
+  margin-bottom: 10px;
+}
+.payback-value {
+  font-size: 20px; font-weight: 800; color: var(--brand-accent-soft);
+  letter-spacing: -0.3px;
+  font-variant-numeric: tabular-nums;
+}
+.payback-label {
+  font-size: 10.5px; font-weight: 500; color: rgba(255,255,255,0.75);
+  line-height: 1.25;
+}
+
+.breakdown { margin-top: auto; }
+.breakdown-title {
+  font-size: 9px; font-weight: 700; letter-spacing: 1.6px;
+  text-transform: uppercase; color: rgba(255,255,255,0.55);
+  margin-bottom: 6px;
+}
+.breakdown-row {
+  display: flex; justify-content: space-between;
+  font-size: 10px; line-height: 1.55;
+  color: rgba(255,255,255,0.82);
+  font-variant-numeric: tabular-nums;
+}
+.breakdown-row .b-label { font-weight: 500; }
+.breakdown-row .b-val { font-weight: 700; color: #FFFFFF; }
+
+/* ---- Convergence strip ---- */
+.convergence {
+  position: absolute;
+  left: 64px; right: 64px;
+  bottom: 70px;
+  background: var(--brand-primary);
+  color: white;
+  padding: 11px 22px;
+  font-size: 14px;
+  font-style: italic;
+  font-weight: 500;
+  letter-spacing: 0.1px;
+}
+.convergence strong { font-style: normal; font-weight: 700; color: var(--brand-accent-soft); }
+
+/* ---- Footer invariant ---- */
+.footer-rule { position: absolute; left: 0; right: 0; bottom: 32px; height: 1px; background: var(--card-border); }
+.footer-left { position: absolute; bottom: 14px; left: 24px; color: var(--text-faint); font-size: 11px; letter-spacing: 1px; }
+.footer-right { position: absolute; bottom: 14px; right: 24px; color: var(--text-faint); font-size: 11px; }
+</style>
+</head>
+<body>
+
+  <div class="action-title">Slide Lab pilot ROI &mdash; <strong>24&times; return, payback in two weeks.</strong></div>
+  <div class="subhead">Conservative assumptions: 30 senior consultants, 50 decks each per year, 9 hours saved per deck at $150/hr loaded rate.</div>
+  <div class="title-rule"></div>
+
+  <div class="body">
+
+    <!-- ===== INPUTS ===== -->
+    <div class="inputs">
+      <div class="zone-label">Inputs &middot; assumptions</div>
+      <div class="inputs-list">
+        <div class="input-row">
+          <div class="input-label">Senior consultants in scope</div>
+          <div class="input-value">30</div>
+        </div>
+        <div class="input-row">
+          <div class="input-label">Decks per consultant per year</div>
+          <div class="input-value">50</div>
+        </div>
+        <div class="input-row">
+          <div class="input-label">Hours saved per deck</div>
+          <div class="input-value">9</div>
+        </div>
+        <div class="input-row">
+          <div class="input-label">Loaded hourly rate</div>
+          <div class="input-value">$150</div>
+        </div>
+        <div class="input-row investment">
+          <div class="input-label">Pilot investment (Y1)</div>
+          <div class="input-value">$80K</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- arrow inputs -> calc -->
+    <div class="connector">
+      <div class="connector-stub"></div>
+      <div class="connector-arrow"></div>
+    </div>
+
+    <!-- ===== CALCULATION ===== -->
+    <div class="calc">
+      <div class="zone-label">Calculation &middot; the math</div>
+      <div class="calc-stack">
+
+        <div class="calc-step">
+          <div class="calc-formula">30 <span class="op">&times;</span> 50 <span class="eq">=</span> <span class="result">1,500</span></div>
+          <div class="calc-caption">Decks produced per year</div>
+        </div>
+        <div class="calc-arrow"></div>
+
+        <div class="calc-step">
+          <div class="calc-formula">1,500 <span class="op">&times;</span> 9 <span class="eq">=</span> <span class="result">13,500 hr</span></div>
+          <div class="calc-caption">Consultant hours saved per year</div>
+        </div>
+        <div class="calc-arrow"></div>
+
+        <div class="calc-step">
+          <div class="calc-formula">13,500 <span class="op">&times;</span> $150 <span class="eq">=</span> <span class="result">$2.025M</span></div>
+          <div class="calc-caption">Gross value created per year</div>
+        </div>
+        <div class="calc-arrow"></div>
+
+        <div class="calc-step net">
+          <div class="calc-formula">$2.025M <span class="op">&minus;</span> $80K <span class="eq">=</span> <span class="result">$1.945M</span></div>
+          <div class="calc-caption">Net value, Year 1</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- arrow calc -> result -->
+    <div class="connector">
+      <div class="connector-stub"></div>
+      <div class="connector-arrow"></div>
+    </div>
+
+    <!-- ===== RESULT ===== -->
+    <div class="result">
+      <div class="zone-label">Result &middot; the return</div>
+      <div class="result-card">
+        <div class="result-eyebrow">Year 1 ROI</div>
+        <div class="roi-number">24<span class="x">&times;</span></div>
+        <div class="roi-label">net return on $80K invested</div>
+
+        <div class="divider-line"></div>
+
+        <div class="payback-row">
+          <div class="payback-value">~2 wks</div>
+          <div class="payback-label">payback period<br>on cumulative savings</div>
+        </div>
+
+        <div class="breakdown">
+          <div class="breakdown-title">Breakdown</div>
+          <div class="breakdown-row"><span class="b-label">Gross value (Y1)</span><span class="b-val">$2.025M</span></div>
+          <div class="breakdown-row"><span class="b-label">Pilot investment</span><span class="b-val">$80K</span></div>
+          <div class="breakdown-row"><span class="b-label">Net value (Y1)</span><span class="b-val">$1.945M</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="convergence">The pilot pays for itself inside the first month &mdash; everything after that is <strong>net upside</strong>, and the model compounds as adoption widens.</div>
+  <div class="footer-left"></div>
+  <div class="footer-right"></div>
+</body>
+</html>

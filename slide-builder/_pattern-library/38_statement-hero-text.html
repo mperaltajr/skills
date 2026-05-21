@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>38 · Statement hero — single bold thesis dominates the canvas</title>
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #2D0A4E;            /* dark mode */
+  --text-on-dark: #FFFFFF;
+  --text-on-dark-mid: #C780FF;
+  --text-on-dark-faint: #B8A5D9;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 1280px; height: 720px;
+  background: var(--slide-bg);
+  font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  color: var(--text-on-dark);
+  overflow: hidden;
+}
+body { position: relative; }
+
+/* Top chrome */
+.project-label {
+  position: absolute; top: 24px; left: 64px;
+  color: var(--text-on-dark-mid);
+  font-size: 10px; font-weight: 600;
+  letter-spacing: 1.5px; text-transform: uppercase;
+  opacity: 0.7;
+}
+.draft-badge {
+  position: absolute; top: 20px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--draft-bg); color: var(--draft-text);
+  font-size: 11px; font-weight: 700;
+  padding: 4px 16px; letter-spacing: 1px;
+}
+
+/* Centered stage — vertical centering, generous whitespace */
+.stage {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 1040px;                  /* ~120px side margins */
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.pre-label {
+  color: var(--brand-accent-soft);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  margin-bottom: 48px;
+}
+
+.statement {
+  color: var(--text-on-dark);
+  font-size: 64px;
+  font-weight: 500;
+  font-style: italic;
+  line-height: 1.12;
+  letter-spacing: -1px;
+  max-width: 1000px;
+}
+
+.rule {
+  width: 120px;
+  height: 3px;
+  background: var(--brand-accent);
+  margin-top: 56px;
+  margin-bottom: 32px;
+}
+
+.attribution {
+  color: var(--text-on-dark-faint);
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+.context {
+  color: var(--brand-accent-soft);
+  font-size: 14px;
+  font-style: italic;
+  font-weight: 400;
+  margin-top: 28px;
+  max-width: 720px;
+  line-height: 1.5;
+  opacity: 0.85;
+}
+
+/* Footer */
+.footer-rule {
+  position: absolute; bottom: 44px; left: 64px; right: 64px;
+  height: 1px; background: var(--brand-accent-soft);
+  opacity: 0.25;
+}
+.footer-left {
+  position: absolute; bottom: 20px; left: 64px;
+  color: var(--text-on-dark-faint);
+  font-size: 11px; letter-spacing: 1px;
+  opacity: 0.6;
+}
+.footer-right {
+  position: absolute; bottom: 20px; right: 64px;
+  color: var(--text-on-dark-faint);
+  font-size: 11px;
+  opacity: 0.6;
+}
+</style>
+</head>
+<body>
+
+  <div class="stage">
+    <div class="pre-label" data-shape-id="eyebrow">What it comes down to</div>
+    <div class="statement" data-shape-id="hero-statement">&ldquo;The deck doesn&rsquo;t need to be longer. It needs to be sharper.&rdquo;</div>
+    <div class="rule" data-shape-id="hero-rule"></div>
+    <div class="attribution" data-shape-id="hero-attribution">Mario Peralta &middot; After 12 pilot decks &middot; May 2026</div>
+    <div class="context" data-shape-id="hero-context">If you remember nothing else from the next 30 minutes, remember this.</div>
+  </div>
+  <div class="footer-left" data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+</body>
+</html>

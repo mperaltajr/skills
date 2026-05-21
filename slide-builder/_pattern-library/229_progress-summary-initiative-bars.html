@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>Pattern 229 — Progress Summary Initiative Bars</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --brand-primary:#2D0A4E;
+    --brand-primary-mid:#5C2D87;
+    --brand-accent:#A100FF;
+    --brand-accent-soft:#C780FF;
+    --text-dark:#1A1A2E;
+    --text-mid:#64748B;
+    --text-faint:#94A3B8;
+    --slide-bg:#FFFFFF;
+    --card-bg:#F8F4FC;
+    --card-border:#E5D5F0;
+    --draft-bg:#FFD600;
+    --draft-text:#B71C1C;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: Inter, system-ui, sans-serif;
+    background: var(--slide-bg);
+    position: relative;
+  }
+
+  /* ── Invariant Chrome ── */
+
+  .label-internal {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+  }
+
+  .badge-draft {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 0;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .title-block {
+    position: absolute; top: 0; left: 0; right: 0; height: 160px;
+  }
+
+  .title-block h1 {
+    position: absolute; top: 28px; left: 64px; right: 64px; min-height: 36px;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.15;
+  }
+
+  .title-block h1 strong {
+    color: var(--brand-accent);
+  }
+
+  .title-block .sub {
+    position: absolute; top: 108px; left: 64px; right: 64px;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+
+}
+
+  .accent-rule {
+    position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+
+}
+
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 20px 10px;
+  }
+
+  .footer span {
+    font-size: 8px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* ── Content Area ── */
+
+  .content-area {
+    position: absolute;
+    top: 128px;
+    left: 48px;
+    right: 48px;
+    bottom: 64px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  /* Summary chips row */
+  .summary-chips {
+    display: flex;
+    gap: 10px;
+
+    bottom: 12px;
+  }
+
+  .summary-chip {
+    flex: 1;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--brand-primary);
+    text-align: center;
+    white-space: nowrap;
+  }
+
+  .summary-chip span {
+    font-weight: 400;
+    color: var(--text-mid);
+    font-size: 11px;
+  }
+
+  /* Tracker table */
+  .tracker {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  /* Column header */
+  .col-header {
+    display: flex; flex-wrap: wrap;
+    gap: 0 12px;
+    align-items: center;
+    padding: 7px 14px;
+    background: var(--brand-primary);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: rgba(255,255,255,0.65);
+    text-transform: uppercase;
+  }
+
+  /* Section group header */
+  .group-header {
+    display: flex; flex-wrap: wrap;
+    gap: 0 12px;
+    align-items: center;
+    padding: 8px 14px;
+    background: var(--brand-primary-mid);
+    font-size: 10px;
+    font-weight: 700;
+    color: #FFFFFF;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  .group-header .gh-label {
+    grid-column: 1 / -1;
+    font-size: 10px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.9);
+    letter-spacing: 0.08em;
+  }
+
+  /* Initiative row */
+  .init-row {
+    display: flex; flex-wrap: wrap;
+    gap: 0 12px;
+    align-items: center;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--card-border);
+    background: var(--slide-bg);
+    transition: background 0.1s;
+  }
+
+  .init-row:last-child {
+    border-bottom: none;
+  }
+
+  .init-row:nth-child(even) {
+    background: #FDFAFF;
+  }
+
+  /* Name */
+  .init-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-dark);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Workstream pill */
+  .ws-pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .ws-a { background: #EDE9FE; color: #4C1D95; }
+  .ws-b { background: #DBEAFE; color: #1E3A8A; }
+
+  /* Progress bar wrapper */
+  .bar-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0;
+  }
+
+  .bar-track {
+    flex: 1;
+    height: 8px;
+    background: #E2E8F0;
+    border-radius: 99px;
+    overflow: hidden;
+  }
+
+  .bar-fill {
+    height: 100%;
+    border-radius: 99px;
+  }
+
+  .fill-green  { background: #22C55E; }
+  .fill-amber  { background: #F59E0B; }
+  .fill-red    { background: #EF4444; }
+
+  /* % label */
+  .pct-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text-dark);
+    text-align: right;
+    min-width: 40px;
+  }
+
+  /* Status chip */
+  .status-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 3px 9px;
+    border-radius: 4px;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .chip-green  { background: #DCFCE7; color: #166534; }
+  .chip-amber  { background: #FEF3C7; color: #92400E; }
+  .chip-red    { background: #FEE2E2; color: #991B1B; }
+
+  .chip-dot {
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .dot-green { background: #22C55E; }
+  .dot-amber { background: #F59E0B; }
+  .dot-red   { background: #EF4444; }
+</style>
+</head>
+<body>
+
+  <!-- Invariant Chrome -->
+  <div class="label-internal">Accenture Internal</div>
+  <div class="badge-draft">DRAFT</div>
+
+  <div class="title-block">
+    <h1>Initiative Tracker — <strong>Progress Summary</strong></h1>
+    <div class="sub">Portfolio health at a glance: % completion, workstream grouping, and RAG status</div>
+    <div class="accent-rule"></div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <!-- Summary chips -->
+    <div class="summary-chips">
+      <div class="summary-chip">8 <span>initiatives tracked</span></div>
+      <div class="summary-chip">74% <span>avg progress</span></div>
+      <div class="summary-chip">2 <span>at risk</span></div>
+    </div>
+
+    <!-- Tracker table -->
+    <div class="tracker">
+
+      <!-- Column header -->
+      <div class="col-header">
+        <div>Initiative</div>
+        <div>Workstream</div>
+        <div>Progress</div>
+        <div style="text-align:right">% Done</div>
+        <div style="text-align:center">Status</div>
+      </div>
+
+      <!-- Group A -->
+      <div class="group-header">
+        <div class="gh-label">Workstream A — Digital Transformation</div>
+      </div>
+
+      <div class="init-row">
+        <div class="init-name">CX Portal Overhaul</div>
+        <div><span class="ws-pill ws-a">Digital</span></div>
+        <div class="bar-wrap"><div class="bar-track"><div class="bar-fill fill-green" style="width:92%"></div></div></div>
+        <div class="pct-label">92%</div>
+        <div style="text-align:center"><span class="status-chip chip-green"><span class="chip-dot dot-green"></span>On Track</span></div>
+      </div>
+
+      <div class="init-row">
+        <div class="init-name">Data Lake Migration</div>
+        <div><span class="ws-pill ws-a">Digital</span></div>
+        <div class="bar-wrap"><div class="bar-track"><div class="bar-fill fill-green" style="width:81%"></div></div></div>
+        <div class="pct-label">81%</div>
+        <div style="text-align:center"><span class="status-chip chip-green"><span class="chip-dot dot-green"></span>On Track</span></div>
+      </div>
+
+      <div class="init-row">
+        <div class="init-name">API Modernisation</div>
+        <div><span class="ws-pill ws-a">Digital</span></div>
+        <div class="bar-wrap"><div class="bar-track"><div class="bar-fill fill-amber" style="width:63%"></div></div></div>
+        <div class="pct-label">63%</div>
+        <div style="text-align:center"><span class="status-chip chip-amber"><span class="chip-dot dot-amber"></span>At Risk</span></div>
+      </div>
+
+      <div class="init-row">
+        <div class="init-name">Identity &amp; Access Uplift</div>
+        <div><span class="ws-pill ws-a">Digital</span></div>
+        <div class="bar-wrap"><div class="bar-track"><div class="bar-fill fill-green" style="width:78%"></div></div></div>
+        <div class="pct-label">78%</div>
+        <div style="text-align:center"><span class="status-chip chip-green"><span class="chip-dot dot-green"></span>On Track</span></div>
+      </div>
+
+      <!-- Group B -->
+      <div class="group-header">
+        <div class="gh-label">Workstream B — Operating Model</div>
+      </div>
+
+      <div class="init-row">
+        <div class="init-name">Finance Process Redesign</div>
+        <div><span class="ws-pill ws-b">Ops Model</span></div>
+        <div class="bar-wrap"><div class="bar-track"><div class="bar-fill fill-green" style="width:87%"></div></div></div>
+        <div class="pct-label">87%</div>
+        <div style="text-align:center"><span class="status-chip chip-green"><span class="chip-dot dot-green"></span>On Track</span></div>
+      </div>
+
+      <div class="init-row">
+        <div class="init-name">Talent &amp; Skills Framework</div>
+        <div><span class="ws-pill ws-b">Ops Model</span></div>
+        <div class="bar-wrap"><div class="bar-track"><div class="bar-fill fill-amber" style="width:55%"></div></div></div>
+        <div class="pct-label">55%</div>
+        <div style="text-align:center"><span class="status-chip chip-amber"><span class="chip-dot dot-amber"></span>At Risk</span></div>
+      </div>
+
+      <div class="init-row">
+        <div class="init-name">Vendor Consolidation</div>
+        <div><span class="ws-pill ws-b">Ops Model</span></div>
+        <div class="bar-wrap"><div class="bar-track"><div class="bar-fill fill-red" style="width:41%"></div></div></div>
+        <div class="pct-label">41%</div>
+        <div style="text-align:center"><span class="status-chip chip-red"><span class="chip-dot dot-red"></span>Behind</span></div>
+      </div>
+
+      <div class="init-row">
+        <div class="init-name">Governance &amp; Controls</div>
+        <div><span class="ws-pill ws-b">Ops Model</span></div>
+        <div class="bar-wrap"><div class="bar-track"><div class="bar-fill fill-green" style="width:94%"></div></div></div>
+        <div class="pct-label">94%</div>
+        <div style="text-align:center"><span class="status-chip chip-green"><span class="chip-dot dot-green"></span>On Track</span></div>
+      </div>
+
+    </div><!-- /tracker -->
+
+  </div><!-- /content-area -->
+
+  <!-- Footer -->
+  <div class="footer">
+    <span>Confidential — Accenture Internal</span>
+    <span>Slide Lab · 2026 · 229</span>
+  </div>
+
+</body>
+</html>

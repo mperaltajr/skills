@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>276 · Problem → Solution → Benefit — dark mode</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 1280px; height: 720px;
+  background: var(--brand-primary);
+  font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  color: #FFFFFF;
+  overflow: hidden;
+}
+body { position: relative; }
+
+/* ---- Top chrome ---- */
+.project-label {
+  position: absolute; top: 9px; left: 24px;
+  color: rgba(255,255,255,0.5);
+  font-size: 9px; font-weight: 600;
+  letter-spacing: 0.15em; text-transform: uppercase;
+  z-index: 10;
+}
+.draft-badge {
+  position: absolute; top: 6px; left: 50%; transform: translateX(-50%);
+  background: var(--draft-bg); color: var(--draft-text);
+  font-size: 11px; font-weight: 700;
+  padding: 4px 16px; letter-spacing: 1px;
+  border-radius: 0;
+  z-index: 10;
+}
+
+/* ---- Title block ---- */
+.title-block {
+  position: absolute; top: 0; left: 0; right: 0; height: 160px;
+}
+.action-title {
+  position: absolute; top: 28px; left: 64px; right: 64px; min-height: 36px;
+  font-size: 26px; font-weight: 700;
+  color: #FFFFFF; line-height: 1.2;
+  letter-spacing: -0.3px;
+}
+.action-title strong { color: var(--brand-accent-soft); font-weight: 700; }
+.title-rule {
+  position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+  border-radius: 0;
+
+}
+
+/* ---- Three-panel row ---- */
+.panels-row {
+  position: absolute;
+  top: 108px; left: 40px; right: 40px; bottom: 48px;
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  gap: 0;
+}
+
+/* ---- Arrow connector ---- */
+.arrow-connector {
+  flex: 0 0 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  color: var(--brand-accent-soft);
+  flex-shrink: 0;
+  padding-bottom: 28px; /* optical alignment with panel body */
+}
+
+/* ---- Panel base ---- */
+.panel {
+  flex: 1 1 0;
+  border-radius: 4px;
+  padding: 24px 24px 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  overflow: hidden;
+}
+
+/* PROBLEM */
+.panel-problem {
+  background: rgba(229,62,62,0.12);
+  border: 1px solid rgba(229,62,62,0.4);
+  border-top: 2px solid rgba(229,62,62,0.8);
+}
+
+/* SOLUTION — highlighted */
+.panel-solution {
+  background: rgba(161,0,255,0.20);
+  border: 2px solid var(--brand-accent);
+  border-top: 2px solid var(--brand-accent);
+}
+
+/* BENEFIT */
+.panel-benefit {
+  background: rgba(56,161,105,0.12);
+  border: 1px solid rgba(56,161,105,0.4);
+  border-top: 2px solid rgba(56,161,105,0.8);
+}
+
+/* ---- Panel internals ---- */
+.panel-eyebrow {
+  font-size: 9px; font-weight: 700;
+  letter-spacing: 0.18em; text-transform: uppercase;
+
+    bottom: 10px;
+}
+.problem-eyebrow  { color: rgba(229,62,62,0.9); }
+.solution-eyebrow { color: var(--brand-accent-soft); }
+.benefit-eyebrow  { color: rgba(56,161,105,0.9); }
+
+.panel-heading {
+  font-size: 16px; font-weight: 700;
+  color: #FFFFFF;
+  line-height: 1.4;
+
+    bottom: 16px;
+  min-height: 44px;
+}
+
+.panel-bullets {
+  list-style: none;
+  display: flex; flex-direction: column; gap: 11px;
+  flex: 1;
+
+    bottom: 20px;
+}
+.panel-bullets li {
+  font-size: 14px;
+  color: rgba(255,255,255,0.75);
+  line-height: 1.5;
+  padding-left: 16px;
+  position: relative;
+}
+.panel-bullets li::before {
+  content: '–';
+  position: absolute; left: 0;
+  color: rgba(255,255,255,0.4);
+}
+
+/* ---- Stat callout ---- */
+.stat-callout {
+  border-top: 1px solid rgba(255,255,255,0.1);
+  padding-top: 16px;
+
+    top: auto;
+}
+.stat-number {
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.5px;
+}
+.stat-number-problem  { font-size: 28px; color: rgba(229,62,62,0.9); }
+.stat-number-solution { font-size: 24px; color: var(--brand-accent-soft); }
+.stat-number-benefit  { font-size: 28px; color: rgba(56,161,105,0.9); }
+
+.stat-label {
+  font-size: 10px;
+  color: rgba(255,255,255,0.45);
+
+    top: 3px;
+  letter-spacing: 0.06em;
+}
+
+/* ---- Footer ---- */
+.footer-rule {
+  position: absolute; left: 0; right: 0; bottom: 32px;
+  height: 1px; background: rgba(255,255,255,0.1);
+}
+.footer-left {
+  position: absolute; bottom: 14px; left: 24px;
+  color: rgba(255,255,255,0.4); font-size: 11px;
+  letter-spacing: 1px; text-transform: uppercase;
+}
+.footer-right {
+  position: absolute; bottom: 14px; right: 24px;
+  color: rgba(255,255,255,0.4); font-size: 11px;
+  letter-spacing: 1px;
+}
+</style>
+</head>
+<body>
+
+  <!-- Top chrome -->
+
+  <!-- Title block -->
+  <div class="title-block" data-shape-id="title-block">
+    <div class="action-title" data-shape-id="title">From <strong>Problem</strong> to Solution &mdash; and Measurable Benefit</div>
+    <div class="title-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- Three-panel layout -->
+  <div class="panels-row" data-shape-id="panels-row">
+
+    <!-- PROBLEM panel -->
+    <div class="panel panel-problem" data-shape-id="panel-problem">
+      <div class="panel-eyebrow problem-eyebrow" data-shape-id="problem-eyebrow">⚠ The Problem</div>
+      <div class="panel-heading" data-shape-id="problem-heading">Fragmented data across 23 systems generating $8M in annual reconciliation cost</div>
+      <ul class="panel-bullets" data-shape-id="problem-bullets">
+        <li data-shape-id="problem-bullet-1">No single source of truth across finance, ops and supply chain platforms</li>
+        <li data-shape-id="problem-bullet-2">Manual reconciliation consuming 1,200 FTE-hours per month</li>
+        <li data-shape-id="problem-bullet-3">Reporting latency of 48+ hours causing missed decision windows</li>
+      </ul>
+      <div class="stat-callout" data-shape-id="problem-stat">
+        <div class="stat-number stat-number-problem" data-shape-id="problem-stat-number">$8M / year</div>
+        <div class="stat-label" data-shape-id="problem-stat-label">Estimated annual reconciliation cost</div>
+      </div>
+    </div>
+
+    <!-- Arrow 1 -->
+    <div class="arrow-connector" data-shape-id="arrow-1">&#8594;</div>
+
+    <!-- SOLUTION panel -->
+    <div class="panel panel-solution" data-shape-id="panel-solution">
+      <div class="panel-eyebrow solution-eyebrow" data-shape-id="solution-eyebrow">✦ The Solution</div>
+      <div class="panel-heading" data-shape-id="solution-heading">Unified data platform with single master record and automated reconciliation</div>
+      <ul class="panel-bullets" data-shape-id="solution-bullets">
+        <li data-shape-id="solution-bullet-1">Cloud-native data lakehouse consolidating all 23 source systems</li>
+        <li data-shape-id="solution-bullet-2">Automated reconciliation engine with rule-based exception handling</li>
+        <li data-shape-id="solution-bullet-3">Real-time data streaming with sub-minute latency to all consumers</li>
+      </ul>
+      <div class="stat-callout" data-shape-id="solution-stat">
+        <div class="stat-number stat-number-solution" data-shape-id="solution-stat-number">6-month implementation</div>
+        <div class="stat-label" data-shape-id="solution-stat-label">Phased delivery with zero business disruption</div>
+      </div>
+    </div>
+
+    <!-- Arrow 2 -->
+    <div class="arrow-connector" data-shape-id="arrow-2">&#8594;</div>
+
+    <!-- BENEFIT panel -->
+    <div class="panel panel-benefit" data-shape-id="panel-benefit">
+      <div class="panel-eyebrow benefit-eyebrow" data-shape-id="benefit-eyebrow">✓ The Benefit</div>
+      <div class="panel-heading" data-shape-id="benefit-heading">$11M recovered, data latency reduced from 48 hours to real-time</div>
+      <ul class="panel-bullets" data-shape-id="benefit-bullets">
+        <li data-shape-id="benefit-bullet-1">$11M in annual cost recovery including $8M reconciliation and $3M in error rework</li>
+        <li data-shape-id="benefit-bullet-2">Real-time reporting enabling same-day executive decision-making</li>
+        <li data-shape-id="benefit-bullet-3">1,200 FTE-hours per month redeployed to higher-value analysis</li>
+      </ul>
+      <div class="stat-callout" data-shape-id="benefit-stat">
+        <div class="stat-number stat-number-benefit" data-shape-id="benefit-stat-number">3.2&times; ROI</div>
+        <div class="stat-label" data-shape-id="benefit-stat-label">Return on total platform investment</div>
+      </div>
+    </div>
+
+  </div><!-- /panels-row -->
+
+  <!-- Footer -->
+  <div class="footer-left" data-shape-id="footer-left"></div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+
+</body>
+</html>

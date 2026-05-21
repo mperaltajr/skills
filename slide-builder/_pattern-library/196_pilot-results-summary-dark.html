@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pattern 196 — Pilot Results Summary</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: Inter, system-ui, sans-serif;
+    background: var(--slide-bg);
+    position: relative;
+  }
+
+  /* ── Invariant chrome ── */
+
+  .label-internal {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .badge-draft {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 0;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .title-block {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  pointer-events: none;
+}
+
+  .title-block h1 {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+  pointer-events: auto;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.15;
+  }
+
+  .title-block h1 strong {
+    color: var(--brand-accent);
+    font-weight: 700;
+  }
+
+  .title-block .sub-headline {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 108px;
+  pointer-events: auto;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+  }
+
+  .accent-rule {
+  position: absolute;
+  left: 64px;
+  top: 136px;
+  width: 40px;
+  height: 3px;
+  pointer-events: none;
+    
+    
+    background: var(--brand-accent);
+    }
+
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 20px 10px;
+  }
+
+  .footer span {
+    font-size: 8px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+  }
+
+  /* ── Pilot Overview strip ── */
+
+  .pilot-strip {
+    position: absolute;
+    top: 128px;
+    left: 48px;
+    right: 48px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .pilot-strip-label {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--text-faint);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    margin-right: 4px;
+  }
+
+  .meta-chip {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 4px;
+    padding: 4px 12px;
+    font-size: 10px;
+    color: var(--text-dark);
+    font-weight: 500;
+    white-space: nowrap;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .meta-chip .chip-label {
+    color: var(--text-faint);
+    font-weight: 400;
+  }
+
+  /* ── Body columns ── */
+
+  .body-area {
+    position: absolute;
+    top: 162px;
+    left: 48px;
+    right: 48px;
+    bottom: 112px;
+    display: flex;
+    gap: 16px;
+  }
+
+  .col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .col-header {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--brand-primary-mid);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--card-border);
+    margin-bottom: 10px;
+  }
+
+  /* Col 1 — Quantitative */
+
+  .metric-row {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .metric-name {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--text-dark);
+    flex: 1;
+    line-height: 1.3;
+  }
+
+  .before-after {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+  }
+
+  .before-val {
+    font-size: 9px;
+    color: var(--text-faint);
+    text-decoration: line-through;
+  }
+
+  .after-val {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--brand-primary);
+  }
+
+  .delta-chip {
+    background: #DCFCE7;
+    color: #166534;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  /* Col 2 — Qualitative */
+
+  .qual-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    padding: 8px 10px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-radius: 6px;
+    margin-bottom: 8px;
+  }
+
+  .sentiment-icon {
+    font-size: 14px;
+    line-height: 1.2;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  .qual-text {
+    font-size: 14px;
+    color: var(--text-dark);
+    line-height: 1.45;
+  }
+
+  /* Col 3 — Lessons Learned */
+
+  .lesson-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    padding: 8px 10px;
+    border-radius: 6px;
+    margin-bottom: 8px;
+  }
+
+  .lesson-item.worked {
+    background: #F0FDF4;
+    border: 1px solid #BBF7D0;
+  }
+
+  .lesson-item.improve {
+    background: #FFFBEB;
+    border: 1px solid #FDE68A;
+  }
+
+  .lesson-badge {
+    font-size: 8px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    padding: 2px 5px;
+    border-radius: 3px;
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  .lesson-item.worked .lesson-badge {
+    background: #BBF7D0;
+    color: #14532D;
+  }
+
+  .lesson-item.improve .lesson-badge {
+    background: #FDE68A;
+    color: #78350F;
+  }
+
+  .lesson-text {
+    font-size: 11px;
+    color: var(--text-dark);
+    line-height: 1.45;
+  }
+
+  /* ── Recommendation bar ── */
+
+  .recommendation-bar {
+    position: absolute;
+    bottom: 56px;
+    left: 48px;
+    right: 48px;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-left: 4px solid var(--brand-accent);
+    border-radius: 0 6px 6px 0;
+    padding: 10px 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .rec-label {
+    font-size: 9px;
+    font-weight: 700;
+    color: var(--brand-accent);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    padding-top: 2px;
+  }
+
+  .rec-divider {
+    width: 1px;
+    background: var(--card-border);
+    align-self: stretch;
+    flex-shrink: 0;
+  }
+
+  .rec-content {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.4;
+  }
+
+  .rec-content .mod-list {
+    font-weight: 400;
+    color: var(--text-mid);
+    font-size: 14px;
+    margin-top: 3px;
+    display: flex;
+    gap: 16px;
+  }
+
+  .mod-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .mod-dot {
+    width: 5px;
+    height: 5px;
+    background: var(--brand-accent);
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  /* DARK THEME */
+  :root {
+    --card-bg: rgba(255,255,255,0.07);
+    --card-border: rgba(255,255,255,0.12);
+    --text-dark: #FFFFFF;
+    --text-mid: rgba(255,255,255,0.6);
+    --slide-bg: #2D0A4E;
+  }
+
+  body {
+    background: #2D0A4E;
+  }
+
+  .label-internal {
+    color: rgba(255,255,255,0.4);
+  }
+
+  .title-block h1 {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+  pointer-events: auto;
+    color: #FFFFFF;
+  }
+
+  .title-block h1 strong {
+    color: #C780FF;
+  }
+
+  .title-block .sub-headline {
+    color: rgba(255,255,255,0.6);
+  }
+
+  .accent-rule {
+    background: #A100FF;
+  }
+
+  .pilot-strip-label {
+    color: rgba(255,255,255,0.5);
+  }
+
+  .meta-chip {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: rgba(255,255,255,0.85);
+  }
+
+  .meta-chip .chip-label {
+    color: rgba(255,255,255,0.5);
+  }
+
+  .col-header {
+    color: #C780FF;
+    border-bottom: 2px solid rgba(255,255,255,0.12);
+  }
+
+  .metric-row {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+  }
+
+  .metric-name {
+    color: rgba(255,255,255,0.85);
+  }
+
+  .before-val {
+    color: rgba(255,255,255,0.5);
+  }
+
+  .after-val {
+    color: #C780FF;
+  }
+
+  .qual-item {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+  }
+
+  .qual-text {
+    color: rgba(255,255,255,0.85);
+  }
+
+  .lesson-item.worked {
+    background: rgba(22,163,74,0.1);
+    border: 1px solid rgba(22,163,74,0.25);
+  }
+
+  .lesson-item.improve {
+    background: rgba(234,179,8,0.1);
+    border: 1px solid rgba(234,179,8,0.25);
+  }
+
+  .lesson-text {
+    color: rgba(255,255,255,0.85);
+  }
+
+  .recommendation-bar {
+    background: rgba(255,255,255,0.07);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-left: 4px solid #A100FF;
+  }
+
+  .rec-divider {
+    background: rgba(255,255,255,0.12);
+  }
+
+  .rec-content {
+    color: #FFFFFF;
+  }
+
+  .rec-content .mod-list {
+    color: rgba(255,255,255,0.6);
+  }
+
+  .footer {
+    border-top: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .footer span {
+    color: rgba(255,255,255,0.4);
+  }
+</style>
+</head>
+<body>
+
+  <!-- Invariant chrome -->
+  <div class="label-internal" data-shape-id="accenture-tag">Accenture Internal</div>
+  <div class="badge-draft" data-shape-id="draft-badge">DRAFT</div>
+
+  <div class="title-block">
+    <h1 data-shape-id="title">Pilot <strong>Results</strong> Summary</h1>
+    <div class="sub-headline" data-shape-id="subtitle">Performance outcomes, qualitative findings, and lessons learned from the field pilot</div>
+    <div class="accent-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- Pilot Overview strip -->
+  <div class="pilot-strip">
+    <div class="pilot-strip-label" data-shape-id="pilot-strip-label">Pilot Overview</div>
+    <div class="meta-chip">
+      <span class="chip-label" data-shape-id="pilot-meta-1-label">Location</span>
+      <span data-shape-id="pilot-meta-1-value">Northeast Region — 4 Sites</span>
+    </div>
+    <div class="meta-chip">
+      <span class="chip-label" data-shape-id="pilot-meta-2-label">Duration</span>
+      <span data-shape-id="pilot-meta-2-value">8 Weeks (Mar – May 2026)</span>
+    </div>
+    <div class="meta-chip">
+      <span class="chip-label" data-shape-id="pilot-meta-3-label">Participants</span>
+      <span data-shape-id="pilot-meta-3-value">142 End Users · 6 Admins</span>
+    </div>
+  </div>
+
+  <!-- Body columns -->
+  <div class="body-area">
+
+    <!-- Col 1: Quantitative Results -->
+    <div class="col">
+      <div class="col-header" data-shape-id="col-1-header">Quantitative Results</div>
+
+      <div class="metric-row">
+        <div class="metric-name" data-shape-id="metric-1-label">Process Cycle Time</div>
+        <div class="before-after">
+          <span class="before-val" data-shape-id="metric-1-before">14.2 days</span>
+          <span class="after-val" data-shape-id="metric-1-value">8.7 days</span>
+        </div>
+        <div class="delta-chip" data-shape-id="metric-1-delta">▲ 39%</div>
+      </div>
+
+      <div class="metric-row">
+        <div class="metric-name" data-shape-id="metric-2-label">Error Rate (per 1,000 transactions)</div>
+        <div class="before-after">
+          <span class="before-val" data-shape-id="metric-2-before">23.1</span>
+          <span class="after-val" data-shape-id="metric-2-value">9.4</span>
+        </div>
+        <div class="delta-chip" data-shape-id="metric-2-delta">▲ 59%</div>
+      </div>
+
+      <div class="metric-row">
+        <div class="metric-name" data-shape-id="metric-3-label">User Satisfaction Score (NPS)</div>
+        <div class="before-after">
+          <span class="before-val" data-shape-id="metric-3-before">+18</span>
+          <span class="after-val" data-shape-id="metric-3-value">+54</span>
+        </div>
+        <div class="delta-chip" data-shape-id="metric-3-delta">▲ 200%</div>
+      </div>
+    </div>
+
+    <!-- Col 2: Qualitative Findings -->
+    <div class="col">
+      <div class="col-header" data-shape-id="col-2-header">Qualitative Findings</div>
+
+      <div class="qual-item">
+        <div class="sentiment-icon" data-shape-id="qual-1-icon">✓</div>
+        <div class="qual-text" data-shape-id="qual-1-text">Frontline staff found the redesigned workflow significantly easier to navigate — onboarding time dropped by half in observed sessions.</div>
+      </div>
+
+      <div class="qual-item">
+        <div class="sentiment-icon" data-shape-id="qual-2-icon">✓</div>
+        <div class="qual-text" data-shape-id="qual-2-text">Integration with existing ERP required minimal rework; IT teams rated the deployment complexity as "lower than expected" in exit interviews.</div>
+      </div>
+
+      <div class="qual-item">
+        <div class="sentiment-icon" data-shape-id="qual-3-icon">△</div>
+        <div class="qual-text" data-shape-id="qual-3-text">Exception-handling for edge cases (legacy vendor codes) required manual intervention in ~7% of transactions — volume is manageable but warrants automation.</div>
+      </div>
+    </div>
+
+    <!-- Col 3: Lessons Learned -->
+    <div class="col">
+      <div class="col-header" data-shape-id="col-3-header">Lessons Learned</div>
+
+      <div class="lesson-item worked">
+        <div class="lesson-badge" data-shape-id="lesson-1-badge">What worked</div>
+        <div class="lesson-text" data-shape-id="lesson-1-text">Dedicated change-champion network accelerated adoption in sites 2 and 3 by mobilising peer-to-peer coaching.</div>
+      </div>
+
+      <div class="lesson-item worked">
+        <div class="lesson-badge" data-shape-id="lesson-2-badge">What worked</div>
+        <div class="lesson-text" data-shape-id="lesson-2-text">Phased data migration reduced go-live risk; zero critical data-loss incidents recorded across all four sites.</div>
+      </div>
+
+      <div class="lesson-item improve">
+        <div class="lesson-badge" data-shape-id="lesson-3-badge">To improve</div>
+        <div class="lesson-text" data-shape-id="lesson-3-text">Expand exception-rule library before full rollout to reduce manual overrides; assign a dedicated triage owner per region.</div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Recommendation bar -->
+  <div class="recommendation-bar">
+    <div class="rec-label" data-shape-id="convergence-mark">Recommendation</div>
+    <div class="rec-divider"></div>
+    <div class="rec-content" data-shape-id="convergence">
+      Proceed to full rollout — pilot results meet all success thresholds. Incorporate 2 modifications before scale-up:
+      <div class="mod-list">
+        <div class="mod-item"><div class="mod-dot"></div><span data-shape-id="rec-mod-1">Automate legacy vendor-code exception handling prior to Wave 2 launch</span></div>
+        <div class="mod-item"><div class="mod-dot"></div><span data-shape-id="rec-mod-2">Replicate change-champion model across all remaining regions</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer" data-shape-id="footer-rule">
+    <span data-shape-id="footer-left">CONFIDENTIAL — ACCENTURE INTERNAL</span>
+    <span data-shape-id="footer-right">Slide Lab · 2026 · 196d</span>
+  </div>
+
+</body>
+</html>

@@ -1,0 +1,574 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>243 – Assumption & Dependency Log</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    background: var(--slide-bg);
+    font-family: 'Inter', sans-serif;
+    color: var(--text-dark);
+  }
+
+  .slide {
+    width: 1280px;
+    height: 720px;
+    position: relative;
+    background: var(--slide-bg);
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
+
+  /* ── TOP CHROME ── */
+  .top-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 32px 0 32px;
+    flex-shrink: 0;
+  }
+
+  .label-internal {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .draft-badge {
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 3px 10px;
+    border-radius: 0;
+    line-height: 1.4;
+  }
+
+  /* spacer so draft badge sits at center */
+  .top-bar-left,
+  .top-bar-right {
+    flex: 1;
+  }
+  .top-bar-center {
+    flex: 0 0 auto;
+  }
+  .top-bar-right {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  /* ── TITLE BLOCK ── */
+  .title-block {
+    position: absolute; top: 0; left: 0; right: 0; height: 160px;
+  }
+
+  .slide-title {
+    position: absolute; top: 28px; left: 64px; right: 64px; min-height: 36px;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.2;
+    letter-spacing: -0.01em;
+  }
+
+  .slide-title strong {
+    color: var(--brand-accent);
+    font-weight: 700;
+  }
+
+  .slide-subtitle {
+    position: absolute; top: 108px; left: 64px; right: 64px;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+
+    line-height: 1.4;
+  }
+
+  .accent-rule {
+    position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+
+}
+
+  /* ── CONTENT AREA ── */
+  .content {
+    flex: 1;
+    padding: 14px 32px 8px 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    min-height: 0;
+  }
+
+  /* ── TABLE SECTION ── */
+  .log-section {
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    padding: 6px 12px;
+    color: #FFFFFF;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .section-header.assumptions {
+    background: var(--brand-primary);
+  }
+
+  .section-header.dependencies {
+    background: var(--brand-primary-mid);
+  }
+
+  .section-header .section-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.25);
+    font-size: 10px;
+    font-weight: 700;
+
+    right: 8px;
+    flex-shrink: 0;
+  }
+
+  /* ── TABLE ── */
+  .log-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--slide-bg);
+  }
+
+  .log-table thead tr {
+    background: var(--card-bg);
+    border-bottom: 1px solid var(--card-border);
+  }
+
+  .log-table thead th {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    padding: 7px 10px;
+    text-align: left;
+    border-right: 1px solid var(--card-border);
+    white-space: nowrap;
+  }
+
+  .log-table thead th:last-child {
+    border-right: none;
+  }
+
+  .log-table tbody tr {
+    border-bottom: 1px solid var(--card-border);
+    transition: background 0.1s;
+  }
+
+  .log-table tbody tr:last-child {
+    border-bottom: none;
+  }
+
+  .log-table tbody tr:nth-child(even) {
+    background: #FDFBFF;
+  }
+
+  .log-table tbody td {
+    font-size: 11px;
+    color: var(--text-dark);
+    padding: 9px 10px;
+    vertical-align: middle;
+    border-right: 1px solid var(--card-border);
+    line-height: 1.35;
+  }
+
+  .log-table tbody td:last-child {
+    border-right: none;
+  }
+
+  .col-num {
+    font-size: 10px;
+    font-weight: 700;
+    color: var(--text-faint);
+    width: 32px;
+    text-align: center;
+  }
+
+  .col-statement {
+    width: 310px;
+  }
+
+  .col-category {
+    width: 88px;
+  }
+
+  .col-confidence {
+    width: 76px;
+  }
+
+  .col-owner {
+    width: 100px;
+  }
+
+  .col-status {
+    width: 100px;
+    text-align: center;
+  }
+
+  /* Confidence dots */
+  .confidence {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10px;
+    color: var(--text-mid);
+  }
+
+  .conf-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--card-border);
+    flex-shrink: 0;
+  }
+
+  .conf-dot.filled.high   { background: #22C55E; }
+  .conf-dot.filled.medium { background: #F59E0B; }
+  .conf-dot.filled.low    { background: #94A3B8; }
+
+  /* Status pills */
+  .pill {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 3px 9px;
+    border-radius: 20px;
+    line-height: 1.4;
+    white-space: nowrap;
+  }
+
+  .pill-confirmed {
+    background: #DCFCE7;
+    color: #15803D;
+  }
+
+  .pill-at-risk {
+    background: #FEF3C7;
+    color: #B45309;
+  }
+
+  .pill-unvalidated {
+    background: #F1F5F9;
+    color: #64748B;
+  }
+
+  /* Category badge */
+  .cat-badge {
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    color: var(--brand-primary-mid);
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    padding: 2px 6px;
+    border-radius: 3px;
+    white-space: nowrap;
+  }
+
+  /* ── SUMMARY ROW ── */
+  .summary-row {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-top: none;
+    padding: 6px 16px;
+    flex-shrink: 0;
+  }
+
+  .summary-row .summary-label {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+
+    right: 16px;
+  }
+
+  .summary-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    right: 24px;
+  }
+
+  .summary-count {
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .summary-count.confirmed   { color: #15803D; }
+  .summary-count.at-risk     { color: #B45309; }
+  .summary-count.unvalidated { color: var(--text-faint); }
+
+  .summary-item-label {
+    font-size: 10px;
+    color: var(--text-mid);
+    font-weight: 500;
+  }
+
+  .summary-divider {
+    width: 1px;
+    height: 20px;
+    background: var(--card-border);
+
+    right: 24px;
+  }
+
+  /* ── FOOTER ── */
+  .footer {
+    flex-shrink: 0;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 7px 32px;
+  }
+
+  .footer-label {
+    font-size: 9px;
+    color: var(--text-faint);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+</style>
+</head>
+<body>
+<div class="slide">
+
+  <!-- TOP CHROME -->
+  <div class="top-bar">
+    <div class="top-bar-left">
+      <span class="label-internal" data-shape-id="accenture-tag">Accenture Internal</span>
+    </div>
+    <div class="top-bar-center">
+    </div>
+    <div class="top-bar-right"></div>
+  </div>
+
+  <!-- TITLE BLOCK -->
+  <div class="title-block">
+    <div class="slide-title" data-shape-id="title">Assumption &amp; <strong>Dependency</strong> Log</div>
+    <div class="slide-subtitle" data-shape-id="subtitle">Tracks project assumptions and external dependencies — confidence levels, owners, and current validation status</div>
+    <div class="accent-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="content">
+
+    <!-- ASSUMPTIONS SECTION -->
+    <div class="log-section">
+      <div class="section-header assumptions" data-shape-id="section-1-header">
+        <span class="section-icon">A</span>
+        Assumptions
+      </div>
+      <table class="log-table">
+        <thead>
+          <tr>
+            <th class="col-num" data-shape-id="section-1-col-1-header">#</th>
+            <th class="col-statement" data-shape-id="section-1-col-2-header">Statement</th>
+            <th class="col-category" data-shape-id="section-1-col-3-header">Category</th>
+            <th class="col-confidence" data-shape-id="section-1-col-4-header">Confidence</th>
+            <th class="col-owner" data-shape-id="section-1-col-5-header">Owner</th>
+            <th class="col-status" data-shape-id="section-1-col-6-header">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="col-num" data-shape-id="row-a1-num">A1</td>
+            <td class="col-statement" data-shape-id="row-a1-statement">Budget approval will be secured by end of Q2</td>
+            <td class="col-category"><span class="cat-badge" data-shape-id="row-a1-category">Financial</span></td>
+            <td class="col-confidence" data-shape-id="row-a1-confidence">
+              <div class="confidence">
+                <span class="conf-dot filled high"></span>
+                <span class="conf-dot filled high"></span>
+                <span class="conf-dot filled high"></span>
+                High
+              </div>
+            </td>
+            <td class="col-owner" data-shape-id="row-a1-owner">CFO Office</td>
+            <td class="col-status"><span class="pill pill-confirmed" data-shape-id="row-a1-status-pill">Confirmed</span></td>
+          </tr>
+          <tr>
+            <td class="col-num" data-shape-id="row-a2-num">A2</td>
+            <td class="col-statement" data-shape-id="row-a2-statement">Legacy system can export in required format</td>
+            <td class="col-category"><span class="cat-badge" data-shape-id="row-a2-category">Technical</span></td>
+            <td class="col-confidence" data-shape-id="row-a2-confidence">
+              <div class="confidence">
+                <span class="conf-dot filled medium"></span>
+                <span class="conf-dot filled medium"></span>
+                <span class="conf-dot"></span>
+                Medium
+              </div>
+            </td>
+            <td class="col-owner" data-shape-id="row-a2-owner">IT Arch</td>
+            <td class="col-status"><span class="pill pill-at-risk" data-shape-id="row-a2-status-pill">At Risk</span></td>
+          </tr>
+          <tr>
+            <td class="col-num" data-shape-id="row-a3-num">A3</td>
+            <td class="col-statement" data-shape-id="row-a3-statement">Regulatory sign-off timeline is 6 weeks</td>
+            <td class="col-category"><span class="cat-badge" data-shape-id="row-a3-category">Compliance</span></td>
+            <td class="col-confidence" data-shape-id="row-a3-confidence">
+              <div class="confidence">
+                <span class="conf-dot filled low"></span>
+                <span class="conf-dot"></span>
+                <span class="conf-dot"></span>
+                Low
+              </div>
+            </td>
+            <td class="col-owner" data-shape-id="row-a3-owner">Legal</td>
+            <td class="col-status"><span class="pill pill-unvalidated" data-shape-id="row-a3-status-pill">Unvalidated</span></td>
+          </tr>
+          <tr>
+            <td class="col-num" data-shape-id="row-a4-num">A4</td>
+            <td class="col-statement" data-shape-id="row-a4-statement">Key personnel remain available for full project</td>
+            <td class="col-category"><span class="cat-badge" data-shape-id="row-a4-category">Resource</span></td>
+            <td class="col-confidence" data-shape-id="row-a4-confidence">
+              <div class="confidence">
+                <span class="conf-dot filled high"></span>
+                <span class="conf-dot filled high"></span>
+                <span class="conf-dot filled high"></span>
+                High
+              </div>
+            </td>
+            <td class="col-owner" data-shape-id="row-a4-owner">PMO</td>
+            <td class="col-status"><span class="pill pill-confirmed" data-shape-id="row-a4-status-pill">Confirmed</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- DEPENDENCIES SECTION -->
+    <div class="log-section">
+      <div class="section-header dependencies" data-shape-id="section-2-header">
+        <span class="section-icon">D</span>
+        Dependencies
+      </div>
+      <table class="log-table">
+        <thead>
+          <tr>
+            <th class="col-num" data-shape-id="section-2-col-1-header">#</th>
+            <th class="col-statement" data-shape-id="section-2-col-2-header">Statement</th>
+            <th class="col-category" data-shape-id="section-2-col-3-header">Category</th>
+            <th style="width:76px" data-shape-id="section-2-col-4-header">Confidence</th>
+            <th class="col-owner" data-shape-id="section-2-col-5-header">Owner</th>
+            <th class="col-status" data-shape-id="section-2-col-6-header">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="col-num" data-shape-id="row-d1-num">D1</td>
+            <td class="col-statement" data-shape-id="row-d1-statement">ERP upgrade project completes before Phase 2</td>
+            <td class="col-category"><span class="cat-badge" data-shape-id="row-d1-category">IT</span></td>
+            <td data-shape-id="row-d1-confidence">—</td>
+            <td class="col-owner" data-shape-id="row-d1-owner">IT PMO</td>
+            <td class="col-status"><span class="pill pill-at-risk" data-shape-id="row-d1-status-pill">At Risk</span></td>
+          </tr>
+          <tr>
+            <td class="col-num" data-shape-id="row-d2-num">D2</td>
+            <td class="col-statement" data-shape-id="row-d2-statement">Vendor API access granted</td>
+            <td class="col-category"><span class="cat-badge" data-shape-id="row-d2-category">External</span></td>
+            <td data-shape-id="row-d2-confidence">—</td>
+            <td class="col-owner" data-shape-id="row-d2-owner">Procurement</td>
+            <td class="col-status"><span class="pill pill-confirmed" data-shape-id="row-d2-status-pill">Confirmed</span></td>
+          </tr>
+          <tr>
+            <td class="col-num" data-shape-id="row-d3-num">D3</td>
+            <td class="col-statement" data-shape-id="row-d3-statement">Board approval of business case</td>
+            <td class="col-category"><span class="cat-badge" data-shape-id="row-d3-category">Strategic</span></td>
+            <td data-shape-id="row-d3-confidence">—</td>
+            <td class="col-owner" data-shape-id="row-d3-owner">Exec Sponsor</td>
+            <td class="col-status"><span class="pill pill-unvalidated" data-shape-id="row-d3-status-pill">Unvalidated</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- SUMMARY COUNTS -->
+    <div class="summary-row">
+      <span class="summary-label" data-shape-id="summary-label">Summary</span>
+      <div class="summary-item">
+        <span class="summary-count confirmed" data-shape-id="summary-1-count">3</span>
+        <span class="summary-item-label" data-shape-id="summary-1-label">Confirmed</span>
+      </div>
+      <div class="summary-divider"></div>
+      <div class="summary-item">
+        <span class="summary-count at-risk" data-shape-id="summary-2-count">2</span>
+        <span class="summary-item-label" data-shape-id="summary-2-label">At Risk</span>
+      </div>
+      <div class="summary-divider"></div>
+      <div class="summary-item">
+        <span class="summary-count unvalidated" data-shape-id="summary-3-count">2</span>
+        <span class="summary-item-label" data-shape-id="summary-3-label">Unvalidated</span>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+
+  <!-- FOOTER -->
+  <div class="footer" data-shape-id="footer-rule">
+    <span class="footer-label" data-shape-id="footer-left">Confidential</span>
+    <span class="footer-label" data-shape-id="footer-right">Slide Lab · 2026 · 243</span>
+  </div>
+
+</div>
+</body>
+</html>

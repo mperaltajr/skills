@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>40 · Closing CTA revival — proportional hierarchy</title>
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #FFFFFF;
+  --card-border: #E5D5F0;
+  --card-tint: #F8F4FC;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+  width: 1280px; height: 720px;
+  background: var(--slide-bg);
+  font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif;
+  color: var(--text-dark);
+  overflow: hidden;
+}
+body { position: relative; padding: 0; }
+
+/* Top chrome (invariant zone) */
+.project-label {
+  position: absolute; top: 24px; left: 24px;
+  color: var(--text-faint);
+  font-size: 10px; font-weight: 600;
+  letter-spacing: 1.5px; text-transform: uppercase;
+}
+.draft-badge {
+  position: absolute; top: 20px; left: 50%;
+  transform: translateX(-50%);
+  background: var(--draft-bg); color: var(--draft-text);
+  font-size: 11px; font-weight: 700;
+  padding: 4px 16px; letter-spacing: 1px;
+}
+
+/* Orienting header */
+.header {
+  position: absolute;
+  top: 64px;
+  left: 64px;
+  right: 64px;
+}
+.pre-label {
+  color: var(--brand-accent);
+  font-size: 11px; font-weight: 700;
+  letter-spacing: 3px; text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.action-title {
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text-mid);
+  letter-spacing: -0.2px;
+}
+.action-title strong {
+  color: var(--text-dark);
+  font-weight: 700;
+}
+.title-rule {
+  width: 48px; height: 3px;
+  background: var(--brand-accent);
+  margin-top: 14px;
+}
+
+/* THE focal point */
+.focal {
+  position: absolute;
+  top: 196px;
+  left: 64px;
+  right: 64px;
+}
+
+/* Primary ask */
+.primary-ask {
+  background: var(--brand-primary);
+  color: #FFFFFF;
+  padding: 36px 44px 34px 44px;
+  position: relative;
+  box-shadow: 0 24px 48px -28px rgba(45, 10, 78, 0.45);
+}
+.primary-ask::before {
+  content: "";
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  width: 6px;
+  background: var(--brand-accent);
+}
+.primary-ask-label {
+  font-size: 10px;
+  letter-spacing: 2.5px;
+  color: var(--brand-accent-soft);
+  text-transform: uppercase;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.primary-ask-text {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.22;
+  letter-spacing: -0.4px;
+  color: #FFFFFF;
+  max-width: 1040px;
+}
+.primary-ask-text em {
+  font-style: normal;
+  color: var(--brand-accent-soft);
+}
+
+.ask-caption {
+  font-size: 14px;
+  color: var(--text-faint);
+  font-style: italic;
+  margin-top: 14px;
+  letter-spacing: 0.2px;
+}
+
+/* Conditions header */
+.conditions-header {
+  margin-top: 28px;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+}
+.conditions-label {
+  font-size: 10px;
+  letter-spacing: 2.5px;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--brand-primary);
+}
+.conditions-hint {
+  font-size: 11px;
+  color: var(--text-faint);
+  letter-spacing: 0.2px;
+}
+
+/* Sub-ask cards */
+.conditions {
+  margin-top: 12px;
+  display: flex; flex-wrap: wrap;
+  gap: 16px;
+}
+.sub-ask {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-left: 3px solid var(--brand-accent);
+  padding: 16px 18px 16px 18px;
+  display: flex;
+  flex-direction: column;
+  min-height: 96px;
+}
+.sub-ask-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+.sub-ask-num {
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: var(--card-tint);
+  color: var(--brand-primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+  flex-shrink: 0;
+}
+.sub-ask-label {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--brand-primary);
+  letter-spacing: -0.1px;
+  line-height: 1.1;
+}
+.sub-ask-body {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-dark);
+  line-height: 1.4;
+  letter-spacing: -0.1px;
+}
+.sub-ask-meta {
+  font-size: 11px;
+  color: var(--text-mid);
+  font-weight: 500;
+  margin-top: 6px;
+  letter-spacing: 0.1px;
+}
+
+/* Footer */
+.footer-rule {
+  position: absolute; left: 0; right: 0; bottom: 32px;
+  height: 1px; background: var(--card-border);
+}
+.footer-left {
+  position: absolute; bottom: 12px; left: 24px;
+  color: var(--text-faint);
+  font-size: 11px; letter-spacing: 1px;
+}
+.footer-center {
+  position: absolute; bottom: 12px; left: 50%;
+  transform: translateX(-50%);
+  color: var(--text-faint);
+  font-size: 11px; letter-spacing: 0.5px;
+}
+.footer-center strong {
+  color: var(--text-mid);
+  font-weight: 700;
+}
+.footer-right {
+  position: absolute; bottom: 12px; right: 24px;
+  color: var(--text-faint);
+  font-size: 11px;
+}
+
+/* DARK THEME */
+:root {
+  --card-bg: rgba(255,255,255,0.07);
+  --card-border: rgba(255,255,255,0.12);
+  --card-tint: rgba(255,255,255,0.07);
+  --text-dark: #FFFFFF;
+  --text-mid: rgba(255,255,255,0.6);
+  --slide-bg: #2D0A4E;
+}
+body, .slide { background: #2D0A4E; }
+.project-label { color: rgba(255,255,255,0.4); }
+.action-title { color: rgba(255,255,255,0.6); }
+.action-title strong { color: #FFFFFF; }
+.title-rule { background: #A100FF; }
+.conditions-label { color: #C780FF; }
+.conditions-hint { color: rgba(255,255,255,0.5); }
+.ask-caption { color: rgba(255,255,255,0.5); }
+.sub-ask { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.12); border-left: 3px solid #A100FF; }
+.sub-ask-num { background: rgba(255,255,255,0.07); color: #C780FF; }
+.sub-ask-label { color: #C780FF; }
+.sub-ask-body { color: rgba(255,255,255,0.85); }
+.sub-ask-meta { color: rgba(255,255,255,0.5); }
+.footer-rule { background: rgba(255,255,255,0.1); }
+.footer-left, .footer-center, .footer-right { color: rgba(255,255,255,0.4); }
+.footer-center strong { color: rgba(255,255,255,0.6); }
+</style>
+</head>
+<body>
+
+  <div class="header">
+    <div class="pre-label" data-shape-id="eyebrow">The Ask</div>
+    <div class="action-title" data-shape-id="title">One commitment. <strong>Three conditions.</strong> Four weeks.</div>
+    <div class="title-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <div class="focal">
+    <div class="primary-ask" data-shape-id="primary-ask">
+      <div class="primary-ask-label" data-shape-id="primary-ask-label">Primary ask</div>
+      <div class="primary-ask-text" data-shape-id="primary-ask-text">Sponsor a <em>four-week pilot</em> on one priority workstream &mdash; and measure it against the baseline.</div>
+    </div>
+    <div class="ask-caption" data-shape-id="ask-caption">Two-level commitment from program leadership.</div>
+
+    <div class="conditions-header">
+      <div class="conditions-label" data-shape-id="conditions-label">Conditions to succeed</div>
+      <div class="conditions-hint" data-shape-id="conditions-hint">what we need from you to make the pilot real</div>
+    </div>
+
+    <div class="conditions">
+      <div class="sub-ask" data-shape-id="sub-ask-1">
+        <div class="sub-ask-head">
+          <div class="sub-ask-num" data-shape-id="sub-ask-1-num">1</div>
+          <div class="sub-ask-label" data-shape-id="sub-ask-1-label">Tooling</div>
+        </div>
+        <div class="sub-ask-body" data-shape-id="sub-ask-1-body">Access for 4 people on the pilot team.</div>
+        <div class="sub-ask-meta" data-shape-id="sub-ask-1-meta">Licenses + sandbox by week 1</div>
+      </div>
+      <div class="sub-ask" data-shape-id="sub-ask-2">
+        <div class="sub-ask-head">
+          <div class="sub-ask-num" data-shape-id="sub-ask-2-num">2</div>
+          <div class="sub-ask-label" data-shape-id="sub-ask-2-label">Time</div>
+        </div>
+        <div class="sub-ask-body" data-shape-id="sub-ask-2-body">One 90-minute coached storyline per deck.</div>
+        <div class="sub-ask-meta" data-shape-id="sub-ask-2-meta">~3 sessions over 4 weeks</div>
+      </div>
+      <div class="sub-ask" data-shape-id="sub-ask-3">
+        <div class="sub-ask-head">
+          <div class="sub-ask-num" data-shape-id="sub-ask-3-num">3</div>
+          <div class="sub-ask-label" data-shape-id="sub-ask-3-label">Visibility</div>
+        </div>
+        <div class="sub-ask-body" data-shape-id="sub-ask-3-body">Weekly 15-min review with the program MD.</div>
+        <div class="sub-ask-meta" data-shape-id="sub-ask-3-meta">Friday standing slot</div>
+      </div>
+    </div>
+  </div>
+  <div class="footer-left" data-shape-id="footer-left"></div>
+  <div class="footer-center" data-shape-id="footer-center"><strong>Mario Peralta</strong> &middot; Strategy Manager &middot; May 2026</div>
+  <div class="footer-right" data-shape-id="footer-right"></div>
+</body>
+</html>

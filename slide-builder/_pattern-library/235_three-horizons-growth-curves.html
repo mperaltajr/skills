@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>Pattern 235 — Three Horizons Growth Curves</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    background: var(--slide-bg);
+    font-family: Inter, system-ui, sans-serif;
+    position: relative;
+  }
+
+  /* ── Invariant chrome ── */
+
+  .label-internal {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .badge-draft {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 0;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  .title-block {
+    position: absolute; top: 0; left: 0; right: 0; height: 160px;
+  }
+
+  .title-block h1 {
+    position: absolute; top: 28px; left: 64px; right: 64px; min-height: 36px;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.15;
+  }
+
+  .title-block h1 strong {
+    color: var(--brand-accent);
+    font-weight: 700;
+  }
+
+  .title-block .sub {
+    position: absolute; top: 108px; left: 64px; right: 64px;
+    font-size: 14px;
+    font-style: italic;
+    color: var(--text-mid);
+
+}
+
+  .accent-rule {
+    position: absolute; top: 136px; left: 64px; width: 40px; height: 3px; background: var(--brand-accent);
+
+}
+
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding: 0 20px 10px;
+  }
+
+  .footer span {
+    font-size: 8px;
+    color: var(--text-faint);
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* ── Content layout ── */
+
+  .content-area {
+    position: absolute;
+    top: 120px;
+    left: 48px;
+    right: 48px;
+    bottom: 56px;
+    display: flex;
+    gap: 24px;
+    align-items: stretch;
+  }
+
+  .chart-area {
+    flex: 1 1 auto;
+    position: relative;
+  }
+
+  .chart-area svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  .annotation-col {
+    flex: 0 0 248px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 4px;
+  }
+
+  .horizon-card {
+    background: var(--card-bg);
+    border: 1px solid var(--card-border);
+    border-left: 4px solid var(--brand-primary);
+    padding: 10px 12px;
+    flex: 1;
+  }
+
+  .horizon-card.h2 { border-left-color: var(--brand-primary-mid); }
+  .horizon-card.h3 { border-left-color: var(--brand-accent); }
+
+  .hcard-title {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+
+    bottom: 4px;
+  }
+
+  .hcard-title.h1 { color: var(--brand-primary); }
+  .hcard-title.h2 { color: var(--brand-primary-mid); }
+  .hcard-title.h3 { color: var(--brand-accent); }
+
+  .hcard-desc {
+    font-size: 11px;
+    color: var(--text-mid);
+    line-height: 1.45;
+
+    bottom: 6px;
+  }
+
+  .hcard-bullets {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .hcard-bullets li {
+    font-size: 11px;
+    color: var(--text-dark);
+    line-height: 1.5;
+    padding-left: 12px;
+    position: relative;
+  }
+
+  .hcard-bullets li::before {
+    content: '·';
+    position: absolute;
+    left: 2px;
+    color: var(--text-mid);
+    font-size: 14px;
+    line-height: 1.3;
+  }
+</style>
+</head>
+<body>
+
+  <!-- Invariant chrome -->
+  <div class="label-internal" data-shape-id="accenture-tag">Accenture Internal</div>
+  <div class="badge-draft" data-shape-id="draft-badge">Draft</div>
+
+  <div class="title-block">
+    <h1 data-shape-id="title">Managing the Portfolio Across <strong>Three Horizons</strong></h1>
+    <div class="sub" data-shape-id="subtitle">Balancing today's core, emerging growth, and future options to sustain long-term value creation</div>
+    <div class="accent-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- Content -->
+  <div class="content-area">
+
+    <!-- SVG Chart -->
+    <div class="chart-area">
+      <svg data-shape-id="chart-canvas" viewBox="0 0 740 490" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid meet">
+        <defs>
+          <!-- Gradient fills under each curve -->
+          <linearGradient id="fillH1" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#2D0A4E" stop-opacity="0.18"/>
+            <stop offset="100%" stop-color="#2D0A4E" stop-opacity="0.02"/>
+          </linearGradient>
+          <linearGradient id="fillH2" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#5C2D87" stop-opacity="0.18"/>
+            <stop offset="100%" stop-color="#5C2D87" stop-opacity="0.02"/>
+          </linearGradient>
+          <linearGradient id="fillH3" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stop-color="#A100FF" stop-opacity="0.18"/>
+            <stop offset="100%" stop-color="#A100FF" stop-opacity="0.02"/>
+          </linearGradient>
+        </defs>
+
+        <!-- Chart bounds: x: 60–720, y: 20–400 -->
+        <!-- Time band background zones -->
+        <rect x="60" y="20" width="220" height="380" fill="#F8F4FC" opacity="0.5"/>
+        <rect x="280" y="20" width="220" height="380" fill="#F0EAF8" opacity="0.4"/>
+        <rect x="500" y="20" width="220" height="380" fill="#EDE4F7" opacity="0.4"/>
+
+        <!-- Time band labels at bottom -->
+        <text x="170" y="424" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#94A3B8" font-weight="600" letter-spacing="0.06em">0–12 MONTHS</text>
+        <text x="390" y="424" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#94A3B8" font-weight="600" letter-spacing="0.06em">1–3 YEARS</text>
+        <text x="610" y="424" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#94A3B8" font-weight="600" letter-spacing="0.06em">3–5 YEARS</text>
+
+        <!-- Band dividers -->
+        <line x1="280" y1="20" x2="280" y2="405" stroke="#E5D5F0" stroke-width="1.5" stroke-dasharray="4,3"/>
+        <line x1="500" y1="20" x2="500" y2="405" stroke="#E5D5F0" stroke-width="1.5" stroke-dasharray="4,3"/>
+
+        <!-- Y-axis -->
+        <line x1="60" y1="20" x2="60" y2="400" stroke="#CBD5E1" stroke-width="1.5"/>
+        <!-- X-axis -->
+        <line x1="60" y1="400" x2="730" y2="400" stroke="#CBD5E1" stroke-width="1.5"/>
+
+        <!-- Y-axis arrow -->
+        <polygon points="60,14 55,26 65,26" fill="#CBD5E1"/>
+        <!-- X-axis arrow -->
+        <polygon points="736,400 724,395 724,405" fill="#CBD5E1"/>
+
+        <!-- Axis labels -->
+        <text x="34" y="215" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#64748B" transform="rotate(-90,34,215)">Business Value / Revenue Potential</text>
+        <text x="730" y="418" text-anchor="end" font-family="Inter,system-ui,sans-serif" font-size="11" fill="#64748B">Time →</text>
+        <text x="56" y="415" text-anchor="end" font-family="Inter,system-ui,sans-serif" font-size="10" fill="#94A3B8">Now</text>
+        <text x="720" y="415" text-anchor="end" font-family="Inter,system-ui,sans-serif" font-size="10" fill="#94A3B8">5Y</text>
+
+        <!-- Y gridlines (faint) -->
+        <line x1="60" y1="100" x2="720" y2="100" stroke="#E5D5F0" stroke-width="0.8"/>
+        <line x1="60" y1="200" x2="720" y2="200" stroke="#E5D5F0" stroke-width="0.8"/>
+        <line x1="60" y1="300" x2="720" y2="300" stroke="#E5D5F0" stroke-width="0.8"/>
+
+        <!-- ═══════════════════════════════════════ -->
+        <!-- H1 CURVE: peaks early (~x=230), then declines -->
+        <!-- Control points for a bell-then-decline S-curve -->
+        <!-- Path: starts low-left, rises steeply, peaks at ~230,60, declines to 720,340 -->
+        <path
+          d="M60,390 C90,370 130,200 200,80 C240,30 270,42 320,90 C400,170 480,240 560,290 C630,330 680,345 720,355"
+          fill="url(#fillH1)"
+          stroke="none"/>
+        <!-- Close fill to x-axis -->
+        <path
+          d="M60,390 C90,370 130,200 200,80 C240,30 270,42 320,90 C400,170 480,240 560,290 C630,330 680,345 720,355 L720,400 L60,400 Z"
+          fill="url(#fillH1)"
+          stroke="none"/>
+        <path
+          d="M60,390 C90,370 130,200 200,80 C240,30 270,42 320,90 C400,170 480,240 560,290 C630,330 680,345 720,355"
+          fill="none"
+          stroke="#2D0A4E"
+          stroke-width="3"
+          stroke-linecap="round"
+          stroke-linejoin="round"/>
+
+        <!-- H1 label -->
+        <rect x="68" y="90" width="82" height="22" rx="3" fill="#2D0A4E" opacity="0.92"/>
+        <text x="109" y="105" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" fill="#FFFFFF" font-weight="700">H1 — Core Business</text>
+
+        <!-- ═══════════════════════════════════════ -->
+        <!-- H2 CURVE: S-curve starting mid-low, peaks ~x=430 -->
+        <path
+          d="M60,395 C100,393 160,390 220,375 C280,355 310,310 360,240 C400,180 430,130 470,100 C510,72 540,65 580,68 C630,72 670,90 720,120"
+          fill="none"
+          stroke="none"/>
+        <!-- Fill under H2 -->
+        <path
+          d="M60,395 C100,393 160,390 220,375 C280,355 310,310 360,240 C400,180 430,130 470,100 C510,72 540,65 580,68 C630,72 670,90 720,120 L720,400 L60,400 Z"
+          fill="url(#fillH2)"
+          stroke="none"/>
+        <path
+          d="M60,395 C100,393 160,390 220,375 C280,355 310,310 360,240 C400,180 430,130 470,100 C510,72 540,65 580,68 C630,72 670,90 720,120"
+          fill="none"
+          stroke="#5C2D87"
+          stroke-width="3"
+          stroke-linecap="round"
+          stroke-linejoin="round"/>
+
+        <!-- H2 label -->
+        <rect x="440" y="60" width="102" height="22" rx="3" fill="#5C2D87" opacity="0.92"/>
+        <text x="491" y="75" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" fill="#FFFFFF" font-weight="700">H2 — Emerging Growth</text>
+
+        <!-- ═══════════════════════════════════════ -->
+        <!-- H3 CURVE: starts very low, slow start, then rises sharply toward right -->
+        <path
+          d="M60,398 C120,397 200,396 280,394 C360,392 400,388 440,375 C480,358 510,330 550,290 C590,248 630,195 680,140 C700,118 710,105 720,90"
+          fill="none"
+          stroke="none"/>
+        <!-- Fill under H3 -->
+        <path
+          d="M60,398 C120,397 200,396 280,394 C360,392 400,388 440,375 C480,358 510,330 550,290 C590,248 630,195 680,140 C700,118 710,105 720,90 L720,400 L60,400 Z"
+          fill="url(#fillH3)"
+          stroke="none"/>
+        <path
+          d="M60,398 C120,397 200,396 280,394 C360,392 400,388 440,375 C480,358 510,330 550,290 C590,248 630,195 680,140 C700,118 710,105 720,90"
+          fill="none"
+          stroke="#A100FF"
+          stroke-width="3"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          stroke-dasharray="8,4"/>
+
+        <!-- H3 label -->
+        <rect x="596" y="150" width="104" height="22" rx="3" fill="#A100FF" opacity="0.92"/>
+        <text x="648" y="165" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-size="10" fill="#FFFFFF" font-weight="700">H3 — Future Options</text>
+
+        <!-- Dot markers at curve peaks/notable points -->
+        <!-- H1 peak -->
+        <circle cx="230" cy="72" r="5" fill="#2D0A4E"/>
+        <circle cx="230" cy="72" r="9" fill="none" stroke="#2D0A4E" stroke-width="1.5" opacity="0.4"/>
+        <!-- H2 peak -->
+        <circle cx="565" cy="66" r="5" fill="#5C2D87"/>
+        <circle cx="565" cy="66" r="9" fill="none" stroke="#5C2D87" stroke-width="1.5" opacity="0.4"/>
+        <!-- H3 inflection -->
+        <circle cx="620" cy="174" r="5" fill="#A100FF"/>
+        <circle cx="620" cy="174" r="9" fill="none" stroke="#A100FF" stroke-width="1.5" opacity="0.4"/>
+
+        <!-- Legend row -->
+        <line x1="66" y1="455" x2="100" y2="455" stroke="#2D0A4E" stroke-width="3" stroke-linecap="round"/>
+        <text x="108" y="459" font-family="Inter,system-ui,sans-serif" font-size="10" fill="#2D0A4E" font-weight="600">H1 — Core / Defend</text>
+        <line x1="246" y1="455" x2="280" y2="455" stroke="#5C2D87" stroke-width="3" stroke-linecap="round"/>
+        <text x="288" y="459" font-family="Inter,system-ui,sans-serif" font-size="10" fill="#5C2D87" font-weight="600">H2 — Build &amp; Grow</text>
+        <line x1="426" y1="455" x2="460" y2="455" stroke="#A100FF" stroke-width="3" stroke-linecap="round" stroke-dasharray="8,4"/>
+        <text x="468" y="459" font-family="Inter,system-ui,sans-serif" font-size="10" fill="#A100FF" font-weight="600">H3 — Create Options</text>
+      </svg>
+    </div>
+
+    <!-- Annotation column -->
+    <div class="annotation-col">
+
+      <div class="horizon-card h1" data-shape-id="horizon-1-card">
+        <div class="hcard-title h1" data-shape-id="horizon-1-name">H1 — Core Business</div>
+        <div class="hcard-desc" data-shape-id="horizon-1-desc">Defend and extend the existing business. Maximize near-term profitability while managing decline.</div>
+        <ul class="hcard-bullets" data-shape-id="horizon-1-body">
+          <li>Cost optimization &amp; margin improvement</li>
+          <li>Customer retention programs</li>
+          <li>Core product enhancements</li>
+          <li>Operational excellence initiatives</li>
+        </ul>
+      </div>
+
+      <div class="horizon-card h2" data-shape-id="horizon-2-card">
+        <div class="hcard-title h2" data-shape-id="horizon-2-name">H2 — Emerging Growth</div>
+        <div class="hcard-desc" data-shape-id="horizon-2-desc">Scale up businesses with proven models. Bridge from core to future; requires active investment.</div>
+        <ul class="hcard-bullets" data-shape-id="horizon-2-body">
+          <li>Adjacent market expansion</li>
+          <li>New channel development</li>
+          <li>Platform &amp; ecosystem plays</li>
+          <li>Strategic acquisitions / JVs</li>
+        </ul>
+      </div>
+
+      <div class="horizon-card h3" data-shape-id="horizon-3-card">
+        <div class="hcard-title h3" data-shape-id="horizon-3-name">H3 — Future Options</div>
+        <div class="hcard-desc" data-shape-id="horizon-3-desc">Seed tomorrow's growth engines. High uncertainty; small bets that become tomorrow's H2s.</div>
+        <ul class="hcard-bullets" data-shape-id="horizon-3-body">
+          <li>Emerging technology pilots</li>
+          <li>New business model experiments</li>
+          <li>Venture / incubator investments</li>
+          <li>Disruptive innovation programs</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer" data-shape-id="footer-rule">
+    <span data-shape-id="footer-left">Confidential — Accenture Internal</span>
+    <span data-shape-id="footer-right">Slide Lab · 2026 · 235</span>
+  </div>
+
+</body>
+</html>

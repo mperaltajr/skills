@@ -1,0 +1,30 @@
+<p:pic xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+  <p:nvPicPr>
+    <p:cNvPr id="422" name="Picture 421">
+      <a:extLst>
+        <a:ext uri="{FF2B5EF4-FFF2-40B4-BE49-F238E27FC236}">
+          <a16:creationId xmlns:a16="http://schemas.microsoft.com/office/drawing/2014/main" id="{0E5BA1E1-D877-EBDC-9DDE-6C931EADD4EB}"/>
+        </a:ext>
+      </a:extLst>
+    </p:cNvPr>
+    <p:cNvPicPr>
+      <a:picLocks noChangeAspect="1"/>
+    </p:cNvPicPr>
+    <p:nvPr/>
+  </p:nvPicPr>
+  <p:blipFill>
+    <a:blip r:embed="rId4"/>
+    <a:stretch>
+      <a:fillRect/>
+    </a:stretch>
+  </p:blipFill>
+  <p:spPr>
+    <a:xfrm>
+      <a:off x="600267" y="1350779"/>
+      <a:ext cx="482600" cy="419100"/>
+    </a:xfrm>
+    <a:prstGeom prst="rect">
+      <a:avLst/>
+    </a:prstGeom>
+  </p:spPr>
+</p:pic>

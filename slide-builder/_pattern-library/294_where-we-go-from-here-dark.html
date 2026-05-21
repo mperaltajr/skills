@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1280">
+<title>294 – Where We Go From Here (Dark)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --brand-primary: #2D0A4E;
+    --brand-primary-mid: #5C2D87;
+    --brand-accent: #A100FF;
+    --brand-accent-soft: #C780FF;
+    --text-dark: #1A1A2E;
+    --text-mid: #64748B;
+    --text-faint: #94A3B8;
+    --slide-bg: #FFFFFF;
+    --card-bg: #F8F4FC;
+    --card-border: #E5D5F0;
+    --draft-bg: #FFD600;
+    --draft-text: #B71C1C;
+  }
+
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    background: #2D0A4E;
+    font-family: 'Inter', sans-serif;
+    position: relative;
+  }
+
+  /* ── Chrome ── */
+  .chrome-top {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 48px;
+    z-index: 10;
+  }
+
+  .chrome-internal {
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 500;
+  }
+
+  .draft-badge {
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 7px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 3px 8px;
+    border-radius: 0;
+    line-height: 1;
+  }
+
+  .chrome-top-right-spacer {
+    width: 120px;
+  }
+
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 32px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    align-items: center;
+    padding: 0 48px;
+    justify-content: space-between;
+    z-index: 10;
+  }
+
+  .footer-text {
+    font-size: 9px;
+    color: rgba(255, 255, 255, 0.4);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* ── Layout ── */
+  .slide-body {
+    position: absolute;
+    top: 36px;
+    bottom: 32px;
+    left: 0;
+    right: 0;
+    display: flex;
+    padding: 0 48px;
+  }
+
+  /* ── Left Panel (55%) ── */
+  .left-panel {
+    width: 55%;
+    padding: 40px 48px 40px 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .section-label {
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.2em;
+    color: var(--brand-accent-soft);
+}
+
+  .headline {
+    font-size: 34px;
+    font-weight: 700;
+    color: #FFFFFF;
+    line-height: 1.2;
+}
+
+  .headline strong {
+    color: var(--brand-accent-soft);
+    font-weight: 700;
+  }
+
+  /* ── Action List ── */
+  .action-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    position: relative;
+  }
+
+  /* Vertical dotted connector */
+  .action-list::before {
+    content: '';
+    position: absolute;
+    left: 18px;
+    top: 8px;
+    bottom: 8px;
+    border-left: 2px dashed rgba(161, 0, 255, 0.35);
+    z-index: 0;
+  }
+
+  .action-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 20px;
+    padding: 14px 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  .action-number-wrap {
+    width: 38px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .action-number-bg {
+    font-size: 64px;
+    font-weight: 300;
+    color: rgba(255, 255, 255, 0.13);
+    line-height: 1;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -46%);
+    user-select: none;
+    z-index: 0;
+  }
+
+  .action-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--brand-accent);
+    border: 2px solid rgba(161, 0, 255, 0.4);
+    box-shadow: 0 0 8px rgba(161, 0, 255, 0.5);
+    position: relative;
+    z-index: 1;
+    flex-shrink: 0;
+  }
+
+  .action-content {
+    flex: 1;
+  }
+
+  .action-title {
+  position: absolute;
+  left: 64px;
+  right: 64px;
+  top: 28px;
+  min-height: 36px;
+    font-size: 16px;
+    font-weight: 700;
+    color: #FFFFFF;
+  }
+
+  .action-desc {
+    font-size: 13.5px;
+    color: rgba(255, 255, 255, 0.68);
+    line-height: 1.55;
+  }
+
+  /* ── Divider ── */
+  .panel-divider {
+    width: 1px;
+    background: rgba(255, 255, 255, 0.1);
+    margin: 48px 0;
+    flex-shrink: 0;
+  }
+
+  /* ── Right Panel (45%) ── */
+  .right-panel {
+    width: 45%;
+    padding: 40px 0 40px 52px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .timeline-label {
+    font-size: 9px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+  .timeline-wrap {
+    display: flex;
+    gap: 0;
+    align-items: stretch;
+    width: 100%;
+    flex: 1;
+    max-height: 460px;
+  }
+
+  /* Arrow track */
+  .arrow-track {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 40px;
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  .arrow-head {
+    width: 0;
+    height: 0;
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-bottom: 14px solid var(--brand-accent);
+    flex-shrink: 0;
+  }
+
+  .arrow-shaft {
+    width: 3px;
+    flex: 1;
+    background: linear-gradient(to bottom, var(--brand-accent), rgba(161, 0, 255, 0.25));
+    position: relative;
+  }
+
+  .arrow-base {
+    width: 3px;
+    height: 12px;
+    background: rgba(161, 0, 255, 0.15);
+    flex-shrink: 0;
+  }
+
+  /* Milestone nodes on the shaft */
+  .milestone-node {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--brand-accent);
+    box-shadow: 0 0 10px rgba(161, 0, 255, 0.7), 0 0 20px rgba(161, 0, 255, 0.3);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    z-index: 2;
+  }
+
+  .milestone-node.top    { bottom: 75%; }
+  .milestone-node.middle { bottom: 40%; }
+  .milestone-node.bottom { bottom: 8%;  }
+
+  /* Milestone labels */
+  .milestones-col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 14px 0 24px 0;
+  }
+
+  .milestone-item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .milestone-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .milestone-pip {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--brand-accent);
+    flex-shrink: 0;
+  }
+
+  .milestone-period {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--brand-accent-soft);
+  }
+
+  .milestone-outcome {
+    font-size: 14px;
+    font-weight: 400;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.45;
+}
+
+  /* ── Subtle background glow ── */
+  .bg-glow-left {
+    position: absolute;
+    top: -60px;
+    left: -80px;
+    width: 480px;
+    height: 480px;
+    background: radial-gradient(circle, rgba(92, 45, 135, 0.35) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .bg-glow-right {
+    position: absolute;
+    bottom: -80px;
+    right: -60px;
+    width: 360px;
+    height: 360px;
+    background: radial-gradient(circle, rgba(161, 0, 255, 0.15) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .slide-body > * {
+    position: relative;
+    z-index: 1;
+  }
+</style>
+</head>
+<body>
+
+<!-- Background glows -->
+<div class="bg-glow-left"></div>
+<div class="bg-glow-right"></div>
+
+<!-- Top chrome -->
+<div class="chrome-top">
+  <span class="chrome-internal">Accenture Internal</span>
+  <span class="chrome-top-right-spacer"></span>
+</div>
+
+<!-- Footer -->
+<footer class="footer">
+  <span class="footer-text">Confidential — For internal use only</span>
+  <span class="footer-text">© 2026 Accenture. All rights reserved.</span>
+</footer>
+
+<!-- Slide body -->
+<div class="slide-body">
+
+  <!-- Left panel -->
+  <div class="left-panel">
+    <div class="section-label">Where We Go From Here</div>
+    <h1 class="headline">Three actions to<br><strong>unlock value</strong></h1>
+
+    <div class="action-list">
+
+      <div class="action-item">
+        <div class="action-number-wrap">
+          <span class="action-number-bg">1</span>
+          <div class="action-dot"></div>
+        </div>
+        <div class="action-content">
+          <div class="action-title">Align on a single operating model</div>
+          <div class="action-desc">Consolidate fragmented processes into one authoritative<br>framework owned by a cross-functional steering group.</div>
+        </div>
+      </div>
+
+      <div class="action-item">
+        <div class="action-number-wrap">
+          <span class="action-number-bg">2</span>
+          <div class="action-dot"></div>
+        </div>
+        <div class="action-content">
+          <div class="action-title">Instrument the data pipeline end-to-end</div>
+          <div class="action-desc">Deploy lightweight telemetry at each handoff point so<br>latency and quality gaps become immediately visible.</div>
+        </div>
+      </div>
+
+      <div class="action-item">
+        <div class="action-number-wrap">
+          <span class="action-number-bg">3</span>
+          <div class="action-dot"></div>
+        </div>
+        <div class="action-content">
+          <div class="action-title">Scale the pilot to two additional regions</div>
+          <div class="action-desc">Apply learnings from the EMEA pilot to APAC and NAM<br>with adapted change management and local governance.</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Divider -->
+  <div class="panel-divider"></div>
+
+  <!-- Right panel -->
+  <div class="right-panel">
+    <div class="timeline-label">Phased roadmap</div>
+
+    <div class="timeline-wrap">
+
+      <!-- Arrow track -->
+      <div class="arrow-track">
+        <div class="arrow-head"></div>
+        <div class="arrow-shaft">
+          <div class="milestone-node top"></div>
+          <div class="milestone-node middle"></div>
+          <div class="milestone-node bottom"></div>
+        </div>
+        <div class="arrow-base"></div>
+      </div>
+
+      <!-- Milestone labels -->
+      <div class="milestones-col" style="padding-left: 20px;">
+
+        <div class="milestone-item">
+          <div class="milestone-tag">
+            <div class="milestone-pip"></div>
+            <span class="milestone-period">90 Days</span>
+          </div>
+          <div class="milestone-outcome">Scaled model live in two regions;<br>KPIs reported to executive board.</div>
+        </div>
+
+        <div class="milestone-item">
+          <div class="milestone-tag">
+            <div class="milestone-pip"></div>
+            <span class="milestone-period">30 Days</span>
+          </div>
+          <div class="milestone-outcome">Telemetry deployed; first data-quality<br>dashboard published to stakeholders.</div>
+        </div>
+
+        <div class="milestone-item">
+          <div class="milestone-tag">
+            <div class="milestone-pip"></div>
+            <span class="milestone-period">Now</span>
+          </div>
+          <div class="milestone-outcome">Steering group chartered; operating<br>model draft circulated for sign-off.</div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+
+</body>
+</html>

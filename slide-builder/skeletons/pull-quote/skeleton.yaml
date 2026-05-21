@@ -1,0 +1,18 @@
+id: pull-quote
+category: pull
+page_types: [pull-quote, voice-of-client, quote-slide]
+best_for: Verbatim client or stakeholder quote with attribution
+# NOTE: This skeleton uses white text (designed for dark backgrounds).
+# Always pass layout_name pointing to a dark layout (e.g. "Key message: dark")
+# when building on templates with a light default background (Accenture, Start-Layouts).
+num_columns: 1
+visual_structure: hero
+tokens:
+  HEADING: '[“Our adjusters spend 60% of their time on admin, not on judgment — we
+    need techn]'
+  BODY_TEXT: '[— Chief Claims Officer, Meridian Insurance  ·  Accenture discovery
+    workshop, Mar]'
+  FOOTNOTE: '[1. Insert Footnote]'
+  SOURCE: '[Source: Accenture discovery session notes, Mar 2027. Participant quotes
+    used wit]'
+  PAGE_NUMBER: '[1]'

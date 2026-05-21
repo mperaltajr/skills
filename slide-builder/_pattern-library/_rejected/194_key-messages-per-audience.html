@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pattern 194 — Key Messages per Audience</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+  :root {
+    --brand-primary:#2D0A4E;
+    --brand-primary-mid:#5C2D87;
+    --brand-accent:#A100FF;
+    --brand-accent-soft:#C780FF;
+    --text-dark:#1A1A2E;
+    --text-mid:#64748B;
+    --text-faint:#94A3B8;
+    --slide-bg:#FFFFFF;
+    --card-bg:#F8F4FC;
+    --card-border:#E5D5F0;
+    --draft-bg:#FFD600;
+    --draft-text:#B71C1C;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    width: 1280px;
+    height: 720px;
+    overflow: hidden;
+    font-family: Inter, system-ui, sans-serif;
+    background: var(--slide-bg);
+    position: relative;
+  }
+
+  /* Invariant chrome — top labels */
+  .label-internal {
+    position: absolute;
+    top: 14px;
+    left: 20px;
+    font-size: 9px;
+    letter-spacing: 0.15em;
+    color: var(--text-faint);
+    text-transform: uppercase;
+    font-weight: 500;
+  }
+
+  .badge-draft {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--draft-bg);
+    color: var(--draft-text);
+    font-size: 9px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 0;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+
+  /* Title block */
+  .title-block {
+    position: absolute;
+    top: 36px;
+    left: 48px;
+    right: 48px;
+  }
+
+  .title-block h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.15;
+  }
+
+  .title-block h1 strong {
+    color: var(--brand-accent);
+    font-weight: 700;
+  }
+
+  .title-block .sub {
+    font-size: 13px;
+    font-style: italic;
+    color: var(--text-mid);
+    margin-top: 4px;
+  }
+
+  .title-block .accent-rule {
+    width: 64px;
+    height: 3px;
+    background: var(--brand-accent);
+    margin-top: 6px;
+  }
+
+  /* Footer */
+  .footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    border-top: 1px solid var(--card-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 20px;
+  }
+
+  .footer span {
+    font-size: 8px;
+    color: var(--text-faint);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+  }
+
+  /* Content area */
+  .content-area {
+    position: absolute;
+    top: 130px;
+    left: 48px;
+    right: 48px;
+    bottom: 64px;
+    display: flex;
+    gap: 0;
+  }
+
+  /* Column dividers via borders */
+  .col-divider {
+    width: 1px;
+    background: var(--card-border);
+    align-self: stretch;
+    flex-shrink: 0;
+  }
+
+  /* Audience column */
+  .col {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-left: 4px solid transparent;
+    background: var(--card-bg);
+    border-radius: 4px;
+  }
+
+  .col:not(:first-child) {
+    margin-left: 10px;
+  }
+
+  /* Left border accent per column */
+  .col-board    { border-left-color: #2D0A4E; }
+  .col-csuite   { border-left-color: #5C2D87; }
+  .col-ops      { border-left-color: #A100FF; }
+  .col-frontline{ border-left-color: #C780FF; }
+
+  /* Column header */
+  .col-header {
+    background: var(--brand-primary-mid);
+    padding: 8px 10px;
+    flex-shrink: 0;
+  }
+
+  .col-header .audience-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #FFFFFF;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  /* Column body */
+  .col-body {
+    flex: 1;
+    padding: 10px 10px 0 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    overflow: hidden;
+  }
+
+  .what-care-label {
+    font-size: 10px;
+    font-style: italic;
+    color: var(--text-mid);
+    line-height: 1.3;
+  }
+
+  .key-message {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    line-height: 1.35;
+  }
+
+  .proof-points {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .proof-points li {
+    font-size: 11px;
+    color: var(--text-dark);
+    line-height: 1.35;
+    padding-left: 12px;
+    position: relative;
+  }
+
+  .proof-points li::before {
+    content: '•';
+    position: absolute;
+    left: 2px;
+    color: var(--brand-accent);
+    font-size: 11px;
+    line-height: 1.35;
+  }
+
+  .cta {
+    font-size: 10px;
+    font-style: italic;
+    color: var(--brand-accent);
+    line-height: 1.3;
+    margin-top: auto;
+  }
+
+  /* Column footer — channel */
+  .col-channel {
+    padding: 6px 10px;
+    border-top: 1px solid var(--card-border);
+    font-size: 9px;
+    color: var(--text-faint);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    flex-shrink: 0;
+    background: var(--slide-bg);
+  }
+</style>
+</head>
+<body>
+
+  <!-- Invariant chrome -->
+  <div class="label-internal" data-shape-id="accenture-tag">Accenture Internal</div>
+  <div class="badge-draft" data-shape-id="draft-badge">Draft</div>
+
+  <!-- Title block -->
+  <div class="title-block">
+    <h1 data-shape-id="title">Tailored <strong>key messages</strong> for every audience</h1>
+    <div class="sub" data-shape-id="subtitle">Right message, right person, right channel — driving aligned action across the organisation</div>
+    <div class="accent-rule" data-shape-id="brand-rule"></div>
+  </div>
+
+  <!-- 4-Column content area -->
+  <div class="content-area">
+
+    <!-- Board -->
+    <div class="col col-board">
+      <div class="col-header">
+        <div class="audience-name" data-shape-id="pillar-1-name">Board</div>
+      </div>
+      <div class="col-body">
+        <div class="what-care-label" data-shape-id="pillar-1-tag">Governance, risk &amp; fiduciary duty</div>
+        <div class="key-message" data-shape-id="pillar-1-message">This initiative protects enterprise value and strengthens our strategic position</div>
+        <ul class="proof-points" data-shape-id="pillar-1-body">
+          <li>Reduces regulatory exposure by an estimated 40%</li>
+          <li>Aligns with approved 3-year strategy</li>
+          <li>ROI positive within 18 months</li>
+        </ul>
+        <div class="cta" data-shape-id="pillar-1-cta">Approve programme charter at next board meeting</div>
+      </div>
+      <div class="col-channel" data-shape-id="pillar-1-channel">Town Hall &nbsp;/&nbsp; Board Pack</div>
+    </div>
+
+    <!-- C-Suite -->
+    <div class="col col-csuite">
+      <div class="col-header">
+        <div class="audience-name" data-shape-id="pillar-2-name">C-Suite</div>
+      </div>
+      <div class="col-body">
+        <div class="what-care-label" data-shape-id="pillar-2-tag">P&amp;L impact, cross-function alignment</div>
+        <div class="key-message" data-shape-id="pillar-2-message">We gain competitive advantage while meeting our cost and growth targets</div>
+        <ul class="proof-points" data-shape-id="pillar-2-body">
+          <li>$12M efficiency target in Year 1</li>
+          <li>Removes the top 3 cross-unit bottlenecks</li>
+          <li>Enables new revenue stream by Q3</li>
+        </ul>
+        <div class="cta" data-shape-id="pillar-2-cta">Champion the change within your function by Week 2</div>
+      </div>
+      <div class="col-channel" data-shape-id="pillar-2-channel">Leadership Offsite &nbsp;/&nbsp; Email</div>
+    </div>
+
+    <!-- Operations -->
+    <div class="col col-ops">
+      <div class="col-header">
+        <div class="audience-name" data-shape-id="pillar-3-name">Operations</div>
+      </div>
+      <div class="col-body">
+        <div class="what-care-label" data-shape-id="pillar-3-tag">Process reliability, KPIs &amp; workload</div>
+        <div class="key-message" data-shape-id="pillar-3-message">The new process reduces manual steps and makes hitting your SLAs easier</div>
+        <ul class="proof-points" data-shape-id="pillar-3-body">
+          <li>Cuts average handling time by 25%</li>
+          <li>Single system of record — no dual entry</li>
+          <li>Dedicated support desk during go-live</li>
+        </ul>
+        <div class="cta" data-shape-id="pillar-3-cta">Complete training module and certify by [date]</div>
+      </div>
+      <div class="col-channel" data-shape-id="pillar-3-channel">Manager Briefing &nbsp;/&nbsp; Intranet</div>
+    </div>
+
+    <!-- Front-Line -->
+    <div class="col col-frontline">
+      <div class="col-header">
+        <div class="audience-name" data-shape-id="pillar-4-name">Front-Line</div>
+      </div>
+      <div class="col-body">
+        <div class="what-care-label" data-shape-id="pillar-4-tag">Day-to-day ease, job security &amp; clarity</div>
+        <div class="key-message" data-shape-id="pillar-4-message">This change makes your daily work simpler — and your team will be fully supported</div>
+        <ul class="proof-points" data-shape-id="pillar-4-body">
+          <li>New tool trained in under 2 hours</li>
+          <li>No role eliminations in scope</li>
+          <li>Peer champions on every team</li>
+        </ul>
+        <div class="cta" data-shape-id="pillar-4-cta">Attend your team's kick-off session this week</div>
+      </div>
+      <div class="col-channel" data-shape-id="pillar-4-channel">Team Huddle &nbsp;/&nbsp; SMS Alert</div>
+    </div>
+
+  </div>
+
+  <!-- Footer -->
+  <div class="footer" data-shape-id="footer-rule">
+    <span data-shape-id="footer-left">Confidential — Accenture Internal</span>
+    <span data-shape-id="footer-right">Slide Lab · 2026 · 194</span>
+  </div>
+
+</body>
+</html>

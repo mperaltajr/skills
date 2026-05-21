@@ -1,0 +1,705 @@
+<p:sp xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">
+  <p:nvSpPr>
+    <p:cNvPr id="45" name="Freeform: Shape 44">
+      <a:extLst>
+        <a:ext uri="{FF2B5EF4-FFF2-40B4-BE49-F238E27FC236}">
+          <a16:creationId xmlns:a16="http://schemas.microsoft.com/office/drawing/2014/main" id="{396DE26D-D2B6-2068-A920-2851B63BAB64}"/>
+        </a:ext>
+      </a:extLst>
+    </p:cNvPr>
+    <p:cNvSpPr/>
+    <p:nvPr/>
+  </p:nvSpPr>
+  <p:spPr>
+    <a:xfrm>
+      <a:off x="9614608" y="836343"/>
+      <a:ext cx="311353" cy="434225"/>
+    </a:xfrm>
+    <a:custGeom>
+      <a:avLst/>
+      <a:gdLst>
+        <a:gd name="connsiteX0" fmla="*/ 311239 w 311353"/>
+        <a:gd name="connsiteY0" fmla="*/ 152819 h 434225"/>
+        <a:gd name="connsiteX1" fmla="*/ 311239 w 311353"/>
+        <a:gd name="connsiteY1" fmla="*/ 262661 h 434225"/>
+        <a:gd name="connsiteX2" fmla="*/ 311011 w 311353"/>
+        <a:gd name="connsiteY2" fmla="*/ 264605 h 434225"/>
+        <a:gd name="connsiteX3" fmla="*/ 222999 w 311353"/>
+        <a:gd name="connsiteY3" fmla="*/ 337871 h 434225"/>
+        <a:gd name="connsiteX4" fmla="*/ 219914 w 311353"/>
+        <a:gd name="connsiteY4" fmla="*/ 338557 h 434225"/>
+        <a:gd name="connsiteX5" fmla="*/ 216827 w 311353"/>
+        <a:gd name="connsiteY5" fmla="*/ 337871 h 434225"/>
+        <a:gd name="connsiteX6" fmla="*/ 165964 w 311353"/>
+        <a:gd name="connsiteY6" fmla="*/ 308953 h 434225"/>
+        <a:gd name="connsiteX7" fmla="*/ 164250 w 311353"/>
+        <a:gd name="connsiteY7" fmla="*/ 298209 h 434225"/>
+        <a:gd name="connsiteX8" fmla="*/ 174993 w 311353"/>
+        <a:gd name="connsiteY8" fmla="*/ 296494 h 434225"/>
+        <a:gd name="connsiteX9" fmla="*/ 219914 w 311353"/>
+        <a:gd name="connsiteY9" fmla="*/ 322440 h 434225"/>
+        <a:gd name="connsiteX10" fmla="*/ 295808 w 311353"/>
+        <a:gd name="connsiteY10" fmla="*/ 261633 h 434225"/>
+        <a:gd name="connsiteX11" fmla="*/ 295808 w 311353"/>
+        <a:gd name="connsiteY11" fmla="*/ 166421 h 434225"/>
+        <a:gd name="connsiteX12" fmla="*/ 261633 w 311353"/>
+        <a:gd name="connsiteY12" fmla="*/ 176594 h 434225"/>
+        <a:gd name="connsiteX13" fmla="*/ 219799 w 311353"/>
+        <a:gd name="connsiteY13" fmla="*/ 162077 h 434225"/>
+        <a:gd name="connsiteX14" fmla="*/ 177965 w 311353"/>
+        <a:gd name="connsiteY14" fmla="*/ 176594 h 434225"/>
+        <a:gd name="connsiteX15" fmla="*/ 143790 w 311353"/>
+        <a:gd name="connsiteY15" fmla="*/ 166421 h 434225"/>
+        <a:gd name="connsiteX16" fmla="*/ 143790 w 311353"/>
+        <a:gd name="connsiteY16" fmla="*/ 177851 h 434225"/>
+        <a:gd name="connsiteX17" fmla="*/ 136132 w 311353"/>
+        <a:gd name="connsiteY17" fmla="*/ 185509 h 434225"/>
+        <a:gd name="connsiteX18" fmla="*/ 128474 w 311353"/>
+        <a:gd name="connsiteY18" fmla="*/ 177851 h 434225"/>
+        <a:gd name="connsiteX19" fmla="*/ 128474 w 311353"/>
+        <a:gd name="connsiteY19" fmla="*/ 152819 h 434225"/>
+        <a:gd name="connsiteX20" fmla="*/ 132703 w 311353"/>
+        <a:gd name="connsiteY20" fmla="*/ 145961 h 434225"/>
+        <a:gd name="connsiteX21" fmla="*/ 140703 w 311353"/>
+        <a:gd name="connsiteY21" fmla="*/ 146533 h 434225"/>
+        <a:gd name="connsiteX22" fmla="*/ 178080 w 311353"/>
+        <a:gd name="connsiteY22" fmla="*/ 161163 h 434225"/>
+        <a:gd name="connsiteX23" fmla="*/ 215456 w 311353"/>
+        <a:gd name="connsiteY23" fmla="*/ 146533 h 434225"/>
+        <a:gd name="connsiteX24" fmla="*/ 224371 w 311353"/>
+        <a:gd name="connsiteY24" fmla="*/ 146533 h 434225"/>
+        <a:gd name="connsiteX25" fmla="*/ 261747 w 311353"/>
+        <a:gd name="connsiteY25" fmla="*/ 161163 h 434225"/>
+        <a:gd name="connsiteX26" fmla="*/ 299124 w 311353"/>
+        <a:gd name="connsiteY26" fmla="*/ 146533 h 434225"/>
+        <a:gd name="connsiteX27" fmla="*/ 307125 w 311353"/>
+        <a:gd name="connsiteY27" fmla="*/ 145961 h 434225"/>
+        <a:gd name="connsiteX28" fmla="*/ 311354 w 311353"/>
+        <a:gd name="connsiteY28" fmla="*/ 152819 h 434225"/>
+        <a:gd name="connsiteX29" fmla="*/ 219914 w 311353"/>
+        <a:gd name="connsiteY29" fmla="*/ 187452 h 434225"/>
+        <a:gd name="connsiteX30" fmla="*/ 212255 w 311353"/>
+        <a:gd name="connsiteY30" fmla="*/ 195110 h 434225"/>
+        <a:gd name="connsiteX31" fmla="*/ 212255 w 311353"/>
+        <a:gd name="connsiteY31" fmla="*/ 231686 h 434225"/>
+        <a:gd name="connsiteX32" fmla="*/ 175680 w 311353"/>
+        <a:gd name="connsiteY32" fmla="*/ 231686 h 434225"/>
+        <a:gd name="connsiteX33" fmla="*/ 168021 w 311353"/>
+        <a:gd name="connsiteY33" fmla="*/ 239344 h 434225"/>
+        <a:gd name="connsiteX34" fmla="*/ 175680 w 311353"/>
+        <a:gd name="connsiteY34" fmla="*/ 247002 h 434225"/>
+        <a:gd name="connsiteX35" fmla="*/ 212255 w 311353"/>
+        <a:gd name="connsiteY35" fmla="*/ 247002 h 434225"/>
+        <a:gd name="connsiteX36" fmla="*/ 212255 w 311353"/>
+        <a:gd name="connsiteY36" fmla="*/ 283578 h 434225"/>
+        <a:gd name="connsiteX37" fmla="*/ 219914 w 311353"/>
+        <a:gd name="connsiteY37" fmla="*/ 291236 h 434225"/>
+        <a:gd name="connsiteX38" fmla="*/ 227572 w 311353"/>
+        <a:gd name="connsiteY38" fmla="*/ 283578 h 434225"/>
+        <a:gd name="connsiteX39" fmla="*/ 227572 w 311353"/>
+        <a:gd name="connsiteY39" fmla="*/ 247002 h 434225"/>
+        <a:gd name="connsiteX40" fmla="*/ 264148 w 311353"/>
+        <a:gd name="connsiteY40" fmla="*/ 247002 h 434225"/>
+        <a:gd name="connsiteX41" fmla="*/ 271806 w 311353"/>
+        <a:gd name="connsiteY41" fmla="*/ 239344 h 434225"/>
+        <a:gd name="connsiteX42" fmla="*/ 264148 w 311353"/>
+        <a:gd name="connsiteY42" fmla="*/ 231686 h 434225"/>
+        <a:gd name="connsiteX43" fmla="*/ 227572 w 311353"/>
+        <a:gd name="connsiteY43" fmla="*/ 231686 h 434225"/>
+        <a:gd name="connsiteX44" fmla="*/ 227572 w 311353"/>
+        <a:gd name="connsiteY44" fmla="*/ 195110 h 434225"/>
+        <a:gd name="connsiteX45" fmla="*/ 219914 w 311353"/>
+        <a:gd name="connsiteY45" fmla="*/ 187452 h 434225"/>
+        <a:gd name="connsiteX46" fmla="*/ 145390 w 311353"/>
+        <a:gd name="connsiteY46" fmla="*/ 251346 h 434225"/>
+        <a:gd name="connsiteX47" fmla="*/ 145390 w 311353"/>
+        <a:gd name="connsiteY47" fmla="*/ 426568 h 434225"/>
+        <a:gd name="connsiteX48" fmla="*/ 137732 w 311353"/>
+        <a:gd name="connsiteY48" fmla="*/ 434226 h 434225"/>
+        <a:gd name="connsiteX49" fmla="*/ 7773 w 311353"/>
+        <a:gd name="connsiteY49" fmla="*/ 434226 h 434225"/>
+        <a:gd name="connsiteX50" fmla="*/ 114 w 311353"/>
+        <a:gd name="connsiteY50" fmla="*/ 426568 h 434225"/>
+        <a:gd name="connsiteX51" fmla="*/ 114 w 311353"/>
+        <a:gd name="connsiteY51" fmla="*/ 251346 h 434225"/>
+        <a:gd name="connsiteX52" fmla="*/ 72810 w 311353"/>
+        <a:gd name="connsiteY52" fmla="*/ 175450 h 434225"/>
+        <a:gd name="connsiteX53" fmla="*/ 145504 w 311353"/>
+        <a:gd name="connsiteY53" fmla="*/ 251346 h 434225"/>
+        <a:gd name="connsiteX54" fmla="*/ 129960 w 311353"/>
+        <a:gd name="connsiteY54" fmla="*/ 251346 h 434225"/>
+        <a:gd name="connsiteX55" fmla="*/ 72695 w 311353"/>
+        <a:gd name="connsiteY55" fmla="*/ 190881 h 434225"/>
+        <a:gd name="connsiteX56" fmla="*/ 15431 w 311353"/>
+        <a:gd name="connsiteY56" fmla="*/ 251346 h 434225"/>
+        <a:gd name="connsiteX57" fmla="*/ 15431 w 311353"/>
+        <a:gd name="connsiteY57" fmla="*/ 418795 h 434225"/>
+        <a:gd name="connsiteX58" fmla="*/ 129960 w 311353"/>
+        <a:gd name="connsiteY58" fmla="*/ 418795 h 434225"/>
+        <a:gd name="connsiteX59" fmla="*/ 129960 w 311353"/>
+        <a:gd name="connsiteY59" fmla="*/ 251346 h 434225"/>
+        <a:gd name="connsiteX60" fmla="*/ 0 w 311353"/>
+        <a:gd name="connsiteY60" fmla="*/ 72695 h 434225"/>
+        <a:gd name="connsiteX61" fmla="*/ 72695 w 311353"/>
+        <a:gd name="connsiteY61" fmla="*/ 0 h 434225"/>
+        <a:gd name="connsiteX62" fmla="*/ 145390 w 311353"/>
+        <a:gd name="connsiteY62" fmla="*/ 72695 h 434225"/>
+        <a:gd name="connsiteX63" fmla="*/ 72695 w 311353"/>
+        <a:gd name="connsiteY63" fmla="*/ 145390 h 434225"/>
+        <a:gd name="connsiteX64" fmla="*/ 0 w 311353"/>
+        <a:gd name="connsiteY64" fmla="*/ 72695 h 434225"/>
+        <a:gd name="connsiteX65" fmla="*/ 15431 w 311353"/>
+        <a:gd name="connsiteY65" fmla="*/ 72695 h 434225"/>
+        <a:gd name="connsiteX66" fmla="*/ 72695 w 311353"/>
+        <a:gd name="connsiteY66" fmla="*/ 129959 h 434225"/>
+        <a:gd name="connsiteX67" fmla="*/ 129960 w 311353"/>
+        <a:gd name="connsiteY67" fmla="*/ 72695 h 434225"/>
+        <a:gd name="connsiteX68" fmla="*/ 72695 w 311353"/>
+        <a:gd name="connsiteY68" fmla="*/ 15431 h 434225"/>
+        <a:gd name="connsiteX69" fmla="*/ 15431 w 311353"/>
+        <a:gd name="connsiteY69" fmla="*/ 72695 h 434225"/>
+      </a:gdLst>
+      <a:ahLst/>
+      <a:cxnLst>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX0" y="connsiteY0"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX1" y="connsiteY1"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX2" y="connsiteY2"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX3" y="connsiteY3"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX4" y="connsiteY4"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX5" y="connsiteY5"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX6" y="connsiteY6"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX7" y="connsiteY7"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX8" y="connsiteY8"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX9" y="connsiteY9"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX10" y="connsiteY10"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX11" y="connsiteY11"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX12" y="connsiteY12"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX13" y="connsiteY13"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX14" y="connsiteY14"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX15" y="connsiteY15"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX16" y="connsiteY16"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX17" y="connsiteY17"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX18" y="connsiteY18"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX19" y="connsiteY19"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX20" y="connsiteY20"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX21" y="connsiteY21"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX22" y="connsiteY22"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX23" y="connsiteY23"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX24" y="connsiteY24"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX25" y="connsiteY25"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX26" y="connsiteY26"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX27" y="connsiteY27"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX28" y="connsiteY28"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX29" y="connsiteY29"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX30" y="connsiteY30"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX31" y="connsiteY31"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX32" y="connsiteY32"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX33" y="connsiteY33"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX34" y="connsiteY34"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX35" y="connsiteY35"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX36" y="connsiteY36"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX37" y="connsiteY37"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX38" y="connsiteY38"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX39" y="connsiteY39"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX40" y="connsiteY40"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX41" y="connsiteY41"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX42" y="connsiteY42"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX43" y="connsiteY43"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX44" y="connsiteY44"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX45" y="connsiteY45"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX46" y="connsiteY46"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX47" y="connsiteY47"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX48" y="connsiteY48"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX49" y="connsiteY49"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX50" y="connsiteY50"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX51" y="connsiteY51"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX52" y="connsiteY52"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX53" y="connsiteY53"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX54" y="connsiteY54"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX55" y="connsiteY55"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX56" y="connsiteY56"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX57" y="connsiteY57"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX58" y="connsiteY58"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX59" y="connsiteY59"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX60" y="connsiteY60"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX61" y="connsiteY61"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX62" y="connsiteY62"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX63" y="connsiteY63"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX64" y="connsiteY64"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX65" y="connsiteY65"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX66" y="connsiteY66"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX67" y="connsiteY67"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX68" y="connsiteY68"/>
+        </a:cxn>
+        <a:cxn ang="0">
+          <a:pos x="connsiteX69" y="connsiteY69"/>
+        </a:cxn>
+      </a:cxnLst>
+      <a:rect l="l" t="t" r="r" b="b"/>
+      <a:pathLst>
+        <a:path w="311353" h="434225">
+          <a:moveTo>
+            <a:pt x="311239" y="152819"/>
+          </a:moveTo>
+          <a:lnTo>
+            <a:pt x="311239" y="262661"/>
+          </a:lnTo>
+          <a:cubicBezTo>
+            <a:pt x="311239" y="263347"/>
+            <a:pt x="311239" y="264033"/>
+            <a:pt x="311011" y="264605"/>
+          </a:cubicBezTo>
+          <a:cubicBezTo>
+            <a:pt x="300838" y="303124"/>
+            <a:pt x="230886" y="334442"/>
+            <a:pt x="222999" y="337871"/>
+          </a:cubicBezTo>
+          <a:cubicBezTo>
+            <a:pt x="221971" y="338328"/>
+            <a:pt x="220942" y="338557"/>
+            <a:pt x="219914" y="338557"/>
+          </a:cubicBezTo>
+          <a:cubicBezTo>
+            <a:pt x="218885" y="338557"/>
+            <a:pt x="217856" y="338328"/>
+            <a:pt x="216827" y="337871"/>
+          </a:cubicBezTo>
+          <a:cubicBezTo>
+            <a:pt x="215685" y="337414"/>
+            <a:pt x="189624" y="325984"/>
+            <a:pt x="165964" y="308953"/>
+          </a:cubicBezTo>
+          <a:cubicBezTo>
+            <a:pt x="162535" y="306438"/>
+            <a:pt x="161735" y="301638"/>
+            <a:pt x="164250" y="298209"/>
+          </a:cubicBezTo>
+          <a:cubicBezTo>
+            <a:pt x="166764" y="294780"/>
+            <a:pt x="171564" y="293980"/>
+            <a:pt x="174993" y="296494"/>
+          </a:cubicBezTo>
+          <a:cubicBezTo>
+            <a:pt x="192710" y="309296"/>
+            <a:pt x="212484" y="319011"/>
+            <a:pt x="219914" y="322440"/>
+          </a:cubicBezTo>
+          <a:cubicBezTo>
+            <a:pt x="241288" y="312611"/>
+            <a:pt x="288265" y="286550"/>
+            <a:pt x="295808" y="261633"/>
+          </a:cubicBezTo>
+          <a:lnTo>
+            <a:pt x="295808" y="166421"/>
+          </a:lnTo>
+          <a:cubicBezTo>
+            <a:pt x="286779" y="171221"/>
+            <a:pt x="273863" y="176594"/>
+            <a:pt x="261633" y="176594"/>
+          </a:cubicBezTo>
+          <a:cubicBezTo>
+            <a:pt x="245402" y="176594"/>
+            <a:pt x="227801" y="166992"/>
+            <a:pt x="219799" y="162077"/>
+          </a:cubicBezTo>
+          <a:cubicBezTo>
+            <a:pt x="211798" y="167107"/>
+            <a:pt x="194196" y="176594"/>
+            <a:pt x="177965" y="176594"/>
+          </a:cubicBezTo>
+          <a:cubicBezTo>
+            <a:pt x="165849" y="176594"/>
+            <a:pt x="152933" y="171221"/>
+            <a:pt x="143790" y="166421"/>
+          </a:cubicBezTo>
+          <a:lnTo>
+            <a:pt x="143790" y="177851"/>
+          </a:lnTo>
+          <a:cubicBezTo>
+            <a:pt x="143790" y="182080"/>
+            <a:pt x="140361" y="185509"/>
+            <a:pt x="136132" y="185509"/>
+          </a:cubicBezTo>
+          <a:cubicBezTo>
+            <a:pt x="131903" y="185509"/>
+            <a:pt x="128474" y="182080"/>
+            <a:pt x="128474" y="177851"/>
+          </a:cubicBezTo>
+          <a:lnTo>
+            <a:pt x="128474" y="152819"/>
+          </a:lnTo>
+          <a:cubicBezTo>
+            <a:pt x="128474" y="149962"/>
+            <a:pt x="130073" y="147333"/>
+            <a:pt x="132703" y="145961"/>
+          </a:cubicBezTo>
+          <a:cubicBezTo>
+            <a:pt x="135217" y="144590"/>
+            <a:pt x="138418" y="144818"/>
+            <a:pt x="140703" y="146533"/>
+          </a:cubicBezTo>
+          <a:cubicBezTo>
+            <a:pt x="140932" y="146647"/>
+            <a:pt x="161506" y="161163"/>
+            <a:pt x="178080" y="161163"/>
+          </a:cubicBezTo>
+          <a:cubicBezTo>
+            <a:pt x="191910" y="161163"/>
+            <a:pt x="209741" y="150647"/>
+            <a:pt x="215456" y="146533"/>
+          </a:cubicBezTo>
+          <a:cubicBezTo>
+            <a:pt x="218085" y="144590"/>
+            <a:pt x="221742" y="144590"/>
+            <a:pt x="224371" y="146533"/>
+          </a:cubicBezTo>
+          <a:cubicBezTo>
+            <a:pt x="224600" y="146647"/>
+            <a:pt x="245174" y="161163"/>
+            <a:pt x="261747" y="161163"/>
+          </a:cubicBezTo>
+          <a:cubicBezTo>
+            <a:pt x="275578" y="161163"/>
+            <a:pt x="293409" y="150647"/>
+            <a:pt x="299124" y="146533"/>
+          </a:cubicBezTo>
+          <a:cubicBezTo>
+            <a:pt x="301523" y="144818"/>
+            <a:pt x="304610" y="144590"/>
+            <a:pt x="307125" y="145961"/>
+          </a:cubicBezTo>
+          <a:cubicBezTo>
+            <a:pt x="309753" y="147333"/>
+            <a:pt x="311354" y="149962"/>
+            <a:pt x="311354" y="152819"/>
+          </a:cubicBezTo>
+          <a:close/>
+          <a:moveTo>
+            <a:pt x="219914" y="187452"/>
+          </a:moveTo>
+          <a:cubicBezTo>
+            <a:pt x="215685" y="187452"/>
+            <a:pt x="212255" y="190881"/>
+            <a:pt x="212255" y="195110"/>
+          </a:cubicBezTo>
+          <a:lnTo>
+            <a:pt x="212255" y="231686"/>
+          </a:lnTo>
+          <a:lnTo>
+            <a:pt x="175680" y="231686"/>
+          </a:lnTo>
+          <a:cubicBezTo>
+            <a:pt x="171450" y="231686"/>
+            <a:pt x="168021" y="235115"/>
+            <a:pt x="168021" y="239344"/>
+          </a:cubicBezTo>
+          <a:cubicBezTo>
+            <a:pt x="168021" y="243573"/>
+            <a:pt x="171450" y="247002"/>
+            <a:pt x="175680" y="247002"/>
+          </a:cubicBezTo>
+          <a:lnTo>
+            <a:pt x="212255" y="247002"/>
+          </a:lnTo>
+          <a:lnTo>
+            <a:pt x="212255" y="283578"/>
+          </a:lnTo>
+          <a:cubicBezTo>
+            <a:pt x="212255" y="287807"/>
+            <a:pt x="215685" y="291236"/>
+            <a:pt x="219914" y="291236"/>
+          </a:cubicBezTo>
+          <a:cubicBezTo>
+            <a:pt x="224143" y="291236"/>
+            <a:pt x="227572" y="287807"/>
+            <a:pt x="227572" y="283578"/>
+          </a:cubicBezTo>
+          <a:lnTo>
+            <a:pt x="227572" y="247002"/>
+          </a:lnTo>
+          <a:lnTo>
+            <a:pt x="264148" y="247002"/>
+          </a:lnTo>
+          <a:cubicBezTo>
+            <a:pt x="268377" y="247002"/>
+            <a:pt x="271806" y="243573"/>
+            <a:pt x="271806" y="239344"/>
+          </a:cubicBezTo>
+          <a:cubicBezTo>
+            <a:pt x="271806" y="235115"/>
+            <a:pt x="268377" y="231686"/>
+            <a:pt x="264148" y="231686"/>
+          </a:cubicBezTo>
+          <a:lnTo>
+            <a:pt x="227572" y="231686"/>
+          </a:lnTo>
+          <a:lnTo>
+            <a:pt x="227572" y="195110"/>
+          </a:lnTo>
+          <a:cubicBezTo>
+            <a:pt x="227572" y="190881"/>
+            <a:pt x="224143" y="187452"/>
+            <a:pt x="219914" y="187452"/>
+          </a:cubicBezTo>
+          <a:close/>
+          <a:moveTo>
+            <a:pt x="145390" y="251346"/>
+          </a:moveTo>
+          <a:lnTo>
+            <a:pt x="145390" y="426568"/>
+          </a:lnTo>
+          <a:cubicBezTo>
+            <a:pt x="145390" y="430797"/>
+            <a:pt x="141961" y="434226"/>
+            <a:pt x="137732" y="434226"/>
+          </a:cubicBezTo>
+          <a:lnTo>
+            <a:pt x="7773" y="434226"/>
+          </a:lnTo>
+          <a:cubicBezTo>
+            <a:pt x="3543" y="434226"/>
+            <a:pt x="114" y="430797"/>
+            <a:pt x="114" y="426568"/>
+          </a:cubicBezTo>
+          <a:lnTo>
+            <a:pt x="114" y="251346"/>
+          </a:lnTo>
+          <a:cubicBezTo>
+            <a:pt x="114" y="207340"/>
+            <a:pt x="30747" y="175450"/>
+            <a:pt x="72810" y="175450"/>
+          </a:cubicBezTo>
+          <a:cubicBezTo>
+            <a:pt x="114872" y="175450"/>
+            <a:pt x="145504" y="208826"/>
+            <a:pt x="145504" y="251346"/>
+          </a:cubicBezTo>
+          <a:close/>
+          <a:moveTo>
+            <a:pt x="129960" y="251346"/>
+          </a:moveTo>
+          <a:cubicBezTo>
+            <a:pt x="129960" y="217399"/>
+            <a:pt x="104814" y="190881"/>
+            <a:pt x="72695" y="190881"/>
+          </a:cubicBezTo>
+          <a:cubicBezTo>
+            <a:pt x="38977" y="190881"/>
+            <a:pt x="15431" y="215798"/>
+            <a:pt x="15431" y="251346"/>
+          </a:cubicBezTo>
+          <a:lnTo>
+            <a:pt x="15431" y="418795"/>
+          </a:lnTo>
+          <a:lnTo>
+            <a:pt x="129960" y="418795"/>
+          </a:lnTo>
+          <a:lnTo>
+            <a:pt x="129960" y="251346"/>
+          </a:lnTo>
+          <a:close/>
+          <a:moveTo>
+            <a:pt x="0" y="72695"/>
+          </a:moveTo>
+          <a:cubicBezTo>
+            <a:pt x="0" y="32576"/>
+            <a:pt x="32576" y="0"/>
+            <a:pt x="72695" y="0"/>
+          </a:cubicBezTo>
+          <a:cubicBezTo>
+            <a:pt x="112815" y="0"/>
+            <a:pt x="145390" y="32576"/>
+            <a:pt x="145390" y="72695"/>
+          </a:cubicBezTo>
+          <a:cubicBezTo>
+            <a:pt x="145390" y="112814"/>
+            <a:pt x="112815" y="145390"/>
+            <a:pt x="72695" y="145390"/>
+          </a:cubicBezTo>
+          <a:cubicBezTo>
+            <a:pt x="32576" y="145390"/>
+            <a:pt x="0" y="112814"/>
+            <a:pt x="0" y="72695"/>
+          </a:cubicBezTo>
+          <a:close/>
+          <a:moveTo>
+            <a:pt x="15431" y="72695"/>
+          </a:moveTo>
+          <a:cubicBezTo>
+            <a:pt x="15431" y="104242"/>
+            <a:pt x="41148" y="129959"/>
+            <a:pt x="72695" y="129959"/>
+          </a:cubicBezTo>
+          <a:cubicBezTo>
+            <a:pt x="104242" y="129959"/>
+            <a:pt x="129960" y="104242"/>
+            <a:pt x="129960" y="72695"/>
+          </a:cubicBezTo>
+          <a:cubicBezTo>
+            <a:pt x="129960" y="41148"/>
+            <a:pt x="104242" y="15431"/>
+            <a:pt x="72695" y="15431"/>
+          </a:cubicBezTo>
+          <a:cubicBezTo>
+            <a:pt x="41148" y="15431"/>
+            <a:pt x="15431" y="41148"/>
+            <a:pt x="15431" y="72695"/>
+          </a:cubicBezTo>
+          <a:close/>
+        </a:path>
+      </a:pathLst>
+    </a:custGeom>
+    <a:solidFill>
+      <a:srgbClr val="000000"/>
+    </a:solidFill>
+    <a:ln w="11430" cap="flat">
+      <a:noFill/>
+      <a:prstDash val="solid"/>
+      <a:miter/>
+    </a:ln>
+  </p:spPr>
+  <p:txBody>
+    <a:bodyPr rtlCol="0" anchor="ctr"/>
+    <a:lstStyle/>
+    <a:p>
+      <a:endParaRPr lang="en-US"/>
+    </a:p>
+  </p:txBody>
+</p:sp>

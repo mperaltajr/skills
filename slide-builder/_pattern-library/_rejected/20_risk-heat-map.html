@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>20 · Risk heat map</title>
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --heat-low: #DCFCE7;
+  --heat-mid: #FEF3C7;
+  --heat-high: #FECACA;
+  --threshold: #DC2626;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1280px; height: 720px; background: var(--slide-bg); font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; color: var(--text-dark); overflow: hidden; }
+body { padding: 50px 64px; position: relative; }
+.draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; }
+.project-label { position: absolute; top: 24px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
+
+.action-title { font-size: 28px; font-weight: 700; line-height: 1.2; }
+.action-title strong { color: var(--brand-primary); }
+.subhead { font-size: 14px; color: var(--text-mid); margin-top: 10px; font-style: italic; }
+.title-rule { width: 56px; height: 3px; background: var(--brand-accent); margin: 18px 0 26px 0; }
+
+.body-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; align-items: start; }
+
+/* Heat map */
+.heatmap-wrap { position: relative; padding-left: 56px; padding-bottom: 40px; }
+.y-axis-label { position: absolute; left: 0; top: 50%; transform: translateY(-50%) rotate(-90deg); transform-origin: center; color: var(--text-mid); font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; white-space: nowrap; }
+.y-axis-low, .y-axis-high { position: absolute; left: 28px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+.y-axis-high { top: 0; }
+.y-axis-low { bottom: 50px; }
+
+.x-axis-label { position: absolute; left: 56px; right: 0; bottom: 0; text-align: center; color: var(--text-mid); font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; }
+.x-axis-low { position: absolute; left: 56px; bottom: 22px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+.x-axis-high { position: absolute; right: 0; bottom: 22px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
+
+.grid { position: relative; display: grid; grid-template-columns: repeat(5, 1fr); grid-template-rows: repeat(5, 1fr); width: 100%; aspect-ratio: 1 / 1; gap: 2px; background: #FFFFFF; }
+.cell { position: relative; }
+/* Zone tinting: bottom-left low (green), diagonal band mid (yellow), top-right high (red) */
+.z-low { background: var(--heat-low); }
+.z-mid { background: var(--heat-mid); }
+.z-high { background: var(--heat-high); }
+
+/* Threshold diagonal line — runs from top-left of (col=2,row=1) to bottom-right of (col=5,row=4) i.e. the boundary between yellow and red */
+.threshold-line { position: absolute; left: 0; top: 0; width: 100%; height: 100%; pointer-events: none; }
+
+/* Risk markers — positioned at cell centers using percentages of grid (5×5 ⇒ cell centers at 10%, 30%, 50%, 70%, 90%) */
+.marker { position: absolute; width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 13px; font-weight: 700; letter-spacing: 0.5px; transform: translate(-50%, -50%); box-shadow: 0 2px 6px rgba(45, 10, 78, 0.25); border: 2px solid #FFFFFF; }
+.marker.safe { background: var(--brand-primary); }
+.marker.danger { background: var(--threshold); }
+
+/* Legend — fallback position: inside chart container, top-right */
+.legend { position: absolute; top: 8px; right: 8px; background: var(--card-bg); border: 1px solid var(--card-border); padding: 16px 18px; z-index: 10; }
+.legend-title { font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--brand-primary); margin-bottom: 10px; }
+.legend-row { display: flex; align-items: center; gap: 10px; font-size: 12px; color: var(--text-dark); margin-bottom: 6px; }
+.legend-row:last-child { margin-bottom: 0; }
+.swatch { width: 16px; height: 16px; flex-shrink: 0; border: 1px solid rgba(0,0,0,0.06); }
+.sw-low { background: var(--heat-low); }
+.sw-mid { background: var(--heat-mid); }
+.sw-high { background: var(--heat-high); }
+.legend-thresh { width: 20px; height: 0; border-top: 2px dashed var(--threshold); flex-shrink: 0; }
+
+.risk-list-title { font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--brand-primary); margin-bottom: 10px; }
+.risk-list { list-style: none; }
+.risk-list li { display: flex; align-items: flex-start; gap: 10px; font-size: 13px; line-height: 1.4; padding: 7px 0; border-bottom: 1px solid var(--card-border); }
+.risk-list li:last-child { border-bottom: none; }
+.risk-badge { width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #FFFFFF; font-size: 11px; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
+.risk-badge.safe { background: var(--brand-primary); }
+.risk-badge.danger { background: var(--threshold); }
+.risk-name { flex: 1; }
+.risk-name strong { color: var(--brand-primary); }
+.risk-meta { color: var(--text-mid); font-size: 11px; }
+.risk-flag { color: var(--threshold); font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; margin-left: 4px; }
+
+.convergence { position: absolute; left: 64px; right: 64px; bottom: 70px; background: var(--brand-primary); color: white; padding: 12px 22px; font-size: 14px; font-style: italic; font-weight: 500; }
+
+.footer-rule { position: absolute; left: 0; right: 0; bottom: 32px; height: 1px; background: var(--card-border); }
+.footer-left { position: absolute; bottom: 14px; left: 24px; color: var(--text-faint); font-size: 10px; letter-spacing: 1px; }
+.footer-right { position: absolute; bottom: 14px; right: 24px; color: var(--text-faint); font-size: 11px; }
+</style>
+</head>
+<body>
+  <div class="project-label" data-shape-id="accenture-tag">ACCENTURE INTERNAL</div>
+  <div class="draft-badge" data-shape-id="draft-badge">DRAFT</div>
+
+  <div class="action-title" data-shape-id="title">Six risks tracked — <strong>two are above the threshold</strong>.</div>
+  <div class="subhead" data-shape-id="subtitle">Likelihood × impact view across the program. A and E need mitigation plans before pilot launch.</div>
+  <div class="title-rule" data-shape-id="brand-rule"></div>
+
+  <div class="body-grid">
+    <!-- LEFT: Heat map -->
+    <div class="heatmap-wrap" data-shape-id="chart-canvas">
+      <div class="y-axis-label">Impact</div>
+      <div class="y-axis-high">High</div>
+      <div class="y-axis-low">Low</div>
+
+      <div class="grid">
+        <!-- Row 1 (top, impact=high) -->
+        <div class="cell z-mid"></div>
+        <div class="cell z-high"></div>
+        <div class="cell z-high"></div>
+        <div class="cell z-high"></div>
+        <div class="cell z-high"></div>
+        <!-- Row 2 -->
+        <div class="cell z-mid"></div>
+        <div class="cell z-mid"></div>
+        <div class="cell z-high"></div>
+        <div class="cell z-high"></div>
+        <div class="cell z-high"></div>
+        <!-- Row 3 (diagonal) -->
+        <div class="cell z-low"></div>
+        <div class="cell z-mid"></div>
+        <div class="cell z-mid"></div>
+        <div class="cell z-high"></div>
+        <div class="cell z-high"></div>
+        <!-- Row 4 -->
+        <div class="cell z-low"></div>
+        <div class="cell z-low"></div>
+        <div class="cell z-mid"></div>
+        <div class="cell z-mid"></div>
+        <div class="cell z-high"></div>
+        <!-- Row 5 (bottom, impact=low) -->
+        <div class="cell z-low"></div>
+        <div class="cell z-low"></div>
+        <div class="cell z-low"></div>
+        <div class="cell z-mid"></div>
+        <div class="cell z-mid"></div>
+
+        <!-- Threshold diagonal: boundary between mid and high zones -->
+        <svg class="threshold-line" viewBox="0 0 100 100" preserveAspectRatio="none">
+          <line x1="0" y1="40" x2="60" y2="0" stroke="#DC2626" stroke-width="0.6" stroke-dasharray="2,1.5" vector-effect="non-scaling-stroke" style="stroke-width:2px;" />
+        </svg>
+
+        <!-- Risk markers: cell centers at 10/30/50/70/90 % on each axis -->
+        <!-- A. Stakeholder withdrawal — high impact, medium likelihood (col 3, row 1) → danger -->
+        <div class="marker danger" style="left: 50%; top: 10%;">A</div>
+        <!-- B. Resource constraints — medium, medium (col 3, row 3) → safe (on/below threshold) -->
+        <div class="marker safe" style="left: 50%; top: 50%;">B</div>
+        <!-- C. Tooling gaps — low impact, high likelihood (col 5, row 4) → safe -->
+        <div class="marker safe" style="left: 90%; top: 70%;">C</div>
+        <!-- D. Vendor delays — medium impact, low likelihood (col 2, row 3) → safe -->
+        <div class="marker safe" style="left: 30%; top: 50%;">D</div>
+        <!-- E. Scope creep — high, high (col 5, row 1) → danger -->
+        <div class="marker danger" style="left: 90%; top: 10%;">E</div>
+        <!-- F. Change management lag — medium, medium (col 4, row 3) → safe (offset from B to avoid overlap) -->
+        <div class="marker safe" style="left: 70%; top: 50%;">F</div>
+      </div>
+
+      <div class="x-axis-low">Low</div>
+      <div class="x-axis-high">High</div>
+      <div class="x-axis-label">Likelihood</div>
+
+      <div class="legend">
+        <div class="legend-title" data-shape-id="legend-title">Legend</div>
+        <div class="legend-row"><div class="swatch sw-low" data-shape-id="legend-1-swatch"></div><span data-shape-id="legend-1-label">Low risk zone</span></div>
+        <div class="legend-row"><div class="swatch sw-mid" data-shape-id="legend-2-swatch"></div><span data-shape-id="legend-2-label">Medium risk zone</span></div>
+        <div class="legend-row"><div class="swatch sw-high" data-shape-id="legend-3-swatch"></div><span data-shape-id="legend-3-label">High risk zone</span></div>
+        <div class="legend-row"><div class="legend-thresh" data-shape-id="legend-4-swatch"></div><span data-shape-id="legend-4-label">Mitigation threshold — anything above requires a plan</span></div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Risk list -->
+    <div>
+      <div class="risk-list-title" data-shape-id="risk-list-title">Tracked risks</div>
+      <ul class="risk-list">
+        <li>
+          <div class="risk-badge danger" data-shape-id="risk-1-badge">A</div>
+          <div class="risk-name" data-shape-id="risk-1-name"><strong>Stakeholder withdrawal</strong><br><span class="risk-meta">High impact · Medium likelihood</span><span class="risk-flag">Above threshold</span></div>
+        </li>
+        <li>
+          <div class="risk-badge safe" data-shape-id="risk-2-badge">B</div>
+          <div class="risk-name" data-shape-id="risk-2-name"><strong>Resource constraints</strong><br><span class="risk-meta">Medium impact · Medium likelihood</span></div>
+        </li>
+        <li>
+          <div class="risk-badge safe" data-shape-id="risk-3-badge">C</div>
+          <div class="risk-name" data-shape-id="risk-3-name"><strong>Tooling gaps</strong><br><span class="risk-meta">Low impact · High likelihood</span></div>
+        </li>
+        <li>
+          <div class="risk-badge safe" data-shape-id="risk-4-badge">D</div>
+          <div class="risk-name" data-shape-id="risk-4-name"><strong>Vendor delays</strong><br><span class="risk-meta">Medium impact · Low likelihood</span></div>
+        </li>
+        <li>
+          <div class="risk-badge danger" data-shape-id="risk-5-badge">E</div>
+          <div class="risk-name" data-shape-id="risk-5-name"><strong>Scope creep</strong><br><span class="risk-meta">High impact · High likelihood</span><span class="risk-flag">Above threshold</span></div>
+        </li>
+        <li>
+          <div class="risk-badge safe" data-shape-id="risk-6-badge">F</div>
+          <div class="risk-name" data-shape-id="risk-6-name"><strong>Change management lag</strong><br><span class="risk-meta">Medium impact · Medium likelihood</span></div>
+        </li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="convergence" data-shape-id="convergence">Risks A and E need mitigation plans before pilot launch.</div>
+
+  <div class="footer-rule" data-shape-id="footer-rule"></div>
+  <div class="footer-left" data-shape-id="footer-left">CONFIDENTIAL — ACCENTURE INTERNAL</div>
+  <div class="footer-right" data-shape-id="footer-right">Slide Lab · 2026 · 20</div>
+</body>
+</html>

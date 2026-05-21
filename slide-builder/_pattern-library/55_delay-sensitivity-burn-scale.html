@@ -1,0 +1,293 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>55 · Delay sensitivity &mdash; burn scale</title>
+<style>
+:root {
+  --brand-primary: #2D0A4E;
+  --brand-primary-mid: #5C2D87;
+  --brand-accent: #A100FF;
+  --brand-accent-soft: #C780FF;
+  --text-dark: #1A1A2E;
+  --text-mid: #64748B;
+  --text-faint: #94A3B8;
+  --slide-bg: #FFFFFF;
+  --card-bg: #F8F4FC;
+  --card-border: #E5D5F0;
+  --draft-bg: #FFD600;
+  --draft-text: #B71C1C;
+
+  --good-bg: #ECFDF3;
+  --good-ink: #027A48;
+  --warn-bg: #FFFAEB;
+  --warn-ink: #B54708;
+  --bad-bg:  #FEF3F2;
+  --bad-ink: #B42318;
+
+  /* Heat ramp for week-of-delay scale */
+  --burn-1: #FEE4E2;
+  --burn-2: #FDA29B;
+  --burn-3: #F04438;
+  --burn-4: #B42318;
+  --burn-5: #7A271A;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 1280px; height: 720px; background: var(--slide-bg); font-family: 'Inter', -apple-system, 'Segoe UI', sans-serif; color: var(--text-dark); overflow: hidden; }
+body { padding: 50px 56px 80px 56px; position: relative; }
+
+.draft-badge { position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: var(--draft-bg); color: var(--draft-text); font-size: 11px; font-weight: 700; padding: 4px 16px; letter-spacing: 1px; }
+.project-label { position: absolute; top: 24px; left: 24px; color: var(--text-faint); font-size: 10px; font-weight: 600; letter-spacing: 1.5px; text-transform: uppercase; }
+
+.action-title { position: absolute; left: 56px; right: 56px; top: 28px; min-height: 72px; font-size: 27px; font-weight: 700; line-height: 1.2; max-width: 1050px; }
+.action-title strong { color: var(--brand-primary); }
+.subhead { position: absolute; left: 56px; right: 56px; top: 100px; font-size: 14px; color: var(--text-mid); font-style: italic; }
+.title-rule { position: absolute; left: 56px; top: 128px; width: 40px; height: 3px; background: var(--brand-accent); }
+
+.content-block {
+  position: absolute;
+  left: 56px;
+  right: 56px;
+  top: 196px;
+  bottom: 80px;
+  display: flex; flex-wrap: wrap;
+  gap: 24px;
+}
+
+/* ── LEFT: hero burn-rate card ───────────────────────────── */
+.hero-burn {
+  background: var(--brand-primary);
+  color: #fff;
+  padding: 32px 32px 28px 32px;
+  display: flex; flex-direction: column;
+  gap: 18px;
+  position: relative;
+  overflow: hidden;
+}
+.hero-burn::before {
+  content: ""; position: absolute; top: 0; left: 0; bottom: 0; width: 5px;
+  background: var(--brand-accent);
+}
+.hero-eyebrow {
+  font-size: 10px; font-weight: 700; letter-spacing: 1.8px; text-transform: uppercase;
+  color: var(--brand-accent-soft);
+}
+.hero-value {
+  font-size: 88px; font-weight: 900; line-height: 1; letter-spacing: -3px;
+  color: #fff;
+}
+.hero-unit {
+  font-size: 22px; font-weight: 600; letter-spacing: -0.3px;
+  color: var(--brand-accent-soft);
+  margin-top: 4px;
+}
+.hero-claim {
+  font-size: 15px; font-weight: 500; line-height: 1.45;
+  color: rgba(255,255,255,0.88);
+  border-top: 1px solid rgba(255,255,255,0.18);
+  padding-top: 16px;
+}
+.hero-claim strong { color: #fff; font-weight: 700; }
+
+.hero-derivation {
+  display: flex; gap: 18px;
+  margin-top: auto;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255,255,255,0.18);
+}
+.deriv-item { display: flex; flex-direction: column; gap: 2px; flex: 1; }
+.deriv-label { font-size: 9px; font-weight: 700; letter-spacing: 1.4px; text-transform: uppercase; color: var(--brand-accent-soft); }
+.deriv-value { font-size: 16px; font-weight: 800; color: #fff; letter-spacing: -0.2px; }
+.deriv-note  { font-size: 10px; color: rgba(255,255,255,0.7); }
+
+/* ── RIGHT: delay-week burn scale ───────────────────────── */
+.burn-panel {
+  display: flex; flex-direction: column;
+  gap: 14px;
+}
+.panel-head {
+  display: flex; flex-direction: column; gap: 4px;
+}
+.panel-title {
+  font-size: 14px; font-weight: 800; letter-spacing: 1.2px; text-transform: uppercase;
+  color: var(--brand-primary);
+}
+.panel-sub {
+  font-size: 14px; color: var(--text-mid); font-style: italic;
+}
+
+/* horizontal scale: 8 week slots, each with its own bar of cumulative $ */
+.burn-scale {
+  display: flex; flex-wrap: wrap;
+  background: white;
+  border: 1px solid var(--card-border);
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+.row-lbl {
+  display: flex; align-items: center; justify-content: flex-end;
+  padding: 0 12px 0 10px;
+  font-size: 11px; font-weight: 700; color: var(--brand-primary);
+  border-top: 1px solid var(--card-border);
+  background: var(--card-bg);
+  border-right: 1px solid var(--card-border);
+}
+.row-lbl:first-of-type { border-top: none; }
+.row-bar {
+  display: flex; align-items: center;
+  padding: 0 14px 0 4px;
+  border-top: 1px solid var(--card-border);
+  position: relative;
+  gap: 10px;
+}
+.row-bar:first-of-type { border-top: none; }
+.bar {
+  height: 14px; border-radius: 2px;
+  flex-shrink: 0;
+}
+.bar-val {
+  font-size: 14px; font-weight: 800; color: var(--text-dark);
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+}
+.bar-val .delta { color: var(--bad-ink); font-weight: 700; margin-left: 4px; font-size: 10px; }
+
+.scale-axis {
+  display: flex; justify-content: space-between;
+  padding: 6px 14px 0 82px;
+  font-size: 10px; color: var(--text-faint); font-weight: 600;
+  letter-spacing: 0.4px;
+}
+
+/* threshold callout */
+.threshold {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 12px;
+  background: var(--bad-bg);
+  border-left: 3px solid var(--bad-ink);
+  font-size: 11px;
+  color: var(--bad-ink);
+  font-weight: 600;
+}
+.threshold strong { font-weight: 800; }
+
+/* ── Footer invariant ───────────────────────────────────── */
+.footer-rule { position: absolute; left: 0; right: 0; bottom: 32px; height: 1px; background: var(--card-border); }
+.footer-left { position: absolute; bottom: 14px; left: 24px; color: var(--text-faint); font-size: 11px; letter-spacing: 1px; }
+.footer-right { position: absolute; bottom: 14px; right: 24px; color: var(--text-faint); font-size: 11px; }
+</style>
+</head>
+<body>
+
+  <div class="action-title">Every week of delay costs <strong>$1.2M</strong> &mdash; the cost compounds linearly.</div>
+  <div class="subhead">Sensitivity of foregone savings to exit-window slip. Read the scale; pick a tolerance.</div>
+  <div class="title-rule"></div>
+
+  <div class="content-block">
+
+    <!-- LEFT: hero burn rate -->
+    <div class="hero-burn">
+      <div class="hero-eyebrow">Burn rate &mdash; per week of delay</div>
+      <div>
+        <div class="hero-value">$1.2M</div>
+        <div class="hero-unit">per week of slipped exit</div>
+      </div>
+      <div class="hero-claim">
+        Foregone savings accrue <strong>linearly</strong> from the planned exit date. There is no &ldquo;free&rdquo; week &mdash;
+        every Friday past the baseline burns the same $1.2M.
+      </div>
+      <div class="hero-derivation">
+        <div class="deriv-item">
+          <div class="deriv-label">Headcount</div>
+          <div class="deriv-value">~530 FTE</div>
+          <div class="deriv-note">across all exits</div>
+        </div>
+        <div class="deriv-item">
+          <div class="deriv-label">Fully-loaded</div>
+          <div class="deriv-value">~$118K/FTE/yr</div>
+          <div class="deriv-note">blended rate</div>
+        </div>
+        <div class="deriv-item">
+          <div class="deriv-label">Implied</div>
+          <div class="deriv-value">$1.2M / wk</div>
+          <div class="deriv-note">linear at this scale</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: per-week burn scale -->
+    <div class="burn-panel">
+      <div class="panel-head">
+        <div class="panel-title">Cumulative cost by weeks of delay</div>
+        <div class="panel-sub">Each row adds one week past the planned exit. Bar length and color scale with the dollar impact.</div>
+      </div>
+
+      <div class="burn-scale">
+        <div class="row-lbl">+1 wk</div>
+        <div class="row-bar">
+          <div class="bar" style="width: 12%; background: var(--burn-1);"></div>
+          <div class="bar-val">$1.2M <span class="delta">&#9660;</span></div>
+        </div>
+
+        <div class="row-lbl">+2 wk</div>
+        <div class="row-bar">
+          <div class="bar" style="width: 24%; background: var(--burn-1);"></div>
+          <div class="bar-val">$2.4M <span class="delta">&#9660;</span></div>
+        </div>
+
+        <div class="row-lbl">+3 wk</div>
+        <div class="row-bar">
+          <div class="bar" style="width: 36%; background: var(--burn-2);"></div>
+          <div class="bar-val">$3.6M <span class="delta">&#9660;</span></div>
+        </div>
+
+        <div class="row-lbl">+4 wk</div>
+        <div class="row-bar">
+          <div class="bar" style="width: 48%; background: var(--burn-2);"></div>
+          <div class="bar-val">$4.8M <span class="delta">&#9660;</span></div>
+        </div>
+
+        <div class="row-lbl">+5 wk</div>
+        <div class="row-bar">
+          <div class="bar" style="width: 60%; background: var(--burn-3);"></div>
+          <div class="bar-val">$6.0M <span class="delta">&#9660;</span></div>
+        </div>
+
+        <div class="row-lbl">+6 wk</div>
+        <div class="row-bar">
+          <div class="bar" style="width: 72%; background: var(--burn-3);"></div>
+          <div class="bar-val">$7.2M <span class="delta">&#9660;</span></div>
+        </div>
+
+        <div class="row-lbl">+7 wk</div>
+        <div class="row-bar">
+          <div class="bar" style="width: 84%; background: var(--burn-4);"></div>
+          <div class="bar-val">$8.4M <span class="delta">&#9660;</span></div>
+        </div>
+
+        <div class="row-lbl">+8 wk</div>
+        <div class="row-bar">
+          <div class="bar" style="width: 96%; background: var(--burn-5);"></div>
+          <div class="bar-val">$9.6M <span class="delta">&#9660;</span></div>
+        </div>
+      </div>
+
+      <div class="scale-axis">
+        <span>$0</span>
+        <span>$2.5M</span>
+        <span>$5.0M</span>
+        <span>$7.5M</span>
+        <span>$10M</span>
+      </div>
+
+      <div class="threshold">
+        <strong>Tolerance threshold:</strong>&nbsp;past +4 weeks ($4.8M), foregone savings exceed annual program budget.
+      </div>
+    </div>
+
+  </div>
+  <div class="footer-left"></div>
+  <div class="footer-right"></div>
+</body>
+</html>
