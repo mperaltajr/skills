@@ -20,8 +20,13 @@ BRAND_PRIMARY_MID = RGBColor(0x5C, 0x2D, 0x87)
 BRAND_ACCENT = RGBColor(0xA1, 0x00, 0xFF)
 BRAND_ACCENT_SOFT = RGBColor(0xC7, 0x80, 0xFF)
 TEXT_DARK = RGBColor(0x1A, 0x1A, 0x2E)
-TEXT_MID = RGBColor(0x64, 0x74, 0x8B)
-TEXT_FAINT = RGBColor(0x94, 0xA3, 0xB8)
+# TEXT_MID and TEXT_FAINT formerly carried distinct gray values for editorial
+# hierarchy. Corporate templates (Accenture, FedEx, etc.) use black-with-sized-
+# hierarchy instead of multi-value gray gradients, so the grays read as off-
+# brand on most client work. Aliased to TEXT_DARK so existing code keeps
+# working; hierarchy comes from size/weight/italic only.
+TEXT_MID = TEXT_DARK
+TEXT_FAINT = TEXT_DARK
 SLIDE_BG = RGBColor(0xFF, 0xFF, 0xFF)
 CARD_BG = RGBColor(0xFB, 0xF8, 0xFE)
 CARD_BORDER = RGBColor(0xEC, 0xE0, 0xF5)
@@ -100,7 +105,7 @@ def _split_runs(text, *, base_bold=False, base_italic=False,
 
 
 def add_text(slide, shape_id, text, x_px, y_px, w_px, h_px, *,
-             font_size_px=14, color=TEXT_DARK, bold=False, italic=False,
+             font_size_px=14, font_size_pt=None, color=TEXT_DARK, bold=False, italic=False,
              font_name="Inter", align="left", anchor="top",
              letter_spacing_px=0, uppercase=False, bg_fill=None,
              padding_px=(0, 0, 0, 0), emphasis_color=None):
@@ -162,7 +167,7 @@ def add_text(slide, shape_id, text, x_px, y_px, w_px, h_px, *,
         run.text = seg.upper() if uppercase else seg
         f = run.font
         f.name = font_name
-        f.size = px_to_pt(font_size_px)
+        f.size = Pt(font_size_pt) if font_size_pt is not None else px_to_pt(font_size_px)
         f.bold = seg_bold
         f.italic = seg_italic
         if seg_color is not None:
@@ -380,26 +385,30 @@ def add_footer(slide, page_num, source=None, footnote=None):
 
 def add_title_block(slide, title, subtitle, *,
                     title_x=64, title_y=20, title_w=1000, title_h=80,
-                    subtitle_h=22, brand_rule_w=64):
-    """Standard title (32px bold, BOTTOM-anchored) + subtitle (14px italic) + brand-rule.
+                    subtitle_h=26):
+    """Standard title (28pt PPTX, BOTTOM-anchored) + subtitle (16pt PPTX italic).
 
     Title text is bottom-anchored within its 80px box, so the BOTTOM of the title
     is at a fixed y position (title_y + title_h = y=100) regardless of whether
     the title wraps to 1 or 2 lines. 2-line titles grow UPWARD from that bottom
     line; they never displace the subtitle. Top of the 2-line title can extend
-    up to y≈28 (still within the safe top zone).
-
-    Brand-rule sits TIGHT below the subtitle (2px gap → y=132) so the accent
-    bar reads as part of the title block, not as a divider above the body.
-    This position is consistent across light and dark patterns.
+    up to y=28 (still within the safe top zone).
 
     Title supports inline `<strong>X</strong>` for brand-primary emphasis
     (matches every approved pattern's HTML convention).
+
+    NOTE: this helper no longer auto-draws a brand-accent rule beneath the
+    subtitle. Helper-default accent decoration on every slide competed with
+    deliberate accent placement by agents, violating the "one accent moment
+    per slide" rule. Place accent on whatever element load-bears the takeaway:
+    a highlight bar on a chart, a callout on a card, a `BRAND_ACCENT` fill on
+    a recommendation band, etc. Cover and hero-statement slides build their
+    own title treatment via direct `add_text` calls (see cover exemplars).
     """
     add_text(
         slide, "title", title,
         x_px=title_x, y_px=title_y, w_px=title_w, h_px=title_h,
-        font_size_px=32, color=TEXT_DARK, bold=True,
+        font_size_pt=28, color=TEXT_DARK, bold=True,
         emphasis_color=BRAND_PRIMARY,
         anchor="bottom",
     )
@@ -407,13 +416,7 @@ def add_title_block(slide, title, subtitle, *,
     add_text(
         slide, "subtitle", subtitle,
         x_px=title_x, y_px=sub_y, w_px=title_w - 120, h_px=subtitle_h,
-        font_size_px=14, color=TEXT_MID, italic=True,
-    )
-    rule_y = sub_y + subtitle_h + 2
-    add_rect(
-        slide, "brand-rule",
-        x_px=title_x, y_px=rule_y, w_px=brand_rule_w, h_px=3,
-        fill_color=BRAND_ACCENT,
+        font_size_pt=16, color=TEXT_DARK, italic=True,
     )
 
 
@@ -455,3 +458,74 @@ def add_convergence(slide, text, *, bottom_px=78, height_px=42):
         font_size_px=14, color=WHITE, italic=True, bold=False,
         anchor="middle", padding_px=(0, 22, 0, 22),
     )
+
+
+def add_table(slide, shape_id, x_px, y_px, w_px, h_px, *,
+              headers, rows,
+              banded=True,
+              header_fill=BRAND_PRIMARY,
+              header_text=WHITE,
+              body_text=TEXT_DARK,
+              font_size_px=14,
+              font_name="Inter"):
+    """Add a native PowerPoint table with mandatory column headers.
+
+    `headers` is REQUIRED — no default. Tables without column labels are
+    unreadable; the API enforces what the design rule expects. Pass a list
+    of header strings; the column count is derived from that list.
+
+    `rows` is a list of row lists; each row MUST have the same length as
+    `headers`. Cells contain plain text only.
+
+    For cell-treatment patterns (harvey balls, RYG pills, arrows, mini-bars,
+    sparklines), overlay shapes on top of the table after calling this helper.
+    A future version may support cell-type dicts directly — see roadmap.
+
+    Returns the python-pptx `GraphicFrame` containing the table.
+    """
+    n_cols = len(headers)
+    if n_cols == 0:
+        raise ValueError("add_table requires at least one header column")
+    n_rows = len(rows) + 1  # +1 for the header row
+
+    for i, row in enumerate(rows):
+        if len(row) != n_cols:
+            raise ValueError(
+                f"row {i} has {len(row)} cells, expected {n_cols} to match headers"
+            )
+
+    frame = slide.shapes.add_table(
+        n_rows, n_cols,
+        px_to_emu(x_px), px_to_emu(y_px),
+        px_to_emu(w_px), px_to_emu(h_px),
+    )
+    frame.name = shape_id
+    table = frame.table
+
+    def _style_cell(cell, *, text, font_color, bold=False, fill=None):
+        if fill is not None:
+            cell.fill.solid()
+            cell.fill.fore_color.rgb = fill
+        cell.text = str(text)
+        for paragraph in cell.text_frame.paragraphs:
+            for run in paragraph.runs:
+                run.font.name = font_name
+                run.font.size = px_to_pt(font_size_px)
+                run.font.bold = bold
+                run.font.color.rgb = font_color
+
+    # Header row
+    for c, header in enumerate(headers):
+        _style_cell(table.cell(0, c),
+                    text=header, font_color=header_text,
+                    bold=True, fill=header_fill)
+
+    # Body rows
+    for r, row_data in enumerate(rows, start=1):
+        for c, val in enumerate(row_data):
+            band_fill = CARD_BG if (banded and r % 2 == 0) else WHITE
+            _style_cell(table.cell(r, c),
+                        text=val, font_color=body_text,
+                        bold=False, fill=band_fill)
+
+    return frame
