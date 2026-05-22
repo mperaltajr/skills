@@ -617,6 +617,41 @@ def render_qc_banner(out_dir: Path) -> str:
 # Back-compat shim in case anything still calls the old name.
 def render_qc_banner_stub() -> str:
     return _render_qc_info_stub()
+
+
+# ---------------------------------------------------------------------------
+# Font-availability banner — shown only when the client template's fonts
+# aren't installed locally and PNG thumbnails are getting font-substituted.
+# Reads <out>/_finalize_meta.json written by finalize_deck.py.
+# ---------------------------------------------------------------------------
+def render_font_banner(out_dir: Path) -> str:
+    meta_path = out_dir / "_finalize_meta.json"
+    if not meta_path.exists():
+        return ""
+    try:
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    except Exception:
+        return ""
+
+    missing = meta.get("font_missing") or []
+    if not missing:
+        return ""
+
+    missing_list = ", ".join(html.escape(f) for f in missing)
+    return (
+        '<div class="font-banner">'
+        '<div class="font-banner-title">'
+        '<span class="font-banner-icon">&#9888;</span> '
+        'Thumbnails rendered with font substitution'
+        '</div>'
+        '<div class="font-banner-body">'
+        f'The client template uses <strong>{missing_list}</strong>, which is not '
+        'installed on this machine. The .pptx files themselves are correct &mdash; '
+        'when opened on a machine with these fonts installed, they will render with '
+        'the intended typography. The PNG thumbnails below show a fallback font.'
+        '</div>'
+        '</div>'
+    )
 # ---------------------------------------------------------------------------
 # Per-slide card
 # ---------------------------------------------------------------------------
@@ -663,12 +698,21 @@ def render_option_tile(slide: dict, opt: dict, themed_path_str: str) -> str:
     else:
         qc_badge = '<div class="qc-badge ok" title="all QC checks passed">OK QC</div>'
 
+    vqc_btn = (
+        f'<button class="vision-qc-btn" '
+        f'onclick="copyVisionQcPrompt(this, \'{html.escape(themed_path_str)}\')" '
+        f'title="Copy a paste-ready Claude prompt to run slide-qc vision review on this option">'
+        f'Vision QC &rarr;</button>'
+        if themed_path_str else ''
+    )
+
     return f"""
 <div class="option" data-slide="{sid}" data-letter="{letter}" data-pptx="{html.escape(themed_path_str)}">
   <div class="option-frame">{thumb}{qc_badge}</div>
   <div class="option-meta">
     <span class="option-letter">Option {letter}</span>
     <div class="option-taxon">{html.escape(page_type)}</div>
+    {vqc_btn}
   </div>
 </div>
 """
@@ -844,6 +888,20 @@ code { font-family: Consolas, monospace; font-size: 12px; color: var(--text-dim)
 .dd-bullets li::before { content: "– "; color: var(--accent-soft); position: absolute; left: -16px; }
 .dd-bullets li strong { color: var(--text); }
 .dd-bullets li em { color: var(--accent-soft); }
+
+/* Font-availability banner — shown when client fonts aren't installed locally */
+.font-banner { background: #FEF3C7; border-bottom: 2px solid #F59E0B; padding: 14px 24px; color: #78350F; }
+.font-banner-title { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+.font-banner-icon { color: #D97706; margin-right: 6px; }
+.font-banner-body { font-size: 13px; line-height: 1.5; }
+.font-banner-body strong { color: #78350F; font-weight: 700; }
+
+/* Vision-QC button on each option tile */
+.vision-qc-btn { display: inline-block; margin-left: auto; padding: 3px 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; border: 1px solid var(--border); background: var(--panel); color: var(--text-dim); border-radius: 3px; cursor: pointer; transition: all 0.15s; }
+.vision-qc-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
+.vision-qc-btn.copied { background: #16A34A; color: white; border-color: #16A34A; }
+.vision-qc-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); padding: 12px 20px; background: #16A34A; color: white; font-size: 13px; font-weight: 600; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); opacity: 0; pointer-events: none; transition: opacity 0.25s; z-index: 1000; }
+.vision-qc-toast.show { opacity: 1; }
 
 /* QC banner */
 .qc-brief-banner { background: var(--panel-2); border-bottom: 1px solid var(--border); padding: 12px 24px; }
@@ -1051,6 +1109,43 @@ function renderAll() {
         if (fb[k]) ta.value = fb[k];
     });
     updateCounts();
+}
+
+/* ----------------------------------------------------------------------
+   Vision QC — copies a paste-ready Claude prompt to clipboard.
+   ---------------------------------------------------------------------- */
+function copyVisionQcPrompt(btn, pptxPath) {
+    if (!pptxPath) {
+        showToast("No themed PPTX available for this option.");
+        return;
+    }
+    const prompt =
+        "Run /slide-qc on this single-slide PPTX and report the findings " +
+        "as Critical / Major / Advisory.\n\n" +
+        "PPTX: " + pptxPath + "\n\n" +
+        "Use vision (render to PNG, read zone-by-zone). Don't open PowerPoint.";
+    const fallback = function() {
+        const ta = document.createElement("textarea");
+        ta.value = prompt;
+        ta.style.position = "fixed";
+        ta.style.left = "-9999px";
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand("copy"); } catch (e) {}
+        document.body.removeChild(ta);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(prompt).catch(fallback);
+    } else {
+        fallback();
+    }
+    btn.classList.add("copied");
+    btn.textContent = "Copied to clipboard";
+    showToast("Vision QC prompt copied. Paste into Claude Code to run.");
+    setTimeout(function() {
+        btn.classList.remove("copied");
+        btn.innerHTML = "Vision QC &rarr;";
+    }, 2500);
 }
 
 /* ----------------------------------------------------------------------
@@ -1266,6 +1361,7 @@ def build_html(out_dir: Path, meta: Optional[dict], slides: list, storyline: dic
 
     storyline_html = render_storyline_html(storyline, slides)
     qc_html = render_qc_banner(out_dir)
+    font_html = render_font_banner(out_dir)
     cards_html = "\n".join(render_card(s) for s in slides)
 
     topbar_html = f"""
@@ -1321,6 +1417,7 @@ def build_html(out_dir: Path, meta: Optional[dict], slides: list, storyline: dic
         f"<style>{CSS}</style></head><body>"
         f"{topbar_html}"
         f"{storyline_html}"
+        f"{font_html}"
         f"{qc_html}"
         f"<div class=\"cards\">{cards_html}</div>"
         f"{footer_html}"

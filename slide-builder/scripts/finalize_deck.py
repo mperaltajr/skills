@@ -129,6 +129,68 @@ def _is_footnote_like_name(name: str) -> bool:
     return any(n.startswith(p) for p in _FOOTNOTE_NAME_PREFIXES)
 
 
+# ---------------------------------------------------------------------------
+# Font availability detection (Windows)
+# ---------------------------------------------------------------------------
+def detect_installed_fonts() -> set:
+    """Return the set of installed font family names on the local machine.
+
+    Uses PowerShell + System.Drawing.Text.InstalledFontCollection on Windows
+    (fast, reliable, no extra deps). Returns an empty set if detection fails —
+    callers should treat empty as "unknown" and not alarm.
+    """
+    try:
+        cmd = (
+            "Add-Type -AssemblyName System.Drawing; "
+            "[System.Drawing.Text.InstalledFontCollection]::new().Families "
+            "| ForEach-Object { $_.Name }"
+        )
+        result = subprocess.run(
+            ["powershell.exe", "-NoProfile", "-NonInteractive", "-Command", cmd],
+            capture_output=True, text=True, timeout=10,
+        )
+        if result.returncode != 0:
+            return set()
+        return {line.strip() for line in result.stdout.splitlines() if line.strip()}
+    except Exception:
+        return set()
+
+
+def detect_missing_client_fonts(theme) -> list:
+    """Compare the client template's major + minor fonts against installed fonts.
+
+    Returns a list of missing font names (deduplicated). Substring matching is
+    used both ways — template "FedEx Sans" matches installed "FedEx Sans
+    Regular" and vice versa.
+
+    Returns [] if the local font list can't be obtained (callers should not
+    show a banner in that case — silence is better than a false positive).
+    """
+    installed = detect_installed_fonts()
+    if not installed:
+        return []
+
+    inst_lower = {f.lower() for f in installed}
+    candidates = []
+    for f in (theme.major_font, theme.minor_font):
+        f = (f or "").strip()
+        if not f:
+            continue
+        f_lower = f.lower()
+        if any(f_lower in i or i in f_lower for i in inst_lower):
+            continue  # installed (or close enough)
+        candidates.append(f)
+
+    # Dedup while preserving order
+    seen = set()
+    missing = []
+    for f in candidates:
+        if f not in seen:
+            seen.add(f)
+            missing.append(f)
+    return missing
+
+
 def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set) -> dict:
     """Run 7 deterministic checks on a themed option. Return a dict with
     a list of per-check results + a summary count by severity."""
@@ -659,6 +721,28 @@ def main() -> int:
     print(f"  dk2={theme.dk2}  lt2={theme.lt2}  font={theme.minor_font}")
     print(f"  color_map entries: {len(color_map)}")
     print(f"  expected palette  : {len(expected_palette)} hex codes")
+
+    print("\n[3.1] Detect client-template fonts on local machine")
+    font_missing = detect_missing_client_fonts(theme)
+    if font_missing:
+        print(f"  WARNING: client fonts not installed locally: {', '.join(font_missing)}")
+        print(f"  PNG thumbnails will show font substitution; the .pptx itself is correct.")
+    else:
+        print(f"  all client fonts available (or detection inconclusive)")
+
+    # Write a finalize-time meta blob (read by build_review.py for banners + UX)
+    finalize_meta = {
+        "template": str(args.template),
+        "major_font": theme.major_font,
+        "minor_font": theme.minor_font,
+        "font_missing": font_missing,
+    }
+    try:
+        (args.out / "_finalize_meta.json").write_text(
+            json.dumps(finalize_meta, indent=2), encoding="utf-8"
+        )
+    except Exception as e:
+        print(f"  WARNING: could not write _finalize_meta.json: {e}")
 
     print("\n[3.5] Stash raw pre-theme PPTX (slide_NN/option_X.pptx -> slide_NN/_raw/)")
     for st in built_statuses:
