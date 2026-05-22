@@ -557,16 +557,16 @@ def directions_for(page_type: str) -> list[dict]:
 # sees the bottom-band variant and the right-card variant together. Keep ≤2 per
 # page-type to avoid prompt bloat.
 PAGE_TYPE_TO_EXEMPLAR: dict[str, list[str]] = {
-    "cover": ["cover-fullbleed-dark", "dark-hero-foil"],
+    "cover": ["cover-fullbleed-dark", "dark-hero-foil", "cover", "hero-numeral-divider"],
     "comparison-2-panel": ["2panel-convergence", "2panel-delta-spine"],
-    "comparison-3-card": ["3pillar-icon-circles", "dark-header-cards"],
+    "comparison-3-card": ["3pillar-icon-circles", "dark-header-cards", "three-column-vanilla", "three-col-progressive"],
     "ecosystem-three-state": ["3pillar-icon-circles"],
-    "anchor-with-supporting-cards": ["anchor-with-cards"],
-    "single-finding": ["single-finding"],
+    "anchor-with-supporting-cards": ["anchor-with-cards", "anchor-with-cards-4"],
+    "single-finding": [],  # Old single-finding deleted (spacing + accent issues). Needs a clean hero-takeaway-with-bullets replacement; single-finding-v2 is a hero-metric variant, lives under hero-number instead.
     "data-deep-dive": ["chart-bottom-takeaway", "chart-right-takeaway"],
     "recommendation-cta": ["recommendation-cta"],
-    "hero-number": ["hero-kpi-tile"],
-    "screenshot-placeholder": ["single-finding"],
+    "hero-number": ["hero-kpi-tile", "single-finding-v2"],
+    "screenshot-placeholder": [],  # Was pointing at single-finding which is removed. Replacement needed.
     "data-tables": [],  # Exemplars to be promoted from _staging/data-tables/ in batch D.
 }
 
