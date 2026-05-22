@@ -7,14 +7,25 @@ Inputs:
   --skip-render    skip rendering PNGs
 
 Pipeline:
-  1. For each <out>/slide_NN/option_X.py, run via subprocess to produce option_X.pptx.
-  2. Graft each option_X.pptx onto the client template + apply theme remap:
-       <out>/themed/slide_NN/option_X.pptx
-  3. Render each themed .pptx to PNG (LibreOffice headless, parallel x4):
-       <out>/themed/slide_NN/option_X.png
-  4. Run a deterministic per-option QC self-check, writing option_X.qc.json
+  1. For each <out>/slide_NN/option_X.py, run via subprocess to produce option_X.pptx
+       at <out>/slide_NN/option_X.pptx (the raw, pre-theme output of the .py).
+  2. Stash raw output to <out>/slide_NN/_raw/option_X.pptx so the obvious path is
+       free for the themed deliverable.
+  3. Graft + theme-remap each raw pptx onto the client template, write themed to
+       <out>/slide_NN/option_X.pptx (the deliverable users naturally click).
+  4. Render each themed .pptx to PNG (LibreOffice headless, parallel x4):
+       <out>/slide_NN/option_X.png
+  5. Run a deterministic per-option QC self-check, writing option_X.qc.json
        next to each themed PPTX.
-  5. Write <out>/RESULT.md with per-slide status table.
+  6. Write <out>/RESULT.md with per-slide status table.
+
+Path convention after finalize, per slide_NN/ folder:
+  option_X.py             — source (input)
+  option_X.pptx           — THEMED deliverable (the file users open)
+  option_X.png            — PNG of themed
+  option_X.qc.json        — per-option QC self-check report
+  _raw/option_X.pptx      — raw pre-theme output (hidden, for debugging)
+  _render_tmp/            — LibreOffice render staging (cleaned up)
 
 Adapted from `graft_all_to_fedex.py` (the validated graft script).
 """
@@ -325,9 +336,10 @@ class OptionStatus:
     slide_n: int
     letter: str
     py_path: Path
-    pptx_path: Path
-    themed_pptx_path: Path
-    themed_png_path: Path
+    pptx_path: Path                 # raw .py output (moves to raw_archive_path after build)
+    raw_archive_path: Path          # where the raw lives after theming (slide_NN/_raw/)
+    themed_pptx_path: Path          # the THEMED deliverable — lives at the obvious path slide_NN/option_X.pptx
+    themed_png_path: Path           # PNG of themed, next to themed pptx
     built: Optional[bool] = None
     themed: Optional[bool] = None
     rendered: Optional[bool] = None
@@ -340,21 +352,50 @@ class OptionStatus:
 # Discovery
 # ---------------------------------------------------------------------------
 def discover_options(out_dir: Path) -> list:
-    """Find every <out>/slide_NN/option_X.py and create a status row."""
+    """Find every <out>/slide_NN/option_X.py and create a status row.
+
+    Path convention (post-finalize, slide_NN dir contains):
+      - option_X.py             — source (input)
+      - option_X.pptx           — THEMED deliverable (the obvious file user clicks)
+      - option_X.png            — PNG of themed
+      - _raw/option_X.pptx      — raw pre-theme output (kept for debugging, hidden)
+      - _render_tmp/            — LibreOffice render staging (cleaned up)
+    """
     statuses: list = []
     for py in sorted(out_dir.glob("slide_*/option_*.py")):
         slide_n = int(py.parent.name.split("_")[1])
         letter = py.stem.split("_")[1]
-        themed_dir = out_dir / "themed" / py.parent.name
+        slide_dir = py.parent
         statuses.append(OptionStatus(
             slide_n=slide_n,
             letter=letter,
             py_path=py,
-            pptx_path=py.with_suffix(".pptx"),
-            themed_pptx_path=themed_dir / f"option_{letter}.pptx",
-            themed_png_path=themed_dir / f"option_{letter}.png",
+            pptx_path=py.with_suffix(".pptx"),                         # initial raw location (.py writes here)
+            raw_archive_path=slide_dir / "_raw" / f"option_{letter}.pptx",
+            themed_pptx_path=slide_dir / f"option_{letter}.pptx",      # OBVIOUS PATH — themed lives here
+            themed_png_path=slide_dir / f"option_{letter}.png",        # PNG next to themed
         ))
     return statuses
+
+
+def stash_raw(st: OptionStatus) -> None:
+    """Move the raw .py output from slide_NN/option_X.pptx to slide_NN/_raw/option_X.pptx
+    BEFORE the theme remap step. Frees up the obvious path for the themed deliverable.
+
+    No-op if pptx_path doesn't exist (build failed) or if pptx_path is already at
+    the archive location (idempotency)."""
+    if not st.pptx_path.exists():
+        return
+    if st.pptx_path.resolve() == st.raw_archive_path.resolve():
+        return
+    st.raw_archive_path.parent.mkdir(parents=True, exist_ok=True)
+    try:
+        st.pptx_path.replace(st.raw_archive_path)
+    except Exception:
+        # If the move fails (e.g., file locked), leave raw in place — theme step
+        # will overwrite it. Better partial output than a crash here.
+        return
+    st.pptx_path = st.raw_archive_path
 
 
 # ---------------------------------------------------------------------------
@@ -513,10 +554,10 @@ Template: `{template}`
 
 ## Outputs
 
-- Source PPTX (Slide-Lab palette): `<out>/slide_NN/option_X.pptx`
-- Themed PPTX (client palette): `<out>/themed/slide_NN/option_X.pptx`
-- PNG thumbnails: `<out>/themed/slide_NN/option_X.png`
-- QC self-check: `<out>/themed/slide_NN/option_X.qc.json`
+- **Themed PPTX (the deliverable)**: `<out>/slide_NN/option_X.pptx`
+- **PNG thumbnails**: `<out>/slide_NN/option_X.png`
+- **QC self-check**: `<out>/slide_NN/option_X.qc.json`
+- Raw pre-theme PPTX (archived for debugging): `<out>/slide_NN/_raw/option_X.pptx`
 
 ## Failures
 
@@ -619,6 +660,10 @@ def main() -> int:
     print(f"  color_map entries: {len(color_map)}")
     print(f"  expected palette  : {len(expected_palette)} hex codes")
 
+    print("\n[3.5] Stash raw pre-theme PPTX (slide_NN/option_X.pptx -> slide_NN/_raw/)")
+    for st in built_statuses:
+        stash_raw(st)
+
     print("\n[4] Graft + theme remap (serial — python-pptx not thread-safe)")
     for i, st in enumerate(built_statuses, 1):
         graft_and_theme(st, args.template, theme, color_map)
@@ -639,7 +684,7 @@ def main() -> int:
                 flag = "ok" if st.rendered else f"FAIL ({st.error[:50]})"
                 print(f"  [{done:>3}/{len(themed_statuses)}] slide_{st.slide_n:02d}/option_{st.letter}  {flag}")
 
-        for tmp in (args.out / "themed").glob("slide_*/_render_tmp"):
+        for tmp in args.out.glob("slide_*/_render_tmp"):
             shutil.rmtree(tmp, ignore_errors=True)
     else:
         print("\n[5] Render skipped (--skip-render)")
