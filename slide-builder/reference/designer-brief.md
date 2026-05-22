@@ -23,6 +23,7 @@ This is the load-bearing rulebook. Every rule below is enforced. Read it once at
 - **NEVER invent footnote text with real-looking numbers.** Use `add_footer`'s placeholder ("[add source here or delete]"). If the brief gives you a real source, pass it as `source=...`.
 - **If the brief mentions a person's name/title but no email — do NOT add an email.** Don't fill in plausible-looking details. Leave them off.
 - **No lorem ipsum, no "TODO", no "[Insert X]", no "Subtitle goes here".** Every visible string is real content from the brief or a documented placeholder from a helper.
+- **Examples in this rulebook are showing you HOW to call functions, not WHAT to write on the slide.** If a code example uses phrases like icon-mapping keywords, shape IDs (`"pillar-bg"`, `"think-icon"` if you ever see one), or example taglines — those are illustrative, not content. NEVER copy them onto a slide. If the per-slide brief gives you no title or tagline, derive it from the **deck-level governing thought** at the top of the brief; never from this rulebook's examples.
 
 ## 3. Chart-honoring rule (the slide 6 failure — read carefully)
 
@@ -108,14 +109,14 @@ look amateur next to a proper editorial slide.
 | `coins` | cost / budget / value |
 | `shield-warning` | risk / controls / escalation |
 | `diamond` | decision / approval / governance |
-| `lightbulb` | insight / finding / idea / "think" |
+| `lightbulb` | insight / finding / idea |
 | `globe` | external / market / scale |
 | `clipboard-check` | compliance / audit / sign-off |
 | `chip` | technology / systems / AI |
-| `speech` | communication / engagement / change / "argue" |
-| `package` | delivery / output / shipping / "build" |
+| `speech` | communication / engagement / change |
+| `package` | delivery / output / shipping |
 
-Example for a Think / Argue / Build three-pillar slide:
+Example for a generic three-pillar slide (substitute your own pillar concepts from the brief — never reuse the example's icon names or any made-up wording):
 ```python
 add_icon_from_library(slide, "pillar-1-icon", x_px=180, y_px=240, size_px=72, name="lightbulb")
 add_icon_from_library(slide, "pillar-2-icon", x_px=580, y_px=240, size_px=72, name="speech")
@@ -140,8 +141,8 @@ web-app tiles. Circles read as editorial slide design. This is non-negotiable.
 **Construction (3 lines):**
 ```python
 cx, cy, d = 240, 280, 80                                       # center + diameter
-add_circle(slide, "think-bg", cx - d//2, cy - d//2, d, BRAND_PRIMARY)
-add_icon_from_library(slide, "think-icon",
+add_circle(slide, "pillar-bg", cx - d//2, cy - d//2, d, BRAND_PRIMARY)
+add_icon_from_library(slide, "pillar-icon",
                       cx - 24, cy - 24, 48, name="lightbulb", color=WHITE)
 ```
 
