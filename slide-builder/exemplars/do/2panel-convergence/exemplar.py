@@ -43,9 +43,8 @@ def build():
 
     add_title_block(
         slide,
-        title="Why Existing Tools Don't Fix It",
-        subtitle="Any tool is only as good as the thinking behind it — Slide Lab is the only one built to fix the thinking first.",
-        brand_rule_w=56,
+        title="[Two-panel comparison headline — name the contrast the panels deliver]",
+        subtitle="[Sub-headline that sets up what the two panels are comparing]",
     )
 
     # ---- Two-panel symmetric grid with central vertical divider ----
@@ -64,58 +63,55 @@ def build():
         fill_color=CARD_BORDER,
     )
 
-    # ---- PANEL 1: The training gap ----
+    # ---- PANEL 1 ----
     add_text(
-        slide, "panel-1-label", "THE TRAINING GAP",
+        slide, "panel-1-label", "[PANEL 1 LABEL]",
         x_px=left_x, y_px=panels_top, w_px=panel_w, h_px=18,
-        font_size_px=11, color=TEXT_MID, uppercase=True,
+        font_size_px=11, color=TEXT_DARK, uppercase=True,
         letter_spacing_px=1,
     )
     add_text(
         slide, "panel-1-heading",
-        "Most consultants never learned the rigor.",
+        "[Panel 1 heading — one declarative sentence.]",
         x_px=left_x, y_px=panels_top + 30, w_px=panel_w, h_px=72,
-        font_size_px=22, color=TEXT_DARK, bold=True,
+        font_size_pt=20, color=TEXT_DARK, bold=True,
     )
     add_text(
         slide, "panel-1-body",
-        "McKinsey built sharpening the argument into its training. "
-        "Most firms don't — so even experienced people skip the "
-        "sharpening step and go straight to the slide.\n\n"
-        "Without that habit, the argument never gets stress-tested. "
-        "Pages get made repeatedly without knowing the underlying message.",
+        "[Panel 1 body — two or three sentences supporting the panel heading. "
+        "Keep parallel structure with Panel 2 so the eye reads them as a "
+        "comparison.]\n\n[Second paragraph if needed.]",
         x_px=left_x, y_px=panels_top + 118, w_px=panel_w - 8, h_px=panel_h - 140,
-        font_size_px=14, color=TEXT_MID,
+        font_size_px=14, color=TEXT_DARK,
     )
 
-    # ---- PANEL 2: The GenAI gap ----
+    # ---- PANEL 2 ----
     add_text(
-        slide, "panel-2-label", "THE GENAI GAP",
+        slide, "panel-2-label", "[PANEL 2 LABEL]",
         x_px=right_x, y_px=panels_top, w_px=panel_w, h_px=18,
-        font_size_px=11, color=TEXT_MID, uppercase=True,
+        font_size_px=11, color=TEXT_DARK, uppercase=True,
         letter_spacing_px=1,
     )
     add_text(
         slide, "panel-2-heading",
-        "Generic AI does what you say.",
+        "[Panel 2 heading — declarative, parallel to Panel 1.]",
         x_px=right_x, y_px=panels_top + 30, w_px=panel_w, h_px=72,
-        font_size_px=22, color=TEXT_DARK, bold=True,
+        font_size_pt=20, color=TEXT_DARK, bold=True,
     )
     add_text(
         slide, "panel-2-body",
-        "It generates an answer — not yours. No pushback, no conflict "
-        "detection, no standard to compare your thinking against.\n\n"
-        "The tool will make the page regardless of whether the thinking "
-        "is ready. You ship whatever you walked in with.",
+        "[Panel 2 body — two or three sentences. Parallel structure with "
+        "Panel 1 — same sentence shape, same number of clauses, same length.]"
+        "\n\n[Second paragraph if needed.]",
         x_px=right_x, y_px=panels_top + 118, w_px=panel_w - 8, h_px=panel_h - 140,
-        font_size_px=14, color=TEXT_MID,
+        font_size_px=14, color=TEXT_DARK,
     )
 
     # ---- Convergence band: the punchline (single BRAND_PRIMARY band) ----
     add_convergence(
         slide,
-        "Subpar page, subpar message, manual fixes at the end — the tool "
-        "isn't the problem, the unstructured input is.",
+        "[Convergence punchline — the so-what that ties Panel 1 and Panel 2 "
+        "together. White italic on BRAND_PRIMARY band.]",
     )
 
     add_footer(slide, page_num=3)

@@ -47,19 +47,19 @@ Run `build_slide.py --print-theme <template.pptx>` to get the exact hex values f
 - **Variants:**
   - Title + chart dominating (when chart IS the argument — keep background white, let the chart breathe)
   - Title + 2-column evidence (comparative insights)
-  - Title + hero stat + supporting context (hero stat uses hero numeral slot 28–48pt, optional tint 10% wash behind it)
+  - Title + hero stat + supporting context (hero stat uses hero numeral slot 30–45pt, optional tint 10% wash behind it)
 
 ## Three-column parallel (and 4-column — same logic)
 
 - **Use for:** parallel findings, patterns, pillars, options (n=3 or 4, and genuinely MECE)
 - **Structure:** title + N equal columns (width = (100 − 2 × gutters × N) / N, ~2% gutters) + optional synthesis bar at bottom
 - **Visual treatment — this is where decks most often go flat:** do not default to plain columns on white. Choose one of these treatments based on the argument:
-  - **Tinted card backgrounds** — each column is a primary tint 10% wash rectangle extending the full column height, 13pt body inside, optional accent1 top border. **Use when the content is evidence supporting a higher claim, not the claim itself.** *This is the most common variant — pick this one unless another fits better.*
-  - **Dark card headers + light body** — top 25–35% of each column is a filled accent1 rectangle with white column-header text and a hero numeral (01, 02, 03 in hero numeral slot); bottom is white with 13pt body. **Use when the slide is a MECE *declaration* — the visual weight of the dark headers says "these three things, parallel, exhaustive."**
-  - **Rule + label + body (no filled card)** — thin accent1 rule on top of each column, label in 14–17pt bold (section header slot), body 13pt. **Use when the deck already has heavy dark-mode slides and this one needs to lighten the rhythm.**
+  - **Tinted card backgrounds** — each column is a primary tint 10% wash rectangle extending the full column height, 12pt body inside, optional accent1 top border. **Use when the content is evidence supporting a higher claim, not the claim itself.** *This is the most common variant — pick this one unless another fits better.*
+  - **Dark card headers + light body** — top 25–35% of each column is a filled accent1 rectangle with white column-header text and a hero numeral (01, 02, 03 in hero numeral slot); bottom is white with 12pt body. **Use when the slide is a MECE *declaration* — the visual weight of the dark headers says "these three things, parallel, exhaustive."**
+  - **Rule + label + body (no filled card)** — thin accent1 rule on top of each column, label in 14–17pt bold (section header slot), body 12pt. **Use when the deck already has heavy dark-mode slides and this one needs to lighten the rhythm.**
   - **Two-tier cards** — top tier is "what we're building" (dark or tinted header + short description), bottom tier is "why it matters" (thin accent1 rule + bold claim + supporting line). **This is the move that fills the full slide height without padding** — each column has real content top-to-bottom, not content-then-whitespace.
 - **Critical structural rule:** column headers and numeral badges in SEPARATE side-by-side sub-zones within each column, OR stacked with numeral *above* header with deliberate spacing. Numeral overlapping header is a bug.
-- **Typography:** column headers 14–17pt bold (section header slot), body 13pt, numeral badges 28–48pt (hero numeral slot)
+- **Typography:** column headers 14–17pt bold (section header slot), body 12pt, numeral badges 30–45pt (hero numeral slot)
 
 ## Two-column with insight panel (60/40 or 55/45)
 
@@ -74,7 +74,7 @@ Run `build_slide.py --print-theme <template.pptx>` to get the exact hex values f
 - **Structure:** action title stating the insight declaratively + large chart (60–75% height) + 1–2 line takeaway
 - **Visual treatment:** this layout works on white. The chart itself carries the visual weight. Use accent1 for the primary series, primary tint 60% for secondary, muted gray for reference lines. If the chart has a single "the point" data point, mark it with accent2 (the hero contrast accent) — a single orange dot on a purple line is more eloquent than any annotation.
 - **Chart:** static PNG generated from a Python script (matplotlib, plotly, or similar) or inline `<svg>` in the mockup. Always rendered as an image in PPTX, never a native chart object.
-- **Typography:** title 20pt, chart labels 11pt, takeaway 13pt (or 14–16pt callout emphasis if the takeaway is the "so what"), source 9pt
+- **Typography:** title 28pt, chart labels 11pt, takeaway 12pt (or 14–16pt callout emphasis if the takeaway is the "so what"), source 9pt
 - **Companion Excel:** generate a .xlsx with the chart data so the consultant can remake the chart in ThinkCell for client delivery
 
 ## Visual Model
@@ -82,7 +82,7 @@ Run `build_slide.py --print-theme <template.pptx>` to get the exact hex values f
 Visual Model is a **page-type**, not a chassis layout. Pyramids, cycles, 2x2s, hub-and-spoke, etc. are body content that lives inside a `full-section` chassis layout (or `chart-with-bottom-takeaway` if a so-what strip is needed). See `page-types.md` Section 8 for the three-signal trigger, shape sub-taxonomy, shape rationale rule, and design lies to avoid.
 
 - **Visual treatment — the biggest composition lever in the deck:** Visual Model body content benefits more from composition than any other content type because the shape IS the argument, and a flat shape reads as a diagram; a composed shape reads as a model. **Reach for dark-background mode when the model is the centerpiece of the deck** (the "here's how it fits together" slide). Use tinted backgrounds for the element boxes so they read as distinct but related. Use the hero contrast accent (accent2) for the connecting arrows or the one element that's "active" now vs. the ones that are "future." Element labels in section header slot (14–17pt bold), descriptions in 11pt.
-- **Typography:** action title 20pt (chassis title band), element labels 14–17pt bold (section header slot), element descriptions 11pt, optional caption 13pt
+- **Typography:** action title 28pt (chassis title band), element labels 14–17pt bold (section header slot), element descriptions 11pt, optional caption 12pt
 - **Build with python-pptx shape primitives:** rectangles, ovals, connectors (auto-arrows), etc., placed inside the body zone of `full-section`
 
 ## Comparison (2xN or NxN matrix)
@@ -141,8 +141,8 @@ Visual Model is a **page-type**, not a chassis layout. Pyramids, cycles, 2x2s, h
   - **A — Sub-headed prose:** action title + flowing prose body broken by bold sub-headers every 4–6 lines. Use for executive summary narratives, strategy rationale, finding walkthroughs where the full argument needs to breathe.
   - **B — Icon-anchored parallel rows:** 3–5 rows, each with a process icon (36–48px, accent1), a bold heading, and a 2–3 line description. Rows separated by a subtle hairline rule. Use for parallel pillars, capability areas, or workstreams where each item is structurally equal but the audience will read each independently.
   - **C — Two-column text + callout panel:** left column holds the prose/bullets (60% width), right column is a tinted stat callout, pull-quote, or key number (40% width, accent1 tint fill). Use for "finding + implication" or "analysis + so-what" structures where one element needs to dominate visually.
-- **Visual treatment:** White background. Sub-headers and row headings in accent1 color (section header slot: 14–17pt bold). Body text in dark muted (not pure black). Callout panel (Variant C) in accent1 tint 10–15% with a 4px left accent bar in full accent1. Avoid walls of 13pt body with no scanning hierarchy.
-- **Typography:** title 20–22pt, sub-headers / row headings 14–17pt bold (accent1), body 13pt, callout stat 28–36pt bold
+- **Visual treatment:** White background. Sub-headers and row headings in accent1 color (section header slot: 14–17pt bold). Body text in dark muted (not pure black). Callout panel (Variant C) in accent1 tint 10–15% with a 4px left accent bar in full accent1. Avoid walls of 12pt body with no scanning hierarchy.
+- **Typography:** title 28pt, sub-headers / row headings 14–17pt bold (accent1), body 12pt, callout stat 30–36pt bold
 - **When to use this:** executive summary narratives, finding walkthroughs, content where the argument is the reasoning itself
 
 ## Org chart / Team / Governance
@@ -170,7 +170,7 @@ A good deck has a visual rhythm. Roughly:
 - **Pivot slides (one-big-idea moments):** dark-background mode
 - **Closing slide (ask or next steps):** usually dark-background for weight, or two-column with dark right-panel "ask"
 
-If you find yourself building 6 slides in a row that are all "white background + three columns of 13pt text," stop. The deck has lost its rhythm. Go back to at least one of them and reach for a composition treatment.
+If you find yourself building 6 slides in a row that are all "white background + three columns of 12pt text," stop. The deck has lost its rhythm. Go back to at least one of them and reach for a composition treatment.
 
 The corollary: **dark-background is for moments of weight** — covers, pivots, the closing ask, the occasional Visual Model centerpiece. It is NOT the default for body slides. A deck that goes dark on every slide is exhausting to read. The default for evidence and finding slides is *tinted cards on white* or *white with deliberate accent1 typography*, not dark mode.
 

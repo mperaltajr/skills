@@ -33,6 +33,7 @@ Pairs with `rules.md` (universal rules) and `glossary.md` (zone terminology). Un
 14. [Competitive & Market Analysis](#14-competitive--market-analysis)
 15. [Roadmap & Timeline](#15-roadmap--timeline)
 16. [Org Chart, Team & Governance](#16-org-chart-team--governance)
+17. [Data Tables](#17-data-tables)
 
 **Not handled as insight-generation page types** — see [PMO — Handled as Template Fill-In, Not Insight Generation](#pmo--handled-as-template-fill-in-not-insight-generation) at the end of this document.
 
@@ -1173,6 +1174,19 @@ Flowcharts MUST use a single SVG overlay for ALL connectors and arrowheads. Do N
 Early versions of this system included PMO as 5 first-class page types (Status Update, Risk Register, Decision Log, Action Item Tracker, Milestone Summary). We removed them because PMO isn't a *visual pattern* worth teaching through references — it's a *content type* that reuses existing patterns (tables, timelines, RAG indicators) from other groups. Including PMO as its own page type created the wrong incentive: it made Designer generate 4 variations of a status slide when a consultant just wants one replicated-format slide per week.
 
 If your primary use case is PMO reporting, this system will do it — but it's not the product this system is designed to be. A PowerPoint template with locked formatting is a better tool for that work.
+
+---
+
+## 17. Data Tables
+
+- **Purpose** — when the slide IS the table. Structured tabular data is the argument; chart-form would lose the row/column structure.
+- **When to use** — risk register (id / risk / owner / mitigation / RYG), scoring matrix (options × criteria with scores), decision matrix, vendor comparison (vendor × capability), KPI dashboard (metric × current / target / trend), status-by-workstream roster, requirements traceability matrix. Any time the brief gives you data with both row identity AND column metric, and there are 3+ rows.
+- **Headline rule** — action title states the table's takeaway, not the table's topic. "Three vendors meet the cost bar; only one meets all three other criteria" beats "Vendor comparison."
+- **Structure** — header row (column labels), 3-N data rows, optional totals row at bottom, optional convergence band or takeaway line below the table.
+- **Visual** — `add_table()` for native PowerPoint tables (recipients can edit them in PowerPoint), header row in `BRAND_PRIMARY` band with `WHITE` text, banded rows for legibility, right-aligned numeric columns, ONE column or ONE row highlighted with `BRAND_ACCENT` as the accent moment. Cell-treatment patterns (harvey balls, RYG status pills, up/down arrows, mini-bars, sparklines) overlay shapes on top of the table after the helper draws it.
+- **Layout variants** — full-width table no takeaway; full-width table + bottom takeaway band; full-width table + right-hand takeaway; one-row-highlighted; one-column-highlighted; table + supporting chart paired; multi-column-group header (grouped columns under a category header); compact wide-headers variant.
+- **Reference** — `exemplars/do/<table-slug>/` for promoted layout patterns once the library matures. Cell-treatment patterns ship as separate exemplars demonstrating harvey-ball / RYG / arrow / sparkline cell content.
+- **Red flags** — table without column headers (unreadable — the `add_table` helper enforces this); rainbow row colors (use ONE accent moment); totals floating without a label saying "Total"; numeric columns left-aligned (always right-align numbers); cells with mid-gray text on saturated brand-color fills (always WHITE on dark fills); parallel rows of numeric data hand-built with `add_rect` + `add_text` and no header row (the rule applies to McKinsey-style structured columns too, not just native tables).
 
 ---
 

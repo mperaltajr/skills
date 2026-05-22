@@ -63,7 +63,7 @@ These properties work in HTML preview but produce wrong output in the PPTX. `bui
 | Bullet dots are missing | CSS `::before` pseudo-element used for bullets — not captured by DOM walker | Replace `::before` bullets with `<span class="bullet">•</span>` inline in the HTML |
 | Text boxes overlap in PPTX | Sibling `<span>` elements inside a `<li>` become separate text boxes | Move inline span content into the parent element's text, not as siblings |
 | Dark background bleeds past the slide boundary | Background div is positioned outside the 1280×720 canvas | Constrain all background elements inside the canvas div with `overflow:hidden` |
-| Text is smaller than expected in PPTX | px→pt conversion: browser renders at 96dpi, PPTX at 72dpi. 16px = 12pt, not 16pt | Use the canonical type scale: title = 28px (21pt), body = 16px (12pt), hero = 40–60px (30–45pt) |
+| Text is smaller than expected in PPTX | px→pt conversion: browser renders at 96dpi, PPTX at 72dpi. 16px = 12pt, not 16pt | Use the canonical type scale: title = 28pt, sub-heading = 16pt, body = 12pt, hero = 30–45pt |
 
 ## Canonical Type Scale
 
@@ -71,8 +71,8 @@ Source of truth: `slide-builder/SKILL.md` Hard Constraint #10. Do not maintain a
 
 | Role | HTML (px) | PPTX (pt) |
 |------|-----------|-----------|
-| Slide title / Governing thought | 28px | 21pt |
-| Sub-heading / Section label | 22px | 16.5pt |
+| Slide title / Governing thought | ~37px | 28pt |
+| Sub-heading / Section label | ~21px | 16pt |
 | Body text | 16px | 12pt |
 | Supporting detail / Caption / Source | 14px | 10.5pt (minimum) |
 | Hero numbers (stat callouts) | 40–60px | 30–45pt |

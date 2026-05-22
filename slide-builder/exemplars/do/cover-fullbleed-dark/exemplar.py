@@ -58,7 +58,7 @@ def build():
     # (≈47% canvas height). 48px is the cap for multi-word cover titles per the
     # designer brief.
     add_text(
-        slide, "cover-title", "Slide Lab",
+        slide, "cover-title", "[Deck title placeholder]",
         x_px=72, y_px=240, w_px=1136, h_px=100,
         font_size_px=48, color=WHITE, bold=True,
         anchor="bottom",
@@ -66,9 +66,9 @@ def build():
 
     # Tagline — italic, BRAND_ACCENT_SOFT, directly below title. NOT bold.
     add_text(
-        slide, "cover-tagline", "Think. Argue. Build.",
+        slide, "cover-tagline", "[Tagline placeholder — short, declarative]",
         x_px=72, y_px=356, w_px=900, h_px=36,
-        font_size_px=22, color=BRAND_ACCENT_SOFT, italic=True, bold=False,
+        font_size_pt=16, color=BRAND_ACCENT_SOFT, italic=True, bold=False,
     )
 
     # Single accent moment — 64px BRAND_ACCENT rule directly under the tagline
@@ -78,11 +78,12 @@ def build():
         fill_color=BRAND_ACCENT,
     )
 
-    # Three sub-tagline definitions, faint, NOT bold
+    # Three optional sub-tagline definitions (genericized) — faint, NOT bold.
+    # In production, these can be the deck's three main themes / sections.
     defs = [
-        ("Think", "Collect and organize your thoughts into a structured argument."),
-        ("Argue", "Pressure-test your ideas until they're defensible in any room."),
-        ("Build", "Turn your refined argument into a deck that drives action."),
+        ("[Word 1]", "[One-line definition or sub-statement supporting the tagline.]"),
+        ("[Word 2]", "[One-line definition or sub-statement supporting the tagline.]"),
+        ("[Word 3]", "[One-line definition or sub-statement supporting the tagline.]"),
     ]
     row_y = 444
     row_h = 22

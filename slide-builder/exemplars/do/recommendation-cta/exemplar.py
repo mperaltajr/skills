@@ -61,7 +61,7 @@ def build():
     )
     add_text(
         slide, "primary-ask-text",
-        "Three actions together close the ~$25M gap and protect the $66M commitment.",
+        "[Primary ask — one declarative sentence stating the recommendation and the headline outcome.]",
         x_px=pa_x + 32, y_px=pa_y + 48, w_px=pa_w - 64, h_px=88,
         font_size_px=26, color=WHITE, bold=True,
     )
@@ -83,24 +83,24 @@ def build():
     sub_data = [
         (
             "1",
-            "Validate GCC scope",
-            "Align on 125-150 additional FTEs for GCC expansion.",
-            "Recovers up to ~$11.6M of the ~$16.9M at risk.",
-            "Deep dive: Slide D",
+            "[Sub-ask 1 heading]",
+            "[One-sentence description of what this sub-ask is.]",
+            "[Outcome or value this sub-ask delivers.]",
+            "[Deep-dive reference]",
         ),
         (
             "2",
-            "Assign MSP lead",
-            "Name a lead to drive non-HR MSP transitions.",
-            "Recovers up to ~$8.5M at risk; 134 FTEs need an owner.",
-            "Deep dive: Slide E",
+            "[Sub-ask 2 heading]",
+            "[One-sentence description of what this sub-ask is.]",
+            "[Outcome or value this sub-ask delivers.]",
+            "[Deep-dive reference]",
         ),
         (
             "3",
-            "Sustain pipeline",
-            "Maintain momentum on ongoing initiatives + new levers.",
-            "$26M-$53M additional CY29 NRB in the pipeline.",
-            "Deep dive: Slide F",
+            "[Sub-ask 3 heading]",
+            "[One-sentence description of what this sub-ask is.]",
+            "[Outcome or value this sub-ask delivers.]",
+            "[Deep-dive reference]",
         ),
     ]
 

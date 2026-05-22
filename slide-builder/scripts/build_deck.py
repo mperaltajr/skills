@@ -260,6 +260,19 @@ def classify_page_type(s: SlideBrief) -> str:
     if "waterfall" in chart or "bar" in chart:
         return "data-deep-dive"
 
+    # Data Tables — when the slide IS a table (risk register, scoring matrix,
+    # vendor comparison, status-by-workstream, KPI dashboard). Trigger on either
+    # explicit table phrasing in the brief, or structural markers (multiple
+    # rows of parallel metrics with named columns).
+    table_signals = (
+        "risk register", "scoring matrix", "decision matrix",
+        "vendor comparison", "status by workstream", "kpi dashboard",
+        "requirements traceability", "table of", "tabular",
+        "rows = ", "rows: ", "rows by",
+    )
+    if any(sig in blob for sig in table_signals):
+        return "data-tables"
+
     # Sensible default.
     return "single-finding"
 
@@ -279,8 +292,10 @@ DIRECTIONS: dict[str, list[dict]] = {
             "name": "Light editorial with accent rule",
             "tagline": "White canvas, structured hierarchy, single brand-accent rule.",
             "core_treatment": "White background. Top-left BRAND_PRIMARY eyebrow. Hero title in TEXT_DARK, "
-                              "tagline below in BRAND_PRIMARY. Tagline triplet (think/argue/build) as three "
-                              "small definition rows left-aligned. One BRAND_ACCENT 56px rule above the meta.",
+                              "tagline below in BRAND_PRIMARY. Optional supporting triplet (three small "
+                              "definition rows derived from the brief's actual deck themes — NEVER reuse "
+                              "phrases from this rulebook's examples) left-aligned. One BRAND_ACCENT 56px "
+                              "rule above the meta.",
         },
         {
             "name": "Asymmetric split (brand block + content)",
@@ -477,6 +492,33 @@ DIRECTIONS: dict[str, list[dict]] = {
                               "11px TEXT_MID label) separated by 1px CARD_BORDER vertical divider.",
         },
     ],
+    "data-tables": [
+        {
+            "name": "Full-width table with bottom takeaway band",
+            "tagline": "Table is the slide; one-sentence takeaway lives in a band below.",
+            "core_treatment": "Use add_table(slide, headers=[...], rows=[...]) with mandatory column "
+                              "headers in BRAND_PRIMARY band + WHITE text, banded rows for legibility, "
+                              "right-aligned numeric columns. Below the table: BRAND_PRIMARY full-width "
+                              "band 42px tall with WHITE italic takeaway sentence (use add_convergence). "
+                              "ONE column or ONE row highlighted with BRAND_ACCENT (the accent moment).",
+        },
+        {
+            "name": "Table with right-hand takeaway panel",
+            "tagline": "Table occupies left 70%; right 30% holds the takeaway and one supporting number.",
+            "core_treatment": "Left ~70% = add_table with headers + banded rows. Right ~30% = "
+                              "BRAND_PRIMARY card with WHITE 22px takeaway sentence + one supporting "
+                              "hero number (48px WHITE bold). ONE column in the table highlighted with "
+                              "BRAND_ACCENT to link visually to the right-panel takeaway.",
+        },
+        {
+            "name": "Two stacked mini-tables with shared header",
+            "tagline": "Two related tables on the same slide, sharing column meaning.",
+            "core_treatment": "Top table = first dataset (header + 3-4 rows). Bottom table = second "
+                              "dataset (header + 3-4 rows), aligned column-by-column with the top. "
+                              "Use add_table for both. ONE row in the bottom table accented with "
+                              "BRAND_ACCENT (the load-bearing row).",
+        },
+    ],
     "screenshot-placeholder": [
         {
             "name": "Full-bleed screenshot with label band",
@@ -516,8 +558,8 @@ def directions_for(page_type: str) -> list[dict]:
 # page-type to avoid prompt bloat.
 PAGE_TYPE_TO_EXEMPLAR: dict[str, list[str]] = {
     "cover": ["cover-fullbleed-dark", "dark-hero-foil"],
-    "comparison-2-panel": ["2panel-convergence"],
-    "comparison-3-card": ["3pillar-icon-circles"],
+    "comparison-2-panel": ["2panel-convergence", "2panel-delta-spine"],
+    "comparison-3-card": ["3pillar-icon-circles", "dark-header-cards"],
     "ecosystem-three-state": ["3pillar-icon-circles"],
     "anchor-with-supporting-cards": ["anchor-with-cards"],
     "single-finding": ["single-finding"],
@@ -525,6 +567,7 @@ PAGE_TYPE_TO_EXEMPLAR: dict[str, list[str]] = {
     "recommendation-cta": ["recommendation-cta"],
     "hero-number": ["hero-kpi-tile"],
     "screenshot-placeholder": ["single-finding"],
+    "data-tables": [],  # Exemplars to be promoted from _staging/data-tables/ in batch D.
 }
 
 # One-line descriptions surfaced alongside each exemplar path in the prompt.

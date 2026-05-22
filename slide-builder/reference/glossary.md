@@ -30,9 +30,9 @@ Fixed scaffolding every slide inherits.
 - Right margin: **x = 1222** (58 px from right edge)
 - Content width: **1164 px**
 - Top of title band: **y = 19**
-- Bottom of title band: **y = 96** (compact) or **y = 121** (expanded)
-- Top of sub-headline band: **y = 95** (compact only)
-- Bottom of sub-headline band: **y = 121**
+- Bottom of title band: **y = 100** (compact) or **y = 121** (expanded)
+- Top of sub-headline band: **y = 108** (compact only)
+- Bottom of sub-headline band: **y = 134**
 - Top of body: **y = 151**
 - Bottom of body: **y = 662** (full) or **y = 606** (with bottom takeaway strip)
 - Top of invariant zone: **y = 672**
@@ -162,11 +162,7 @@ Part of the invariant zone. Bottom-right.
 
 ### draft watermark
 
-Part of the invariant zone. Top-center.
-
-- x=622, y=4, w=40, h=15.
-- Red. Text: `DRAFT`, underlined.
-- **Always on during design.** User manually deletes from each slide before client handoff. This is a human review gate, not an automated step.
+**Prohibited.** Do not add DRAFT, CONFIDENTIAL, or any review-gate chrome to any slide. The invariant zone holds only sources, footnotes, and the page number. Review status is tracked outside the slide, not stamped on it.
 
 ---
 
@@ -216,7 +212,7 @@ Slide design output never contains literal hex codes, font names, or font sizes.
 - `--font-title`, `--font-body`, `--font-display`
 
 ### Size
-- `--size-title` (28 pt default), `--size-hero` (template-driven), `--size-header` (14 pt bold), `--size-body` (12 pt), `--size-caption` (10 pt), `--size-footer` (8 pt fixed)
+- `--size-title` (28 pt default), `--size-hero` (template-driven), `--size-header` (14 pt bold), `--size-body` (12 pt), `--size-caption` (10.5 pt), `--size-footer` (8 pt fixed)
 
 ### Weight
 - `--weight-bold`, `--weight-regular`
@@ -301,13 +297,13 @@ Constraints:
 
 ## 7. Invariant zone rules
 
-The invariant zone spans the bottom 26 px (y=672 to y=698) plus the draft watermark at the top (y=4 to y=19). Every slide. No exceptions.
+The invariant zone spans the bottom 26 px (y=672 to y=698). Every slide. No exceptions.
 
 - **Builder-enforced.** The builder inserts and positions invariant elements automatically.
 - The designer never places design content in the invariant zone.
 - The designer never removes, moves, or resizes invariant elements.
 - The user replaces `[Insert Footnote]` and `[Insert Source]` placeholders with real content before handoff.
-- The user manually deletes the draft watermark from each slide before client handoff.
+
 
 Coordinates in section 3.
 

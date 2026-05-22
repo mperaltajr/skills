@@ -17,11 +17,11 @@ A pattern's slots have design roles, not just shapes. `panel-1-heading` is sized
 | Slot family | Typical font | Belongs here | Does NOT belong here |
 |---|---|---|---|
 | `title` / `action-title` | 24–28pt bold | The slide's governing thought, one sentence | A topic noun ("Q3 update") |
-| `subtitle` / `subhead` | 14pt italic | One supporting sentence | A second governing thought |
+| `subtitle` / `subhead` | 16pt (~21px) italic | One supporting sentence | A second governing thought |
 | `eyebrow` | 11pt small-caps | Section label or category | A claim |
 | `card-N-num` / `metric-N-value` | 40–60pt bold | A single number, the hero stat | A sentence, a unit, or two numbers |
 | `card-N-heading` / `panel-N-heading` | 18–22pt bold | A claim or short title (≤6 words) | A bullet list, a paragraph |
-| `card-N-body` / `panel-N-body` | 14pt | 2–4 short bulleted lines | A prose paragraph |
+| `card-N-body` / `panel-N-body` | 12pt (16px) | 2–4 short bulleted lines | A prose paragraph |
 | `panel-N-label` | 10–12pt small-caps | Category tag ("LEVER 1") | A sentence |
 | `convergence` | 14–16pt | The slide's punchline; one sentence | Multi-paragraph content |
 | `source` / `footnote` / `page-number` | 8pt | Citation, footnote, slide number | Body content |
