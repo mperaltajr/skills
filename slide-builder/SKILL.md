@@ -547,8 +547,8 @@ When falling back, note it in the match log and proceed with the existing Phase 
 
     | Role | CSS px | PPTX pt |
     |------|--------|---------|
-    | Slide title / Governing thought | 28px | 21pt |
-    | Sub-heading / Section label | 22px | 16.5pt |
+    | Slide title / Governing thought | ~37px | 28pt |
+    | Sub-heading / Section label | ~21px | 16pt |
     | Body text | 16px | 12pt |
     | Supporting detail / Caption / Source | 14px | 10.5pt — minimum |
     | Hero numbers (stat callouts) | 40–60px | 30–45pt |
@@ -1127,7 +1127,7 @@ Write a self-contained `build_<name>.py` script in the session folder. Rules:
 - **Read `reference/direct-pptx-patterns.md` before writing any code.** This file contains validated patterns for clone-and-replace, text updates, and shape finding — all failure modes are silent without these patterns.
 - **Native text frames and bullet paragraphs** — use `tf.text_frame.paragraphs` and `p.add_run()`. Never simulate bullets with dash characters or CSS `::before` content.
 - **Theme colors** — use `prs.core_properties` or set `RGBColor` from the `--print-theme` output. Prefer `MSO_THEME_COLOR` constants (`ACCENT_1`, `DARK_2`, etc.) over hardcoded hex wherever python-pptx exposes them.
-- **Font sizes** — set in Pt units directly: `run.font.size = Pt(12)`. Map from the canonical scale: title=21pt, sub-heading=16.5pt, body=12pt, detail/caption=10.5pt.
+- **Font sizes** — set in Pt units directly: `run.font.size = Pt(12)`. Map from the canonical scale: title=28pt, sub-heading=16pt, body=12pt, detail/caption=10.5pt.
 - **Slide layout** — pick a named layout from `--catalog-layouts` output if one matches. If none match, use the cleanest blank.
 - **Output path** — write to `<session_folder>/<deck_name>.pptx`. Print the full absolute Windows path when done.
 

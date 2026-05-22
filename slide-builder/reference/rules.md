@@ -46,7 +46,7 @@ The rules below exist to produce these outcomes. When a rule feels arbitrary, lo
 - Sits directly below the action title, visually subordinate (smaller font, lighter weight or muted color)
 - Maximum one line; if it runs longer, the title may not be sharp enough
 - Do not use if body content already opens with a clear bridging statement — it will be redundant
-- Font: inherits from template subtitle placeholder (~16pt) — do not hardcode
+- Font: inherits from template subtitle placeholder (16pt / ~21px) — do not hardcode
 
 ---
 
@@ -172,7 +172,7 @@ The rules below exist to produce these outcomes. When a rule feels arbitrary, lo
 
 **Titles and subtitles are excluded from the body font size rules.** They inherit from the template:
 - **Action title:** ~28pt, bold — inherits from template title placeholder
-- **Sub-headline:** ~16pt — inherits from template subtitle placeholder
+- **Sub-headline:** 16pt (~21px) — inherits from template subtitle placeholder
 
 **Body font size rules (applies to all content inside the content zone):**
 
@@ -194,7 +194,7 @@ Two font sizes are used in the content body — one for section headers, one for
 - Legends should generally be at the smallest font size on the slide
 - Data table cells may use a third smaller size (floor: 9pt) when rows are too dense — comparison tables should not break the 2-size rule
 
-**Hard floor: never use any font below 9pt under any circumstance.**
+**Hard floor:** chart axis labels, data annotations, legends, and dense table cells: 9pt minimum. All other user-read text (body, bullets, captions, takeaways, sub-headlines): 10.5pt (14px CSS) minimum.
 
 ---
 
@@ -221,7 +221,7 @@ Two font sizes are used in the content body — one for section headers, one for
 | Element | Spec |
 |---|---|
 | Action title | ~28pt, bold — inherits from template title placeholder |
-| Sub-headline | ~16pt — inherits from template subtitle placeholder |
+| Sub-headline | 16pt (~21px) — inherits from template subtitle placeholder |
 | Section headers / chart titles | 14pt, bold (or larger of the two body sizes) |
 | Body / detail text | 12pt, regular (default; scale up or down with space) |
 | Emphasis callouts (hero stats) | Display size — stands alone, used sparingly |
@@ -275,7 +275,7 @@ This rule set is designed for insight-generation slides. PMO slides (recurring s
 **PMO slides bypass most of this pipeline.** Slide Helper detects PMO intent from the consultant's opening answer and routes them to template-fill mode: the consultant provides an existing PMO template, Builder replicates the structure with new content, Output delivers. There is no 4-option spread, no Foundation Check, no Visual Model detection — those are insight-generation moves, and they're a category error for PMO work.
 
 **The universal rules here still apply to PMO slides:**
-- 9pt hard floor is absolute
+- 9pt floor for chart/data elements; 10.5pt floor for all user-read body text
 - Source/footnote placeholder on every slide
 - Legend required when colors or icons encode meaning (RAG indicators always need a legend)
 - Alignment and font consistency rules

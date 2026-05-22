@@ -48,11 +48,10 @@ def build():
 
     add_title_block(
         slide,
-        title="Think, Argue, and Build each have a dedicated skill in the toolkit.",
-        subtitle="A complete toolkit — every stage of the argument has a partner built for it.",
+        title="[Three-pillar insight headline placeholder — replace with the slide's actual claim]",
+        subtitle="[Sub-headline that contextualizes the three pillars below]",
         title_h=80,
-        subtitle_h=22,
-        brand_rule_w=64,
+        subtitle_h=26,
     )
 
     # ------------------------------------------------------------------
@@ -72,21 +71,24 @@ def build():
     circle_d = 88
     icon_d = 52
 
-    # Pillar mapping per the prompt's explicit table:
-    #   Think → lightbulb, Argue → speech, Build → package.
+    # Three MECE pillars with icon anchors. Icon names are placeholders here —
+    # in production, pick from the icon library to match the brief's content
+    # (the icon-name table is in designer-brief.md). All three icons use the
+    # SAME color (BRAND_PRIMARY circle, WHITE icon) because the pillars are
+    # MECE — different colors per circle would imply hierarchy that isn't there.
     pillars = [
-        ("THINK", "lightbulb", "Sharpen the thinking",
-         "Coaches the brief — deck-type selection, narrative framework "
-         "matching, and a foundation check that catches vague arguments early.",
-         "Storyline Helper · RFP Helper"),
-        ("ARGUE", "speech", "Coach the argument",
-         "Drives the governing thought, so-what, and per-slide emphasis through "
-         "a five-part quality gate and a language quality pass.",
-         "Quality gate · Language pass"),
-        ("BUILD", "package", "Produce the artifact",
-         "Builds the real PowerPoint on the client's brand template — three "
-         "design options per slide, nine chart types, and a post-build QC pass.",
-         "Slide Builder · Slide QC"),
+        ("PILLAR ONE", "gear", "[Pillar 1 heading]",
+         "[Pillar 1 body — two to three sentences describing what this pillar "
+         "represents and why it matters to the takeaway.]",
+         "[Sub-line 1 · Sub-line 2]"),
+        ("PILLAR TWO", "people", "[Pillar 2 heading]",
+         "[Pillar 2 body — two to three sentences describing what this pillar "
+         "represents and why it matters to the takeaway.]",
+         "[Sub-line 1 · Sub-line 2]"),
+        ("PILLAR THREE", "chart-bar", "[Pillar 3 heading]",
+         "[Pillar 3 body — two to three sentences describing what this pillar "
+         "represents and why it matters to the takeaway.]",
+         "[Sub-line 1 · Sub-line 2]"),
     ]
 
     for i, (eyebrow, icon_name, heading, body, signature) in enumerate(pillars):

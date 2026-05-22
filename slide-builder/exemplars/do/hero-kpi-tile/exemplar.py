@@ -42,8 +42,8 @@ def build():
 
     add_title_block(
         slide,
-        title="CY29 NRB drops to $55.8M — $10M below the $66M shareholder commitment.",
-        subtitle="The $10.2M commitment gap is the visual headline.",
+        title="[Hero-stat headline — name the metric and the takeaway in one line]",
+        subtitle="[Sub-headline that frames why this number matters]",
     )
 
     # ===== Top half: HERO =====
@@ -52,14 +52,14 @@ def build():
 
     # Eyebrow
     add_text(
-        slide, "hero-eyebrow", "CY29 NRB COMMITMENT GAP",
+        slide, "hero-eyebrow", "[METRIC LABEL — UPPERCASE]",
         x_px=64, y_px=hero_top, w_px=1152, h_px=18,
         font_size_px=11, color=BRAND_PRIMARY, uppercase=True, letter_spacing_px=2,
     )
 
     # Hero numeral (96px BRAND_PRIMARY)
     add_text(
-        slide, "hero-number", "$10.2M",
+        slide, "hero-number", "$X.XM",
         x_px=64, y_px=hero_top + 28, w_px=560, h_px=132,
         font_size_px=96, color=BRAND_PRIMARY, bold=True,
     )
@@ -67,7 +67,7 @@ def build():
     # Small label under the hero numeral
     add_text(
         slide, "hero-label",
-        "shortfall vs. $66M shareholder commitment",
+        "[Short context line under the hero numeral]",
         x_px=64, y_px=hero_top + 168, w_px=560, h_px=22,
         font_size_px=16, color=BRAND_PRIMARY, letter_spacing_px=1,
     )
@@ -75,9 +75,9 @@ def build():
     # Supporting claim — right of hero (18px TEXT_DARK)
     add_text(
         slide, "hero-claim",
-        "Post-change CY29 NRB lands at <strong>$55.8M</strong>, "
-        "below the <strong>$66M</strong> shareholder commitment. "
-        "Without recovery action, FedEx reports a missed commitment.",
+        "[Supporting claim — two or three sentences explaining the hero number "
+        "and what it implies. Use <strong>inline emphasis</strong> for the "
+        "load-bearing values within the prose.]",
         x_px=664, y_px=hero_top + 36, w_px=552, h_px=200,
         font_size_px=18, color=TEXT_DARK, emphasis_color=BRAND_PRIMARY,
     )
@@ -91,9 +91,9 @@ def build():
 
     add_text(
         slide, "strip-eyebrow",
-        "CY29 NRB ($M) — TRAJECTORY VS COMMITMENT VS POST-CHANGE",
+        "[CHART EYEBROW — WHAT THIS CHART SHOWS, UPPERCASE]",
         x_px=strip_x, y_px=strip_top, w_px=strip_w, h_px=16,
-        font_size_px=11, color=TEXT_MID, uppercase=True, letter_spacing_px=1,
+        font_size_px=11, color=TEXT_DARK, uppercase=True, letter_spacing_px=1,
     )
 
     # Bar plot region
@@ -110,9 +110,9 @@ def build():
 
     rows = [
         # (label, value, color, value_label, is_accent)
-        ("Pre-change trajectory", 68.0, TEXT_MID, "$68M", False),
-        ("Shareholder commitment", 66.0, BRAND_PRIMARY_MID, "$66M", False),
-        ("Post-change CY29 NRB", 55.8, BRAND_ACCENT, "$55.8M", True),
+        ("[Comparison row 1]", 68.0, TEXT_DARK, "[$XXM]", False),
+        ("[Comparison row 2]", 66.0, BRAND_PRIMARY_MID, "[$XXM]", False),
+        ("[Load-bearing row]", 55.8, BRAND_ACCENT, "[$XXM]", True),
     ]
 
     for i, (label, val, color, vlabel, is_accent) in enumerate(rows):

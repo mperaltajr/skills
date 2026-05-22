@@ -40,8 +40,8 @@ def build():
     # Title ≤90 chars; the fuller claim lives in subtitle.
     add_title_block(
         slide,
-        title="The argument comes first — the page follows.",  # 45 chars
-        subtitle="Better argument. Sharper page. Every time.",
+        title="[Single-finding insight headline placeholder]",
+        subtitle="[Sub-headline that frames the finding]",
     )
 
     # === Hero takeaway zone ===
@@ -52,7 +52,8 @@ def build():
 
     add_text(
         slide, "hero-takeaway",
-        "Slide Lab is a <strong>thought partner</strong>, not a slide machine.",
+        "[Hero takeaway placeholder — one declarative sentence with "
+        "<strong>inline emphasis</strong> on the load-bearing words.]",
         x_px=hero_x, y_px=hero_y, w_px=hero_w, h_px=120,
         font_size_px=36, color=TEXT_DARK, bold=True,
         emphasis_color=BRAND_PRIMARY,
@@ -68,18 +69,18 @@ def build():
     # Hero supporting claim (the so-what restated, larger than bullets)
     add_text(
         slide, "hero-claim",
-        "The coaching is the product. Great slides are the natural result of a clear argument — "
-        "and Slide Lab is built to raise the quality of that argument.",
+        "[Hero supporting claim — two sentences explaining the takeaway above. "
+        "Larger than the bullets that follow, but smaller than the takeaway.]",
         x_px=hero_x, y_px=hero_y + 150, w_px=hero_w, h_px=80,
-        font_size_px=16, color=TEXT_MID,
+        font_size_px=16, color=TEXT_DARK,
     )
 
     # === 3 supporting bullets ===
     # Below hero: y=420 → y=620. Three rows, each 60px tall.
     bullets = [
-        "Meets you where you are — BA learning to build an argument, or MD filtering noise.",
-        "Works with you, not instead of you. A coach and a thought partner.",
-        "Output scales with thinking. Slide Lab is built to raise that thinking.",
+        "[Supporting bullet 1 — one declarative sentence backing the takeaway.]",
+        "[Supporting bullet 2 — one declarative sentence backing the takeaway.]",
+        "[Supporting bullet 3 — one declarative sentence backing the takeaway.]",
     ]
 
     bullet_x = 64
