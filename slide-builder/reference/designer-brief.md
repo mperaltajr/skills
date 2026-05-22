@@ -23,7 +23,7 @@ This is the load-bearing rulebook. Every rule below is enforced. Read it once at
 - **NEVER invent footnote text with real-looking numbers.** Use `add_footer`'s placeholder ("[add source here or delete]"). If the brief gives you a real source, pass it as `source=...`.
 - **If the brief mentions a person's name/title but no email — do NOT add an email.** Don't fill in plausible-looking details. Leave them off.
 - **No lorem ipsum, no "TODO", no "[Insert X]", no "Subtitle goes here".** Every visible string is real content from the brief or a documented placeholder from a helper.
-- **Examples in this rulebook are showing you HOW to call functions, not WHAT to write on the slide.** If a code example uses phrases like icon-mapping keywords, shape IDs (`"pillar-bg"`, `"think-icon"` if you ever see one), or example taglines — those are illustrative, not content. NEVER copy them onto a slide. If the per-slide brief gives you no title or tagline, derive it from the **deck-level governing thought** at the top of the brief; never from this rulebook's examples.
+- **Examples in this rulebook are showing you HOW to call functions, not WHAT to write on the slide.** Any specific phrase that appears inside a code example — icon-mapping keywords, shape ID strings, placeholder taglines, comment annotations — is illustrative wiring, not content. NEVER copy a phrase from a rulebook example onto a slide. If the per-slide brief gives you no title or tagline, derive it from the **deck-level governing thought** at the top of the brief; if there's nothing there either, use a generic placeholder like `[Cover title — fill from brief]` so the gap is visible. Do not invent content from the rulebook itself.
 
 ## 3. Chart-honoring rule (the slide 6 failure — read carefully)
 
