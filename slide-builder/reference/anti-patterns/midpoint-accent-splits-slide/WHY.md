@@ -15,8 +15,8 @@ That bar is not attached to anything. It floats in whitespace. The eye reads it 
 One coherent slide becomes two competing pages. The hero takeaway and the cards that should expand on it are visually severed.
 
 **Rules it breaks:**
-- **Accent discipline (slot-design-rules.md § Accent discipline):** one accent moment per slide, and the accent must ATTACH to a load-bearing element — the title block, a card edge, a chart row, a column cap. A full-width accent floating in body whitespace is not "one accent moment", it's a false page break.
-- **Divider misuse (visual-treatment-library.md § Dividers):** full-width horizontal rules are reserved for between-section dividers in dense decks. Inside a single body composition they sabotage reading order.
+- **Accent discipline:** one accent moment per slide, and the accent must ATTACH to a load-bearing element — the title block, a card edge, a chart row, a column cap. A full-width accent floating in body whitespace is not "one accent moment", it's a false page break. (See `reference/anti-patterns.md` — accent-discipline entries.)
+- **Divider misuse:** full-width horizontal rules are reserved for between-section dividers in dense decks. Inside a single body composition they sabotage reading order. (See `reference/layouts.md` § "Horizontal bands" for the legitimate use.)
 
 ## Why this is a teaching anti-exemplar
 

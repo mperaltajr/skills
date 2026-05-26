@@ -64,5 +64,5 @@ The totals row becomes a normal row with "Total" in the first column — labelle
 ## See also
 
 - `do/2panel-delta-spine/` — uses `add_table` correctly for the two-panel comparison
-- `reference/designer-brief.md` § 4 (Data Tables family)
+- `reference/layouts.md` § "Table" — canonical v0.1 table pattern
 - `twins/helpers.py` `add_table()` — the helper signature that enforces this rule

@@ -247,7 +247,22 @@ def main() -> int:
                 f"  WARN: could not back up prior {final_path.name}: {exc}\n"
                 f"  Proceeding will overwrite. If you have unsaved edits in the prior deck, abort now (Ctrl+C).\n"
             )
-    dst_prs.save(str(final_path))
+    # T1-R2 (2026-05-26 regression audit): the save itself can fail with
+    # PermissionError if the destination final_deck.pptx is open in
+    # PowerPoint, or with OSError under antivirus/file-lock conditions.
+    # The T2.6 backup above protects the prior copy; this guard protects
+    # the user from a raw traceback on save.
+    try:
+        dst_prs.save(str(final_path))
+    except (PermissionError, OSError) as exc:
+        sys.stderr.write(
+            f"\nERROR: could not write {final_path.name}: {type(exc).__name__}: {exc}\n"
+            f"       The deck is locked - most commonly because the prior "
+            f"copy is open in PowerPoint.\n"
+            f"       Close PowerPoint (or pause antivirus on the build dir) "
+            f"and re-run compile_picks.py.\n"
+        )
+        sys.exit(3)
     print(f"  saved ({final_path.stat().st_size:,} bytes)")
 
     print("\n[4] Verify opens cleanly")

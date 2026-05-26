@@ -2,16 +2,37 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
-## [Unreleased]
+## [Unreleased] — v0.1 hardening pass (2026-05-26 post-tag)
+
+Behavioral guardrails + Tier 1 install/safety blockers + Tier 2 production-readiness fixes from the v0.1 audit handover (`_decisions/v0.1-audit-handover-2026-05-26.md`) and the follow-up 4-agent regression audit.
 
 ### Added
-- (place new work-in-progress items here)
+
+- **`slide-builder/agents/slide-builder-worker.md`** as source-of-truth for the per-slide Stage-2 worker (was orphaned at `~/.claude/agents/slide-builder-simple-worker.md`). INSTALL.md Step 6 documents the copy step.
+- **INSTALL Step 6 content-aware verification** — `Select-String -Pattern "option_A.py"` proves the installed worker is the v0.1 contract, not a stale v1 copy.
+- **`_contract.py` import-smoke check** — fourth check imports all 14 pipeline modules to surface module-load-time errors at contract test time.
+- **`compile_picks.py` timestamped backup** of `final_deck.pptx` on overwrite.
+- **`compile_picks.py` save-time error handling** — `PermissionError` / `OSError` surfaces an actionable message ("close PowerPoint") and exits with code 3 instead of a raw traceback.
+- **`finalize_deck.stash_raw` loud failure** — Windows file-lock failures during the rename now surface via `st.error` instead of silent return.
+- **`clean.py` safety guards** — refuses drive roots, user home, paths under the skill itself, and `--deep` without explicit `--yes-i-really-want-to-wipe-prompts`. Exit codes 3 / 4 / 5.
+- **Storyline-helper hard rules** — per-slide handshake required (Step 5); review must be acknowledged before brief saves (Step 9); never ask the user to classify the deck (Mode Check).
+- **Slide-builder hard rule** — no auto-accept on template registration; user must respond to `register.html`.
 
 ### Changed
-- (place in-progress changes here)
 
-### Fixed
-- (place in-progress fixes here)
+- **SKILL.md** — v1/v2 history deferred to a bottom appendix; main flow no longer points new users at `DECISIONS.md` (503 lines) before doing work. Duplicate "Input contract" section deleted. Adjacency attribution fixed (gate-preview + review, not finalize). Mode Check opener hardened against menu-style questions.
+- **`prompt.md`, `DECISIONS.md`** — Hardline #3 adjacency attribution corrected at all callers.
+- **`prompt.md`, `SKILL.md`, `DECISIONS.md`** — Hardline #4 (brief fidelity) reframed as prompt-time-only with v0.2 enforcement target.
+- **`TROUBLESHOOTING.md`** — exit-code tables re-derived from actual `sys.exit()` calls in every script.
+- **`twins/composer.py`** — stripped 654 lines of dead v1 chassis-vocabulary code; kept only `_find_blank_layout`, `_strip_layout_placeholders`, `_clear_existing_slides` used by finalize/compile.
+- **`convergence-hold-declaration-2026-05-26.md`** — banner enumerates what's now Path D-obsoleted in the body.
+- **Cross-skill v1-script references** — `slide-qc/SKILL.md`, `rfp-helper/SKILL.md`, `slide-builder/icons/README.md`, `scripts/icon_helper.py`, `twins/helpers.py` repointed off deleted `build_slide.py` / `extract_icons.py` / `phase-a-rules.md` / `visual-treatment-library.md`.
+- **Three anti-pattern WHY.md cross-references** repointed at `reference/anti-patterns.md` / `reference/layouts.md`.
+
+### Removed
+
+- **`QUICKSTART.md`** — content folded into `examples/RUN.md`; was a first-day onboarding speed bump.
+- **Stale v1 worker** at `~/.claude/agents/slide-builder-simple-worker.md` (replaced by `slide-builder-worker.md`).
 
 ---
 
@@ -29,7 +50,7 @@ First release after the Path D consolidation (v1 retired, v2 wins). See `_decisi
 - **`_log.py` build.log tee** — every pipeline-script run appends timestamped stdout + stderr to `<out>/build.log`.
 - **`clean.py`** — removes ephemeral artifacts from a build dir while preserving `picks.json`, agent build scripts, and prompts. `--deep` for full reset.
 - **`diagnostic.py`** — bundles `_meta.json` + all `_prompt.md` + `*.qc.json` + `build.log` into a zip for bug reports.
-- **Onboarding docs** — `README.md`, `INSTALL.md`, `QUICKSTART.md`, `examples/quickstart-brief.md`, `examples/RUN.md`, `TROUBLESHOOTING.md`.
+- **Onboarding docs** — `README.md`, `INSTALL.md`, `examples/quickstart-brief.md`, `examples/RUN.md`, `TROUBLESHOOTING.md`.
 - **9 Tier-1 anti-exemplars** ported from v1 corpus into `reference/anti-patterns/<slug>/` with PNG + WHY.md.
 - **Brand-display polish in `REVIEW.html`** — `fedex` → `FedEx`, `accenture` → `Accenture`, etc., via per-brand override table.
 

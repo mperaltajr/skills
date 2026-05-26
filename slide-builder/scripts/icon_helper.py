@@ -1,11 +1,13 @@
 """
-icon_helper.py — Slide Lab v2 icon insertion (build-time, zero PPTX overhead)
+icon_helper.py — Slide Lab icon insertion (build-time, zero PPTX overhead)
 
 Reads pre-extracted icon XML files from icons/<name>.xml and injects the vector
 shape directly into the target slide's spTree. No PPTX opening, no COM, no
 file format conversion — just XML read + inject.
 
-Icons are extracted once from the Accenture icon library using extract_icons.py.
+v0.1 ships icons pre-extracted under slide-builder/icons/; there is no live
+extraction step. Missing names fall through to a labeled dashed-border
+placeholder. See slide-builder/icons/README.md for the vocabulary + fallback.
 
 Usage:
     from icon_helper import insert_icon
@@ -206,14 +208,15 @@ def insert_icon(
 
     Returns True on success, False if placeholder was inserted instead.
 
-    If the XML file is missing, run:
-        py -3 extract_icons.py --icon <icon_name>
-    to extract it from the source PPTX (one-time operation).
+    If the XML file is missing, the icon was not pre-extracted into the
+    skill's icons/ directory. v0.1 ships pre-extracted icons under
+    slide-builder/icons/*.xml; missing names fall through to a labeled
+    dashed-border placeholder (no extraction step in the v0.1 pipeline).
     """
     xml_path = _ICONS_DIR / f"{icon_name}.xml"
 
     if not xml_path.exists():
-        print(f"  [icon] WARNING: {xml_path.name} not found — run extract_icons.py to populate. Inserting placeholder.")
+        print(f"  [icon] WARNING: {xml_path.name} not found in slide-builder/icons/ - inserting labeled placeholder.")
         _insert_placeholder(target_slide, left_emu, top_emu, width_emu, height_emu, icon_name)
         return False
 

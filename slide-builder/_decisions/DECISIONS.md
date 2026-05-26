@@ -259,7 +259,7 @@ The worker agent definition (`slide-builder-worker.md`) is also a new file. It m
 
 **Resolved during the architecture review (no longer open):**
 
-- ~~**Classifier for routing.**~~ Resolved: agent picks the pattern from the brief, no pre-classifier. Two light layers help — a prep-time pattern-hint pass (runs the `layouts.md` signals table once per slide and injects forecasted prior patterns as adjacency context) and a `pattern_pick_seed` for tiebreaking. Adjacency (Hardline #3) is soft-enforced at pick time and hard-enforced at finalize via a post-pass that surfaces 3+ same-split runs in REVIEW.html.
+- ~~**Classifier for routing.**~~ Resolved: agent picks the pattern from the brief, no pre-classifier. Two light layers help — a prep-time pattern-hint pass (runs the `layouts.md` signals table once per slide and injects forecasted prior patterns as adjacency context) and a `pattern_pick_seed` for tiebreaking. Adjacency (Hardline #3) is soft-enforced at pick time and hard-enforced at the gate-preview + review steps (`build_gate_preview.py` + `build_review.py`) via a post-pass that surfaces 3+ same-split runs in `GATE3-PREVIEW.html` / `REVIEW.html`.
 - ~~**HTML→PNG fallback implementation details.**~~ Resolved: Mermaid first with brand theme overrides. Mermaid covers the curved-container failure set (hub-spoke, Porter's, fishbone, ecosystem, free-form network). Raw HTML+CSS+Playwright reserved for v0.1 if Mermaid brand fidelity fails on a real failing brief.
 
 **Open — cross-skill dependency on v1 theme rescope:**

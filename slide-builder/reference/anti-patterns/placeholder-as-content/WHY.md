@@ -7,7 +7,7 @@ Chart + right takeaway panel (a `chart-right-takeaway` variant).
 Every text slot still says its own slot label. The slide shipped its template comments as content.
 
 ## Rule violated
-`reference/rules.md` — every text slot must carry a CLAIM, not its own slot label. The action title must state the action. The takeaway panel must state the takeaway. Bullets must list evidence, not announce that bullets exist.
+Every text slot must carry a CLAIM, not its own slot label. The action title must state the action. The takeaway panel must state the takeaway. Bullets must list evidence, not announce that bullets exist. (See Hardline #2 in `slide-builder/SKILL.md` — "no fabrication" — and `reference/anti-patterns.md` for the canonical entry.)
 
 Compounding failures (kept in so the anti-exemplar is recognisable as a real Slide Lab "before" slide, not a strawman):
 

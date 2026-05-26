@@ -130,29 +130,21 @@ Proposal brief saved:
 
 ### Step 6 — Hand off to Slide Builder
 
-**Before handing off, extract theme data from the client template (run once per session — skip if already done this session):**
-
-```bash
-py -3 skills/slide-builder/scripts/build_slide.py --print-theme <client-template.pptx>
-```
-
-Note the major/minor font names and brand color slots. Pass this in the handoff so Slide Builder can skip its own setup step.
+**Before handing off, confirm the client template is registered.** Slide Builder requires a registered template (sidecar `<stem>.brand.yml` + `<stem>.theme.json` next to the `.pptx`). If the template hasn't been registered this engagement, run the chat-driven flow documented in `slide-builder/SKILL.md` § "Register a new client template" — `register_template.py propose` then `commit`. There is no `--print-theme` step in v0.1; the registration produces the canonical theme + brand sidecars.
 
 **When the user confirms the brief, invoke the `slide-builder` skill using the Skill tool:**
 
 > *Handing off to Slide Builder now.*
 >
 > *Brief: `[absolute path to proposal-brief file]`*
-> *Template: `[absolute path to .pptx template]`*
-> *Template fonts: major=`<major>`, minor=`<minor>`. Brand colors: `<brand-summary>`.*
+> *Template: `[absolute path to .pptx template]` (registered — `<stem>.brand.yml` present)*
 >
 > *This is a proposal/RFP build — note the following:*
 > *— One option per section, not three design variants. Layout should be clean and professional.*
 > *— Win theme: `[state it]` — thread this visually on the cover, section dividers, and where appropriate in body slides.*
 > *— Structure is prescribed by the RFP (section order fixed). Do not reorder.*
-> *— Skip `--print-theme` — theme data provided above.*
 >
-> *Slide Builder: read `skills/slide-builder/reference/phase-a-rules.md` and `reference/visual-treatment-library.md` before generating any mockups.*
+> *Slide Builder: read `slide-builder/reference/layouts.md` and `slide-builder/reference/anti-patterns.md` before dispatching per-slide workers. Brand colors come from the registered `brand.yml`; the 14-pattern catalog is in `layouts.md`.*
 
 ---
 

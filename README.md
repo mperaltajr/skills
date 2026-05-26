@@ -22,7 +22,7 @@ Claude Slide Lab is a collection of Claude Code skills that turn a narrative bri
 | Skill | What it does |
 |---|---|
 | `storyline-helper` | Coaches your deck narrative — governing thought, audience, per-slide story — before any slides are built |
-| `slide-builder` | Builds real PowerPoint slides from HTML mockups with theme colors and fonts from your client template |
+| `slide-builder` | Builds a PowerPoint deck from a narrative brief via parallel agent fanout: prep → per-slide workers produce three python-pptx option scripts each → finalize → REVIEW.html → pick → compile. Brand colors + fonts come from your registered client template. |
 | `slide-qc` | Exports every slide to PNG via PowerPoint COM and reviews them with vision — produces a per-slide PASS/WARN/FAIL report before you open the deck |
 | `pptx` | General PowerPoint read / edit / create for any `.pptx` task |
 | `docx` | Word document generation — reports, memos, letters with proper formatting |
@@ -55,7 +55,7 @@ git clone https://github.com/mperaltajr/skills "$env:USERPROFILE\.claude\skills"
 ```powershell
 pip install -r "$env:USERPROFILE\.claude\skills\requirements.txt"
 ```
-*(Optional, only if you use the HTML mockup preview path.)* Install the browser Claude uses to render HTML mockups:
+*(Optional — only required if you use a separate HTML-mockup preview workflow outside slide-builder. The v0.1 slide-builder pipeline does not need Chromium; it renders via LibreOffice + python-pptx.)*
 ```powershell
 py -3 -m playwright install chromium
 ```

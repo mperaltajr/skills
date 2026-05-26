@@ -454,3 +454,33 @@ After all phases complete, run this checklist:
 - **Audit 2 (v1 exemplars):** 561 exemplars; 9 Tier-1 anti-exemplars worth porting; 12 already-decisioned-delete slugs to delete; v1's G+J families are structural failures.
 - **Audit 3 (cross-folder):** 2 active client sidecars (keep), 2 orphan sidecars in Downloads (delete), 2 memory files describe v1 architecture as locked (update), ~1.3 GB stale project artifacts (archive).
 - **Audit 4 (production gaps):** 15 distinct gaps; biggest is chat-driven template registration ("non-negotiable" per DECISIONS.md); v2 not coworker-ready today; ~3 days minimum viable bar.
+
+---
+
+## Phase 9 — v0.1 audit remediation (2026-05-26 post-v0.1-tag)
+
+Two follow-on audits ran after the v0.1 tag landed:
+
+1. **OTC dry-run findings** + **4-agent v0.1 audit handover** (`_decisions/v0.1-audit-handover-2026-05-26.md`) — produced Tier-1 install blockers (T1.1–T1.5) and Tier-2 production-readiness items (T2.6–T2.13). All landed; commit `838a364`.
+2. **Regression audit** (4 agents, 2 caught the same critical regression) — found:
+   - **CRITICAL T1-R1.** v0.1 commit shipped the **wrong worker-agent content** at `slide-builder/agents/slide-builder-worker.md` — v1-era (4 options A/B/C/D, `/tmp/` paths, Steps 4a-4f). The v0.1-correct file was orphaned at `~/.claude/agents/slide-builder-simple-worker.md`. INSTALL Step 6 verification used `Test-Path` only, so the regression was invisible. Coworker install would produce no slides.
+   - **HIGH T1-R2.** `compile_picks.py` T2.6 backup caught the rename `OSError` but the subsequent `dst_prs.save()` was still uncaught — under "PowerPoint open" you got `warn → raw traceback`, exactly the scenario T2.6 was hardening against.
+   - **T2-R3 through T2-R13.** ~10 minor drifts: dead v1 script references in slide-qc / rfp-helper / icons docs; broken cross-references in 3 anti-pattern WHY.md files; CHANGELOG stale + missing entries for the cleanup-chat fixes; Hardline #3 adjacency attribution only landed in SKILL.md (prompt.md + DECISIONS.md still wrong); duplicate "Input contract" section in SKILL.md; duplicate "First time" bullets; README:25 stale HTML-mockup description; clean.py missing `typing.Optional` import; orphan `agents ` file with trailing space; MEMORY.md missing `feedback_cocreate_not_infer` index + broken `[[slide-lab-architecture-v2]]` cross-link; master plan ended at Phase 8.
+
+**Status log (2026-05-26):**
+
+- **T1-R1** — done. Worker agent content rewritten for the v0.1 three-option python-pptx contract, mirrored to both `slide-builder/agents/` and `~/.claude/agents/`. Orphan `slide-builder-simple-worker.md` deleted. INSTALL.md Step 6 verify tightened to grep for `option_A.py` inside the installed file (`Select-String`), not just `Test-Path`. End-to-end verify passes.
+- **T1-R2** — done. `compile_picks.py` `dst_prs.save()` wrapped in `try/except (PermissionError, OSError)` with actionable message + `sys.exit(3)`. TROUBLESHOOTING.md exit-code table updated.
+- **T2-R3** — done. `rfp-helper/SKILL.md`, `slide-qc/SKILL.md`, `slide-builder/icons/README.md`, `scripts/icon_helper.py`, `twins/helpers.py`, `icons/icon-index.json` all repointed off `build_slide.py` / `extract_icons.py` / `phase-a-rules.md` / `visual-treatment-library.md`.
+- **T2-R4** — done. Three anti-pattern WHY.md files (placeholder-as-content, table-without-column-headers, midpoint-accent-splits-slide) repointed at v0.1 reference docs (`reference/anti-patterns.md`, `reference/layouts.md`) or had broken refs dropped.
+- **T2-R5** — done. CHANGELOG.md: removed `QUICKSTART.md` from the v0.1 onboarding-docs list, added an `[Unreleased]` block enumerating the cleanup-chat + regression-audit fixes.
+- **T2-R6** — done. Hardline #3 adjacency attribution fixed in `prompt.md` (two callers) and `DECISIONS.md`.
+- **T2-R7** — done. Duplicate "Input contract (verbatim from v1)" section deleted from `SKILL.md`.
+- **T2-R8** — done. Duplicate "First time here?" bullets collapsed.
+- **T2-R9** — done. Top-level `skills/README.md:25` rewritten ("Builds real PowerPoint slides from HTML mockups" → narrative-brief → parallel fanout → REVIEW → pick → compile). Playwright note clarified as out-of-scope for v0.1 slide-builder.
+- **T2-R10** — done. `from typing import Optional` added to `clean.py`. `get_type_hints()` resolves cleanly now.
+- **T2-R11** — done. Orphan `agents ` (trailing space) deleted via Win32 long-path API.
+- **T2-R12** — done. `feedback_cocreate_not_infer.md` indexed in `MEMORY.md`; `[[slide-lab-architecture-v2]]` → `[[slide-lab-architecture]]` in `project_deck_artifacts_location.md`.
+- **T2-R13** — this section.
+
+**Tier 3 deferred to v0.2** (unchanged from prior handover): mermaid-`<slug>`.json written into skill/theme (should be out_dir/); `_log.py` lacks atexit/thread-safety; per-slide subprocess sandboxing; remaining `m.a.peralta` hardcoded paths in reference docs; remaining v1/v2 narrative drift; `prompt.md:319` "shared with v1"; `DECISIONS.md:434` references non-existent `stage-a-precommit.md`; old `__pycache__` from Python 3.12.
