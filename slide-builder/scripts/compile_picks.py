@@ -1,26 +1,32 @@
-﻿"""Slide Lab deck compiler - combine user-picked themed slides into one final deck.
+﻿"""Slide Lab v2 deck compiler — combine user-picked themed slides into one final deck.
+
+True near-verbatim fork from slide-builder/scripts/compile_picks.py. The only
+v2-specific change is the sys.path setup: v2 doesn't carry its own twins/
+module, so we point at slide-builder/'s shared infrastructure explicitly.
 
 Inputs:
-  --out PATH    Orchestrator output dir (the one that has _meta.json, themed/, etc.)
+  --out PATH    Orchestrator output dir (the one that has _meta.json, slide_NN/ dirs, etc.)
   --picks       Either a JSON file path OR a JSON string mapping slide_NN -> letter.
                 Example string: {"slide_01":"A","slide_02":"C",...}
                 If omitted, reads <out>/picks.json if present.
   --final PATH  Final deck path (default: <out>/final_deck.pptx)
 
-What it does:
+What it does (unchanged from v1):
   1. Open the client template (path from <out>/_meta.json).
-  2. _clear_existing_slides() - strip template stock slides + named sections.
-  3. For each slide in numeric order, open <out>/themed/slide_NN/option_<X>.pptx
+  2. _clear_existing_slides() — strip template stock slides + named sections.
+  3. For each slide in numeric order, open <out>/slide_NN/option_<X>.pptx
      and copy its single slide's shapes into a new blank slide in the final deck
      (deepcopy(shape.element) + append to _spTree).
   4. Save to --final.
-  5. Render every slide of the final deck to PNG via render_libre - output to
+  5. Render every slide of the final deck to PNG via render_libre → output to
      <out>/final_pngs/.
   6. Write <out>/COMPILED.md summarizing picks, output path, slide count,
      render success/fail, opens-cleanly status.
 
-The themed PPTX is already client-branded by finalize_deck.py - we do
-NOT re-graft or re-theme here. Just combine.
+The themed PPTX is already client-branded by finalize_deck.py — we do
+NOT re-graft or re-theme here. Just combine. Mermaid-fallback options
+were already assembled into themed PPTX at finalize time and look identical
+to native options from this script's perspective.
 """
 from __future__ import annotations
 
@@ -34,10 +40,14 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-SKILL_ROOT = Path(__file__).resolve().parents[1]
-QC_SCRIPTS = SKILL_ROOT.parent / "slide-qc" / "scripts"
+# Path setup: twins/ is local to this skill (re-homed Phase 2 cleanup
+# 2026-05-26); render_slides lives in the sibling slide-qc skill.
+SKILL_ROOT = Path(__file__).resolve().parents[1]              # slide-builder/
+QC_SCRIPTS = SKILL_ROOT.parent / "slide-qc" / "scripts"       # render_slides
 sys.path.insert(0, str(SKILL_ROOT))
 sys.path.insert(0, str(QC_SCRIPTS))
+
+import _paths as _p  # noqa: E402
 
 from pptx import Presentation  # noqa: E402
 from twins.composer import (  # noqa: E402
@@ -48,7 +58,7 @@ from twins.composer import (  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
-# Pick parsing
+# Pick parsing — unchanged from v1
 # ---------------------------------------------------------------------------
 def parse_picks(arg: Optional[str], out_dir: Path) -> dict[str, str]:
     """Resolve --picks. Accepts:
@@ -58,7 +68,7 @@ def parse_picks(arg: Optional[str], out_dir: Path) -> dict[str, str]:
     Normalizes keys to 'slide_NN' (zero-padded) and uppercases letters.
     """
     if arg is None:
-        candidate = out_dir / "picks.json"
+        candidate = _p.picks_json(out_dir)
         if not candidate.exists():
             raise SystemExit(f"--picks not given and {candidate} does not exist")
         raw = candidate.read_text(encoding="utf-8")
@@ -82,7 +92,7 @@ def parse_picks(arg: Optional[str], out_dir: Path) -> dict[str, str]:
         m = re.match(r"slide[_\-]?(\d+)", str(k), re.IGNORECASE)
         if not m:
             raise SystemExit(f"--picks: bad key {k!r}, expected like 'slide_01'")
-        key = f"slide_{int(m.group(1)):02d}"
+        key = _p.slide_key(int(m.group(1)))
         letter = str(v).strip().upper()
         if not letter:
             raise SystemExit(f"--picks: empty letter for {key}")
@@ -91,7 +101,7 @@ def parse_picks(arg: Optional[str], out_dir: Path) -> dict[str, str]:
 
 
 # ---------------------------------------------------------------------------
-# Slide copying
+# Slide copying — unchanged from v1
 # ---------------------------------------------------------------------------
 def copy_picked_slide_into(dst_prs, src_pptx: Path) -> int:
     """Open `src_pptx`, append its first slide's shapes onto a new blank slide
@@ -113,9 +123,9 @@ def copy_picked_slide_into(dst_prs, src_pptx: Path) -> int:
 
 
 # ---------------------------------------------------------------------------
-# COMPILED.md
+# COMPILED.md — unchanged from v1
 # ---------------------------------------------------------------------------
-COMPILED_TEMPLATE = """# Slide Lab compiled deck
+COMPILED_TEMPLATE = """# Slide Lab v2 compiled deck
 
 Generated: {ts}
 
@@ -144,7 +154,7 @@ Final deck: `{final}`
 
 
 # ---------------------------------------------------------------------------
-# Main
+# Main — unchanged from v1 (only the header message changed for v2)
 # ---------------------------------------------------------------------------
 def main() -> int:
     ap = argparse.ArgumentParser(description="Compile picked themed slides into a final deck.")
@@ -153,6 +163,9 @@ def main() -> int:
     ap.add_argument("--final", default=None, type=Path,
                     help="Final deck path (default: <out>/final_deck.pptx)")
     args = ap.parse_args()
+
+    from _log import attach as _log_attach
+    _log_attach(args.out, "compile_picks.py")
 
     try:
         sys.stdout.reconfigure(encoding="utf-8")
@@ -164,11 +177,13 @@ def main() -> int:
         print(f"ERROR: out dir not found: {out_dir}")
         return 2
 
-    meta_path = out_dir / "_meta.json"
+    meta_path = _p.meta_json(out_dir)
     if not meta_path.exists():
         print(f"ERROR: _meta.json not found at {meta_path}")
         return 2
     meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    from _meta_schema import validate_warn
+    validate_warn(meta, source="compile_picks")
     template_path = Path(meta["template"])
     if not template_path.exists():
         print(f"ERROR: template (from _meta.json) not found: {template_path}")
@@ -179,19 +194,17 @@ def main() -> int:
     final_path.parent.mkdir(parents=True, exist_ok=True)
 
     print("=" * 72)
-    print("Slide Lab deck compiler")
+    print("Slide Lab v2 deck compiler")
     print(f"  out      : {out_dir}")
     print(f"  template : {template_path}")
     print(f"  picks    : {len(picks)} entries")
     print(f"  final    : {final_path}")
     print("=" * 72)
 
-    # 1. open template
     print("\n[1] Open template + clear existing slides + sections")
     dst_prs = Presentation(str(template_path))
     _clear_existing_slides(dst_prs)
 
-    # 2. copy each pick in numeric order
     print("\n[2] Copy picked themed slides")
     rows: list[str] = []
     failures: list[str] = []
@@ -199,7 +212,7 @@ def main() -> int:
     copied_count = 0
     for key in ordered_keys:
         letter = picks[key]
-        src = out_dir / "themed" / key / f"option_{letter}.pptx"
+        src = out_dir / key / _p.option_pptx_name(letter)
         if not src.exists():
             msg = f"missing source: {src}"
             failures.append(f"- **{key} pick {letter}**: {msg}")
@@ -218,12 +231,10 @@ def main() -> int:
             rows.append(f"| {key} | {letter} | `{src.name}` | - | FAIL ({msg[:60]}...) |")
             print(f"  {key} pick {letter}  FAIL ({msg[:80]})")
 
-    # 3. save
     print(f"\n[3] Save final deck -> {final_path}")
     dst_prs.save(str(final_path))
     print(f"  saved ({final_path.stat().st_size:,} bytes)")
 
-    # 4. verify opens cleanly
     print("\n[4] Verify opens cleanly")
     opens = False
     slide_count = 0
@@ -236,7 +247,6 @@ def main() -> int:
         print(f"  FAIL: {type(e).__name__}: {e}")
         failures.append(f"- **reload**: {type(e).__name__}: {e}")
 
-    # 5. render PNGs
     print("\n[5] Render every slide to PNG")
     pngs_dir = out_dir / "final_pngs"
     render_total = 0
@@ -258,7 +268,6 @@ def main() -> int:
         render_total = slide_count
         render_fail = slide_count
 
-    # 6. COMPILED.md
     print("\n[6] Write COMPILED.md")
     content = COMPILED_TEMPLATE.format(
         ts=datetime.now().isoformat(timespec="seconds"),

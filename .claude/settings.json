@@ -1,45 +1,46 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(python *)",
-      "Bash(python3 *)",
-      "Bash(pip *)",
-      "Bash(pip3 *)",
-      "Bash(git *)",
-      "Bash(mkdir *)",
-      "Bash(cp *)",
-      "Bash(mv *)",
-      "Bash(ls *)",
-      "Bash(dir *)",
-      "Bash(Get-ChildItem *)",
-      "Bash(New-Item *)",
-      "Bash(Copy-Item *)",
-      "Bash(Move-Item *)",
-      "Bash(Remove-Item *)",
-      "Read",
-      "Write",
-      "Edit",
-      "Glob",
-      "Grep",
-      "WebFetch",
-      "WebSearch",
-      "TodoWrite",
-      "Task"
-    ]
-  },
-  "hooks": {
-    "SessionStart": [
-      {
-        "hooks": [
-          {
-            "type": "command",
-            "command": "Set-Location \"$env:USERPROFILE\\.claude\\skills\"; git pull --quiet 2>$null; exit 0",
-            "shell": "powershell",
-            "async": true,
-            "statusMessage": "Checking for skill updates..."
-          }
-        ]
-      }
-    ]
-  }
+﻿{
+    "permissions":  {
+                        "allow":  [
+                                      "Bash(py *)",
+                                      "Bash(python *)",
+                                      "Bash(python3 *)",
+                                      "Bash(pip *)",
+                                      "Bash(pip3 *)",
+                                      "Bash(git *)",
+                                      "Bash(mkdir *)",
+                                      "Bash(cp *)",
+                                      "Bash(mv *)",
+                                      "Bash(ls *)",
+                                      "Bash(dir *)",
+                                      "Bash(Get-ChildItem *)",
+                                      "Bash(New-Item *)",
+                                      "Bash(Copy-Item *)",
+                                      "Bash(Move-Item *)",
+                                      "Bash(Remove-Item *)",
+                                      "Read",
+                                      "Write",
+                                      "Edit",
+                                      "Glob",
+                                      "Grep",
+                                      "WebFetch",
+                                      "WebSearch",
+                                      "TodoWrite",
+                                      "Task"
+                                  ]
+                    },
+    "hooks":  {
+                  "SessionStart":  [
+                                       {
+                                           "hooks":  [
+                                                         {
+                                                             "type":  "command",
+                                                             "command":  "Set-Location \"$env:USERPROFILE\\.claude\\skills\"; git pull --quiet 2\u003e$null; exit 0",
+                                                             "shell":  "powershell",
+                                                             "async":  true,
+                                                             "statusMessage":  "Checking for skill updates..."
+                                                         }
+                                                     ]
+                                       }
+                                   ]
+              }
 }

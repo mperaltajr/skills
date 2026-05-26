@@ -28,6 +28,20 @@ slide-builder/_renders/twins/_pngs/
 # Reference PPTX templates (used by smoke_test.py + as design exemplars) ship too.
 !references/PPT Files/*.pptx
 
+# ── Slide Lab anti-exemplar PNGs — the 9 ported Tier-1 failure-mode images
+# ship as part of the visual reference library. Each `reference/anti-patterns/
+# <slug>/exemplar.png` pairs with a `WHY.md`. Without the PNG the library
+# is text-only. ~30 KB each, 9 files total. Override the *.png rule above.
+!slide-builder/reference/anti-patterns/*/exemplar.png
+
+# Icon-helper work artifacts from a parallel chat — audit screenshots and
+# backups of pre-fix icon XML. Not load-bearing for the skill.
+slide-builder/icons/_audit/
+slide-builder/icons/_backup/
+
+# Per-build runtime lock from scheduled-tasks tooling — not part of the skill.
+.claude/scheduled_tasks.lock
+
 # ── Session working files ──
 _session/
 _versions/

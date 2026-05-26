@@ -1,0 +1,15 @@
+%%{init: {"flowchart": {"curve": "basis", "padding": 20}}}%%
+flowchart TD
+    Hub(["Customer<br/>Experience"])
+
+    Hub --- S1["Marketing"]
+    Hub --- S2["Sales"]
+    Hub --- S3["Service"]
+    Hub --- S4["Product"]
+    Hub --- S5["Operations"]
+    Hub --- S6["Data &amp; Insights"]
+
+    classDef hub fill:#4D148C,stroke:#4D148C,color:#FFFFFF,font-weight:bold;
+    classDef spoke fill:#FFFFFF,stroke:#4D148C,color:#1A1A1A;
+    class Hub hub;
+    class S1,S2,S3,S4,S5,S6 spoke;
