@@ -139,17 +139,88 @@ def clean(out_dir: Path, deep: bool = False) -> dict:
     return removed
 
 
+def _looks_like_slide_lab_out_dir(out: Path) -> bool:
+    """Slide Lab output dirs always contain BOTH _meta.json (build_deck writes
+    it at prep time) AND dispatch_plan.md (also written by build_deck). If
+    either is missing, this is not a Slide Lab build dir — refuse to clean."""
+    return (out / "_meta.json").exists() and (out / "dispatch_plan.md").exists()
+
+
+def _is_forbidden_path(out: Path, skill_root: Path) -> Optional[str]:
+    """Return a reason string if the path is too dangerous to wipe, else None.
+
+    Refuses: drive roots (C:\\), the user home dir, anywhere under the skill
+    itself. Defensive against a typo or unintended --out value that would
+    rglob the user's home or the skill source tree.
+    """
+    try:
+        # Drive root (e.g. C:\) — parent equals self
+        if out.parent == out:
+            return f"refusing to clean a drive root: {out}"
+        # User home
+        home = Path.home().resolve()
+        if out == home:
+            return f"refusing to clean the user home directory: {out}"
+        # Anywhere under the skill
+        try:
+            out.relative_to(skill_root)
+            return f"refusing to clean a path under the skill itself ({skill_root}): {out}"
+        except ValueError:
+            pass  # not under skill, OK
+    except Exception:
+        # Any path resolution issue — be conservative
+        return f"could not validate path safety for: {out}"
+    return None
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Clean ephemeral artifacts from a Slide Lab output dir.")
     ap.add_argument("--out", type=Path, required=True, help="Output directory to clean")
     ap.add_argument("--deep", action="store_true",
                     help="Also remove agent build scripts (option_*.py), prompts, dispatch plan — full reset to pre-build state.")
+    ap.add_argument("--yes-i-really-want-to-wipe-prompts", action="store_true",
+                    help="Required to actually proceed with --deep without an interactive prompt. "
+                         "Belt-and-braces guard against typo'd --deep on the wrong --out.")
     args = ap.parse_args()
 
     out = args.out.resolve()
     if not out.exists() or not out.is_dir():
         sys.stderr.write(f"ERROR: --out is not a directory: {out}\n")
         return 2
+
+    # Safety: refuse drive root / home / under-the-skill paths.
+    skill_root = Path(__file__).resolve().parents[1]
+    forbidden = _is_forbidden_path(out, skill_root)
+    if forbidden:
+        sys.stderr.write(f"ERROR (safety check): {forbidden}\n"
+                         f"clean.py is for build output directories, not arbitrary paths.\n")
+        return 3
+
+    # Safety: refuse if this doesn't look like a Slide Lab build output dir.
+    # Both _meta.json and dispatch_plan.md are written by build_deck.py at
+    # prep time; their absence means the operator probably typo'd --out.
+    if not _looks_like_slide_lab_out_dir(out):
+        sys.stderr.write(
+            f"ERROR (safety check): {out} doesn't look like a Slide Lab output directory.\n"
+            f"Expected both _meta.json and dispatch_plan.md to exist. "
+            f"If you want to wipe this anyway, you're probably better off using rm/Remove-Item directly.\n"
+        )
+        return 4
+
+    # --deep adds the explicit-confirmation requirement so a typo'd --deep on
+    # the wrong --out can't silently destroy the option_*.py source-of-record
+    # (the agent fanout's only durable output).
+    if args.deep and not getattr(args, "yes_i_really_want_to_wipe_prompts"):
+        # Count what would be removed so the operator can decide.
+        n_py = sum(1 for _ in out.glob("slide_*/option_*.py"))
+        n_prompt = sum(1 for _ in out.glob("slide_*/_prompt.md"))
+        sys.stderr.write(
+            f"--deep would remove {n_py} option_*.py scripts and {n_prompt} _prompt.md files "
+            f"under {out}.\n"
+            f"This wipes the worker fanout output — re-dispatch costs another agent run.\n"
+            f"To proceed, re-run with: --deep --yes-i-really-want-to-wipe-prompts\n"
+        )
+        return 5
 
     print(f"Cleaning {out}{' (deep)' if args.deep else ''}")
     result = clean(out, deep=args.deep)

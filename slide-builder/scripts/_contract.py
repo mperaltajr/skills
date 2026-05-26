@@ -165,12 +165,63 @@ def check_handoff_coverage() -> list[str]:
 # Driver
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Check 4 — pipeline-script import smoke
+# ---------------------------------------------------------------------------
+
+def check_pipeline_imports() -> list[str]:
+    """Actually import every pipeline script under try/except.
+
+    `check_handoff_coverage` greps script text for path-helper references but
+    never executes the module-level code. Module-load-time bugs (forward
+    references to imports that don't land until later in the file, missing
+    submodule deps, broken `from X import Y` lines) slip through that grep.
+    This check imports each script so module-level errors surface here, not
+    at the operator's first `--help`. Audit finding T2.7 (2026-05-26).
+    """
+    import importlib
+    errors: list[str] = []
+    # Scripts that are entry points (have an `if __name__ == "__main__"`) +
+    # helper modules. All should import cleanly with sys.path already set
+    # to HERE.
+    targets = [
+        "_paths", "_meta_schema", "_log", "_contract",
+        "build_deck", "finalize_deck", "compile_picks",
+        "build_review", "build_gate_preview",
+        "register_template", "clean", "diagnostic",
+        "icon_helper", "render_mermaid",
+    ]
+    imported = 0
+    for name in targets:
+        try:
+            # importlib.import_module caches; reimport via reload is overkill
+            # for the contract test. A successful first-import here proves
+            # module-level code ran without exception, which is what matters.
+            mod = importlib.import_module(name)
+            if mod is None:
+                errors.append(f"import {name}: returned None")
+            else:
+                imported += 1
+        except Exception as exc:
+            errors.append(f"import {name}: {type(exc).__name__}: {exc}")
+    if not errors:
+        _ok(f"pipeline imports: {imported} modules loaded cleanly")
+    return errors
+
+
+# ---------------------------------------------------------------------------
+# Driver
+# ---------------------------------------------------------------------------
+
 def main() -> int:
     print("Slide Lab pipeline contract test")
     print("=" * 60)
 
     all_errors: list[str] = []
-    for check in (check_paths_registry, check_meta_schema_roundtrip, check_handoff_coverage):
+    for check in (check_paths_registry,
+                  check_meta_schema_roundtrip,
+                  check_handoff_coverage,
+                  check_pipeline_imports):
         errs = check()
         for e in errs:
             _fail(e)

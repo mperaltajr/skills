@@ -14,7 +14,7 @@ The build layer of Slide Lab. The split is the spec.
 If you have never run this skill before, read these in order before anything else:
 
 1. **[INSTALL.md](INSTALL.md)** — pinned Python deps, mmdc 11.4.0, LibreOffice, sibling `slide-qc` skill. End with the verification step printing `install OK`.
-2. **[QUICKSTART.md](QUICKSTART.md)** — the 3-command sequence against an example brief. End with a `GATE3-PREVIEW.html` you can open in a browser.
+2. **[examples/RUN.md](examples/RUN.md)** — the canonical end-to-end walkthrough against the bundled example brief + your registered template. End with a `GATE3-PREVIEW.html` you can open in a browser, then pick options → compile → REVIEW.html.
 3. **[examples/RUN.md](examples/RUN.md)** — the full end-to-end (prep → agent dispatch → finalize → gate → compile → review) on the example brief plus your own registered client template.
 
 After that, the input contract for real briefs is documented below in § "Input contract — narrative brief", and registering a new client template is below in § "Register a new client template."
@@ -100,7 +100,13 @@ The chat-driven flow replaces the legacy PowerShell TTY flow (still available as
    ```
    This writes `<stem>.preview.pptx`, `<stem>.preview.png`, `<stem>.palette.png`, `<stem>.register.html`, and `<stem>.register.proposal.json` next to the template. No prompts, no writes to `brand.yml`.
 
-2. **Show + take picks.** The orchestrator opens `<stem>.register.html` in the user's preview panel. That page embeds the preview composite PNG + clickable palette swatches + the strip-master-backgrounds checkbox + a live picks-JSON payload. The user clicks swatches to pick primary / accent / cover-bg by visible color (no hex typing), toggles strip-bg, copies the picks JSON to clipboard, and pastes back to the chat.
+2. **Show + take picks.** The orchestrator **MUST display the `<stem>.register.html` file path to the user and wait** for the user to respond before writing `picks.json`. That page embeds the preview composite PNG + clickable palette swatches + the strip-master-backgrounds checkbox + a live picks-JSON payload. The user clicks swatches to pick primary / accent / cover-bg by visible color (no hex typing), toggles strip-bg, copies the picks JSON to clipboard, and pastes back to the chat.
+
+   > **⛔ Hard rule — no auto-accept (added 2026-05-26 after OTC dry run failure).**
+   >
+   > - Reading `<stem>.preview.png` or `<stem>.palette.png` does **not** substitute for the user opening `register.html`. Those artifacts confirm that colors EXIST, not that the role ASSIGNMENT (primary vs accent vs cover-bg) is correct. Auto-pick has historically inverted on most client templates — the chat-driven flow exists precisely to catch that.
+   > - The `{"accept": true}` flag is a **user-issued shortcut**, not an orchestrator default. It may only be written when the user explicitly types "accept" or equivalent in chat. If the user has not responded to the register.html prompt, the picks JSON has not been written.
+   > - Halt and ask, even if the auto-best-guess in `register.proposal.json` looks plausible. Defensible-default bias caused the 2026-05-26 OTC dry run failure (orange/purple swap committed without user review). See memory `feedback_cocreate_not_infer.md`.
 
 3. **Commit.** The orchestrator writes a `picks.json` capturing the user's choices and runs:
    ```powershell
@@ -112,32 +118,9 @@ The picks JSON shape and full subcommand documentation lives at the top of `scri
 
 ---
 
-## Status — read before doing anything else
+## Routing
 
-This skill is **the default Slide Lab build layer.** The v1 chassis-vocabulary skill (`slide-builder/`) is being retired (Path D, 2026-05-26 — see `_decisions/cleanup-plan-master-2026-05-26.md`). All deck-build requests route here.
-
-**Routing:**
-
-| Trigger | Correct action |
-|---|---|
-| Any deck-build request — "build a slide", "make a deck", "rebuild slide N" | Use this skill. |
-| Brief authored by storyline-helper | Use this skill. The brief format is unchanged from v1. |
-| User explicitly invokes the legacy v1 skill | Defer to user; v1 is archived but reachable if the user knows what they want. |
-
----
-
-## Why v2 exists
-
-v1's chassis-vocabulary path failed at 23% curator acceptance after four compensating layers (skeleton pre-assignment, SKELETON_REJECTED rule, cross-slide collision detection, deadlock audit). The abstraction was too granular for humans to validate by eye. v2 collapses the lever stack by changing the primitive — from named semantic chassis (`dark-canvas-hero`, `anchor-with-cards`) to **geometric splits** a human can identify from a thumbnail.
-
-The full diagnosis, four rounds of empirical testing, and locked architecture are documented at:
-
-```
-C:\Users\m.a.peralta\.claude\skills\slide-builder\_decisions\DECISIONS.md
-C:\Users\m.a.peralta\.claude\skills\slide-builder\_decisions\GALLERY.html
-```
-
-Read those two files before doing any v2 work.
+Any deck-build request — "build a slide", "make a deck", "rebuild slide N" — uses this skill. Briefs authored by storyline-helper route here automatically once the narrative gate passes. Historical context (why this architecture, what was retired) lives at the bottom under § "Appendix — architectural history."
 
 ---
 
@@ -163,9 +146,9 @@ Full reference (one paragraph + one PNG per pattern) lives at `reference/layouts
 
 ---
 
-## Build flow — four-stage architecture (mirrors v1)
+## Build flow — four-stage architecture
 
-The fanout shape is identical to v1's: N parallel agents per deck, three options per slide. Reusing the shape gives direct A/B comparability against v1 with zero migration risk. What changes is the **content of the per-slide prompt** — v2 injects the 14-pattern reference + 5 hardline rules + anti-pattern library, where v1 injects the chassis vocabulary + phase-a-rules + visual-treatment-library + page-types.
+N parallel agents per deck, three options per slide. The per-slide prompt injects the 14-pattern reference + 5 hardline rules + anti-pattern library.
 
 ```
 STAGE 1 · PREP            build_deck.py
@@ -217,7 +200,7 @@ The agent picks the split per slide directly from the brief content. There is no
    ```
    `content_hash` is locked in `build_deck.py` at prep time. Per-option variant seeds (one each for option_letter ∈ {A, B, C}) ensure the three sibling options pick different variants within the chosen pattern. Without `option_letter` in the seed, all three siblings would pick the same variant — that was a real bug caught by the architecture review.
 
-Adjacency (Hardline #3 — no 3+ consecutive same-split) is **soft-enforced at pick time** (agent uses the prep-time hint as adjacency context) and **hard-enforced at finalize time** (`finalize_deck.py` post-pass surfaces any 3+ same-split run in REVIEW.html for the user to resolve). Brief fidelity (Hardline #4) wins over adjacency at pick time — the agent does not bend its pattern pick to satisfy adjacency.
+Adjacency (Hardline #3 — no 3+ consecutive same-split) is **soft-enforced at pick time** (agent uses the prep-time hint as adjacency context) and **surfaced post-build** by `build_gate_preview.py` (advisory banner in `GATE3-PREVIEW.html`) + `build_review.py` (advisory section in `REVIEW.html`). The user resolves the run by picking a different option for one of the offending slides at compile time, or by re-dispatching the slide with a different forecasted pattern. Brief fidelity (Hardline #4) wins over adjacency at pick time — the agent does not bend its pattern pick to satisfy adjacency.
 
 ### Why this flow wins
 
@@ -271,7 +254,7 @@ These five rules govern every v2 build. They are the entire process layer. The a
 
 3. **No 3+ consecutive slides use the same split.** Adjacent same-split slides are allowed (legitimate cadences like a 6-finding executive section need to be expressible); three in a row is not.
 
-4. **Brief fidelity — thresholds defined in `slide-builder/tests/gate4/check_brief_fidelity.py`.** Every visible word on every slide traces to brief content or documented chrome (footer, page number, section label). Two-tier check: (a) **`structural_flag_count == 0`** is the hard non-negotiable — zero structural-count fabrications (e.g., 4 cards when the brief enumerates 2). (b) Token-ratio thresholds for calibration: `PER_SLIDE_MIN = 0.30` (worst option per slide), `DECK_AVG_MIN = 0.70` (deck average). Constants are inherited from v1's empirical recalibration (twice, post Gate 4 v2 first run). v2's own calibration baseline pending — re-validate after 3+ real v2 builds against items 1 (trigger-brief) and 2 (ACN) smoke outputs.
+4. **Brief fidelity — prompt-time-only in v0.1.** Every visible word on every slide traces to brief content or documented chrome (footer, page number, section label). The agent self-attests in line 3 of each `option_X.py` header (`# Brief fidelity check: <one-line statement>`). **No automated checker runs in the v0.1 pipeline.** Target thresholds for v0.2 (when an enforcement script lands): (a) `structural_flag_count == 0` — zero structural-count fabrications (e.g., 4 cards when the brief enumerates 2); (b) token-ratio `PER_SLIDE_MIN = 0.30` / `DECK_AVG_MIN = 0.70`, inherited from the legacy chassis-vocabulary skill's empirical recalibration. Until the script ships, the rule depends on the agent's self-attestation + REVIEW.html human inspection. See `_decisions/v0.1-audit-handover-2026-05-26.md` T1.5 for the port-vs-rewrite trade-off; v0.1 chose rewrite (this doc) over port.
 
 5. **SKELETON_REJECTED protocol.** If brief and assigned split fundamentally disagree (e.g., brief enumerates 2 items, classifier assigned a 4-cell layout), emit `# SKELETON_REJECTED: <reason>` as the first line of the option script and stop. Do not fabricate to fit. The user gets a "this slide needs a different pattern" flag in REVIEW.html and can either pick a different split for that slide or revise the brief.
 
@@ -360,18 +343,12 @@ variant_seed      = md5(content_hash + slide_n + option_letter)       # picks va
 
 ---
 
-## v1 retirement (Path D, 2026-05-26)
+## Appendix — architectural history
 
-The legacy `slide-builder/` skill (chassis-vocabulary architecture) is being retired in Phase 8 of `_decisions/cleanup-plan-master-2026-05-26.md`. All shared modules — `twins/{client_theme,composer,helpers}.py`, `scripts/icon_helper.py`, and the `icons/` glyph catalog — have been re-homed inside this skill (Phase 2). v2 is now structurally independent of v1.
+Background only. Not required reading to build a deck.
 
-Artifacts that lived only in v1 and are not being ported:
+**Why the current architecture exists.** The predecessor (chassis-vocabulary) path hit 23% curator acceptance after four compensating layers — skeleton pre-assignment, SKELETON_REJECTED rule, cross-slide collision detection, deadlock audit. The abstraction was too granular for humans to validate by eye. The current architecture collapses the lever stack by changing the primitive: from named semantic chassis (`dark-canvas-hero`, `anchor-with-cards`) to **geometric splits** a human can identify from a thumbnail. Full diagnosis and four rounds of empirical testing live in `_decisions/DECISIONS.md` and `_decisions/GALLERY.html`.
 
-- 19-chassis vocabulary, adjacency graph, content tags
-- `list[1..2]` composite schema
-- Layer 5 cross-slide collision detector
-- Deadlock audit, chassis-#24 acceptance rule
-- 489-slug chassis TAGS backfill
-- Family×variant×intent×relation TAGS schema
-- The full 31-rule "Hard constraints" stack in v1's SKILL.md
+**Legacy retirement (Path D, 2026-05-26).** The legacy chassis-vocabulary skill is being retired per `_decisions/cleanup-plan-master-2026-05-26.md`. Shared modules — `twins/{client_theme,composer,helpers}.py`, `scripts/icon_helper.py`, and the `icons/` catalog — have been re-homed inside this skill. The build layer is now structurally independent of the legacy code.
 
-These are archived with v1, not maintained. v2's "pattern is the spec" architecture replaces them.
+Artifacts archived with the legacy skill and not maintained: 19-chassis vocabulary + adjacency graph + content tags; `list[1..2]` composite schema; Layer 5 cross-slide collision detector; deadlock audit + chassis-#24 acceptance rule; 489-slug chassis TAGS backfill; family×variant×intent×relation TAGS schema; the 31-rule "Hard constraints" stack. The "pattern is the spec" architecture replaces them.

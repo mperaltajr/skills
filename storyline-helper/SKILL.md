@@ -304,6 +304,10 @@ If the content doesn't fit the chosen framework after all: build bespoke. Don't 
 
 Walk through slides one at a time. For each slide, the user produces an archetype classification (5.0) plus five fields (5a–5e), then runs an archetype-specific quality check (5f) before the slide is complete. The archetype determines which quality questions apply — different slide types fail in different ways.
 
+> **⛔ Hard rule — per-slide handshake (added 2026-05-26 after OTC dry run failure).** Each slide requires **at least one user turn** between archetype classification (5.0) and the archetype-specific quality check (5f). If you have not received a user turn for slide N, you may not begin slide N+1. **No batching. No inference from prior documents.** If the user gave rich input documents (POV, framework, notes, prior decks), use them as evidence to *push back* when the user's per-slide answer contradicts them — never as a *substitute* for the user's per-slide answer. The user's tacit knowledge is never fully captured in their input documents; the coaching loop is where it surfaces.
+>
+> **Defensible-default trap.** When the input documents make it possible to "guess" the governing thought for slide N, the tempting move is to write it for the user and ask them to react. Resist. The reaction-mode answer ("looks good") is not the same as the authorship answer ("here's what I actually believe and why"). The deck inherits whichever one shows up. See memory `feedback_cocreate_not_infer.md`.
+
 **5.0 — Classify the slide's archetype.** Before working 5a–5e, identify which archetype this slide is. The archetype determines the questions in 5f.
 
 | Archetype | When it fits |
@@ -622,6 +626,10 @@ If the user insists on proceeding despite a flagged issue, do not just acquiesce
 ### Step 9 — Review output, then produce the narrative brief and confirm
 
 After the nine-part gate, the cross-cutting rules sweep, the Step 7.5 language pass, and the brief completeness check have all run, produce the **Review output**. This is the structured report the user reads to decide what to fix and what to ship.
+
+> **⛔ Hard rule — review must be acknowledged (added 2026-05-26 after OTC dry run failure).** The brief is NOT saved until the user has **explicitly acknowledged** the Review output table — including when the table contains only Advisories. **Self-passing the gate is not a pass.** The exact words "produce the brief," "ship it," "looks good — save," or equivalent must come from the user. If you ran the gate against your own brief and graded it yourself, surface the table and wait. Do not write the brief file before the user responds.
+>
+> **Defensible-default trap.** When the gate produces zero Criticals + zero Majors + N Advisories, the tempting move is to call it a pass and save the brief. Don't. Advisories are *advisory to the user*, not *clearance for Claude*. The user might look at advisory #3 and say "actually, that's a Critical for this audience — let me fix it." That option vanishes the moment the brief is on disk.
 
 #### Review output format
 

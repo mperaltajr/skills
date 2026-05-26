@@ -59,8 +59,6 @@ This skill must live at:
 C:\Users\<you>\.claude\skills\slide-builder\
 ```
 
-(After Phase 8 of `_decisions/cleanup-plan-master-2026-05-26.md`, the folder will be renamed to `slide-builder\`. Until that lands, the `-simple` suffix is the current path.)
-
 Verify:
 
 ```powershell
@@ -85,13 +83,48 @@ Test-Path "$env:USERPROFILE\.claude\skills\slide-qc\scripts\render_slides.py"
 
 Expected: `True`.
 
-## Verification step
+## Step 6 — Worker agent (Stage-2 fanout)
 
-End-to-end smoke that touches every component:
+Stage 2 of the build pipeline dispatches **one `slide-builder-worker` agent per slide in parallel**. That subagent definition must exist at:
 
-```powershell
-$skill = "$env:USERPROFILE\.claude\skills\slide-builder"
-py -3 -c "import sys; sys.path.insert(0, r'$skill'); from twins.client_theme import load_brand_sidecar; from twins.composer import _clear_existing_slides; from twins.helpers import new_slide; import sys; sys.path.insert(0, r'$skill\scripts'); import icon_helper; print('install OK')"
+```
+%USERPROFILE%\.claude\agents\slide-builder-worker.md
 ```
 
-Expected: `install OK`. Any traceback means one of Steps 1–5 was incomplete — re-check that step before proceeding to [QUICKSTART.md](QUICKSTART.md).
+The skill ships the source-of-truth copy at `slide-builder/agents/slide-builder-worker.md`. Install it with:
+
+```powershell
+New-Item -ItemType Directory -Force -Path "$env:USERPROFILE\.claude\agents" | Out-Null
+Copy-Item "$env:USERPROFILE\.claude\skills\slide-builder\agents\slide-builder-worker.md" `
+          "$env:USERPROFILE\.claude\agents\slide-builder-worker.md" -Force
+```
+
+Verify:
+
+```powershell
+Test-Path "$env:USERPROFILE\.claude\agents\slide-builder-worker.md"
+```
+
+Expected: `True`. **Without this file, Stage 2 dispatch silently does nothing** — your build will reach `finalize_deck.py` with zero option scripts and produce nothing useful.
+
+## Verification step
+
+One command exercises every install step. `install OK` only if all five subsystems pass:
+
+```powershell
+$skill        = "$env:USERPROFILE\.claude\skills\slide-builder"
+$mmdc_ok      = $false
+try { $mmdc_ok = ((mmdc --version 2>$null) -match "11\.4") } catch {}
+$soffice_ok   = (Test-Path "C:\Program Files\LibreOffice\program\soffice.exe")
+$qc_ok        = (Test-Path "$env:USERPROFILE\.claude\skills\slide-qc\scripts\render_slides.py")
+$worker_ok    = (Test-Path "$env:USERPROFILE\.claude\agents\slide-builder-worker.md")
+$build_ok     = $false
+try { py -3 "$skill\scripts\build_deck.py" --help *>$null; $build_ok = ($LASTEXITCODE -eq 0) } catch { $build_ok = $false }
+if ($mmdc_ok -and $soffice_ok -and $qc_ok -and $worker_ok -and $build_ok) {
+    "install OK"
+} else {
+    "install INCOMPLETE - mmdc11.4=$mmdc_ok  soffice=$soffice_ok  slide-qc=$qc_ok  worker-agent=$worker_ok  build_deck-help=$build_ok"
+}
+```
+
+Expected: `install OK`. Any other line lists which subsystem(s) failed — re-check that step before proceeding to [examples/RUN.md](examples/RUN.md).

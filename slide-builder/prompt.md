@@ -130,7 +130,7 @@ There is no pre-classifier. You pick the pattern from the 14 in `layouts.md` bas
    ```
    **This is a forecast, not a constraint.** The prep-time pattern-hint pass ran the same signals table you are running now, but it does not know what you will actually pick. Override the hint if your brief signal clearly points at a different pattern.
 
-   **Soft rule:** if your top-scoring pattern would create a third consecutive same-split run **and** your scoring confidence is low (multiple patterns within ~1 signal of each other), prefer the next-best pattern that breaks the run. If your top-scoring pattern is the clear winner, keep it — `finalize_deck.py` runs a post-pass adjacency check that surfaces 3+ same-split runs in REVIEW.html for the user to resolve.
+   **Soft rule:** if your top-scoring pattern would create a third consecutive same-split run **and** your scoring confidence is low (multiple patterns within ~1 signal of each other), prefer the next-best pattern that breaks the run. If your top-scoring pattern is the clear winner, keep it — `build_gate_preview.py` and `build_review.py` run a post-build adjacency scan that surfaces 3+ same-split runs as an advisory in `GATE3-PREVIEW.html` and `REVIEW.html` for the user to resolve at pick time.
 
    Do not bend brief fidelity (Hardline #4) to satisfy adjacency. Brief fidelity wins; adjacency is the lower-priority concern that gets resolved at finalize.
 
@@ -197,7 +197,7 @@ These are non-negotiable. Every option script must satisfy all five. The full te
 1. **Charts and tables only in their respective object layouts.** No fake chart-looking visuals in card grids. Inline sparklines and micro-charts in other layouts are allowed.
 2. **No fabrication beyond brief enumeration.** If the brief says 2 paths, the slide has 2 items. No invented third or fourth.
 3. **No 3+ consecutive slides on the same split.** See § 4.3 above — the adjacency check.
-4. **Brief fidelity.** Every visible word on the slide traces to brief content or documented chrome (footer, page number, section label). No invented eyebrows, framework names, or section labels. **Structural-count fabrication (e.g., 4 cards when the brief enumerates 2) is the hard non-negotiable** — token-ratio thresholds are calibration. Contract: `slide-builder/tests/gate4/check_brief_fidelity.py` (`structural_flag_count == 0`; `PER_SLIDE_MIN = 0.30`; `DECK_AVG_MIN = 0.70`).
+4. **Brief fidelity.** Every visible word on the slide traces to brief content or documented chrome (footer, page number, section label). No invented eyebrows, framework names, or section labels. **Structural-count fabrication (e.g., 4 cards when the brief enumerates 2) is the hard non-negotiable.** In v0.1 this rule is **prompt-time-only** — you self-attest in line 3 of each `option_X.py` header (`# Brief fidelity check: ...`). No automated checker runs in the v0.1 pipeline. Treat the rule as load-bearing anyway; an automated `check_brief_fidelity.py` is on the v0.2 backlog with target thresholds `structural_flag_count == 0`, `PER_SLIDE_MIN = 0.30`, `DECK_AVG_MIN = 0.70`.
 5. **SKELETON_REJECTED protocol.** If brief and pattern fundamentally disagree, emit the marker as line 1 and stop. No silent substitution.
 
 ---
