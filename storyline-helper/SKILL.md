@@ -89,6 +89,12 @@ Default to high coaching intensity. If the user demonstrates they already know t
 
 **Do this before anything else — including session folder setup.**
 
+> **⛔ Hard rule — never ask the user to classify the deck (added 2026-05-26 after dry-run regression).**
+>
+> - **Do not** open with "What kind of deck is this?", "Is this an RFP / PMO / consulting deck?", "Do you already have a brief?", or any variant that asks the user to pick from a taxonomy. The user does not know your taxonomy and shouldn't have to.
+> - **Always** open with the single plain-language question below, then **infer the deck type from their answer** and confirm in one sentence.
+> - Menu-style classification questions are the #1 sign the skill instructions were ignored. If you find yourself drafting one, stop and re-read this section.
+
 Ask once, in plain language:
 
 > *"Tell me about this deck — what are you building and who's it for?"*
