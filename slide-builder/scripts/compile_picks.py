@@ -232,6 +232,21 @@ def main() -> int:
             print(f"  {key} pick {letter}  FAIL ({msg[:80]})")
 
     print(f"\n[3] Save final deck -> {final_path}")
+    # Backup existing final deck before overwrite so re-runs don't silently
+    # destroy hand-edits the user may have made between compiles. Audit
+    # finding T2.6 (2026-05-26 v0.1 audit handover).
+    if final_path.exists():
+        try:
+            from datetime import datetime as _dt
+            ts = _dt.now().strftime("%Y%m%dT%H%M%S")
+            backup = final_path.with_name(f"{final_path.stem}.{ts}{final_path.suffix}")
+            final_path.replace(backup)
+            print(f"  backed up prior deck -> {backup.name}")
+        except OSError as exc:
+            sys.stderr.write(
+                f"  WARN: could not back up prior {final_path.name}: {exc}\n"
+                f"  Proceeding will overwrite. If you have unsaved edits in the prior deck, abort now (Ctrl+C).\n"
+            )
     dst_prs.save(str(final_path))
     print(f"  saved ({final_path.stat().st_size:,} bytes)")
 

@@ -1,6 +1,6 @@
 # Troubleshooting — Slide Lab
 
-If a pipeline script exits non-zero, find the exit code below. Each section also lists the most common console messages that map to that exit code so you can grep `build.log` (in your output dir) for the relevant line.
+If a pipeline script exits non-zero, find the exit code below. Each section also lists the most common console messages so you can grep `build.log` (in your output dir) for the relevant line.
 
 ## Quick triage
 
@@ -10,53 +10,68 @@ If a pipeline script exits non-zero, find the exit code below. Each section also
 
 ## Exit-code reference
 
+Tables below were re-derived from each script's actual `sys.exit()` / `return` calls on 2026-05-26 per audit finding T2.9. If you see a code listed in a script's `--help` output that isn't on this table, treat the table as wrong and update it.
+
 ### `build_deck.py`
 
 | Code | Meaning | Fix |
 |---|---|---|
-| 2  | `--out` missing or not a directory | Pass an existing directory or one Python can create. |
-| 3  | Client template path doesn't exist | Verify the `--template` path. Templates live under `OneDrive\Claude Projects\<client>\_templates\`. |
-| 4  | `prompt.md` template missing | The skill directory is incomplete. Re-clone or re-extract the skill. |
-| 5  | Brief file doesn't exist or can't be parsed | Check the `--brief` path and front-matter YAML syntax (`---` delimiters, key:value pairs). |
-| 6  | Stage-1 sanity check failed — `brand.yml` missing | Register the client template first: `register_template.py propose <template>` → take picks → `commit --picks <picks.json>`. See SKILL.md § "Register a new client template." |
-| 7  | Stage-1 sanity check failed — `mmdc` not installed | `npm install -g @mermaid-js/mermaid-cli@11.4.0`. Verify with `mmdc --version`. |
-| 8  | `_meta.json` schema validation failed at write time | The brief produced a meta dict that doesn't match the pydantic schema. Check the pydantic error in `build.log` — it names the failing field. |
+| 1  | Brief file unreadable OR brief unparseable (no front-matter, malformed YAML) | Check the `--brief` path and that the file starts with `---` YAML front-matter ending with `---`. |
+| 2  | No parseable slides found in the brief | Slide headers must match `## Slide N — Title` or `### Slide N — Title` (title is optional but recommended). Open the brief and confirm headers. |
+| 3  | `--template` doesn't exist | Verify the `--template` path. Templates typically live under `OneDrive\Claude Projects\_templates\` or `<Client>\_templates\`. |
+| 4  | `prompt.md` template missing from the skill | The skill directory is incomplete. Re-clone or re-extract the skill. |
+| 5  | Brief load error (filesystem / encoding) | Check the brief file is readable + UTF-8 encoded. |
+| 6  | Theme generation or validation failed (brand.yml malformed, primary == accent, etc.) | Re-register the template via the chat-driven `propose` → `commit` flow. See SKILL.md § "Register a new client template." |
+| 7  | Stage-1 sanity check failed — `BrandSidecarMissing` / `BrandSidecarStale` / `mmdc` not installed / `mmdc` version mismatch | Re-register the template (BrandSidecar errors) or `npm install -g @mermaid-js/mermaid-cli@11.4.0` (mmdc errors). |
 
 ### `finalize_deck.py`
 
 | Code | Meaning | Fix |
 |---|---|---|
-| 2  | `--out` missing or not a directory | Pass the same `--out` you gave `build_deck.py`. |
-| 5  | `_meta.json` not found in `--out` | Run `build_deck.py` first. The output dir must contain `_meta.json`. |
-| 7  | Mermaid theme missing | `_meta.json::mermaid_theme` references a file that was deleted. Re-run `build_deck.py` to regenerate. |
-| 9  | All options failed to build | Check each `slide_NN/` for `option_X.py` errors. The console log lists per-option tracebacks. |
+| 2  | `--out` missing or not a directory, OR `_meta.json` missing under `--out` | Pass the same `--out` you gave `build_deck.py`. If `_meta.json` is missing, run `build_deck.py` first. |
+| 7  | Mermaid theme missing — `_meta.json::mermaid_theme` references a file that doesn't exist | Re-run `build_deck.py` to regenerate the theme. |
 
 ### `compile_picks.py`
 
 | Code | Meaning | Fix |
 |---|---|---|
-| 2  | `--out` not a directory | Pass the build's output dir. |
-| 3  | `picks.json` missing or empty | Pass `--picks` explicitly, or write `<out>/picks.json` with `{"slide_01": "A", "slide_02": "B", ...}`. Keys are `slide_NN` (zero-padded), not bare integers. |
-| 4  | A picked option doesn't exist | The slide+letter referenced in `picks.json` doesn't have a built PPTX. Re-run `finalize_deck.py` or fix the pick. |
+| 2  | `--out` invalid, `_meta.json` missing, OR `--template` from `_meta.json` doesn't exist | Pass the build's output dir. Verify the template path stored in `_meta.json`. |
+| 1  | Compile finished but final deck doesn't open cleanly, OR per-option copy failures occurred | Check `COMPILED.md` for per-option failure rows. Open the produced final deck in PowerPoint to confirm. |
 
 ### `build_review.py`
 
 | Code | Meaning | Fix |
 |---|---|---|
-| 2  | `--out` not a directory | Same as above. |
+| 2  | `--out` missing or not a directory | Pass the build's output dir. |
+| 3  | No slides discoverable in `--out` (no `slide_NN/` subdirs) | Run `build_deck.py` then `finalize_deck.py` first. |
 
 ### `build_gate_preview.py`
 
 | Code | Meaning | Fix |
 |---|---|---|
-| 1  | `--out` is not a directory | Pass an existing build output dir. |
-| 2  | No `slide_NN/` directories found in `--out` | `build_deck.py` hasn't been run yet, or the output dir was cleaned. |
+| 1  | `--out` not a directory | Pass an existing build output dir. |
+| 2  | No `slide_NN/` directories found in `--out` | `build_deck.py` hasn't run yet, or `clean.py --deep` wiped the dispatch outputs. |
 
 ### `register_template.py`
 
 | Code | Meaning | Fix |
 |---|---|---|
-| 2  | Template missing, picks.json missing, or picks.json malformed | The `commit` subcommand requires `--picks <path>` pointing at a valid picks JSON. See SKILL.md or the script's `--help` for the JSON shape. |
+| 2  | Template path missing, picks.json missing/unreadable, OR picks.json malformed | The `commit` subcommand requires `--picks <path>` pointing at a valid picks JSON. See the script's `--help` for the JSON shape. |
+
+### `clean.py`
+
+| Code | Meaning | Fix |
+|---|---|---|
+| 2  | `--out` not a directory | Pass an existing output dir. |
+| 3  | Safety check — refused (drive root, user home, or under the skill itself) | `clean.py` is for build output directories only. Pass the deck's `out/` path, not a system path. |
+| 4  | Safety check — refused (`_meta.json` AND `dispatch_plan.md` both missing) | The path doesn't look like a Slide Lab output directory. Probably a typo'd `--out`. If you really want to delete that directory, use `Remove-Item` or `rm` directly. |
+| 5  | `--deep` requires `--yes-i-really-want-to-wipe-prompts` | The flag is intentional — `--deep` wipes the worker fanout output. Add the long flag if that's really what you want. |
+
+### `diagnostic.py`
+
+| Code | Meaning | Fix |
+|---|---|---|
+| 2  | `--out` not a directory | Pass the build output dir you want bundled. |
 
 ## Common console-message diagnoses
 
@@ -73,7 +88,10 @@ The `<stem>.brand.yml` exists but its SHA stamp doesn't match the template's cur
 LibreOffice isn't installed, or `soffice.exe` isn't at the expected Windows path. See INSTALL.md § Step 3.
 
 ### "_meta.json schema_version=N is not supported"
-Either you're running a newer build_deck against an older output dir, or vice versa. Re-run `build_deck.py` to regenerate `_meta.json` at the current schema version, or pin the skill to the version that produced the file.
+Either you're running a newer `build_deck.py` against an older output dir, or vice versa. Re-run `build_deck.py` to regenerate `_meta.json` at the current schema version.
+
+### "_meta.json schema validation: ..." (reader-side warning, not a hard error)
+A reader (`finalize_deck`, `compile_picks`, `build_review`, `build_gate_preview`) loaded a `_meta.json` that didn't fully match the pydantic schema. The reader continues with degraded behavior. If the warning persists across re-runs, re-generate `_meta.json` via `build_deck.py`.
 
 ### "FALLBACK FAILED: ..."
 A `# FALLBACK_MERMAID:` option script declared a fallback, but the sibling `.mmd` is missing or syntactically broken. Check the per-slide agent's Mermaid spec at `<out>/slide_NN/option_X.mmd`.
@@ -83,6 +101,9 @@ A rendered option thumbnail is smaller than expected — usually means the Libre
 
 ### "SKELETON_REJECTED: ..."
 A per-slide agent rejected the slide because the brief and the assigned pattern fundamentally disagree (e.g., brief enumerates 2 items, pattern expects 4 cells). This is **correct behavior** — see SKILL.md § "Hardline rules" #5. Either pick a different pattern for that slide or revise the brief.
+
+### "worker did not produce option script" (classification: missing)
+The parent session promised an option that no worker delivered. Surfaces in `RESULT.md` as a `[MISSING]` row + downgrades the Built count. Re-dispatch the worker for that slide if a fuller deck is wanted.
 
 ## If you're still stuck
 

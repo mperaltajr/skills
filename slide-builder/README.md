@@ -11,7 +11,7 @@ A skill that builds PowerPoint decks from a narrative brief using parallel agent
 ## Where to start
 
 1. **Install** — see [INSTALL.md](INSTALL.md). Pinned versions matter: `mmdc 11.4.0`, LibreOffice headless, Python 3.10+, plus the deps in `requirements.txt`.
-2. **Quick run** — see [QUICKSTART.md](QUICKSTART.md). An example brief lives at `examples/quickstart-brief.md`. **You provide the template** — point the quickstart at any client PPTX you have already registered (with `<stem>.brand.yml` + `<stem>.theme.json` sidecars next to it). If you don't have one registered, the README walkthrough at SKILL.md § "Register a new client template" takes ~5 minutes via the chat-driven flow.
+2. **Quick run** — see [examples/RUN.md](examples/RUN.md). An example brief lives at `examples/quickstart-brief.md`. **You provide the template** — point the example at any client PPTX you have already registered (with `<stem>.brand.yml` + `<stem>.theme.json` sidecars next to it). If you don't have one registered, the SKILL.md § "Register a new client template" walkthrough takes ~5 minutes via the chat-driven flow.
 3. **First-time orientation** — open [SKILL.md](SKILL.md). The "first time?" block at the top tells you which sections to read in which order before building anything real.
 
 The architecture in one sentence: 9 geometric splits + 3 diagram primitives + 2 special objects + 1 Mermaid fallback = 14 patterns governed by 5 hardline rules and a self-improving anti-pattern library. The pattern is the spec — read `reference/layouts.md` for the catalog.

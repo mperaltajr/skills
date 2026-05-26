@@ -1,11 +1,22 @@
 ﻿# Convergence-hold declaration — slide-builder v0
 
-> **RESOLVED by Path D (2026-05-26).** Mario chose Path D before Stage A's v1-NOW baseline ran: v2 wins outright, v1 retires, NFL drops out of scope. The hold described below is no longer active. v2 is now the sole Slide Lab build layer and is being hardened to v0.1 per `cleanup-plan-master-2026-05-26.md`. File retained as the historical record of the hold and the convergence rationale.
+> **⛔ FORENSIC — RESOLVED by Path D (2026-05-26).** Everything below describes the pre-Path-D state and is historical. Path D is the current state of record.
+>
+> What's still true: the 9+3+2+1 pattern catalog, FALLBACK_MERMAID protocol, SKELETON_REJECTED protocol, brand.yml canonical sidecar contract, Stage-1 sanity check, and per-slide variant seeds — all preserved post-Path-D and documented in [DECISIONS.md](DECISIONS.md) + [SKILL.md](../SKILL.md).
+>
+> What's now wrong in the body below:
+> - `_meta.json` is at schema_version **2**, not 1 (P1.3 added `brand_primary` + `brand_accent`).
+> - **NFL** is fully out of scope. No v1 fallback. `nfl-scope-boundary.md` was deleted in Phase 8.9.
+> - **Any other client** is fine — register their template via the chat-driven flow. No `client_allowlist` enforced.
+> - `theme/mermaid-brand.json` was deleted in P1.4a (FedEx-shaped default created false-positive). Per-client `mermaid-<slug>.json` only.
+> - Stage A / Stage B / Path D-soft lift conditions are moot — Mario overrode them on 2026-05-26 with the Path D consolidation.
+> - All "NOT allowed during the hold" items are now allowed (new patterns, schema bumps, refactors, etc.) — they happen under the [cleanup-plan-master](cleanup-plan-master-2026-05-26.md) phase structure.
+>
+> File retained as the historical record of the convergence rationale. Do not edit the body — the inline contradictions ARE the audit trail.
 
 **Declared**: 2026-05-26
-**Scope**: FedEx + Accenture (ACN). NFL excluded per `nfl-scope-boundary.md` (also now obsoleted by Path D).
-**Status**: RESOLVED — superseded by Path D.
-**Resolution**: Mario override, 2026-05-26.
+**Status**: RESOLVED — superseded by Path D (same day; Mario override).
+**See instead**: [DECISIONS.md](DECISIONS.md) (current architecture) + [cleanup-plan-master-2026-05-26.md](cleanup-plan-master-2026-05-26.md) (Phase 1-8 execution).
 
 ---
 

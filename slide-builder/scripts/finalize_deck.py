@@ -529,6 +529,18 @@ def discover_options(out_dir: Path, expected: Optional[set] = None) -> list:
 
 
 def stash_raw(st: OptionStatus) -> None:
+    """Move the worker-produced PPTX to the raw archive path.
+
+    Loud-failure contract (T2.13, audit 2026-05-26): if the rename fails —
+    most commonly a Windows file lock from PowerPoint still holding the
+    worker output open, or antivirus mid-scan — we MUST surface that.
+    Silent return previously left `st.pptx_path` pointing at the original
+    file, so `graft_and_theme` would then mutate the un-archived original
+    and the raw pre-theme copy would never exist. Now we set
+    `st.error = "stash_raw failed: ..."` so the failure shows up in
+    RESULT.md per-option and the operator gets a real signal instead of
+    a phantom "themed" status with a missing archive.
+    """
     if not st.pptx_path.exists():
         return
     if st.pptx_path.resolve() == st.raw_archive_path.resolve():
@@ -536,7 +548,17 @@ def stash_raw(st: OptionStatus) -> None:
     st.raw_archive_path.parent.mkdir(parents=True, exist_ok=True)
     try:
         st.pptx_path.replace(st.raw_archive_path)
-    except Exception:
+    except OSError as exc:
+        msg = f"stash_raw failed: {type(exc).__name__}: {exc}"
+        sys.stderr.write(
+            f"  WARN slide_{st.slide_n:02d} option_{st.letter}: {msg}\n"
+            f"       (likely Windows file lock — close PowerPoint and re-run, "
+            f"or pause antivirus on the build dir)\n"
+        )
+        # Preserve any prior error context; otherwise stamp this one so it
+        # surfaces in RESULT.md downstream readers.
+        if not st.error:
+            st.error = msg
         return
     st.pptx_path = st.raw_archive_path
 
