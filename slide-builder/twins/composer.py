@@ -23,8 +23,10 @@ modules that no longer exist. v0.1 never reaches those code paths; v0.1 audit
 (2026-05-26) flagged them as dead-broken imports (T1.4 in
 `_decisions/v0.1-audit-handover-2026-05-26.md`). Deleted in this pass to
 prevent future changes reaching them from exploding with ImportError.
-The archived legacy skill at `slide-builder_archived_2026-05-26/` retains
-the full composer if anyone needs to reference the chassis-vocabulary path.
+The legacy chassis-vocabulary composer was archived and removed from disk
+during Path D consolidation; if anyone needs to reference the full v1
+composer they will need to recover it from version control history rather
+than expect a live archive path.
 """
 from __future__ import annotations
 

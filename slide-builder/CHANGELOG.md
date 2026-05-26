@@ -34,6 +34,25 @@ Behavioral guardrails + Tier 1 install/safety blockers + Tier 2 production-readi
 - **`QUICKSTART.md`** — content folded into `examples/RUN.md`; was a first-day onboarding speed bump.
 - **Stale v1 worker** at `~/.claude/agents/slide-builder-simple-worker.md` (replaced by `slide-builder-worker.md`).
 
+### Added — Phase 10 drift-prevention forcing function (2026-05-26)
+
+- **`scripts/_contract.py` gained three new checks** (now 7 total): `check_install_sentinels` (source/installed content fingerprint match — first sentinel: worker agent must contain `option_A.pptx` output-contract string), `check_doc_file_refs` (every backtick-wrapped markdown ref must resolve; allowlists for runtime artifacts, deleted-by-design, user-memory cross-context, and user-context dir prefixes), `check_type_hints_resolve` (forces `typing.get_type_hints()` past PEP 563 deferral).
+- Two new behavioral memories in `~/.claude/projects/.../memory/`: `feedback_existence_vs_content.md` ("done" means user-facing behavior works end-to-end), `feedback_cleanup_chat_cannot_self_declare.md` (cleanup chat marks `claimed-complete-by-cleanup`, only fresh audit chat marks `audit-confirmed`).
+
+### Changed — Phase 10
+
+- **Worker save contract fixed.** Worker agent rewrite (source + installed at `~/.claude/agents/slide-builder-worker.md`) corrected from "saves to `sys.argv[1]`" to the prompt.md-canonical `prs.save(str(Path(__file__).resolve().parent / "option_A.pptx"))`. md5 match verified between source and installed copies. INSTALL Step 6 sentinel grep enforces this going forward.
+- **Phantom archive path refs rewritten.** `SKILL.md`, `CHANGELOG.md`, `reference/anti-patterns.md`, `twins/composer.py` no longer claim `slide-builder_archived_2026-05-26/` lives on disk (it doesn't). Refs rewritten as "archived and removed from disk."
+- **`project_slide_lab_architecture.md` v1-perspective error fixed.** The "skill is being archived" instruction (written when v1 was active) no longer tells future Claude not to import from the live v0.1 skill.
+- **`convergence-hold-declaration-2026-05-26.md`** banner expanded to declare the doc fully superseded; body intentionally retained as forensic audit trail.
+- **Three stale anti-pattern WHY.md cross-refs** dropped (`do/single-finding/`, `do/chart-bottom-takeaway/`, etc.) — v1's `do/` corpus never ported to v0.1; refs were dangling.
+
+### Removed — Phase 10
+
+- **Three stale v1 agents** from `~/.claude/agents/`: `slide-builder.md`, `slide-designer.md`, `deck-builder.md`. Only `slide-builder-worker.md` remains.
+- **`slide-builder/icons/_audit/`** (254 KB) + **`slide-builder/icons/_backup/`** (736 KB) hangover dirs.
+- **`~/.claude/skills/smoke_test.py`** orphan (imported deleted v1 modules; crashed at step 1).
+
 ---
 
 ## [v0.1] — 2026-05-26
@@ -56,7 +75,7 @@ First release after the Path D consolidation (v1 retired, v2 wins). See `_decisi
 
 ### Changed
 
-- **Default skill** — `slide-builder` is now the default Slide Lab build layer (was: opt-in alongside the legacy chassis-vocabulary skill). The legacy skill is archived at `slide-builder_archived_2026-05-26/`.
+- **Default skill** — `slide-builder` is now the default Slide Lab build layer (was: opt-in alongside the legacy chassis-vocabulary skill). The legacy chassis-vocabulary skill was archived and removed from disk during Path D consolidation.
 - **Shared infrastructure re-homed in-tree** — all infra previously imported from the legacy chassis-vocabulary skill (`twins/{client_theme,composer,helpers}.py`, `scripts/icon_helper.py`, `patches/patches.py`, `icons/*.xml`) was re-homed into this skill in Phase 2. No more cross-skill imports.
 - **SKILL.md routing** — single-default-skill model. Drops A/B testing section, "Exclusive to v1" section rewritten as "v1 retirement," adds "first time?" + brief-format-spec sections.
 - **Rotation seed documentation in `layouts.md:5`** — now correctly documents `pattern_pick_seed = md5(content_hash + slide_n)` and `variant_seed_{A,B,C} = md5(content_hash + slide_n + option_letter)` per `build_deck.py:404-427`. Previous text was a v1-era fiction.
@@ -76,4 +95,4 @@ First release after the Path D consolidation (v1 retired, v2 wins). See `_decisi
 ### Notes
 
 - Phase 7 (bloat archive) reclaimed approximately 1.26 GB across OneDrive, Documents, and Downloads — see `_decisions/cleanup-plan-master-2026-05-26.md` Phase 7 status log for the file-by-file accounting.
-- Phase 8 archived the legacy chassis-vocabulary skill to `slide-builder_archived_2026-05-26/` and consolidated the surviving skill at `slide-builder/`. All internal references, the storyline-helper handoff, and memory files were updated in the same pass.
+- Phase 8 archived the legacy chassis-vocabulary skill (since removed from disk) and consolidated the surviving skill at `slide-builder/`. All internal references, the storyline-helper handoff, and memory files were updated in the same pass.

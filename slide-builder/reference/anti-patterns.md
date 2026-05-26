@@ -156,7 +156,7 @@ Past ~100 entries, the library probably needs a more granular categorization sch
 
 ## Source
 
-The 26 seed entries are the locked output of the architecture session. The 9 visual exemplars in `reference/anti-patterns/` were ported from the legacy chassis-vocabulary skill's exemplar corpus (`slide-builder_archived_2026-05-26/exemplars/dont/`, Tier-1 list per `_decisions/cleanup-plan-master-2026-05-26.md` Phase 0). Documented at:
+The 26 seed entries are the locked output of the architecture session. The 9 visual exemplars under `reference/anti-patterns/` were ported from the legacy chassis-vocabulary skill's exemplar corpus during Path D consolidation (Tier-1 list per `_decisions/cleanup-plan-master-2026-05-26.md` Phase 0); the source corpus has since been archived and removed from disk. Documented at:
 
 ```
 C:\Users\m.a.peralta\.claude\skills\slide-builder\_decisions\DECISIONS.md

@@ -59,7 +59,8 @@ charts, callouts, bars — flow BELOW it (y ≈ 290–640).
 Readers should hit the claim first, the evidence second. The evidence
 exists to defend a claim the reader has already absorbed.
 
-See `do/single-finding/`, `do/chart-bottom-takeaway/`, and
-`do/hero-kpi-tile/` for the inverted (correct) reading-order pattern:
-claim or KPI on top, evidence under it, optional one-line so-what strip
-at the bottom restating the claim — never introducing it.
+The inverted (correct) reading-order pattern is claim or KPI on top,
+evidence under it, optional one-line so-what strip at the bottom
+restating the claim — never introducing it. See `reference/layouts.md`
+§ "Full canvas" and § "Top band + body" for the canonical v0.1 patterns
+that implement this reading order.
