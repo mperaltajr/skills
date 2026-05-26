@@ -124,15 +124,13 @@ def _reposition(elem, left_emu: int, top_emu: int, width_emu: int, height_emu: i
         if old_ext is not None:
             old_ext.set("cx", str(width_emu))
             old_ext.set("cy", str(height_emu))
-        if old_chExt is not None and old_cx > 0 and old_cy > 0:
-            ch_cx = int(old_chExt.get("cx", old_cx))
-            ch_cy = int(old_chExt.get("cy", old_cy))
-            new_ch_cx = int(ch_cx * width_emu  / old_cx)
-            new_ch_cy = int(ch_cy * height_emu / old_cy)
-            old_chExt.set("cx", str(new_ch_cx))
-            old_chExt.set("cy", str(new_ch_cy))
-        # chOff and child xfrm elements deliberately left untouched:
-        # PPTX rendering engine scales children from local space → physical space.
+        # chExt is deliberately NOT rescaled — keeping the original local-coord
+        # extent means the renderer's ext/chExt ratio changes when ext changes,
+        # which makes children scale proportionally into the new physical box.
+        # (Previous version scaled chExt by new_ext/old_ext which kept the
+        # ratio invariant — children rendered at original authored size
+        # regardless of target box. That was the icon-too-small bug.)
+        # chOff and child xfrm elements deliberately left untouched.
         return True
 
     else:

@@ -14,25 +14,33 @@ from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
 
-# --- Brand palette (from CSS :root vars in every approved pattern) ---
-BRAND_PRIMARY = RGBColor(0x2D, 0x0A, 0x4E)
-BRAND_PRIMARY_MID = RGBColor(0x5C, 0x2D, 0x87)
-BRAND_ACCENT = RGBColor(0xA1, 0x00, 0xFF)
-BRAND_ACCENT_SOFT = RGBColor(0xC7, 0x80, 0xFF)
-TEXT_DARK = RGBColor(0x1A, 0x1A, 0x2E)
-# TEXT_MID and TEXT_FAINT formerly carried distinct gray values for editorial
-# hierarchy. Corporate templates (Accenture, FedEx, etc.) use black-with-sized-
-# hierarchy instead of multi-value gray gradients, so the grays read as off-
-# brand on most client work. Aliased to TEXT_DARK so existing code keeps
-# working; hierarchy comes from size/weight/italic only.
-TEXT_MID = TEXT_DARK
-TEXT_FAINT = TEXT_DARK
-SLIDE_BG = RGBColor(0xFF, 0xFF, 0xFF)
-CARD_BG = RGBColor(0xFB, 0xF8, 0xFE)
-CARD_BORDER = RGBColor(0xEC, 0xE0, 0xF5)
-DRAFT_BG = RGBColor(0xFF, 0xD6, 0x00)
-DRAFT_TEXT = RGBColor(0xB7, 0x1C, 0x1C)
-WHITE = RGBColor(0xFF, 0xFF, 0xFF)
+# --- Brand palette (Accenture Graphik template — ACN Graphik Template.md) ---
+# lt2  = #460073  Deep Purple     — dark backgrounds, primary dark fills
+BRAND_PRIMARY     = RGBColor(0x46, 0x00, 0x73)
+# accent1 = #7500C0  Medium Purple — mid-weight fills, sidebar panels
+BRAND_PRIMARY_MID = RGBColor(0x75, 0x00, 0xC0)
+# dk2  = #A100FF  Electric Purple — accent moments (one per slide)
+BRAND_ACCENT      = RGBColor(0xA1, 0x00, 0xFF)
+# accent2 = #C2A3FF  Light Purple  — soft accents, borders
+BRAND_ACCENT_SOFT = RGBColor(0xC2, 0xA3, 0xFF)
+# dk1  = #000000  Black            — primary body text
+TEXT_DARK         = RGBColor(0x00, 0x00, 0x00)
+# mid-gray for secondary labels and captions
+TEXT_MID          = RGBColor(0x59, 0x59, 0x59)
+# light-gray for tertiary labels, rules, footnotes
+TEXT_FAINT        = RGBColor(0x88, 0x88, 0x88)
+SLIDE_BG          = RGBColor(0xFF, 0xFF, 0xFF)
+# accent3 = #E6DCFF  Very Light Purple — card / tile fills
+CARD_BG           = RGBColor(0xE6, 0xDC, 0xFF)
+# accent2 = #C2A3FF  Light Purple — card borders
+CARD_BORDER       = RGBColor(0xC2, 0xA3, 0xFF)
+DRAFT_BG          = RGBColor(0xFF, 0xD6, 0x00)
+DRAFT_TEXT        = RGBColor(0xB7, 0x1C, 0x1C)
+WHITE             = RGBColor(0xFF, 0xFF, 0xFF)
+# Additional Accenture Graphik accent colors (available but not required on every slide)
+ACCENT_PINK       = RGBColor(0xFF, 0x50, 0xA0)   # accent4 #FF50A0
+ACCENT_BLUE       = RGBColor(0x22, 0x4B, 0xFF)   # accent5 #224BFF
+ACCENT_TEAL       = RGBColor(0x05, 0xF2, 0xDB)   # accent6 #05F2DB
 
 # --- Canvas constants ---
 SLIDE_W_PX = 1280
@@ -493,6 +501,17 @@ def add_table(slide, shape_id, x_px, y_px, w_px, h_px, *,
             raise ValueError(
                 f"row {i} has {len(row)} cells, expected {n_cols} to match headers"
             )
+
+    # 14px body-floor enforcement (per final-findings empirical validation —
+    # 3 of 20 agents cheated below 14px to fit dense tables; raising here
+    # catches the violation at build time regardless of which agent slipped).
+    if font_size_px < 14:
+        raise ValueError(
+            f"add_table font_size_px={font_size_px} is below the 14px body floor. "
+            f"If the table doesn't fit at 14px, the content is too dense — shrink "
+            f"the dataset, split across two slides, or restructure to a different "
+            f"family. Do not cheat the body floor."
+        )
 
     frame = slide.shapes.add_table(
         n_rows, n_cols,

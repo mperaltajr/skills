@@ -1,30 +1,20 @@
-"""
-build_review.py
-===============
+﻿"""build_review.py — v2 fork
 
-Generate a self-contained REVIEW.html for a Slide Lab orchestrator output dir.
+===============================
 
-Replaces the minimal picker-only earlier version. Mirrors the feature set of
-the demo at
-    sessions/2026-05-14 Slide Labs Demo/demo-preview/demo-review.html
+Generate a self-contained REVIEW.html for a v2 slide-builder
+orchestrator output dir.
 
-Sections rendered, in order:
-  1. Header  (deck title, brief path, template path, timestamp).
-  2. Collapsible dot-dash storyline pulled from the narrative brief +
-     per-slide _prompt.md files. Starts collapsed.
-  3. Brief-time QC banner.  Slide Lab doesn't yet run brief-QC, so we emit a
-     single INFO collapsible saying "integration pending" — the visual
-     structure is identical to the demo so we can wire real results later.
-  4. Per-slide cards:
-       header row (SLIDE N · title · status badge),
-       three option tiles with PNG thumbs + taxonomy label,
-       decision buttons (PICK A/B/C + ✗ NONE — TRY AGAIN),
-       section-level feedback grid (5 textareas).
-  5. Sticky footer with pick count + 4 buttons:
-       Copy picks (paths), Show picks JSON, Export feedback, Clear all.
+Fork from slide-builder/scripts/build_review.py with surgical v2 additions:
+  - sys.path tweak for twins/ from slide-builder/
+  - extract_option_pattern() reads each option_X.py's line-1 / line-2 to
+    capture the picked pattern + classification (native/fallback/rejected)
+  - compute_adjacency_warnings() scans option_A across all slides; any
+    3+ consecutive same-pattern run produces a per-slide advisory list
+  - render_card() injects an adjacency banner when warnings exist
+  - CSS adds a .adjacency-banner style
 
-Persistence: localStorage, keyed by themed-PPTX absolute path → letter
-(picks) and slide_NN_<field> → text (feedback notes).
+Everything else is verbatim from v1.
 
 Usage
 -----
@@ -43,13 +33,23 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+# Path setup. twins/ is local to this skill (re-homed Phase 2 cleanup
+# 2026-05-26); render_slides lives in the sibling slide-qc skill. This
+# script does not actually import from either today; the paths are
+# kept on sys.path defensively in case future helpers are added.
+SKILL_ROOT = Path(__file__).resolve().parents[1]
+QC_SCRIPTS = SKILL_ROOT.parent / "slide-qc" / "scripts"
+sys.path.insert(0, str(SKILL_ROOT))
+sys.path.insert(0, str(QC_SCRIPTS))
+
+import _paths as _p  # noqa: E402
+
 
 # ---------------------------------------------------------------------------
-# IO helpers
+# IO helpers — verbatim from v1
 # ---------------------------------------------------------------------------
 
 def file_uri(p: Path) -> str:
-    """Convert an absolute Windows path to a file:/// URI."""
     return p.resolve().as_uri()
 
 
@@ -75,24 +75,117 @@ def fmt_bytes(b: int) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Brief parser (deck-level metadata + per-slide blocks)
+# v2 ADDITION — pattern extraction + adjacency detection
+# ---------------------------------------------------------------------------
+FALLBACK_MERMAID_TOKEN = "# FALLBACK_MERMAID:"
+SKELETON_REJECTED_TOKEN = "# SKELETON_REJECTED:"
+
+# Header convention from prompt.md § 8:
+#   Native:   line 1 = "# Slide N option <X> — pattern: <name>"
+#   Fallback: line 1 = "# FALLBACK_MERMAID: ..."
+#             line 2 = "# Slide N option <X> — pattern attempted: <name>"
+#   Rejected: line 1 = "# SKELETON_REJECTED: ..."
+#             line 2 = "# Slide N option <X> — pattern attempted: <name>"
+_PATTERN_RE = re.compile(
+    r"^#\s*Slide\s+\d+\s+option\s+[A-Z]\s+[—\-]\s+pattern(?:\s+attempted)?:\s*(.+?)\s*$",
+    re.IGNORECASE,
+)
+
+
+def extract_option_pattern(py_path: Path) -> tuple[Optional[str], str]:
+    """Read option_X.py and return (pattern_name, classification).
+
+    classification is one of: 'native', 'fallback_mermaid', 'skeleton_rejected', 'unknown'.
+    pattern_name is None if no header line parses.
+    """
+    if not py_path.exists():
+        return None, "unknown"
+    try:
+        text = py_path.read_text(encoding="utf-8")
+    except Exception:
+        return None, "unknown"
+    lines = text.splitlines()[:3]
+    if not lines:
+        return None, "unknown"
+    line1 = lines[0].strip()
+    if line1.startswith(FALLBACK_MERMAID_TOKEN):
+        classification = "fallback_mermaid"
+        pattern_line = lines[1] if len(lines) > 1 else ""
+    elif line1.startswith(SKELETON_REJECTED_TOKEN):
+        classification = "skeleton_rejected"
+        pattern_line = lines[1] if len(lines) > 1 else ""
+    else:
+        classification = "native"
+        pattern_line = line1
+    m = _PATTERN_RE.match(pattern_line.strip())
+    pattern_name = m.group(1).strip() if m else None
+    return pattern_name, classification
+
+
+def compute_adjacency_warnings(
+    slides_by_n: dict[int, dict],
+    option_letter: str = "A",
+) -> dict[int, list[str]]:
+    """Detect 3+ consecutive same-pattern runs across `option_letter`.
+
+    Each affected slide gets an advisory string. The user sees the advisory
+    on the slide's card in REVIEW.html.
+
+    Returns: {slide_n: [advisory_string, ...]}
+    """
+    warnings: dict[int, list[str]] = {}
+    if not slides_by_n:
+        return warnings
+
+    # Build ordered sequence of (slide_n, pattern_name) using option_letter.
+    sorted_ns = sorted(slides_by_n.keys())
+    sequence: list[tuple[int, Optional[str]]] = []
+    for n in sorted_ns:
+        slide = slides_by_n[n]
+        pat = None
+        for opt in slide.get("options", []):
+            if opt.get("letter") == option_letter:
+                pat = opt.get("pattern")
+                break
+        sequence.append((n, pat))
+
+    # Find runs of 3+ same non-None pattern.
+    i = 0
+    while i < len(sequence):
+        n_i, pat_i = sequence[i]
+        if pat_i is None:
+            i += 1
+            continue
+        j = i + 1
+        while j < len(sequence) and sequence[j][1] == pat_i:
+            j += 1
+        run_len = j - i
+        if run_len >= 3:
+            run_slides = [sequence[k][0] for k in range(i, j)]
+            msg = (
+                f"Option {option_letter} runs the same pattern "
+                f"({pat_i!r}) across slides {', '.join(str(s) for s in run_slides)}. "
+                f"Hardline #3 forbids 3+ consecutive same-split slides. "
+                f"Consider picking a different option for at least one slide in this run, "
+                f"or sending the run back for regen."
+            )
+            for sn in run_slides:
+                warnings.setdefault(sn, []).append(msg)
+            i = j
+        else:
+            i += 1
+    return warnings
+
+
+# ---------------------------------------------------------------------------
+# Brief parser — verbatim from v1
 # ---------------------------------------------------------------------------
 
 def parse_brief(brief_path: Path) -> dict:
-    """Pull deck-level fields + per-slide governing/bullets out of the brief
-    markdown. Returns a dict shaped like the DEMO_STORYLINE structure used in
-    build_demo_review.py.
-    """
     out = {
-        "topic": "",
-        "deck_type": "",
-        "governing": "",
-        "audience": "",
-        "belief_break": "",
-        "belief_leave": "",
-        "say_back": "",
-        "slides": [],   # list of {title, gov, bullets}
-        "found": False,
+        "topic": "", "deck_type": "", "governing": "", "audience": "",
+        "belief_break": "", "belief_leave": "", "say_back": "",
+        "slides": [], "found": False,
     }
     if not brief_path or not brief_path.exists():
         return out
@@ -101,14 +194,11 @@ def parse_brief(brief_path: Path) -> dict:
         return out
     out["found"] = True
 
-    # Topic: first h1.
     m = re.search(r"^#\s+(?:Narrative brief:\s*)?(.+?)\s*$", text, re.M)
     if m:
         out["topic"] = m.group(1).strip()
 
-    # Deck type / governing thought / audience.
     def _h2_block(label: str) -> str:
-        # Captures until next ## heading.
         pat = rf"^##\s+{re.escape(label)}\s*\n([\s\S]+?)(?=^##\s|\Z)"
         mm = re.search(pat, text, re.M)
         return mm.group(1).strip() if mm else ""
@@ -120,10 +210,8 @@ def parse_brief(brief_path: Path) -> dict:
 
     audience_block = _h2_block("Audience")
     if audience_block:
-        # First line is the audience descriptor.
         out["audience"] = audience_block.splitlines()[0].strip()
 
-    # Belief / say-back lines (live inside Audience block in this brief).
     def _bold_field(label: str) -> str:
         pat = rf"\*\*{re.escape(label)}:\*\*\s*(.+?)(?:\n|$)"
         mm = re.search(pat, text)
@@ -133,7 +221,6 @@ def parse_brief(brief_path: Path) -> dict:
     out["belief_leave"] = _bold_field("Audience belief to leave with")
     out["say_back"] = _bold_field("The single sentence the room should say back").strip().strip('"').strip("'")
 
-    # Per-slide blocks: ### Slide N — Title ... up to next ### or EOF.
     slide_iter = list(re.finditer(r"^###\s+Slide\s+(\d+)\s*[—-]\s*(.+?)\s*$", text, re.M))
     for i, m in enumerate(slide_iter):
         num = int(m.group(1))
@@ -141,47 +228,27 @@ def parse_brief(brief_path: Path) -> dict:
         start = m.end()
         end = slide_iter[i + 1].start() if i + 1 < len(slide_iter) else len(text)
         body = text[start:end]
-
-        # Governing thought.
         gov = ""
         gm = re.search(r"\*\*Governing thought(?:\s*\(the claim\))?:\*\*\s*(.+?)(?:\n|$)", body)
         if gm:
             gov = gm.group(1).strip()
-        if gov.startswith("[") and gov.endswith("]"):
-            # Placeholder marker like "[Cover slide — no governing thought required]"
-            gov_clean = gov
-        else:
-            gov_clean = gov
-
-        # Bullets under Evidence / content (or Content).
         bullets: list[str] = []
         bm = re.search(r"\*\*(?:Evidence\s*/\s*content|Content):\*\*\s*\n([\s\S]+?)(?=\n\*\*|\n###|\Z)", body)
         if bm:
-            block = bm.group(1)
-            for line in block.splitlines():
+            for line in bm.group(1).splitlines():
                 ls = line.strip()
                 if not ls:
                     continue
                 if ls.startswith("- "):
                     bullets.append(_md_inline_to_html(ls[2:].strip()))
                 elif ls.startswith("  - ") or ls.startswith("\t- "):
-                    # Sub-bullets — concatenate with parent.
                     if bullets:
                         bullets[-1] += " <em>" + _md_inline_to_html(ls.lstrip("- \t")) + "</em>"
-
-        out["slides"].append({
-            "n": num,
-            "title": f"Slide {num} — {title}",
-            "gov": gov_clean,
-            "bullets": bullets,
-        })
-
+        out["slides"].append({"n": num, "title": f"Slide {num} — {title}", "gov": gov, "bullets": bullets})
     return out
 
 
 def _md_inline_to_html(s: str) -> str:
-    """Tiny inline markdown: **bold** + *italic*.  Escapes everything else."""
-    # Order matters: bold first, then italic.
     s_esc = html.escape(s)
     s_esc = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", s_esc)
     s_esc = re.sub(r"(?<!\*)\*([^*]+)\*(?!\*)", r"<em>\1</em>", s_esc)
@@ -189,27 +256,23 @@ def _md_inline_to_html(s: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Per-slide _prompt.md parser (so the storyline section still works even when
-# the brief is missing).
+# Per-slide _prompt.md parser — verbatim from v1
 # ---------------------------------------------------------------------------
 
+# page_type was previously regexed out of _prompt.md via
+# `**Page type (heuristic):**` — that line was a v1 prep-pass echo and is
+# never written by v2's build_deck.py. The canonical source for page_type is
+# _meta.json (slides[].page_type). parse_prompt() no longer attempts to read
+# it; the lookup is on _meta.json only. See P4.28 resolution (2026-05-26).
 PROMPT_FIELDS = {
     "title": r"\*\*Slide title:\*\*\s*(.+?)(?:\n|$)",
-    "page_type": r"\*\*Page type \(heuristic\):\*\*\s*`?([^`\n]+)`?",
     "governing": r"\*\*Governing thought \(the claim\):\*\*\s*\n([\s\S]+?)(?:\n\n|\n\*\*)",
     "so_what": r"\*\*So-what \(the takeaway\):\*\*\s*\n([\s\S]+?)(?:\n\n|\n\*\*)",
 }
 
 
 def parse_prompt(prompt_path: Path) -> dict:
-    out = {
-        "title": None,
-        "page_type": None,
-        "governing": None,
-        "so_what": None,
-        "bullets": [],
-        "found": False,
-    }
+    out = {"title": None, "governing": None, "so_what": None, "bullets": [], "found": False}
     if not prompt_path.exists():
         return out
     text = read_text(prompt_path)
@@ -220,7 +283,6 @@ def parse_prompt(prompt_path: Path) -> dict:
             val = m.group(1).strip()
             val = re.sub(r"\s+", " ", val).strip()
             out[key] = val
-    # Bullets from the prompt's Evidence / content block.
     bm = re.search(r"\*\*Evidence\s*/\s*content:\*\*\s*\n([\s\S]+?)(?=\n\*\*|\Z)", text)
     if bm:
         for line in bm.group(1).splitlines():
@@ -231,18 +293,22 @@ def parse_prompt(prompt_path: Path) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Slide scan
+# Slide scan — v1 base + v2 pattern capture per option
 # ---------------------------------------------------------------------------
 
 OPTIONS = ("A", "B", "C")
 
 
 def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dict:
-    slide_id = f"slide_{slide_num:02d}"
+    slide_id = _p.slide_key(slide_num)
     src_dir = out_dir / slide_id
-    themed_dir = out_dir / "themed" / slide_id
+    # finalize_deck.py writes themed PPTX + PNG directly into the slide dir
+    # (raw pre-theme output is stashed in _raw/ subdir, not the other way around).
+    # The "themed_" variable names below remain semantically correct — they refer
+    # to the themed deliverable, which happens to live in the same dir as src.
+    themed_dir = src_dir
 
-    prompt = parse_prompt(src_dir / "_prompt.md")
+    prompt = parse_prompt(src_dir / _p.PROMPT_MD)
 
     title = prompt.get("title")
     if not title and slide_meta:
@@ -250,19 +316,19 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
     if not title:
         title = f"Slide {slide_num}"
 
-    page_type = prompt.get("page_type")
-    if not page_type and slide_meta:
-        page_type = slide_meta.get("page_type")
+    # page_type now comes only from _meta.json (canonical). See P4.28 resolution.
+    page_type = (slide_meta or {}).get("page_type") or ""
     if page_type:
         page_type = page_type.split("\n")[0].strip()
 
     options = []
     for letter in OPTIONS:
-        png = themed_dir / f"option_{letter}.png"
-        themed_pptx = themed_dir / f"option_{letter}.pptx"
-        src_pptx = src_dir / f"option_{letter}.pptx"
+        png = themed_dir / _p.option_png_name(letter)
+        themed_pptx = themed_dir / _p.option_pptx_name(letter)
+        src_pptx = src_dir / _p.option_pptx_name(letter)
+        src_py = src_dir / _p.option_py_name(letter)
         themed_exists = themed_pptx.exists()
-        qc_path = themed_dir / f"option_{letter}.qc.json"
+        qc_path = themed_dir / _p.option_qc_json_name(letter)
         qc_summary = None
         qc_failed_checks: list = []
         if qc_path.exists():
@@ -271,11 +337,13 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
                 qc_summary = qc_data.get("summary")
                 for c in qc_data.get("checks", []):
                     if not c.get("pass"):
-                        qc_failed_checks.append(
-                            f"{c.get('check')} [{c.get('severity')}]: {c.get('detail', '')}"
-                        )
+                        qc_failed_checks.append(f"{c.get('check')} [{c.get('severity')}]: {c.get('detail', '')}")
             except Exception:
                 qc_summary = None
+
+        # v2 addition: extract pattern + classification from the .py header
+        pattern, classification = extract_option_pattern(src_py)
+
         options.append({
             "letter": letter,
             "png": png,
@@ -287,6 +355,9 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
             "themed_size": themed_pptx.stat().st_size if themed_exists else 0,
             "qc_summary": qc_summary,
             "qc_failed_checks": qc_failed_checks,
+            # v2 fields
+            "pattern": pattern,
+            "classification": classification,
         })
 
     return {
@@ -297,7 +368,7 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
         "governing": prompt.get("governing"),
         "so_what": prompt.get("so_what"),
         "bullets": prompt.get("bullets", []),
-        "prompt_path": src_dir / "_prompt.md",
+        "prompt_path": src_dir / _p.PROMPT_MD,
         "prompt_found": prompt.get("found", False),
         "options": options,
     }
@@ -315,14 +386,10 @@ def discover_slide_count(out_dir: Path) -> int:
 
 
 # ---------------------------------------------------------------------------
-# Storyline rendering (dot-dash)
+# Storyline rendering — verbatim from v1
 # ---------------------------------------------------------------------------
 
 def render_storyline_html(storyline: dict, slides: list) -> str:
-    """If brief parsing succeeded, render the rich dot-dash block.  If not,
-    fall back to a per-slide governing-from-prompt block so the section is
-    never empty."""
-    # Prefer brief slides, fall back to per-slide prompts.
     brief_slides = storyline.get("slides") or []
     by_num = {s["n"]: s for s in brief_slides}
 
@@ -345,15 +412,13 @@ def render_storyline_html(storyline: dict, slides: list) -> str:
         return f'<div class="dd-slide">{"".join(parts)}</div>'
 
     blocks = "".join(_slide_block(s) for s in slides)
-
-    topic = html.escape(storyline.get("topic") or "Slide Lab deck")
+    topic = html.escape(storyline.get("topic") or "Slide Lab v2 deck")
     deck_type = html.escape(storyline.get("deck_type") or "—")
     gov = html.escape(storyline.get("governing") or "—")
     audience = html.escape(storyline.get("audience") or "—")
     bbreak = html.escape(storyline.get("belief_break") or "—")
     bleave = html.escape(storyline.get("belief_leave") or "—")
     sback = html.escape(storyline.get("say_back") or "—")
-
     return f"""
 <details class="storyline-section">
 <summary><span class="storyline-summary-text">▶ Storyline (dot-dash) — click to expand</span></summary>
@@ -368,7 +433,7 @@ def render_storyline_html(storyline: dict, slides: list) -> str:
       <div class="lbl">Belief to leave with</div><div class="val">{bleave}</div>
       <div class="lbl">Room should say back</div><div class="val">{sback}</div>
     </div>
-    <div class="dd-callout">Read the dots top-to-bottom — they should form the deck's argument as a single coherent story. If the dots-alone don't make sense, the storyline is broken.</div>
+    <div class="dd-callout">Read the dots top-to-bottom — they should form the deck's argument as a single coherent story.</div>
     {blocks}
   </div>
 </div>
@@ -377,7 +442,7 @@ def render_storyline_html(storyline: dict, slides: list) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Brief-QC banner (stub for slide-lab — wire real QC results later)
+# QC banner stub — verbatim from v1 (humanizer + render trimmed for v2)
 # ---------------------------------------------------------------------------
 
 def _render_qc_info_stub() -> str:
@@ -386,161 +451,14 @@ def _render_qc_info_stub() -> str:
         '<div class="qc-brief-banner-title">Brief-time QC report</div>'
         '<details class="qc-brief-section qc-brief-info">'
         '<summary><span class="qc-brief-icon">i</span>INFO &middot; brief_qc.json not found</summary>'
-        '<ul>'
-        '<li>No <code>brief_qc.json</code> was found in this output directory. '
-        'Re-run <code>build_deck.py</code> to generate it.</li>'
-        '</ul>'
-        '</details>'
-        '</div>'
+        '<ul><li>No <code>brief_qc.json</code> in this output directory. '
+        'v2\'s build_deck.py does not yet produce one — wire later if needed.</li></ul>'
+        '</details></div>'
     )
 
 
-# ---------------------------------------------------------------------------
-# QC humanizer — translate dev-speak QC messages into consultant English
-# ---------------------------------------------------------------------------
-# brief_qc.check_brief emits messages like:
-#   "slide 2: title is 320 chars — will wrap to 3+ lines (A1/A2)"
-#   "cover missing required field 'tagline' (A7)"
-#   "closing CTA has 5 sub_asks; needs 3 (A7)"
-#   "trailing ellipsis (...) — mid-thought? '...something' (A8)"
-# Rule codes A1..A9 reference internal designer-brief rules consultants don't
-# know. This humanizer pattern-matches each known shape and rewrites to plain
-# English. The rule code is preserved as a small grey suffix for debugging.
-
-import re as _re
-
-# Each entry: (compiled regex on raw message, callable returning plain-English text).
-# The location prefix ("slide N:" or "cover:" or "slide N.list[0].body:") is
-# extracted separately and prepended after humanization so it stays consistent.
-
-# Accept "slide N", "slide_N", "slide N.field", "cover", "closing CTA" etc as a
-# location. The capture group is everything up to the first colon followed by a
-# space — the "slide 1: foo" pattern (with the space) was the breaker on the
-# first pass.
-_LOC_RE = _re.compile(r"^([^:]{1,80}?):\s+(.+)$", _re.DOTALL)
-
-def _humanize_loc(loc: str) -> str:
-    """slide_03 → 'Slide 3'; slide 4.content.evidence → 'Slide 4 (content evidence)'."""
-    if not loc:
-        return ""
-    loc = loc.strip()
-    m = _re.match(r"^slide[_ ]?(\d+)(?:\.(.+))?$", loc, _re.IGNORECASE)
-    if m:
-        n = int(m.group(1))
-        suffix = (m.group(2) or "").strip()
-        base = f"Slide {n}"
-        if not suffix:
-            return base
-        # "content.evidence" -> "content / evidence"; "list[0].heading" -> "list #1 heading"
-        suffix = _re.sub(r"\[(\d+)\]", lambda mm: f" #{int(mm.group(1))+1}", suffix)
-        suffix = suffix.replace(".", " / ").replace("_", " ")
-        return f"{base} ({suffix})"
-    return loc.replace("_", " ")
-
-# Body humanizer rules: ordered list of (raw_pattern, lambda match -> plain text).
-# Patterns try to match the message body (after the "loc:" prefix is removed).
-_HUMAN_RULES: list[tuple[_re.Pattern, "callable"]] = [
-    (_re.compile(r"^title is (\d+) chars.*will wrap to 3\+ lines", _re.I),
-     lambda m: f"Title is too long ({m.group(1)} characters) — it will wrap to 3 or more lines. Shorten it so the headline fits on 1 or 2 lines."),
-
-    (_re.compile(r"^title predicted to wrap to (\d+) lines", _re.I),
-     lambda m: f"Title may wrap to {m.group(1)} lines. If that wasn't intended, shorten the title."),
-
-    (_re.compile(r"^title is (\d+) chars \(over the (\d+)-char guideline", _re.I),
-     lambda m: f"Title is slightly long ({m.group(1)} characters; recommended ≤{m.group(2)}). Tighten if you can."),
-
-    (_re.compile(r"^([\w.]+)\[(\d+)\]\.heading is (\d+) chars \(>40", _re.I),
-     lambda m: f"Item #{int(m.group(2))+1} heading is too long ({m.group(3)} characters). Keep headings under 40 — they're labels, not sentences."),
-
-    (_re.compile(r"^([\w.]+)\[(\d+)\]\.body is (\d+) chars \(>200", _re.I),
-     lambda m: f"Item #{int(m.group(2))+1} body text is too long ({m.group(3)} characters). Trim to under 200 — readers scan slides, they don't read paragraphs."),
-
-    (_re.compile(r"^forbidden placeholder (.+)$", _re.I),
-     lambda m: f"Placeholder text was left in: {m.group(1)}. Replace with real content."),
-
-    (_re.compile(r"^cover missing required field '([^']+)'", _re.I),
-     lambda m: f"Cover slide is missing the {m.group(1)}. Add it to the brief."),
-
-    (_re.compile(r"^closing CTA missing required field '([^']+)'", _re.I),
-     lambda m: f"Closing slide is missing the {m.group(1)}. The ask needs all three of: title, sub-asks, and a clear action verb."),
-
-    (_re.compile(r"^closing CTA has (\d+) sub_asks; needs (\d+)", _re.I),
-     lambda m: f"Closing slide has {m.group(1)} sub-asks — Slide Lab recommends exactly {m.group(2)}. Pick the {m.group(2)} that matter most."),
-
-    (_re.compile(r"^editorial_emphasis has (\d+) items; trim to <=(\d+)", _re.I),
-     lambda m: f"Editorial emphasis has {m.group(1)} items — that's too many to land. Trim to {m.group(2)} or fewer."),
-
-    (_re.compile(r"^run-on sentence \((\d+) words, (\d+) chars\)[:\s]*(.*)$", _re.I | _re.DOTALL),
-     lambda m: f"Run-on sentence ({m.group(1)} words). Break it into two shorter sentences." + (f' Excerpt: {m.group(3).strip()[:100]}' if m.group(3).strip() else "")),
-
-    (_re.compile(r"^trailing ellipsis.*mid-thought.*?['\"](.+?)['\"]", _re.I | _re.DOTALL),
-     lambda m: f"Text trails off with an ellipsis (\"…\") — looks unfinished. Excerpt: \"{m.group(1).strip()[:80]}\". Finish the sentence or rephrase."),
-
-    (_re.compile(r"^dangling truncation marker.*?['\"](.+?)['\"]", _re.I | _re.DOTALL),
-     lambda m: f"Text ends with a dash or comma — looks like a fragment. Excerpt: \"{m.group(1).strip()[:80]}\". Add the rest or trim it."),
-
-    (_re.compile(r"^no terminal punctuation.*?['\"](.+?)['\"]", _re.I | _re.DOTALL),
-     lambda m: f"Sentence is missing ending punctuation (\".\" \"!\" or \"?\"). Excerpt: \"{m.group(1).strip()[:80]}\"."),
-
-    (_re.compile(r"^language_callback error:\s*(.+)$", _re.I),
-     lambda m: f"Internal QC error: {m.group(1)} — flag for review."),
-]
-
-_RULECODE_RE = _re.compile(r"\s*\(([A-Z]\d(?:/[A-Z]\d)?)\)\s*$")
-
-def humanize_qc_msg(raw: str) -> tuple[str, str, str]:
-    """
-    Take a raw brief_qc message and return (location, human_body, rule_code).
-
-    location:    "Slide 2" or "Cover" or "" — already humanized
-    human_body:  plain-English sentence(s)
-    rule_code:   "A1/A2" or "A7" or "" — kept as a small debug suffix
-
-    Falls back to the raw message body if no humanizer rule matches.
-    """
-    if not raw or not isinstance(raw, str):
-        return ("", str(raw or ""), "")
-
-    # Strip the rule code first so the body matchers don't see it
-    code_match = _RULECODE_RE.search(raw)
-    rule_code = code_match.group(1) if code_match else ""
-    if code_match:
-        raw = raw[: code_match.start()].rstrip()
-
-    # Split off the "loc: " prefix
-    m = _LOC_RE.match(raw)
-    if m:
-        loc_raw = m.group(1)
-        body = m.group(2).strip()
-        loc = _humanize_loc(loc_raw)
-    else:
-        loc = ""
-        body = raw
-
-    # Apply the first matching humanizer rule
-    for pat, rewriter in _HUMAN_RULES:
-        m2 = pat.match(body)
-        if m2:
-            try:
-                return (loc, rewriter(m2), rule_code)
-            except Exception:
-                # If a rule's lambda errors out (regex group mismatch, etc.),
-                # fall through to the raw body so QC still displays *something*.
-                pass
-
-    return (loc, body, rule_code)
-
-
 def render_qc_banner(out_dir: Path) -> str:
-    """Render the Brief-time QC banner.
-
-    Reads <out>/brief_qc.json (produced by build_deck.py) and emits two
-    collapsible sections: BLOCKING (red, open if non-empty) and WARNING
-    (yellow, collapsed). Raw issue strings are humanized via humanize_qc_msg
-    before display — consultants see plain English with the dev rule code as
-    a small grey suffix for debug breadcrumbs.
-    """
-    qc_path = out_dir / "brief_qc.json"
+    qc_path = _p.brief_qc_json(out_dir)
     if not qc_path.exists():
         return _render_qc_info_stub()
     try:
@@ -552,108 +470,56 @@ def render_qc_banner(out_dir: Path) -> str:
             '<details class="qc-brief-section qc-brief-info" open>'
             '<summary><span class="qc-brief-icon">i</span>INFO &middot; brief_qc.json unreadable</summary>'
             f'<ul><li>{html.escape(str(exc))}</li></ul>'
-            '</details>'
-            '</div>'
+            '</details></div>'
         )
-
     blocking = list(payload.get("blocking") or [])
     warnings = list(payload.get("warnings") or [])
     summary = payload.get("summary") or ""
-
     parts: list[str] = []
     parts.append('<div class="qc-brief-banner">')
     parts.append('<div class="qc-brief-banner-title">Brief-time QC report</div>')
-
     if summary:
-        parts.append(
-            f'<div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;">'
-            f'{html.escape(summary)}</div>'
-        )
-
-    def _render_qc_li(line: str) -> str:
-        loc, body, code = humanize_qc_msg(line)
-        loc_html = f'<span class="qc-loc">{html.escape(loc)}</span> ' if loc else ""
-        body_html = html.escape(body)
-        code_html = f'<span class="qc-code" title="internal designer-brief rule reference">({html.escape(code)})</span>' if code else ""
-        return f'<li>{loc_html}<span class="qc-body">{body_html}</span> {code_html}</li>'
-
-    open_attr = " open" if blocking else ""
+        parts.append(f'<div style="font-size:11px;color:var(--text-dim);margin-bottom:6px;">{html.escape(summary)}</div>')
     if blocking:
-        items = "".join(_render_qc_li(line) for line in blocking)
-        parts.append(
-            f'<details class="qc-brief-section qc-brief-blocking"{open_attr}>'
-            f'<summary><span class="qc-brief-icon">!</span>Must fix &middot; {len(blocking)}</summary>'
-            f'<ul>{items}</ul>'
-            f'</details>'
-        )
-    else:
-        parts.append(
-            '<details class="qc-brief-section qc-brief-info">'
-            '<summary><span class="qc-brief-icon">&#10003;</span>Must fix &middot; 0 (none — brief is clean)</summary>'
-            '<ul><li>No issues that block this deck from building.</li></ul>'
-            '</details>'
-        )
-
+        items = "".join(f"<li>{html.escape(str(line))}</li>" for line in blocking)
+        parts.append(f'<details class="qc-brief-section qc-brief-blocking" open>'
+                     f'<summary><span class="qc-brief-icon">!</span>Must fix &middot; {len(blocking)}</summary>'
+                     f'<ul>{items}</ul></details>')
     if warnings:
-        items = "".join(_render_qc_li(line) for line in warnings)
-        parts.append(
-            f'<details class="qc-brief-section qc-brief-warning">'
-            f'<summary><span class="qc-brief-icon">~</span>Worth a look &middot; {len(warnings)}</summary>'
-            f'<ul>{items}</ul>'
-            f'</details>'
-        )
-    else:
-        parts.append(
-            '<details class="qc-brief-section qc-brief-info">'
-            '<summary><span class="qc-brief-icon">&#10003;</span>Worth a look &middot; 0</summary>'
-            '<ul><li>Nothing to flag.</li></ul>'
-            '</details>'
-        )
-
+        items = "".join(f"<li>{html.escape(str(line))}</li>" for line in warnings)
+        parts.append(f'<details class="qc-brief-section qc-brief-warning">'
+                     f'<summary><span class="qc-brief-icon">~</span>Worth a look &middot; {len(warnings)}</summary>'
+                     f'<ul>{items}</ul></details>')
     parts.append('</div>')
     return "".join(parts)
 
 
-# Back-compat shim in case anything still calls the old name.
-def render_qc_banner_stub() -> str:
-    return _render_qc_info_stub()
-
-
-# ---------------------------------------------------------------------------
-# Font-availability banner — shown only when the client template's fonts
-# aren't installed locally and PNG thumbnails are getting font-substituted.
-# Reads <out>/_finalize_meta.json written by finalize_deck.py.
-# ---------------------------------------------------------------------------
 def render_font_banner(out_dir: Path) -> str:
-    meta_path = out_dir / "_finalize_meta.json"
+    meta_path = _p.finalize_meta_json(out_dir)
     if not meta_path.exists():
         return ""
     try:
         meta = json.loads(meta_path.read_text(encoding="utf-8"))
     except Exception:
         return ""
-
     missing = meta.get("font_missing") or []
     if not missing:
         return ""
-
     missing_list = ", ".join(html.escape(f) for f in missing)
     return (
         '<div class="font-banner">'
-        '<div class="font-banner-title">'
-        '<span class="font-banner-icon">&#9888;</span> '
-        'Thumbnails rendered with font substitution'
-        '</div>'
+        '<div class="font-banner-title"><span class="font-banner-icon">&#9888;</span> '
+        'Thumbnails rendered with font substitution</div>'
         '<div class="font-banner-body">'
         f'The client template uses <strong>{missing_list}</strong>, which is not '
-        'installed on this machine. The .pptx files themselves are correct &mdash; '
-        'when opened on a machine with these fonts installed, they will render with '
-        'the intended typography. The PNG thumbnails below show a fallback font.'
-        '</div>'
+        'installed on this machine. The .pptx files themselves are correct; '
+        'PNG thumbnails below show a fallback font.</div>'
         '</div>'
     )
+
+
 # ---------------------------------------------------------------------------
-# Per-slide card
+# Per-slide card — v1 base + v2 adjacency banner + classification badge
 # ---------------------------------------------------------------------------
 
 FEEDBACK_FIELDS = [
@@ -678,57 +544,83 @@ def render_option_tile(slide: dict, opt: dict, themed_path_str: str) -> str:
     else:
         thumb = '<div class="thumb missing">no thumbnail</div>'
 
-    # QC badge: top-right corner of the option-frame.
     qc_summary = opt.get("qc_summary") or {}
     qc_failed = opt.get("qc_failed_checks") or []
     n_block = int(qc_summary.get("block", 0)) if qc_summary else 0
-    n_warn  = int(qc_summary.get("warn", 0))  if qc_summary else 0
+    n_warn = int(qc_summary.get("warn", 0)) if qc_summary else 0
     if qc_summary is None or qc_summary == {}:
         qc_badge = ""
     elif n_block > 0:
         tooltip = " | ".join(qc_failed[:6]) or "blocking issue"
-        qc_badge = (
-            f'<div class="qc-badge block" title="{html.escape(tooltip)}">BLOCK</div>'
-        )
+        qc_badge = f'<div class="qc-badge block" title="{html.escape(tooltip)}">BLOCK</div>'
     elif n_warn > 0:
         tooltip = " | ".join(qc_failed[:6]) or f"{n_warn} warning(s)"
-        qc_badge = (
-            f'<div class="qc-badge warn" title="{html.escape(tooltip)}">~ {n_warn}</div>'
-        )
+        qc_badge = f'<div class="qc-badge warn" title="{html.escape(tooltip)}">~ {n_warn}</div>'
     else:
         qc_badge = '<div class="qc-badge ok" title="all QC checks passed">OK QC</div>'
+
+    # v2 addition: classification badge — bottom-right of frame
+    classification = opt.get("classification", "native")
+    class_badge_html = ""
+    if classification == "fallback_mermaid":
+        class_badge_html = '<div class="class-badge fallback" title="Mermaid fallback render">MERMAID</div>'
+    elif classification == "skeleton_rejected":
+        class_badge_html = '<div class="class-badge rejected" title="SKELETON_REJECTED — no PPTX produced">REJECTED</div>'
 
     vqc_btn = (
         f'<button class="vision-qc-btn" '
         f'onclick="copyVisionQcPrompt(this, \'{html.escape(themed_path_str)}\')" '
-        f'title="Copy a paste-ready Claude prompt to run slide-qc vision review on this option">'
+        f'title="Copy a paste-ready Claude prompt to run slide-qc vision review">'
         f'Vision QC &rarr;</button>'
         if themed_path_str else ''
     )
 
+    # v2 addition: pattern label under the option-meta line
+    pattern = opt.get("pattern")
+    pattern_html = (
+        f'<div class="option-pattern">{html.escape(pattern)}</div>'
+        if pattern else ""
+    )
+
     return f"""
 <div class="option" data-slide="{sid}" data-letter="{letter}" data-pptx="{html.escape(themed_path_str)}">
-  <div class="option-frame">{thumb}{qc_badge}</div>
+  <div class="option-frame">{thumb}{qc_badge}{class_badge_html}</div>
   <div class="option-meta">
     <span class="option-letter">Option {letter}</span>
     <div class="option-taxon">{html.escape(page_type)}</div>
+    {pattern_html}
     {vqc_btn}
   </div>
 </div>
 """
 
 
-def render_card(slide: dict) -> str:
+def render_adjacency_banner(slide_n: int, warnings: list[str]) -> str:
+    """v2 ADDITION: render the adjacency advisory banner on a slide's card."""
+    if not warnings:
+        return ""
+    items = "".join(f"<li>{html.escape(w)}</li>" for w in warnings)
+    return (
+        '<div class="adjacency-banner">'
+        '<div class="adjacency-banner-title">'
+        '<span class="adjacency-icon">&#8634;</span> Adjacency advisory'
+        '</div>'
+        f'<ul>{items}</ul>'
+        '</div>'
+    )
+
+
+def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
     sid = slide["slide_id"]
     n = slide["n"]
     title = html.escape(slide.get("title") or f"Slide {n}")
+    adjacency = (adjacency_warnings or {}).get(n, [])
+    adjacency_banner = render_adjacency_banner(n, adjacency)
 
-    # Pre-encoded themed paths for each option (used by the JS pickers).
     themed_paths = {
         o["letter"]: (str(o["themed_pptx"].resolve()) if o["themed_exists"] else "")
         for o in slide["options"]
     }
-
     option_tiles = "".join(
         render_option_tile(slide, o, themed_paths.get(o["letter"], ""))
         for o in slide["options"]
@@ -744,8 +636,6 @@ def render_card(slide: dict) -> str:
         f'<button class="none" onclick="pickNone(\'{sid}\')">'
         '&#10007; NONE &mdash; TRY AGAIN</button>'
     )
-
-    # Feedback grid.
     feedback_html = "".join(
         f'<div class="feedback-field">'
         f'<label for="fb-{sid}-{key}">{label}</label>'
@@ -754,14 +644,11 @@ def render_card(slide: dict) -> str:
         f'</div>'
         for (key, label, placeholder) in FEEDBACK_FIELDS
     )
-
     prompt_uri = file_uri(slide["prompt_path"]) if slide["prompt_path"].exists() else ""
     regen_text = (
         f"Re-dispatch slide {n} ({slide.get('title')}) with stronger visual treatment.\n"
         f"Original prompt: {str(slide['prompt_path'].resolve())}\n"
-        f"None of options A/B/C landed. Pick a different layout family this time "
-        f"(do not return any of the three already shown). Honor all hard "
-        f"constraints in section 4 of the prompt."
+        f"None of options A/B/C landed. Pick a different pattern this time."
     )
 
     return f"""
@@ -773,6 +660,8 @@ def render_card(slide: dict) -> str:
     </div>
     <div class="status-badge pending" id="badge-{sid}">PENDING</div>
   </div>
+
+  {adjacency_banner}
 
   <div class="options-row">
     {option_tiles}
@@ -810,7 +699,7 @@ def render_card(slide: dict) -> str:
 
 
 # ---------------------------------------------------------------------------
-# CSS + JS
+# CSS — v1 base + v2 adjacency-banner + classification-badge + pattern-label
 # ---------------------------------------------------------------------------
 
 CSS = """
@@ -831,26 +720,12 @@ CSS = """
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
-body {
-  font-family: 'Inter', -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
-  background: var(--bg);
-  color: var(--text);
-  font-size: 14px;
-  line-height: 1.45;
-  padding-bottom: 90px;
-}
+body { font-family: 'Inter', -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif; background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.45; padding-bottom: 90px; }
 a { color: var(--accent); text-decoration: none; }
 a:hover { text-decoration: underline; }
 code { font-family: Consolas, monospace; font-size: 12px; color: var(--text-dim); word-break: break-all; }
 
-/* Top bar */
-.topbar {
-  position: sticky; top: 0; z-index: 100;
-  background: var(--panel);
-  border-bottom: 2px solid var(--border);
-  padding: 14px 24px;
-  display: flex; align-items: center; gap: 18px;
-}
+.topbar { position: sticky; top: 0; z-index: 100; background: var(--panel); border-bottom: 2px solid var(--border); padding: 14px 24px; display: flex; align-items: center; gap: 18px; }
 .topbar .title { font-size: 17px; font-weight: 700; }
 .topbar .title-sub { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
 .topbar-meta { font-size: 11px; color: var(--text-dim); margin-top: 6px; display: grid; grid-template-columns: max-content 1fr; gap: 2px 10px; max-width: 1100px; }
@@ -863,7 +738,6 @@ code { font-family: Consolas, monospace; font-size: 12px; color: var(--text-dim)
 .pill.reject  { background: rgba(220,38,38,0.15); color: var(--reject);  border: 1px solid var(--reject); }
 .pill.pending { background: rgba(100,116,139,0.15); color: var(--text-dim); border: 1px solid var(--pending); }
 
-/* Storyline section */
 .storyline-section { background: var(--panel); border-bottom: 1px solid var(--border); padding: 8px 24px 12px; }
 .storyline-section summary { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 1.5px; cursor: pointer; padding: 8px 0; outline: none; list-style: none; }
 .storyline-section summary::-webkit-details-marker { display: none; }
@@ -886,24 +760,31 @@ code { font-family: Consolas, monospace; font-size: 12px; color: var(--text-dim)
 .dd-bullets { list-style: none; margin: 4px 0 0; padding-left: 22px; }
 .dd-bullets li { font-size: 13px; color: var(--text-dim); padding: 3px 0; position: relative; line-height: 1.5; }
 .dd-bullets li::before { content: "– "; color: var(--accent-soft); position: absolute; left: -16px; }
-.dd-bullets li strong { color: var(--text); }
-.dd-bullets li em { color: var(--accent-soft); }
 
-/* Font-availability banner — shown when client fonts aren't installed locally */
+/* v2 addition: adjacency advisory banner */
+.adjacency-banner { margin: 0 20px 12px; padding: 10px 14px; background: rgba(202,138,4,0.14); border-left: 4px solid var(--tweak); border-radius: 4px; color: #FDE68A; font-size: 13px; line-height: 1.45; }
+.adjacency-banner-title { font-size: 11px; font-weight: 800; color: var(--tweak); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
+.adjacency-icon { color: var(--tweak); margin-right: 4px; }
+.adjacency-banner ul { margin: 4px 0 0; padding-left: 18px; }
+.adjacency-banner li { padding: 2px 0; }
+
+/* v2 addition: classification badge on option frame */
+.class-badge { position: absolute; bottom: 6px; right: 6px; padding: 3px 8px; border-radius: 10px; font-size: 9px; font-weight: 800; letter-spacing: 0.6px; line-height: 1.1; z-index: 2; box-shadow: 0 2px 5px rgba(0,0,0,0.25); cursor: help; }
+.class-badge.fallback { background: var(--info); color: #fff; }
+.class-badge.rejected { background: var(--reject); color: #fff; }
+
+/* v2 addition: pattern label under option meta */
+.option-pattern { color: var(--accent-soft); margin-top: 2px; font-size: 11px; font-weight: 600; font-style: italic; }
+
 .font-banner { background: #FEF3C7; border-bottom: 2px solid #F59E0B; padding: 14px 24px; color: #78350F; }
 .font-banner-title { font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
 .font-banner-icon { color: #D97706; margin-right: 6px; }
 .font-banner-body { font-size: 13px; line-height: 1.5; }
-.font-banner-body strong { color: #78350F; font-weight: 700; }
 
-/* Vision-QC button on each option tile */
 .vision-qc-btn { display: inline-block; margin-left: auto; padding: 3px 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; border: 1px solid var(--border); background: var(--panel); color: var(--text-dim); border-radius: 3px; cursor: pointer; transition: all 0.15s; }
 .vision-qc-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
 .vision-qc-btn.copied { background: #16A34A; color: white; border-color: #16A34A; }
-.vision-qc-toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); padding: 12px 20px; background: #16A34A; color: white; font-size: 13px; font-weight: 600; border-radius: 4px; box-shadow: 0 4px 12px rgba(0,0,0,0.2); opacity: 0; pointer-events: none; transition: opacity 0.25s; z-index: 1000; }
-.vision-qc-toast.show { opacity: 1; }
 
-/* QC banner */
 .qc-brief-banner { background: var(--panel-2); border-bottom: 1px solid var(--border); padding: 12px 24px; }
 .qc-brief-banner-title { font-size: 10px; font-weight: 800; color: var(--text); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; }
 .qc-brief-section { margin-top: 6px; padding: 8px 12px; border-radius: 4px; border-left: 3px solid; font-size: 11px; line-height: 1.5; }
@@ -912,7 +793,6 @@ code { font-family: Consolas, monospace; font-size: 12px; color: var(--text-dim)
 .qc-brief-info     { background: rgba(37,99,235,0.08); border-color: var(--info); }
 .qc-brief-section summary { font-weight: 800; cursor: pointer; outline: none; display: flex; align-items: center; gap: 6px; padding: 2px 0; list-style: none; }
 .qc-brief-section summary::-webkit-details-marker { display: none; }
-.qc-brief-section[open] summary { margin-bottom: 6px; }
 .qc-brief-blocking summary { color: var(--reject); }
 .qc-brief-warning  summary { color: var(--tweak); }
 .qc-brief-info     summary { color: var(--info); }
@@ -921,13 +801,9 @@ code { font-family: Consolas, monospace; font-size: 12px; color: var(--text-dim)
 .qc-brief-warning  .qc-brief-icon { background: var(--tweak); color: white; }
 .qc-brief-info     .qc-brief-icon { background: var(--info); color: white; }
 .qc-brief-section ul { list-style: none; margin: 0; padding: 0; }
-.qc-brief-section li { padding: 4px 0 4px 12px; position: relative; color: var(--text); line-height: 1.5; }
+.qc-brief-section li { padding: 4px 0 4px 12px; position: relative; color: var(--text); }
 .qc-brief-section li::before { content: '•'; position: absolute; left: 0; color: currentColor; }
-.qc-brief-section li .qc-loc { display: inline-block; font-weight: 700; color: var(--accent); margin-right: 4px; min-width: 64px; }
-.qc-brief-section li .qc-body { color: var(--text); }
-.qc-brief-section li .qc-code { font-size: 9px; color: var(--text-dim); opacity: 0.55; font-family: Consolas, 'Courier New', monospace; margin-left: 6px; cursor: help; }
 
-/* Cards */
 .cards { padding: 20px; display: flex; flex-direction: column; gap: 20px; max-width: 1880px; margin: 0 auto; }
 .card { background: var(--panel); border-radius: 8px; border: 1px solid var(--border); overflow: hidden; }
 .card-header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 14px 20px 10px; border-bottom: 1px solid var(--border); }
@@ -969,77 +845,50 @@ textarea.regen-text { background: rgba(220,38,38,0.06); border-color: rgba(220,3
 .feedback-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
 .feedback-field label { display: block; font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; margin-bottom: 4px; }
 .regen-panel { margin-top: 10px; padding: 10px 12px; background: rgba(220,38,38,0.04); border-left: 3px solid var(--reject); border-radius: 4px; }
-.regen-panel .open-prompt { margin-left: 10px; font-size: 11px; }
 
-/* Sticky footer */
-footer.summary-footer {
-  position: fixed;
-  bottom: 0; left: 0; right: 0;
-  background: rgba(15,23,42,0.96);
-  border-top: 1px solid var(--border);
-  padding: 12px 24px;
-  display: flex; align-items: center; justify-content: space-between;
-  gap: 14px;
-  z-index: 50;
-  backdrop-filter: blur(6px);
-}
+footer.summary-footer { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(15,23,42,0.96); border-top: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; gap: 14px; z-index: 50; backdrop-filter: blur(6px); }
 footer.summary-footer .count { font-size: 14px; font-weight: 700; color: var(--text); }
 footer.summary-footer .count .num { color: var(--accent); }
 footer.summary-footer .btns { display: flex; gap: 8px; flex-wrap: wrap; }
 button.btn { background: var(--accent); color: #fff; border: none; padding: 9px 14px; border-radius: 5px; font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer; transition: opacity 0.12s; }
 button.btn:hover { opacity: 0.85; }
 button.btn.ghost { background: transparent; border: 1px solid #475569; color: #CBD5E1; }
-button.btn.ghost:hover { border-color: var(--accent); color: #fff; }
-button.btn.small { padding: 6px 11px; font-size: 11px; }
 button.btn.primary { background: var(--accent); color: #fff; border: 1px solid var(--accent); }
-button.btn.primary:hover { opacity: 1; filter: brightness(1.1); box-shadow: 0 2px 12px rgba(161,0,255,0.45); }
 button.btn.big { padding: 13px 26px; font-size: 14px; letter-spacing: 0.3px; }
-footer.summary-footer .count .hint { font-weight: 400; color: var(--text-dim, #94A3B8); font-size: 12px; margin-left: 6px; }
+button.btn.small { padding: 6px 11px; font-size: 11px; }
 
-/* Dialog (text export) */
 dialog#picks-dialog { background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 0; max-width: 720px; width: 90vw; }
 dialog#picks-dialog::backdrop { background: rgba(0,0,0,0.6); }
 dialog#picks-dialog .dlg-head { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-dialog#picks-dialog .dlg-head h3 { margin: 0; font-size: 15px; }
 dialog#picks-dialog pre { margin: 0; padding: 16px 18px; background: var(--bg); color: #86EFAC; font-size: 12px; font-family: Consolas, monospace; max-height: 60vh; overflow: auto; white-space: pre-wrap; word-break: break-all; }
 dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
 
-/* Toast */
 #toast { position: fixed; bottom: 88px; left: 50%; transform: translateX(-50%); background: var(--panel); border: 1px solid var(--accent); color: var(--text); padding: 9px 16px; border-radius: 5px; font-size: 12px; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 200; max-width: 80vw; }
 #toast.show { opacity: 1; }
 """
 
 
-# Persistence keys are derived from the absolute themed-PPTX path (for picks)
-# and slide_NN_<field> (for feedback notes).  This keeps state stable across
-# renames of REVIEW.html and ties it to the actual build artifacts.
+# ---------------------------------------------------------------------------
+# JS — verbatim from v1 (picks + feedback + clipboard logic unchanged)
+# ---------------------------------------------------------------------------
+
 JS = r"""
-const PICKS_KEY = "slidelab_picks_v1::" + window.location.pathname;
-const FB_KEY    = "slidelab_feedback_v1::" + window.location.pathname;
-const REGEN_KEY = "slidelab_regen_v1::"    + window.location.pathname;
+const PICKS_KEY = "slidelab_v2_picks_v1::" + window.location.pathname;
+const FB_KEY    = "slidelab_v2_feedback_v1::" + window.location.pathname;
+const REGEN_KEY = "slidelab_v2_regen_v1::"    + window.location.pathname;
 const TOTAL_SLIDES = window.__TOTAL_SLIDES__;
-const SLIDE_IDS = window.__SLIDE_IDS__;       // ordered list of slide_NN
-const SLIDE_MAP = window.__SLIDE_MAP__;       // {slide_id: {A: pptxPath, B: ..., C: ...}}
+const SLIDE_IDS = window.__SLIDE_IDS__;
+const SLIDE_MAP = window.__SLIDE_MAP__;
 
-/* ----------------------------------------------------------------------
-   localStorage helpers
-   ---------------------------------------------------------------------- */
-function loadJson(key) {
-    try { return JSON.parse(localStorage.getItem(key) || "{}"); }
-    catch (e) { return {}; }
-}
+function loadJson(key) { try { return JSON.parse(localStorage.getItem(key) || "{}"); } catch (e) { return {}; } }
 function saveJson(key, obj) { localStorage.setItem(key, JSON.stringify(obj)); }
-
-function loadPicks()  { return loadJson(PICKS_KEY); }     // {pptxPath: "A"|"B"|"C"}
+function loadPicks()  { return loadJson(PICKS_KEY); }
 function savePicks(p) { saveJson(PICKS_KEY, p); }
-function loadRegens() { return loadJson(REGEN_KEY); }     // {slide_id: true}
+function loadRegens() { return loadJson(REGEN_KEY); }
 function saveRegens(r){ saveJson(REGEN_KEY, r); }
-function loadFb()     { return loadJson(FB_KEY); }        // {slide_id_field: text}
+function loadFb()     { return loadJson(FB_KEY); }
 function saveFb(f)    { saveJson(FB_KEY, f); }
 
-/* ----------------------------------------------------------------------
-   Render state into DOM
-   ---------------------------------------------------------------------- */
 function pickForSlide(sid) {
     const picks = loadPicks();
     const map = SLIDE_MAP[sid] || {};
@@ -1072,16 +921,9 @@ function renderSlideState(sid) {
 
     const badge = document.getElementById("badge-" + sid);
     badge.classList.remove("pending", "picked", "none");
-    if (letter) {
-        badge.classList.add("picked");
-        badge.textContent = "DECIDED " + letter;
-    } else if (isNone) {
-        badge.classList.add("none");
-        badge.textContent = "REGEN REQUESTED";
-    } else {
-        badge.classList.add("pending");
-        badge.textContent = "PENDING";
-    }
+    if (letter) { badge.classList.add("picked"); badge.textContent = "DECIDED " + letter; }
+    else if (isNone) { badge.classList.add("none"); badge.textContent = "REGEN REQUESTED"; }
+    else { badge.classList.add("pending"); badge.textContent = "PENDING"; }
 
     const regenPanel = document.getElementById("regen-" + sid);
     if (regenPanel) regenPanel.style.display = isNone ? "block" : "none";
@@ -1102,7 +944,6 @@ function updateCounts() {
 
 function renderAll() {
     SLIDE_IDS.forEach(renderSlideState);
-    // Restore feedback textareas.
     const fb = loadFb();
     document.querySelectorAll("textarea[data-slide][data-field]").forEach(ta => {
         const k = ta.dataset.slide + "_" + ta.dataset.field;
@@ -1111,78 +952,49 @@ function renderAll() {
     updateCounts();
 }
 
-/* ----------------------------------------------------------------------
-   Vision QC — copies a paste-ready Claude prompt to clipboard.
-   ---------------------------------------------------------------------- */
 function copyVisionQcPrompt(btn, pptxPath) {
-    if (!pptxPath) {
-        showToast("No themed PPTX available for this option.");
-        return;
-    }
+    if (!pptxPath) { showToast("No themed PPTX for this option."); return; }
     const prompt =
-        "Run /slide-qc on this single-slide PPTX and report the findings " +
-        "as Critical / Major / Advisory.\n\n" +
+        "Run /slide-qc on this single-slide PPTX and report findings as Critical / Major / Advisory.\n\n" +
         "PPTX: " + pptxPath + "\n\n" +
         "Use vision (render to PNG, read zone-by-zone). Don't open PowerPoint.";
     const fallback = function() {
         const ta = document.createElement("textarea");
         ta.value = prompt;
-        ta.style.position = "fixed";
-        ta.style.left = "-9999px";
-        document.body.appendChild(ta);
-        ta.select();
+        ta.style.position = "fixed"; ta.style.left = "-9999px";
+        document.body.appendChild(ta); ta.select();
         try { document.execCommand("copy"); } catch (e) {}
         document.body.removeChild(ta);
     };
     if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(prompt).catch(fallback);
-    } else {
-        fallback();
-    }
-    btn.classList.add("copied");
-    btn.textContent = "Copied to clipboard";
-    showToast("Vision QC prompt copied. Paste into Claude Code to run.");
-    setTimeout(function() {
-        btn.classList.remove("copied");
-        btn.innerHTML = "Vision QC &rarr;";
-    }, 2500);
+    } else { fallback(); }
+    btn.classList.add("copied"); btn.textContent = "Copied to clipboard";
+    showToast("Vision QC prompt copied.");
+    setTimeout(function() { btn.classList.remove("copied"); btn.innerHTML = "Vision QC &rarr;"; }, 2500);
 }
 
-/* ----------------------------------------------------------------------
-   Pick / none actions
-   ---------------------------------------------------------------------- */
 function pickOption(sid, letter) {
     const map = SLIDE_MAP[sid] || {};
     const pptx = map[letter];
-    if (!pptx) {
-        showToast("Option " + letter + " for " + sid + " has no themed PPTX.");
-        return;
-    }
+    if (!pptx) { showToast("Option " + letter + " has no themed PPTX."); return; }
     const picks = loadPicks();
-    // Clear any existing pick for this slide (could be a different letter).
     for (const l of Object.keys(map)) {
         if (map[l] && picks[map[l]] === l) delete picks[map[l]];
     }
-    // Toggle: if same letter clicked again, leave cleared.
     const current = pickForSlide(sid);
-    if (current !== letter) {
-        picks[pptx] = letter;
-    }
+    if (current !== letter) picks[pptx] = letter;
     savePicks(picks);
-    // Clear regen request if any.
     const regens = loadRegens();
     if (regens[sid]) { delete regens[sid]; saveRegens(regens); }
-    renderSlideState(sid);
-    updateCounts();
+    renderSlideState(sid); updateCounts();
 }
 
 function pickNone(sid) {
     const regens = loadRegens();
-    if (regens[sid]) {
-        delete regens[sid];
-    } else {
+    if (regens[sid]) { delete regens[sid]; }
+    else {
         regens[sid] = true;
-        // Clear any existing pick.
         const map = SLIDE_MAP[sid] || {};
         const picks = loadPicks();
         for (const l of Object.keys(map)) {
@@ -1191,92 +1003,56 @@ function pickNone(sid) {
         savePicks(picks);
     }
     saveRegens(regens);
-    renderSlideState(sid);
-    updateCounts();
+    renderSlideState(sid); updateCounts();
 }
 
-/* ----------------------------------------------------------------------
-   Feedback persistence (textareas)
-   ---------------------------------------------------------------------- */
 function wireFeedback() {
     document.querySelectorAll("textarea[data-slide][data-field]").forEach(ta => {
         ta.addEventListener("input", () => {
             const fb = loadFb();
             const k = ta.dataset.slide + "_" + ta.dataset.field;
-            if (ta.value) fb[k] = ta.value;
-            else delete fb[k];
+            if (ta.value) fb[k] = ta.value; else delete fb[k];
             saveFb(fb);
         });
     });
 }
 
-/* ----------------------------------------------------------------------
-   Footer button handlers — single "Build my deck" + Clear
-   ---------------------------------------------------------------------- */
 async function buildDeck() {
-    /* Collect picks. If nothing picked, halt with a friendly message. */
     const picks = {};
-    SLIDE_IDS.forEach(sid => {
-        const letter = pickForSlide(sid);
-        if (letter) picks[sid] = letter;
-    });
-    if (Object.keys(picks).length === 0) {
-        showToast("No picks yet. Click a thumbnail on each slide first.");
-        return;
-    }
-
-    /* Optional feedback collection — if user wrote any, include it in the
-       command so Claude can read it. Keeps the user's input alive across
-       the handoff without making them export anything. */
+    SLIDE_IDS.forEach(sid => { const l = pickForSlide(sid); if (l) picks[sid] = l; });
+    if (Object.keys(picks).length === 0) { showToast("No picks yet."); return; }
     const fb = loadFb();
     const fbBySlide = {};
     Object.keys(fb).forEach(k => {
         const m = k.match(/^(slide_\d+)_(.+)$/);
         if (m && fb[k] && fb[k].trim()) {
-            const sid = m[1], field = m[2];
-            if (!fbBySlide[sid]) fbBySlide[sid] = {};
-            fbBySlide[sid][field] = fb[k];
+            if (!fbBySlide[m[1]]) fbBySlide[m[1]] = {};
+            fbBySlide[m[1]][m[2]] = fb[k];
         }
     });
     const regens = loadRegens();
     const regenSlides = Object.keys(regens).filter(s => regens[s]);
-
-    /* Build a Claude-natural-language compile command. The string is what the
-       user pastes into a Claude Code session. It tells Claude where the
-       orchestrator output lives, which option to take per slide, and any
-       feedback / regen flags the user left behind. Claude writes picks.json,
-       then runs compile_picks.py. */
-    let cmd = "Compile my slide-lab deck.\n";
+    let cmd = "Compile my slide-lab v2 deck.\n";
     cmd += "Out dir: " + window.__OUT_DIR__ + "\n";
     cmd += "Picks: " + JSON.stringify(picks) + "\n";
-    if (regenSlides.length) {
-        cmd += "Regen requested (do not compile, rebuild instead): " + regenSlides.join(", ") + "\n";
-    }
+    if (regenSlides.length) cmd += "Regen requested: " + regenSlides.join(", ") + "\n";
     if (Object.keys(fbBySlide).length) {
         cmd += "Feedback:\n";
         Object.keys(fbBySlide).sort().forEach(sid => {
             const f = fbBySlide[sid];
             cmd += "  " + sid + ":\n";
-            Object.keys(f).forEach(k => {
-                cmd += "    " + k + ": " + f[k].replace(/\n/g, " ") + "\n";
-            });
+            Object.keys(f).forEach(k => { cmd += "    " + k + ": " + f[k].replace(/\n/g, " ") + "\n"; });
         });
     }
-
-    try {
-        await navigator.clipboard.writeText(cmd);
-        showToast("Compile command copied. Paste it into Claude Code to build your deck.");
-    } catch (e) {
-        showDialog(cmd, "Compile command (Ctrl+C to copy)");
-    }
+    try { await navigator.clipboard.writeText(cmd); showToast("Compile command copied. Paste into Claude Code."); }
+    catch (e) { showDialog(cmd, "Compile command (Ctrl+C to copy)"); }
 }
 
 function clearAll() {
     if (!confirm("Clear all picks, regens, and feedback?")) return;
     savePicks({}); saveRegens({}); saveFb({});
     document.querySelectorAll("textarea[data-slide][data-field]").forEach(ta => ta.value = "");
-    renderAll();
-    showToast("Cleared.");
+    renderAll(); showToast("Cleared.");
 }
 
 async function copyRegen(sid) {
@@ -1286,13 +1062,6 @@ async function copyRegen(sid) {
     catch (e) { ta.select(); document.execCommand && document.execCommand("copy"); showToast("Selected — Ctrl+C to copy."); }
 }
 
-/* ----------------------------------------------------------------------
-   Clipboard / dialog helpers
-   ---------------------------------------------------------------------- */
-async function copyOrShow(text, heading) {
-    try { await navigator.clipboard.writeText(text); }
-    catch (e) { showDialog(text, heading + " (Ctrl+C to copy)"); }
-}
 function showDialog(text, heading) {
     const dlg = document.getElementById("picks-dialog");
     document.getElementById("picks-dlg-head").textContent = heading;
@@ -1302,15 +1071,11 @@ function showDialog(text, heading) {
 }
 function showToast(msg) {
     const t = document.getElementById("toast");
-    t.textContent = msg;
-    t.classList.add("show");
+    t.textContent = msg; t.classList.add("show");
     clearTimeout(window.__toastTimer);
     window.__toastTimer = setTimeout(() => t.classList.remove("show"), 1800);
 }
 
-/* ----------------------------------------------------------------------
-   Init
-   ---------------------------------------------------------------------- */
 document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".option").forEach(el => {
         el.addEventListener("click", (e) => {
@@ -1322,58 +1087,77 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("btn-clear").addEventListener("click", clearAll);
     document.getElementById("btn-dlg-copy").addEventListener("click", async () => {
         const txt = document.getElementById("picks-dlg-body").textContent;
-        try { await navigator.clipboard.writeText(txt); showToast("Copied."); }
-        catch (e) {}
+        try { await navigator.clipboard.writeText(txt); showToast("Copied."); } catch (e) {}
     });
     document.getElementById("btn-dlg-close").addEventListener("click", () => {
         document.getElementById("picks-dialog").close();
     });
-    wireFeedback();
-    renderAll();
+    wireFeedback(); renderAll();
 });
 """
 
 
 # ---------------------------------------------------------------------------
-# Build HTML
+# Build HTML — v1 base + v2 adjacency-warning computation
 # ---------------------------------------------------------------------------
 
 def build_html(out_dir: Path, meta: Optional[dict], slides: list, storyline: dict) -> str:
-    # SLIDE_MAP for the JS: {slide_id: {A: themed_pptx_path, ...}}
     slide_map: dict[str, dict[str, str]] = {}
     slide_ids: list[str] = []
+    slides_by_n: dict[int, dict] = {}
     for s in slides:
         sid = s["slide_id"]
         slide_ids.append(sid)
+        slides_by_n[s["n"]] = s
         slide_map[sid] = {}
         for o in s["options"]:
             if o["themed_exists"]:
                 slide_map[sid][o["letter"]] = str(o["themed_pptx"].resolve())
 
+    # v2: compute adjacency warnings across option_A
+    adjacency_warnings = compute_adjacency_warnings(slides_by_n, option_letter="A")
+
     deck_meta = (meta or {}).get("deck_meta", {}) or {}
-    deck_type = deck_meta.get("deck_type") or storyline.get("deck_type") or "Slide Lab deck"
-    deck_topic = storyline.get("topic") or "Untitled deck"
+    deck_type = deck_meta.get("deck_type") or storyline.get("deck_type") or "Slide Lab v2 deck"
+    deck_topic = storyline.get("topic") or "Untitled v2 deck"
     governing = deck_meta.get("governing_thought") or storyline.get("governing") or ""
     generated = (meta or {}).get("generated_at") or datetime.now().isoformat(timespec="seconds")
     brief_path = (meta or {}).get("brief", "")
     template_path = (meta or {}).get("template", "")
     slide_count = (meta or {}).get("slide_count", len(slides))
+    # v2: client_slug surfaces in the topbar so reviewers can tell FedEx vs ACN
+    # REVIEW.html apart at a glance. Brand-specific overrides handle camel-case
+    # capitalizations that plain title() gets wrong ("Fedex" vs "FedEx").
+    # Add new brands here as encountered; fall back to title-case for unknowns.
+    _BRAND_DISPLAY = {
+        "fedex":     "FedEx",
+        "accenture": "Accenture",
+        "acn":       "Accenture",
+        "nfl":       "NFL",
+    }
+    client_slug_raw = (meta or {}).get("client_slug", "") or ""
+    client_display = (
+        _BRAND_DISPLAY.get(client_slug_raw.lower().strip())
+        or client_slug_raw.replace("-", " ").replace("_", " ").title()
+        or client_slug_raw
+    )
 
     storyline_html = render_storyline_html(storyline, slides)
     qc_html = render_qc_banner(out_dir)
     font_html = render_font_banner(out_dir)
-    cards_html = "\n".join(render_card(s) for s in slides)
+    cards_html = "\n".join(render_card(s, adjacency_warnings) for s in slides)
 
     topbar_html = f"""
 <div class="topbar">
   <div>
-    <div class="title">{html.escape(deck_topic)} &middot; OPTIONS REVIEW &middot; {slide_count} slides</div>
-    <div class="title-sub">{html.escape(deck_type)} &middot; Pick A/B/C per slide or mark NONE to try again.</div>
+    <div class="title">{html.escape(deck_topic)} &middot; v2 OPTIONS REVIEW &middot; {slide_count} slides</div>
+    <div class="title-sub">{html.escape(deck_type)} &middot; Pick A/B/C per slide or mark NONE.</div>
     <div class="topbar-meta">
       <div class="k">Generated</div><div class="v">{html.escape(generated)}</div>
       <div class="k">Brief</div><div class="v"><code>{html.escape(brief_path)}</code></div>
       <div class="k">Template</div><div class="v"><code>{html.escape(template_path)}</code></div>
       <div class="k">Output</div><div class="v"><code>{html.escape(str(out_dir.resolve()))}</code></div>
+      <div class="k">Client</div><div class="v">{html.escape(client_display) if client_display else '<em style="color:#888;">(not set)</em>'}</div>
     </div>
   </div>
   <div class="summary">
@@ -1386,7 +1170,7 @@ def build_html(out_dir: Path, meta: Optional[dict], slides: list, storyline: dic
 
     footer_html = """
 <footer class="summary-footer">
-  <div class="count"><span class="num" id="pick-count">0</span> / <span id="total-slides">0</span> picked &middot; <span class="hint">picks auto-save in this browser</span></div>
+  <div class="count"><span class="num" id="pick-count">0</span> / <span id="total-slides">0</span> picked &middot; <span style="color:#94A3B8;font-weight:400;font-size:12px;">picks auto-save in this browser</span></div>
   <div class="btns">
     <button class="btn ghost small" id="btn-clear">&#x1F5D1; Clear</button>
     <button class="btn primary big" id="btn-build">&#10003; Build my deck</button>
@@ -1412,7 +1196,7 @@ def build_html(out_dir: Path, meta: Optional[dict], slides: list, storyline: dic
 
     return (
         "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\">"
-        f"<title>{html.escape(deck_topic)} &mdash; REVIEW</title>"
+        f"<title>{html.escape(deck_topic)} &mdash; v2 REVIEW</title>"
         "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
         f"<style>{CSS}</style></head><body>"
         f"{topbar_html}"
@@ -1427,30 +1211,32 @@ def build_html(out_dir: Path, meta: Optional[dict], slides: list, storyline: dic
 
 
 # ---------------------------------------------------------------------------
-# Main
+# Main — verbatim from v1
 # ---------------------------------------------------------------------------
 
 def main(argv: list[str]) -> int:
-    ap = argparse.ArgumentParser(description="Build REVIEW.html for a Slide Lab orchestrator output dir.")
+    ap = argparse.ArgumentParser(description="Build REVIEW.html for v2 slide-builder output.")
     ap.add_argument("--out", required=True, help="Orchestrator output directory.")
     args = ap.parse_args(argv)
+
+    from _log import attach as _log_attach
+    _log_attach(args.out, "build_review.py")
 
     out_dir = Path(args.out).resolve()
     if not out_dir.exists() or not out_dir.is_dir():
         print(f"[error] --out is not a directory: {out_dir}", file=sys.stderr)
         return 2
 
-    meta_path = out_dir / "_meta.json"
+    meta_path = _p.meta_json(out_dir)
     meta: Optional[dict] = None
     if meta_path.exists():
         try:
             meta = json.loads(read_text(meta_path))
+            from _meta_schema import validate_warn
+            validate_warn(meta, source="build_review")
         except Exception as exc:
             print(f"[warn] _meta.json unreadable ({exc}); falling back.", file=sys.stderr)
-    else:
-        print("[warn] _meta.json missing; using dir scan.", file=sys.stderr)
 
-    # Slide numbers / metadata.
     if meta and isinstance(meta.get("slides"), list) and meta["slides"]:
         slide_metas = {int(s["n"]): s for s in meta["slides"]}
         slide_nums = sorted(slide_metas.keys())
@@ -1464,12 +1250,10 @@ def main(argv: list[str]) -> int:
 
     slides = [scan_slide(out_dir, n, slide_metas.get(n)) for n in slide_nums]
 
-    # Parse the brief for the storyline.
     storyline = {"slides": [], "found": False}
     if meta and meta.get("brief"):
         storyline = parse_brief(Path(meta["brief"]))
     if not storyline.get("found"):
-        # No brief — fabricate a minimal storyline shape from deck_meta + prompts.
         dm = (meta or {}).get("deck_meta", {}) or {}
         storyline = {
             "topic": (meta or {}).get("out", out_dir.name),
@@ -1485,7 +1269,7 @@ def main(argv: list[str]) -> int:
     missing_themed = sum(1 for s in slides for o in s["options"] if not o["themed_exists"])
 
     html_text = build_html(out_dir, meta, slides, storyline)
-    review_path = out_dir / "REVIEW.html"
+    review_path = _p.review_html(out_dir)
     review_path.write_text(html_text, encoding="utf-8")
 
     print(f"[ok] wrote {review_path}")

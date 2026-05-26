@@ -82,6 +82,6 @@ Generate a chart PNG with transparent background and light-colored text for dark
 ## insert_icon(slide, icon_name, x_in, y_in, size_in, accent_hex="#000000")
 Insert a pre-extracted icon at the given position, color-swapped to accent_hex.
 - **Trigger:** brief mentions a concept that maps to an icon in the vocabulary
-- **icon_name:** see `reference/icon-vocabulary.md` for available names
+- **icon_name:** must match a filename (without extension) under `icons/`; `Get-ChildItem icons/*.xml | Select-Object Name` enumerates the available glyphs
 - **Returns:** True on success, False if placeholder inserted (icon not found)
 - **Fallback:** inserts a labeled dashed-border placeholder — never crashes

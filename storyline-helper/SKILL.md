@@ -133,7 +133,7 @@ Now that the pipeline is confirmed as a consulting insight deck, collect two thi
 <Client>/sessions/YYYY-MM-DD Topic Name/
 ```
 
-**Client template** — the `.pptx` file that carries the client's brand colors, fonts, and layouts. Used by `--print-theme` at handoff and by `--client-template` during the build. Getting this wrong means every font, color, and layout in the output deck will be incorrect.
+**Client template** — the `.pptx` file that carries the client's brand colors, fonts, and layouts. It must be **registered** (have `<stem>.brand.yml` + `<stem>.theme.json` sidecars next to it) before slide-builder will accept it; if the sidecars are missing, register via the chat-driven `register_template.py propose` → `commit` flow at handoff time. Getting the template wrong means every font, color, and layout in the output deck will be incorrect.
 
 Ask the user:
 
@@ -152,7 +152,7 @@ Brief will save:      ...\2026-05-06 Vendor Gap Analysis\_session\narrative-brie
 Template:          C:\Users\...\FedEx\_templates\Template2.pptx
 ```
 
-Store the template path — it is passed to `--print-theme` in Step 10 and included in the handoff message to Slide Builder.
+Store the template path — slide-builder reads it from the brief front-matter and uses the registered `brand.yml` sidecar at build time. If the template is unregistered, Step 10 walks through the chat-driven registration flow before handoff.
 
 **Terminology note:** "Session folder" = the dated subfolder (`FedEx/sessions/2026-05-07 Topic/`). "Client root" = the parent folder (`FedEx/`). These are different. The brief, deck output, and all session files live in the session folder. The template lives at the client root under `_templates/`.
 
@@ -710,21 +710,19 @@ Then **hand off immediately to slide-builder** without waiting for a confirmatio
 
 ### Step 10 — Hand off to Slide Builder
 
-Before handing off, extract theme data from the client template (run once per session — skip if already done):
+Before handing off, verify the client template is **registered** (has `<stem>.brand.yml` + `<stem>.theme.json` sidecars next to the PPTX). If sidecars are missing, register it first via the chat-driven flow:
 
-**A. Extract brand colors and fonts:**
 ```bash
-py -3 skills/slide-builder/scripts/build_slide.py --print-theme <client-template.pptx>
+py -3 skills/slide-builder/scripts/register_template.py propose <client-template.pptx>
 ```
 
-Note the major/minor font names and brand color slots (e.g. FedEx puts purple in `dk2`, not `accent1`). Pass this data in the handoff message — Slide Builder will skip its own setup commands when theme data is provided here.
+This produces a `<stem>.register.proposal.json` and a smoke PNG. Show the smoke to the user, take picks in chat (or `{"accept": true}` if the proposal looks right), then:
 
-**B. Catalog named layouts (skip if template has fewer than 20 layouts):**
 ```bash
-py -3 skills/slide-builder/scripts/build_slide.py --catalog-layouts <client-template.pptx>
+py -3 skills/slide-builder/scripts/register_template.py commit <client-template.pptx> --picks <picks.json>
 ```
 
-If the template has 20+ named layouts, include the count (or filtered subset) in the handoff so Slide Builder can offer layout-aware mockup options.
+Once `<stem>.brand.yml` exists, slide-builder's Stage-1 sanity check passes and the build can proceed.
 
 When the user confirms the brief, **first verify the brief starts with the YAML front-matter block** (see "Narrative brief format" below). The front-matter MUST include `client_template:` and `deck_type:` keys with the values captured in Step 0. If you wrote the brief without front-matter, prepend it now before handoff — slide-builder reads this to skip its own template prompt.
 
@@ -734,10 +732,9 @@ Skill tool call: `skill="slide-builder"`, args=`"[absolute path to _session/narr
 > *Handing off to Slide Builder now.*
 >
 > *Brief: `[absolute path to _session/narrative-brief-[topic].md file]`*
-> *Template: `[absolute path to .pptx template]`*
-> *Template fonts: major=`<major>`, minor=`<minor>`. Brand colors: `<brand-summary>`. Layout catalog: `<N>` layouts available.*
+> *Template: `[absolute path to .pptx template]` (registered: brand.yml + theme.json sidecars present)*
 >
-> *Slide Builder: skip --print-theme and --catalog-layouts — theme data is provided above. Read `skills/slide-builder/reference/phase-a-rules.md` and `reference/visual-treatment-library.md` before generating any mockups.*
+> *Slide Builder: read `reference/layouts.md` and `reference/anti-patterns.md` before dispatching per-slide workers. The brand colors come from the registered `brand.yml`; the layout catalog is `reference/layouts.md` (14 patterns + 1 fallback).*
 
 Slide Builder reads the narrative brief from the session folder, builds each slide, runs QA, produces the final deck. Control returns to the user when the deck is delivered.
 
@@ -779,9 +776,11 @@ session_folder: <absolute path to _session>    # optional — helps slide-builde
 
 ## Sequence
 
+> **Slide-header convention:** every slide header line is `### Slide N — <title>` (H3, em-dash separator, title on the same line). Slide-builder's parser reads the title from the header line — a title-less `### Slide 1` is accepted but falls back to a synthetic "Slide 1" label, which surfaces awkwardly in REVIEW.html and dispatch_plan rows. Always include the title.
+
 ---
 
-### Slide 1
+### Slide 1 — [Slide title here, e.g. "Q3 Churn: A Product-Fit Signal"]
 
 **Archetype:** [one of: Cover / Title | Executive Summary | Context / Situation | Approach / Methodology | Analytical | Framework / Conceptual | Synthesis / Findings | Recommendation | Roadmap / Implementation | Risk | Financial / Business case | Decision / Ask | Appendix]
 
@@ -827,9 +826,9 @@ For closing-CTA slides, the brief MUST include:
 
 ---
 
-### Slide 2
+### Slide 2 — [Slide title]
 
-[Same four-field structure repeated for each slide...]
+[Same four-field structure repeated for each slide. Always include the title on the header line.]
 
 ---
 

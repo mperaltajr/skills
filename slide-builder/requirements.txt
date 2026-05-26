@@ -1,0 +1,9 @@
+# Slide Lab — Python runtime dependencies. Pinned for reproducibility.
+# Install: py -3 -m pip install -r requirements.txt
+# Verify:  py -3 -c "import pptx, PIL, yaml, lxml; print('python deps OK')"
+
+python-pptx==1.0.2
+Pillow==11.0.0
+PyYAML==6.0.2
+lxml==5.3.0
+pydantic==2.13.4

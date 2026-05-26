@@ -1,0 +1,17 @@
+%%{init: {"flowchart": {"curve": "basis", "padding": 24, "nodeSpacing": 60}}}%%
+flowchart TD
+    Top["Threat of<br/>New Entrants"]
+    Left["Bargaining Power<br/>of Suppliers"]
+    Right["Bargaining Power<br/>of Buyers"]
+    Bottom["Threat of<br/>Substitutes"]
+    Center(["Industry<br/>Rivalry"])
+
+    Top --> Center
+    Left --> Center
+    Right --> Center
+    Bottom --> Center
+
+    classDef center fill:#4D148C,stroke:#4D148C,color:#FFFFFF,font-weight:bold;
+    classDef force fill:#FFFFFF,stroke:#4D148C,color:#1A1A1A;
+    class Center center;
+    class Top,Left,Right,Bottom force;

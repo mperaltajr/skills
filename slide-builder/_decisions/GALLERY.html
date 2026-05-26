@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Simpler-Architecture Gallery — 14 Pattern Reference</title>
+<style>
+  :root {
+    --brand-primary: #4B0082;
+    --brand-accent: #C724B1;
+    --text-dark: #1a1a1a;
+    --text-mid: #555;
+    --card-bg: #ffffff;
+    --canvas: #f5f5f7;
+    --rule: #e1e1e6;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: var(--canvas);
+    color: var(--text-dark);
+    padding: 32px 48px 64px;
+    line-height: 1.5;
+  }
+  header {
+    max-width: 1400px;
+    margin: 0 auto 32px;
+    padding-bottom: 24px;
+    border-bottom: 2px solid var(--brand-primary);
+  }
+  h1 {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    margin-bottom: 8px;
+  }
+  .subtitle {
+    font-size: 16px;
+    color: var(--text-mid);
+    font-style: italic;
+  }
+  .section-header {
+    max-width: 1400px;
+    margin: 48px auto 24px;
+  }
+  .section-header h2 {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 6px;
+  }
+  .section-header p {
+    font-size: 14px;
+    color: var(--text-mid);
+  }
+  .grid {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 24px;
+  }
+  .card {
+    background: var(--card-bg);
+    border: 1px solid var(--rule);
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+  .card.fallback {
+    border-color: var(--brand-accent);
+    border-width: 2px;
+  }
+  .card-image {
+    width: 100%;
+    background: #fafafa;
+    border-bottom: 1px solid var(--rule);
+    display: block;
+  }
+  .card-image img { width: 100%; height: auto; display: block; }
+  .card-body { padding: 16px 20px 20px; }
+  .card-name {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--brand-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+  .card-title {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text-dark);
+    margin-bottom: 8px;
+  }
+  .card-desc {
+    font-size: 14px;
+    color: var(--text-mid);
+    line-height: 1.55;
+  }
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .badge.shippable { background: #e6f4ea; color: #1b5e20; }
+  .badge.fallback-badge { background: #fce4ec; color: var(--brand-accent); }
+  .badge.broken { background: #fdecea; color: #c62828; }
+  .footer-note {
+    max-width: 1400px;
+    margin: 48px auto 0;
+    padding-top: 24px;
+    border-top: 1px solid var(--rule);
+    font-size: 13px;
+    color: var(--text-mid);
+    font-style: italic;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Simpler-Architecture Gallery</h1>
+  <div class="subtitle">14 pattern reference for the proposed slide-builder ontology — 9 splits + 3 diagram primitives + 2 special objects + 1 fallback path</div>
+</header>
+
+<div class="section-header">
+  <h2>Splits (9) — pure geometric layouts</h2>
+  <p>The agent picks one split per slide based on what the brief implies. Variants (canvas mode, typography, accent placement) are agent autonomy within the split.</p>
+</div>
+
+<div class="grid">
+
+  <div class="card">
+    <div class="card-image"><img src="gallery/gallery1-full-canvas.png" alt="Full canvas"></div>
+    <div class="card-body">
+      <div class="card-name">Split 1 <span class="badge shippable">Shippable</span></div>
+      <div class="card-title">Full canvas</div>
+      <div class="card-desc">Single dominant zone — hero claim, statement, quote, divider. Sparse type as the figure. Light or dark canvas.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-image"><img src="gallery/gallery2-50-50-vertical.png" alt="50/50 vertical"></div>
+    <div class="card-body">
+      <div class="card-name">Split 2 <span class="badge shippable">Shippable</span></div>
+      <div class="card-title">50/50 vertical</div>
+      <div class="card-desc">Two equal vertical zones with parallel content. Symmetric compares (today vs. tomorrow, option A vs. option B).</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-image"><img src="gallery/gallery3-asymmetric-75-25.png" alt="Asymmetric 75/25"></div>
+    <div class="card-body">
+      <div class="card-name">Split 3 <span class="badge shippable">Shippable</span></div>
+      <div class="card-title">Asymmetric vertical (75/25)</div>
+      <div class="card-desc">Dominant content panel + anchor/chrome panel. Brand-fill panel typically dark, content panel light. Anchor + supporting evidence pattern.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-image"><img src="gallery/gallery4-top-band-body.png" alt="Top band + body"></div>
+    <div class="card-body">
+      <div class="card-name">Split 4 <span class="badge shippable">Shippable</span></div>
+      <div class="card-title">Top band + body</div>
+      <div class="card-desc">Brand-fill top band with headline finding, body beneath with parallel evidence cards. Headline-band-plus-cards pattern.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-image"><img src="gallery/gallery5-n-column-row.png" alt="N-column row"></div>
+    <div class="card-body">
+      <div class="card-name">Split 5 <span class="badge shippable">Shippable</span></div>
+      <div class="card-title">N-column row (3-9)</div>
+      <div class="card-desc">Parallel columns — principles, options, phases, journey stages. Anchor type per column (numeral, icon, label) is variant choice.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-image"><img src="gallery/gallery6-vertical-n-row-stack.png" alt="Vertical N-row stack"></div>
+    <div class="card-body">
+      <div class="card-name">Split 6 <span class="badge shippable">Shippable</span></div>
+      <div class="card-title">Vertical N-row stack</div>
+      <div class="card-desc">Vertical stack of anchored rows. Each row: anchor (numeral, icon, label) + headline + body. Lists, principles, capabilities.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-image"><img src="gallery/gallery7-dense-grid.png" alt="Dense grid"></div>
+    <div class="card-body">
+      <div class="card-name">Split 7 <span class="badge shippable">Shippable</span></div>
+      <div class="card-title">Dense grid (2..5 × 2..5)</div>
+      <div class="card-desc">KPI scorecard, dashboard tiles, dense card grids. Each cell: value + label + delta + status. Color-coded indicators allowed.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-image"><img src="gallery/gallery8-left-rail-body.png" alt="Left rail + body"></div>
+    <div class="card-body">
+      <div class="card-name">Split 8 <span class="badge shippable">Shippable</span></div>
+      <div class="card-title">Left rail + body</div>
+      <div class="card-desc">Narrow chrome rail (section marker, navigation, eyebrow) + main content body. Used for chapter markers and structured sections.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-image"><img src="gallery/gallery9-horizontal-bands.png" alt="Horizontal bands"></div>
+    <div class="card-body">
+      <div class="card-name">Split 9 <span class="badge shippable">Shippable</span></div>
+      <div class="card-title">Horizontal bands</div>
+      <div class="card-desc">Two full-width horizontal rows. Before/after, evidence/so-what, current-state/future-state. Visual contrast between bands carries the argument.</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="section-header">
+  <h2>Special objects (2) — first-class helpers with their own plumbing</h2>
+  <p>Chart absorbs the old Matrix grid via `chart_type="quadrant"` + `quadrants: [name×4]` parameter. Same primitive renders BCG, scatter plots, line charts, waterfall.</p>
+</div>
+
+<div class="grid">
+
+  <div class="card">
+    <div class="card-image"><img src="gallery/gallery10-chart-quadrant.png" alt="Chart with quadrant mode"></div>
+    <div class="card-body">
+      <div class="card-name">Object 1 <span class="badge shippable">Shippable</span></div>
+      <div class="card-title">Chart (with quadrant mode)</div>
+      <div class="card-desc">Axes + items in 2D space + takeaway. Variants: scatter, line, bar, waterfall, donut, quadrant. Quadrant mode = BCG / Magic Quadrant / Eisenhower (labeled corners + plotted items).</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-image"><img src="gallery/gallery11-table.png" alt="Table"></div>
+    <div class="card-body">
+      <div class="card-name">Object 2 <span class="badge shippable">Shippable</span></div>
+      <div class="card-title">Table</div>
+      <div class="card-desc">Banded rows with header. Comparison tables, decision matrices, option scoring. Brand-accent on the recommended row.</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="section-header">
+  <h2>Diagram primitives (3) — native python-pptx</h2>
+  <p>Empirically validated as renderable cleanly in native PPT. Use rectangles + explicit (x, y) connectors. Avoid curved containers with text inside.</p>
+</div>
+
+<div class="grid">
+
+  <div class="card">
+    <div class="card-image"><img src="diagram-test/diagram1-orgchart.png" alt="Org chart"></div>
+    <div class="card-body">
+      <div class="card-name">Diagram 1 <span class="badge shippable">Shippable</span></div>
+      <div class="card-title">Org chart (hierarchical)</div>
+      <div class="card-desc">3-level hierarchy with rectangles + orthogonal connectors. Works for org charts, capability trees, hierarchical breakdowns.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-image"><img src="diagram-test/diagram2-swimlane.png" alt="Swimlane"></div>
+    <div class="card-body">
+      <div class="card-name">Diagram 2 <span class="badge shippable">Shippable</span></div>
+      <div class="card-title">Swimlane (cross-functional process)</div>
+      <div class="card-desc">Horizontal lanes (functions) × steps with hand-off arrows between lanes. RACI-as-flow, cross-functional process, customer journey with handoffs.</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-image"><img src="diagram-test/diagram4-decisiontree.png" alt="Decision tree"></div>
+    <div class="card-body">
+      <div class="card-name">Diagram 3 <span class="badge shippable">Shippable</span></div>
+      <div class="card-title">Decision tree (branching)</div>
+      <div class="card-desc">Root question → branches → leaf outcomes. Diagonal connectors with edge labels. Recommended-path highlight via brand-accent fill.</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="section-header">
+  <h2>Fallback path (1) — HTML→PNG screenshot</h2>
+  <p>For diagram briefs that don't render cleanly in native python-pptx — anything with curved containers, text inside circles, free-form network topologies. Render in HTML, screenshot to PNG, embed as image.</p>
+</div>
+
+<div class="grid">
+
+  <div class="card fallback">
+    <div class="card-image"><img src="diagram-test/diagram3-hubspoke.png" alt="Hub-spoke (failed)"></div>
+    <div class="card-body">
+      <div class="card-name">Fallback example <span class="badge fallback-badge">HTML→PNG fallback</span></div>
+      <div class="card-title">Hub-and-spoke / Porter's Five Forces / Fishbone / Ecosystem map</div>
+      <div class="card-desc"><strong>This is what NOT to build natively.</strong> Text inside circles wraps badly — python-pptx can't shape-fit text to ovals. For these briefs: SKELETON_REJECTED protocol fires, system either (a) generates an HTML version + screenshots to PNG + embeds as image, or (b) tells the user this slide type needs SmartArt / manual build.</div>
+    </div>
+  </div>
+
+</div>
+
+<div class="footer-note">
+  Empirical validation: 5-agent build test (slidelab-intro brief) → 5/5 SHIPPABLE on diagnostic slides 5/6/9 (twin bug + fabrication bug both solved).
+  5-agent ontology challenge → 5/5 SHIP IT WITH FIXES (fixes incorporated above).
+  1-agent diagram feasibility test → 3 of 4 SHIPPABLE natively (hub-spoke fails, fallback path).
+  1-agent gallery render → 11 of 11 SHIPPABLE after one iteration of self-correction.
+  Total: 12 agents across 4 test rounds, 17 PNGs of evidence. Architecture is empirically validated.
+</div>
+
+</body>
+</html>

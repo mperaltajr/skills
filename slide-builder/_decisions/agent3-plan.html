@@ -1,0 +1,78 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Agent 3 -- Simpler-arch test plan (slidelab-intro)</title>
+<style>
+  body { font-family: -apple-system, "Segoe UI", Inter, sans-serif; max-width: 1080px; margin: 28px auto; color: #1a1a1a; padding: 0 24px; }
+  h1 { font-size: 26px; margin-bottom: 4px; }
+  .sub { color: #666; margin-bottom: 28px; }
+  table { border-collapse: collapse; width: 100%; margin-bottom: 32px; }
+  th, td { border: 1px solid #d8d8d8; padding: 10px 12px; vertical-align: top; text-align: left; font-size: 14px; }
+  th { background: #f3eefb; color: #460073; }
+  td.layout { font-weight: 600; }
+  td.variant { font-style: italic; color: #555; }
+  td.mode { text-transform: uppercase; font-size: 11px; letter-spacing: 1px; color: #7500c0; }
+  .gap { background: #fff7e0; border-left: 4px solid #b78b00; padding: 14px 18px; margin: 6px 0; font-size: 14px; }
+  .assess { background: #f0f4ff; border-left: 4px solid #224bff; padding: 16px 20px; font-size: 14px; line-height: 1.5; }
+  code { background: #f3f3f3; padding: 1px 5px; border-radius: 3px; }
+</style>
+</head>
+<body>
+<h1>Agent 3 -- Simpler-architecture test plan</h1>
+<div class="sub">Brief: slidelab-intro &middot; Architecture: 9 layouts / 2 canvas modes / hardline rules &middot; Tester is blind to other 4 agents.</div>
+
+<table>
+<thead>
+<tr><th style="width:5%">#</th><th style="width:13%">Layout</th><th style="width:14%">Variant</th><th style="width:8%">Mode</th><th>Rationale (2 sentences)</th></tr>
+</thead>
+<tbody>
+
+<tr><td>1</td><td class="layout">Hero</td><td class="variant">hero-statement</td><td class="mode">dark</td><td>Product cover is one confident wordmark + tagline -- that is exactly the hero-statement contract, not a generic divider. Dark BRAND_PRIMARY canvas signals "this is the product" and gives the cover the editorial weight an intro deck demands.</td></tr>
+
+<tr><td>2</td><td class="layout">Cover/Divider</td><td class="variant">asymmetric-split</td><td class="mode">light</td><td>Section divider with section number 01, title, and preview line -- a true chapter break that benefits from a left-rail accent vs right-rail content asymmetry. Light mode keeps it visually distinct from the dark cover (rule 3) and reads as a quieter chapter marker.</td></tr>
+
+<tr><td>3</td><td class="layout">Hero</td><td class="variant">hero-stat</td><td class="mode">light</td><td>One headline statistic (70%) carries the slide -- that is the textbook hero-stat case, no chart needed (and chart layout would be inappropriate for a single number). Light mode lets the number dominate without competing background color.</td></tr>
+
+<tr><td>4</td><td class="layout">Cover/Divider</td><td class="variant">asymmetric-split</td><td class="mode">light</td><td>Mirror of slide 2 so the deck establishes a consistent "chapter break" visual language. Reusing the same variant for both section dividers is a deliberate pattern, not laziness.</td></tr>
+
+<tr><td>5</td><td class="layout">Hero</td><td class="variant">hero-statement</td><td class="mode">light</td><td>"Narrative is the spec" is a single load-bearing phrase with three supporting artefacts -- hero-statement with a 3-item legend underneath is the cleanest read. Picked Hero (not List) because the brief flags "single-focus statement; hero phrase carries the slide."</td></tr>
+
+<tr><td>6</td><td class="layout">Compare</td><td class="variant">stacked-rows</td><td class="mode">light</td><td>Brief explicitly says "Two stacked horizontal rows" -- Compare/stacked-rows is the literal match, and it differs from slide 5's Hero (rule 3). The two layers are parallel, not sequential, so Compare beats Process here.</td></tr>
+
+<tr><td>7</td><td class="layout">List</td><td class="variant">numerals</td><td class="mode">light</td><td>Three principles, parallel structure, no spatial hierarchy -- that is a numbered list, full stop. Numerals variant (not bullets) because the brief implies enumerable principles the consultant might cite by number.</td></tr>
+
+<tr><td>8</td><td class="layout">Process/Flow</td><td class="variant">chevron-flow</td><td class="mode">light</td><td>"Build -> Theme -> QC -> Review" is an explicit four-stage sequence where each phase gates the next -- Process with chevron-flow makes the gating visually unambiguous. Timeline-rail would read as time-based; chevrons read as procedural.</td></tr>
+
+<tr><td>9</td><td class="layout">Compare</td><td class="variant">50/50</td><td class="mode">light</td><td>Brief says EXACTLY two paths with parallel sub-structure ("when used / how it works / when it falls short") -- Compare 50/50 is the only honest fit. List would imply a longer enumeration; Card-grid 3-card would force fabrication of a third path. No SKELETON_REJECTED needed.</td></tr>
+
+<tr><td>10</td><td class="layout">Hero</td><td class="variant">hero-statement</td><td class="mode">dark</td><td>Closing CTA is "one bold ask" -- a hero-statement with the command verb dominating. Dark mode bookends the deck with the cover and gives the final ask gravitas.</td></tr>
+
+</tbody>
+</table>
+
+<h2>Adjacency check (rule 3)</h2>
+<p style="font-size:14px">1 Hero -> 2 Cover -> 3 Hero -> 4 Cover -> 5 Hero -> 6 Compare -> 7 List -> 8 Process -> 9 Compare -> 10 Hero. No two adjacent slides share a layout. Pass.</p>
+
+<h2>Spec gaps (encountered during planning / build)</h2>
+
+<div class="gap"><b>Gap 1 -- <code>add_eyebrow</code> not implemented.</b> The spec lists it as a helper, but <code>twins/helpers.py</code> has no such function. I worked around it by calling <code>add_text</code> directly with explicit x/y for the section eyebrow on slides 2 and 4 -- but that violates the spec's "do NOT invent positions" rule. Either ship the helper or drop it from the spec.</div>
+
+<div class="gap"><b>Gap 2 -- Layout zones are not actually pre-positioned.</b> Spec says "Layout zones pre-positioned in <code>slide-builder/twins/helpers.py</code>" but the helpers are primitives (add_text, add_rect, add_title_block, add_footer). Only title and footer have fixed positions; body zones are ad-hoc per builder. Without per-layout zone constants (e.g., <code>HERO_STAT_NUMBER_BOX</code>, <code>COMPARE_LEFT_BOX</code>, <code>COMPARE_RIGHT_BOX</code>) agents will still drift on layout-internal geometry -- which is most of the variance the curator was rejecting.</div>
+
+<div class="gap"><b>Gap 3 -- Canvas mode "dark" has no first-class helper.</b> <code>new_slide()</code> hardcodes a white background and <code>add_title_block</code> uses TEXT_DARK. Building a dark hero meant manually filling the background rect, manually flipping every text color to WHITE, and skipping <code>add_title_block</code> entirely. If dark mode is one of two canvas modes, it needs a <code>new_slide(mode="dark")</code> + an <code>add_title_block</code> color override, otherwise every dark slide is bespoke.</div>
+
+<div class="gap"><b>Gap 4 -- "Variant" is undefined as a contract.</b> Spec lists variants (e.g., "50/50, 75/25 asymmetric, stacked-rows" for Compare) but gives no parameters or zone definitions per variant. Two agents reading "50/50" could pick column widths of 580/580 or 540/620 and both feel justified. Either each variant needs zone constants, or the spec should drop variants entirely and let agents pick freely (which is essentially the current state).</div>
+
+<div class="gap"><b>Gap 5 -- No guidance on legend/source/footnote placement inside body.</b> Bottom invariant zone is fine, but per-slide source/footnote anchors above the footer (when text wraps long) are unspecified. The current architecture spec inherits this from the existing helpers, so it's only a gap if Layer 5 collision detection is going away -- then no one is checking.</div>
+
+<div class="gap"><b>Gap 6 -- Slide 9's "EXACTLY 2 items" rule could be soft-enforced.</b> The spec relies on the agent to honor "no fabrication." A safer pattern: the brief carries item-count as a structured field, and the builder rejects a 3-card layout when the brief field says 2. Right now nothing structural prevents an agent from picking Card-grid 3-card and inventing a third path.</div>
+
+<h2>Spec-sufficiency self-assessment</h2>
+
+<div class="assess">
+The 9-layout / 2-mode spec was sufficient to pick layouts for all 10 slides in under five minutes without ambiguity -- every slide had an obvious match and the hardline rules (charts only in Chart layout, no two adjacent same layout, exactly-2 = 2) gave clear guardrails. The simplification is a real win at the <em>selection</em> level. However, the spec is critically under-specified at the <em>build</em> level: variants are named but not defined geometrically, dark-mode has no helper plumbing, and the promised <code>add_eyebrow</code> doesn't exist. Building slides 5, 6, 9 required the same per-shape geometry decisions the 19-chassis system at least gave defaults for -- so the complexity didn't disappear, it moved from the curator into the agent. Net: the spec is sufficient for layout choice and adjacency enforcement, but variants and canvas-mode plumbing need one more pass before this architecture beats the curator-acceptance rate.
+</div>
+
+</body>
+</html>

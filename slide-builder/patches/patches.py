@@ -821,7 +821,7 @@ def insert_icon(
     Returns True on success, False if placeholder was inserted.
 
     Trigger: brief mentions a concept that maps to an icon in the icon vocabulary.
-    See slide-builder/reference/icon-vocabulary.md for available icons.
+    Available icons: any filename (without extension) under <skill>/icons/*.xml.
     """
     try:
         from icon_helper import insert_icon as _insert_icon
