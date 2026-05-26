@@ -36,6 +36,7 @@ Tables below were re-derived from each script's actual `sys.exit()` / `return` c
 | Code | Meaning | Fix |
 |---|---|---|
 | 2  | `--out` invalid, `_meta.json` missing, OR `--template` from `_meta.json` doesn't exist | Pass the build's output dir. Verify the template path stored in `_meta.json`. |
+| 3  | Could not write `final_deck.pptx` — destination locked (PowerPoint has it open, or antivirus mid-scan) | Close PowerPoint, pause AV on the build dir if needed, and re-run `compile_picks.py`. The prior deck was preserved via the T2.6 timestamped backup. |
 | 1  | Compile finished but final deck doesn't open cleanly, OR per-option copy failures occurred | Check `COMPILED.md` for per-option failure rows. Open the produced final deck in PowerPoint to confirm. |
 
 ### `build_review.py`

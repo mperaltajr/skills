@@ -13,9 +13,8 @@ The build layer of Slide Lab. The split is the spec.
 
 If you have never run this skill before, read these in order before anything else:
 
-1. **[INSTALL.md](INSTALL.md)** — pinned Python deps, mmdc 11.4.0, LibreOffice, sibling `slide-qc` skill. End with the verification step printing `install OK`.
-2. **[examples/RUN.md](examples/RUN.md)** — the canonical end-to-end walkthrough against the bundled example brief + your registered template. End with a `GATE3-PREVIEW.html` you can open in a browser, then pick options → compile → REVIEW.html.
-3. **[examples/RUN.md](examples/RUN.md)** — the full end-to-end (prep → agent dispatch → finalize → gate → compile → review) on the example brief plus your own registered client template.
+1. **[INSTALL.md](INSTALL.md)** — pinned Python deps, mmdc 11.4.0, LibreOffice, sibling `slide-qc` skill, worker agent install. End with the verification step printing `install OK`.
+2. **[examples/RUN.md](examples/RUN.md)** — the canonical end-to-end walkthrough (prep → agent dispatch → finalize → gate → compile → review) against the bundled example brief + your registered template. Ends with a `REVIEW.html` you can open in a browser.
 
 After that, the input contract for real briefs is documented below in § "Input contract — narrative brief", and registering a new client template is below in § "Register a new client template."
 
@@ -222,25 +221,6 @@ Adjacency (Hardline #3 — no 3+ consecutive same-split) is **soft-enforced at p
 8. **Deliver.** PPTX. Output full absolute Windows path. No preview links.
 
 Rebuild individual slides with "rebuild slide N with v2" — re-prep the prompt for slide N, dispatch a single agent, finalize, replace the picked option.
-
----
-
-## Input contract (verbatim from v1)
-
-This skill consumes the same narrative-brief format that v1 consumes. The brief is produced by `storyline-helper` and lives in the session folder. Required YAML front-matter:
-
-```yaml
----
-client_template: C:\Users\...\<Client>\_templates\<template>.pptx
-deck_type: <Recommendation / POV / RFP / PMO / etc.>
----
-```
-
-If `client_template:` is present and the file exists, USE THAT PATH — do not re-ask the user. If `client_template:` is missing, ask the user to fix the brief or pass a path explicitly. Same rules as v1.
-
-The body of the brief contains the per-slide governing thoughts, supporting evidence, and any deck-level design notes. v2 does not require any v2-specific brief fields — the same brief that builds in v1 builds in v2.
-
-**Briefs do not declare which skill builds them.** A user can take any brief produced by `storyline-helper` and route it through either v1 or v2 at invocation time.
 
 ---
 

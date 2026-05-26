@@ -262,8 +262,8 @@ def add_icon_from_library(slide, shape_id, x_px, y_px, size_px, name, *,
                               name="lightbulb")
 
     Falls back to a labeled dashed-border placeholder if the named icon's XML
-    doesn't exist — the build never errors. Run extract_icons.py to add a missing
-    icon to the library.
+    doesn't exist in slide-builder/icons/ — the build never errors. v0.1
+    ships pre-extracted icons; there is no live extraction step.
     """
     import sys
     from pathlib import Path as _Path

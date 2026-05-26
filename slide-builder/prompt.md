@@ -124,7 +124,7 @@ There is no pre-classifier. You pick the pattern from the 14 in `layouts.md` bas
    - Tiebreak rule: interpret the first hex character of the seed as a number (0–15). Modulo the number of tied patterns. Pick that index from the sorted-alphabetical list of tied pattern names.
    - Example: if "50/50 vertical" and "Top band + body" tie and the seed starts with `7`, then `7 mod 2 = 1`, sorted alphabetically: `["50/50 vertical", "Top band + body"]`, index 1 = "Top band + body."
 
-3. **Adjacency context (Hardline #3 — soft-enforced here, hard-enforced at finalize).** Likely prior patterns from the prep-time hint pass:
+3. **Adjacency context (Hardline #3 — soft-enforced here, hard-enforced at the gate-preview + review steps via `build_gate_preview.py` + `build_review.py`).** Likely prior patterns from the prep-time hint pass:
    ```
    {{LIKELY_PRIOR_PATTERNS}}
    ```
@@ -132,7 +132,7 @@ There is no pre-classifier. You pick the pattern from the 14 in `layouts.md` bas
 
    **Soft rule:** if your top-scoring pattern would create a third consecutive same-split run **and** your scoring confidence is low (multiple patterns within ~1 signal of each other), prefer the next-best pattern that breaks the run. If your top-scoring pattern is the clear winner, keep it — `build_gate_preview.py` and `build_review.py` run a post-build adjacency scan that surfaces 3+ same-split runs as an advisory in `GATE3-PREVIEW.html` and `REVIEW.html` for the user to resolve at pick time.
 
-   Do not bend brief fidelity (Hardline #4) to satisfy adjacency. Brief fidelity wins; adjacency is the lower-priority concern that gets resolved at finalize.
+   Do not bend brief fidelity (Hardline #4) to satisfy adjacency. Brief fidelity wins; adjacency is the lower-priority concern that gets resolved at the gate-preview + review steps.
 
 4. **Check the fallback trigger.** If the slide concept implies a curved-container diagram, route to fallback. Two cases:
 

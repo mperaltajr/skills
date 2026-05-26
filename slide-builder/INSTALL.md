@@ -99,13 +99,14 @@ Copy-Item "$env:USERPROFILE\.claude\skills\slide-builder\agents\slide-builder-wo
           "$env:USERPROFILE\.claude\agents\slide-builder-worker.md" -Force
 ```
 
-Verify:
+Verify (existence AND correct content — a stale v1-era copy at this path will pass `Test-Path` and silently break Stage 2):
 
 ```powershell
-Test-Path "$env:USERPROFILE\.claude\agents\slide-builder-worker.md"
+$wp = "$env:USERPROFILE\.claude\agents\slide-builder-worker.md"
+(Test-Path $wp) -and (Select-String -Path $wp -Pattern "option_A\.py" -Quiet)
 ```
 
-Expected: `True`. **Without this file, Stage 2 dispatch silently does nothing** — your build will reach `finalize_deck.py` with zero option scripts and produce nothing useful.
+Expected: `True`. The `option_A.py` grep proves the installed file is the v0.1 worker contract (writes `option_A.py` / `option_B.py` / `option_C.py`) and not a stale v1 worker that writes 4 options or expects POSIX `/tmp/` paths. **Without this file (or with the wrong content), Stage 2 dispatch silently does nothing** — your build will reach `finalize_deck.py` with zero option scripts and produce nothing useful.
 
 ## Verification step
 
@@ -117,7 +118,8 @@ $mmdc_ok      = $false
 try { $mmdc_ok = ((mmdc --version 2>$null) -match "11\.4") } catch {}
 $soffice_ok   = (Test-Path "C:\Program Files\LibreOffice\program\soffice.exe")
 $qc_ok        = (Test-Path "$env:USERPROFILE\.claude\skills\slide-qc\scripts\render_slides.py")
-$worker_ok    = (Test-Path "$env:USERPROFILE\.claude\agents\slide-builder-worker.md")
+$worker_path  = "$env:USERPROFILE\.claude\agents\slide-builder-worker.md"
+$worker_ok    = (Test-Path $worker_path) -and (Select-String -Path $worker_path -Pattern "option_A\.py" -Quiet)
 $build_ok     = $false
 try { py -3 "$skill\scripts\build_deck.py" --help *>$null; $build_ok = ($LASTEXITCODE -eq 0) } catch { $build_ok = $false }
 if ($mmdc_ok -and $soffice_ok -and $qc_ok -and $worker_ok -and $build_ok) {

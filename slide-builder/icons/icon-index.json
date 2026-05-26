@@ -1,6 +1,6 @@
 {
   "_source_pptx": "<set SLIDE_LAB_ICON_LIBRARY env var to your icon-library PPTX>",
-  "_extraction": "position-based — source_x_pct/source_y_pct point to the center of the gray outline icon as seen in the exported PNG. Use extract_icons.py --inspect <slide> <x> <y> to verify before changing coordinates.",
+  "_extraction": "position-based provenance only — source_x_pct/source_y_pct point to the center of the gray outline icon as seen in the source PNG. v0.1 ships icons pre-extracted; there is no live extraction step. These coordinates are kept for traceability.",
   "_layout_notes": "Each icon slide has a 6% header, then 3 rows of icon sections. Within each section, 4 icons are arranged 2x2: top-left=gray outline (this one), top-right=purple filled, bottom-left=alt-gray, bottom-right=black outline. Coordinates target the top-left gray icon.",
   "icons": [
     {

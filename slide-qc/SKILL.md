@@ -16,7 +16,7 @@ You are the QC reviewer. You look at every slide. You report what is wrong. The 
 
 ## When to invoke
 
-- After any `build_slide.py` run completes
+- After any slide-builder pipeline run completes (specifically after `compile_picks.py` produces `final_deck.pptx`)
 - When the user says "qc this", "check the deck", "review the slides", or `/slide-qc`
 - When the user has a PPTX and wants to know if it's safe to present
 
@@ -249,7 +249,7 @@ If the user signs off on fixes (or after handling all Majors via the conversatio
 Order of operations:
 
 1. Compile the list of all approved fixes across all slides.
-2. Apply them via targeted python-pptx patches (preferred), or by re-running specific slides through `build_slide.py` Phase B if the fix requires regeneration.
+2. Apply them via targeted python-pptx patches (preferred), or by re-running specific slides through the slide-builder pipeline (re-dispatch the worker for that slide, then `finalize_deck.py` + `compile_picks.py`) if the fix requires regeneration.
 3. Re-render to PNG.
 4. Re-QC the full deck (hygiene pre-pass + visual pass).
 5. Produce a new report. Repeat until clean or until the user accepts remaining items via override-with-reason.
