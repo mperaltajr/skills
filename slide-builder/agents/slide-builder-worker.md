@@ -49,7 +49,15 @@ Follow the procedure in your `_prompt.md` verbatim:
    <out_dir>/slide_NN/option_C.py
    ```
 
-   Each script is standalone, runnable Python that imports `twins.helpers` from the path the prompt provides, builds the slide content in memory, and saves to `sys.argv[1]`. The finalizer (`finalize_deck.py`) executes each script later.
+   Each script is standalone, runnable Python that imports `twins.helpers` from the path the prompt provides, builds the slide content in memory, and **saves to the exact filename `option_<A|B|C>.pptx` in its own directory**. **NO command-line arguments — do NOT use `sys.argv[1]`.** See `prompt.md` § 8 "Output contract" (specifically the rule starting at the "Saves the slide as the exact filename `option_A.pptx`" sentence) for the canonical save-contract. Standard pattern:
+
+   ```python
+   if __name__ == "__main__":
+       prs = build()
+       prs.save(str(Path(__file__).resolve().parent / "option_A.pptx"))
+   ```
+
+   The finalizer (`finalize_deck.py`) executes each script with CWD set to the slide directory, then looks for `option_A.pptx` / `option_B.pptx` / `option_C.pptx` next to the `.py` file. Using `sys.argv[1]` will crash with `IndexError: list index out of range` because the finalizer passes no arguments.
 
 6. **If the fallback trigger fires** (curved-container diagram per § 4 step 4 of the prompt):
    - For v0-supported types (hub-spoke, Porter's, ecosystem, free-form network): write the `.py` with `# FALLBACK_MERMAID:` token on line 1 AND a sibling `option_X.mmd` Mermaid spec in the same directory.

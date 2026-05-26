@@ -278,7 +278,7 @@ Worker agent:      %USERPROFILE%\.claude\agents\slide-builder-worker.md
 
 ## Scripts — historical fork note
 
-Historical (Path D, 2026-05-26). The build scripts (`build_deck.py`, `finalize_deck.py`, `build_review.py`, `compile_picks.py`) were originally forked from the legacy chassis-vocabulary skill that lives at `slide-builder_archived_2026-05-26/`. Three were near-verbatim copies; `build_deck.py` was the real new build — the chassis/rulebook injection was replaced with 14-pattern + anti-pattern-library injection.
+Historical (Path D, 2026-05-26). The build scripts (`build_deck.py`, `finalize_deck.py`, `build_review.py`, `compile_picks.py`) were originally forked from the legacy chassis-vocabulary skill, which has since been archived and is no longer on disk. Three were near-verbatim copies; `build_deck.py` was the real new build — the chassis/rulebook injection was replaced with 14-pattern + anti-pattern-library injection.
 
 The agent definition for `slide-builder-worker` (the per-slide worker dispatched from the parent session) lives at `%USERPROFILE%\.claude\agents\slide-builder-worker.md`. Without it, the fanout step cannot execute.
 

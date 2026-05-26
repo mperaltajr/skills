@@ -1,6 +1,6 @@
 ﻿# Convergence-hold declaration — slide-builder v0
 
-> **⛔ FORENSIC — RESOLVED by Path D (2026-05-26).** Everything below describes the pre-Path-D state and is historical. Path D is the current state of record.
+> **⛔ FORENSIC — FULLY SUPERSEDED (2026-05-26).** This doc is no longer authoritative for any current decision. The body retained below is the historical convergence-rationale audit trail; inline references — including to `nfl-scope-boundary.md` (deleted Phase 8.9), `theme/mermaid-brand.json` (deleted P1.4a), Stage A/B/Path D-soft, the `client_allowlist`, etc. — are intentionally preserved as the audit record of what was decided when. Do not consult the body for current behavior. For current state of record, see `DECISIONS.md` and the parent `SKILL.md`. Everything below describes the pre-Path-D state and is historical. Path D is the current state of record.
 >
 > What's still true: the 9+3+2+1 pattern catalog, FALLBACK_MERMAID protocol, SKELETON_REJECTED protocol, brand.yml canonical sidecar contract, Stage-1 sanity check, and per-slide variant seeds — all preserved post-Path-D and documented in [DECISIONS.md](DECISIONS.md) + [SKILL.md](../SKILL.md).
 >

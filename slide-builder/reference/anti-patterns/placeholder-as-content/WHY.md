@@ -26,7 +26,7 @@ This is the failure that hides best. The slide passes a thumbnail glance, passes
 It is also the most common real-world Slide Lab failure: a consultant duplicates a template slide, fills two of the eight slots, and ships the rest as-is because they're busy. The reviewer's job is to recognise this on sight.
 
 ## What to do instead
-See `do/chart-right-takeaway/exemplar.py`. The same layout, but:
+Take the same layout, but apply these corrections:
 
 - The action title states the action: `[Action title: state the so-what]`
 - Numbers are bracketed placeholders that **cannot** be confused for content: `[$X.XM]`, `[N%]`, `[Workstream A]`

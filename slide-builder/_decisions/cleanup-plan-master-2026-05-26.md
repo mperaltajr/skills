@@ -484,3 +484,49 @@ Two follow-on audits ran after the v0.1 tag landed:
 - **T2-R13** — this section.
 
 **Tier 3 deferred to v0.2** (unchanged from prior handover): mermaid-`<slug>`.json written into skill/theme (should be out_dir/); `_log.py` lacks atexit/thread-safety; per-slide subprocess sandboxing; remaining `m.a.peralta` hardcoded paths in reference docs; remaining v1/v2 narrative drift; `prompt.md:319` "shared with v1"; `DECISIONS.md:434` references non-existent `stage-a-precommit.md`; old `__pycache__` from Python 3.12.
+
+---
+
+## Phase 10 — drift-prevention forcing function + post-audit remediation (2026-05-26)
+
+Triggered by the third audit cycle catching a critical regression (worker save-contract `sys.argv[1]` against `prompt.md`'s explicit "do NOT use sys.argv[1]" rule) plus the meta-finding that **the drift-prevention work prescribed in `Documents/drift prevention - READ.md` had been prescribed but never executed.** Per that synthesis, the order-of-operations rule is: land the drift-prevention infrastructure FIRST, then run the new contract checks, then fix the regressions they surface.
+
+**Drift-prevention infrastructure (Step 1):**
+
+- New memory `feedback_existence_vs_content.md` — encodes the rule that "done" means user-facing behavior works end-to-end, not that the artifact exists at the expected path. Cites worker-agent T1-R1 and `sys.argv[1]` regression as canonical failure cases.
+- New memory `feedback_cleanup_chat_cannot_self_declare.md` — cleanup chat marks fixes `claimed-complete-by-cleanup`; only an audit chat (fresh session, no cleanup-narrative context) can mark `audit-confirmed`. Outranks continuous-execution and committee defaults.
+- `MEMORY.md` indexed both new files.
+- `scripts/_contract.py` gained three new checks (now 7 total):
+  - `check_install_sentinels` — source/installed content fingerprint match. First sentinel: worker agent must contain `option_A.pptx` (the OUTPUT contract, not `option_A.py` the script name).
+  - `check_doc_file_refs` — every backtick-wrapped markdown ref (file + dir form) must resolve under the skill tree or sibling skills. Allowlists for runtime artifacts, deleted-by-design history refs, user-memory cross-context refs, and user-context dir prefixes are documented in the file and treated as the institutional learning surface.
+  - `check_type_hints_resolve` — `typing.get_type_hints()` on every callable in the scripts/ package. Forces PEP 563 deferred-evaluation past the `from __future__ import annotations` veil.
+
+**Triage of what the new checks surfaced (Step 2 → 4.B):**
+
+11 real drifts flagged on first run, all addressed in this Phase:
+
+- 2 sentinel failures (worker source + installed missing `option_A.pptx`) → Step 3
+- 4 phantom `slide-builder_archived_2026-05-26/` dir refs → Step 4
+- 5 dangling `do/...` exemplar refs in WHY.md files (audit-list-missed; surfaced by the new check) → Step 4.B
+
+**Regression remediation (Steps 3-9):**
+
+- **Step 3 (T1-NEW-A)** — Worker save-contract corrected. Worker line 52 rewritten from "saves to `sys.argv[1]`" to the prompt.md-canonical pattern (`prs.save(str(Path(__file__).resolve().parent / "option_A.pptx"))`, no command-line args). Mirrored to installed copy. md5 match verified.
+- **Step 4** — Phantom archive path refs in `SKILL.md:281`, `CHANGELOG.md:59,79`, `reference/anti-patterns.md:159`, `twins/composer.py:26` rewritten as "archived and removed from disk" (the actual v1 code was not preserved in a recoverable archive; `Documents/_archive_2026-05-26-slide-lab/.claude/` contains only shell metadata).
+- **Step 4.B** — Dangling `do/...` positive-exemplar dir refs removed from 3 WHY.md files: `placeholder-as-content`, `reading-order-bottom-up`, `table-without-column-headers`. v1's `do/`/`dont/` split was flattened in v0.1; only `dont/`-equivalents (anti-exemplars) were ported.
+- **Step 5** — Deleted three stale v1 agents from `~/.claude/agents/`: `slide-builder.md` (4-option orchestrator), `slide-designer.md` (chassis-vocabulary), `deck-builder.md` (obsolete dispatch model). Only `slide-builder-worker.md` remains — the single agent v0.1 requires.
+- **Step 6** — `project_slide_lab_architecture.md` v1-perspective error fixed: "Re-importing from `slide-builder/` — the skill is being archived" → "Re-importing from the legacy v1 skill is impossible (removed from disk); `slide-builder/` is the active v0.1 skill, importing from it is correct and expected." Wiki-link slugs corrected from dashed to underscored to match actual filenames. Added cross-links to the two new feedback memos.
+- **Step 7** — `convergence-hold-declaration-2026-05-26.md` banner expanded to declare the entire doc fully superseded; body retained as forensic audit trail with all stale references (including the `nfl-scope-boundary.md` citations the body still makes) explicitly called out as not authoritative.
+- **Step 8** — Deleted `slide-builder/icons/_audit/` (254 KB) and `slide-builder/icons/_backup/` (736 KB) hangover dirs. ~1 MB reclaimed. Only `.gitignore` referenced them.
+- **Step 9** — Deleted `~/.claude/skills/smoke_test.py` orphan. Self-advertised as new-user smoke test but imported deleted v1 modules (`twins.selector.load_catalog`, `twins.overrides_resolver`, etc.); crashed at step 1. `examples/RUN.md` covers the same purpose inside the skill.
+
+**Verification gauntlet (Step 10):**
+
+- (a) `py -3 scripts/_contract.py` — 7/7 checks pass. CONTRACT TEST PASSED.
+- (b) `Select-String 'sys\.argv\[1\]'` on worker — 2 matches, both in negative-rule context ("do NOT use" + "will crash").
+- (c) md5(source worker) == md5(installed worker) — MATCH.
+- (d) `Get-ChildItem ~/.claude/agents/` — only `slide-builder-worker.md` remains.
+- (e) `check_doc_file_refs` — 169 file refs + 10 dir refs resolve; allowlists log 100 runtime + 9 deleted-by-design + 1 memory-context + 7 user-context skips.
+- (f) `MEMORY.md` indexes both new feedback files.
+
+**Status:** Per `feedback_cleanup_chat_cannot_self_declare.md`, this cleanup chat declares this Phase **`claimed-complete-by-cleanup`**, NOT `audit-confirmed`. A fresh audit chat must verify content before v0.1 is marked stable.
