@@ -113,17 +113,35 @@ Read what they've described and infer the most likely deck type. Then say:
 
 > *"Got it — sounds like a [deck type] for [audience description]. Does that sound right?"*
 
-Examples of good inferences:
-- "build a deck for a client meeting to help them decide" → *"Got it — sounds like a recommendation deck for a client leadership meeting. Does that sound right?"*
-- "present our findings from the diagnostic" → *"Got it — sounds like a problem diagnosis or point-of-view deck. Does that sound right?"*
-- "update the steering committee on where we are" → *"Got it — sounds like a status update or board briefing. Does that sound right?"*
-- "pitch our team's capabilities to a new client" → *"Got it — sounds like a credentials pitch. Does that sound right?"*
-- "design a working session agenda" → *"Got it — sounds like a workshop design deck. Does that sound right?"*
+Examples of good inferences (mapped to the 7+1 taxonomy):
+- "build a deck for a client meeting to help them decide" → *"Got it — sounds like a Recommendation / POV for a client leadership decision. Does that sound right?"*
+- "we need to justify the platform investment" → *"Got it — sounds like a Business Case for the platform investment. Does that sound right?"*
+- "present our findings on why the program is slipping" → *"Got it — sounds like a Diagnosis deck. Does that sound right?"*
+- "update the steering committee on this quarter" → *"Got it — sounds like an Operating Review for the steering committee. Does that sound right?"*
+- "pitch our team's capabilities to a new client" → *"Got it — sounds like a Capability Pitch. Does that sound right?"*
+- "write up what we decided at last Friday's workshop" → *"Got it — sounds like a Workshop Readout. Does that sound right?"*
+- "design tomorrow's workshop agenda" → *"Got it — sounds like a Workshop Design deck. Does that sound right?"*
 
 If they confirm → continue to Step 0 (session setup).
 If they redirect → adjust your inference and re-confirm. One follow-up question only.
 
-**Deck types that continue to Step 0:** Recommendation / Point of View, Problem Diagnosis, Strategic Plan, Market & Competitive Analysis, Business Case, Feasibility Study, QBR / Business Review, Status / Progress Update, Board Update, Executive Briefing, Capability / Credentials Pitch, Investor / Commercial Pitch, Partnership Proposal, Workshop Readout, Training / Enablement.
+**The 7 canonical deck types that continue to Step 0:**
+
+1. **Recommendation / POV** — argue for an action. Absorbs what used to be Executive Briefing, Strategic Plan, Investor Pitch, Partnership Proposal.
+2. **Business Case** — justify a specific investment with named economics. Kept distinct so the CFO-grade gate (NPV / options / sensitivity) has somewhere to live.
+3. **Diagnosis** — explain *why* something is happening. Absorbs what used to be Problem Diagnosis + Feasibility Study (verdict = cause-claim).
+4. **Operating Review** — report performance against plan + name implications. Absorbs what used to be QBR, Status / Progress Update, Board Update, Market & Competitive Analysis.
+5. **Capability Pitch** — sell a non-substitutable offer to a buyer.
+6. **Workshop Readout** — record decisions reached at a session that already happened.
+7. **Workshop Design** ⚠️ — design the agenda for a future session. **Bypasses the narrative gate** via the Workshop Design overlay — slides are session slots (title + duration + owner + objective + desired output), not arguments.
+
+**+1 edge — Training / Enablement.** Documented sub-route, not a primary type. Used when slides are instruction (concept → demo → practice → assessment) rather than argument. Most consulting work doesn't hit this.
+
+**Off-routes (stop and route elsewhere):**
+- **RFP / proposal response** → `/rfp-helper` (win themes, not governing thoughts; scoring criteria, not audience beliefs).
+- **PMO / recurring operational report** → `/slide-builder` template-fill mode.
+
+**Don't invent a new type.** If the user's situation doesn't fit the 7+1 cleanly, force a closest-match pick and add a parenthetical note ("treating as Recommendation with a facilitation overlay") — never quietly create a new type. Off-canon types silently bypass the Step 7 deck-type-specific gate check.
 
 **Workshop Design decks:** confirm, then continue to Step 0 — **but use the Workshop Design coaching overlay in Step 0.7 and Step 1.** The narrative gate (governing thought, so-what) does not apply to agenda and session pages.
 
@@ -231,40 +249,34 @@ Based on the outcome from Step 0.5 and the central question from Step 0.6, sugge
 | **Pyramid** (conclusion first → supporting evidence) | Executive updates, decision requests, audiences with high power and low patience | Risky if the audience hasn't bought into the premise — they may reject the conclusion before hearing the evidence |
 | **MECE issue tree** | Problem diagnosis, root cause analysis, capability assessments with multiple workstreams | Too analytical for relationship-focused audiences; better as the analytical backbone than the visible structure |
 | **Before / Now / After** | Capability pitches, transformation decks, progress narratives | Emotionally resonant but weak on evidence alone — needs data underneath each state |
-| **Trend → Insight → Implication** | Market analysis, QBR/business reviews, data-heavy decks | Requires strong data; collapses without it; avoid if data is directional or contested |
-| **Challenge → Solution → Benefit** | Pitches, product or service introductions, proposal sections | Concise and buyer-centric but too thin for complex recommendations — use for sections, not full decks |
-| **Current State → Future State → Gap** | Strategic planning, transformation roadmaps, capability gap analyses | Needs a credible future state — if "future state" is vague, the whole structure collapses |
-| **Objective → Approach → Proof → Ask** | Partnership proposals, commercial pitches, structured selling decks | Maps to buyer journey but can feel formulaic if the Approach section is generic |
+| **Trend → Insight → Implication** | Operating Review decks (QBR, status, board, market analysis), data-heavy decks | Requires strong data; collapses without it; avoid if data is directional or contested |
+| **Challenge → Solution → Benefit** | Capability Pitch sections, product or service introductions, proposal sections | Concise and buyer-centric but too thin for complex recommendations — use for sections, not full decks |
+| **Current State → Future State → Gap** | Recommendation/POV decks that span a multi-year arc, transformation roadmaps, capability gap analyses | Needs a credible future state — if "future state" is vague, the whole structure collapses |
+| **Objective → Approach → Proof → Ask** | Capability Pitch decks, commercial selling decks | Maps to buyer journey but can feel formulaic if the Approach section is generic |
 
-**Coaching note:** If the user's deck is a QBR or business review, Trend → Insight → Implication is usually the right spine — each workstream or metric tells a mini-story of trend + what it means + what changes. SCR or Pyramid applied to a QBR forces an argument structure onto a reporting context and produces awkward governing thoughts.
+**Coaching note:** If the user's deck is an Operating Review (QBR, status, board, or market analysis), Trend → Insight → Implication is usually the right spine — each workstream or metric tells a mini-story of trend + what it means + what changes. SCR or Pyramid applied to an Operating Review forces an argument structure onto a reporting context and produces awkward governing thoughts.
 
 #### Decision 2 — Deck type confirmation
 
 Confirm which deck type this is. The type sets vocabulary expectations, gate checks, and the editorial rhythm.
 
+The 7 canonical types (taxonomy consolidated 2026-05-26 from a prior 17-type list — see `_decisions/v0.2-improvements-queue.md` for the committee analysis):
+
 | Deck type | Structural spine | Governing thought standard |
 |-----------|-----------------|---------------------------|
-| **Recommendation / Point of View** | Situation → problem → recommendation → evidence → ask | Must assert *what to do* and *why now* — not just what the situation is |
-| **Problem Diagnosis** | Symptom → root causes → intervention | Must assert a *cause*, not just describe a symptom |
-| **Strategic Plan** | Ambition → where to play → how to win → required capabilities | Must assert the *strategic bet* — what we're choosing to do and what we're choosing not to do |
-| **Market & Competitive Analysis** | Industry structure → positioning landscape → implication | Must name the *implication for our client*, not just describe the market |
-| **Business Case / Investment Decision** | Problem → options → recommended choice → financial and strategic case | Must name the *decision being enabled* — not just summarize the analysis |
-| **Feasibility Study** | Question → approach → findings → verdict | Must deliver a *verdict*, not just a list of considerations |
-| **QBR / Business Review** | Planned vs. actual → variance → drivers → outlook | Must explain *variance and what it means* — not just report actuals |
-| **Status / Progress Update** | Where we are → against what plan → what's changed → next actions | Must name *implications*, not just progress percentages |
-| **Board Update** | Decision ready summary → key facts → recommendation or ask | Must tell the board *what they need to do or decide*, not just inform them |
-| **Executive Briefing** | One question → answer → support → so-what | Single governing thought; every slide either answers the question or supports the answer |
-| **Capability / Credentials Pitch** | Current gap → our capability → proof → why us | Must assert *what we can do that others can't* — not just what services we offer |
-| **Investor / Commercial Pitch** | Problem → solution → market → traction → team → ask | Must make the *financial or strategic case* for why this is worth backing |
-| **Partnership Proposal** | Shared interest → proposed structure → joint value → ask | Must name *why this specific partnership* — not just propose a generic arrangement |
-| **Workshop Design** | Purpose → agenda → session objectives → pre-work ask → ground rules | Must name *what decisions come out of this workshop* — not just what topics are covered. Each session slot has an objective and a desired output, not a governing thought. |
-| **Workshop Readout** | Working question → what we explored → decisions made → next owners | Must name *what changed or was decided* — not just what was discussed |
-| **Facilitation Deck** | Frame → explore → converge → commit | Governing thought per section, not per slide — slides are prompts, not arguments |
-| **Training / Enablement** | Why it matters → how it works → when to use it → practice | Must teach a *transferable skill or method*, not just describe a process |
+| **1. Recommendation / POV** | Situation → problem → recommendation → evidence → ask | Must assert *what to do* AND *why now*. Absorbs what used to be Executive Briefing, Strategic Plan, Investor Pitch, Partnership Proposal — all "make an ask" decks with the same gate. |
+| **2. Business Case** | Problem → options → recommended choice → financial case → ask | Must name *the decision* + *the dollars* + *the timeline*. Kept distinct from Recommendation so the CFO-grade gate (NPV / options compare / sensitivity) has a hook — v0.2 sharpens that gate. |
+| **3. Diagnosis** | Symptom → root cause → intervention | Must assert a *cause* (or verdict), not describe a symptom. Absorbs what used to be Problem Diagnosis + Feasibility Study (verdict = cause-claim). |
+| **4. Operating Review** | Planned vs. actual → variance → driver → implication, *per stream* | Per stream/topic: trend + implication + decision-or-FYI. Absorbs what used to be QBR, Status, Board Update, Market & Competitive Analysis — all variance-and-implication reporting at different altitudes. |
+| **5. Capability Pitch** | Buyer's gap → our capability → proof → why us → ask | Must assert *non-substitutable differentiation* + a *meeting/decision ask*. Different from Recommendation because the buyer is choosing *who*, not *what*. |
+| **6. Workshop Readout** | Working question → what we explored → decisions made → next owners | Must name *decisions reached* + *open items* + *next steps*. Past-tense record. |
+| **7. Workshop Design** ⚠️ | Purpose → agenda → session objectives → pre-work → ground rules | Each session block: title + duration + owner + objective + desired output. **Bypasses the standard narrative gate** — slides are session slots, not arguments. Use the Workshop Design overlay at end of this file. |
+
+**+1 edge — Training / Enablement.** Documented sub-route, not a primary type. Structural spine: outcome → concept → demo → practice → assessment. Gate (loose): names *what the learner can do after*. Not coached by the standard nine-part gate — instructional design is its own framework family (Backwards Design, Bloom's). Use only if the deck is genuinely training content; otherwise pick one of the 7.
 
 **Workshop Design decks:** jump to the **Workshop Design Coaching Overlay** section at the end of this file before proceeding.
 
-**If the framework choice and deck type don't align, flag the tension explicitly.** Example: *"You picked Pyramid (conclusion first) but you're building a Problem Diagnosis deck where the audience doesn't know the conclusion yet — leading with the answer may cause them to reject it before they've accepted the problem. Do you want to flip to SCR, or do you have reason to believe this audience will accept the conclusion upfront?"*
+**If the framework choice and deck type don't align, flag the tension explicitly.** Example: *"You picked Pyramid (conclusion first) but you're building a Diagnosis deck where the audience doesn't know the cause yet — leading with the answer may cause them to reject it before they've accepted the symptom. Do you want to flip to SCR, or do you have reason to believe this audience will accept the conclusion upfront?"*
 
 ---
 
@@ -496,15 +508,15 @@ Apply the check specific to the confirmed deck type from Step 0.7:
 
 | Deck type | Check |
 |-----------|-------|
-| Recommendation / Point of View | Does the governing thought assert *what to do* AND *why now*? Fail: "We need to address the vendor gap." Pass: "Closing the vendor gap before Q3 protects $12M in at-risk revenue and prevents the client from sourcing direct." |
-| Problem Diagnosis | Does it assert a *cause*, not just a symptom? Fail: "Costs are rising." Pass: "Labor cost growth is driven by unplanned overtime, not headcount — the fix is scheduling, not a hiring freeze." |
-| Strategic Plan | Does it name the *strategic bet* — what we're choosing to do AND what we're choosing not to do? Fail: "We will pursue digital transformation." Pass: "We are concentrating all FY26 investment in supply chain digitization and explicitly exiting the retail platform business." |
-| Market & Competitive Analysis | Does it name the *implication for the client*, not just describe the market? Fail: "The market is growing at 12% CAGR." Pass: "At 12% CAGR, the window to establish a cost-leadership position closes in 18 months — after that, incumbents will have locked in scale advantages." |
-| Business Case / Investment Decision | Does it name the *decision being enabled*? Fail: "The investment has a strong ROI." Pass: "The $4M platform investment pays back in 14 months and eliminates the manual reconciliation risk that is the firm's single largest audit exposure." |
-| QBR / Business Review | Does it explain *variance*, not just report it? Fail: "Q3 revenue was $42M, 3% below plan." Pass: "Q3 revenue missed by 3% because APAC deal slippage offset EMEA outperformance — the risk is concentrated, not systemic." |
-| Status / Progress Update | Does it name *implications*, not just progress? Fail: "We have completed 6 of 10 workstreams." Pass: "6 of 10 workstreams are on track; the 4 at-risk workstreams are all on the critical path — a 3-week slip here moves the go-live date." |
-| Board Update | Does it tell the board *what they need to do or decide*? Fail: "Here is the quarterly performance summary." Pass: "Performance is on track; the board needs to decide today whether to accelerate the M&A timeline before the Q1 earnings window closes." |
-| Capability / Credentials Pitch | Does it assert *what we can do that others can't*? Fail: "We have deep experience in supply chain." Pass: "Our proprietary cost-benchmarking tool cuts diagnostic time from 12 weeks to 3 — no competitor has deployed it at scale outside North America." |
+| **1. Recommendation / POV** | Does the governing thought assert *what to do* AND *why now*? Fail: "We need to address the vendor gap." Pass: "Closing the vendor gap before Q3 protects $12M in at-risk revenue and prevents the client from sourcing direct." Applies to the absorbed sub-cases too: a Strategic Plan must also assert *what we're choosing NOT to do*; an Investor Pitch must name the *use of funds*; a Partnership Proposal must commit to *terms*, not "explore." |
+| **2. Business Case** | Does it name the *decision being enabled* + the *dollars* + the *timeline*? Fail: "The investment has a strong ROI." Pass: "The $4M platform investment pays back in 14 months and eliminates the manual reconciliation risk that is the firm's single largest audit exposure." v0.2 will sharpen this gate to also demand NPV vs. options-considered vs. sensitivity — for now, "names dollars + timeline + decision" is the minimum bar. |
+| **3. Diagnosis** | Does it assert a *cause* (or verdict), not just a symptom? Fail: "Costs are rising." Pass: "Labor cost growth is driven by unplanned overtime, not headcount — the fix is scheduling, not a hiring freeze." For Feasibility-style work (absorbed): the verdict must be yes / no / yes-if, not a balanced summary. |
+| **4. Operating Review** | Per stream/topic: does the governing thought explain *variance + implication*, not just report? Fail: "Q3 revenue was $42M, 3% below plan." Pass: "Q3 revenue missed by 3% because APAC deal slippage offset EMEA outperformance — the risk is concentrated, not systemic." Decision-or-FYI must be named explicitly. "FYI" is a legitimate pass for true reporting decks (Status / Board reports); vague "align on next steps" is not. For Market & Competitive Analysis content (absorbed): the implication must be *for the client*, not just market description. |
+| **5. Capability Pitch** | Does it assert *what we can do that others can't* + a concrete ask? Fail: "We have deep experience in supply chain." Pass: "Our proprietary cost-benchmarking tool cuts diagnostic time from 12 weeks to 3 — no competitor has deployed it at scale outside North America. Proposed next step: 90-min working session week of [date]." |
+| **6. Workshop Readout** | Does it name *decisions reached* + *open items* + *next owners*? Past-tense decision record — not an argument. Fail: "We had a great session." Pass: "The team converged on Option B for the platform decision, leaving the data-migration sequencing as an open item owned by [name] by [date]." |
+| **7. Workshop Design** | Each session block has *title + duration + owner + objective + desired output*? **The standard governing-thought gate does not apply** — slides are session slots, not arguments. The Workshop Design overlay at end of file runs its own coaching checks. |
+
+**Edge — Training / Enablement** (if used). Does the deck name *what the learner can do after*, not "knows about"? Fail: "Learners will understand the framework." Pass: "Learners will apply the Rumelt diagnosis-policy-action structure to one of their own client problems before the session ends." Loose gate; instructional-design rubrics live outside this file.
 
 Fail → return to the affected slides. The deck-type test is not optional even for fluent users.
 
@@ -534,19 +546,19 @@ If it fails, return to Step 1 — the governing thought needs to be re-compresse
 What decision is the audience being asked to make? Does the deck name it explicitly, with a deadline?
 
 - Pass: a specific decision is named (approve, fund, prioritize, sign off, escalate), with a date or condition, on the deck's Decision/Ask page or in the governing thought.
-- Soft pass: deck type is Status / Progress Update or Board Update where "FYI" is legitimate — no decision required by design.
-- Fail: deck is a Recommendation / Strategic Plan / Business Case / Decision archetype but the ask is missing, vague ("align on next steps"), or undated.
+- Soft pass: deck type is Operating Review where the per-stream "FYI" status is legitimate — no decision required by design.
+- Fail: deck is a Recommendation / POV or Business Case but the ask is missing, vague ("align on next steps"), or undated.
 
 Failure is **Major**. Override path applies.
 
-**Part 9: Dissent test (conditional — Recommendation / Strategic Plan / Business Case / Decision-Required decks only).**
+**Part 9: Dissent test (conditional — Recommendation / POV and Business Case decks only).**
 
 Does the deck pre-empt the two or three obvious objections an executive will raise, or pretend they don't exist?
 
 - Pass: the brief has either a Risk slide that names the load-bearing objections OR the Recommendation slide includes "alternatives considered and rejected."
 - Fail: the deck has no place where the obvious objections live. Executive audiences will fill that vacuum with their own.
 
-Failure is **Major**. Skip this Part entirely for deck types where dissent is not the audience's mode (Status Update, Board Update, Workshop Design, Capability Pitch, Training).
+Failure is **Major**. Skip this Part entirely for deck types where dissent is not the audience's mode (Operating Review, Workshop Design, Workshop Readout, Capability Pitch, Training).
 
 **Cross-cutting rules sweep.**
 
@@ -763,14 +775,14 @@ Saved as `_session/narrative-brief-[topic].md` inside the session folder (establ
 ```markdown
 ---
 client_template: <absolute path to .pptx>     # required — slide-builder errors if missing
-deck_type: <one of the 16 types>               # required — drives selector deck_types match
+deck_type: <one of the 7 canonical types (or Training edge)>    # required — drives selector deck_types match
 session_folder: <absolute path to _session>    # optional — helps slide-builder anchor outputs
 ---
 
 # Narrative brief: [topic]
 
 ## Deck type
-[One of the 16 types from Step 0.7 — e.g., "Recommendation / Point of View"]
+[One of the 7 canonical types from Step 0.7 (Recommendation / POV, Business Case, Diagnosis, Operating Review, Capability Pitch, Workshop Readout, Workshop Design) — or "Training / Enablement" for the edge case. Use the EXACT label from Step 0.7.]
 
 ## Narrative framework
 [The chosen communication spine — e.g., "SCR (Situation → Complication → Resolution)"]
