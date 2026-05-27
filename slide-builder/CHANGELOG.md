@@ -2,6 +2,36 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## [Unreleased] — v0.1 hardening + taxonomy consolidation (2026-05-26 post-tag)
+
+### Changed — Deck-type taxonomy: 17 → 7 + 1 edge (2026-05-26)
+
+Three-agent committee analysis (Reduction maximalist / Preservation realist / Mechanism check) found the canonical deck-type list in `storyline-helper/SKILL.md` had drifted to 17 types with only 6 unique gate-check mechanisms — half the labels were redundant. Worse, the Mode Check and Step 0.7 Decision-2 tables disagreed on which 16/17 were canonical (e.g., "Facilitation Deck" was in Decision-2 but not in Mode Check). Off-canon types silently bypassed the Step 7 Part 5 deck-type-specific gate check.
+
+The taxonomy now consolidates to 7 + 1 edge:
+
+1. **Recommendation / POV** — absorbs Executive Briefing, Strategic Plan, Investor Pitch, Partnership Proposal.
+2. **Business Case** — kept distinct so a future CFO-grade gate (NPV / options compare / sensitivity) has a hook. Currently shares Recommendation's gate; v0.2 sharpens.
+3. **Diagnosis** — absorbs Problem Diagnosis + Feasibility Study (verdict = cause-claim).
+4. **Operating Review** — absorbs QBR, Status, Board Update, Market & Competitive Analysis (all G3+G4 variance-and-implication).
+5. **Capability Pitch** — kept distinct (G5 differentiation; buyer chooses *who*, not *what*).
+6. **Workshop Readout** — kept distinct (past-tense decision record).
+7. **Workshop Design** — kept distinct per Agent C's pitfall: the label encodes a *routing decision* (gate bypass), not just a gate variant. Folding it into anything else would break the Step 0.7 overlay branch.
+
+**+1 edge — Training / Enablement.** Demoted from primary type to documented sub-route. Edge cases use it; standard consulting work picks one of the 7.
+
+**Files modified:**
+- `storyline-helper/SKILL.md` § Mode Check (line ~110) — examples + list now reflect 7+1.
+- `storyline-helper/SKILL.md` § Step 0.7 Decision 2 (line ~259) — 17-row table → 7-row table.
+- `storyline-helper/SKILL.md` § Step 7 Part 5 (line ~505) — 9-row gate-check table → 7-row.
+- `storyline-helper/SKILL.md` § Part 7 + Part 8 — updated absorbed-type references.
+- `storyline-helper/SKILL.md` § Brief format spec (line ~778, 785) — "16 types" → "7 canonical + Training edge."
+- `storyline-helper/_decisions/v0.2-improvements-queue.md` — Business Case gate sharpening + Workshop Design gate-bypass decision still parked.
+
+Existing briefs with old type names (e.g., `deck_type: Executive Briefing`) continue to work — `slide-builder` treats `deck_type` as free-text metadata, no code key on the string.
+
+---
+
 ## [Unreleased] — v0.1 hardening pass (2026-05-26 post-tag)
 
 Behavioral guardrails + Tier 1 install/safety blockers + Tier 2 production-readiness fixes from the v0.1 audit handover (`_decisions/v0.1-audit-handover-2026-05-26.md`) and the follow-up 4-agent regression audit.
