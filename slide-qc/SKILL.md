@@ -57,6 +57,7 @@ Parse this and hold the violations in memory. They will be merged with the visua
 
 **What this script catches (deterministic, no vision needed):**
 - Lorem ipsum / placeholder residue (`[Insert ...]`, "Subtitle goes here", TODO/FIXME/XXX) → Critical
+- **Slide-builder intentional presenter prompts** (`[add footnote here or delete]`, `[add source here or delete]`) → Advisory (NOT Critical). These are a deliberate cross-skill convention emitted by `slide-builder/twins/helpers.py add_footer()` when the caller passes `footnote=None` or `source=None`. The presenter is expected to fill or delete in PowerPoint before showing the deck. See `INTENTIONAL_PLACEHOLDER_STRINGS` in `check_pptx_hygiene.py` for the identity-matched contract.
 - Hidden slides leaking into the file → Major
 - Comments left attached to slides → Major
 - Speaker notes containing scratch content (TODO / asdf / WIP / etc.) → Major
@@ -145,6 +146,7 @@ For each slide, in addition to the per-zone walkthrough, evaluate these categori
 
 | Category | Severity | What to flag |
 |---|---|---|
+| **Intentional presenter prompt** | Advisory (NOT Critical) | The exact strings `[add footnote here or delete]` and `[add source here or delete]` are slide-builder's deliberate cross-skill convention emitted by `helpers.py add_footer()` when the caller doesn't supply text. Flag as Advisory with the note "intentional presenter prompt — fill or delete in PowerPoint before showing the deck." Do NOT escalate to Critical even though it looks like placeholder residue. Other bracketed text (`[Kickoff activities — fill from ...]`, `[your_company]`, etc.) is NOT this convention and stays Critical. |
 | **Overflow / clipping** | Critical if text/data clipped; Major if shape bleeds past boundary without losing content | Text or shapes bleeding past the slide boundary; clipped numerals or descenders; chart axis labels cut off |
 | **Blank chart / broken visual** | Critical | A blank white rectangle where the mockup had a chart; missing image placeholder; broken icon |
 | **Unreadable overlap** | Critical | Text obscured by another element so it cannot be read |
