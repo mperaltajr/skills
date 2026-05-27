@@ -138,10 +138,25 @@ _PLACEHOLDER_PATTERNS = (
     "Lorem ipsum",
     "Proceed with Option B",
 )
-_PLACEHOLDER_ALLOWED = (
-    "[add footnote here or delete]",
-    "[add source here or delete]",
-)
+# F1-B (2026-05-26): import the canonical cross-skill placeholder
+# constants from twins/helpers.py so finalize_deck doesn't drift from
+# slide-qc or slide-builder on the intentional-presenter-prompt contract.
+try:
+    from twins.helpers import (
+        INTENTIONAL_FOOTNOTE_PLACEHOLDER,
+        INTENTIONAL_SOURCE_PLACEHOLDER,
+    )
+    _PLACEHOLDER_ALLOWED = (
+        INTENTIONAL_FOOTNOTE_PLACEHOLDER,
+        INTENTIONAL_SOURCE_PLACEHOLDER,
+    )
+except ImportError:
+    # Fallback if twins import path isn't set yet during early bootstrap.
+    # The strings here MUST match the canonical constants verbatim.
+    _PLACEHOLDER_ALLOWED = (
+        "[add footnote here or delete]",
+        "[add source here or delete]",
+    )
 _FOOTNOTE_NAME_PREFIXES = ("footnote", "source", "page-number")
 _FOOTER_NUM_RE = re.compile(r"^\d+$")
 # Two-tier font floor (committee-decision 2026-05-26):

@@ -355,6 +355,20 @@ def add_chrome(slide):
     pass
 
 
+# ---------------------------------------------------------------------------
+# Cross-skill placeholder contract (F1-B, 2026-05-26)
+# ---------------------------------------------------------------------------
+# These two strings are INTENTIONAL presenter prompts that render in the
+# footer when add_footer() is called with footnote=None or source=None.
+# slide-qc imports them by name to allowlist the convention so its hygiene
+# pre-pass and vision pass don't flag them as Critical lorem-ipsum residue.
+#
+# DO NOT change the wording without coordinating with slide-qc — the
+# contract is identity-matched, not regex-guessed.
+INTENTIONAL_FOOTNOTE_PLACEHOLDER = "[add footnote here or delete]"
+INTENTIONAL_SOURCE_PLACEHOLDER = "[add source here or delete]"
+
+
 def add_footer(slide, page_num, source=None, footnote=None):
     """ALWAYS a footnote line + source line + page number (exact skeleton positions).
 
@@ -367,18 +381,22 @@ def add_footer(slide, page_num, source=None, footnote=None):
     or omit for placeholders. The user is expected to fill or delete in
     PowerPoint; the builder never guesses whether the slide needs them.
 
+    Placeholder text comes from INTENTIONAL_FOOTNOTE_PLACEHOLDER and
+    INTENTIONAL_SOURCE_PLACEHOLDER module constants — these are the
+    cross-skill contract slide-qc imports to allowlist the convention.
+
     Positions match the skeleton:
       footnote     x=58   y=672  w=1164  h=16  (faint)
       source       x=58   y=688  w=1100  h=16  (italic faint)
       page number  x=1170 y=688  w=52    h=16  (right-aligned)
     """
-    footnote_text = footnote if footnote else "[add footnote here or delete]"
+    footnote_text = footnote if footnote else INTENTIONAL_FOOTNOTE_PLACEHOLDER
     add_text(
         slide, "footnote-1", f"1. {footnote_text}",
         x_px=58, y_px=672, w_px=1164, h_px=16,
         font_size_px=10, color=TEXT_FAINT,
     )
-    source_text = source if source else "[add source here or delete]"
+    source_text = source if source else INTENTIONAL_SOURCE_PLACEHOLDER
     add_text(
         slide, "source", f"Source: {source_text}",
         x_px=58, y_px=688, w_px=1100, h_px=16,

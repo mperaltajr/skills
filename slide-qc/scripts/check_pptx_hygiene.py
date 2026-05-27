@@ -59,6 +59,22 @@ from pptx import Presentation
 # Detection patterns
 # ---------------------------------------------------------------------------
 
+# Cross-skill placeholder contract (F1-A, 2026-05-26).
+#
+# slide-builder/twins/helpers.py add_footer() emits these EXACT strings as
+# INTENTIONAL presenter prompts when the caller passes footnote=None or
+# source=None. Mirror of:
+#   INTENTIONAL_FOOTNOTE_PLACEHOLDER = "[add footnote here or delete]"
+#   INTENTIONAL_SOURCE_PLACEHOLDER   = "[add source here or delete]"
+# in slide-builder/twins/helpers.py. Identity-matched, not regex-matched —
+# do not generalize. If slide-builder changes the wording, this list must
+# change in lockstep (and the cross-skill contract test should catch drift).
+INTENTIONAL_PLACEHOLDER_STRINGS: tuple[str, ...] = (
+    "[add footnote here or delete]",
+    "[add source here or delete]",
+)
+
+
 LOREM_PATTERNS: list[tuple[str, str]] = [
     (r"\blorem\s+ipsum\b",         "Lorem ipsum"),
     (r"\bdolor\s+sit\s+amet\b",    "Lorem ipsum (dolor sit amet)"),
@@ -70,7 +86,26 @@ LOREM_PATTERNS: list[tuple[str, str]] = [
     (r"\bTODO\b",                  "TODO marker"),
     (r"\bFIXME\b",                 "FIXME marker"),
     (r"\bXXX\b",                   "XXX marker"),
+    # F5 (2026-05-26) — sweep gap from Pre-Workshop Scope Alignment build:
+    # Hardline #2 placeholders (worker emits these when the brief doesn't
+    # enumerate cell/list content, with a named source the user should
+    # consult). These are NOT the intentional-presenter-prompt convention
+    # (slide-builder/twins/helpers.py constants) — they mean unfinished
+    # work and stay Critical. Visual disambiguation is a v0.2 item (F2).
+    (r"\[[^\]]{1,60}\s+—\s+fill\s+from\b[^\]]{0,60}\]", "Hardline #2 '[X — fill from ...]' placeholder"),
+    (r"\[[^\]]{1,30}\s+goes\s+here\]", "'[X goes here]' template prompt"),
+    (r"\[\s*(TBD|TK|TKTK)\s*\]",        "[TBD] / [TK] marker"),
+    (r"\b(TBD|TKTK)\b",                  "TBD / TKTK marker (bare)"),
 ]
+
+
+def _is_intentional_placeholder(text: str) -> bool:
+    """Return True if `text` contains a known slide-builder intentional
+    presenter-prompt placeholder. Identity-match against the cross-skill
+    contract — these strings are deliberately rendered for the presenter
+    to fill or delete before showing the deck, not lorem-ipsum residue.
+    """
+    return any(ph in text for ph in INTENTIONAL_PLACEHOLDER_STRINGS)
 
 FILENAME_BAD_PATTERNS: list[tuple[str, str]] = [
     (r"final[-_ ]?final",                                "'final_final' in filename"),
@@ -162,6 +197,30 @@ def check_placeholders_in_text(slide, slide_num: int) -> list[dict]:
     text = _gather_slide_text(slide)
     if not text:
         return violations
+
+    # F1-A (2026-05-26): intentional presenter prompts emitted by
+    # slide-builder/twins/helpers.py add_footer() get an Advisory note,
+    # not a Critical. They're the cross-skill convention: presenter is
+    # expected to fill or delete in PowerPoint before showing the deck.
+    if _is_intentional_placeholder(text):
+        violations.append({
+            "slide": slide_num,
+            "severity": "Advisory",
+            "category": "intentional-placeholder",
+            "issue": (
+                f"Slide {slide_num} renders a slide-builder intentional "
+                f"presenter prompt (e.g., '[add footnote here or delete]'). "
+                f"Fill or delete in PowerPoint before showing the deck."
+            ),
+        })
+        # Strip the intentional placeholder strings before the Critical
+        # regex pass so the existing LOREM_PATTERNS don't false-Critical
+        # on a known-intentional substring.
+        scrub = text
+        for ph in INTENTIONAL_PLACEHOLDER_STRINGS:
+            scrub = scrub.replace(ph, "")
+        text = scrub
+
     for pat, label in LOREM_PATTERNS:
         if re.search(pat, text, re.IGNORECASE):
             violations.append({
