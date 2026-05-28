@@ -1110,17 +1110,20 @@ def render_register_html(proposal: dict, html_path: Path) -> bool:
 </section>
 
 <section id="layouts-section">
-  <h2>3. Confirm layout classifications (v0.2)</h2>
+  <h2>3. Pick the slide design you want</h2>
   <div class="help">
-    For each slide layout in the template, Slide Lab auto-detected whether it
-    is <strong>body-canonical</strong> (master decorates; layout is mostly
-    empty; ~90&#37; of consulting body slides) or <strong>bespoke</strong>
-    (art-directed cover / section divider / dark hero where the chrome IS the
-    slide). The auto-detection is a heuristic. Override below when the
-    template ships an art-directed body layout that decorated itself or a
-    cover layout that auto-detected as a blank chrome frame.
+    The template ships many slide designs. Most decks use only one or two.
+    Pick the main design you want Slide Lab to use for body slides, and
+    the design for title / section slides. Other designs stay available
+    as one-off overrides via <code>**Layout:**</code> on individual slides.
   </div>
-  <div id="layouts-list"></div>
+  <div id="layouts-pick-cluster"></div>
+  <details id="layouts-all-details" style="margin-top: 16px;">
+    <summary style="cursor: pointer; font-size: 13px; color: var(--text-mid);">
+      Show all slide designs in the template
+    </summary>
+    <div id="layouts-list" style="margin-top: 12px;"></div>
+  </details>
 </section>
 
 <section id="strip-section">
@@ -1260,7 +1263,124 @@ function refreshUI() {
   btn.textContent = "Copy picks JSON to clipboard";
 }
 
-// Build per-layout classification rows
+// Pick state for the cluster picker: which named layout is the body,
+// which is the cover.
+const layoutPicks = { body: null, cover: null };
+
+function autoCoverGuess() {
+  for (const l of layouts) {
+    const n = (l.name || "").toLowerCase();
+    if (n.includes("cover") || n.includes("title slide") || n === "title") {
+      return l.name;
+    }
+  }
+  return null;
+}
+
+function plainEnglishFor(l) {
+  const n = l.n_placeholders || 0;
+  if (n === 0) return "Blank canvas";
+  if (n === 1) return "Single text area";
+  if (n === 2) return "Title plus one body area";
+  if (n === 3) return "Title plus body plus second area";
+  if (n === 4) return "Title plus three areas";
+  return "Title plus " + (n - 1) + " areas";
+}
+
+function clusterLayouts() {
+  const buckets = new Map();
+  for (const l of layouts) {
+    const key = (l.n_placeholders || 0) + ":" + (l.background || "light");
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key).push(l);
+  }
+  const clusters = [];
+  for (const [key, members] of buckets) {
+    clusters.push({ key: key, members: members, canonical: members[0] });
+  }
+  clusters.sort((a, b) => {
+    const ab = a.canonical.background === "dark" ? 1 : 0;
+    const bb = b.canonical.background === "dark" ? 1 : 0;
+    if (ab !== bb) return ab - bb;
+    return (a.canonical.n_placeholders || 0) - (b.canonical.n_placeholders || 0);
+  });
+  return clusters.slice(0, 6);
+}
+
+function buildLayoutClusters() {
+  const container = document.getElementById("layouts-pick-cluster");
+  if (!container) return;
+  container.innerHTML = "";
+  if (!layouts.length) {
+    container.innerHTML = '<div class="help">No slide designs found.</div>';
+    return;
+  }
+  const clusters = clusterLayouts();
+  if (!layoutPicks.body) {
+    const guess = clusters.find(c => c.canonical.background !== "dark"
+                                 && (c.canonical.n_placeholders || 0) >= 2);
+    if (guess) layoutPicks.body = guess.canonical.name;
+    else if (clusters.length) layoutPicks.body = clusters[0].canonical.name;
+  }
+  if (!layoutPicks.cover) {
+    layoutPicks.cover = autoCoverGuess();
+  }
+
+  if (layoutPicks.cover) {
+    const disclosure = document.createElement("div");
+    disclosure.className = "strip-toggle";
+    disclosure.style.marginBottom = "16px";
+    disclosure.innerHTML =
+      "<div class=\"label-block\"><strong>Title / section slides use " +
+      "&quot;" + layoutPicks.cover + "&quot;.</strong>" +
+      "<div class=\"note\">Slide Lab picked this automatically. " +
+      "To override, change the radio in &quot;Show all slide designs&quot; below.</div>" +
+      "</div>";
+    container.appendChild(disclosure);
+  }
+
+  const grid = document.createElement("div");
+  grid.style.display = "grid";
+  grid.style.gridTemplateColumns = "repeat(auto-fill, minmax(220px, 1fr))";
+  grid.style.gap = "12px";
+  clusters.forEach(c => {
+    const card = document.createElement("div");
+    card.className = "layout-row";
+    card.style.flexDirection = "column";
+    card.style.alignItems = "stretch";
+    const isPicked = layoutPicks.body === c.canonical.name;
+    if (isPicked) {
+      card.style.borderColor = "var(--accent)";
+      card.style.borderWidth = "2px";
+    }
+    const desc = plainEnglishFor(c.canonical);
+    const bgLabel = c.canonical.background === "dark" ? "Dark canvas" : "Light canvas";
+    card.innerHTML =
+      "<div style=\"font-weight: 600; font-size: 14px; margin-bottom: 4px;\">" + desc + "</div>" +
+      "<div style=\"font-size: 12px; color: var(--text-mid); margin-bottom: 8px;\">" + bgLabel + "</div>" +
+      "<div style=\"font-size: 11px; color: var(--text-dim); margin-bottom: 12px;\">" + c.canonical.name + "</div>" +
+      "<button class=\"copy-btn\" data-pick=\"" + c.canonical.name + "\" style=\"width: 100%;\">" +
+      (isPicked ? "Picked for body" : "Pick this for body") + "</button>";
+    grid.appendChild(card);
+    card.querySelector("button[data-pick]").addEventListener("click", e => {
+      const name = e.target.getAttribute("data-pick");
+      layoutPicks.body = name;
+      layouts.forEach(l => {
+        if (l.name === layoutPicks.cover) {
+          layoutClassifications[l.name] = "bespoke";
+        } else {
+          layoutClassifications[l.name] = "body-canonical";
+        }
+      });
+      buildLayoutClusters();
+      buildLayoutRows();
+      refreshUI();
+    });
+  });
+  container.appendChild(grid);
+}
+
+// Build per-layout classification rows (collapsed under "Show all" details)
 function buildLayoutRows() {
   const container = document.getElementById("layouts-list");
   if (!container) return;
@@ -1306,6 +1426,7 @@ buildSwatches("sw-primary", "primary_slot");
 buildSwatches("sw-accent",  "accent_slot");
 buildSwatches("sw-cover",   "cover_bg_slot");
 buildLayoutRows();
+buildLayoutClusters();
 document.getElementById("strip-bg").addEventListener("change", refreshUI);
 document.getElementById("copy-btn").addEventListener("click", () => {
   const txt = document.getElementById("picks-json").textContent;
@@ -1503,12 +1624,18 @@ def pick_index(prompt: str, n_max: int) -> int:
 # ---------------------------------------------------------------------------
 
 def _write_chrome_yml_for(tpl: Path, *, sha8: str,
-                          layout_overrides: dict | None) -> int:
+                          layout_overrides: dict | None,
+                          commit_method: str | None = None) -> int:
     """Extract and dump <stem>.chrome.yml next to the template.
 
     sha8 freshness-stamps the spec so finalize_deck.py can hard-fail when the
     .pptx mutates after registration. layout_overrides lets picks.json
     reclassify any layout body-canonical <-> bespoke.
+
+    commit_method (optional): an audit-trail string appended to the YAML
+    document as a top-level field. Used to mark sidecars written by the
+    implementer's default-pick path (commit_method="implementer_default")
+    vs. real user input via the registration page.
     """
     chrome_yml_path = _p.chrome_yml(tpl)
     try:
@@ -1520,6 +1647,18 @@ def _write_chrome_yml_for(tpl: Path, *, sha8: str,
         print(f"  ERROR: chrome.yml extraction failed: "
               f"{type(exc).__name__}: {exc}")
         return 2
+    # Append commit_method as a top-level audit field if supplied. We do this
+    # by re-loading + re-dumping the YAML so the field sits next to
+    # schema_version / source_template_sha8 / layouts. validate_chrome_dict
+    # ignores unknown top-level keys via pydantic default Strict-no behavior?
+    # Pydantic by default rejects extras; rather than weaken validation we
+    # keep commit_method OUTSIDE the validated ChromeSpec by writing it to a
+    # sibling marker file: <stem>.chrome.commit_method.txt. Cleaner and
+    # keeps the schema contract pure.
+    if commit_method:
+        sib = chrome_yml_path.with_name(chrome_yml_path.stem + '.commit_method.txt')
+        sib.write_text(str(commit_method).strip() + "\n", encoding="utf-8")
+        print(f"  commit_method marker: {sib} -> {commit_method}")
     n_layouts = len(spec.layouts)
     n_bespoke = sum(1 for v in spec.layouts.values()
                     if v.layout_class == "bespoke")
@@ -2303,7 +2442,8 @@ def _main_commit(args) -> int:
         print(f"  WARNING: picks.layout_classifications is not a dict; ignored.")
         layout_overrides = {}
     rc = _write_chrome_yml_for(tpl, sha8=proposal["sha8"],
-                               layout_overrides=layout_overrides)
+                               layout_overrides=layout_overrides,
+                               commit_method=picks.get("commit_method"))
     if rc != 0:
         return rc
 

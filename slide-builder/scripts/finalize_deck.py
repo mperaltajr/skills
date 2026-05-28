@@ -953,18 +953,17 @@ def build_pptx(st: OptionStatus, mermaid_theme: Path,
 # Step 2: graft + theme remap — verbatim from v1
 # ---------------------------------------------------------------------------
 def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
-                                     src_slide, slide_n: int) -> None:
+                                     src_slide, slide_n: int,
+                                     fallback_title: str = "") -> None:
     """Body-canonical post-graft: insert dark overlay (if any) + populate
     inherited title/footer/page-number placeholders.
 
-    Source-of-truth title text comes from the source slide's shape named
-    'title' (or first-prefix-match), with a fallback to <slide-N>. Footer text
-    is left blank — the template's own footer placeholder content stays.
-    Page number gets the slide index as text.
+    Title text priority: source slide's 'title' shape -> fallback_title
+    (passed from _meta.json) -> empty. Page number gets the slide index.
     """
     from twins.composer import _insert_dark_overlay, _populate_layout_placeholders
 
-    # 1. Source title text
+    # 1. Title text: first prefer a source-slide shape named "title".
     src_title = ""
     for shape in src_slide.shapes:
         try:
@@ -978,6 +977,8 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
                 src_title = ""
             if src_title:
                 break
+    if not src_title:
+        src_title = (fallback_title or "").strip()
 
     # 2. Dark overlay (must run BEFORE populating the title placeholder so the
     # overlay ends up below the title — we move overlay to position 2 in
@@ -1004,7 +1005,8 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
 
 def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
                     layout_name: str = "",
-                    layout_chrome=None) -> None:
+                    layout_chrome=None,
+                    slide_title: str = "") -> None:
     try:
         src_prs = Presentation(str(st.pptx_path))
         src_slide = src_prs.slides[0]
@@ -1074,7 +1076,8 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
         if _is_body_canonical:
             try:
                 _apply_body_canonical_finishing(
-                    new_slide, prs, layout_chrome, src_slide, st.slide_n
+                    new_slide, prs, layout_chrome, src_slide, st.slide_n,
+                    fallback_title=slide_title,
                 )
             except Exception as _exc:
                 # Don't fail the graft on overlay/populate trouble — surface
@@ -1307,17 +1310,23 @@ def main() -> int:
     # v0.2 P1.3: slide_n -> layout name lookup. meta.slides[i].layout is
     # added in P1.4; until then every slide gets default_layout_name.
     _slide_layout_names: dict[int, str] = {}
+    _slide_titles: dict[int, str] = {}
     try:
         _meta_dict_layouts = json.loads(_p.meta_json(args.out).read_text(encoding="utf-8"))
         for s in _meta_dict_layouts.get("slides", []):
             n = s.get("n")
             if isinstance(n, int):
                 _slide_layout_names[n] = (s.get("layout") or "").strip() or default_layout_name
+                _slide_titles[n] = (s.get("title") or "").strip()
     except Exception:
         _slide_layout_names = {}
+        _slide_titles = {}
 
     def _layout_name_for(slide_n: int) -> str:
         return _slide_layout_names.get(slide_n, default_layout_name)
+
+    def _slide_title_for(slide_n: int) -> str:
+        return _slide_titles.get(slide_n, "")
 
     def _layout_chrome_for(slide_n: int):
         name = _layout_name_for(slide_n)
@@ -1406,6 +1415,7 @@ def main() -> int:
             st, args.template, theme, color_map,
             layout_name=_layout_name_for(st.slide_n),
             layout_chrome=_layout_chrome_for(st.slide_n),
+            slide_title=_slide_title_for(st.slide_n),
         )
         flag = f"ok (shapes={st.n_shapes} subs={st.n_subs})" if st.themed else f"FAIL ({st.error[:50]})"
         print(f"  [{i:>3}/{len(built_statuses)}] slide_{st.slide_n:02d}/option_{st.letter}  {flag}")

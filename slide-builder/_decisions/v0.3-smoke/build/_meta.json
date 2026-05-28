@@ -1,0 +1,40 @@
+{
+  "schema_version": 3,
+  "template": "C:\\Users\\m.a.peralta\\OneDrive - Accenture\\Library\\FedEx\\OTC\\OTC Opportunity.pptx",
+  "brief": "C:\\Users\\m.a.peralta\\.claude\\skills\\.claude\\worktrees\\agent-abaae9e70ed8f6544\\slide-builder\\_decisions\\v0.3-smoke\\smoke_brief.md",
+  "out": "C:\\Users\\m.a.peralta\\.claude\\skills\\.claude\\worktrees\\agent-abaae9e70ed8f6544\\slide-builder\\_decisions\\v0.3-smoke\\build",
+  "mermaid_theme": "C:\\Users\\m.a.peralta\\.claude\\skills\\.claude\\worktrees\\agent-abaae9e70ed8f6544\\slide-builder\\theme\\mermaid-otc.json",
+  "client_slug": "otc",
+  "slide_count": 3,
+  "generated_at": "2026-05-28T22:20:01+00:00",
+  "brand_primary": "4D148C",
+  "brand_accent": "FF6600",
+  "slides": [
+    {
+      "n": 1,
+      "title": "OTC body light - inherited title placeholder",
+      "forecasted_pattern": "Full canvas",
+      "page_type": "headline-finding",
+      "layout": "Use as default slide template"
+    },
+    {
+      "n": 2,
+      "title": "OTC body dark via overlay",
+      "forecasted_pattern": "Full canvas",
+      "page_type": "headline-finding",
+      "layout": "Layout 01"
+    },
+    {
+      "n": 3,
+      "title": "OTC body light - second slide",
+      "forecasted_pattern": "Full canvas",
+      "page_type": "headline-finding",
+      "layout": "Use as default slide template_subtitle"
+    }
+  ],
+  "deck_meta": {
+    "deck_type": "v0.3 smoke (body-canonical inheritance + dark overlay)",
+    "governing_thought": "",
+    "audience": ""
+  }
+}

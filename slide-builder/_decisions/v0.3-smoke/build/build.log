@@ -1,0 +1,238 @@
+
+======================================================================
+[2026-05-28T17:18:56] build_deck.py
+======================================================================
+[stage-1 sanity] brand sidecar OK for: C:\Users\m.a.peralta\OneDrive - Accenture\Library\FedEx\OTC\OTC Opportunity.pptx
+[stage-1 sanity] mmdc version: 11.4.0
+ERROR: client theme validation failed.
+       Refusing to build slides with wrong colors.
+
+  - Template path contains 'fedex' (expected purple primary, hue 260-310 deg), but primary=#FF6600 has hue 24 deg. Source: C:/Users/m.a.peralta/OneDrive - Accenture/Library/FedEx/OTC/OTC Opportunity.brand.yml — primary_hex doesn't match the expected color family for this client. Either brand.yml has a typo'd hex, or the template path matches the wrong KNOWN_CLIENT_HUE_RANGES entry (e.g., 'fedex' substring in path that's actually a different client). Re-register or pass --client-name.
+
+Resolved theme: C:\Users\m.a.peralta\.claude\skills\.claude\worktrees\agent-abaae9e70ed8f6544\slide-builder\theme\mermaid-otc.json
+Template path:  C:\Users\m.a.peralta\OneDrive - Accenture\Library\FedEx\OTC\OTC Opportunity.pptx
+Brand source:   OTC Opportunity.brand.yml
+
+Likely causes:
+  1. Human error in brand.yml — primary_hex and accent_hex are the same,
+     or one of them is near-black / near-white / near-grey. Re-register the
+     template via the chat-driven propose → commit flow so a human can
+     confirm the preview PNG before the picks land.
+  2. brand.yml has a hex format the validator can't parse — verify hex codes
+     match /^[0-9A-F]{6}$/ (uppercase, no '#') after _normalize_hex.
+  3. Template path doesn't match a known client convention — if the brand colors
+     are actually correct, extend KNOWN_CLIENT_HUE_RANGES.
+
+To re-register:
+  py -3 scripts/register_template.py propose "C:\Users\m.a.peralta\OneDrive - Accenture\Library\FedEx\OTC\OTC Opportunity.pptx"
+  py -3 scripts/register_template.py commit  "C:\Users\m.a.peralta\OneDrive - Accenture\Library\FedEx\OTC\OTC Opportunity.pptx" --picks <picks.json>
+
+======================================================================
+[2026-05-28T17:20:00] build_deck.py
+======================================================================
+[stage-1 sanity] brand sidecar OK for: C:\Users\m.a.peralta\OneDrive - Accenture\Library\FedEx\OTC\OTC Opportunity.pptx
+[stage-1 sanity] mmdc version: 11.4.0
+Prepped 3 slides at:
+  C:\Users\m.a.peralta\.claude\skills\.claude\worktrees\agent-abaae9e70ed8f6544\slide-builder\_decisions\v0.3-smoke\build
+
+Mermaid theme (per-client):
+  C:\Users\m.a.peralta\.claude\skills\.claude\worktrees\agent-abaae9e70ed8f6544\slide-builder\theme\mermaid-otc.json
+
+Deck manifest:
+  slide-builder\_decisions\v0.3-smoke\build\_meta.json
+
+Dispatch plan:
+  slide-builder\_decisions\v0.3-smoke\build\dispatch_plan.md
+
+Next: dispatch one slide-builder-worker agent per slide in parallel,
+reading the rendered _prompt.md in each slide_NN/ directory. Then run finalize_deck.py.
+
+======================================================================
+[2026-05-28T17:20:30] finalize_deck.py
+======================================================================
+========================================================================
+Slide Lab v2 deck orchestrator — Part B (finalize)
+  out           : slide-builder\_decisions\v0.3-smoke\build
+  template      : C:\Users\m.a.peralta\OneDrive - Accenture\Library\FedEx\OTC\OTC Opportunity.pptx
+  mermaid theme : C:\Users\m.a.peralta\.claude\skills\.claude\worktrees\agent-abaae9e70ed8f6544\slide-builder\theme\mermaid-otc.json
+  chrome.yml    : C:\Users\m.a.peralta\OneDrive - Accenture\Library\FedEx\OTC\OTC Opportunity.chrome.yml
+  layouts       : 21 (default for slides w/o layout field: '1_Layout 19')
+========================================================================
+
+[1] Discover option_X.py files + classify by line-1 token
+  [missing] 6 worker output(s) absent — surfaced as classification=missing in RESULT.md / REVIEW.html
+  found 9 option scripts across 3 slides
+  classification: native=3  mermaid=0  rejected=0
+
+[2] Execute / assemble / skip per option (serial)
+  [  1/9] slide_01/option_A  [native]  ok
+  [  2/9] slide_01/option_B  [missing]  FAIL (worker did not produce option script)
+  [  3/9] slide_01/option_C  [missing]  FAIL (worker did not produce option script)
+  [  4/9] slide_02/option_A  [native]  ok
+  [  5/9] slide_02/option_B  [missing]  FAIL (worker did not produce option script)
+  [  6/9] slide_02/option_C  [missing]  FAIL (worker did not produce option script)
+  [  7/9] slide_03/option_A  [native]  ok
+  [  8/9] slide_03/option_B  [missing]  FAIL (worker did not produce option script)
+  [  9/9] slide_03/option_C  [missing]  FAIL (worker did not produce option script)
+  built: 3 / 9
+
+[3] Load client theme
+  raw dk2=0E2841  lt2=E8E8E8  font=FedEx Sans
+  brand_primary=#4D148C (source: dk2)
+  brand_accent =#FF6600 (source: lt2)
+  color_map entries: 24
+  expected palette  : 18 hex codes
+
+[3.1] Detect client-template fonts on local machine
+  all client fonts available (or detection inconclusive)
+
+[3.5] Stash raw pre-theme PPTX
+
+[4] Graft + theme remap (serial — python-pptx not thread-safe)
+  [  1/3] slide_01/option_A  ok (shapes=2 subs=4)
+  [  2/3] slide_02/option_A  ok (shapes=2 subs=4)
+  [  3/3] slide_03/option_A  ok (shapes=2 subs=4)
+  themed: 3 / 3
+
+[5] Render themed .pptx -> .png (parallel x4)
+  slide_01.png
+  slide_01.png
+
+Rendered 1 slides to slide-builder\_decisions\v0.3-smoke\build\slide_01\_render_tmp\option_A (LibreOffice engine, 120 dpi)
+  [  1/3] slide_01/option_A  ok
+
+Rendered 1 slides to slide-builder\_decisions\v0.3-smoke\build\slide_03\_render_tmp\option_A (LibreOffice engine, 120 dpi)
+  [  2/3] slide_03/option_A  ok
+  slide_01.png
+
+Rendered 1 slides to slide-builder\_decisions\v0.3-smoke\build\slide_02\_render_tmp\option_A (LibreOffice engine, 120 dpi)
+  [  3/3] slide_02/option_A  ok
+
+[5b] Per-option QC self-check
+  slide_01/option_A  warn (2w)
+  slide_02/option_A  warn (2w)
+  slide_03/option_A  warn (2w)
+  QC totals: all-ok=0  warn-only=3  block=0
+
+[6] Write RESULT.md
+  slide-builder\_decisions\v0.3-smoke\build\RESULT.md
+
+[7] Generate Gate 3 visual preview (GATE3-PREVIEW.html)
+
+======================================================================
+[2026-05-28T17:20:49] build_gate_preview.py
+======================================================================
+GATE3-PREVIEW.html written:
+  C:\Users\m.a.peralta\.claude\skills\.claude\worktrees\agent-abaae9e70ed8f6544\slide-builder\_decisions\v0.3-smoke\build\GATE3-PREVIEW.html
+  3 slides, 9 option tiles
+  Missing PNGs: 6 (preview will show placeholder boxes)
+  GATE3-PREVIEW.html written:
+    C:\Users\m.a.peralta\.claude\skills\.claude\worktrees\agent-abaae9e70ed8f6544\slide-builder\_decisions\v0.3-smoke\build\GATE3-PREVIEW.html
+    3 slides, 9 option tiles
+    Missing PNGs: 6 (preview will show placeholder boxes)
+
+========================================================================
+DONE — Part B complete.
+  Native   : 3
+  Mermaid  : 0
+  Rejected : 0
+  Built    : 3 / 9
+  Themed   : 3 / 9
+  Rendered : 3 / 9
+  Report   : slide-builder\_decisions\v0.3-smoke\build\RESULT.md
+========================================================================
+
+======================================================================
+[2026-05-28T17:21:50] finalize_deck.py
+======================================================================
+========================================================================
+Slide Lab v2 deck orchestrator — Part B (finalize)
+  out           : slide-builder\_decisions\v0.3-smoke\build
+  template      : C:\Users\m.a.peralta\OneDrive - Accenture\Library\FedEx\OTC\OTC Opportunity.pptx
+  mermaid theme : C:\Users\m.a.peralta\.claude\skills\.claude\worktrees\agent-abaae9e70ed8f6544\slide-builder\theme\mermaid-otc.json
+  chrome.yml    : C:\Users\m.a.peralta\OneDrive - Accenture\Library\FedEx\OTC\OTC Opportunity.chrome.yml
+  layouts       : 21 (default for slides w/o layout field: '1_Layout 19')
+========================================================================
+
+[1] Discover option_X.py files + classify by line-1 token
+  [missing] 6 worker output(s) absent — surfaced as classification=missing in RESULT.md / REVIEW.html
+  found 9 option scripts across 3 slides
+  classification: native=3  mermaid=0  rejected=0
+
+[2] Execute / assemble / skip per option (serial)
+  [  1/9] slide_01/option_A  [native]  ok
+  [  2/9] slide_01/option_B  [missing]  FAIL (worker did not produce option script)
+  [  3/9] slide_01/option_C  [missing]  FAIL (worker did not produce option script)
+  [  4/9] slide_02/option_A  [native]  ok
+  [  5/9] slide_02/option_B  [missing]  FAIL (worker did not produce option script)
+  [  6/9] slide_02/option_C  [missing]  FAIL (worker did not produce option script)
+  [  7/9] slide_03/option_A  [native]  ok
+  [  8/9] slide_03/option_B  [missing]  FAIL (worker did not produce option script)
+  [  9/9] slide_03/option_C  [missing]  FAIL (worker did not produce option script)
+  built: 3 / 9
+
+[3] Load client theme
+  raw dk2=0E2841  lt2=E8E8E8  font=FedEx Sans
+  brand_primary=#4D148C (source: dk2)
+  brand_accent =#FF6600 (source: lt2)
+  color_map entries: 24
+  expected palette  : 18 hex codes
+
+[3.1] Detect client-template fonts on local machine
+  all client fonts available (or detection inconclusive)
+
+[3.5] Stash raw pre-theme PPTX
+
+[4] Graft + theme remap (serial — python-pptx not thread-safe)
+  [  1/3] slide_01/option_A  ok (shapes=2 subs=4)
+  [  2/3] slide_02/option_A  ok (shapes=2 subs=4)
+  [  3/3] slide_03/option_A  ok (shapes=2 subs=4)
+  themed: 3 / 3
+
+[5] Render themed .pptx -> .png (parallel x4)
+  slide_01.png
+  slide_01.png
+
+Rendered 1 slides to slide-builder\_decisions\v0.3-smoke\build\slide_03\_render_tmp\option_A (LibreOffice engine, 120 dpi)
+  [  1/3] slide_03/option_A  ok
+
+Rendered 1 slides to slide-builder\_decisions\v0.3-smoke\build\slide_01\_render_tmp\option_A (LibreOffice engine, 120 dpi)
+  [  2/3] slide_01/option_A  ok
+  slide_01.png
+
+Rendered 1 slides to slide-builder\_decisions\v0.3-smoke\build\slide_02\_render_tmp\option_A (LibreOffice engine, 120 dpi)
+  [  3/3] slide_02/option_A  ok
+
+[5b] Per-option QC self-check
+  slide_01/option_A  warn (2w)
+  slide_02/option_A  warn (2w)
+  slide_03/option_A  warn (2w)
+  QC totals: all-ok=0  warn-only=3  block=0
+
+[6] Write RESULT.md
+  slide-builder\_decisions\v0.3-smoke\build\RESULT.md
+
+[7] Generate Gate 3 visual preview (GATE3-PREVIEW.html)
+
+======================================================================
+[2026-05-28T17:22:04] build_gate_preview.py
+======================================================================
+GATE3-PREVIEW.html written:
+  C:\Users\m.a.peralta\.claude\skills\.claude\worktrees\agent-abaae9e70ed8f6544\slide-builder\_decisions\v0.3-smoke\build\GATE3-PREVIEW.html
+  3 slides, 9 option tiles
+  Missing PNGs: 6 (preview will show placeholder boxes)
+  GATE3-PREVIEW.html written:
+    C:\Users\m.a.peralta\.claude\skills\.claude\worktrees\agent-abaae9e70ed8f6544\slide-builder\_decisions\v0.3-smoke\build\GATE3-PREVIEW.html
+    3 slides, 9 option tiles
+    Missing PNGs: 6 (preview will show placeholder boxes)
+
+========================================================================
+DONE — Part B complete.
+  Native   : 3
+  Mermaid  : 0
+  Rejected : 0
+  Built    : 3 / 9
+  Themed   : 3 / 9
+  Rendered : 3 / 9
+  Report   : slide-builder\_decisions\v0.3-smoke\build\RESULT.md
+========================================================================

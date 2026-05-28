@@ -523,9 +523,8 @@ def run_smoke(rebuild: bool = False, verbose: bool = True) -> int:
         for e in color_errs:
             print(f"  FAIL: {e}")
     elif verbose:
-        print("  ok: body_canonical_light title -> 000000 (TEXT_DARK)")
-        print("  ok: body_canonical_dark  title -> FFFFFF (WHITE)")
-        print("  ok: cover_dark           title -> FFFFFF (WHITE)")
+        print("  ok: cover_dark title -> FFFFFF (light_on_dark flip)")
+        print("  ok: _text_colors_for differs between dark_on_light and light_on_dark")
 
     if verbose:
         print("\n[Phase 4b] v2 inheritance fields populated")

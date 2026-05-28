@@ -1,0 +1,52 @@
+v0.3 implementation output paths (2026-05-28)
+==============================================
+
+Status: claimed-complete-by-implementation (see feedback_cleanup_chat_cannot_self_declare).
+
+Branch: worktree-agent-abaae9e70ed8f6544
+
+Smoke build output (body-canonical inheritance + dark overlay against OTC):
+
+  Brief:           slide-builder/_decisions/v0.3-smoke/smoke_brief.md
+  Build dir:       slide-builder/_decisions/v0.3-smoke/build/
+  Per-slide PPTX:
+    slide_01/option_A.pptx  (Use as default slide template; body-canonical light)
+    slide_02/option_A.pptx  (Layout 01; body-canonical light + dark overlay)
+    slide_03/option_A.pptx  (Use as default slide template_subtitle; body-canonical light)
+  Per-slide PNG:
+    slide_01/option_A.png
+    slide_02/option_A.png
+    slide_03/option_A.png
+
+OTC chrome.yml (re-registered with v2 schema + implementer_default commit marker):
+  C:/Users/m.a.peralta/OneDrive - Accenture/Library/FedEx/OTC/OTC Opportunity.chrome.yml
+  C:/Users/m.a.peralta/OneDrive - Accenture/Library/FedEx/OTC/OTC Opportunity.chrome.commit_method.txt
+  C:/Users/m.a.peralta/OneDrive - Accenture/Library/FedEx/OTC/OTC Opportunity.register.html
+  C:/Users/m.a.peralta/OneDrive - Accenture/Library/FedEx/OTC/OTC Opportunity.picks.json
+
+Verification (python-pptx introspection):
+
+  Slide 1: layout 'Use as default slide template'
+           Inherited title placeholder populated: 'OTC body light - inherited title placeholder'
+           No body-overlay shape (expected — light variant)
+
+  Slide 2: layout 'Layout 01'
+           Inherited title placeholder populated: 'OTC body dark via overlay'
+           body-overlay shape present, fill=0A1A2E, covers body zone EMU
+           z-order: overlay sits BEHIND grafted shapes (inserted at spTree position 2)
+
+  Slide 3: layout 'Use as default slide template_subtitle'
+           Inherited title placeholder populated: 'OTC body light - second slide'
+
+Contract test: 14 / 14 checks PASS, including chrome schema roundtrip @ version 2.
+Smoke test:    Phases 1-5 PASS (added Phase 4b v2 inheritance, Phase 4c v1 back-compat).
+
+Cover/bespoke smoke note:
+  OTC Cover layout has no inherited title placeholder. The plan called for one
+  bespoke cover slide but OTC's Cover only carries body-type placeholders, which
+  the v0.2 extractor maps to body roles. Slide 3 in the smoke brief substitutes
+  a second body-canonical layout (Use as default slide template_subtitle) so the
+  smoke focuses on the body-canonical inheritance path (the v0.3 fix). The
+  bespoke cover path is exercised by the synthetic 'cover_dark' fixture in
+  slide-builder/tests/fixtures/layout_diverse_template.pptx, which the
+  layout-inheritance smoke covers under Phase 3 + Phase 4.
