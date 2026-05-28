@@ -955,6 +955,62 @@ def check_layout_inheritance_roundtrip_per_layout() -> list[str]:
     except Exception:
         return errors
 
+    # Synthetic always-runs case (P1.5 hardening): even with no disk fixtures
+    # available, exercise the extractor + roundtrip path so a refactor that
+    # breaks classification or BoxPx round-trips trips this check.
+    import tempfile as _tf
+    with _tf.TemporaryDirectory() as _td:
+        _tpl = Path(_td) / "synthetic.pptx"
+        _Pres().save(str(_tpl))
+        _prs = _Pres(str(_tpl))
+        _spec1 = rt.extract_chrome_spec(_prs, sha8="aaaaaaaa")
+        # Dump + reload to exercise YAML serialization.
+        _yml = Path(_td) / "synthetic.chrome.yml"
+        dump_chrome_yml(_spec1, _yml)
+        _loaded = load_chrome_yml(_yml)
+        if set(_loaded.layouts) != set(_spec1.layouts):
+            errors.append(
+                f"inheritance roundtrip [synthetic]: layout-key drift "
+                f"{set(_spec1.layouts)} -> {set(_loaded.layouts)}"
+            )
+        _prs2 = _Pres(str(_tpl))
+        _spec2 = rt.extract_chrome_spec(
+            _prs2, sha8="aaaaaaaa",
+            classifications_override={
+                n: lc.layout_class for n, lc in _loaded.layouts.items()
+            },
+        )
+        for name, lc1 in _loaded.layouts.items():
+            lc2 = _spec2.layouts.get(name)
+            if lc2 is None:
+                errors.append(
+                    f"inheritance roundtrip [synthetic]: layout {name!r} "
+                    f"disappeared on re-extract"
+                )
+                continue
+            if lc1.layout_class != lc2.layout_class:
+                errors.append(
+                    f"inheritance roundtrip [synthetic]: layout {name!r} "
+                    f"class drift {lc1.layout_class!r} -> {lc2.layout_class!r}"
+                )
+            for field in ("title", "subtitle", "footnote", "source", "page_number"):
+                b1 = getattr(lc1, field)
+                b2 = getattr(lc2, field)
+                if (b1 is None) != (b2 is None):
+                    errors.append(
+                        f"inheritance roundtrip [synthetic]: {name!r}.{field} "
+                        f"presence drift"
+                    )
+                    continue
+                if b1 is not None and b2 is not None:
+                    for axis in ("x_px", "y_px", "w_px", "h_px"):
+                        if getattr(b1, axis) != getattr(b2, axis):
+                            errors.append(
+                                f"inheritance roundtrip [synthetic]: "
+                                f"{name!r}.{field}.{axis} drift "
+                                f"{getattr(b1, axis)} -> {getattr(b2, axis)}"
+                            )
+
     for chrome_yml, pptx in pairs:
         try:
             stored = load_chrome_yml(chrome_yml)
@@ -1022,16 +1078,98 @@ def check_layout_inheritance_roundtrip_per_layout() -> list[str]:
     if not errors:
         if templates_checked == 0:
             _ok(
-                "layout inheritance roundtrip: no registered templates "
-                "found on disk (search roots: "
+                "layout inheritance roundtrip: synthetic roundtrip OK; "
+                "no registered templates found on disk (search roots: "
                 + ", ".join(str(r) for r in _REGISTERED_TEMPLATE_SEARCH_ROOTS)
                 + ")"
             )
         else:
             _ok(
-                f"layout inheritance roundtrip: {layouts_checked} layouts "
-                f"across {templates_checked} registered templates match within 0 px"
+                f"layout inheritance roundtrip: synthetic OK + "
+                f"{layouts_checked} layouts across {templates_checked} "
+                f"registered templates match within 0 px"
             )
+    return errors
+
+
+# ---------------------------------------------------------------------------
+# Check 13 — layout resolution fail-loud (P1.5 hardening)
+#
+# Exercises build_deck.resolve_slide_layouts with a brief lacking both per-
+# slide Layout and front-matter default_layout. Asserts errors list is
+# non-empty AND that emit_layout_resolution_error formats correctly. Protects
+# the P1.4 exit-9 fail-loud gate against future regressions where someone
+# adds a silent default.
+# ---------------------------------------------------------------------------
+
+def check_layout_resolution_fails_loud() -> list[str]:
+    errors: list[str] = []
+    try:
+        import build_deck as bd
+    except Exception as exc:
+        errors.append(f"layout-resolution check: cannot import build_deck: {exc}")
+        return errors
+
+    # Minimal synthetic brief with two slides and no layout anywhere.
+    brief = {
+        "front_matter": {"client_template": "T.pptx", "deck_type": "POV"},
+        "deck_notes": "",
+        "slides": [
+            {"slide_n": 1, "title": "Cover", "archetype": "", "layout": "",
+             "governing_thought": "", "so_what": "", "editorial_emphasis": "",
+             "evidence_content": "", "chart_type": "none", "not_this_slide": ""},
+            {"slide_n": 2, "title": "Body", "archetype": "", "layout": "",
+             "governing_thought": "", "so_what": "", "editorial_emphasis": "",
+             "evidence_content": "", "chart_type": "none", "not_this_slide": ""},
+        ],
+        "slide_total": 2,
+    }
+    # Template path doesn't have to exist for resolve_slide_layouts; it only
+    # tries to load chrome.yml as a best-effort, ignoring missing.
+    fake_tpl = Path("/_synthetic/T.pptx")
+    resolved, available, errs = bd.resolve_slide_layouts(brief, fake_tpl)
+    if len(errs) != 2:
+        errors.append(
+            f"layout-resolution: expected 2 errors (both slides lack layout), "
+            f"got {len(errs)}: {errs}"
+        )
+    if any(r != "" for r in resolved):
+        errors.append(
+            f"layout-resolution: resolved entries for failed slides should "
+            f"be empty strings; got {resolved}"
+        )
+
+    # Now with deck-level default — both should resolve.
+    brief_with_default = {**brief}
+    brief_with_default["front_matter"] = {
+        **brief["front_matter"], "default_layout": "body_canonical_light",
+    }
+    resolved2, _, errs2 = bd.resolve_slide_layouts(brief_with_default, fake_tpl)
+    if errs2:
+        errors.append(
+            f"layout-resolution: default_layout should resolve both slides; "
+            f"got errors {errs2}"
+        )
+    if resolved2 != ["body_canonical_light", "body_canonical_light"]:
+        errors.append(
+            f"layout-resolution: deck default not propagated; got {resolved2}"
+        )
+
+    # Per-slide overrides default.
+    brief_with_override = {**brief_with_default}
+    brief_with_override["slides"] = [
+        {**brief["slides"][0], "layout": "cover_light"},
+        brief["slides"][1],
+    ]
+    resolved3, _, errs3 = bd.resolve_slide_layouts(brief_with_override, fake_tpl)
+    if errs3 or resolved3 != ["cover_light", "body_canonical_light"]:
+        errors.append(
+            f"layout-resolution: per-slide override not honored; "
+            f"resolved={resolved3} errs={errs3}"
+        )
+
+    if not errors:
+        _ok("layout resolution fail-loud: 3 scenarios verified")
     return errors
 
 
@@ -1055,7 +1193,8 @@ def main() -> int:
                   check_chrome_sidecar_no_silent_fallback,
                   check_sidecar_freshness_vs_template_sha,
                   check_chrome_field_single_source,
-                  check_layout_inheritance_roundtrip_per_layout):
+                  check_layout_inheritance_roundtrip_per_layout,
+                  check_layout_resolution_fails_loud):
         errs = check()
         for e in errs:
             _fail(e)
