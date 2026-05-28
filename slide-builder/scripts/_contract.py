@@ -1282,6 +1282,55 @@ def check_layout_resolution_fails_loud() -> list[str]:
 
 
 # ---------------------------------------------------------------------------
+# Check 14 — layout-inheritance integration smoke (P1.9 audit punch list)
+#
+# Wraps tests/run_layout_inheritance_smoke.py. Gated on the fixture pptx
+# existing: a brand-new clone without the fixture skips the check rather
+# than spending several seconds building it inside the contract test
+# (the smoke is intentionally self-bootstrapping when run directly).
+# ---------------------------------------------------------------------------
+
+_SMOKE_FIXTURE_PPTX = HERE.parent / "tests" / "fixtures" / "layout_diverse_template.pptx"
+_SMOKE_SCRIPT = HERE.parent / "tests" / "run_layout_inheritance_smoke.py"
+
+
+def check_layout_inheritance_smoke_runs() -> list[str]:
+    errors: list[str] = []
+    if not _SMOKE_FIXTURE_PPTX.exists():
+        _ok(
+            "layout-inheritance smoke: skipped (fixture absent — run "
+            "tests/run_layout_inheritance_smoke.py to build it)"
+        )
+        return errors
+    if not _SMOKE_SCRIPT.exists():
+        errors.append(f"smoke script missing at {_SMOKE_SCRIPT}")
+        return errors
+    try:
+        result = subprocess.run(
+            [sys.executable, str(_SMOKE_SCRIPT), "--quiet"],
+            capture_output=True, text=True, timeout=240,
+        )
+    except FileNotFoundError as exc:
+        errors.append(f"cannot invoke python: {exc}")
+        return errors
+    except subprocess.TimeoutExpired:
+        errors.append("layout-inheritance smoke: timed out after 240s")
+        return errors
+    if result.returncode != 0:
+        tail = (result.stdout + result.stderr).strip().splitlines()[-20:]
+        errors.append(
+            "layout-inheritance smoke FAILED (exit "
+            f"{result.returncode}):\n" + "\n".join(tail)
+        )
+        return errors
+    _ok("layout-inheritance smoke: all 5 phases pass against fixture")
+    return errors
+
+
+import subprocess  # noqa: E402  — only used by the smoke check above
+
+
+# ---------------------------------------------------------------------------
 # Driver
 # ---------------------------------------------------------------------------
 
@@ -1302,7 +1351,8 @@ def main() -> int:
                   check_sidecar_freshness_vs_template_sha,
                   check_chrome_field_single_source,
                   check_layout_inheritance_roundtrip_per_layout,
-                  check_layout_resolution_fails_loud):
+                  check_layout_resolution_fails_loud,
+                  check_layout_inheritance_smoke_runs):
         errs = check()
         for e in errs:
             _fail(e)
