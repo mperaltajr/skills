@@ -35,6 +35,27 @@ import re
 from pptx.oxml.ns import qn
 
 
+def _find_named_layout(prs, layout_name: str):
+    """Find a slide layout by EXACT name across all masters.
+
+    Used by finalize_deck.py to graft each option onto the layout the brief
+    declared (chrome inheritance), instead of always falling back to blank.
+    Returns None when the name doesn't match — caller falls back to
+    _find_blank_layout.
+    """
+    if not layout_name:
+        return None
+    target = layout_name.strip()
+    if not target:
+        return None
+    for master in prs.slide_masters:
+        for layout in master.slide_layouts:
+            n = (layout.name or "").strip()
+            if n == target:
+                return layout
+    return None
+
+
 def _find_blank_layout(prs):
     """Find a blank slide layout across all masters in `prs`.
 

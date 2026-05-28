@@ -7,12 +7,47 @@ has to add its body-specific shapes.
 
 All position/size parameters are in CSS pixels (1280x720 canvas). Conversion to
 EMU happens inside this module.
+
+Chrome geometry contract (v0.2)
+-------------------------------
+Title / subtitle / footnote / source / page-number positions come from the
+client template's chrome.yml (LayoutChrome model in scripts/_chrome_schema.py),
+never from literals in this module. Helpers that draw chrome accept an
+explicit `chrome=` kwarg; when None, _resolve_active_chrome() loads from
+twins.helpers._ACTIVE_CHROME (set in-process by finalize_deck for the
+Mermaid-fallback path) or from SLIDE_LAB_CHROME_YML + SLIDE_LAB_LAYOUT_NAME
+env vars (set by finalize_deck before subprocess-invoking option_X.py). If
+neither is set, ChromeSidecarMissingError is raised — no silent fallback to
+hardcoded constants (that's the v1 slot-mapping bug class; see
+feedback_sidecar_fallback_must_be_loud).
 """
+from __future__ import annotations
+
+import os
+import sys
+from pathlib import Path
+
 from pptx import Presentation
 from pptx.util import Emu, Pt
 from pptx.dml.color import RGBColor
 from pptx.enum.shapes import MSO_SHAPE
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
+
+# scripts/ holds _chrome_schema.py — single source of truth for chrome geometry
+# and the LayoutChrome / ChromeSidecarMissingError types.
+_SCRIPTS_DIR = Path(__file__).resolve().parent.parent / "scripts"
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+
+from _chrome_schema import (  # noqa: E402
+    LayoutChrome, ChromeSidecarMissingError,
+    canonical_title_box, canonical_subtitle_box,
+    canonical_footnote_box, canonical_source_box, canonical_page_number_box,
+    CANONICAL_TITLE_X, CANONICAL_TITLE_FONT_PT, CANONICAL_SUBTITLE_FONT_PT,
+    CANONICAL_FOOTNOTE_FONT_PX, CANONICAL_SOURCE_FONT_PX,
+    CANONICAL_PAGE_NUMBER_FONT_PX,
+    load_chrome_yml,
+)
 
 # --- Brand palette (Accenture Graphik template — ACN Graphik Template.md) ---
 # lt2  = #460073  Deep Purple     — dark backgrounds, primary dark fills
@@ -27,8 +62,12 @@ BRAND_ACCENT_SOFT = RGBColor(0xC2, 0xA3, 0xFF)
 TEXT_DARK         = RGBColor(0x00, 0x00, 0x00)
 # mid-gray for secondary labels and captions
 TEXT_MID          = RGBColor(0x59, 0x59, 0x59)
-# light-gray for tertiary labels, rules, footnotes
+# light-gray for tertiary labels, rules, footnotes (on LIGHT backgrounds)
 TEXT_FAINT        = RGBColor(0x88, 0x88, 0x88)
+TEXT_FAINT_ON_LIGHT = TEXT_FAINT
+# Faint text variant for DARK backgrounds — needs to be light enough to read
+# against light_on_dark layouts (covers, dark hero sections).
+TEXT_FAINT_ON_DARK  = RGBColor(0xC8, 0xC8, 0xC8)
 SLIDE_BG          = RGBColor(0xFF, 0xFF, 0xFF)
 # accent3 = #E6DCFF  Very Light Purple — card / tile fills
 CARD_BG           = RGBColor(0xE6, 0xDC, 0xFF)
@@ -344,6 +383,91 @@ def add_rect(slide, shape_id, x_px, y_px, w_px, h_px, fill_color, *, no_line=Tru
 
 
 # ============================================================================
+# Active-chrome resolution
+# ============================================================================
+#
+# Helpers that draw chrome (add_title_block, add_footer, add_source,
+# add_footnote, add_convergence) read positions and text colors from a
+# LayoutChrome instance. Three resolution paths, tried in order:
+#
+#   1. Explicit `chrome=` kwarg — tests and bespoke callers pass this directly.
+#   2. Module attr `_ACTIVE_CHROME` — set by finalize_deck before in-process
+#      Mermaid-fallback assembly.
+#   3. Env vars `SLIDE_LAB_CHROME_YML` + `SLIDE_LAB_LAYOUT_NAME` — set by
+#      finalize_deck before subprocess-launching option_X.py.
+#
+# If none resolve, ChromeSidecarMissingError is raised. No silent fallback —
+# the v1 slot-mapping bug class lived inside that fallback path.
+
+_ACTIVE_CHROME: LayoutChrome | None = None
+
+
+def set_active_chrome(chrome: LayoutChrome | None) -> None:
+    """Inject a LayoutChrome for in-process helper calls. Set by finalize_deck
+    before running the Mermaid-fallback assembler; reset to None between
+    slides to keep adjacent runs hermetic."""
+    global _ACTIVE_CHROME
+    _ACTIVE_CHROME = chrome
+
+
+def _resolve_active_chrome() -> LayoutChrome:
+    """Return the LayoutChrome the helpers should draw against.
+
+    Raises ChromeSidecarMissingError when no source resolves — explicit
+    fail-loud behavior. The contract test `check_chrome_sidecar_no_silent_fallback`
+    asserts this path triggers on a missing sidecar.
+    """
+    if _ACTIVE_CHROME is not None:
+        return _ACTIVE_CHROME
+    chrome_yml_env = os.environ.get("SLIDE_LAB_CHROME_YML", "").strip()
+    layout_name_env = os.environ.get("SLIDE_LAB_LAYOUT_NAME", "").strip()
+    if chrome_yml_env and layout_name_env:
+        try:
+            spec = load_chrome_yml(Path(chrome_yml_env))
+        except ChromeSidecarMissingError:
+            raise
+        lc = spec.layouts.get(layout_name_env)
+        if lc is None:
+            raise ChromeSidecarMissingError(
+                f"chrome.yml at {chrome_yml_env} does not contain layout "
+                f"{layout_name_env!r}. Available: {sorted(spec.layouts)}"
+            )
+        return lc
+    raise ChromeSidecarMissingError(
+        "No chrome resolved. Pass chrome= explicitly, call set_active_chrome(), "
+        "or set SLIDE_LAB_CHROME_YML + SLIDE_LAB_LAYOUT_NAME env vars."
+    )
+
+
+def _text_colors_for(text_role: str) -> tuple[RGBColor, RGBColor]:
+    """Return (primary_text, faint_text) for the given text_role.
+
+    dark_on_light  -> (TEXT_DARK, TEXT_FAINT_ON_LIGHT)
+    light_on_dark  -> (WHITE,     TEXT_FAINT_ON_DARK)
+    """
+    if text_role == "light_on_dark":
+        return WHITE, TEXT_FAINT_ON_DARK
+    return TEXT_DARK, TEXT_FAINT_ON_LIGHT
+
+
+def _ensure_bespoke_box(chrome: LayoutChrome, attr_name: str):
+    """Return chrome.<attr_name> for a bespoke layout; raise if None.
+
+    Bespoke layouts MUST carry explicit positions for every chrome role they
+    use. Missing field means the template wasn't re-registered after a
+    layout change — raise loudly per the v0.2 design lock § 2.3.
+    """
+    box = getattr(chrome, attr_name, None)
+    if box is None:
+        raise ChromeSidecarMissingError(
+            f"bespoke layout {chrome.name!r} has no {attr_name} box in "
+            f"chrome.yml. Re-register the template "
+            f"(register_template.py propose -> commit)."
+        )
+    return box
+
+
+# ============================================================================
 # Universal invariants — chrome + title block + footer + convergence
 # ============================================================================
 
@@ -369,8 +493,30 @@ INTENTIONAL_FOOTNOTE_PLACEHOLDER = "[add footnote here or delete]"
 INTENTIONAL_SOURCE_PLACEHOLDER = "[add source here or delete]"
 
 
-def add_footer(slide, page_num, source=None, footnote=None):
-    """ALWAYS a footnote line + source line + page number (exact skeleton positions).
+def _chrome_box_for(chrome: LayoutChrome, role: str):
+    """Resolve a chrome BoxPx for the given role under the layout's class.
+
+    body-canonical -> canonical_*_box() from _chrome_schema
+    bespoke        -> chrome.<role> (raises if None)
+    """
+    if chrome.layout_class == "body-canonical":
+        return {
+            "title":       canonical_title_box(),
+            "subtitle":    canonical_subtitle_box(),
+            "footnote":    canonical_footnote_box(),
+            "source":      canonical_source_box(),
+            "page_number": canonical_page_number_box(),
+        }[role]
+    return _ensure_bespoke_box(chrome, role)
+
+
+def add_footer(slide, page_num, source=None, footnote=None, *,
+               chrome: LayoutChrome | None = None):
+    """Footnote line + source line + page number.
+
+    Positions come from `chrome` (LayoutChrome). When chrome is None,
+    _resolve_active_chrome() runs — raises ChromeSidecarMissingError if no
+    chrome source is available. No silent fallback to hardcoded literals.
 
     Invariant zone rule: ONLY sources, footnotes, and the page number may appear
     in the bottom invariant zone. No 'Slide Lab · YEAR · N' branding, no
@@ -381,106 +527,135 @@ def add_footer(slide, page_num, source=None, footnote=None):
     or omit for placeholders. The user is expected to fill or delete in
     PowerPoint; the builder never guesses whether the slide needs them.
 
-    Placeholder text comes from INTENTIONAL_FOOTNOTE_PLACEHOLDER and
-    INTENTIONAL_SOURCE_PLACEHOLDER module constants — these are the
-    cross-skill contract slide-qc imports to allowlist the convention.
-
-    Positions match the skeleton:
-      footnote     x=58   y=672  w=1164  h=16  (faint)
-      source       x=58   y=688  w=1100  h=16  (italic faint)
-      page number  x=1170 y=688  w=52    h=16  (right-aligned)
+    The page-number is suppressed when chrome.has_page_number is False
+    (cover-class layouts; replaces slide-qc's page_type == "cover" exemption).
     """
+    if chrome is None:
+        chrome = _resolve_active_chrome()
+    _, faint_color = _text_colors_for(chrome.text_role)
+
+    fn_box  = _chrome_box_for(chrome, "footnote")
+    src_box = _chrome_box_for(chrome, "source")
+
     footnote_text = footnote if footnote else INTENTIONAL_FOOTNOTE_PLACEHOLDER
     add_text(
         slide, "footnote-1", f"1. {footnote_text}",
-        x_px=58, y_px=672, w_px=1164, h_px=16,
-        font_size_px=10, color=TEXT_FAINT,
+        x_px=fn_box.x_px, y_px=fn_box.y_px,
+        w_px=fn_box.w_px, h_px=fn_box.h_px,
+        font_size_px=CANONICAL_FOOTNOTE_FONT_PX, color=faint_color,
     )
     source_text = source if source else INTENTIONAL_SOURCE_PLACEHOLDER
     add_text(
         slide, "source", f"Source: {source_text}",
-        x_px=58, y_px=688, w_px=1100, h_px=16,
-        font_size_px=10, color=TEXT_FAINT, italic=True,
+        x_px=src_box.x_px, y_px=src_box.y_px,
+        w_px=src_box.w_px, h_px=src_box.h_px,
+        font_size_px=CANONICAL_SOURCE_FONT_PX, color=faint_color, italic=True,
     )
-    add_text(
-        slide, "page-number", f"{page_num}",
-        x_px=1170, y_px=688, w_px=52, h_px=16,
-        font_size_px=11, color=TEXT_FAINT, align="right",
-    )
+    if chrome.has_page_number:
+        pn_box = _chrome_box_for(chrome, "page_number")
+        add_text(
+            slide, "page-number", f"{page_num}",
+            x_px=pn_box.x_px, y_px=pn_box.y_px,
+            w_px=pn_box.w_px, h_px=pn_box.h_px,
+            font_size_px=CANONICAL_PAGE_NUMBER_FONT_PX, color=faint_color,
+            align="right",
+        )
 
 
-def add_title_block(slide, title, subtitle, *,
-                    title_x=64, title_y=20, title_w=1000, title_h=80,
-                    subtitle_h=26):
-    """Standard title (28pt PPTX, BOTTOM-anchored) + subtitle (16pt PPTX italic).
+def add_title_block(slide, title, subtitle="", *,
+                    chrome: LayoutChrome | None = None):
+    """Title + optional subtitle. Positions and text colors come from chrome.
 
-    Title text is bottom-anchored within its 80px box, so the BOTTOM of the title
-    is at a fixed y position (title_y + title_h = y=100) regardless of whether
-    the title wraps to 1 or 2 lines. 2-line titles grow UPWARD from that bottom
-    line; they never displace the subtitle. Top of the 2-line title can extend
-    up to y=28 (still within the safe top zone).
+    Title is BOTTOM-anchored regardless of chrome's bespoke `anchor` field —
+    feedback_title_bottom_anchor invariant: 2-line titles grow upward, never
+    displace the subtitle. The chrome placeholder defines WHERE the title
+    region lives; Slide Lab decides HOW text fills that region.
 
     Title supports inline `<strong>X</strong>` for brand-primary emphasis
     (matches every approved pattern's HTML convention).
-
-    NOTE: this helper no longer auto-draws a brand-accent rule beneath the
-    subtitle. Helper-default accent decoration on every slide competed with
-    deliberate accent placement by agents, violating the "one accent moment
-    per slide" rule. Place accent on whatever element load-bears the takeaway:
-    a highlight bar on a chart, a callout on a card, a `BRAND_ACCENT` fill on
-    a recommendation band, etc. Cover and hero-statement slides build their
-    own title treatment via direct `add_text` calls (see cover exemplars).
     """
+    if chrome is None:
+        chrome = _resolve_active_chrome()
+    text_color, _ = _text_colors_for(chrome.text_role)
+
+    title_box = _chrome_box_for(chrome, "title")
     add_text(
         slide, "title", title,
-        x_px=title_x, y_px=title_y, w_px=title_w, h_px=title_h,
-        font_size_pt=28, color=TEXT_DARK, bold=True,
+        x_px=title_box.x_px, y_px=title_box.y_px,
+        w_px=title_box.w_px, h_px=title_box.h_px,
+        font_size_pt=title_box.font_pt or CANONICAL_TITLE_FONT_PT,
+        color=text_color, bold=True,
         emphasis_color=BRAND_PRIMARY,
         anchor="bottom",
     )
-    sub_y = title_y + title_h + 8
-    add_text(
-        slide, "subtitle", subtitle,
-        x_px=title_x, y_px=sub_y, w_px=title_w - 120, h_px=subtitle_h,
-        font_size_pt=16, color=TEXT_DARK, italic=True,
-    )
+
+    if subtitle:
+        # For bespoke layouts without a subtitle slot, fall back to the
+        # canonical subtitle box (positioned relative to canonical title).
+        # body-canonical always has subtitle via canonical_subtitle_box.
+        if chrome.layout_class == "bespoke" and chrome.subtitle is None:
+            return
+        subtitle_box = _chrome_box_for(chrome, "subtitle")
+        add_text(
+            slide, "subtitle", subtitle,
+            x_px=subtitle_box.x_px, y_px=subtitle_box.y_px,
+            w_px=subtitle_box.w_px, h_px=subtitle_box.h_px,
+            font_size_pt=subtitle_box.font_pt or CANONICAL_SUBTITLE_FONT_PT,
+            color=text_color, italic=True,
+        )
 
 
-def add_source(slide, source_text):
-    """Source citation in the bottom invariant zone, exact skeleton position
-    (x=58, y=688). Italic, faint text. Builders call this when their content
-    requires citing — it is NOT auto-emitted by add_footer.
+def add_source(slide, source_text, *, chrome: LayoutChrome | None = None):
+    """Source citation in the bottom invariant zone. Italic, faint text.
+    Builders call this when their content requires citing — NOT auto-emitted
+    by add_footer.
     """
+    if chrome is None:
+        chrome = _resolve_active_chrome()
+    _, faint_color = _text_colors_for(chrome.text_role)
+    src_box = _chrome_box_for(chrome, "source")
     add_text(
         slide, "source", f"Source: {source_text}",
-        x_px=58, y_px=688, w_px=1100, h_px=16,
-        font_size_px=10, color=TEXT_FAINT, italic=True,
+        x_px=src_box.x_px, y_px=src_box.y_px,
+        w_px=src_box.w_px, h_px=src_box.h_px,
+        font_size_px=CANONICAL_SOURCE_FONT_PX, color=faint_color, italic=True,
     )
 
 
-def add_footnote(slide, n, text):
+def add_footnote(slide, n, text, *, chrome: LayoutChrome | None = None):
     """Footnote (numbered) in the bottom invariant zone, just above source.
-    Skeleton position (x=58, y=672). Builders call this when their content
-    references footnotes — it is NOT auto-emitted by add_footer.
+    Builders call this when their content references footnotes — NOT
+    auto-emitted by add_footer.
     """
+    if chrome is None:
+        chrome = _resolve_active_chrome()
+    _, faint_color = _text_colors_for(chrome.text_role)
+    fn_box = _chrome_box_for(chrome, "footnote")
     add_text(
         slide, f"footnote-{n}", f"{n}. {text}",
-        x_px=58, y_px=672, w_px=1164, h_px=16,
-        font_size_px=10, color=TEXT_FAINT,
+        x_px=fn_box.x_px, y_px=fn_box.y_px,
+        w_px=fn_box.w_px, h_px=fn_box.h_px,
+        font_size_px=CANONICAL_FOOTNOTE_FONT_PX, color=faint_color,
     )
 
 
 def add_convergence(slide, text, *, bottom_px=78, height_px=42):
-    """Brand-primary band at bottom of body. White italic text."""
-    y = 720 - bottom_px - height_px
+    """Brand-primary band at bottom of body. White italic text.
+
+    Body width is derived from CANONICAL_TITLE_X — the band sits inside the
+    same horizontal margins as the title. Lives in _chrome_schema so it
+    counts as a single-source coordinate reference.
+    """
+    y = SLIDE_H_PX - bottom_px - height_px
+    body_w = SLIDE_W_PX - (2 * CANONICAL_TITLE_X)
     add_rect(
         slide, "convergence-bg",
-        x_px=64, y_px=y, w_px=1280 - 128, h_px=height_px,
+        x_px=CANONICAL_TITLE_X, y_px=y, w_px=body_w, h_px=height_px,
         fill_color=BRAND_PRIMARY,
     )
     add_text(
         slide, "convergence", text,
-        x_px=64, y_px=y, w_px=1280 - 128, h_px=height_px,
+        x_px=CANONICAL_TITLE_X, y_px=y, w_px=body_w, h_px=height_px,
         font_size_px=14, color=WHITE, italic=True, bold=False,
         anchor="middle", padding_px=(0, 22, 0, 22),
     )
