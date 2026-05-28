@@ -109,6 +109,9 @@ import subprocess  # noqa: E402
 
 import _paths as _p  # noqa: E402
 from _meta_schema import MetaJson, META_SCHEMA_VERSION_CURRENT  # noqa: E402
+from _chrome_schema import (  # noqa: E402
+    ChromeSidecarMissingError, load_chrome_yml,
+)
 
 # Re-export under the historical name for clarity at the writer site (line
 # ~970 in write_meta_json). The single canonical source is _meta_schema.py.
@@ -139,6 +142,7 @@ DECK_NOTES_RE = re.compile(
 FIELD_LABELS = {
     "title":               ("slide title",),
     "archetype":           ("archetype",),
+    "layout":              ("layout",),  # v0.2 P1.4
     "governing_thought":   ("governing thought", "governing thought (the claim)"),
     "so_what":             ("so-what", "so what", "so-what (the takeaway)"),
     "editorial_emphasis":  ("editorial emphasis",),
@@ -297,6 +301,7 @@ def parse_brief(brief_path: Path) -> dict[str, Any]:
             "title": (title or extract_field(block, FIELD_LABELS["title"])
                       or f"Slide {slide_n}"),
             "archetype": extract_field(block, FIELD_LABELS["archetype"]),
+            "layout": extract_field(block, FIELD_LABELS["layout"]),  # v0.2 P1.4
             "governing_thought": extract_field(block, FIELD_LABELS["governing_thought"]),
             "so_what": extract_field(block, FIELD_LABELS["so_what"]),
             "editorial_emphasis": extract_field(block, FIELD_LABELS["editorial_emphasis"]),
@@ -1012,6 +1017,9 @@ def write_meta_json(
                                    or _normalize_archetype_to_page_type(
                                        slide.get("archetype", "") or ""
                                    ),
+            # v0.2 P1.4: chrome.yml layout name for this slide. Required at
+            # v3; resolve_slide_layouts already gates this is non-empty.
+            "layout":             slide.get("layout", "") or "",
         })
 
     # `generated_at` lives at TOP LEVEL because build_review.py:1117 reads it
@@ -1086,6 +1094,104 @@ def _check_mmdc_installed() -> tuple[bool, str]:
     return True, version
 
 
+# ----------------------------------------------------------------------
+# v0.2 P1.4 — per-slide layout resolution + fail-loud gate
+# ----------------------------------------------------------------------
+
+def resolve_slide_layouts(
+    brief: dict[str, Any], template_path: Path
+) -> tuple[list[str], list[str], list[str]]:
+    """Resolve each slide's layout name from per-slide field -> deck default
+    -> fail-loud.
+
+    Returns (per_slide_layouts, available_layouts, errors).
+    per_slide_layouts: list aligned to brief['slides'], each entry is the
+      resolved layout name (non-empty) — OR empty when resolution failed,
+      with the offending slide enumerated in `errors`.
+    available_layouts: list of layout names from chrome.yml (or [] if
+      chrome.yml unreadable).
+    errors: list of per-slide error strings (offending slide titles).
+    """
+    front_matter = brief.get("front_matter", {}) or {}
+    deck_default = (front_matter.get("default_layout") or "").strip()
+    slides = brief.get("slides", []) or []
+
+    available: list[str] = []
+    try:
+        spec = load_chrome_yml(_p.chrome_yml(template_path))
+        available = sorted(spec.layouts)
+    except ChromeSidecarMissingError:
+        # chrome.yml missing handled by stage1_sanity_check; the layout
+        # resolution still proceeds so the error enumeration can be precise.
+        available = []
+    except Exception:
+        available = []
+
+    resolved: list[str] = []
+    errors: list[str] = []
+    for slide in slides:
+        per_slide = (slide.get("layout") or "").strip()
+        chosen = per_slide or deck_default
+        if not chosen:
+            errors.append(
+                f"Slide {slide['slide_n']} — \"{slide.get('title', '(untitled)')}\""
+            )
+            resolved.append("")
+            continue
+        if available and chosen not in available:
+            errors.append(
+                f"Slide {slide['slide_n']} — \"{slide.get('title', '(untitled)')}\""
+                f" requests layout {chosen!r} which is not in chrome.yml"
+            )
+            resolved.append("")
+            continue
+        resolved.append(chosen)
+    return resolved, available, errors
+
+
+def emit_layout_resolution_error(
+    template_path: Path, errors: list[str], available: list[str],
+    front_matter: dict[str, str],
+) -> None:
+    """Write the design-locked exit-9 message to stderr.
+
+    Format matches § 5.1 of v0.2-layout-inheritance-design-lock.md so the
+    operator gets exactly the two-paths-to-fix guidance the spec promised.
+    """
+    sys.stderr.write(
+        "ERROR: brief is missing required `Layout:` field on these slides, and no\n"
+        "       `default_layout:` is set in the front-matter:\n\n"
+    )
+    for entry in errors:
+        sys.stderr.write(f"   {entry}\n")
+    sys.stderr.write("\n")
+    chrome_yml_path = _p.chrome_yml(template_path)
+    if available:
+        sys.stderr.write(
+            f"Available layouts registered for {template_path.name} "
+            f"(from {chrome_yml_path.name}):\n"
+        )
+        for name in available:
+            sys.stderr.write(f"   {name}\n")
+    else:
+        sys.stderr.write(
+            f"No layouts found in {chrome_yml_path} (file missing or empty). "
+            f"Re-register the template via register_template.py propose -> commit.\n"
+        )
+    sys.stderr.write(
+        "\nTwo ways to fix:\n\n"
+        "   (A) Add `default_layout: <name>` to the brief's YAML front-matter to apply\n"
+        "       one layout to every slide that doesn't override:\n\n"
+        "       ---\n"
+        f"       client_template: {front_matter.get('client_template', '<path>')}\n"
+        f"       deck_type: {front_matter.get('deck_type', '<type>')}\n"
+        "       default_layout: body_canonical_light    <-- ADD THIS LINE\n"
+        "       ---\n\n"
+        "   (B) Add `**Layout:** <name>` to each slide block listed above.\n\n"
+        "Exit code: 9 (brief-missing-required-layout)\n"
+    )
+
+
 def stage1_sanity_check(template_path: Path) -> int:
     """Verify shared-infra prerequisites BEFORE agent dispatch.
 
@@ -1123,6 +1229,30 @@ def stage1_sanity_check(template_path: Path) -> int:
             "       Re-register the template:\n"
             f"  py -3 scripts/register_template.py propose \"{template_path}\"\n"
             f"  py -3 scripts/register_template.py commit  \"{template_path}\" --picks <picks.json>\n"
+        )
+        return 7
+
+    # Check (a.2): chrome.yml present (v0.2 P1.4). brand.yml is sufficient
+    # for theme remap but finalize_deck refuses to graft without chrome.yml.
+    # Halt at prep so the operator re-registers before agent dispatch.
+    chrome_yml_path = _p.chrome_yml(template_path)
+    if not chrome_yml_path.exists():
+        sys.stderr.write(
+            f"ERROR: chrome.yml missing for template.\n"
+            f"  Expected at: {chrome_yml_path}\n\n"
+            "v0.2 finalize_deck requires the per-layout chrome sidecar. "
+            "Re-register to produce it:\n"
+            f"  py -3 scripts/register_template.py propose \"{template_path}\"\n"
+            f"  py -3 scripts/register_template.py commit  \"{template_path}\" --picks <picks.json>\n"
+        )
+        return 7
+    try:
+        load_chrome_yml(chrome_yml_path)
+    except Exception as exc:
+        sys.stderr.write(
+            f"ERROR: chrome.yml at {chrome_yml_path} failed to load: "
+            f"{type(exc).__name__}: {exc}\n"
+            "Re-register the template (register_template.py propose -> commit).\n"
         )
         return 7
 
@@ -1195,6 +1325,22 @@ def main() -> int:
     slides = brief["slides"]
     slide_total = brief["slide_total"]
     deck_notes = brief["deck_notes"]
+
+    # 1.5 v0.2 P1.4: resolve every slide's layout name; fail-loud with exit 9
+    # if any slide lacks one (per-slide field OR deck default OR missing).
+    slide_layouts, available_layouts, layout_errors = resolve_slide_layouts(
+        brief, args.template
+    )
+    if layout_errors:
+        emit_layout_resolution_error(
+            args.template, layout_errors, available_layouts,
+            brief.get("front_matter", {}) or {},
+        )
+        return 9
+    # Splice resolved layouts back into brief['slides'] so downstream
+    # consumers (meta writer, dispatch plan) see the canonical value.
+    for slide, layout_name in zip(slides, slide_layouts):
+        slide["layout"] = layout_name
 
     # 2. Pattern-hint pass — forecast each slide
     forecasts: list[str] = [forecast_pattern(s) for s in slides]
