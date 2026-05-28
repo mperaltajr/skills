@@ -73,9 +73,16 @@ sys.path.insert(0, str(QC_SCRIPTS))
 from pptx import Presentation  # noqa: E402
 from pptx.util import Emu, Pt  # noqa: E402
 from pptx.dml.color import RGBColor  # noqa: E402
-from pptx.enum.shapes import MSO_SHAPE  # noqa: E402
+from pptx.enum.shapes import MSO_SHAPE, PP_PLACEHOLDER  # noqa: E402
 from pptx.enum.text import PP_ALIGN, MSO_ANCHOR  # noqa: E402
 from pptx.oxml.ns import qn  # noqa: E402
+
+import _paths as _p  # noqa: E402
+from _chrome_schema import (  # noqa: E402
+    BoxPx, LayoutChrome, ChromeSpec,
+    CHROME_SCHEMA_VERSION_CURRENT,
+    dump_chrome_yml,
+)
 
 try:
     import yaml
@@ -793,6 +800,7 @@ def render_register_html(proposal: dict, html_path: Path) -> bool:
 
     # Build palette JSON for the JS (the page is interactive, JS holds state)
     palette_json = json.dumps(palette)
+    layouts_json = json.dumps(proposal.get("layouts", []))
 
     preview_block = (
         f'<img src="{_html.escape(preview_rel)}" alt="Preview composite" class="preview-img">'
@@ -984,6 +992,45 @@ def render_register_html(proposal: dict, html_path: Path) -> bool:
     color: var(--text-mid);
     margin-top: 8px;
   }
+  .layout-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 12px;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    margin-bottom: 6px;
+    background: #FFFFFF;
+  }
+  .layout-meta { flex: 1; min-width: 0; }
+  .layout-name {
+    font-weight: 600;
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 13px;
+    color: var(--text-dk);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .layout-sub {
+    font-size: 11.5px;
+    color: var(--text-mid);
+    margin-top: 2px;
+  }
+  .layout-sub code {
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 11px;
+    color: var(--accent);
+  }
+  .layout-toggle {
+    display: flex;
+    gap: 12px;
+    font-size: 12.5px;
+    color: var(--text-dk);
+    white-space: nowrap;
+  }
+  .layout-toggle label { cursor: pointer; }
+  .layout-toggle input[type="radio"] { margin-right: 4px; cursor: pointer; }
 </style>
 </head>
 <body>
@@ -1061,8 +1108,22 @@ def render_register_html(proposal: dict, html_path: Path) -> bool:
   </div>
 </section>
 
+<section id="layouts-section">
+  <h2>3. Confirm layout classifications (v0.2)</h2>
+  <div class="help">
+    For each slide layout in the template, Slide Lab auto-detected whether it
+    is <strong>body-canonical</strong> (master decorates; layout is mostly
+    empty; ~90&#37; of consulting body slides) or <strong>bespoke</strong>
+    (art-directed cover / section divider / dark hero where the chrome IS the
+    slide). The auto-detection is a heuristic. Override below when the
+    template ships an art-directed body layout that decorated itself or a
+    cover layout that auto-detected as a blank chrome frame.
+  </div>
+  <div id="layouts-list"></div>
+</section>
+
 <section id="strip-section">
-  <h2>3. Strip baked-in master backgrounds?</h2>
+  <h2>4. Strip baked-in master backgrounds?</h2>
   <div class="help">
     Many client templates ship with photographic decoration baked into the slide master
     (stadium photos, building shots, brand watermarks). Those bleed through behind every
@@ -1082,7 +1143,7 @@ def render_register_html(proposal: dict, html_path: Path) -> bool:
 </section>
 
 <section id="commit-section">
-  <h2>4. Copy picks JSON and paste back to the chat</h2>
+  <h2>5. Copy picks JSON and paste back to the chat</h2>
   <div class="help">
     Click the button to copy the picks JSON to your clipboard. Paste it back to the chat
     where you opened this page. The orchestrator will write it to disk and run
@@ -1098,11 +1159,14 @@ def render_register_html(proposal: dict, html_path: Path) -> bool:
 
 <script>
 const palette = PALETTE_JSON;
+const layouts = LAYOUTS_JSON;
 const bestGuess = {
   primary_slot: "BG_PRIMARY",
   accent_slot:  "BG_ACCENT",
   cover_bg_slot:"BG_COVER",
 };
+const layoutClassifications = {};
+layouts.forEach(l => { layoutClassifications[l.name] = l.auto_class; });
 
 // Build swatches for one picker row.
 function buildSwatches(rowId, role) {
@@ -1185,6 +1249,7 @@ function refreshUI() {
     cover_bg_slot: state.cover_bg_slot,
     cover_bg_hex:  state.cover_bg_hex,
     strip_master_backgrounds: state.strip_master_backgrounds,
+    layout_classifications: layoutClassifications,
   };
   document.getElementById("picks-json").textContent = JSON.stringify(payload, null, 2);
 
@@ -1194,10 +1259,52 @@ function refreshUI() {
   btn.textContent = "Copy picks JSON to clipboard";
 }
 
+// Build per-layout classification rows
+function buildLayoutRows() {
+  const container = document.getElementById("layouts-list");
+  if (!container) return;
+  container.innerHTML = "";
+  if (!layouts.length) {
+    container.innerHTML = '<div class="help">No layouts detected in this template.</div>';
+    return;
+  }
+  layouts.forEach(l => {
+    const row = document.createElement("div");
+    row.className = "layout-row";
+    const auto = l.auto_class;
+    const bgLabel = l.background === "dark" ? "dark bg" : "light bg";
+    const pnLabel = l.has_page_number ? "page#" : "no-page#";
+    row.innerHTML = `
+      <div class="layout-meta">
+        <div class="layout-name">${l.name}</div>
+        <div class="layout-sub">
+          auto: <code>${auto}</code> &middot;
+          ${l.n_placeholders} placeholders, ${l.n_shapes} shapes &middot;
+          ${bgLabel} &middot; ${pnLabel}
+        </div>
+      </div>
+      <div class="layout-toggle">
+        <label><input type="radio" name="lc-${l.name}" value="body-canonical"
+               ${auto === 'body-canonical' ? 'checked' : ''}> body-canonical</label>
+        <label><input type="radio" name="lc-${l.name}" value="bespoke"
+               ${auto === 'bespoke' ? 'checked' : ''}> bespoke</label>
+      </div>
+    `;
+    container.appendChild(row);
+    row.querySelectorAll(`input[name="lc-${l.name}"]`).forEach(input => {
+      input.addEventListener("change", (e) => {
+        layoutClassifications[l.name] = e.target.value;
+        refreshUI();
+      });
+    });
+  });
+}
+
 // Wire up
 buildSwatches("sw-primary", "primary_slot");
 buildSwatches("sw-accent",  "accent_slot");
 buildSwatches("sw-cover",   "cover_bg_slot");
+buildLayoutRows();
 document.getElementById("strip-bg").addEventListener("change", refreshUI);
 document.getElementById("copy-btn").addEventListener("click", () => {
   const txt = document.getElementById("picks-json").textContent;
@@ -1227,6 +1334,7 @@ refreshUI();
         .replace("FONT_BODY",   _html.escape(fonts_body))
         .replace("PREVIEW_BLOCK", preview_block)
         .replace("PALETTE_JSON", palette_json)
+        .replace("LAYOUTS_JSON", layouts_json)
         .replace("BG_PRIMARY",  _html.escape(bg_primary))
         .replace("BG_ACCENT",   _html.escape(bg_accent))
         .replace("BG_COVER",    _html.escape(bg_cover))
@@ -1388,6 +1496,41 @@ def pick_index(prompt: str, n_max: int) -> int:
 
 
 # ---------------------------------------------------------------------------
+# chrome.yml writer — used by every commit path (interactive, propose/commit,
+# auto-accept). Re-opens the template to extract; stamps sha8; writes to
+# _p.chrome_yml(tpl). Returns 0 on success, 2 on failure.
+# ---------------------------------------------------------------------------
+
+def _write_chrome_yml_for(tpl: Path, *, sha8: str,
+                          layout_overrides: dict | None) -> int:
+    """Extract and dump <stem>.chrome.yml next to the template.
+
+    sha8 freshness-stamps the spec so finalize_deck.py can hard-fail when the
+    .pptx mutates after registration. layout_overrides lets picks.json
+    reclassify any layout body-canonical <-> bespoke.
+    """
+    chrome_yml_path = _p.chrome_yml(tpl)
+    try:
+        prs = Presentation(str(tpl))
+        spec = extract_chrome_spec(prs, sha8=sha8,
+                                   classifications_override=layout_overrides)
+        dump_chrome_yml(spec, chrome_yml_path)
+    except Exception as exc:
+        print(f"  ERROR: chrome.yml extraction failed: "
+              f"{type(exc).__name__}: {exc}")
+        return 2
+    n_layouts = len(spec.layouts)
+    n_bespoke = sum(1 for v in spec.layouts.values()
+                    if v.layout_class == "bespoke")
+    n_canonical = n_layouts - n_bespoke
+    print(f"  chrome.yml:  {chrome_yml_path}")
+    print(f"               {n_layouts} layouts "
+          f"({n_canonical} body-canonical, {n_bespoke} bespoke); "
+          f"sha8={sha8}")
+    return 0
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 def _main_interactive(args) -> int:
@@ -1454,6 +1597,9 @@ def _main_interactive(args) -> int:
             cover_bg_hex, cover_bg_slot, font_heading, font_body,
             strip_master_backgrounds, colors, n_master, n_layout
         )
+        rc = _write_chrome_yml_for(tpl, sha8=sha8, layout_overrides=None)
+        if rc != 0:
+            return rc
         print(f"\n  Preview PNG: {preview_png}")
         print(f"  Review and re-run register_template.py (without --auto-accept-phase1)")
         print(f"  to confirm or override.")
@@ -1558,13 +1704,16 @@ def _main_interactive(args) -> int:
         print("  please answer Y, N, or E")
 
     # ---- Phase 4: write canonical files ----
-    print("\n[Phase 4] Write brand.yml + theme.json")
+    print("\n[Phase 4] Write brand.yml + theme.json + chrome.yml")
     _write_outputs(
         tpl, sha, sha8, primary_hex, primary_slot,
         accent_hex, accent_slot, cover_bg_hex, cover_bg_slot,
         font_heading, font_body, strip_master_backgrounds,
         colors, n_master, n_layout
     )
+    rc = _write_chrome_yml_for(tpl, sha8=sha8, layout_overrides=None)
+    if rc != 0:
+        return rc
     return 0
 
 
@@ -1614,6 +1763,280 @@ def _write_outputs(tpl: Path, sha: str, sha8: str,
 
 
 # ---------------------------------------------------------------------------
+# Chrome extraction (v0.2 P1.2) — body-canonical vs bespoke classifier
+# ---------------------------------------------------------------------------
+#
+# For each slide_layout in the template:
+#   1. Classify as body-canonical (chrome frame only) or bespoke (art-directed).
+#      Heuristic: count non-placeholder shapes. <=2 -> body-canonical. The user
+#      can override per-layout in register.html before commit.
+#   2. For bespoke layouts: walk placeholders, extract bounds in EMU, convert
+#      to px (96 DPI), populate the title/subtitle/footnote/source/page_number
+#      fields. Missing placeholder -> field stays None (no silent canonical
+#      fallback — that's the v1 slot-mapping bug class).
+#   3. For body-canonical layouts: leave position fields None. helpers.py
+#      reads canonical_*_box() constants from _chrome_schema.py at build time.
+#   4. Detect text_role from master+layout background luminance.
+#
+# Result lands in <template-stem>.chrome.yml next to brand.yml / theme.json.
+
+_EMU_PER_PX: int = 9525  # 96 DPI: 1 px = 9525 EMU. python-pptx convention.
+
+
+def _emu_to_px(emu: int) -> int:
+    """Convert EMU to integer px at 96 DPI. None-safe (returns 0 for None)."""
+    if emu is None:
+        return 0
+    return int(round(int(emu) / _EMU_PER_PX))
+
+
+def _luminance_from_hex(hex_str: str) -> float:
+    """Rec. 709 luminance in [0, 255] from a 6-char hex string. NaN on bad input."""
+    s = (hex_str or "").lstrip("#")
+    if len(s) != 6:
+        return float("nan")
+    try:
+        r = int(s[0:2], 16)
+        g = int(s[2:4], 16)
+        b = int(s[4:6], 16)
+    except ValueError:
+        return float("nan")
+    return 0.299 * r + 0.587 * g + 0.114 * b
+
+
+def _walk_for_first_srgb(element) -> str:
+    """Return the first <a:srgbClr val="..."> hex found under `element`, or ''."""
+    for el in element.iter():
+        tag = el.tag.split("}", 1)[-1] if "}" in el.tag else el.tag
+        if tag == "srgbClr":
+            val = el.get("val")
+            if val and len(val) == 6:
+                return val.upper()
+    return ""
+
+
+def _bg_is_dark(element) -> bool | None:
+    """Inspect the element's <p:cSld><p:bg> and return True/False/None.
+
+    True  -> luminance < 128 (dark background)
+    False -> luminance >= 128 (light background)
+    None  -> no resolvable srgb fill (caller falls back to caller's default)
+    """
+    bg_el = None
+    csld = element.find(qn("p:cSld"))
+    if csld is not None:
+        bg_el = csld.find(qn("p:bg"))
+    if bg_el is None:
+        return None
+    hex_val = _walk_for_first_srgb(bg_el)
+    if not hex_val:
+        return None
+    lum = _luminance_from_hex(hex_val)
+    if lum != lum:  # NaN
+        return None
+    return lum < 128.0
+
+
+def _detect_text_role_for_layout(layout) -> tuple[str, str]:
+    """Return (text_role, background) for one layout.
+
+    Inspects the LAYOUT's own background first; falls back to its slide
+    MASTER's background; defaults to light_on_dark only when there's an
+    explicit dark fill signal. Defaults to dark_on_light otherwise.
+    """
+    layout_dark = _bg_is_dark(layout.element)
+    master_dark = _bg_is_dark(layout.slide_master.element)
+    is_dark = layout_dark if layout_dark is not None else master_dark
+    if is_dark is True:
+        return "light_on_dark", "dark"
+    return "dark_on_light", "light"
+
+
+def _classify_layout(layout) -> str:
+    """Heuristic classifier: body-canonical vs bespoke.
+
+    Counts non-placeholder shapes (art-direction candidates). <=2 -> body-
+    canonical (master decorates, layout is mostly empty). Higher counts mean
+    cover-style art direction lives in the layout itself. The user overrides
+    in register.html before commit when the heuristic is wrong.
+    """
+    non_placeholder = 0
+    for shape in layout.shapes:
+        try:
+            if not shape.is_placeholder:
+                non_placeholder += 1
+        except Exception:
+            non_placeholder += 1
+    return "body-canonical" if non_placeholder <= 2 else "bespoke"
+
+
+def _placeholder_role(shape) -> str | None:
+    """Map a placeholder shape to a chrome role.
+
+    Returns one of {'title', 'subtitle', 'footnote', 'source', 'page_number'}
+    or None when the placeholder doesn't correspond to a chrome slot.
+    """
+    try:
+        pf = shape.placeholder_format
+    except Exception:
+        return None
+    if pf is None:
+        return None
+    t = pf.type
+    name_lower = (shape.name or "").lower()
+    if t in (PP_PLACEHOLDER.TITLE, PP_PLACEHOLDER.CENTER_TITLE):
+        return "title"
+    if t == PP_PLACEHOLDER.SUBTITLE:
+        return "subtitle"
+    if t == PP_PLACEHOLDER.SLIDE_NUMBER:
+        return "page_number"
+    if t == PP_PLACEHOLDER.FOOTER:
+        # 'footer' in client templates is usually the source line; some
+        # templates split source vs footnote into separate text placeholders.
+        # Disambiguate by name token; otherwise call it 'source'.
+        if "footnote" in name_lower:
+            return "footnote"
+        return "source"
+    # Some templates expose dated/footer via BODY placeholder with named
+    # idx. We don't map those to chrome roles — only the standard types.
+    return None
+
+
+def _box_px_from_shape(shape) -> BoxPx:
+    """Extract a BoxPx from a python-pptx shape (EMU -> px)."""
+    return BoxPx(
+        x_px=_emu_to_px(shape.left),
+        y_px=_emu_to_px(shape.top),
+        w_px=_emu_to_px(shape.width),
+        h_px=_emu_to_px(shape.height),
+        font_pt=None,
+        anchor="top",
+    )
+
+
+def _extract_bespoke_boxes(layout) -> dict[str, BoxPx | None]:
+    """Walk a bespoke layout's placeholders, return {role: BoxPx or None}.
+
+    Missing roles stay None. No silent fallback — helpers raise at build
+    time if a bespoke layout has None for an expected field.
+    """
+    out: dict[str, BoxPx | None] = {
+        "title": None, "subtitle": None,
+        "footnote": None, "source": None, "page_number": None,
+    }
+    for shape in layout.placeholders:
+        role = _placeholder_role(shape)
+        if role and out.get(role) is None:
+            out[role] = _box_px_from_shape(shape)
+    return out
+
+
+def _propose_layout_chromes(prs, classifications_override: dict[str, str] | None = None
+                            ) -> dict[str, LayoutChrome]:
+    """Build LayoutChrome objects for every named slide_layout in `prs`.
+
+    classifications_override: optional {layout_name: 'body-canonical'|'bespoke'}
+    to apply user-confirmed reclassifications from picks.json. Layout names
+    not in the dict use the auto-detected classification.
+    """
+    out: dict[str, LayoutChrome] = {}
+    seen_names: set[str] = set()
+    for master in prs.slide_masters:
+        for layout in master.slide_layouts:
+            name = (layout.name or "").strip()
+            if not name:
+                continue
+            # De-dup by name across masters (FedEx-style templates put each
+            # logical layout on one master only; if two masters share a layout
+            # name, keep the first).
+            if name in seen_names:
+                continue
+            seen_names.add(name)
+
+            auto_class = _classify_layout(layout)
+            final_class = (classifications_override or {}).get(name, auto_class)
+            text_role, background = _detect_text_role_for_layout(layout)
+
+            # Detect page-number presence: any placeholder with role
+            # 'page_number' OR layout shape named like a page-number slot.
+            has_pn = False
+            for shape in layout.placeholders:
+                if _placeholder_role(shape) == "page_number":
+                    has_pn = True
+                    break
+
+            position_fields: dict[str, BoxPx | None] = {
+                "title": None, "subtitle": None,
+                "footnote": None, "source": None, "page_number": None,
+            }
+            if final_class == "bespoke":
+                position_fields = _extract_bespoke_boxes(layout)
+
+            out[name] = LayoutChrome(
+                name=name,
+                layout_class=final_class,  # type: ignore[arg-type]
+                text_role=text_role,  # type: ignore[arg-type]
+                background=background,  # type: ignore[arg-type]
+                has_page_number=has_pn,
+                title=position_fields["title"],
+                subtitle=position_fields["subtitle"],
+                footnote=position_fields["footnote"],
+                source=position_fields["source"],
+                page_number=position_fields["page_number"],
+            )
+    return out
+
+
+def extract_chrome_spec(prs, sha8: str,
+                        classifications_override: dict[str, str] | None = None
+                        ) -> ChromeSpec:
+    """Extract a full ChromeSpec from an opened Presentation.
+
+    `sha8` is the first 8 hex chars of sha256(template.pptx) — stamped into
+    the spec so finalize_deck can hard-fail on template-mutation drift.
+    """
+    return ChromeSpec(
+        schema_version=CHROME_SCHEMA_VERSION_CURRENT,
+        source_template_sha8=sha8,
+        layouts=_propose_layout_chromes(prs, classifications_override),
+    )
+
+
+def propose_layouts_payload(prs) -> list[dict]:
+    """Build a JSON-serializable list of per-layout proposals for register.html.
+
+    Each entry: {name, auto_class, text_role, background, n_shapes,
+                  n_placeholders, has_page_number}.
+    The HTML page renders this list with a per-layout class toggle; the user's
+    choices land in picks.json under `layout_classifications`.
+    """
+    items: list[dict] = []
+    seen: set[str] = set()
+    for master in prs.slide_masters:
+        for layout in master.slide_layouts:
+            name = (layout.name or "").strip()
+            if not name or name in seen:
+                continue
+            seen.add(name)
+            auto_class = _classify_layout(layout)
+            text_role, background = _detect_text_role_for_layout(layout)
+            n_shapes = sum(1 for _ in layout.shapes)
+            n_placeholders = sum(1 for _ in layout.placeholders)
+            has_pn = any(_placeholder_role(s) == "page_number"
+                         for s in layout.placeholders)
+            items.append({
+                "name": name,
+                "auto_class": auto_class,
+                "text_role": text_role,
+                "background": background,
+                "n_shapes": n_shapes,
+                "n_placeholders": n_placeholders,
+                "has_page_number": has_pn,
+            })
+    return items
+
+
+# ---------------------------------------------------------------------------
 # Chat-driven subcommands (propose / commit) — non-interactive, no TTY gate
 # ---------------------------------------------------------------------------
 
@@ -1658,6 +2081,16 @@ def _extract_theme_and_preview(tpl: Path) -> dict:
     ]
     palette_rendered = render_palette_swatches(palette, palette_png)
 
+    # v0.2 P1.2: per-layout chrome proposals for register.html UI. Auto-detected
+    # classification + text_role per slide_layout. User reclassifies in the
+    # picks JSON before commit.
+    try:
+        _proposal_prs = Presentation(str(tpl))
+        layout_proposals = propose_layouts_payload(_proposal_prs)
+    except Exception as _exc:
+        print(f"  WARNING: layout proposal scan failed: {type(_exc).__name__}: {_exc}")
+        layout_proposals = []
+
     proposal_dict = {
         "template":        str(tpl),
         "sha":             sha,
@@ -1677,6 +2110,7 @@ def _extract_theme_and_preview(tpl: Path) -> dict:
         "preview_rendered":  rendered,
         "palette_png":     str(palette_png) if palette_rendered else None,
         "palette":         palette,
+        "layouts":         layout_proposals,
     }
 
     # Render the one-page interactive register.html using the proposal dict
@@ -1803,6 +2237,18 @@ def _main_commit(args) -> int:
         strip_master_backgrounds, proposal["colors"],
         proposal["n_master"], proposal["n_layout"],
     )
+
+    # v0.2 P1.2: extract chrome.yml after brand.yml + theme.json land. User
+    # may pass `layout_classifications: {<name>: 'body-canonical'|'bespoke'}`
+    # in picks.json to override the auto-detected classification per layout.
+    layout_overrides = picks.get("layout_classifications") or {}
+    if not isinstance(layout_overrides, dict):
+        print(f"  WARNING: picks.layout_classifications is not a dict; ignored.")
+        layout_overrides = {}
+    rc = _write_chrome_yml_for(tpl, sha8=proposal["sha8"],
+                               layout_overrides=layout_overrides)
+    if rc != 0:
+        return rc
 
     brand_yml  = tpl.with_name(f"{tpl.stem}.brand.yml")
     theme_json = tpl.with_name(f"{tpl.stem}.theme.json")
