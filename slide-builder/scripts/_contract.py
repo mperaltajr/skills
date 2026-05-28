@@ -970,6 +970,103 @@ def check_layout_inheritance_roundtrip_per_layout() -> list[str]:
     # available, exercise the extractor + roundtrip path so a refactor that
     # breaks classification or BoxPx round-trips trips this check.
     import tempfile as _tf
+
+    # ---- P1.8 (audit punch list): synthetic BESPOKE BoxPx roundtrip. -----
+    # The default pptx has zero bespoke layouts under the current classifier,
+    # so the extraction path never exercises position-field serialization.
+    # Hand-craft a ChromeSpec with non-None title/subtitle/footnote/source/
+    # page_number on a bespoke layout, dump to YAML, reload, assert every
+    # BoxPx axis survives byte-for-byte. This is the drift class Agent D bet
+    # on — a refactor that loses, swaps, or rounds BoxPx fields trips this.
+    with _tf.TemporaryDirectory() as _td:
+        _bespoke_spec = ChromeSpec(
+            schema_version=CHROME_SCHEMA_VERSION_CURRENT,
+            source_template_sha8="bespoke0",
+            layouts={
+                "cover_dark": LayoutChrome(
+                    name="cover_dark", layout_class="bespoke",
+                    text_role="light_on_dark", background="dark",
+                    has_page_number=False,
+                    title=BoxPx(x_px=80, y_px=240, w_px=1120, h_px=120,
+                                font_pt=48, anchor="bottom"),
+                    subtitle=BoxPx(x_px=80, y_px=370, w_px=900, h_px=40,
+                                   font_pt=20),
+                    footnote=BoxPx(x_px=60, y_px=665, w_px=900, h_px=20),
+                    source=BoxPx(x_px=60, y_px=690, w_px=900, h_px=20),
+                    page_number=None,  # cover_dark intentionally has no page#
+                ),
+                "section_divider_dark": LayoutChrome(
+                    name="section_divider_dark", layout_class="bespoke",
+                    text_role="light_on_dark", background="dark",
+                    has_page_number=True,
+                    title=BoxPx(x_px=64, y_px=320, w_px=1152, h_px=80,
+                                font_pt=40, anchor="middle"),
+                    subtitle=None,  # section divider has no subtitle slot
+                    footnote=None,
+                    source=None,
+                    page_number=BoxPx(x_px=1170, y_px=688, w_px=52, h_px=16),
+                ),
+            },
+        )
+        _bespoke_yml = Path(_td) / "bespoke_synthetic.chrome.yml"
+        dump_chrome_yml(_bespoke_spec, _bespoke_yml)
+        _bespoke_loaded = load_chrome_yml(_bespoke_yml)
+
+        # Top-level invariants
+        if _bespoke_loaded.schema_version != CHROME_SCHEMA_VERSION_CURRENT:
+            errors.append(
+                f"inheritance roundtrip [bespoke-synthetic]: schema_version "
+                f"drift {CHROME_SCHEMA_VERSION_CURRENT} -> "
+                f"{_bespoke_loaded.schema_version}"
+            )
+        if _bespoke_loaded.source_template_sha8 != "bespoke0":
+            errors.append(
+                f"inheritance roundtrip [bespoke-synthetic]: sha8 drift "
+                f"{_bespoke_loaded.source_template_sha8!r}"
+            )
+        if set(_bespoke_loaded.layouts) != set(_bespoke_spec.layouts):
+            errors.append(
+                f"inheritance roundtrip [bespoke-synthetic]: layout-key drift "
+                f"{set(_bespoke_spec.layouts)} -> {set(_bespoke_loaded.layouts)}"
+            )
+
+        # Per-layout per-field per-axis comparison
+        for _name, _orig in _bespoke_spec.layouts.items():
+            _re = _bespoke_loaded.layouts.get(_name)
+            if _re is None:
+                continue  # already caught above
+            for _scalar in ("name", "layout_class", "text_role",
+                            "background", "has_page_number"):
+                if getattr(_orig, _scalar) != getattr(_re, _scalar):
+                    errors.append(
+                        f"inheritance roundtrip [bespoke-synthetic]: "
+                        f"{_name!r}.{_scalar} drift "
+                        f"{getattr(_orig, _scalar)!r} -> {getattr(_re, _scalar)!r}"
+                    )
+            for _field in ("title", "subtitle", "footnote", "source",
+                           "page_number"):
+                _b1 = getattr(_orig, _field)
+                _b2 = getattr(_re, _field)
+                if (_b1 is None) != (_b2 is None):
+                    errors.append(
+                        f"inheritance roundtrip [bespoke-synthetic]: "
+                        f"{_name!r}.{_field} None-vs-set drift "
+                        f"(orig={_b1 is not None}, reloaded={_b2 is not None})"
+                    )
+                    continue
+                if _b1 is None or _b2 is None:
+                    continue
+                for _axis in ("x_px", "y_px", "w_px", "h_px",
+                              "font_pt", "anchor"):
+                    if getattr(_b1, _axis) != getattr(_b2, _axis):
+                        errors.append(
+                            f"inheritance roundtrip [bespoke-synthetic]: "
+                            f"{_name!r}.{_field}.{_axis} drift "
+                            f"{getattr(_b1, _axis)!r} -> "
+                            f"{getattr(_b2, _axis)!r}"
+                        )
+
+    # ---- Existing synthetic case: extract from default pptx + re-extract. ----
     with _tf.TemporaryDirectory() as _td:
         _tpl = Path(_td) / "synthetic.pptx"
         _Pres().save(str(_tpl))
