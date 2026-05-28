@@ -904,7 +904,18 @@ def check_chrome_field_single_source() -> list[str]:
 
 _REGISTERED_TEMPLATE_SEARCH_ROOTS: tuple[Path, ...] = (
     # Common locations where a coworker keeps client templates.
+    # Audit punch list P1.7 (2026-05-28): D's-bet catcher had zero coverage
+    # against Mario's real templates until OneDrive paths were added — the
+    # FDX Template lives under "OneDrive - Accenture/Claude Projects/_templates/"
+    # and was invisible to the contract test prior to this extension.
     Path.home() / "Documents",
+    Path.home() / "OneDrive - Accenture" / "Claude Projects" / "_templates",
+    # Per-client library subdirs (each <client>/_templates/ holds registered
+    # templates for that client). Non-existent roots are skipped harmlessly
+    # by _opportunistic_chrome_yml_pairs; safe to enumerate hypothetical
+    # locations alongside existing ones.
+    Path.home() / "OneDrive - Accenture" / "Library" / "FedEx" / "_templates",
+    Path.home() / "OneDrive - Accenture" / "Library" / "Accenture" / "_templates",
 )
 
 
