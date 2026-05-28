@@ -169,6 +169,25 @@ def render_tmp_dir(pptx: Path) -> Path:
 
 
 # ---------------------------------------------------------------------------
+# Template-relative artifacts (under <template>.parent/)
+# ---------------------------------------------------------------------------
+# These live next to the source .pptx — produced by register_template.py at
+# one-time registration, consumed by build_deck.py + finalize_deck.py at
+# every build. brand.yml / theme.json follow the same convention but are
+# referenced directly via tpl.with_name(...) in register_template.py for
+# historical reasons; chrome.yml (v0.2) goes through the registry from the
+# start.
+
+def chrome_yml(template_pptx: Path) -> Path:
+    """<template-stem>.chrome.yml — per-layout chrome geometry sidecar.
+    Writer: register_template.py. Readers: finalize_deck.py, build_deck.py.
+    See scripts/_chrome_schema.py for the ChromeSpec model + canonical
+    body-canonical positions.
+    """
+    return template_pptx.with_name(f"{template_pptx.stem}.chrome.yml")
+
+
+# ---------------------------------------------------------------------------
 # Manifest — consumed by _contract.py
 # ---------------------------------------------------------------------------
 # Each entry: (path-helper name, writer script, reader scripts list)
@@ -202,4 +221,7 @@ ARTIFACT_MANIFEST: list[dict] = [
     {"name": "option_mermaid_png", "writer": "finalize_deck.py",      "readers": ["finalize_deck.py"], "note": "finalize_deck.py constructs the path and invokes render_mermaid.py via subprocess; render_mermaid.py is brand-agnostic and writes wherever --output points."},
     {"name": "option_qc_json",     "writer": "build_review.py",       "readers": ["build_review.py"]},
     {"name": "option_raw_pptx",    "writer": "finalize_deck.py",      "readers": [], "accepted": True, "reason": "Audit archive — not re-read"},
+
+    # Template-relative (v0.2)
+    {"name": "chrome_yml",         "writer": "register_template.py",  "readers": ["finalize_deck.py", "build_deck.py"], "accepted": True, "reason": "v0.2 P1.1: helper + manifest entry land first; writer wires in P1.2; readers wire in P1.3 / P1.4. Drops accepted once readers reference _p.chrome_yml."},
 ]
