@@ -81,6 +81,7 @@ import _paths as _p  # noqa: E402
 from _chrome_schema import (  # noqa: E402
     BoxPx, LayoutChrome, ChromeSpec,
     CHROME_SCHEMA_VERSION_CURRENT,
+    CANONICAL_BODY_TOP_Y, CANONICAL_BODY_BOTTOM_Y,
     dump_chrome_yml,
 )
 
@@ -1931,6 +1932,47 @@ def _extract_bespoke_boxes(layout) -> dict[str, BoxPx | None]:
     return out
 
 
+def _extract_body_zone_for_canonical(layout) -> dict:
+    """For a body-canonical layout, return v2 inheritance fields:
+       title_placeholder_idx, body_top_y_px, body_bottom_y_px.
+
+    title_placeholder_idx: the .placeholder_format.idx of the FIRST title-
+       type inherited placeholder (None if no title placeholder).
+    body_top_y_px: bottom of the title placeholder in px (or 110 fallback).
+    body_bottom_y_px: top of the footer placeholder in px (or 660 fallback).
+    """
+    title_idx = None
+    title_bottom_px = None
+    footer_top_px = None
+    for ph in layout.placeholders:
+        try:
+            pf = ph.placeholder_format
+            t = int(pf.type)
+            idx = int(pf.idx)
+        except Exception:
+            continue
+        if t in (1, 13) and title_idx is None:
+            title_idx = idx
+            try:
+                title_bottom_px = _emu_to_px(int(ph.top) + int(ph.height))
+            except Exception:
+                pass
+        if t == 15 and footer_top_px is None:
+            try:
+                footer_top_px = _emu_to_px(int(ph.top))
+            except Exception:
+                pass
+    if title_bottom_px is None:
+        title_bottom_px = CANONICAL_BODY_TOP_Y
+    if footer_top_px is None:
+        footer_top_px = CANONICAL_BODY_BOTTOM_Y
+    return {
+        "title_placeholder_idx": title_idx,
+        "body_top_y_px": int(title_bottom_px),
+        "body_bottom_y_px": int(footer_top_px),
+    }
+
+
 def _propose_layout_chromes(prs, classifications_override: dict[str, str] | None = None
                             ) -> dict[str, LayoutChrome]:
     """Build LayoutChrome objects for every named slide_layout in `prs`.
@@ -1941,6 +1983,7 @@ def _propose_layout_chromes(prs, classifications_override: dict[str, str] | None
     """
     out: dict[str, LayoutChrome] = {}
     seen_names: set[str] = set()
+    # Pass 1: build all layouts with their own classification.
     for master in prs.slide_masters:
         for layout in master.slide_layouts:
             name = (layout.name or "").strip()
@@ -1972,6 +2015,16 @@ def _propose_layout_chromes(prs, classifications_override: dict[str, str] | None
             if final_class == "bespoke":
                 position_fields = _extract_bespoke_boxes(layout)
 
+            # v2 (2026-05-28) body-canonical inheritance fields
+            inherit_fields = {
+                "title_placeholder_idx": None,
+                "body_top_y_px": None,
+                "body_bottom_y_px": None,
+                "body_overlay_hex": None,
+            }
+            if final_class == "body-canonical":
+                inherit_fields.update(_extract_body_zone_for_canonical(layout))
+
             out[name] = LayoutChrome(
                 name=name,
                 layout_class=final_class,  # type: ignore[arg-type]
@@ -1983,6 +2036,10 @@ def _propose_layout_chromes(prs, classifications_override: dict[str, str] | None
                 footnote=position_fields["footnote"],
                 source=position_fields["source"],
                 page_number=position_fields["page_number"],
+                title_placeholder_idx=inherit_fields["title_placeholder_idx"],
+                body_top_y_px=inherit_fields["body_top_y_px"],
+                body_bottom_y_px=inherit_fields["body_bottom_y_px"],
+                body_overlay_hex=inherit_fields["body_overlay_hex"],
             )
     return out
 

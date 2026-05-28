@@ -111,6 +111,152 @@ def _strip_layout_placeholders(slide) -> int:
     return removed
 
 
+def _populate_layout_placeholders(slide, *, title=None, subtitle=None,
+                                   footer=None, page_num=None):
+    """Write text into the slide's inherited layout placeholders.
+
+    For body-canonical grafts: instead of stripping the layout's title/footer/
+    page-number placeholders and redrawing them as free-floating textboxes,
+    keep them in place and write text into the FIRST placeholder of each
+    matching type. Returns a dict {role: bool} flagging which roles were
+    found-and-populated.
+
+    Caller is responsible for choosing whether to invoke this (body-canonical)
+    vs. _strip_layout_placeholders (bespoke / cover).
+    """
+    from pptx.enum.text import PP_ALIGN
+    TITLE_TYPES = {1, 13}      # TITLE, CENTER_TITLE
+    SUBTITLE_TYPES = {4}        # SUBTITLE
+    FOOTER_TYPES = {15}         # FOOTER
+    PAGE_NUM_TYPES = {12}       # SLIDE_NUMBER (idx 12 per python-pptx enum)
+
+    found = {"title": False, "subtitle": False,
+             "footer": False, "page_number": False}
+
+    def _write(ph, text):
+        tf = ph.text_frame
+        # Replace existing paragraph text in the first paragraph; clear extras.
+        if not tf.paragraphs:
+            return
+        first = tf.paragraphs[0]
+        # Clear existing runs
+        for r in list(first.runs):
+            r._r.getparent().remove(r._r)
+        run = first.add_run()
+        run.text = str(text) if text is not None else ""
+
+    for ph in list(slide.placeholders):
+        try:
+            t = int(ph.placeholder_format.type)
+        except Exception:
+            continue
+        if title is not None and not found["title"] and t in TITLE_TYPES:
+            _write(ph, title)
+            found["title"] = True
+            continue
+        if subtitle is not None and not found["subtitle"] and t in SUBTITLE_TYPES:
+            _write(ph, subtitle)
+            found["subtitle"] = True
+            continue
+        if footer is not None and not found["footer"] and t in FOOTER_TYPES:
+            _write(ph, footer)
+            found["footer"] = True
+            continue
+        if page_num is not None and not found["page_number"] and t in PAGE_NUM_TYPES:
+            _write(ph, page_num)
+            found["page_number"] = True
+            continue
+    return found
+
+
+def _compute_body_zone(layout):
+    """Return (body_top_emu, body_bottom_emu) for the layout's drawable zone.
+
+    Top edge is the bottom of the layout's title placeholder (if present),
+    falling back to a conservative canonical top. Bottom edge is the top of
+    the footer placeholder (if present), falling back to a conservative
+    canonical bottom.
+
+    Both edges are in EMU. The caller decides whether to use them
+    (body-canonical grafts).
+    """
+    # 1280x720 px at 96 DPI = 12192000 EMU x 6858000 EMU
+    title_bottom = None
+    footer_top = None
+    for ph in layout.placeholders:
+        try:
+            t = int(ph.placeholder_format.type)
+        except Exception:
+            continue
+        if t in (1, 13) and title_bottom is None:
+            try:
+                title_bottom = int(ph.top) + int(ph.height)
+            except Exception:
+                pass
+        if t == 15 and footer_top is None:
+            try:
+                footer_top = int(ph.top)
+            except Exception:
+                pass
+    # Canonical fallbacks (in EMU). Constants live in _chrome_schema so the
+    # single-source-for-geometry contract holds.
+    import sys as _sys
+    from pathlib import Path as _Path
+    _scripts = _Path(__file__).resolve().parent.parent / "scripts"
+    if str(_scripts) not in _sys.path:
+        _sys.path.insert(0, str(_scripts))
+    from _chrome_schema import CANONICAL_BODY_TOP_Y, CANONICAL_BODY_BOTTOM_Y
+    if title_bottom is None:
+        title_bottom = CANONICAL_BODY_TOP_Y * 9525
+    if footer_top is None:
+        footer_top = CANONICAL_BODY_BOTTOM_Y * 9525
+    return title_bottom, footer_top
+
+
+def _insert_dark_overlay(slide, prs, body_top_emu, body_bottom_emu, hex_color):
+    """Insert a solid-fill rectangle covering the body zone as the FIRST
+    slide-level shape (z-order: above layout chrome, below all subsequent
+    slide content).
+
+    hex_color is a 6-char hex string ('0A1A2E', no leading #). Raises
+    ValueError if malformed.
+    """
+    from pptx.enum.shapes import MSO_SHAPE
+    from pptx.dml.color import RGBColor
+
+    s = (hex_color or "").lstrip("#")
+    if len(s) != 6:
+        raise ValueError(f"body_overlay_hex must be 6-char hex; got {hex_color!r}")
+    try:
+        r = int(s[0:2], 16); g = int(s[2:4], 16); b = int(s[4:6], 16)
+    except ValueError:
+        raise ValueError(f"body_overlay_hex has non-hex chars: {hex_color!r}")
+
+    width = int(prs.slide_width)
+    height = int(body_bottom_emu) - int(body_top_emu)
+    if height <= 0:
+        return None
+    shape = slide.shapes.add_shape(
+        MSO_SHAPE.RECTANGLE, 0, int(body_top_emu), width, height,
+    )
+    shape.name = "body-overlay"
+    shape.fill.solid()
+    shape.fill.fore_color.rgb = RGBColor(r, g, b)
+    shape.line.fill.background()
+
+    # Move overlay to position 0 in spTree so subsequent content draws on top.
+    # add_shape appends at the end; bring it to the front of slide-level shapes
+    # (after the required <p:nvGrpSpPr> + <p:grpSpPr> heads). spTree children
+    # order: nvGrpSpPr, grpSpPr, then shape elements; insert overlay just
+    # after grpSpPr (= index 2).
+    sp_tree = slide.shapes._spTree
+    elem = shape.element
+    sp_tree.remove(elem)
+    # Find first shape-child index (skip nvGrpSpPr + grpSpPr at positions 0,1)
+    sp_tree.insert(2, elem)
+    return shape
+
+
 def _clear_existing_slides(prs):
     """Remove any slides already present in the presentation (client
     templates often ship with sample slides we don't want) AND remove

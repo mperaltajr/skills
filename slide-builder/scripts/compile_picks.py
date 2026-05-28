@@ -53,6 +53,7 @@ from pptx import Presentation  # noqa: E402
 from twins.composer import (  # noqa: E402
     _clear_existing_slides,
     _find_blank_layout,
+    _find_named_layout,
     _strip_layout_placeholders,
 )
 
@@ -103,16 +104,35 @@ def parse_picks(arg: Optional[str], out_dir: Path) -> dict[str, str]:
 # ---------------------------------------------------------------------------
 # Slide copying — unchanged from v1
 # ---------------------------------------------------------------------------
-def copy_picked_slide_into(dst_prs, src_pptx: Path) -> int:
-    """Open `src_pptx`, append its first slide's shapes onto a new blank slide
-    in `dst_prs`. Returns the shape count copied.
+def copy_picked_slide_into(dst_prs, src_pptx: Path,
+                           layout_name: str = "",
+                           layout_chrome=None) -> int:
+    """Open `src_pptx`, append its first slide's shapes onto a new slide in
+    `dst_prs`.
+
+    v0.3 body-canonical inheritance: when layout_chrome is a body-canonical v2
+    chrome (with title_placeholder_idx set), the target layout's inherited
+    placeholders + decorative shapes are KEPT (not stripped); the layout name
+    drives the layout pick. Otherwise this falls back to the v0.2 behavior
+    (blank layout, strip placeholders).
     """
     src_prs = Presentation(str(src_pptx))
     src_slide = src_prs.slides[0]
 
-    blank = _find_blank_layout(dst_prs)
-    new_slide = dst_prs.slides.add_slide(blank)
-    _strip_layout_placeholders(new_slide)
+    _is_body_canonical = (
+        layout_chrome is not None
+        and getattr(layout_chrome, "layout_class", None) == "body-canonical"
+        and getattr(layout_chrome, "title_placeholder_idx", None) is not None
+    )
+
+    if _is_body_canonical and layout_name:
+        target = _find_named_layout(dst_prs, layout_name) or _find_blank_layout(dst_prs)
+    else:
+        target = _find_blank_layout(dst_prs)
+
+    new_slide = dst_prs.slides.add_slide(target)
+    if not _is_body_canonical:
+        _strip_layout_placeholders(new_slide)
 
     sp_tree = new_slide.shapes._spTree
     count = 0
