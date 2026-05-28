@@ -185,7 +185,7 @@ def check_pipeline_imports() -> list[str]:
     # helper modules. All should import cleanly with sys.path already set
     # to HERE.
     targets = [
-        "_paths", "_meta_schema", "_log", "_contract",
+        "_paths", "_meta_schema", "_chrome_schema", "_log", "_contract",
         "build_deck", "finalize_deck", "compile_picks",
         "build_review", "build_gate_preview",
         "register_template", "clean", "diagnostic",
@@ -559,7 +559,7 @@ def check_type_hints_resolve() -> list[str]:
     import typing
     errors: list[str] = []
     targets = [
-        "_paths", "_meta_schema", "_log",
+        "_paths", "_meta_schema", "_chrome_schema", "_log",
         "build_deck", "finalize_deck", "compile_picks",
         "build_review", "build_gate_preview",
         "register_template", "clean", "diagnostic",
