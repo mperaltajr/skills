@@ -1331,9 +1331,9 @@ function buildLayoutClusters() {
     disclosure.className = "strip-toggle";
     disclosure.style.marginBottom = "16px";
     disclosure.innerHTML =
-      "<div class=\"label-block\"><strong>Title / section slides use " +
+      "<div class='label-block'><strong>Title / section slides use " +
       "&quot;" + layoutPicks.cover + "&quot;.</strong>" +
-      "<div class=\"note\">Slide Lab picked this automatically. " +
+      "<div class='note'>Slide Lab picked this automatically. " +
       "To override, change the radio in &quot;Show all slide designs&quot; below.</div>" +
       "</div>";
     container.appendChild(disclosure);
@@ -1356,10 +1356,10 @@ function buildLayoutClusters() {
     const desc = plainEnglishFor(c.canonical);
     const bgLabel = c.canonical.background === "dark" ? "Dark canvas" : "Light canvas";
     card.innerHTML =
-      "<div style=\"font-weight: 600; font-size: 14px; margin-bottom: 4px;\">" + desc + "</div>" +
-      "<div style=\"font-size: 12px; color: var(--text-mid); margin-bottom: 8px;\">" + bgLabel + "</div>" +
-      "<div style=\"font-size: 11px; color: var(--text-dim); margin-bottom: 12px;\">" + c.canonical.name + "</div>" +
-      "<button class=\"copy-btn\" data-pick=\"" + c.canonical.name + "\" style=\"width: 100%;\">" +
+      "<div style='font-weight: 600; font-size: 14px; margin-bottom: 4px;'>" + desc + "</div>" +
+      "<div style='font-size: 12px; color: var(--text-mid); margin-bottom: 8px;'>" + bgLabel + "</div>" +
+      "<div style='font-size: 11px; color: var(--text-dim); margin-bottom: 12px;'>" + c.canonical.name + "</div>" +
+      "<button class='copy-btn' data-pick='" + c.canonical.name + "' style='width: 100%;'>" +
       (isPicked ? "Picked for body" : "Pick this for body") + "</button>";
     grid.appendChild(card);
     card.querySelector("button[data-pick]").addEventListener("click", e => {
