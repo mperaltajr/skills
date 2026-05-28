@@ -72,6 +72,7 @@ sys.path.insert(0, str(QC_SCRIPTS))
 
 import _paths as _p  # noqa: E402
 
+import hashlib  # noqa: E402
 import io  # noqa: E402
 
 from pptx import Presentation  # noqa: E402
@@ -81,8 +82,13 @@ from twins.client_theme import load_client_theme, apply_theme_to_shape_xml  # no
 from twins.composer import (  # noqa: E402
     _clear_existing_slides,
     _find_blank_layout,
+    _find_named_layout,
     _strip_layout_placeholders,
 )
+from _chrome_schema import (  # noqa: E402
+    ChromeSpec, ChromeSidecarMissingError, load_chrome_yml,
+)
+import twins.helpers as _twins_helpers  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
@@ -583,6 +589,69 @@ def stash_raw(st: OptionStatus) -> None:
 # ---------------------------------------------------------------------------
 RENDER_MERMAID_SCRIPT = SKILL_ROOT / "scripts" / "render_mermaid.py"
 
+
+# ---------------------------------------------------------------------------
+# v0.2 P1.3 — chrome.yml loader + sha8 freshness check
+# ---------------------------------------------------------------------------
+
+def _sha256_of_file(path: Path) -> str:
+    """Hex-encoded sha256 of `path` content."""
+    h = hashlib.sha256()
+    with open(str(path), "rb") as f:
+        for chunk in iter(lambda: f.read(65536), b""):
+            h.update(chunk)
+    return h.hexdigest()
+
+
+def _load_and_verify_chrome(template_path: Path) -> ChromeSpec:
+    """Load chrome.yml next to the template and hard-fail on SHA mismatch.
+
+    Raises:
+      ChromeSidecarMissingError if chrome.yml is absent (operator must run
+        register_template.py propose -> commit).
+      RuntimeError if the stored source_template_sha8 doesn't match the
+        current template bytes (template mutated since registration —
+        re-register).
+    """
+    chrome_yml_path = _p.chrome_yml(template_path)
+    spec = load_chrome_yml(chrome_yml_path)
+    current_sha8 = _sha256_of_file(template_path)[:8]
+    if spec.source_template_sha8 != current_sha8:
+        raise RuntimeError(
+            f"chrome.yml source_template_sha8 mismatch: "
+            f"stored={spec.source_template_sha8!r} vs current={current_sha8!r}. "
+            f"Template {template_path.name} changed since registration. "
+            f"Re-register: register_template.py propose -> commit."
+        )
+    return spec
+
+
+def _pick_default_layout_name(spec: ChromeSpec) -> str:
+    """Return a sensible default layout name when the meta lacks one.
+
+    Priority:
+      1. First body-canonical layout (with light bg if any).
+      2. First body-canonical layout (any bg).
+      3. First layout in the spec (alphabetical fallback).
+
+    P1.3 ships before P1.4 wires per-slide layout into _meta.json. Until P1.4
+    lands, every slide gets the deck-wide default returned here. After P1.4,
+    this function is only consulted for slides that lack a layout field AND
+    have no default_layout in front-matter.
+    """
+    light_canonical = [n for n, lc in spec.layouts.items()
+                       if lc.layout_class == "body-canonical"
+                       and lc.background == "light"]
+    if light_canonical:
+        return sorted(light_canonical)[0]
+    canonical = [n for n, lc in spec.layouts.items()
+                 if lc.layout_class == "body-canonical"]
+    if canonical:
+        return sorted(canonical)[0]
+    if spec.layouts:
+        return sorted(spec.layouts)[0]
+    return ""
+
 # Body-zone embed coordinates — matches the conventions baked into prompt.md
 # and reference/fallback.md. 1240x540 PNG centered horizontally at y=110.
 # Slide canvas: 1280x720 EMUs; we work in pixels and convert.
@@ -752,12 +821,13 @@ def _try_load_brief_title_from_prompt(st: OptionStatus) -> str:
     return m.group(1).strip() if m else ""
 
 
-def _run_subprocess(st: OptionStatus):
+def _run_subprocess(st: OptionStatus, env: dict[str, str] | None = None):
     try:
         result = subprocess.run(
             [sys.executable, str(st.py_path.resolve())],
             capture_output=True, text=True, timeout=120,
             cwd=str(st.py_path.parent.resolve()),
+            env=env,
         )
         if result.returncode != 0:
             return False, (result.stderr or result.stdout or "non-zero exit")[-400:]
@@ -792,7 +862,19 @@ def _run_runpy(st: OptionStatus):
         sys.argv = saved_argv
 
 
-def build_pptx(st: OptionStatus, mermaid_theme: Path, prefer_runpy: bool = False) -> None:
+def _option_subprocess_env(chrome_yml_path: Path, layout_name: str) -> dict[str, str]:
+    """Env for subprocess option_X.py runs — supplies chrome to twins.helpers."""
+    env = os.environ.copy()
+    env["SLIDE_LAB_CHROME_YML"] = str(chrome_yml_path)
+    env["SLIDE_LAB_LAYOUT_NAME"] = layout_name
+    return env
+
+
+def build_pptx(st: OptionStatus, mermaid_theme: Path,
+               chrome_yml_path: Path | None = None,
+               layout_chrome=None,
+               layout_name: str = "",
+               prefer_runpy: bool = False) -> None:
     """v2: branch on classification before invoking the native path.
 
     fallback_mermaid  -> render .mmd to PNG, assemble PPTX with embedded image
@@ -813,7 +895,12 @@ def build_pptx(st: OptionStatus, mermaid_theme: Path, prefer_runpy: bool = False
             st.error = f"fallback render: {err}"
             return
         brief_title = _try_load_brief_title_from_prompt(st)
-        ok, err = _assemble_fallback_pptx(st, brief_title)
+        # In-process chrome injection for the fallback assembler.
+        _twins_helpers.set_active_chrome(layout_chrome)
+        try:
+            ok, err = _assemble_fallback_pptx(st, brief_title)
+        finally:
+            _twins_helpers.set_active_chrome(None)
         if not ok:
             st.built = False
             st.error = f"fallback assemble: {err}"
@@ -833,9 +920,14 @@ def build_pptx(st: OptionStatus, mermaid_theme: Path, prefer_runpy: bool = False
         st.error = st.classification_reason
         return
 
-    # Native path — v1 verbatim
+    # Native path — subprocess gets chrome via env vars; runpy gets it via
+    # the in-process module attribute (option script imports twins.helpers
+    # in this same process).
+    subprocess_env = None
+    if chrome_yml_path is not None and layout_name:
+        subprocess_env = _option_subprocess_env(chrome_yml_path, layout_name)
     if not prefer_runpy:
-        ok, err = _run_subprocess(st)
+        ok, err = _run_subprocess(st, env=subprocess_env)
         if ok:
             st.built = True
             return
@@ -845,7 +937,11 @@ def build_pptx(st: OptionStatus, mermaid_theme: Path, prefer_runpy: bool = False
             st.error = err
             return
 
-    ok, err = _run_runpy(st)
+    _twins_helpers.set_active_chrome(layout_chrome)
+    try:
+        ok, err = _run_runpy(st)
+    finally:
+        _twins_helpers.set_active_chrome(None)
     if ok:
         st.built = True
     else:
@@ -856,7 +952,8 @@ def build_pptx(st: OptionStatus, mermaid_theme: Path, prefer_runpy: bool = False
 # ---------------------------------------------------------------------------
 # Step 2: graft + theme remap — verbatim from v1
 # ---------------------------------------------------------------------------
-def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map) -> None:
+def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
+                    layout_name: str = "") -> None:
     try:
         src_prs = Presentation(str(st.pptx_path))
         src_slide = src_prs.slides[0]
@@ -864,8 +961,11 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map) -> 
 
         prs = Presentation(str(template_path))
         _clear_existing_slides(prs)
-        blank = _find_blank_layout(prs)
-        new_slide = prs.slides.add_slide(blank)
+        # v0.2 P1.3: graft onto the layout named in chrome.yml / meta when one
+        # is supplied; fall back to blank for body-canonical and for slides
+        # that didn't carry a layout (P1.4 wires per-slide layout via meta).
+        target_layout = _find_named_layout(prs, layout_name) or _find_blank_layout(prs)
+        new_slide = prs.slides.add_slide(target_layout)
         _strip_layout_placeholders(new_slide)
 
         sp_tree = new_slide.shapes._spTree
@@ -1071,11 +1171,36 @@ def main() -> int:
         print(f"ERROR: cannot resolve Mermaid theme.\n{exc}", file=sys.stderr)
         return 7
 
+    # v0.2 P1.3: load + verify chrome.yml. Hard-fail on sha mismatch — refuse
+    # to build slides against a chrome spec the template has drifted away from.
+    try:
+        chrome_spec = _load_and_verify_chrome(args.template)
+    except ChromeSidecarMissingError as exc:
+        print(
+            f"ERROR: chrome sidecar missing.\n{exc}\n\n"
+            f"Re-register the template (one-time):\n"
+            f"  py -3 slide-builder/scripts/register_template.py propose "
+            f"\"{args.template}\"\n"
+            f"  # chat shows preview + picks; copy picks.json back\n"
+            f"  py -3 slide-builder/scripts/register_template.py commit "
+            f"\"{args.template}\" --picks <picks.json>",
+            file=sys.stderr,
+        )
+        return 7
+    except RuntimeError as exc:
+        print(f"ERROR: chrome.yml is stale.\n{exc}", file=sys.stderr)
+        return 7
+    chrome_yml_path = _p.chrome_yml(args.template)
+    default_layout_name = _pick_default_layout_name(chrome_spec)
+
     print("=" * 72)
     print("Slide Lab v2 deck orchestrator — Part B (finalize)")
     print(f"  out           : {args.out}")
     print(f"  template      : {args.template}")
     print(f"  mermaid theme : {mermaid_theme}")
+    print(f"  chrome.yml    : {chrome_yml_path}")
+    print(f"  layouts       : {len(chrome_spec.layouts)} "
+          f"(default for slides w/o layout field: {default_layout_name!r})")
     print("=" * 72)
 
     print("\n[1] Discover option_X.py files + classify by line-1 token")
@@ -1096,6 +1221,29 @@ def main() -> int:
                     expected_pairs.add((n, letter))
     except Exception:
         expected_pairs = set()
+
+    # v0.2 P1.3: slide_n -> layout name lookup. meta.slides[i].layout is
+    # added in P1.4; until then every slide gets default_layout_name.
+    _slide_layout_names: dict[int, str] = {}
+    try:
+        _meta_dict_layouts = json.loads(_p.meta_json(args.out).read_text(encoding="utf-8"))
+        for s in _meta_dict_layouts.get("slides", []):
+            n = s.get("n")
+            if isinstance(n, int):
+                _slide_layout_names[n] = (s.get("layout") or "").strip() or default_layout_name
+    except Exception:
+        _slide_layout_names = {}
+
+    def _layout_name_for(slide_n: int) -> str:
+        return _slide_layout_names.get(slide_n, default_layout_name)
+
+    def _layout_chrome_for(slide_n: int):
+        name = _layout_name_for(slide_n)
+        lc = chrome_spec.layouts.get(name)
+        if lc is None and chrome_spec.layouts:
+            # name doesn't exist in chrome.yml -> fall back to default
+            lc = chrome_spec.layouts.get(default_layout_name)
+        return lc
 
     statuses = discover_options(args.out, expected=expected_pairs)
     n_native = sum(1 for s in statuses if s.classification == "native")
@@ -1118,7 +1266,12 @@ def main() -> int:
             st.built = True
             print(f"  [{i:>3}/{len(statuses)}] slide_{st.slide_n:02d}/option_{st.letter}  [{_class_short(st.classification)}]  skip-build (exists)")
             continue
-        build_pptx(st, mermaid_theme=mermaid_theme)
+        build_pptx(
+            st, mermaid_theme=mermaid_theme,
+            chrome_yml_path=chrome_yml_path,
+            layout_chrome=_layout_chrome_for(st.slide_n),
+            layout_name=_layout_name_for(st.slide_n),
+        )
         if st.classification == "skeleton_rejected":
             flag = f"rejected ({st.classification_reason[:50]})"
         elif st.built:
@@ -1167,7 +1320,10 @@ def main() -> int:
 
     print("\n[4] Graft + theme remap (serial — python-pptx not thread-safe)")
     for i, st in enumerate(built_statuses, 1):
-        graft_and_theme(st, args.template, theme, color_map)
+        graft_and_theme(
+            st, args.template, theme, color_map,
+            layout_name=_layout_name_for(st.slide_n),
+        )
         flag = f"ok (shapes={st.n_shapes} subs={st.n_subs})" if st.themed else f"FAIL ({st.error[:50]})"
         print(f"  [{i:>3}/{len(built_statuses)}] slide_{st.slide_n:02d}/option_{st.letter}  {flag}")
 

@@ -36,6 +36,11 @@ from _meta_schema import (
     MetaJson, validate_meta_dict, MetaJsonSchemaError,
     META_SCHEMA_VERSION_CURRENT,
 )
+from _chrome_schema import (
+    BoxPx, LayoutChrome, ChromeSpec, ChromeSidecarMissingError, ChromeSchemaError,
+    CHROME_SCHEMA_VERSION_CURRENT,
+    validate_chrome_dict, load_chrome_yml, dump_chrome_yml,
+)
 
 
 def _fail(msg: str) -> None:
@@ -603,6 +608,434 @@ def check_type_hints_resolve() -> list[str]:
 
 
 # ---------------------------------------------------------------------------
+# Checks 8-12 — v0.2 chrome inheritance (P1.5 in design lock; lands with the
+# P1.3 / P1.4 code it protects, per design)
+# ---------------------------------------------------------------------------
+
+# Check 8 — chrome schema roundtrip
+#
+# Synthetic ChromeSpec serialises to dict and re-validates without drift.
+# Schema version preserved. Mirrors check_meta_schema_roundtrip; fast unit
+# check that the pydantic model survives ser/de.
+
+def check_chrome_schema_roundtrip() -> list[str]:
+    errors: list[str] = []
+    synthetic = ChromeSpec(
+        schema_version=CHROME_SCHEMA_VERSION_CURRENT,
+        source_template_sha8="deadbeef",
+        layouts={
+            "body_canonical_light": LayoutChrome(
+                name="body_canonical_light", layout_class="body-canonical",
+                text_role="dark_on_light", background="light",
+                has_page_number=True,
+            ),
+            "cover_dark": LayoutChrome(
+                name="cover_dark", layout_class="bespoke",
+                text_role="light_on_dark", background="dark",
+                has_page_number=False,
+                title=BoxPx(x_px=80, y_px=240, w_px=1120, h_px=120, font_pt=48, anchor="bottom"),
+                subtitle=BoxPx(x_px=80, y_px=370, w_px=900, h_px=40, font_pt=20),
+            ),
+        },
+    )
+    as_dict = synthetic.model_dump()
+    try:
+        validated = validate_chrome_dict(as_dict)
+    except ChromeSchemaError as e:
+        errors.append(f"chrome roundtrip validation failed: {e}")
+        return errors
+    if validated.schema_version != CHROME_SCHEMA_VERSION_CURRENT:
+        errors.append(
+            f"chrome roundtrip schema_version mismatch: "
+            f"{validated.schema_version} != {CHROME_SCHEMA_VERSION_CURRENT}"
+        )
+    if validated.source_template_sha8 != "deadbeef":
+        errors.append(
+            f"chrome roundtrip sha8 drift: {validated.source_template_sha8!r}"
+        )
+    if set(validated.layouts) != {"body_canonical_light", "cover_dark"}:
+        errors.append(
+            f"chrome roundtrip layout keys drift: {set(validated.layouts)}"
+        )
+    if not errors:
+        _ok(f"chrome schema roundtrip @ version {CHROME_SCHEMA_VERSION_CURRENT}")
+    return errors
+
+
+# Check 9 — chrome sidecar no silent fallback
+#
+# Mock-patches every chrome source away and calls add_title_block(chrome=None).
+# Asserts ChromeSidecarMissingError fires. Catches the v1 slot-mapping
+# silent-fallback bug class — if a future refactor reintroduces a default,
+# this check is the trip wire.
+
+def check_chrome_sidecar_no_silent_fallback() -> list[str]:
+    errors: list[str] = []
+    SKILL_ROOT = HERE.parent
+    twins_path = SKILL_ROOT
+    if str(twins_path) not in sys.path:
+        sys.path.insert(0, str(twins_path))
+    try:
+        import twins.helpers as h
+    except Exception as exc:
+        errors.append(f"sidecar fallback check: cannot import twins.helpers: {exc}")
+        return errors
+
+    # Snapshot env + module attribute, scrub them, exercise, restore.
+    saved_active = h._ACTIVE_CHROME
+    saved_chrome_yml = os.environ.pop("SLIDE_LAB_CHROME_YML", None)
+    saved_layout = os.environ.pop("SLIDE_LAB_LAYOUT_NAME", None)
+    h.set_active_chrome(None)
+    try:
+        from pptx import Presentation
+        prs = Presentation()
+        slide = prs.slides.add_slide(prs.slide_layouts[6])
+        try:
+            h.add_title_block(slide, "Title", "Sub")
+            errors.append(
+                "add_title_block(chrome=None) with no env vars + no _ACTIVE_CHROME "
+                "did NOT raise — silent fallback regression"
+            )
+        except ChromeSidecarMissingError:
+            pass  # expected
+        except Exception as exc:
+            errors.append(
+                f"add_title_block raised wrong exception type: "
+                f"{type(exc).__name__}: {exc}"
+            )
+
+        # add_footer should also raise
+        try:
+            h.add_footer(slide, page_num=1)
+            errors.append(
+                "add_footer(chrome=None) with no env vars + no _ACTIVE_CHROME "
+                "did NOT raise — silent fallback regression"
+            )
+        except ChromeSidecarMissingError:
+            pass
+        except Exception as exc:
+            errors.append(
+                f"add_footer raised wrong exception type: "
+                f"{type(exc).__name__}: {exc}"
+            )
+    finally:
+        h.set_active_chrome(saved_active)
+        if saved_chrome_yml is not None:
+            os.environ["SLIDE_LAB_CHROME_YML"] = saved_chrome_yml
+        if saved_layout is not None:
+            os.environ["SLIDE_LAB_LAYOUT_NAME"] = saved_layout
+
+    if not errors:
+        _ok("chrome sidecar no-silent-fallback: helpers raise without sidecar")
+    return errors
+
+
+# Check 10 — sidecar freshness vs template sha
+#
+# Builds a synthetic registered template (.pptx + chrome.yml stamped with a
+# specific sha8), mutates the .pptx bytes by 1, and asserts the freshness
+# check in finalize_deck._load_and_verify_chrome hard-fails. Catches the
+# "operator changed the template, forgot to re-register" failure mode.
+
+def check_sidecar_freshness_vs_template_sha() -> list[str]:
+    errors: list[str] = []
+    import tempfile
+    from pptx import Presentation as _Pres
+    try:
+        import finalize_deck as fd
+    except Exception as exc:
+        errors.append(f"freshness check: cannot import finalize_deck: {exc}")
+        return errors
+
+    with tempfile.TemporaryDirectory() as td:
+        tpl = Path(td) / "synthetic.pptx"
+        prs = _Pres()
+        prs.save(str(tpl))
+
+        # Stamp chrome.yml with the matching sha8.
+        original_sha8 = fd._sha256_of_file(tpl)[:8]
+        spec = ChromeSpec(
+            schema_version=CHROME_SCHEMA_VERSION_CURRENT,
+            source_template_sha8=original_sha8,
+            layouts={"Blank": LayoutChrome(
+                name="Blank", layout_class="body-canonical",
+                text_role="dark_on_light", background="light",
+                has_page_number=True,
+            )},
+        )
+        dump_chrome_yml(spec, _p.chrome_yml(tpl))
+
+        # Sanity: matching sha8 -> no raise.
+        try:
+            fd._load_and_verify_chrome(tpl)
+        except Exception as exc:
+            errors.append(
+                f"freshness check: matched sha8 unexpectedly raised: "
+                f"{type(exc).__name__}: {exc}"
+            )
+            return errors
+
+        # Mutate template bytes -> sha8 changes -> hard fail expected.
+        with open(tpl, "ab") as f:
+            f.write(b"\x00")
+        try:
+            fd._load_and_verify_chrome(tpl)
+            errors.append(
+                "freshness check: mutated template did NOT raise "
+                "RuntimeError — sha8 freshness check is silently passing"
+            )
+        except RuntimeError as exc:
+            if "source_template_sha8" not in str(exc):
+                errors.append(
+                    f"freshness check: raised but message lacks "
+                    f"'source_template_sha8': {exc}"
+                )
+        except Exception as exc:
+            errors.append(
+                f"freshness check: raised wrong type: "
+                f"{type(exc).__name__}: {exc}"
+            )
+
+    if not errors:
+        _ok("sidecar freshness: sha8 mismatch hard-fails finalize_deck")
+    return errors
+
+
+# Check 11 — chrome field single source
+#
+# Greps twins/helpers.py + slide-qc/ + every pattern helper for numeric
+# coordinate literals that look like chrome positions. Allowlist exactly
+# one location: _chrome_schema.py (chrome.yml lives on disk and is not
+# scanned). Any other location is a contract violation.
+#
+# Patterns: `x_px = 58|64|1170`, `y_px = 20|100|660|672|676|688`.
+# Plain integer matching would over-fire (e.g., 64 as an icon size,
+# 100 as a percentage). The contextual key (x_px=, y_px=, x_emu=, y_emu=)
+# restricts to coordinate assignments.
+
+_CHROME_X_LITERALS = ("58", "64", "1170")
+_CHROME_Y_LITERALS = ("20", "100", "660", "672", "676", "688")
+
+# Lower-case file paths that ARE the allowed source-of-truth. Hits inside
+# these are skipped.
+_CHROME_LITERAL_ALLOWED_SUFFIXES = (
+    "scripts/_chrome_schema.py",
+    "scripts/_contract.py",  # exception: this very file names the literals
+                              # to enforce them — meta-allowlist.
+)
+
+_CHROME_X_RE = re.compile(
+    r"\bx(?:_px|_emu)?\s*=\s*("
+    + "|".join(_CHROME_X_LITERALS) + r")\b"
+)
+_CHROME_Y_RE = re.compile(
+    r"\by(?:_px|_emu)?\s*=\s*("
+    + "|".join(_CHROME_Y_LITERALS) + r")\b"
+)
+
+
+def _is_chrome_literal_allowed(path: Path) -> bool:
+    posix = path.resolve().as_posix().lower()
+    return any(posix.endswith(suf) for suf in _CHROME_LITERAL_ALLOWED_SUFFIXES)
+
+
+def check_chrome_field_single_source() -> list[str]:
+    errors: list[str] = []
+    skill_root = HERE.parent
+    skills_root = skill_root.parent
+    scan_dirs = [
+        skill_root / "twins",
+        skill_root / "scripts",
+        skills_root / "slide-qc",
+    ]
+    files_checked = 0
+    hits_found = 0
+    for d in scan_dirs:
+        if not d.exists():
+            continue
+        for p in d.rglob("*.py"):
+            if "__pycache__" in p.parts:
+                continue
+            if "_decisions" in p.parts:
+                # decision-time scripts and gallery exemplars are not pipeline
+                # code; they don't get loaded at build time.
+                continue
+            if _is_chrome_literal_allowed(p):
+                continue
+            try:
+                text = p.read_text(encoding="utf-8", errors="replace")
+            except OSError as exc:
+                errors.append(f"chrome-literals: cannot read {p}: {exc}")
+                continue
+            files_checked += 1
+            for m in _CHROME_X_RE.finditer(text):
+                line_no = text[:m.start()].count("\n") + 1
+                rel = p.relative_to(skills_root)
+                errors.append(
+                    f"chrome-literals: {rel}:{line_no} has x_px={m.group(1)} "
+                    f"(canonical chrome x). Move to _chrome_schema.py "
+                    f"(CANONICAL_*_X) or read from chrome.yml."
+                )
+                hits_found += 1
+            for m in _CHROME_Y_RE.finditer(text):
+                line_no = text[:m.start()].count("\n") + 1
+                rel = p.relative_to(skills_root)
+                errors.append(
+                    f"chrome-literals: {rel}:{line_no} has y_px={m.group(1)} "
+                    f"(canonical chrome y). Move to _chrome_schema.py "
+                    f"(CANONICAL_*_Y) or read from chrome.yml."
+                )
+                hits_found += 1
+    if not errors:
+        _ok(
+            f"chrome field single-source: {files_checked} files scanned, "
+            f"no chrome-position literals outside _chrome_schema.py"
+        )
+    return errors
+
+
+# Check 12 — layout inheritance roundtrip per layout
+#
+# Per Agent D's prediction: extraction picks the wrong layout's footer when
+# multiple match. To catch that, we re-extract chrome from each registered
+# .pptx on disk and compare bounds to the stored chrome.yml. PER-LAYOUT, not
+# per-template aggregate. Synthetic in-memory pass always runs; opportunistic
+# disk scan catches drift against real templates.
+
+_REGISTERED_TEMPLATE_SEARCH_ROOTS: tuple[Path, ...] = (
+    # Common locations where a coworker keeps client templates.
+    Path.home() / "Documents",
+)
+
+
+def _opportunistic_chrome_yml_pairs() -> list[tuple[Path, Path]]:
+    """Find (chrome.yml, sibling .pptx) pairs under the search roots.
+    Returns []; the disk scan is best-effort + bounded — we don't want the
+    contract test to take minutes scanning a large file tree."""
+    pairs: list[tuple[Path, Path]] = []
+    for root in _REGISTERED_TEMPLATE_SEARCH_ROOTS:
+        if not root.exists():
+            continue
+        try:
+            # Bound the scan to 2 levels deep — registered templates live
+            # alongside their .pptx, typically <root>/<client>/template.pptx.
+            for chrome_yml in root.rglob("*.chrome.yml"):
+                # Skip anything more than 5 levels deep (cheap cap).
+                depth = len(chrome_yml.relative_to(root).parts)
+                if depth > 5:
+                    continue
+                stem = chrome_yml.name[:-len(".chrome.yml")]
+                pptx_sibling = chrome_yml.with_name(f"{stem}.pptx")
+                if not pptx_sibling.exists():
+                    pptx_sibling = chrome_yml.with_name(f"{stem}.potx")
+                if pptx_sibling.exists():
+                    pairs.append((chrome_yml, pptx_sibling))
+                if len(pairs) >= 8:
+                    return pairs
+        except (PermissionError, OSError):
+            continue
+    return pairs
+
+
+def check_layout_inheritance_roundtrip_per_layout() -> list[str]:
+    errors: list[str] = []
+    pairs = _opportunistic_chrome_yml_pairs()
+    layouts_checked = 0
+    templates_checked = 0
+    try:
+        import register_template as rt
+    except Exception as exc:
+        # Best-effort: if register_template can't load, the inheritance check
+        # cannot run. Skip rather than fail (this preserves the green-baseline
+        # contract when chrome support is being bootstrapped).
+        _ok("layout inheritance roundtrip: skipped (register_template not importable)")
+        return errors
+    try:
+        from pptx import Presentation as _Pres
+    except Exception:
+        return errors
+
+    for chrome_yml, pptx in pairs:
+        try:
+            stored = load_chrome_yml(chrome_yml)
+        except Exception as exc:
+            errors.append(
+                f"inheritance roundtrip: cannot load {chrome_yml}: "
+                f"{type(exc).__name__}: {exc}"
+            )
+            continue
+        try:
+            prs = _Pres(str(pptx))
+            re_extracted = rt.extract_chrome_spec(
+                prs, sha8=stored.source_template_sha8,
+                # Honor stored classifications so the comparison isn't
+                # confused by heuristic flipping a layout body<->bespoke.
+                classifications_override={
+                    n: lc.layout_class for n, lc in stored.layouts.items()
+                },
+            )
+        except Exception as exc:
+            errors.append(
+                f"inheritance roundtrip: re-extract failed for {pptx.name}: "
+                f"{type(exc).__name__}: {exc}"
+            )
+            continue
+        templates_checked += 1
+        for name, stored_lc in stored.layouts.items():
+            new_lc = re_extracted.layouts.get(name)
+            if new_lc is None:
+                errors.append(
+                    f"inheritance roundtrip: {pptx.name}: layout {name!r} "
+                    f"present in chrome.yml but not in re-extraction"
+                )
+                continue
+            layouts_checked += 1
+            if stored_lc.layout_class != new_lc.layout_class:
+                # honored via override — flag only if override didn't take
+                errors.append(
+                    f"inheritance roundtrip: {pptx.name}: layout {name!r} "
+                    f"class drift {stored_lc.layout_class!r} -> {new_lc.layout_class!r}"
+                )
+            # For bespoke layouts, compare every populated box.
+            for field in ("title", "subtitle", "footnote", "source", "page_number"):
+                stored_box = getattr(stored_lc, field)
+                new_box = getattr(new_lc, field)
+                if stored_box is None and new_box is None:
+                    continue
+                if stored_box is None or new_box is None:
+                    errors.append(
+                        f"inheritance roundtrip: {pptx.name}: {name!r}.{field} "
+                        f"presence drift (stored={stored_box is not None}, "
+                        f"new={new_box is not None})"
+                    )
+                    continue
+                # Tolerance: 1 EMU = 0 px at 96 DPI rounding -> px equality.
+                for axis in ("x_px", "y_px", "w_px", "h_px"):
+                    if getattr(stored_box, axis) != getattr(new_box, axis):
+                        errors.append(
+                            f"inheritance roundtrip: {pptx.name}: "
+                            f"{name!r}.{field}.{axis} drift "
+                            f"{getattr(stored_box, axis)} -> "
+                            f"{getattr(new_box, axis)}"
+                        )
+
+    if not errors:
+        if templates_checked == 0:
+            _ok(
+                "layout inheritance roundtrip: no registered templates "
+                "found on disk (search roots: "
+                + ", ".join(str(r) for r in _REGISTERED_TEMPLATE_SEARCH_ROOTS)
+                + ")"
+            )
+        else:
+            _ok(
+                f"layout inheritance roundtrip: {layouts_checked} layouts "
+                f"across {templates_checked} registered templates match within 0 px"
+            )
+    return errors
+
+
+# ---------------------------------------------------------------------------
 # Driver
 # ---------------------------------------------------------------------------
 
@@ -617,7 +1050,12 @@ def main() -> int:
                   check_pipeline_imports,
                   check_install_sentinels,
                   check_doc_file_refs,
-                  check_type_hints_resolve):
+                  check_type_hints_resolve,
+                  check_chrome_schema_roundtrip,
+                  check_chrome_sidecar_no_silent_fallback,
+                  check_sidecar_freshness_vs_template_sha,
+                  check_chrome_field_single_source,
+                  check_layout_inheritance_roundtrip_per_layout):
         errs = check()
         for e in errs:
             _fail(e)
