@@ -58,6 +58,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import sys
 import tempfile
 import zipfile
@@ -677,6 +678,85 @@ def render_pptx_to_png(pptx_path: Path, png_path: Path) -> bool:
         return True
 
 
+def render_layout_thumbnails(template_path: Path, out_dir: Path,
+                              dpi: int = 96) -> dict:
+    """Render one PNG thumbnail per layout in the client template.
+
+    Opens a copy of the template, clears existing sample slides, adds one
+    slide per layout (instantiating the layout untouched so its native
+    placeholders + decorative chrome appear), saves a temp PPTX, renders
+    via LibreOffice, and returns {layout_name: png_path}.
+
+    Used by the registration HTML so the user can SEE each layout when
+    deciding which to pick. Empty placeholders show their hint text
+    ("Click to add title"), which is informative — Mario sees where the
+    title sits, where body content lands, what the chrome looks like.
+    """
+    try:
+        from render_slides import render_libre
+    except ImportError as e:
+        print(f"WARNING: could not import render_libre: {e}")
+        return {}
+    from pptx import Presentation as _Pres
+    from copy import deepcopy as _deepcopy
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    prs = _Pres(str(template_path))
+    _clear_existing_slides(prs)
+
+    # Dedupe by name so the order/count matches propose_layouts_payload
+    # (which also dedupes via a `seen` set). Without this, the dict mapping
+    # name -> png is last-write-wins and points at the wrong rendered slide.
+    layout_order = []
+    _seen = set()
+    for master in prs.slide_masters:
+        for layout in master.slide_layouts:
+            name = (layout.name or "").strip()
+            if not name or name in _seen:
+                continue
+            _seen.add(name)
+            layout_order.append(name)
+            prs.slides.add_slide(layout)
+
+    if not layout_order:
+        return {}
+
+    tmp_pptx = out_dir / "_layout_thumbnails.pptx"
+    prs.save(str(tmp_pptx))
+
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        try:
+            render_libre(tmp_pptx, tmp, dpi=dpi)
+        except Exception as e:
+            print(f"WARNING: render_libre failed for layout thumbnails: {e}")
+            return {}
+        pngs = sorted(tmp.glob("slide_*.png"))
+        if len(pngs) < len(layout_order):
+            print(f"WARNING: rendered {len(pngs)} PNGs but expected "
+                  f"{len(layout_order)} layouts; some thumbnails missing")
+
+        mapping = {}
+        for i, name in enumerate(layout_order):
+            if i >= len(pngs):
+                break
+            safe = re.sub(r"[^A-Za-z0-9_-]+", "_", name)[:80]
+            dst = out_dir / f"thumb_{i:02d}_{safe}.png"
+            try:
+                shutil.copy(str(pngs[i]), str(dst))
+                mapping[name] = dst
+            except Exception as e:
+                print(f"WARNING: could not copy thumbnail for {name!r}: {e}")
+
+    try:
+        tmp_pptx.unlink()
+    except Exception:
+        pass
+
+    return mapping
+
+
 # ---------------------------------------------------------------------------
 # Palette swatch PNG — visual aid for chat-driven picks
 # ---------------------------------------------------------------------------
@@ -1111,19 +1191,7 @@ def render_register_html(proposal: dict, html_path: Path) -> bool:
 
 <section id="layouts-section">
   <h2>3. Pick the slide design you want</h2>
-  <div class="help">
-    The template ships many slide designs. Most decks use only one or two.
-    Pick the main design you want Slide Lab to use for body slides, and
-    the design for title / section slides. Other designs stay available
-    as one-off overrides via <code>**Layout:**</code> on individual slides.
-  </div>
   <div id="layouts-pick-cluster"></div>
-  <details id="layouts-all-details" style="margin-top: 16px;">
-    <summary style="cursor: pointer; font-size: 13px; color: var(--text-mid);">
-      Show all slide designs in the template
-    </summary>
-    <div id="layouts-list" style="margin-top: 12px;"></div>
-  </details>
 </section>
 
 <section id="strip-section">
@@ -1263,8 +1331,7 @@ function refreshUI() {
   btn.textContent = "Copy picks JSON to clipboard";
 }
 
-// Pick state for the cluster picker: which named layout is the body,
-// which is the cover.
+// Pick state: which named layout is the body, which is the cover.
 const layoutPicks = { body: null, cover: null };
 
 function autoCoverGuess() {
@@ -1277,37 +1344,20 @@ function autoCoverGuess() {
   return null;
 }
 
-function plainEnglishFor(l) {
-  const n = l.n_placeholders || 0;
-  if (n === 0) return "Blank canvas";
-  if (n === 1) return "Single text area";
-  if (n === 2) return "Title plus one body area";
-  if (n === 3) return "Title plus body plus second area";
-  if (n === 4) return "Title plus three areas";
-  return "Title plus " + (n - 1) + " areas";
+function autoBodyGuess() {
+  // First preference: a non-dark layout whose name contains "default slide
+  // template" — that's the common convention for the workhorse body layout.
+  let g = layouts.find(l => l.background !== "dark"
+                        && (l.name || "").toLowerCase().includes("default slide template"));
+  if (g) return g.name;
+  // Fallback: first non-dark, non-cover layout with >= 1 placeholder.
+  g = layouts.find(l => l.background !== "dark"
+                    && !(l.name || "").toLowerCase().includes("cover")
+                    && (l.n_placeholders || 0) >= 1);
+  return g ? g.name : (layouts[0] && layouts[0].name) || null;
 }
 
-function clusterLayouts() {
-  const buckets = new Map();
-  for (const l of layouts) {
-    const key = (l.n_placeholders || 0) + ":" + (l.background || "light");
-    if (!buckets.has(key)) buckets.set(key, []);
-    buckets.get(key).push(l);
-  }
-  const clusters = [];
-  for (const [key, members] of buckets) {
-    clusters.push({ key: key, members: members, canonical: members[0] });
-  }
-  clusters.sort((a, b) => {
-    const ab = a.canonical.background === "dark" ? 1 : 0;
-    const bb = b.canonical.background === "dark" ? 1 : 0;
-    if (ab !== bb) return ab - bb;
-    return (a.canonical.n_placeholders || 0) - (b.canonical.n_placeholders || 0);
-  });
-  return clusters.slice(0, 6);
-}
-
-function buildLayoutClusters() {
+function buildLayoutGrid() {
   const container = document.getElementById("layouts-pick-cluster");
   if (!container) return;
   container.innerHTML = "";
@@ -1315,69 +1365,124 @@ function buildLayoutClusters() {
     container.innerHTML = '<div class="help">No slide designs found.</div>';
     return;
   }
-  const clusters = clusterLayouts();
-  if (!layoutPicks.body) {
-    const guess = clusters.find(c => c.canonical.background !== "dark"
-                                 && (c.canonical.n_placeholders || 0) >= 2);
-    if (guess) layoutPicks.body = guess.canonical.name;
-    else if (clusters.length) layoutPicks.body = clusters[0].canonical.name;
-  }
-  if (!layoutPicks.cover) {
-    layoutPicks.cover = autoCoverGuess();
-  }
+  if (!layoutPicks.body)  layoutPicks.body  = autoBodyGuess();
+  if (!layoutPicks.cover) layoutPicks.cover = autoCoverGuess();
 
-  if (layoutPicks.cover) {
-    const disclosure = document.createElement("div");
-    disclosure.className = "strip-toggle";
-    disclosure.style.marginBottom = "16px";
-    disclosure.innerHTML =
-      "<div class='label-block'><strong>Title / section slides use " +
-      "&quot;" + layoutPicks.cover + "&quot;.</strong>" +
-      "<div class='note'>Slide Lab picked this automatically. " +
-      "To override, change the radio in &quot;Show all slide designs&quot; below.</div>" +
-      "</div>";
-    container.appendChild(disclosure);
-  }
+  const help = document.createElement("div");
+  help.style.fontSize = "13px";
+  help.style.color = "var(--text-mid)";
+  help.style.marginBottom = "16px";
+  help.innerHTML =
+    "Slide Lab has rendered every layout in your template below. Click " +
+    "<strong>Use for body</strong> on the layout you want for ~95% of pages, " +
+    "and <strong>Use for cover</strong> on the layout for title / section " +
+    "slides. Both have defaults already — only change if those defaults " +
+    "look wrong.";
+  container.appendChild(help);
 
   const grid = document.createElement("div");
   grid.style.display = "grid";
-  grid.style.gridTemplateColumns = "repeat(auto-fill, minmax(220px, 1fr))";
-  grid.style.gap = "12px";
-  clusters.forEach(c => {
+  grid.style.gridTemplateColumns = "repeat(auto-fill, minmax(320px, 1fr))";
+  grid.style.gap = "16px";
+
+  layouts.forEach(l => {
     const card = document.createElement("div");
     card.className = "layout-row";
     card.style.flexDirection = "column";
     card.style.alignItems = "stretch";
-    const isPicked = layoutPicks.body === c.canonical.name;
-    if (isPicked) {
+    card.style.padding = "12px";
+    const isBody  = layoutPicks.body  === l.name;
+    const isCover = layoutPicks.cover === l.name;
+    if (isBody) {
       card.style.borderColor = "var(--accent)";
       card.style.borderWidth = "2px";
+    } else if (isCover) {
+      card.style.borderColor = "var(--ok)";
+      card.style.borderWidth = "2px";
     }
-    const desc = plainEnglishFor(c.canonical);
-    const bgLabel = c.canonical.background === "dark" ? "Dark canvas" : "Light canvas";
-    card.innerHTML =
-      "<div style='font-weight: 600; font-size: 14px; margin-bottom: 4px;'>" + desc + "</div>" +
-      "<div style='font-size: 12px; color: var(--text-mid); margin-bottom: 8px;'>" + bgLabel + "</div>" +
-      "<div style='font-size: 11px; color: var(--text-dim); margin-bottom: 12px;'>" + c.canonical.name + "</div>" +
-      "<button class='copy-btn' data-pick='" + c.canonical.name + "' style='width: 100%;'>" +
-      (isPicked ? "Picked for body" : "Pick this for body") + "</button>";
+
+    // Thumbnail
+    const thumbWrap = document.createElement("div");
+    thumbWrap.style.cssText = "background: #F0F0F0; border: 1px solid var(--rule);"
+      + "border-radius: 4px; overflow: hidden; aspect-ratio: 16 / 9;"
+      + "display: flex; align-items: center; justify-content: center;"
+      + "margin-bottom: 10px;";
+    if (l.thumbnail) {
+      const img = document.createElement("img");
+      img.src = l.thumbnail;
+      img.alt = l.name;
+      img.style.cssText = "width: 100%; height: 100%; object-fit: contain; display: block;";
+      thumbWrap.appendChild(img);
+    } else {
+      thumbWrap.innerHTML = "<span style='color: var(--text-dim); font-size: 12px;'>(no thumbnail)</span>";
+    }
+    card.appendChild(thumbWrap);
+
+    // Status badges (Body / Cover)
+    const badges = document.createElement("div");
+    badges.style.cssText = "display: flex; gap: 6px; margin-bottom: 8px; min-height: 18px;";
+    if (isBody) {
+      const b = document.createElement("span");
+      b.style.cssText = "background: var(--accent); color: white; font-size: 11px;"
+        + "font-weight: 600; padding: 2px 8px; border-radius: 3px;";
+      b.textContent = "BODY";
+      badges.appendChild(b);
+    }
+    if (isCover) {
+      const b = document.createElement("span");
+      b.style.cssText = "background: var(--ok); color: white; font-size: 11px;"
+        + "font-weight: 600; padding: 2px 8px; border-radius: 3px;";
+      b.textContent = "COVER";
+      badges.appendChild(b);
+    }
+    card.appendChild(badges);
+
+    // Layout name (raw)
+    const nameEl = document.createElement("div");
+    nameEl.style.cssText = "font-family: ui-monospace, Consolas, monospace;"
+      + "font-size: 12px; color: var(--text-mid); margin-bottom: 10px;"
+      + "word-break: break-all;";
+    nameEl.textContent = l.name;
+    card.appendChild(nameEl);
+
+    // Two buttons: body + cover
+    const btnRow = document.createElement("div");
+    btnRow.style.cssText = "display: flex; gap: 6px;";
+    const bodyBtn = document.createElement("button");
+    bodyBtn.className = "copy-btn";
+    bodyBtn.style.cssText = "flex: 1; padding: 6px 10px; font-size: 12px;";
+    bodyBtn.textContent = isBody ? "✓ Body" : "Use for body";
+    bodyBtn.addEventListener("click", () => pickLayout("body", l.name));
+    btnRow.appendChild(bodyBtn);
+
+    const coverBtn = document.createElement("button");
+    coverBtn.className = "copy-btn";
+    coverBtn.style.cssText = "flex: 1; padding: 6px 10px; font-size: 12px;"
+      + "background: " + (isCover ? "var(--ok)" : "var(--text-mid)") + ";";
+    coverBtn.textContent = isCover ? "✓ Cover" : "Use for cover";
+    coverBtn.addEventListener("click", () => pickLayout("cover", l.name));
+    btnRow.appendChild(coverBtn);
+
+    card.appendChild(btnRow);
     grid.appendChild(card);
-    card.querySelector("button[data-pick]").addEventListener("click", e => {
-      const name = e.target.getAttribute("data-pick");
-      layoutPicks.body = name;
-      layouts.forEach(l => {
-        if (l.name === layoutPicks.cover) {
-          layoutClassifications[l.name] = "bespoke";
-        } else {
-          layoutClassifications[l.name] = "body-canonical";
-        }
-      });
-      buildLayoutClusters();
-      buildLayoutRows();
-      refreshUI();
-    });
   });
+
   container.appendChild(grid);
+}
+
+function pickLayout(role, name) {
+  if (role === "body")  layoutPicks.body  = name;
+  if (role === "cover") layoutPicks.cover = name;
+  // Update classifications: picked body becomes body-canonical, picked cover
+  // becomes bespoke, everything else stays as Slide Lab's auto guess.
+  layouts.forEach(l => {
+    if (l.name === layoutPicks.body)        layoutClassifications[l.name] = "body-canonical";
+    else if (l.name === layoutPicks.cover)  layoutClassifications[l.name] = "bespoke";
+    // else: leave the existing classification untouched so non-picked layouts
+    // can still be overridden per-slide via **Layout:** in the brief.
+  });
+  buildLayoutGrid();
+  refreshUI();
 }
 
 // Build per-layout classification rows (collapsed under "Show all" details)
@@ -1425,8 +1530,7 @@ function buildLayoutRows() {
 buildSwatches("sw-primary", "primary_slot");
 buildSwatches("sw-accent",  "accent_slot");
 buildSwatches("sw-cover",   "cover_bg_slot");
-buildLayoutRows();
-buildLayoutClusters();
+buildLayoutGrid();
 document.getElementById("strip-bg").addEventListener("change", refreshUI);
 document.getElementById("copy-btn").addEventListener("click", () => {
   const txt = document.getElementById("picks-json").textContent;
@@ -2277,6 +2381,19 @@ def _extract_theme_and_preview(tpl: Path) -> dict:
     ]
     palette_rendered = render_palette_swatches(palette, palette_png)
 
+    # v0.3 (2026-05-28): render one PNG per layout so the registration HTML
+    # can show the user what each layout actually looks like before they
+    # pick. Stored in <tpl-stem>.thumbnails/ next to the chrome.yml.
+    thumbnails_dir = tpl.with_name(f"{tpl.stem}.thumbnails")
+    try:
+        layout_thumbnails = render_layout_thumbnails(tpl, thumbnails_dir, dpi=96)
+        print(f"  layout thumbnails: {len(layout_thumbnails)} rendered "
+              f"to {thumbnails_dir}")
+    except Exception as _exc:
+        print(f"  WARNING: layout thumbnails render failed: "
+              f"{type(_exc).__name__}: {_exc}")
+        layout_thumbnails = {}
+
     # v0.2 P1.2: per-layout chrome proposals for register.html UI. Auto-detected
     # classification + text_role per slide_layout. User reclassifies in the
     # picks JSON before commit.
@@ -2286,6 +2403,20 @@ def _extract_theme_and_preview(tpl: Path) -> dict:
     except Exception as _exc:
         print(f"  WARNING: layout proposal scan failed: {type(_exc).__name__}: {_exc}")
         layout_proposals = []
+    # Attach thumbnail paths (relative to the register.html location) so the
+    # <img src=...> loads under file:// without security blocks.
+    for lp in layout_proposals:
+        name = lp.get("name")
+        if name in layout_thumbnails:
+            abs_path = layout_thumbnails[name]
+            try:
+                rel = abs_path.relative_to(tpl.parent)
+                # Use forward slashes for HTML
+                lp["thumbnail"] = str(rel).replace("\\", "/")
+            except ValueError:
+                lp["thumbnail"] = str(abs_path).replace("\\", "/")
+        else:
+            lp["thumbnail"] = None
 
     proposal_dict = {
         "template":        str(tpl),
