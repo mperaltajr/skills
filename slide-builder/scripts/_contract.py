@@ -90,8 +90,8 @@ def check_meta_schema_roundtrip() -> list[str]:
         brand_primary="#4D148C",
         brand_accent="#FF6600",
         slides=[
-            {"n": 1, "title": "T1", "forecasted_pattern": "full-canvas", "page_type": "cover"},
-            {"n": 2, "title": "T2", "forecasted_pattern": "50-50",       "page_type": "headline-finding"},
+            {"n": 1, "title": "T1", "forecasted_pattern": "full-canvas", "page_type": "cover", "layout": "cover_light"},
+            {"n": 2, "title": "T2", "forecasted_pattern": "50-50",       "page_type": "headline-finding", "layout": "body_canonical_light"},
         ],
         deck_meta={"deck_type": "client-pitch", "governing_thought": "g", "audience": "a"},
     )
@@ -194,7 +194,7 @@ def check_pipeline_imports() -> list[str]:
         "build_deck", "finalize_deck", "compile_picks",
         "build_review", "build_gate_preview",
         "register_template", "clean", "diagnostic",
-        "icon_helper", "render_mermaid",
+        "icon_helper", "render_mermaid", "migrate_brief_to_v3",
     ]
     imported = 0
     for name in targets:
@@ -568,7 +568,7 @@ def check_type_hints_resolve() -> list[str]:
         "build_deck", "finalize_deck", "compile_picks",
         "build_review", "build_gate_preview",
         "register_template", "clean", "diagnostic",
-        "icon_helper", "render_mermaid",
+        "icon_helper", "render_mermaid", "migrate_brief_to_v3",
     ]
     callables_checked = 0
     for mod_name in targets:

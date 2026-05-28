@@ -223,5 +223,5 @@ ARTIFACT_MANIFEST: list[dict] = [
     {"name": "option_raw_pptx",    "writer": "finalize_deck.py",      "readers": [], "accepted": True, "reason": "Audit archive — not re-read"},
 
     # Template-relative (v0.2)
-    {"name": "chrome_yml",         "writer": "register_template.py",  "readers": ["finalize_deck.py"], "note": "build_deck.py reader joins in P1.4 once it greps chrome.yml for the available-layouts error message."},
+    {"name": "chrome_yml",         "writer": "register_template.py",  "readers": ["finalize_deck.py", "build_deck.py"]},
 ]
