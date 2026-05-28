@@ -952,8 +952,59 @@ def build_pptx(st: OptionStatus, mermaid_theme: Path,
 # ---------------------------------------------------------------------------
 # Step 2: graft + theme remap — verbatim from v1
 # ---------------------------------------------------------------------------
+def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
+                                     src_slide, slide_n: int) -> None:
+    """Body-canonical post-graft: insert dark overlay (if any) + populate
+    inherited title/footer/page-number placeholders.
+
+    Source-of-truth title text comes from the source slide's shape named
+    'title' (or first-prefix-match), with a fallback to <slide-N>. Footer text
+    is left blank — the template's own footer placeholder content stays.
+    Page number gets the slide index as text.
+    """
+    from twins.composer import _insert_dark_overlay, _populate_layout_placeholders
+
+    # 1. Source title text
+    src_title = ""
+    for shape in src_slide.shapes:
+        try:
+            name = (shape.name or "").strip().lower()
+        except Exception:
+            name = ""
+        if name == "title" or name.startswith("title"):
+            try:
+                src_title = (shape.text_frame.text or "").strip()
+            except Exception:
+                src_title = ""
+            if src_title:
+                break
+
+    # 2. Dark overlay (must run BEFORE populating the title placeholder so the
+    # overlay ends up below the title — we move overlay to position 2 in
+    # spTree, ahead of grafted shapes but behind nothing).
+    overlay_hex = getattr(layout_chrome, "body_overlay_hex", None)
+    body_top_px = getattr(layout_chrome, "body_top_y_px", None)
+    body_bot_px = getattr(layout_chrome, "body_bottom_y_px", None)
+    if overlay_hex and body_top_px is not None and body_bot_px is not None:
+        _insert_dark_overlay(
+            new_slide, prs,
+            int(body_top_px) * 9525,
+            int(body_bot_px) * 9525,
+            overlay_hex,
+        )
+
+    # 3. Populate inherited placeholders
+    _populate_layout_placeholders(
+        new_slide,
+        title=src_title or None,
+        footer=None,
+        page_num=str(slide_n),
+    )
+
+
 def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
-                    layout_name: str = "") -> None:
+                    layout_name: str = "",
+                    layout_chrome=None) -> None:
     try:
         src_prs = Presentation(str(st.pptx_path))
         src_slide = src_prs.slides[0]
@@ -966,7 +1017,22 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
         # that didn't carry a layout (P1.4 wires per-slide layout via meta).
         target_layout = _find_named_layout(prs, layout_name) or _find_blank_layout(prs)
         new_slide = prs.slides.add_slide(target_layout)
-        _strip_layout_placeholders(new_slide)
+
+        # v0.3 (2026-05-28) body-canonical layout inheritance:
+        # When the chosen layout is body-canonical AND chrome.yml carries the
+        # v2 layout-inheritance fields (title_placeholder_idx set), KEEP the
+        # layout's inherited placeholders + decorative shapes. Slide Lab's
+        # source-slide content gets grafted on top; the inherited title +
+        # footer placeholders get populated with text from the source slide
+        # after the graft. Otherwise (bespoke / cover / v1 chrome) strip the
+        # placeholders so Slide Lab redraws everything at canonical position.
+        _is_body_canonical = (
+            layout_chrome is not None
+            and getattr(layout_chrome, "layout_class", None) == "body-canonical"
+            and getattr(layout_chrome, "title_placeholder_idx", None) is not None
+        )
+        if not _is_body_canonical:
+            _strip_layout_placeholders(new_slide)
 
         sp_tree = new_slide.shapes._spTree
         for shape in src_slide.shapes:
@@ -1001,6 +1067,22 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
                     # diagnose. Better than swallowing the picture entirely.
                     pass
             sp_tree.append(deepcopy(shape.element))
+
+        # v0.3 body-canonical: insert dark-overlay rectangle (if any) so it
+        # sits BEFORE the source-slide content in z-order, and write the source
+        # slide's title + footer text into the layout's inherited placeholders.
+        if _is_body_canonical:
+            try:
+                _apply_body_canonical_finishing(
+                    new_slide, prs, layout_chrome, src_slide, st.slide_n
+                )
+            except Exception as _exc:
+                # Don't fail the graft on overlay/populate trouble — surface
+                # in qc later. The grafted slide is still valid.
+                sys.stderr.write(
+                    f"  WARN: body-canonical finishing skipped on slide "
+                    f"{st.slide_n}: {type(_exc).__name__}: {_exc}\n"
+                )
 
         subs = 0
         for shape in new_slide.shapes:
@@ -1323,6 +1405,7 @@ def main() -> int:
         graft_and_theme(
             st, args.template, theme, color_map,
             layout_name=_layout_name_for(st.slide_n),
+            layout_chrome=_layout_chrome_for(st.slide_n),
         )
         flag = f"ok (shapes={st.n_shapes} subs={st.n_subs})" if st.themed else f"FAIL ({st.error[:50]})"
         print(f"  [{i:>3}/{len(built_statuses)}] slide_{st.slide_n:02d}/option_{st.letter}  {flag}")

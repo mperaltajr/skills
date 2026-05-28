@@ -45,8 +45,15 @@ from pydantic import BaseModel, ValidationError
 
 # Bumped when the schema shape changes. Stay in lockstep with register_template
 # (writer) and finalize_deck (reader).
-CHROME_SCHEMA_VERSION_CURRENT: int = 1
-SUPPORTED_SCHEMA_VERSIONS: tuple[int, ...] = (1,)
+#
+# v2 (2026-05-28) adds the body-canonical layout-inheritance fields:
+#   title_placeholder_idx, body_top_y_px, body_bottom_y_px, body_overlay_hex.
+# v1 chrome.yml is still readable — validate_chrome_dict defaults the new
+# fields to None so pre-v2 sidecars load without re-registration. Templates
+# already registered at v1 keep working in legacy "strip-and-redraw" mode
+# until they are re-registered.
+CHROME_SCHEMA_VERSION_CURRENT: int = 2
+SUPPORTED_SCHEMA_VERSIONS: tuple[int, ...] = (1, 2)
 
 
 # ---------------------------------------------------------------------------
@@ -91,6 +98,13 @@ CANONICAL_PAGE_NUMBER_Y: int = 688
 CANONICAL_PAGE_NUMBER_W: int = 52
 CANONICAL_PAGE_NUMBER_H: int = 16
 CANONICAL_PAGE_NUMBER_FONT_PX: int = 11
+
+# Body-zone fallbacks for body-canonical layouts that lack title / footer
+# placeholders during registration. Used only when register_template cannot
+# locate the inherited placeholder bounds; real templates populate these
+# fields per layout in chrome.yml.
+CANONICAL_BODY_TOP_Y: int = 110
+CANONICAL_BODY_BOTTOM_Y: int = 660
 
 
 def canonical_title_box() -> "BoxPx":
@@ -163,6 +177,24 @@ class LayoutChrome(BaseModel):
     footnote: BoxPx | None = None
     source: BoxPx | None = None
     page_number: BoxPx | None = None
+    # v2 (2026-05-28) — body-canonical layout-inheritance fields.
+    # For body-canonical layouts ONLY:
+    #   title_placeholder_idx: which inherited placeholder holds the title
+    #     (so finalize_deck writes the slide title text into the layout's
+    #      title placeholder rather than drawing a free-floating textbox).
+    #   body_top_y_px / body_bottom_y_px: drawable zone between the inherited
+    #     title placeholder bottom and the footer placeholder top — patterns
+    #     compose body content inside this zone.
+    #   body_overlay_hex: when set, finalize_deck inserts a solid rectangle
+    #     of that color covering the body zone as the first slide-level
+    #     shape (used to paint a dark variant on top of a light layout when
+    #     the template ships no dark body layout). None = no overlay.
+    # For bespoke layouts these remain None (covers/dividers keep today's
+    # strip-and-redraw path).
+    title_placeholder_idx: int | None = None
+    body_top_y_px: int | None = None
+    body_bottom_y_px: int | None = None
+    body_overlay_hex: str | None = None
 
 
 class ChromeSpec(BaseModel):

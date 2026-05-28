@@ -46,6 +46,7 @@ from _chrome_schema import (  # noqa: E402
     CANONICAL_TITLE_X, CANONICAL_TITLE_FONT_PT, CANONICAL_SUBTITLE_FONT_PT,
     CANONICAL_FOOTNOTE_FONT_PX, CANONICAL_SOURCE_FONT_PX,
     CANONICAL_PAGE_NUMBER_FONT_PX,
+    CANONICAL_BODY_TOP_Y, CANONICAL_BODY_BOTTOM_Y,
     load_chrome_yml,
 )
 
@@ -493,6 +494,30 @@ INTENTIONAL_FOOTNOTE_PLACEHOLDER = "[add footnote here or delete]"
 INTENTIONAL_SOURCE_PLACEHOLDER = "[add source here or delete]"
 
 
+def body_zone_for_chrome(chrome: LayoutChrome) -> tuple[int, int]:
+    """Return (body_top_y_px, body_bottom_y_px) for the layout's body zone.
+
+    body-canonical (v2 chrome): reads chrome.body_top_y_px / body_bottom_y_px.
+      Raises ChromeSidecarMissingError if either is None — the layout was
+      registered under v1 and must be re-registered to populate the zone.
+    bespoke: returns conservative defaults that don't constrain (40, 660)
+      px — covers/dividers compose their own art-directed body.
+    """
+    if chrome.layout_class == "body-canonical":
+        top = getattr(chrome, "body_top_y_px", None)
+        bot = getattr(chrome, "body_bottom_y_px", None)
+        if top is None or bot is None:
+            raise ChromeSidecarMissingError(
+                f"body-canonical layout {chrome.name!r} has no body_top_y_px / "
+                f"body_bottom_y_px in chrome.yml. Re-register the template "
+                f"(register_template.py propose -> commit) so the v2 layout-"
+                f"inheritance fields are populated."
+            )
+        return int(top), int(bot)
+    # Bespoke: conservative defaults sourced from _chrome_schema constants
+    return 40, CANONICAL_BODY_BOTTOM_Y
+
+
 def _chrome_box_for(chrome: LayoutChrome, role: str):
     """Resolve a chrome BoxPx for the given role under the layout's class.
 
@@ -534,6 +559,12 @@ def add_footer(slide, page_num, source=None, footnote=None, *,
         chrome = _resolve_active_chrome()
     _, faint_color = _text_colors_for(chrome.text_role)
 
+    # v0.3 body-canonical inheritance: layout's own footer/page-number
+    # placeholders are populated downstream by finalize_deck. Slide Lab's
+    # footnote/source additions still draw at the canonical positions.
+    _inherit_chrome = (chrome.layout_class == "body-canonical"
+                       and getattr(chrome, "title_placeholder_idx", None) is not None)
+
     fn_box  = _chrome_box_for(chrome, "footnote")
     src_box = _chrome_box_for(chrome, "source")
 
@@ -551,7 +582,7 @@ def add_footer(slide, page_num, source=None, footnote=None, *,
         w_px=src_box.w_px, h_px=src_box.h_px,
         font_size_px=CANONICAL_SOURCE_FONT_PX, color=faint_color, italic=True,
     )
-    if chrome.has_page_number:
+    if chrome.has_page_number and not _inherit_chrome:
         pn_box = _chrome_box_for(chrome, "page_number")
         add_text(
             slide, "page-number", f"{page_num}",
@@ -566,6 +597,17 @@ def add_title_block(slide, title, subtitle="", *,
                     chrome: LayoutChrome | None = None):
     """Title + optional subtitle. Positions and text colors come from chrome.
 
+    Body-canonical layouts: when the active chrome's layout_class is
+    body-canonical AND its title_placeholder_idx is set (v2 chrome), the
+    inherited title placeholder will be populated downstream by finalize_deck;
+    this helper draws nothing for the title in that case. The subtitle still
+    draws as a free-floating textbox at the canonical subtitle position so
+    patterns that pass a subtitle continue to render it. (v1 chrome with
+    layout_class=body-canonical falls back to drawing the title textbox at
+    canonical position, the pre-v0.3 behavior.)
+
+    Bespoke layouts: title drawn at the chrome.title BoxPx position.
+
     Title is BOTTOM-anchored regardless of chrome's bespoke `anchor` field —
     feedback_title_bottom_anchor invariant: 2-line titles grow upward, never
     displace the subtitle. The chrome placeholder defines WHERE the title
@@ -577,6 +619,23 @@ def add_title_block(slide, title, subtitle="", *,
     if chrome is None:
         chrome = _resolve_active_chrome()
     text_color, _ = _text_colors_for(chrome.text_role)
+
+    # v0.3 body-canonical inheritance: when the layout exposes an inherited
+    # title placeholder via chrome (v2 schema), skip drawing the title
+    # textbox. finalize_deck will write the title text into the inherited
+    # placeholder after grafting.
+    if (chrome.layout_class == "body-canonical"
+            and getattr(chrome, "title_placeholder_idx", None) is not None):
+        if subtitle:
+            subtitle_box = _chrome_box_for(chrome, "subtitle")
+            add_text(
+                slide, "subtitle", subtitle,
+                x_px=subtitle_box.x_px, y_px=subtitle_box.y_px,
+                w_px=subtitle_box.w_px, h_px=subtitle_box.h_px,
+                font_size_pt=subtitle_box.font_pt or CANONICAL_SUBTITLE_FONT_PT,
+                color=text_color, italic=True,
+            )
+        return None
 
     title_box = _chrome_box_for(chrome, "title")
     add_text(
