@@ -203,9 +203,17 @@ def load_brand_sidecar(template_path: Path) -> dict:
         "cover_bg_hex": _normalize_hex(
             brand_raw.get("cover_bg_hex", "") or brand_raw.get("primary_hex", "")
         ),
+        # v0.3: dark_bg_hex defaults to primary_hex when brand.yml predates
+        # the field (back-compat with templates registered before v0.3).
+        "dark_bg_hex": _normalize_hex(
+            brand_raw.get("dark_bg_hex", "") or brand_raw.get("primary_hex", "")
+        ),
         "primary_slot": str(brand_raw.get("primary_slot", "") or ""),
         "accent_slot": str(brand_raw.get("accent_slot", "") or ""),
         "cover_bg_slot": str(brand_raw.get("cover_bg_slot", "") or ""),
+        "dark_bg_slot": str(
+            brand_raw.get("dark_bg_slot", "") or brand_raw.get("primary_slot", "") or ""
+        ),
         "font_heading": str(brand_raw.get("font_heading", "") or ""),
         "font_body": str(brand_raw.get("font_body", "") or ""),
         "strip_master_backgrounds": bool(
@@ -249,9 +257,11 @@ class ClientTheme:
     brand_primary: str = ""              # primary_hex
     brand_accent: str = ""               # accent_hex
     cover_bg_hex: str = ""               # cover_bg_hex
+    dark_bg_hex: str = ""                # dark_bg_hex (v0.3: full-bleed dark variant fill)
     primary_slot: str = ""               # informational
     accent_slot: str = ""                # informational
     cover_bg_slot: str = ""              # informational
+    dark_bg_slot: str = ""               # informational
     strip_master_backgrounds: bool = True
     template_sha: str = ""
 
@@ -442,9 +452,11 @@ def load_client_theme(template_path: str) -> ClientTheme:
         brand_primary=brand["primary_hex"],
         brand_accent=brand["accent_hex"],
         cover_bg_hex=brand["cover_bg_hex"],
+        dark_bg_hex=brand["dark_bg_hex"],
         primary_slot=brand["primary_slot"],
         accent_slot=brand["accent_slot"],
         cover_bg_slot=brand["cover_bg_slot"],
+        dark_bg_slot=brand["dark_bg_slot"],
         strip_master_backgrounds=brand["strip_master_backgrounds"],
         template_sha=brand["_template_sha"],
     )

@@ -1187,6 +1187,20 @@ def render_register_html(proposal: dict, html_path: Path) -> bool:
     </div>
     <div class="swatches" id="sw-cover"></div>
   </div>
+
+  <div class="picker" data-role="dark_bg_slot">
+    <div class="picker-label">
+      Dark-variant background color
+      <span class="current" id="cur-dark"></span>
+    </div>
+    <div class="role-explainer">
+      <strong>The fill behind any slide marked as a dark variant.</strong> When a brief
+      sets <code>**Variant:** dark</code> on a slide, Slide Lab strips the layout&rsquo;s bright
+      chrome and paints this color full-bleed instead. <em>Default is your primary brand
+      color &mdash; change only if your brand has a specific dark-variant shade.</em>
+    </div>
+    <div class="swatches" id="sw-dark"></div>
+  </div>
 </section>
 
 <section id="layouts-section">
@@ -1269,6 +1283,8 @@ const state = {
   accent_hex:   paletteHex(bestGuess.accent_slot),
   cover_bg_slot:bestGuess.cover_bg_slot,
   cover_bg_hex: paletteHex(bestGuess.cover_bg_slot),
+  dark_bg_slot: bestGuess.primary_slot,   // default to primary
+  dark_bg_hex:  paletteHex(bestGuess.primary_slot),
   strip_master_backgrounds: true,
 };
 
@@ -1287,6 +1303,9 @@ function selectSwatch(role, entry) {
   } else if (role === "cover_bg_slot") {
     state.cover_bg_slot = entry.slot;
     state.cover_bg_hex  = entry.hex;
+  } else if (role === "dark_bg_slot") {
+    state.dark_bg_slot = entry.slot;
+    state.dark_bg_hex  = entry.hex;
   }
   refreshUI();
 }
@@ -1302,11 +1321,15 @@ function refreshUI() {
   document.querySelectorAll("#sw-cover .swatch").forEach(s => {
     s.classList.toggle("selected", s.dataset.slot === state.cover_bg_slot);
   });
+  document.querySelectorAll("#sw-dark .swatch").forEach(s => {
+    s.classList.toggle("selected", s.dataset.slot === state.dark_bg_slot);
+  });
 
   // Update "current" labels
   document.getElementById("cur-primary").textContent = `selected: #${state.primary_hex} (slot ${state.primary_slot})`;
   document.getElementById("cur-accent").textContent  = `selected: #${state.accent_hex} (slot ${state.accent_slot})`;
   document.getElementById("cur-cover").textContent   = `selected: #${state.cover_bg_hex} (slot ${state.cover_bg_slot})`;
+  document.getElementById("cur-dark").textContent    = `selected: #${state.dark_bg_hex} (slot ${state.dark_bg_slot})`;
 
   // Update strip toggle
   state.strip_master_backgrounds = document.getElementById("strip-bg").checked;
@@ -1320,6 +1343,8 @@ function refreshUI() {
     accent_hex:    state.accent_hex,
     cover_bg_slot: state.cover_bg_slot,
     cover_bg_hex:  state.cover_bg_hex,
+    dark_bg_slot:  state.dark_bg_slot,
+    dark_bg_hex:   state.dark_bg_hex,
     strip_master_backgrounds: state.strip_master_backgrounds,
     layout_classifications: layoutClassifications,
   };
@@ -1500,6 +1525,7 @@ function buildLayoutRows() {
 buildSwatches("sw-primary", "primary_slot");
 buildSwatches("sw-accent",  "accent_slot");
 buildSwatches("sw-cover",   "cover_bg_slot");
+buildSwatches("sw-dark",    "dark_bg_slot");
 buildLayoutGrid();
 document.getElementById("strip-bg").addEventListener("change", refreshUI);
 document.getElementById("copy-btn").addEventListener("click", () => {
@@ -1563,12 +1589,14 @@ BRAND_YML_TEMPLATE = """# {stem}.brand.yml
 primary_hex:     "#{primary_hex}"
 accent_hex:      "#{accent_hex}"
 cover_bg_hex:    "#{cover_bg_hex}"
+dark_bg_hex:     "#{dark_bg_hex}"
 
 # Informational only - slot names from PowerPoint (not used by builds,
 # kept for human reference)
 primary_slot:    {primary_slot}
 accent_slot:     {accent_slot}
 cover_bg_slot:   {cover_bg_slot}
+dark_bg_slot:    {dark_bg_slot}
 
 # Fonts
 font_heading:    "{font_heading}"
@@ -1583,7 +1611,9 @@ strip_master_backgrounds: {strip_master_bg}
 
 def write_brand_yml(path: Path, *, primary_hex: str, accent_hex: str,
                     cover_bg_hex: str, primary_slot: str, accent_slot: str,
-                    cover_bg_slot: str, font_heading: str, font_body: str,
+                    cover_bg_slot: str,
+                    dark_bg_hex: str, dark_bg_slot: str,
+                    font_heading: str, font_body: str,
                     strip_master_backgrounds: bool, sha8: str) -> None:
     content = BRAND_YML_TEMPLATE.format(
         stem=path.stem.replace(".brand", ""),
@@ -1592,9 +1622,11 @@ def write_brand_yml(path: Path, *, primary_hex: str, accent_hex: str,
         primary_hex=primary_hex.upper(),
         accent_hex=accent_hex.upper(),
         cover_bg_hex=cover_bg_hex.upper(),
+        dark_bg_hex=dark_bg_hex.upper(),
         primary_slot=primary_slot,
         accent_slot=accent_slot,
         cover_bg_slot=cover_bg_slot,
+        dark_bg_slot=dark_bg_slot,
         font_heading=font_heading or "",
         font_body=font_body or "",
         strip_master_bg="true" if strip_master_backgrounds else "false",
@@ -1808,8 +1840,11 @@ def _main_interactive(args) -> int:
         print("\n[Phase 4] Auto-accept (--auto-accept-phase1)")
         _write_outputs(
             tpl, sha, sha8, primary_hex, primary_slot, accent_hex, accent_slot,
-            cover_bg_hex, cover_bg_slot, font_heading, font_body,
-            strip_master_backgrounds, colors, n_master, n_layout
+            cover_bg_hex, cover_bg_slot,
+            dark_bg_hex=primary_hex, dark_bg_slot=primary_slot,
+            font_heading=font_heading, font_body=font_body,
+            strip_master_backgrounds=strip_master_backgrounds,
+            colors=colors, n_master=n_master, n_layout=n_layout,
         )
         rc = _write_chrome_yml_for(tpl, sha8=sha8, layout_overrides=None)
         if rc != 0:
@@ -1846,8 +1881,10 @@ def _main_interactive(args) -> int:
             _write_outputs(
                 tpl, sha, sha8, primary_hex, primary_slot,
                 accent_hex, accent_slot, cover_bg_hex, cover_bg_slot,
-                font_heading, font_body, strip_master_backgrounds,
-                colors, n_master, n_layout
+                dark_bg_hex=primary_hex, dark_bg_slot=primary_slot,
+                font_heading=font_heading, font_body=font_body,
+                strip_master_backgrounds=strip_master_backgrounds,
+                colors=colors, n_master=n_master, n_layout=n_layout,
             )
             brand_yml = tpl.with_name(f"{tpl.stem}.brand.yml")
             try:
@@ -1922,8 +1959,11 @@ def _main_interactive(args) -> int:
     _write_outputs(
         tpl, sha, sha8, primary_hex, primary_slot,
         accent_hex, accent_slot, cover_bg_hex, cover_bg_slot,
-        font_heading, font_body, strip_master_backgrounds,
-        colors, n_master, n_layout
+        # Interactive Phase 1 has no dark-bg picker; default to primary.
+        dark_bg_hex=primary_hex, dark_bg_slot=primary_slot,
+        font_heading=font_heading, font_body=font_body,
+        strip_master_backgrounds=strip_master_backgrounds,
+        colors=colors, n_master=n_master, n_layout=n_layout,
     )
     rc = _write_chrome_yml_for(tpl, sha8=sha8, layout_overrides=None)
     if rc != 0:
@@ -1935,6 +1975,8 @@ def _write_outputs(tpl: Path, sha: str, sha8: str,
                    primary_hex: str, primary_slot: str,
                    accent_hex: str, accent_slot: str,
                    cover_bg_hex: str, cover_bg_slot: str,
+                   *,
+                   dark_bg_hex: str, dark_bg_slot: str,
                    font_heading: str, font_body: str,
                    strip_master_backgrounds: bool,
                    colors: dict, n_master: int, n_layout: int) -> None:
@@ -1947,6 +1989,7 @@ def _write_outputs(tpl: Path, sha: str, sha8: str,
         cover_bg_hex=cover_bg_hex,
         primary_slot=primary_slot, accent_slot=accent_slot,
         cover_bg_slot=cover_bg_slot,
+        dark_bg_hex=dark_bg_hex, dark_bg_slot=dark_bg_slot,
         font_heading=font_heading, font_body=font_body,
         strip_master_backgrounds=strip_master_backgrounds,
         sha8=sha8,
@@ -1956,9 +1999,11 @@ def _write_outputs(tpl: Path, sha: str, sha8: str,
         "primary_hex": f"#{primary_hex.upper()}",
         "accent_hex": f"#{accent_hex.upper()}",
         "cover_bg_hex": f"#{cover_bg_hex.upper()}",
+        "dark_bg_hex": f"#{dark_bg_hex.upper()}",
         "primary_slot": primary_slot,
         "accent_slot": accent_slot,
         "cover_bg_slot": cover_bg_slot,
+        "dark_bg_slot": dark_bg_slot,
         "font_heading": font_heading,
         "font_body": font_body,
         "strip_master_backgrounds": strip_master_backgrounds,
@@ -2501,6 +2546,9 @@ def _main_commit(args) -> int:
         primary_slot = bg["primary_slot"]; primary_hex = bg["primary_hex"]
         accent_slot  = bg["accent_slot"];  accent_hex  = bg["accent_hex"]
         cover_bg_slot = bg["cover_bg_slot"]; cover_bg_hex = bg["cover_bg_hex"]
+        # Dark-variant default: primary (same default as the picker UI).
+        dark_bg_slot = primary_slot
+        dark_bg_hex  = primary_hex
         strip_master_backgrounds = True
         source = "Phase-1 best-guess (accept=true)"
     else:
@@ -2516,6 +2564,10 @@ def _main_commit(args) -> int:
         accent_hex   = picks["accent_hex"].upper().lstrip("#")
         cover_bg_slot = picks.get("cover_bg_slot", primary_slot)
         cover_bg_hex  = picks.get("cover_bg_hex",  primary_hex).upper().lstrip("#")
+        # Dark-variant background: defaults to primary if not in picks
+        # (older picks JSON without the dark_bg_* fields still work).
+        dark_bg_slot = picks.get("dark_bg_slot", primary_slot)
+        dark_bg_hex  = picks.get("dark_bg_hex",  primary_hex).upper().lstrip("#")
         strip_master_backgrounds = picks.get("strip_master_backgrounds", True)
         source = "user picks via chat orchestrator"
 
@@ -2524,15 +2576,18 @@ def _main_commit(args) -> int:
     print(f"  primary:       #{primary_hex} (slot {primary_slot})")
     print(f"  accent:        #{accent_hex} (slot {accent_slot})")
     print(f"  cover_bg:      #{cover_bg_hex} (slot {cover_bg_slot})")
+    print(f"  dark_bg:       #{dark_bg_hex} (slot {dark_bg_slot})")
     print(f"  strip masters: {strip_master_backgrounds}")
 
     _write_outputs(
         tpl, proposal["sha"], proposal["sha8"],
         primary_hex, primary_slot, accent_hex, accent_slot,
         cover_bg_hex, cover_bg_slot,
-        proposal["font_heading"], proposal["font_body"],
-        strip_master_backgrounds, proposal["colors"],
-        proposal["n_master"], proposal["n_layout"],
+        dark_bg_hex=dark_bg_hex, dark_bg_slot=dark_bg_slot,
+        font_heading=proposal["font_heading"], font_body=proposal["font_body"],
+        strip_master_backgrounds=strip_master_backgrounds,
+        colors=proposal["colors"],
+        n_master=proposal["n_master"], n_layout=proposal["n_layout"],
     )
 
     # v0.2 P1.2: extract chrome.yml after brand.yml + theme.json land. User
