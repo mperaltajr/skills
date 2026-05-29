@@ -1331,18 +1331,10 @@ function refreshUI() {
   btn.textContent = "Copy picks JSON to clipboard";
 }
 
-// Pick state: which named layout is the body, which is the cover.
-const layoutPicks = { body: null, cover: null };
-
-function autoCoverGuess() {
-  for (const l of layouts) {
-    const n = (l.name || "").toLowerCase();
-    if (n.includes("cover") || n.includes("title slide") || n === "title") {
-      return l.name;
-    }
-  }
-  return null;
-}
+// Pick state: which named layout is the body. Covers stay on Slide Lab's
+// draw-everything path (no layout pick — Slide Lab builds them from scratch
+// on a blank layout the same way it did before v0.3).
+const layoutPicks = { body: null };
 
 function autoBodyGuess() {
   // First preference: a non-dark layout whose name contains "default slide
@@ -1365,8 +1357,7 @@ function buildLayoutGrid() {
     container.innerHTML = '<div class="help">No slide designs found.</div>';
     return;
   }
-  if (!layoutPicks.body)  layoutPicks.body  = autoBodyGuess();
-  if (!layoutPicks.cover) layoutPicks.cover = autoCoverGuess();
+  if (!layoutPicks.body) layoutPicks.body = autoBodyGuess();
 
   const help = document.createElement("div");
   help.style.fontSize = "13px";
@@ -1374,10 +1365,11 @@ function buildLayoutGrid() {
   help.style.marginBottom = "16px";
   help.innerHTML =
     "Slide Lab has rendered every layout in your template below. Click " +
-    "<strong>Use for body</strong> on the layout you want for ~95% of pages, " +
-    "and <strong>Use for cover</strong> on the layout for title / section " +
-    "slides. Both have defaults already — only change if those defaults " +
-    "look wrong.";
+    "<strong>Use for body</strong> on the layout you want for ~95% of pages. " +
+    "<br><br>" +
+    "<strong>Cover and section-divider slides are handled separately</strong> " +
+    "— Slide Lab draws those from scratch on a blank canvas the way it always " +
+    "has. You don't pick a cover layout here.";
   container.appendChild(help);
 
   const grid = document.createElement("div");
@@ -1391,13 +1383,9 @@ function buildLayoutGrid() {
     card.style.flexDirection = "column";
     card.style.alignItems = "stretch";
     card.style.padding = "12px";
-    const isBody  = layoutPicks.body  === l.name;
-    const isCover = layoutPicks.cover === l.name;
+    const isBody = layoutPicks.body === l.name;
     if (isBody) {
       card.style.borderColor = "var(--accent)";
-      card.style.borderWidth = "2px";
-    } else if (isCover) {
-      card.style.borderColor = "var(--ok)";
       card.style.borderWidth = "2px";
     }
 
@@ -1418,7 +1406,7 @@ function buildLayoutGrid() {
     }
     card.appendChild(thumbWrap);
 
-    // Status badges (Body / Cover)
+    // BODY badge if picked
     const badges = document.createElement("div");
     badges.style.cssText = "display: flex; gap: 6px; margin-bottom: 8px; min-height: 18px;";
     if (isBody) {
@@ -1426,13 +1414,6 @@ function buildLayoutGrid() {
       b.style.cssText = "background: var(--accent); color: white; font-size: 11px;"
         + "font-weight: 600; padding: 2px 8px; border-radius: 3px;";
       b.textContent = "BODY";
-      badges.appendChild(b);
-    }
-    if (isCover) {
-      const b = document.createElement("span");
-      b.style.cssText = "background: var(--ok); color: white; font-size: 11px;"
-        + "font-weight: 600; padding: 2px 8px; border-radius: 3px;";
-      b.textContent = "COVER";
       badges.appendChild(b);
     }
     card.appendChild(badges);
@@ -1445,41 +1426,30 @@ function buildLayoutGrid() {
     nameEl.textContent = l.name;
     card.appendChild(nameEl);
 
-    // Two buttons: body + cover
-    const btnRow = document.createElement("div");
-    btnRow.style.cssText = "display: flex; gap: 6px;";
+    // Single button: Use for body
     const bodyBtn = document.createElement("button");
     bodyBtn.className = "copy-btn";
-    bodyBtn.style.cssText = "flex: 1; padding: 6px 10px; font-size: 12px;";
-    bodyBtn.textContent = isBody ? "✓ Body" : "Use for body";
-    bodyBtn.addEventListener("click", () => pickLayout("body", l.name));
-    btnRow.appendChild(bodyBtn);
+    bodyBtn.style.cssText = "width: 100%; padding: 8px 10px; font-size: 13px;";
+    bodyBtn.textContent = isBody ? "✓ Picked for body" : "Use for body";
+    bodyBtn.addEventListener("click", () => pickBody(l.name));
+    card.appendChild(bodyBtn);
 
-    const coverBtn = document.createElement("button");
-    coverBtn.className = "copy-btn";
-    coverBtn.style.cssText = "flex: 1; padding: 6px 10px; font-size: 12px;"
-      + "background: " + (isCover ? "var(--ok)" : "var(--text-mid)") + ";";
-    coverBtn.textContent = isCover ? "✓ Cover" : "Use for cover";
-    coverBtn.addEventListener("click", () => pickLayout("cover", l.name));
-    btnRow.appendChild(coverBtn);
-
-    card.appendChild(btnRow);
     grid.appendChild(card);
   });
 
   container.appendChild(grid);
 }
 
-function pickLayout(role, name) {
-  if (role === "body")  layoutPicks.body  = name;
-  if (role === "cover") layoutPicks.cover = name;
-  // Update classifications: picked body becomes body-canonical, picked cover
-  // becomes bespoke, everything else stays as Slide Lab's auto guess.
+function pickBody(name) {
+  layoutPicks.body = name;
+  // Update classifications: picked body becomes body-canonical; everything
+  // else stays as Slide Lab's auto guess. Cover-style layouts stay bespoke
+  // by their auto class; user can override per-slide via **Layout:** in
+  // the brief if needed.
   layouts.forEach(l => {
-    if (l.name === layoutPicks.body)        layoutClassifications[l.name] = "body-canonical";
-    else if (l.name === layoutPicks.cover)  layoutClassifications[l.name] = "bespoke";
-    // else: leave the existing classification untouched so non-picked layouts
-    // can still be overridden per-slide via **Layout:** in the brief.
+    if (l.name === layoutPicks.body) {
+      layoutClassifications[l.name] = "body-canonical";
+    }
   });
   buildLayoutGrid();
   refreshUI();
