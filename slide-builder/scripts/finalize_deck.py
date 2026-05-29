@@ -1000,11 +1000,9 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
 
     if dark_variant and dark_bg_hex:
         # Dark path: full-bleed brand-dark overlay, title drawn fresh on top.
-        # Strip the inherited placeholders first so the layout's title
-        # placeholder (now under the overlay) doesn't render through.
-        from twins.composer import _strip_layout_placeholders
-        _strip_layout_placeholders(new_slide)
-
+        # NOTE: the strip happens upstream in graft_and_theme BEFORE the
+        # graft loop (so we don't wipe grafted source content). Here we only
+        # add the overlay + title — content is already on the slide.
         hex_s = (dark_bg_hex or "").lstrip("#")
         if len(hex_s) != 6:
             sys.stderr.write(
@@ -1228,12 +1226,19 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
         # footer placeholders get populated with text from the source slide
         # after the graft. Otherwise (bespoke / cover / v1 chrome) strip the
         # placeholders so Slide Lab redraws everything at canonical position.
+        # Dark-variant slides also strip — they want a clean canvas under
+        # the full-bleed overlay (no gradient bar / orange bar bleeding
+        # around the dark fill), and they draw their own title white on the
+        # overlay rather than populating the inherited title placeholder.
+        # MUST happen BEFORE the graft loop, otherwise the strip wipes out
+        # the just-grafted source content (audit-failed 2026-05-28).
         _is_body_canonical = (
             layout_chrome is not None
             and getattr(layout_chrome, "layout_class", None) == "body-canonical"
             and getattr(layout_chrome, "title_placeholder_idx", None) is not None
         )
-        if not _is_body_canonical:
+        _is_dark_variant = (slide_variant or "").strip().lower() == "dark"
+        if (not _is_body_canonical) or _is_dark_variant:
             _strip_layout_placeholders(new_slide)
 
         sp_tree = new_slide.shapes._spTree

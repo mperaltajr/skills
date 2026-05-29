@@ -1,0 +1,184 @@
+
+======================================================================
+[2026-05-28T23:32:35] build_deck.py
+======================================================================
+[stage-1 sanity] brand sidecar OK for: C:\Users\m.a.peralta\OneDrive - Accenture\Library\FedEx\OTC\OTC Opportunity.pptx
+[stage-1 sanity] mmdc version: 11.4.0
+Prepped 2 slides at:
+  C:\Users\m.a.peralta\.claude\skills\.claude\worktrees\agent-abaae9e70ed8f6544\slide-builder\_decisions\v0.3-audit-workspace\collision\build
+
+Mermaid theme (per-client):
+  C:\Users\m.a.peralta\.claude\skills\.claude\worktrees\agent-abaae9e70ed8f6544\slide-builder\theme\mermaid-otc.json
+
+Deck manifest:
+  slide-builder\_decisions\v0.3-audit-workspace\collision\build\_meta.json
+
+Dispatch plan:
+  slide-builder\_decisions\v0.3-audit-workspace\collision\build\dispatch_plan.md
+
+Next: dispatch one slide-builder-worker agent per slide in parallel,
+reading the rendered _prompt.md in each slide_NN/ directory. Then run finalize_deck.py.
+
+======================================================================
+[2026-05-28T23:33:54] finalize_deck.py
+======================================================================
+========================================================================
+Slide Lab v2 deck orchestrator — Part B (finalize)
+  out           : slide-builder\_decisions\v0.3-audit-workspace\collision\build
+  template      : C:\Users\m.a.peralta\OneDrive - Accenture\Library\FedEx\OTC\OTC Opportunity.pptx
+  mermaid theme : C:\Users\m.a.peralta\.claude\skills\.claude\worktrees\agent-abaae9e70ed8f6544\slide-builder\theme\mermaid-otc.json
+  chrome.yml    : C:\Users\m.a.peralta\OneDrive - Accenture\Library\FedEx\OTC\OTC Opportunity.chrome.yml
+  layouts       : 21 (default for slides w/o layout field: '1_Layout 19')
+========================================================================
+
+[1] Discover option_X.py files + classify by line-1 token
+  [missing] 4 worker output(s) absent — surfaced as classification=missing in RESULT.md / REVIEW.html
+  found 6 option scripts across 2 slides
+  classification: native=2  mermaid=0  rejected=0
+
+[2] Execute / assemble / skip per option (serial)
+  [  1/6] slide_01/option_A  [native]  ok
+  [  2/6] slide_01/option_B  [missing]  FAIL (worker did not produce option script)
+  [  3/6] slide_01/option_C  [missing]  FAIL (worker did not produce option script)
+  [  4/6] slide_02/option_A  [native]  ok
+  [  5/6] slide_02/option_B  [missing]  FAIL (worker did not produce option script)
+  [  6/6] slide_02/option_C  [missing]  FAIL (worker did not produce option script)
+  built: 2 / 6
+
+[3] Load client theme
+  raw dk2=0E2841  lt2=E8E8E8  font=FedEx Sans
+  brand_primary=#4D148C (source: dk2)
+  brand_accent =#FF6600 (source: lt2)
+  color_map entries: 24
+  expected palette  : 18 hex codes
+
+[3.1] Detect client-template fonts on local machine
+  all client fonts available (or detection inconclusive)
+
+[3.5] Stash raw pre-theme PPTX
+
+[4] Graft + theme remap (serial — python-pptx not thread-safe)
+  [  1/2] slide_01/option_A  ok (shapes=12 subs=18)
+  [  2/2] slide_02/option_A  ok (shapes=13 subs=0)
+  themed: 2 / 2
+
+[5] Render skipped (--skip-render)
+
+[5b] Per-option QC self-check
+  slide_01/option_A  BLOCK (1b/0w)
+  slide_02/option_A  BLOCK (1b/3w)
+  QC totals: all-ok=0  warn-only=0  block=2
+
+[6] Write RESULT.md
+  slide-builder\_decisions\v0.3-audit-workspace\collision\build\RESULT.md
+
+[7] Generate Gate 3 visual preview (GATE3-PREVIEW.html)
+
+======================================================================
+[2026-05-28T23:34:00] build_gate_preview.py
+======================================================================
+GATE3-PREVIEW.html written:
+  C:\Users\m.a.peralta\.claude\skills\.claude\worktrees\agent-abaae9e70ed8f6544\slide-builder\_decisions\v0.3-audit-workspace\collision\build\GATE3-PREVIEW.html
+  2 slides, 6 option tiles
+  Missing PNGs: 6 (preview will show placeholder boxes)
+  GATE3-PREVIEW.html written:
+    C:\Users\m.a.peralta\.claude\skills\.claude\worktrees\agent-abaae9e70ed8f6544\slide-builder\_decisions\v0.3-audit-workspace\collision\build\GATE3-PREVIEW.html
+    2 slides, 6 option tiles
+    Missing PNGs: 6 (preview will show placeholder boxes)
+
+========================================================================
+DONE — Part B complete.
+  Native   : 2
+  Mermaid  : 0
+  Rejected : 0
+  Built    : 2 / 6
+  Themed   : 2 / 6
+  Rendered : 0 / 6
+  Report   : slide-builder\_decisions\v0.3-audit-workspace\collision\build\RESULT.md
+========================================================================
+
+======================================================================
+[2026-05-28T23:35:03] finalize_deck.py
+======================================================================
+========================================================================
+Slide Lab v2 deck orchestrator — Part B (finalize)
+  out           : slide-builder\_decisions\v0.3-audit-workspace\collision\build
+  template      : C:\Users\m.a.peralta\OneDrive - Accenture\Library\FedEx\OTC\OTC Opportunity.pptx
+  mermaid theme : C:\Users\m.a.peralta\.claude\skills\.claude\worktrees\agent-abaae9e70ed8f6544\slide-builder\theme\mermaid-otc.json
+  chrome.yml    : C:\Users\m.a.peralta\OneDrive - Accenture\Library\FedEx\OTC\OTC Opportunity.chrome.yml
+  layouts       : 21 (default for slides w/o layout field: '1_Layout 19')
+========================================================================
+
+[1] Discover option_X.py files + classify by line-1 token
+  [missing] 4 worker output(s) absent — surfaced as classification=missing in RESULT.md / REVIEW.html
+  found 6 option scripts across 2 slides
+  classification: native=2  mermaid=0  rejected=0
+
+[2] Execute / assemble / skip per option (serial)
+  [  1/6] slide_01/option_A  [native]  skip-build (exists)
+  [  2/6] slide_01/option_B  [missing]  FAIL (worker did not produce option script)
+  [  3/6] slide_01/option_C  [missing]  FAIL (worker did not produce option script)
+  [  4/6] slide_02/option_A  [native]  skip-build (exists)
+  [  5/6] slide_02/option_B  [missing]  FAIL (worker did not produce option script)
+  [  6/6] slide_02/option_C  [missing]  FAIL (worker did not produce option script)
+  built: 2 / 6
+
+[3] Load client theme
+  raw dk2=0E2841  lt2=E8E8E8  font=FedEx Sans
+  brand_primary=#4D148C (source: dk2)
+  brand_accent =#FF6600 (source: lt2)
+  color_map entries: 24
+  expected palette  : 18 hex codes
+
+[3.1] Detect client-template fonts on local machine
+  all client fonts available (or detection inconclusive)
+
+[3.5] Stash raw pre-theme PPTX
+
+[4] Graft + theme remap (serial — python-pptx not thread-safe)
+  [  1/2] slide_01/option_A  ok (shapes=14 subs=12)
+  [  2/2] slide_02/option_A  ok (shapes=2 subs=0)
+  themed: 2 / 2
+
+[5] Render themed .pptx -> .png (parallel x4)
+  slide_01.png
+  slide_01.png
+
+Rendered 1 slides to slide-builder\_decisions\v0.3-audit-workspace\collision\build\slide_02\_render_tmp\option_A (LibreOffice engine, 120 dpi)
+  [  1/2] slide_02/option_A  ok
+
+Rendered 1 slides to slide-builder\_decisions\v0.3-audit-workspace\collision\build\slide_01\_render_tmp\option_A (LibreOffice engine, 120 dpi)
+  [  2/2] slide_01/option_A  ok
+
+[5b] Per-option QC self-check
+  slide_01/option_A  ok
+  slide_02/option_A  BLOCK (1b/3w)
+  QC totals: all-ok=1  warn-only=0  block=1
+
+[6] Write RESULT.md
+  slide-builder\_decisions\v0.3-audit-workspace\collision\build\RESULT.md
+
+[7] Generate Gate 3 visual preview (GATE3-PREVIEW.html)
+
+======================================================================
+[2026-05-28T23:35:18] build_gate_preview.py
+======================================================================
+GATE3-PREVIEW.html written:
+  C:\Users\m.a.peralta\.claude\skills\.claude\worktrees\agent-abaae9e70ed8f6544\slide-builder\_decisions\v0.3-audit-workspace\collision\build\GATE3-PREVIEW.html
+  2 slides, 6 option tiles
+  Missing PNGs: 4 (preview will show placeholder boxes)
+  GATE3-PREVIEW.html written:
+    C:\Users\m.a.peralta\.claude\skills\.claude\worktrees\agent-abaae9e70ed8f6544\slide-builder\_decisions\v0.3-audit-workspace\collision\build\GATE3-PREVIEW.html
+    2 slides, 6 option tiles
+    Missing PNGs: 4 (preview will show placeholder boxes)
+
+========================================================================
+DONE — Part B complete.
+  Native   : 2
+  Mermaid  : 0
+  Rejected : 0
+  Built    : 2 / 6
+  Themed   : 2 / 6
+  Rendered : 2 / 6
+  Report   : slide-builder\_decisions\v0.3-audit-workspace\collision\build\RESULT.md
+========================================================================

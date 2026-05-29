@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>v2 Gate 3 Preview — visual verification</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+:root {
+  --bg: #FAFAFA;
+  --panel: #FFFFFF;
+  --rule: #E1E1E6;
+  --brand-primary: 4D148C;
+  --brand-accent: FF6600;
+  --text-dark: #1A1A1A;
+  --text-mid: #555;
+  --advisory-bg: #FEF3C7;
+  --advisory-border: #F59E0B;
+  --advisory-text: #78350F;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text-dark);
+  padding: 32px 48px 64px;
+  line-height: 1.5;
+}
+header {
+  max-width: 1400px;
+  margin: 0 auto 24px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid var(--brand-primary);
+}
+h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--brand-primary);
+  margin-bottom: 6px;
+}
+.subtitle {
+  font-size: 14px;
+  color: var(--text-mid);
+  font-style: italic;
+}
+.meta-line {
+  font-size: 12px;
+  color: var(--text-mid);
+  margin-top: 6px;
+  font-family: Consolas, monospace;
+}
+.advisory {
+  max-width: 1400px;
+  margin: 0 auto 20px;
+  padding: 14px 18px;
+  background: var(--advisory-bg);
+  border-left: 4px solid var(--advisory-border);
+  border-radius: 4px;
+  color: var(--advisory-text);
+  font-size: 13px;
+}
+.advisory-title {
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+  font-size: 11px;
+}
+.advisory ul { margin: 4px 0 0 18px; }
+.advisory li { padding: 2px 0; }
+.slide-section {
+  max-width: 1400px;
+  margin: 0 auto 36px;
+  padding: 20px 24px;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+}
+.slide-header {
+  margin-bottom: 16px;
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.slide-num {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--brand-primary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.slide-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-dark);
+  flex: 1;
+  min-width: 0;
+}
+.slide-meta {
+  font-size: 11px;
+  color: var(--text-mid);
+  display: flex;
+  gap: 16px;
+  margin-top: 4px;
+  width: 100%;
+}
+.slide-meta .label {
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 700;
+  margin-right: 4px;
+  font-size: 10px;
+}
+.options-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+.option-tile {
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  overflow: hidden;
+  background: #FFF;
+}
+.option-tile.fallback_mermaid { border-color: #2563EB; border-width: 2px; }
+.option-tile.skeleton_rejected { border-color: #DC2626; border-width: 2px; background: rgba(220,38,38,0.04); }
+.option-tile.missing { border-color: #888; background: rgba(0,0,0,0.04); }
+.tile-frame {
+  width: 100%;
+  aspect-ratio: 16/9;
+  background: #FFF;
+  border-bottom: 1px solid var(--rule);
+  overflow: hidden;
+  position: relative;
+}
+.tile-frame img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.tile-frame .missing-png {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  background: rgba(220,38,38,0.08);
+  color: #C62828;
+  font-size: 12px;
+  font-weight: 600;
+}
+.class-badge {
+  position: absolute;
+  bottom: 6px;
+  right: 6px;
+  padding: 3px 8px;
+  border-radius: 10px;
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  line-height: 1.1;
+  z-index: 2;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.25);
+  color: #FFF;
+}
+.class-badge.fallback_mermaid { background: #2563EB; }
+.class-badge.skeleton_rejected { background: #DC2626; }
+.class-badge.missing { background: #888; }
+.tile-body {
+  padding: 10px 12px 12px;
+}
+.tile-letter {
+  font-size: 12px;
+  font-weight: 800;
+  color: var(--brand-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+.tile-meta {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 2px 8px;
+  font-size: 11px;
+  color: var(--text-mid);
+}
+.tile-meta .k {
+  color: #888;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  font-weight: 700;
+  font-size: 9px;
+  padding-top: 1px;
+}
+.tile-meta .v { color: var(--text-dark); word-break: break-word; }
+.tile-meta .v.italic { font-style: italic; color: var(--text-mid); }
+.reason-line {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--rule);
+  font-size: 11px;
+  color: #C62828;
+  font-style: italic;
+}
+footer.note {
+  max-width: 1400px;
+  margin: 32px auto 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--rule);
+  font-size: 12px;
+  color: var(--text-mid);
+  font-style: italic;
+}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>v2 Gate 3 Preview — visual verification</h1>
+  <div class="subtitle">Light preview after Stage 3 (finalize). No picking, no QC banner — just visual sanity check before Stage 4 (REVIEW.html).</div>
+  <div class="meta-line">Output dir: C:\Users\m.a.peralta\.claude\skills\.claude\worktrees\agent-abaae9e70ed8f6544\slide-builder\_decisions\v0.3-audit-workspace\collision\build &middot; 2 slides &middot; 6 option tiles</div>
+</header>
+
+
+
+
+<section class="slide-section">
+  <div class="slide-header">
+    <div>
+      <div class="slide-num">SLIDE 1</div>
+      <div class="slide-title">Light AR findings</div>
+    </div>
+    <div class="slide-meta">
+      <span><span class="label">Pattern</span>(pattern not captured)</span>
+      <span><span class="label">Directive verb</span>(directive not captured)</span>
+    </div>
+  </div>
+  <div class="options-grid">
+    
+<div class="option-tile native">
+  <div class="tile-frame"><img src="slide_01/option_A.png" alt="slide 1 option A" loading="lazy"></div>
+  <div class="tile-body">
+    <div class="tile-letter">Option A</div>
+    <div class="tile-meta">
+      <div class="k">Pattern</div><div class="v">(no pattern in header)</div>
+      <div class="k">Variant</div><div class="v italic">(no variant in header)</div>
+      <div class="k">Class</div><div class="v">native</div>
+    </div>
+    
+  </div>
+</div>
+
+<div class="option-tile missing">
+  <div class="tile-frame"><div class="missing-png">no PNG (option not rendered)</div><div class="class-badge missing">MISSING</div></div>
+  <div class="tile-body">
+    <div class="tile-letter">Option B</div>
+    <div class="tile-meta">
+      <div class="k">Pattern</div><div class="v">(no pattern in header)</div>
+      <div class="k">Variant</div><div class="v italic">(no variant in header)</div>
+      <div class="k">Class</div><div class="v">missing</div>
+    </div>
+    <div class="reason-line">file not found: option_B.py</div>
+  </div>
+</div>
+
+<div class="option-tile missing">
+  <div class="tile-frame"><div class="missing-png">no PNG (option not rendered)</div><div class="class-badge missing">MISSING</div></div>
+  <div class="tile-body">
+    <div class="tile-letter">Option C</div>
+    <div class="tile-meta">
+      <div class="k">Pattern</div><div class="v">(no pattern in header)</div>
+      <div class="k">Variant</div><div class="v italic">(no variant in header)</div>
+      <div class="k">Class</div><div class="v">missing</div>
+    </div>
+    <div class="reason-line">file not found: option_C.py</div>
+  </div>
+</div>
+
+  </div>
+</section>
+
+<section class="slide-section">
+  <div class="slide-header">
+    <div>
+      <div class="slide-num">SLIDE 2</div>
+      <div class="slide-title">Dark funnel</div>
+    </div>
+    <div class="slide-meta">
+      <span><span class="label">Pattern</span>(pattern not captured)</span>
+      <span><span class="label">Directive verb</span>(directive not captured)</span>
+    </div>
+  </div>
+  <div class="options-grid">
+    
+<div class="option-tile native">
+  <div class="tile-frame"><img src="slide_02/option_A.png" alt="slide 2 option A" loading="lazy"></div>
+  <div class="tile-body">
+    <div class="tile-letter">Option A</div>
+    <div class="tile-meta">
+      <div class="k">Pattern</div><div class="v">(no pattern in header)</div>
+      <div class="k">Variant</div><div class="v italic">(no variant in header)</div>
+      <div class="k">Class</div><div class="v">native</div>
+    </div>
+    
+  </div>
+</div>
+
+<div class="option-tile missing">
+  <div class="tile-frame"><div class="missing-png">no PNG (option not rendered)</div><div class="class-badge missing">MISSING</div></div>
+  <div class="tile-body">
+    <div class="tile-letter">Option B</div>
+    <div class="tile-meta">
+      <div class="k">Pattern</div><div class="v">(no pattern in header)</div>
+      <div class="k">Variant</div><div class="v italic">(no variant in header)</div>
+      <div class="k">Class</div><div class="v">missing</div>
+    </div>
+    <div class="reason-line">file not found: option_B.py</div>
+  </div>
+</div>
+
+<div class="option-tile missing">
+  <div class="tile-frame"><div class="missing-png">no PNG (option not rendered)</div><div class="class-badge missing">MISSING</div></div>
+  <div class="tile-body">
+    <div class="tile-letter">Option C</div>
+    <div class="tile-meta">
+      <div class="k">Pattern</div><div class="v">(no pattern in header)</div>
+      <div class="k">Variant</div><div class="v italic">(no variant in header)</div>
+      <div class="k">Class</div><div class="v">missing</div>
+    </div>
+    <div class="reason-line">file not found: option_C.py</div>
+  </div>
+</div>
+
+  </div>
+</section>
+
+
+<footer class="note">Generated by scripts/build_gate_preview.py at Stage 3 finalize. After visual approval, run build_review.py for the full Gate 4 REVIEW.html with picking machinery.</footer>
+
+</body>
+</html>

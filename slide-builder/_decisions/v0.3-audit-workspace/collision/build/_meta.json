@@ -1,0 +1,35 @@
+{
+  "schema_version": 3,
+  "template": "C:\\Users\\m.a.peralta\\OneDrive - Accenture\\Library\\FedEx\\OTC\\OTC Opportunity.pptx",
+  "brief": "C:\\Users\\m.a.peralta\\.claude\\skills\\.claude\\worktrees\\agent-abaae9e70ed8f6544\\slide-builder\\_decisions\\v0.3-audit-workspace\\collision\\brief_2slide.md",
+  "out": "C:\\Users\\m.a.peralta\\.claude\\skills\\.claude\\worktrees\\agent-abaae9e70ed8f6544\\slide-builder\\_decisions\\v0.3-audit-workspace\\collision\\build",
+  "mermaid_theme": "C:\\Users\\m.a.peralta\\.claude\\skills\\.claude\\worktrees\\agent-abaae9e70ed8f6544\\slide-builder\\theme\\mermaid-otc.json",
+  "client_slug": "otc",
+  "slide_count": 2,
+  "generated_at": "2026-05-29T04:32:37+00:00",
+  "brand_primary": "4D148C",
+  "brand_accent": "FF6600",
+  "slides": [
+    {
+      "n": 1,
+      "title": "Light AR findings",
+      "forecasted_pattern": "Chart (with quadrant mode)",
+      "page_type": "",
+      "layout": "Use as default slide template",
+      "variant": "light"
+    },
+    {
+      "n": 2,
+      "title": "Dark funnel",
+      "forecasted_pattern": "Full canvas",
+      "page_type": "",
+      "layout": "Use as default slide template",
+      "variant": "dark"
+    }
+  ],
+  "deck_meta": {
+    "deck_type": "",
+    "governing_thought": "",
+    "audience": ""
+  }
+}
