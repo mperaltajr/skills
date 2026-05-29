@@ -954,16 +954,29 @@ def build_pptx(st: OptionStatus, mermaid_theme: Path,
 # ---------------------------------------------------------------------------
 def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
                                      src_slide, slide_n: int,
-                                     fallback_title: str = "") -> None:
-    """Body-canonical post-graft: insert dark overlay (if any) + populate
-    inherited title/footer/page-number placeholders.
+                                     fallback_title: str = "",
+                                     dark_variant: bool = False,
+                                     dark_bg_hex: str = "") -> None:
+    """Body-canonical post-graft.
+
+    Light variant (default): populate inherited title/footer/page-number
+    placeholders. Layout's decorative chrome inherits as designed.
+
+    Dark variant (per-slide ``**Variant:** dark`` in brief): insert a
+    full-bleed overlay with the brand's ``dark_bg_hex``, draw the title
+    fresh as a slide-level white text box at the layout's title-placeholder
+    position. The inherited title placeholder is hidden under the overlay,
+    so we draw on top instead of populating it.
 
     Title text priority: source slide's 'title' shape -> fallback_title
     (passed from _meta.json) -> empty. Page number gets the slide index.
     """
-    from twins.composer import _insert_dark_overlay, _populate_layout_placeholders
+    from twins.composer import _populate_layout_placeholders
+    from pptx.enum.shapes import MSO_SHAPE
+    from pptx.dml.color import RGBColor
+    from pptx.util import Emu, Pt
 
-    # 1. Title text: first prefer a source-slide shape named "title".
+    # Title text: prefer source-slide 'title' shape, then meta fallback.
     src_title = ""
     for shape in src_slide.shapes:
         try:
@@ -980,9 +993,69 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
     if not src_title:
         src_title = (fallback_title or "").strip()
 
-    # 2. Dark overlay (must run BEFORE populating the title placeholder so the
-    # overlay ends up below the title — we move overlay to position 2 in
-    # spTree, ahead of grafted shapes but behind nothing).
+    if dark_variant and dark_bg_hex:
+        # Dark path: full-bleed brand-dark overlay, title drawn fresh on top.
+        # Strip the inherited placeholders first so the layout's title
+        # placeholder (now under the overlay) doesn't render through.
+        from twins.composer import _strip_layout_placeholders
+        _strip_layout_placeholders(new_slide)
+
+        hex_s = (dark_bg_hex or "").lstrip("#")
+        if len(hex_s) != 6:
+            sys.stderr.write(
+                f"  WARN: dark_bg_hex {dark_bg_hex!r} malformed on slide "
+                f"{slide_n}; skipping dark overlay\n"
+            )
+            return
+        try:
+            r = int(hex_s[0:2], 16); g = int(hex_s[2:4], 16); b = int(hex_s[4:6], 16)
+        except ValueError:
+            sys.stderr.write(
+                f"  WARN: dark_bg_hex {dark_bg_hex!r} non-hex on slide "
+                f"{slide_n}\n"
+            )
+            return
+
+        # Full-bleed overlay at z-order position 2 (above layout chrome,
+        # below any subsequently appended slide content)
+        overlay = new_slide.shapes.add_shape(
+            MSO_SHAPE.RECTANGLE,
+            0, 0, prs.slide_width, prs.slide_height,
+        )
+        overlay.name = "dark-variant-overlay"
+        overlay.fill.solid()
+        overlay.fill.fore_color.rgb = RGBColor(r, g, b)
+        overlay.line.fill.background()
+        sp_tree = new_slide.shapes._spTree
+        elem = overlay.element
+        sp_tree.remove(elem)
+        sp_tree.insert(2, elem)
+
+        # Title at the layout's title-placeholder position (from chrome.yml
+        # body-canonical fields), drawn white. body_top_y_px is the title
+        # placeholder bottom in our schema, so use a default 40-px-from-top
+        # position. If the layout exposes a real title placeholder bound,
+        # honor its top. Source slide's grafted shapes will sit above this
+        # text box because they were appended last to spTree.
+        title_x_emu = Emu(40 * 9525)
+        title_y_emu = Emu(40 * 9525)
+        title_w_emu = Emu(1200 * 9525)
+        title_h_emu = Emu(44 * 9525)
+        tb = new_slide.shapes.add_textbox(title_x_emu, title_y_emu,
+                                            title_w_emu, title_h_emu)
+        tb.text_frame.word_wrap = True
+        p = tb.text_frame.paragraphs[0]
+        p.text = src_title or ""
+        if p.runs:
+            run = p.runs[0]
+            run.font.size = Pt(24)
+            run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+        return
+
+    # Light path: keep existing behavior — overlay only if the layout's
+    # chrome ships a body_overlay_hex (legacy per-layout dark path), then
+    # populate inherited placeholders.
+    from twins.composer import _insert_dark_overlay
     overlay_hex = getattr(layout_chrome, "body_overlay_hex", None)
     body_top_px = getattr(layout_chrome, "body_top_y_px", None)
     body_bot_px = getattr(layout_chrome, "body_bottom_y_px", None)
@@ -994,7 +1067,6 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
             overlay_hex,
         )
 
-    # 3. Populate inherited placeholders
     _populate_layout_placeholders(
         new_slide,
         title=src_title or None,
@@ -1006,7 +1078,8 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
 def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
                     layout_name: str = "",
                     layout_chrome=None,
-                    slide_title: str = "") -> None:
+                    slide_title: str = "",
+                    slide_variant: str = "") -> None:
     try:
         src_prs = Presentation(str(st.pptx_path))
         src_slide = src_prs.slides[0]
@@ -1075,9 +1148,13 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
         # slide's title + footer text into the layout's inherited placeholders.
         if _is_body_canonical:
             try:
+                _is_dark = (slide_variant or "").strip().lower() == "dark"
+                _dark_bg = getattr(theme, "dark_bg_hex", "") or ""
                 _apply_body_canonical_finishing(
                     new_slide, prs, layout_chrome, src_slide, st.slide_n,
                     fallback_title=slide_title,
+                    dark_variant=_is_dark,
+                    dark_bg_hex=_dark_bg,
                 )
             except Exception as _exc:
                 # Don't fail the graft on overlay/populate trouble — surface
@@ -1309,8 +1386,11 @@ def main() -> int:
 
     # v0.2 P1.3: slide_n -> layout name lookup. meta.slides[i].layout is
     # added in P1.4; until then every slide gets default_layout_name.
+    # v0.3: slide_n -> variant lookup ("dark" or "" / "light"). Read from
+    # meta.slides[i].variant; defaults to light.
     _slide_layout_names: dict[int, str] = {}
     _slide_titles: dict[int, str] = {}
+    _slide_variants: dict[int, str] = {}
     try:
         _meta_dict_layouts = json.loads(_p.meta_json(args.out).read_text(encoding="utf-8"))
         for s in _meta_dict_layouts.get("slides", []):
@@ -1318,15 +1398,20 @@ def main() -> int:
             if isinstance(n, int):
                 _slide_layout_names[n] = (s.get("layout") or "").strip() or default_layout_name
                 _slide_titles[n] = (s.get("title") or "").strip()
+                _slide_variants[n] = (s.get("variant") or "").strip().lower()
     except Exception:
         _slide_layout_names = {}
         _slide_titles = {}
+        _slide_variants = {}
 
     def _layout_name_for(slide_n: int) -> str:
         return _slide_layout_names.get(slide_n, default_layout_name)
 
     def _slide_title_for(slide_n: int) -> str:
         return _slide_titles.get(slide_n, "")
+
+    def _slide_variant_for(slide_n: int) -> str:
+        return _slide_variants.get(slide_n, "")
 
     def _layout_chrome_for(slide_n: int):
         name = _layout_name_for(slide_n)
@@ -1416,6 +1501,7 @@ def main() -> int:
             layout_name=_layout_name_for(st.slide_n),
             layout_chrome=_layout_chrome_for(st.slide_n),
             slide_title=_slide_title_for(st.slide_n),
+            slide_variant=_slide_variant_for(st.slide_n),
         )
         flag = f"ok (shapes={st.n_shapes} subs={st.n_subs})" if st.themed else f"FAIL ({st.error[:50]})"
         print(f"  [{i:>3}/{len(built_statuses)}] slide_{st.slide_n:02d}/option_{st.letter}  {flag}")

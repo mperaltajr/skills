@@ -1,0 +1,41 @@
+{
+  "schema_version": 1,
+  "template_path": "C:\\Users\\m.a.peralta\\.claude\\skills\\.claude\\worktrees\\agent-abaae9e70ed8f6544\\slide-builder\\_decisions\\v0.3-audit-workspace\\fdx\\FDX Template.pptx",
+  "template_sha": "abc46115ae4d07d609f18e43a90551c1f49fd0368fb4ff2c813593568ddffb7f",
+  "registered_at": "2026-05-29T02:58:10+00:00",
+  "registered_by": "m.a.peralta",
+  "brand": {
+    "primary_hex": "#FF6600",
+    "accent_hex": "#4D148C",
+    "cover_bg_hex": "#FF6600",
+    "primary_slot": "lt2",
+    "accent_slot": "dk2",
+    "cover_bg_slot": "lt2",
+    "font_heading": "FedEx Sans",
+    "font_body": "FedEx Sans",
+    "strip_master_backgrounds": true
+  },
+  "extracted": {
+    "all_colors": {
+      "dk1": "333333",
+      "lt1": "FFFFFF",
+      "dk2": "4D148C",
+      "lt2": "FF6600",
+      "accent1": "7D22C3",
+      "accent2": "A63685",
+      "accent3": "C74755",
+      "accent4": "8E8E8E",
+      "accent5": "E3E3E3",
+      "accent6": "F2F2F2",
+      "hlink": "333333",
+      "folHlink": "4D148C"
+    },
+    "all_fonts": {
+      "heading": "FedEx Sans",
+      "body": "FedEx Sans"
+    },
+    "master_count": 12,
+    "layout_count": 178
+  },
+  "brand_yml_path": "C:\\Users\\m.a.peralta\\.claude\\skills\\.claude\\worktrees\\agent-abaae9e70ed8f6544\\slide-builder\\_decisions\\v0.3-audit-workspace\\fdx\\FDX Template.brand.yml"
+}

@@ -1,0 +1,24 @@
+# FDX Template.brand.yml
+# Registered 2026-05-28 - Template SHA: abc46115
+# Source: theme1.xml + register_template.py
+
+# Ground-truth hexes - these drive every build.
+# Edit and re-run register_template.py to re-validate.
+primary_hex:     "#FF6600"
+accent_hex:      "#4D148C"
+cover_bg_hex:    "#FF6600"
+
+# Informational only - slot names from PowerPoint (not used by builds,
+# kept for human reference)
+primary_slot:    lt2
+accent_slot:     dk2
+cover_bg_slot:   lt2
+
+# Fonts
+font_heading:    "FedEx Sans"
+font_body:       "FedEx Sans"
+
+# Background handling
+# Set false ONLY if the template's photographic decoration is intentional
+# brand chrome that should appear behind every slide.
+strip_master_backgrounds: true
