@@ -1,0 +1,1880 @@
+{
+  "template": "C:\\Users\\m.a.peralta\\.claude\\skills\\.claude\\worktrees\\agent-abaae9e70ed8f6544\\slide-builder\\_decisions\\v0.3-audit-workspace\\fdx\\FDX Template.pptx",
+  "sha": "abc46115ae4d07d609f18e43a90551c1f49fd0368fb4ff2c813593568ddffb7f",
+  "sha8": "abc46115",
+  "n_master": 12,
+  "n_layout": 178,
+  "colors": {
+    "dk1": "333333",
+    "lt1": "FFFFFF",
+    "dk2": "4D148C",
+    "lt2": "FF6600",
+    "accent1": "7D22C3",
+    "accent2": "A63685",
+    "accent3": "C74755",
+    "accent4": "8E8E8E",
+    "accent5": "E3E3E3",
+    "accent6": "F2F2F2",
+    "hlink": "333333",
+    "folHlink": "4D148C"
+  },
+  "font_heading": "FedEx Sans",
+  "font_body": "FedEx Sans",
+  "best_guess": {
+    "primary_slot": "lt2",
+    "primary_hex": "FF6600",
+    "accent_slot": "dk2",
+    "accent_hex": "4D148C",
+    "cover_bg_slot": "lt2",
+    "cover_bg_hex": "FF6600"
+  },
+  "preview_pptx": "C:\\Users\\m.a.peralta\\.claude\\skills\\.claude\\worktrees\\agent-abaae9e70ed8f6544\\slide-builder\\_decisions\\v0.3-audit-workspace\\fdx\\FDX Template.preview.pptx",
+  "preview_png": "C:\\Users\\m.a.peralta\\.claude\\skills\\.claude\\worktrees\\agent-abaae9e70ed8f6544\\slide-builder\\_decisions\\v0.3-audit-workspace\\fdx\\FDX Template.preview.png",
+  "preview_rendered": true,
+  "palette_png": "C:\\Users\\m.a.peralta\\.claude\\skills\\.claude\\worktrees\\agent-abaae9e70ed8f6544\\slide-builder\\_decisions\\v0.3-audit-workspace\\fdx\\FDX Template.palette.png",
+  "palette": [
+    {
+      "index": 1,
+      "slot": "dk1",
+      "hex": "333333"
+    },
+    {
+      "index": 2,
+      "slot": "lt1",
+      "hex": "FFFFFF"
+    },
+    {
+      "index": 3,
+      "slot": "dk2",
+      "hex": "4D148C"
+    },
+    {
+      "index": 4,
+      "slot": "lt2",
+      "hex": "FF6600"
+    },
+    {
+      "index": 5,
+      "slot": "accent1",
+      "hex": "7D22C3"
+    },
+    {
+      "index": 6,
+      "slot": "accent2",
+      "hex": "A63685"
+    },
+    {
+      "index": 7,
+      "slot": "accent3",
+      "hex": "C74755"
+    },
+    {
+      "index": 8,
+      "slot": "accent4",
+      "hex": "8E8E8E"
+    },
+    {
+      "index": 9,
+      "slot": "accent5",
+      "hex": "E3E3E3"
+    },
+    {
+      "index": 10,
+      "slot": "accent6",
+      "hex": "F2F2F2"
+    },
+    {
+      "index": 11,
+      "slot": "hlink",
+      "hex": "333333"
+    },
+    {
+      "index": 12,
+      "slot": "folHlink",
+      "hex": "4D148C"
+    }
+  ],
+  "layouts": [
+    {
+      "name": "1_Title Slide",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 4,
+      "n_placeholders": 2,
+      "has_page_number": false,
+      "thumbnail": "FDX Template.thumbnails/thumb_00_1_Title_Slide.png"
+    },
+    {
+      "name": "2_Title Slide",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 4,
+      "n_placeholders": 3,
+      "has_page_number": false,
+      "thumbnail": "FDX Template.thumbnails/thumb_01_2_Title_Slide.png"
+    },
+    {
+      "name": "3_Title Slide",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 4,
+      "n_placeholders": 2,
+      "has_page_number": false,
+      "thumbnail": "FDX Template.thumbnails/thumb_02_3_Title_Slide.png"
+    },
+    {
+      "name": "4_Title Slide",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 4,
+      "n_placeholders": 3,
+      "has_page_number": false,
+      "thumbnail": "FDX Template.thumbnails/thumb_03_4_Title_Slide.png"
+    },
+    {
+      "name": "5_Title Slide",
+      "auto_class": "bespoke",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 4,
+      "n_placeholders": 1,
+      "has_page_number": false,
+      "thumbnail": "FDX Template.thumbnails/thumb_04_5_Title_Slide.png"
+    },
+    {
+      "name": "6__Title Slide",
+      "auto_class": "bespoke",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 4,
+      "n_placeholders": 1,
+      "has_page_number": false,
+      "thumbnail": "FDX Template.thumbnails/thumb_05_6__Title_Slide.png"
+    },
+    {
+      "name": "7_Title Slide",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 3,
+      "n_placeholders": 2,
+      "has_page_number": false,
+      "thumbnail": "FDX Template.thumbnails/thumb_06_7_Title_Slide.png"
+    },
+    {
+      "name": "8__Title Slide",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 3,
+      "n_placeholders": 2,
+      "has_page_number": false,
+      "thumbnail": "FDX Template.thumbnails/thumb_07_8__Title_Slide.png"
+    },
+    {
+      "name": "9_Title Slide",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 3,
+      "n_placeholders": 3,
+      "has_page_number": false,
+      "thumbnail": "FDX Template.thumbnails/thumb_08_9_Title_Slide.png"
+    },
+    {
+      "name": "10_Title Slide",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 2,
+      "n_placeholders": 1,
+      "has_page_number": false,
+      "thumbnail": "FDX Template.thumbnails/thumb_09_10_Title_Slide.png"
+    },
+    {
+      "name": "11_Title Slide",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 4,
+      "n_placeholders": 3,
+      "has_page_number": false,
+      "thumbnail": "FDX Template.thumbnails/thumb_10_11_Title_Slide.png"
+    },
+    {
+      "name": "12_Title Slide",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 3,
+      "n_placeholders": 3,
+      "has_page_number": false,
+      "thumbnail": "FDX Template.thumbnails/thumb_11_12_Title_Slide.png"
+    },
+    {
+      "name": "13_Title Slide",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 3,
+      "n_placeholders": 3,
+      "has_page_number": false,
+      "thumbnail": "FDX Template.thumbnails/thumb_12_13_Title_Slide.png"
+    },
+    {
+      "name": "1_Closing",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 2,
+      "n_placeholders": 1,
+      "has_page_number": false,
+      "thumbnail": "FDX Template.thumbnails/thumb_13_1_Closing.png"
+    },
+    {
+      "name": "2_Closing",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 2,
+      "n_placeholders": 1,
+      "has_page_number": false,
+      "thumbnail": "FDX Template.thumbnails/thumb_14_2_Closing.png"
+    },
+    {
+      "name": "3_Closing",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 3,
+      "n_placeholders": 3,
+      "has_page_number": false,
+      "thumbnail": "FDX Template.thumbnails/thumb_15_3_Closing.png"
+    },
+    {
+      "name": "4_Closing",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 3,
+      "n_placeholders": 3,
+      "has_page_number": false,
+      "thumbnail": "FDX Template.thumbnails/thumb_16_4_Closing.png"
+    },
+    {
+      "name": "5_Closing",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 4,
+      "n_placeholders": 3,
+      "has_page_number": false,
+      "thumbnail": "FDX Template.thumbnails/thumb_17_5_Closing.png"
+    },
+    {
+      "name": "1_Agenda",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 4,
+      "n_placeholders": 4,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_18_1_Agenda.png"
+    },
+    {
+      "name": "2_Agenda",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 4,
+      "n_placeholders": 4,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_19_2_Agenda.png"
+    },
+    {
+      "name": "3_Agenda",
+      "auto_class": "bespoke",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 7,
+      "n_placeholders": 4,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_20_3_Agenda.png"
+    },
+    {
+      "name": "4_Agenda",
+      "auto_class": "bespoke",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 7,
+      "n_placeholders": 4,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_21_4_Agenda.png"
+    },
+    {
+      "name": "5_Agenda",
+      "auto_class": "bespoke",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 8,
+      "n_placeholders": 4,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_22_5_Agenda.png"
+    },
+    {
+      "name": "6_Agenda",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 6,
+      "n_placeholders": 4,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_23_6_Agenda.png"
+    },
+    {
+      "name": "7_Agenda",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 6,
+      "n_placeholders": 5,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_24_7_Agenda.png"
+    },
+    {
+      "name": "8_Agenda",
+      "auto_class": "bespoke",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 7,
+      "n_placeholders": 4,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_25_8_Agenda.png"
+    },
+    {
+      "name": "9_Agenda",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 7,
+      "n_placeholders": 5,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_26_9_Agenda.png"
+    },
+    {
+      "name": "10_Agenda",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 6,
+      "n_placeholders": 4,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_27_10_Agenda.png"
+    },
+    {
+      "name": "11_Agenda",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 6,
+      "n_placeholders": 4,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_28_11_Agenda.png"
+    },
+    {
+      "name": "12_Agenda",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 14,
+      "n_placeholders": 13,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_29_12_Agenda.png"
+    },
+    {
+      "name": "13_Agenda",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 14,
+      "n_placeholders": 14,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_30_13_Agenda.png"
+    },
+    {
+      "name": "14_Agenda",
+      "auto_class": "bespoke",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 16,
+      "n_placeholders": 13,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_31_14_Agenda.png"
+    },
+    {
+      "name": "15_Agenda",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 15,
+      "n_placeholders": 14,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_32_15_Agenda.png"
+    },
+    {
+      "name": "16_Agenda",
+      "auto_class": "bespoke",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 16,
+      "n_placeholders": 13,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_33_16_Agenda.png"
+    },
+    {
+      "name": "17_Agenda",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 15,
+      "n_placeholders": 14,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_34_17_Agenda.png"
+    },
+    {
+      "name": "1_Section Divider",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 3,
+      "n_placeholders": 3,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_35_1_Section_Divider.png"
+    },
+    {
+      "name": "2_Section Divider",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 5,
+      "n_placeholders": 4,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_36_2_Section_Divider.png"
+    },
+    {
+      "name": "3_Section Divider",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 4,
+      "n_placeholders": 4,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_37_3_Section_Divider.png"
+    },
+    {
+      "name": "4_Section Divider",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 4,
+      "n_placeholders": 3,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_38_4_Section_Divider.png"
+    },
+    {
+      "name": "5_Section Divider",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 4,
+      "n_placeholders": 4,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_39_5_Section_Divider.png"
+    },
+    {
+      "name": "6_Section Divider",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 4,
+      "n_placeholders": 4,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_40_6_Section_Divider.png"
+    },
+    {
+      "name": "7_Section Divider",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 4,
+      "n_placeholders": 4,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_41_7_Section_Divider.png"
+    },
+    {
+      "name": "1_Appendix Section Divider",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 3,
+      "n_placeholders": 3,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_42_1_Appendix_Section_Divider.png"
+    },
+    {
+      "name": "1_Section Bar",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 9,
+      "n_placeholders": 8,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_43_1_Section_Bar.png"
+    },
+    {
+      "name": "2_Section Bar",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 9,
+      "n_placeholders": 8,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_44_2_Section_Bar.png"
+    },
+    {
+      "name": "3_Section Bar",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 9,
+      "n_placeholders": 8,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_45_3_Section_Bar.png"
+    },
+    {
+      "name": "4_Section Bar",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 9,
+      "n_placeholders": 8,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_46_4_Section_Bar.png"
+    },
+    {
+      "name": "5_Section Bar",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 9,
+      "n_placeholders": 8,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_47_5_Section_Bar.png"
+    },
+    {
+      "name": "1_Text Only",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 4,
+      "n_placeholders": 4,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_48_1_Text_Only.png"
+    },
+    {
+      "name": "2_Text Only",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 4,
+      "n_placeholders": 4,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_49_2_Text_Only.png"
+    },
+    {
+      "name": "3_Text Only",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 5,
+      "n_placeholders": 5,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_50_3_Text_Only.png"
+    },
+    {
+      "name": "4_Text Only",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 5,
+      "n_placeholders": 5,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_51_4_Text_Only.png"
+    },
+    {
+      "name": "5_Text Only",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 5,
+      "n_placeholders": 5,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_52_5_Text_Only.png"
+    },
+    {
+      "name": "6_Text Only",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 5,
+      "n_placeholders": 5,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_53_6_Text_Only.png"
+    },
+    {
+      "name": "7_Text Only",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 6,
+      "n_placeholders": 6,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_54_7_Text_Only.png"
+    },
+    {
+      "name": "8_Text Only",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 7,
+      "n_placeholders": 7,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_55_8_Text_Only.png"
+    },
+    {
+      "name": "9_Text Only",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 9,
+      "n_placeholders": 9,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_56_9_Text_Only.png"
+    },
+    {
+      "name": "1_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 5,
+      "n_placeholders": 4,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_57_1_Highly_Visual.png"
+    },
+    {
+      "name": "2_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 5,
+      "n_placeholders": 5,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_58_2_Highly_Visual.png"
+    },
+    {
+      "name": "3_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 5,
+      "n_placeholders": 4,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_59_3_Highly_Visual.png"
+    },
+    {
+      "name": "4_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 5,
+      "n_placeholders": 5,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_60_4_Highly_Visual.png"
+    },
+    {
+      "name": "5_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 5,
+      "n_placeholders": 4,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_61_5_Highly_Visual.png"
+    },
+    {
+      "name": "6_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 5,
+      "n_placeholders": 5,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_62_6_Highly_Visual.png"
+    },
+    {
+      "name": "7_Highly Visual",
+      "auto_class": "bespoke",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 12,
+      "n_placeholders": 9,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_63_7_Highly_Visual.png"
+    },
+    {
+      "name": "8_Highly Visual",
+      "auto_class": "bespoke",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 15,
+      "n_placeholders": 11,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_64_8_Highly_Visual.png"
+    },
+    {
+      "name": "9_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 9,
+      "n_placeholders": 7,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_65_9_Highly_Visual.png"
+    },
+    {
+      "name": "10_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 9,
+      "n_placeholders": 7,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_66_10_Highly_Visual.png"
+    },
+    {
+      "name": "11_Highly Visual",
+      "auto_class": "bespoke",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 12,
+      "n_placeholders": 9,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_67_11_Highly_Visual.png"
+    },
+    {
+      "name": "12_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 7,
+      "n_placeholders": 7,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_68_12_Highly_Visual.png"
+    },
+    {
+      "name": "13_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 9,
+      "n_placeholders": 9,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_69_13_Highly_Visual.png"
+    },
+    {
+      "name": "14_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 9,
+      "n_placeholders": 9,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_70_14_Highly_Visual.png"
+    },
+    {
+      "name": "15_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 12,
+      "n_placeholders": 12,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_71_15_Highly_Visual.png"
+    },
+    {
+      "name": "16_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 11,
+      "n_placeholders": 11,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_72_16_Highly_Visual.png"
+    },
+    {
+      "name": "17_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 15,
+      "n_placeholders": 15,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_73_17_Highly_Visual.png"
+    },
+    {
+      "name": "18_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 21,
+      "n_placeholders": 21,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_74_18_Highly_Visual.png"
+    },
+    {
+      "name": "19_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 9,
+      "n_placeholders": 8,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_75_19_Highly_Visual.png"
+    },
+    {
+      "name": "20_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 9,
+      "n_placeholders": 9,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_76_20_Highly_Visual.png"
+    },
+    {
+      "name": "21_Highly Visual",
+      "auto_class": "bespoke",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 13,
+      "n_placeholders": 10,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_77_21_Highly_Visual.png"
+    },
+    {
+      "name": "22_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 13,
+      "n_placeholders": 11,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_78_22_Highly_Visual.png"
+    },
+    {
+      "name": "23_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 10,
+      "n_placeholders": 8,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_79_23_Highly_Visual.png"
+    },
+    {
+      "name": "24_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 5,
+      "n_placeholders": 5,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_80_24_Highly_Visual.png"
+    },
+    {
+      "name": "25_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 5,
+      "n_placeholders": 5,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_81_25_Highly_Visual.png"
+    },
+    {
+      "name": "26_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 11,
+      "n_placeholders": 10,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_82_26_Highly_Visual.png"
+    },
+    {
+      "name": "27_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 11,
+      "n_placeholders": 11,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_83_27_Highly_Visual.png"
+    },
+    {
+      "name": "28_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 11,
+      "n_placeholders": 11,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_84_28_Highly_Visual.png"
+    },
+    {
+      "name": "29_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 5,
+      "n_placeholders": 5,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_85_29_Highly_Visual.png"
+    },
+    {
+      "name": "30_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 7,
+      "n_placeholders": 7,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_86_30_Highly_Visual.png"
+    },
+    {
+      "name": "31_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 6,
+      "n_placeholders": 6,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_87_31_Highly_Visual.png"
+    },
+    {
+      "name": "32_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 6,
+      "n_placeholders": 6,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_88_32_Highly_Visual.png"
+    },
+    {
+      "name": "33_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 6,
+      "n_placeholders": 6,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_89_33_Highly_Visual.png"
+    },
+    {
+      "name": "34_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 6,
+      "n_placeholders": 6,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_90_34_Highly_Visual.png"
+    },
+    {
+      "name": "35_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 5,
+      "n_placeholders": 5,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_91_35_Highly_Visual.png"
+    },
+    {
+      "name": "36_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 6,
+      "n_placeholders": 6,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_92_36_Highly_Visual.png"
+    },
+    {
+      "name": "37_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 6,
+      "n_placeholders": 6,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_93_37_Highly_Visual.png"
+    },
+    {
+      "name": "38_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 6,
+      "n_placeholders": 6,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_94_38_Highly_Visual.png"
+    },
+    {
+      "name": "39_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 7,
+      "n_placeholders": 7,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_95_39_Highly_Visual.png"
+    },
+    {
+      "name": "40_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 7,
+      "n_placeholders": 7,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_96_40_Highly_Visual.png"
+    },
+    {
+      "name": "41_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 9,
+      "n_placeholders": 9,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_97_41_Highly_Visual.png"
+    },
+    {
+      "name": "42_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 12,
+      "n_placeholders": 12,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_98_42_Highly_Visual.png"
+    },
+    {
+      "name": "43_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 9,
+      "n_placeholders": 9,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_99_43_Highly_Visual.png"
+    },
+    {
+      "name": "44_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 11,
+      "n_placeholders": 11,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_100_44_Highly_Visual.png"
+    },
+    {
+      "name": "45_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 11,
+      "n_placeholders": 11,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_101_45_Highly_Visual.png"
+    },
+    {
+      "name": "46_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 5,
+      "n_placeholders": 5,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_102_46_Highly_Visual.png"
+    },
+    {
+      "name": "47_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 4,
+      "n_placeholders": 4,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_103_47_Highly_Visual.png"
+    },
+    {
+      "name": "48_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 4,
+      "n_placeholders": 4,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_104_48_Highly_Visual.png"
+    },
+    {
+      "name": "49_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 5,
+      "n_placeholders": 5,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_105_49_Highly_Visual.png"
+    },
+    {
+      "name": "50_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 5,
+      "n_placeholders": 4,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_106_50_Highly_Visual.png"
+    },
+    {
+      "name": "51_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 9,
+      "n_placeholders": 9,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_107_51_Highly_Visual.png"
+    },
+    {
+      "name": "52_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 8,
+      "n_placeholders": 8,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_108_52_Highly_Visual.png"
+    },
+    {
+      "name": "53_Highly Visual",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 4,
+      "n_placeholders": 4,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_109_53_Highly_Visual.png"
+    },
+    {
+      "name": "1_Statement / Quote",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 4,
+      "n_placeholders": 3,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_110_1_Statement_Quote.png"
+    },
+    {
+      "name": "2_Statement / Quote",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 4,
+      "n_placeholders": 3,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_111_2_Statement_Quote.png"
+    },
+    {
+      "name": "3_Statement / Quote",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 3,
+      "n_placeholders": 3,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_112_3_Statement_Quote.png"
+    },
+    {
+      "name": "4_Statement / Quote",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 3,
+      "n_placeholders": 3,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_113_4_Statement_Quote.png"
+    },
+    {
+      "name": "5_Statement / Quote",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 4,
+      "n_placeholders": 3,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_114_5_Statement_Quote.png"
+    },
+    {
+      "name": "6_Statement / Quote",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 4,
+      "n_placeholders": 4,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_115_6_Statement_Quote.png"
+    },
+    {
+      "name": "7_Statement / Quote",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 4,
+      "n_placeholders": 3,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_116_7_Statement_Quote.png"
+    },
+    {
+      "name": "8__Statement / Quote",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 4,
+      "n_placeholders": 4,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_117_8__Statement_Quote.png"
+    },
+    {
+      "name": "9_Statement / Quote",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 4,
+      "n_placeholders": 3,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_118_9_Statement_Quote.png"
+    },
+    {
+      "name": "10_Statement / Quote",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 4,
+      "n_placeholders": 4,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_119_10_Statement_Quote.png"
+    },
+    {
+      "name": "11_Statement / Quote",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 3,
+      "n_placeholders": 3,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_120_11_Statement_Quote.png"
+    },
+    {
+      "name": "12_Statement / Quote",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 4,
+      "n_placeholders": 3,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_121_12_Statement_Quote.png"
+    },
+    {
+      "name": "13_Statement / Quote",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 4,
+      "n_placeholders": 4,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_122_13_Statement_Quote.png"
+    },
+    {
+      "name": "14_Statement / Quote",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 4,
+      "n_placeholders": 4,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_123_14_Statement_Quote.png"
+    },
+    {
+      "name": "15_Statement / Quote",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 5,
+      "n_placeholders": 5,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_124_15_Statement_Quote.png"
+    },
+    {
+      "name": "1_Insert Chart",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 5,
+      "n_placeholders": 5,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_125_1_Insert_Chart.png"
+    },
+    {
+      "name": "2_Insert Chart",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 5,
+      "n_placeholders": 5,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_126_2_Insert_Chart.png"
+    },
+    {
+      "name": "3_Insert Chart",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 6,
+      "n_placeholders": 6,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_127_3_Insert_Chart.png"
+    },
+    {
+      "name": "4_Insert Chart",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 6,
+      "n_placeholders": 6,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_128_4_Insert_Chart.png"
+    },
+    {
+      "name": "5_Insert Chart",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 6,
+      "n_placeholders": 6,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_129_5_Insert_Chart.png"
+    },
+    {
+      "name": "6_Insert Chart",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 7,
+      "n_placeholders": 7,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_130_6_Insert_Chart.png"
+    },
+    {
+      "name": "7_Insert Chart",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 7,
+      "n_placeholders": 7,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_131_7_Insert_Chart.png"
+    },
+    {
+      "name": "8_Insert Chart",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 7,
+      "n_placeholders": 7,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_132_8_Insert_Chart.png"
+    },
+    {
+      "name": "9_Insert Chart",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 9,
+      "n_placeholders": 9,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_133_9_Insert_Chart.png"
+    },
+    {
+      "name": "10_Insert Chart",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 11,
+      "n_placeholders": 11,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_134_10_Insert_Chart.png"
+    },
+    {
+      "name": "1_Map_EU",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 6,
+      "n_placeholders": 5,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_135_1_Map_EU.png"
+    },
+    {
+      "name": "1_Map_Americas",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 6,
+      "n_placeholders": 5,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_136_1_Map_Americas.png"
+    },
+    {
+      "name": "3_Map_AMEA",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 6,
+      "n_placeholders": 5,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_137_3_Map_AMEA.png"
+    },
+    {
+      "name": "4_Map_World",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 6,
+      "n_placeholders": 5,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_138_4_Map_World.png"
+    },
+    {
+      "name": "5_Map_US",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 6,
+      "n_placeholders": 5,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_139_5_Map_US.png"
+    },
+    {
+      "name": "1_Insert Table",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 5,
+      "n_placeholders": 5,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_140_1_Insert_Table.png"
+    },
+    {
+      "name": "2_Insert Table",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 5,
+      "n_placeholders": 5,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_141_2_Insert_Table.png"
+    },
+    {
+      "name": "3_Insert Table",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 6,
+      "n_placeholders": 6,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_142_3_Insert_Table.png"
+    },
+    {
+      "name": "1_Timeline",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 14,
+      "n_placeholders": 14,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_143_1_Timeline.png"
+    },
+    {
+      "name": "2_Timeline",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 23,
+      "n_placeholders": 23,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_144_2_Timeline.png"
+    },
+    {
+      "name": "3_Timeline",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 22,
+      "n_placeholders": 22,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_145_3_Timeline.png"
+    },
+    {
+      "name": "4_Timeline",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 18,
+      "n_placeholders": 18,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_146_4_Timeline.png"
+    },
+    {
+      "name": "5_Timeline",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 32,
+      "n_placeholders": 32,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_147_5_Timeline.png"
+    },
+    {
+      "name": "6_Timeline",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 21,
+      "n_placeholders": 21,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_148_6_Timeline.png"
+    },
+    {
+      "name": "1_Process",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 20,
+      "n_placeholders": 20,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_149_1_Process.png"
+    },
+    {
+      "name": "2_Process",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 21,
+      "n_placeholders": 21,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_150_2_Process.png"
+    },
+    {
+      "name": "3_Process",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 21,
+      "n_placeholders": 21,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_151_3_Process.png"
+    },
+    {
+      "name": "4_Process",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 22,
+      "n_placeholders": 22,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_152_4_Process.png"
+    },
+    {
+      "name": "5_Process",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 24,
+      "n_placeholders": 24,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_153_5_Process.png"
+    },
+    {
+      "name": "6_Process",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 24,
+      "n_placeholders": 24,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_154_6_Process.png"
+    },
+    {
+      "name": "7_Process",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 15,
+      "n_placeholders": 15,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_155_7_Process.png"
+    },
+    {
+      "name": "8_Process",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 7,
+      "n_placeholders": 7,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_156_8_Process.png"
+    },
+    {
+      "name": "1_Process Circle",
+      "auto_class": "bespoke",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 23,
+      "n_placeholders": 18,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_157_1_Process_Circle.png"
+    },
+    {
+      "name": "1_Process Grid",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 18,
+      "n_placeholders": 18,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_158_1_Process_Grid.png"
+    },
+    {
+      "name": "1_Team Structure",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 40,
+      "n_placeholders": 40,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_159_1_Team_Structure.png"
+    },
+    {
+      "name": "1_Headshot Organizational Chart",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 16,
+      "n_placeholders": 16,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_160_1_Headshot_Organizational_Chart.png"
+    },
+    {
+      "name": "1_Insert Video",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 1,
+      "n_placeholders": 1,
+      "has_page_number": false,
+      "thumbnail": "FDX Template.thumbnails/thumb_161_1_Insert_Video.png"
+    },
+    {
+      "name": "2_Insert Video",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 2,
+      "n_placeholders": 1,
+      "has_page_number": false,
+      "thumbnail": "FDX Template.thumbnails/thumb_162_2_Insert_Video.png"
+    },
+    {
+      "name": "3_Insert Video",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 4,
+      "n_placeholders": 4,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_163_3_Insert_Video.png"
+    },
+    {
+      "name": "4_Insert Video",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 4,
+      "n_placeholders": 4,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_164_4_Insert_Video.png"
+    },
+    {
+      "name": "1_Mobile Samsung Mock-up",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 6,
+      "n_placeholders": 5,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_165_1_Mobile_Samsung_Mock-up.png"
+    },
+    {
+      "name": "2_Mobile Samsung Mock-up",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 9,
+      "n_placeholders": 7,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_166_2_Mobile_Samsung_Mock-up.png"
+    },
+    {
+      "name": "3_Mobile Samsung Mock-up",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 21,
+      "n_placeholders": 20,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_167_3_Mobile_Samsung_Mock-up.png"
+    },
+    {
+      "name": "1_Mobile iPhone Mock-up",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 6,
+      "n_placeholders": 5,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_168_1_Mobile_iPhone_Mock-up.png"
+    },
+    {
+      "name": "2_Mobile iPhone Mock-up",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 9,
+      "n_placeholders": 7,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_169_2_Mobile_iPhone_Mock-up.png"
+    },
+    {
+      "name": "3_Mobile iPhone Mock-up",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 21,
+      "n_placeholders": 20,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_170_3_Mobile_iPhone_Mock-up.png"
+    },
+    {
+      "name": "1_Laptop Mock-up",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 5,
+      "n_placeholders": 4,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_171_1_Laptop_Mock-up.png"
+    },
+    {
+      "name": "2_Laptop Mock-up",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 6,
+      "n_placeholders": 5,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_172_2_Laptop_Mock-up.png"
+    },
+    {
+      "name": "3_Laptop Mock-up",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 13,
+      "n_placeholders": 12,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_173_3_Laptop_Mock-up.png"
+    },
+    {
+      "name": "1_Desktop Mock-up",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 5,
+      "n_placeholders": 4,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_174_1_Desktop_Mock-up.png"
+    },
+    {
+      "name": "2_Desktop Mock-up",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 6,
+      "n_placeholders": 5,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_175_2_Desktop_Mock-up.png"
+    },
+    {
+      "name": "3_Desktop Mock-up",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 13,
+      "n_placeholders": 12,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_176_3_Desktop_Mock-up.png"
+    },
+    {
+      "name": "1_Blank",
+      "auto_class": "body-canonical",
+      "text_role": "dark_on_light",
+      "background": "light",
+      "n_shapes": 2,
+      "n_placeholders": 2,
+      "has_page_number": true,
+      "thumbnail": "FDX Template.thumbnails/thumb_177_1_Blank.png"
+    }
+  ],
+  "register_html": "C:\\Users\\m.a.peralta\\.claude\\skills\\.claude\\worktrees\\agent-abaae9e70ed8f6544\\slide-builder\\_decisions\\v0.3-audit-workspace\\fdx\\FDX Template.register.html"
+}

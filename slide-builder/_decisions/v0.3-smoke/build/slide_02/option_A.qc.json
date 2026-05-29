@@ -1,0 +1,51 @@
+{
+  "checks": [
+    {
+      "check": "png_render_ok",
+      "pass": true,
+      "severity": "block",
+      "detail": "155952 bytes"
+    },
+    {
+      "check": "palette_compliance",
+      "pass": false,
+      "severity": "warn",
+      "detail": "1 off-palette: 0A1A2E"
+    },
+    {
+      "check": "title_present",
+      "pass": true,
+      "severity": "warn",
+      "detail": "shape name 'Title 1' matches title*"
+    },
+    {
+      "check": "footer_present",
+      "pass": false,
+      "severity": "warn",
+      "detail": "no shape named page-number and no bare-integer text"
+    },
+    {
+      "check": "body_font_floor",
+      "pass": true,
+      "severity": "warn",
+      "detail": "body-role >= 10.5pt; other roles >= 8.0pt (excluding footnote/source/page-number)"
+    },
+    {
+      "check": "placeholder_leak",
+      "pass": true,
+      "severity": "block",
+      "detail": "no placeholder strings found"
+    },
+    {
+      "check": "shape_count_sanity",
+      "pass": true,
+      "severity": "warn",
+      "detail": "5 shapes"
+    }
+  ],
+  "summary": {
+    "pass": 5,
+    "warn": 2,
+    "block": 0
+  }
+}

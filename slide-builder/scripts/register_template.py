@@ -58,6 +58,7 @@ import hashlib
 import json
 import os
 import re
+import shutil
 import sys
 import tempfile
 import zipfile
@@ -81,6 +82,7 @@ import _paths as _p  # noqa: E402
 from _chrome_schema import (  # noqa: E402
     BoxPx, LayoutChrome, ChromeSpec,
     CHROME_SCHEMA_VERSION_CURRENT,
+    CANONICAL_BODY_TOP_Y, CANONICAL_BODY_BOTTOM_Y,
     dump_chrome_yml,
 )
 
@@ -676,6 +678,85 @@ def render_pptx_to_png(pptx_path: Path, png_path: Path) -> bool:
         return True
 
 
+def render_layout_thumbnails(template_path: Path, out_dir: Path,
+                              dpi: int = 96) -> dict:
+    """Render one PNG thumbnail per layout in the client template.
+
+    Opens a copy of the template, clears existing sample slides, adds one
+    slide per layout (instantiating the layout untouched so its native
+    placeholders + decorative chrome appear), saves a temp PPTX, renders
+    via LibreOffice, and returns {layout_name: png_path}.
+
+    Used by the registration HTML so the user can SEE each layout when
+    deciding which to pick. Empty placeholders show their hint text
+    ("Click to add title"), which is informative — Mario sees where the
+    title sits, where body content lands, what the chrome looks like.
+    """
+    try:
+        from render_slides import render_libre
+    except ImportError as e:
+        print(f"WARNING: could not import render_libre: {e}")
+        return {}
+    from pptx import Presentation as _Pres
+    from copy import deepcopy as _deepcopy
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    prs = _Pres(str(template_path))
+    _clear_existing_slides(prs)
+
+    # Dedupe by name so the order/count matches propose_layouts_payload
+    # (which also dedupes via a `seen` set). Without this, the dict mapping
+    # name -> png is last-write-wins and points at the wrong rendered slide.
+    layout_order = []
+    _seen = set()
+    for master in prs.slide_masters:
+        for layout in master.slide_layouts:
+            name = (layout.name or "").strip()
+            if not name or name in _seen:
+                continue
+            _seen.add(name)
+            layout_order.append(name)
+            prs.slides.add_slide(layout)
+
+    if not layout_order:
+        return {}
+
+    tmp_pptx = out_dir / "_layout_thumbnails.pptx"
+    prs.save(str(tmp_pptx))
+
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        try:
+            render_libre(tmp_pptx, tmp, dpi=dpi)
+        except Exception as e:
+            print(f"WARNING: render_libre failed for layout thumbnails: {e}")
+            return {}
+        pngs = sorted(tmp.glob("slide_*.png"))
+        if len(pngs) < len(layout_order):
+            print(f"WARNING: rendered {len(pngs)} PNGs but expected "
+                  f"{len(layout_order)} layouts; some thumbnails missing")
+
+        mapping = {}
+        for i, name in enumerate(layout_order):
+            if i >= len(pngs):
+                break
+            safe = re.sub(r"[^A-Za-z0-9_-]+", "_", name)[:80]
+            dst = out_dir / f"thumb_{i:02d}_{safe}.png"
+            try:
+                shutil.copy(str(pngs[i]), str(dst))
+                mapping[name] = dst
+            except Exception as e:
+                print(f"WARNING: could not copy thumbnail for {name!r}: {e}")
+
+    try:
+        tmp_pptx.unlink()
+    except Exception:
+        pass
+
+    return mapping
+
+
 # ---------------------------------------------------------------------------
 # Palette swatch PNG — visual aid for chat-driven picks
 # ---------------------------------------------------------------------------
@@ -1106,20 +1187,25 @@ def render_register_html(proposal: dict, html_path: Path) -> bool:
     </div>
     <div class="swatches" id="sw-cover"></div>
   </div>
+
+  <div class="picker" data-role="dark_bg_slot">
+    <div class="picker-label">
+      Dark-variant background color
+      <span class="current" id="cur-dark"></span>
+    </div>
+    <div class="role-explainer">
+      <strong>The fill behind any slide marked as a dark variant.</strong> When a brief
+      sets <code>**Variant:** dark</code> on a slide, Slide Lab strips the layout&rsquo;s bright
+      chrome and paints this color full-bleed instead. <em>Default is your primary brand
+      color &mdash; change only if your brand has a specific dark-variant shade.</em>
+    </div>
+    <div class="swatches" id="sw-dark"></div>
+  </div>
 </section>
 
 <section id="layouts-section">
-  <h2>3. Confirm layout classifications (v0.2)</h2>
-  <div class="help">
-    For each slide layout in the template, Slide Lab auto-detected whether it
-    is <strong>body-canonical</strong> (master decorates; layout is mostly
-    empty; ~90&#37; of consulting body slides) or <strong>bespoke</strong>
-    (art-directed cover / section divider / dark hero where the chrome IS the
-    slide). The auto-detection is a heuristic. Override below when the
-    template ships an art-directed body layout that decorated itself or a
-    cover layout that auto-detected as a blank chrome frame.
-  </div>
-  <div id="layouts-list"></div>
+  <h2>3. Pick the slide design you want</h2>
+  <div id="layouts-pick-cluster"></div>
 </section>
 
 <section id="strip-section">
@@ -1197,6 +1283,8 @@ const state = {
   accent_hex:   paletteHex(bestGuess.accent_slot),
   cover_bg_slot:bestGuess.cover_bg_slot,
   cover_bg_hex: paletteHex(bestGuess.cover_bg_slot),
+  dark_bg_slot: bestGuess.primary_slot,   // default to primary
+  dark_bg_hex:  paletteHex(bestGuess.primary_slot),
   strip_master_backgrounds: true,
 };
 
@@ -1215,6 +1303,9 @@ function selectSwatch(role, entry) {
   } else if (role === "cover_bg_slot") {
     state.cover_bg_slot = entry.slot;
     state.cover_bg_hex  = entry.hex;
+  } else if (role === "dark_bg_slot") {
+    state.dark_bg_slot = entry.slot;
+    state.dark_bg_hex  = entry.hex;
   }
   refreshUI();
 }
@@ -1230,11 +1321,15 @@ function refreshUI() {
   document.querySelectorAll("#sw-cover .swatch").forEach(s => {
     s.classList.toggle("selected", s.dataset.slot === state.cover_bg_slot);
   });
+  document.querySelectorAll("#sw-dark .swatch").forEach(s => {
+    s.classList.toggle("selected", s.dataset.slot === state.dark_bg_slot);
+  });
 
   // Update "current" labels
   document.getElementById("cur-primary").textContent = `selected: #${state.primary_hex} (slot ${state.primary_slot})`;
   document.getElementById("cur-accent").textContent  = `selected: #${state.accent_hex} (slot ${state.accent_slot})`;
   document.getElementById("cur-cover").textContent   = `selected: #${state.cover_bg_hex} (slot ${state.cover_bg_slot})`;
+  document.getElementById("cur-dark").textContent    = `selected: #${state.dark_bg_hex} (slot ${state.dark_bg_slot})`;
 
   // Update strip toggle
   state.strip_master_backgrounds = document.getElementById("strip-bg").checked;
@@ -1248,6 +1343,8 @@ function refreshUI() {
     accent_hex:    state.accent_hex,
     cover_bg_slot: state.cover_bg_slot,
     cover_bg_hex:  state.cover_bg_hex,
+    dark_bg_slot:  state.dark_bg_slot,
+    dark_bg_hex:   state.dark_bg_hex,
     strip_master_backgrounds: state.strip_master_backgrounds,
     layout_classifications: layoutClassifications,
   };
@@ -1259,7 +1356,131 @@ function refreshUI() {
   btn.textContent = "Copy picks JSON to clipboard";
 }
 
-// Build per-layout classification rows
+// Pick state: which named layout is the body. Covers stay on Slide Lab's
+// draw-everything path (no layout pick — Slide Lab builds them from scratch
+// on a blank layout the same way it did before v0.3).
+const layoutPicks = { body: null };
+
+function autoBodyGuess() {
+  // First preference: a non-dark layout whose name contains "default slide
+  // template" — that's the common convention for the workhorse body layout.
+  let g = layouts.find(l => l.background !== "dark"
+                        && (l.name || "").toLowerCase().includes("default slide template"));
+  if (g) return g.name;
+  // Fallback: first non-dark, non-cover layout with >= 1 placeholder.
+  g = layouts.find(l => l.background !== "dark"
+                    && !(l.name || "").toLowerCase().includes("cover")
+                    && (l.n_placeholders || 0) >= 1);
+  return g ? g.name : (layouts[0] && layouts[0].name) || null;
+}
+
+function buildLayoutGrid() {
+  const container = document.getElementById("layouts-pick-cluster");
+  if (!container) return;
+  container.innerHTML = "";
+  if (!layouts.length) {
+    container.innerHTML = '<div class="help">No slide designs found.</div>';
+    return;
+  }
+  if (!layoutPicks.body) layoutPicks.body = autoBodyGuess();
+
+  const help = document.createElement("div");
+  help.style.fontSize = "13px";
+  help.style.color = "var(--text-mid)";
+  help.style.marginBottom = "16px";
+  help.innerHTML =
+    "Slide Lab has rendered every layout in your template below. Click " +
+    "<strong>Use for body</strong> on the layout you want for ~95% of pages. " +
+    "<br><br>" +
+    "<strong>Cover and section-divider slides are handled separately</strong> " +
+    "— Slide Lab draws those from scratch on a blank canvas the way it always " +
+    "has. You don't pick a cover layout here.";
+  container.appendChild(help);
+
+  const grid = document.createElement("div");
+  grid.style.display = "grid";
+  grid.style.gridTemplateColumns = "repeat(auto-fill, minmax(320px, 1fr))";
+  grid.style.gap = "16px";
+
+  layouts.forEach(l => {
+    const card = document.createElement("div");
+    card.className = "layout-row";
+    card.style.flexDirection = "column";
+    card.style.alignItems = "stretch";
+    card.style.padding = "12px";
+    const isBody = layoutPicks.body === l.name;
+    if (isBody) {
+      card.style.borderColor = "var(--accent)";
+      card.style.borderWidth = "2px";
+    }
+
+    // Thumbnail
+    const thumbWrap = document.createElement("div");
+    thumbWrap.style.cssText = "background: #F0F0F0; border: 1px solid var(--rule);"
+      + "border-radius: 4px; overflow: hidden; aspect-ratio: 16 / 9;"
+      + "display: flex; align-items: center; justify-content: center;"
+      + "margin-bottom: 10px;";
+    if (l.thumbnail) {
+      const img = document.createElement("img");
+      img.src = l.thumbnail;
+      img.alt = l.name;
+      img.style.cssText = "width: 100%; height: 100%; object-fit: contain; display: block;";
+      thumbWrap.appendChild(img);
+    } else {
+      thumbWrap.innerHTML = "<span style='color: var(--text-dim); font-size: 12px;'>(no thumbnail)</span>";
+    }
+    card.appendChild(thumbWrap);
+
+    // BODY badge if picked
+    const badges = document.createElement("div");
+    badges.style.cssText = "display: flex; gap: 6px; margin-bottom: 8px; min-height: 18px;";
+    if (isBody) {
+      const b = document.createElement("span");
+      b.style.cssText = "background: var(--accent); color: white; font-size: 11px;"
+        + "font-weight: 600; padding: 2px 8px; border-radius: 3px;";
+      b.textContent = "BODY";
+      badges.appendChild(b);
+    }
+    card.appendChild(badges);
+
+    // Layout name (raw)
+    const nameEl = document.createElement("div");
+    nameEl.style.cssText = "font-family: ui-monospace, Consolas, monospace;"
+      + "font-size: 12px; color: var(--text-mid); margin-bottom: 10px;"
+      + "word-break: break-all;";
+    nameEl.textContent = l.name;
+    card.appendChild(nameEl);
+
+    // Single button: Use for body
+    const bodyBtn = document.createElement("button");
+    bodyBtn.className = "copy-btn";
+    bodyBtn.style.cssText = "width: 100%; padding: 8px 10px; font-size: 13px;";
+    bodyBtn.textContent = isBody ? "✓ Picked for body" : "Use for body";
+    bodyBtn.addEventListener("click", () => pickBody(l.name));
+    card.appendChild(bodyBtn);
+
+    grid.appendChild(card);
+  });
+
+  container.appendChild(grid);
+}
+
+function pickBody(name) {
+  layoutPicks.body = name;
+  // Update classifications: picked body becomes body-canonical; everything
+  // else stays as Slide Lab's auto guess. Cover-style layouts stay bespoke
+  // by their auto class; user can override per-slide via **Layout:** in
+  // the brief if needed.
+  layouts.forEach(l => {
+    if (l.name === layoutPicks.body) {
+      layoutClassifications[l.name] = "body-canonical";
+    }
+  });
+  buildLayoutGrid();
+  refreshUI();
+}
+
+// Build per-layout classification rows (collapsed under "Show all" details)
 function buildLayoutRows() {
   const container = document.getElementById("layouts-list");
   if (!container) return;
@@ -1304,7 +1525,8 @@ function buildLayoutRows() {
 buildSwatches("sw-primary", "primary_slot");
 buildSwatches("sw-accent",  "accent_slot");
 buildSwatches("sw-cover",   "cover_bg_slot");
-buildLayoutRows();
+buildSwatches("sw-dark",    "dark_bg_slot");
+buildLayoutGrid();
 document.getElementById("strip-bg").addEventListener("change", refreshUI);
 document.getElementById("copy-btn").addEventListener("click", () => {
   const txt = document.getElementById("picks-json").textContent;
@@ -1329,12 +1551,12 @@ refreshUI();
         .replace("TPL_PATH",    _html.escape(proposal["template"]).replace("\\", "\\\\"))
         .replace("SHA8",        _html.escape(sha8))
         .replace("MASTERS",     str(n_master))
-        .replace("LAYOUTS",     str(n_layout))
         .replace("FONT_HEAD",   _html.escape(fonts_head))
         .replace("FONT_BODY",   _html.escape(fonts_body))
         .replace("PREVIEW_BLOCK", preview_block)
         .replace("PALETTE_JSON", palette_json)
         .replace("LAYOUTS_JSON", layouts_json)
+        .replace("LAYOUTS",     str(n_layout))
         .replace("BG_PRIMARY",  _html.escape(bg_primary))
         .replace("BG_ACCENT",   _html.escape(bg_accent))
         .replace("BG_COVER",    _html.escape(bg_cover))
@@ -1367,12 +1589,14 @@ BRAND_YML_TEMPLATE = """# {stem}.brand.yml
 primary_hex:     "#{primary_hex}"
 accent_hex:      "#{accent_hex}"
 cover_bg_hex:    "#{cover_bg_hex}"
+dark_bg_hex:     "#{dark_bg_hex}"
 
 # Informational only - slot names from PowerPoint (not used by builds,
 # kept for human reference)
 primary_slot:    {primary_slot}
 accent_slot:     {accent_slot}
 cover_bg_slot:   {cover_bg_slot}
+dark_bg_slot:    {dark_bg_slot}
 
 # Fonts
 font_heading:    "{font_heading}"
@@ -1387,7 +1611,9 @@ strip_master_backgrounds: {strip_master_bg}
 
 def write_brand_yml(path: Path, *, primary_hex: str, accent_hex: str,
                     cover_bg_hex: str, primary_slot: str, accent_slot: str,
-                    cover_bg_slot: str, font_heading: str, font_body: str,
+                    cover_bg_slot: str,
+                    dark_bg_hex: str, dark_bg_slot: str,
+                    font_heading: str, font_body: str,
                     strip_master_backgrounds: bool, sha8: str) -> None:
     content = BRAND_YML_TEMPLATE.format(
         stem=path.stem.replace(".brand", ""),
@@ -1396,9 +1622,11 @@ def write_brand_yml(path: Path, *, primary_hex: str, accent_hex: str,
         primary_hex=primary_hex.upper(),
         accent_hex=accent_hex.upper(),
         cover_bg_hex=cover_bg_hex.upper(),
+        dark_bg_hex=dark_bg_hex.upper(),
         primary_slot=primary_slot,
         accent_slot=accent_slot,
         cover_bg_slot=cover_bg_slot,
+        dark_bg_slot=dark_bg_slot,
         font_heading=font_heading or "",
         font_body=font_body or "",
         strip_master_bg="true" if strip_master_backgrounds else "false",
@@ -1502,12 +1730,18 @@ def pick_index(prompt: str, n_max: int) -> int:
 # ---------------------------------------------------------------------------
 
 def _write_chrome_yml_for(tpl: Path, *, sha8: str,
-                          layout_overrides: dict | None) -> int:
+                          layout_overrides: dict | None,
+                          commit_method: str | None = None) -> int:
     """Extract and dump <stem>.chrome.yml next to the template.
 
     sha8 freshness-stamps the spec so finalize_deck.py can hard-fail when the
     .pptx mutates after registration. layout_overrides lets picks.json
     reclassify any layout body-canonical <-> bespoke.
+
+    commit_method (optional): an audit-trail string appended to the YAML
+    document as a top-level field. Used to mark sidecars written by the
+    implementer's default-pick path (commit_method="implementer_default")
+    vs. real user input via the registration page.
     """
     chrome_yml_path = _p.chrome_yml(tpl)
     try:
@@ -1519,6 +1753,18 @@ def _write_chrome_yml_for(tpl: Path, *, sha8: str,
         print(f"  ERROR: chrome.yml extraction failed: "
               f"{type(exc).__name__}: {exc}")
         return 2
+    # Append commit_method as a top-level audit field if supplied. We do this
+    # by re-loading + re-dumping the YAML so the field sits next to
+    # schema_version / source_template_sha8 / layouts. validate_chrome_dict
+    # ignores unknown top-level keys via pydantic default Strict-no behavior?
+    # Pydantic by default rejects extras; rather than weaken validation we
+    # keep commit_method OUTSIDE the validated ChromeSpec by writing it to a
+    # sibling marker file: <stem>.chrome.commit_method.txt. Cleaner and
+    # keeps the schema contract pure.
+    if commit_method:
+        sib = chrome_yml_path.with_name(chrome_yml_path.stem + '.commit_method.txt')
+        sib.write_text(str(commit_method).strip() + "\n", encoding="utf-8")
+        print(f"  commit_method marker: {sib} -> {commit_method}")
     n_layouts = len(spec.layouts)
     n_bespoke = sum(1 for v in spec.layouts.values()
                     if v.layout_class == "bespoke")
@@ -1594,8 +1840,11 @@ def _main_interactive(args) -> int:
         print("\n[Phase 4] Auto-accept (--auto-accept-phase1)")
         _write_outputs(
             tpl, sha, sha8, primary_hex, primary_slot, accent_hex, accent_slot,
-            cover_bg_hex, cover_bg_slot, font_heading, font_body,
-            strip_master_backgrounds, colors, n_master, n_layout
+            cover_bg_hex, cover_bg_slot,
+            dark_bg_hex=primary_hex, dark_bg_slot=primary_slot,
+            font_heading=font_heading, font_body=font_body,
+            strip_master_backgrounds=strip_master_backgrounds,
+            colors=colors, n_master=n_master, n_layout=n_layout,
         )
         rc = _write_chrome_yml_for(tpl, sha8=sha8, layout_overrides=None)
         if rc != 0:
@@ -1632,8 +1881,10 @@ def _main_interactive(args) -> int:
             _write_outputs(
                 tpl, sha, sha8, primary_hex, primary_slot,
                 accent_hex, accent_slot, cover_bg_hex, cover_bg_slot,
-                font_heading, font_body, strip_master_backgrounds,
-                colors, n_master, n_layout
+                dark_bg_hex=primary_hex, dark_bg_slot=primary_slot,
+                font_heading=font_heading, font_body=font_body,
+                strip_master_backgrounds=strip_master_backgrounds,
+                colors=colors, n_master=n_master, n_layout=n_layout,
             )
             brand_yml = tpl.with_name(f"{tpl.stem}.brand.yml")
             try:
@@ -1708,8 +1959,11 @@ def _main_interactive(args) -> int:
     _write_outputs(
         tpl, sha, sha8, primary_hex, primary_slot,
         accent_hex, accent_slot, cover_bg_hex, cover_bg_slot,
-        font_heading, font_body, strip_master_backgrounds,
-        colors, n_master, n_layout
+        # Interactive Phase 1 has no dark-bg picker; default to primary.
+        dark_bg_hex=primary_hex, dark_bg_slot=primary_slot,
+        font_heading=font_heading, font_body=font_body,
+        strip_master_backgrounds=strip_master_backgrounds,
+        colors=colors, n_master=n_master, n_layout=n_layout,
     )
     rc = _write_chrome_yml_for(tpl, sha8=sha8, layout_overrides=None)
     if rc != 0:
@@ -1721,6 +1975,8 @@ def _write_outputs(tpl: Path, sha: str, sha8: str,
                    primary_hex: str, primary_slot: str,
                    accent_hex: str, accent_slot: str,
                    cover_bg_hex: str, cover_bg_slot: str,
+                   *,
+                   dark_bg_hex: str, dark_bg_slot: str,
                    font_heading: str, font_body: str,
                    strip_master_backgrounds: bool,
                    colors: dict, n_master: int, n_layout: int) -> None:
@@ -1733,6 +1989,7 @@ def _write_outputs(tpl: Path, sha: str, sha8: str,
         cover_bg_hex=cover_bg_hex,
         primary_slot=primary_slot, accent_slot=accent_slot,
         cover_bg_slot=cover_bg_slot,
+        dark_bg_hex=dark_bg_hex, dark_bg_slot=dark_bg_slot,
         font_heading=font_heading, font_body=font_body,
         strip_master_backgrounds=strip_master_backgrounds,
         sha8=sha8,
@@ -1742,9 +1999,11 @@ def _write_outputs(tpl: Path, sha: str, sha8: str,
         "primary_hex": f"#{primary_hex.upper()}",
         "accent_hex": f"#{accent_hex.upper()}",
         "cover_bg_hex": f"#{cover_bg_hex.upper()}",
+        "dark_bg_hex": f"#{dark_bg_hex.upper()}",
         "primary_slot": primary_slot,
         "accent_slot": accent_slot,
         "cover_bg_slot": cover_bg_slot,
+        "dark_bg_slot": dark_bg_slot,
         "font_heading": font_heading,
         "font_body": font_body,
         "strip_master_backgrounds": strip_master_backgrounds,
@@ -1931,6 +2190,47 @@ def _extract_bespoke_boxes(layout) -> dict[str, BoxPx | None]:
     return out
 
 
+def _extract_body_zone_for_canonical(layout) -> dict:
+    """For a body-canonical layout, return v2 inheritance fields:
+       title_placeholder_idx, body_top_y_px, body_bottom_y_px.
+
+    title_placeholder_idx: the .placeholder_format.idx of the FIRST title-
+       type inherited placeholder (None if no title placeholder).
+    body_top_y_px: bottom of the title placeholder in px (or 110 fallback).
+    body_bottom_y_px: top of the footer placeholder in px (or 660 fallback).
+    """
+    title_idx = None
+    title_bottom_px = None
+    footer_top_px = None
+    for ph in layout.placeholders:
+        try:
+            pf = ph.placeholder_format
+            t = int(pf.type)
+            idx = int(pf.idx)
+        except Exception:
+            continue
+        if t in (1, 13) and title_idx is None:
+            title_idx = idx
+            try:
+                title_bottom_px = _emu_to_px(int(ph.top) + int(ph.height))
+            except Exception:
+                pass
+        if t == 15 and footer_top_px is None:
+            try:
+                footer_top_px = _emu_to_px(int(ph.top))
+            except Exception:
+                pass
+    if title_bottom_px is None:
+        title_bottom_px = CANONICAL_BODY_TOP_Y
+    if footer_top_px is None:
+        footer_top_px = CANONICAL_BODY_BOTTOM_Y
+    return {
+        "title_placeholder_idx": title_idx,
+        "body_top_y_px": int(title_bottom_px),
+        "body_bottom_y_px": int(footer_top_px),
+    }
+
+
 def _propose_layout_chromes(prs, classifications_override: dict[str, str] | None = None
                             ) -> dict[str, LayoutChrome]:
     """Build LayoutChrome objects for every named slide_layout in `prs`.
@@ -1941,6 +2241,7 @@ def _propose_layout_chromes(prs, classifications_override: dict[str, str] | None
     """
     out: dict[str, LayoutChrome] = {}
     seen_names: set[str] = set()
+    # Pass 1: build all layouts with their own classification.
     for master in prs.slide_masters:
         for layout in master.slide_layouts:
             name = (layout.name or "").strip()
@@ -1972,6 +2273,16 @@ def _propose_layout_chromes(prs, classifications_override: dict[str, str] | None
             if final_class == "bespoke":
                 position_fields = _extract_bespoke_boxes(layout)
 
+            # v2 (2026-05-28) body-canonical inheritance fields
+            inherit_fields = {
+                "title_placeholder_idx": None,
+                "body_top_y_px": None,
+                "body_bottom_y_px": None,
+                "body_overlay_hex": None,
+            }
+            if final_class == "body-canonical":
+                inherit_fields.update(_extract_body_zone_for_canonical(layout))
+
             out[name] = LayoutChrome(
                 name=name,
                 layout_class=final_class,  # type: ignore[arg-type]
@@ -1983,6 +2294,10 @@ def _propose_layout_chromes(prs, classifications_override: dict[str, str] | None
                 footnote=position_fields["footnote"],
                 source=position_fields["source"],
                 page_number=position_fields["page_number"],
+                title_placeholder_idx=inherit_fields["title_placeholder_idx"],
+                body_top_y_px=inherit_fields["body_top_y_px"],
+                body_bottom_y_px=inherit_fields["body_bottom_y_px"],
+                body_overlay_hex=inherit_fields["body_overlay_hex"],
             )
     return out
 
@@ -2081,6 +2396,19 @@ def _extract_theme_and_preview(tpl: Path) -> dict:
     ]
     palette_rendered = render_palette_swatches(palette, palette_png)
 
+    # v0.3 (2026-05-28): render one PNG per layout so the registration HTML
+    # can show the user what each layout actually looks like before they
+    # pick. Stored in <tpl-stem>.thumbnails/ next to the chrome.yml.
+    thumbnails_dir = tpl.with_name(f"{tpl.stem}.thumbnails")
+    try:
+        layout_thumbnails = render_layout_thumbnails(tpl, thumbnails_dir, dpi=96)
+        print(f"  layout thumbnails: {len(layout_thumbnails)} rendered "
+              f"to {thumbnails_dir}")
+    except Exception as _exc:
+        print(f"  WARNING: layout thumbnails render failed: "
+              f"{type(_exc).__name__}: {_exc}")
+        layout_thumbnails = {}
+
     # v0.2 P1.2: per-layout chrome proposals for register.html UI. Auto-detected
     # classification + text_role per slide_layout. User reclassifies in the
     # picks JSON before commit.
@@ -2090,6 +2418,20 @@ def _extract_theme_and_preview(tpl: Path) -> dict:
     except Exception as _exc:
         print(f"  WARNING: layout proposal scan failed: {type(_exc).__name__}: {_exc}")
         layout_proposals = []
+    # Attach thumbnail paths (relative to the register.html location) so the
+    # <img src=...> loads under file:// without security blocks.
+    for lp in layout_proposals:
+        name = lp.get("name")
+        if name in layout_thumbnails:
+            abs_path = layout_thumbnails[name]
+            try:
+                rel = abs_path.relative_to(tpl.parent)
+                # Use forward slashes for HTML
+                lp["thumbnail"] = str(rel).replace("\\", "/")
+            except ValueError:
+                lp["thumbnail"] = str(abs_path).replace("\\", "/")
+        else:
+            lp["thumbnail"] = None
 
     proposal_dict = {
         "template":        str(tpl),
@@ -2204,6 +2546,9 @@ def _main_commit(args) -> int:
         primary_slot = bg["primary_slot"]; primary_hex = bg["primary_hex"]
         accent_slot  = bg["accent_slot"];  accent_hex  = bg["accent_hex"]
         cover_bg_slot = bg["cover_bg_slot"]; cover_bg_hex = bg["cover_bg_hex"]
+        # Dark-variant default: primary (same default as the picker UI).
+        dark_bg_slot = primary_slot
+        dark_bg_hex  = primary_hex
         strip_master_backgrounds = True
         source = "Phase-1 best-guess (accept=true)"
     else:
@@ -2219,6 +2564,10 @@ def _main_commit(args) -> int:
         accent_hex   = picks["accent_hex"].upper().lstrip("#")
         cover_bg_slot = picks.get("cover_bg_slot", primary_slot)
         cover_bg_hex  = picks.get("cover_bg_hex",  primary_hex).upper().lstrip("#")
+        # Dark-variant background: defaults to primary if not in picks
+        # (older picks JSON without the dark_bg_* fields still work).
+        dark_bg_slot = picks.get("dark_bg_slot", primary_slot)
+        dark_bg_hex  = picks.get("dark_bg_hex",  primary_hex).upper().lstrip("#")
         strip_master_backgrounds = picks.get("strip_master_backgrounds", True)
         source = "user picks via chat orchestrator"
 
@@ -2227,15 +2576,18 @@ def _main_commit(args) -> int:
     print(f"  primary:       #{primary_hex} (slot {primary_slot})")
     print(f"  accent:        #{accent_hex} (slot {accent_slot})")
     print(f"  cover_bg:      #{cover_bg_hex} (slot {cover_bg_slot})")
+    print(f"  dark_bg:       #{dark_bg_hex} (slot {dark_bg_slot})")
     print(f"  strip masters: {strip_master_backgrounds}")
 
     _write_outputs(
         tpl, proposal["sha"], proposal["sha8"],
         primary_hex, primary_slot, accent_hex, accent_slot,
         cover_bg_hex, cover_bg_slot,
-        proposal["font_heading"], proposal["font_body"],
-        strip_master_backgrounds, proposal["colors"],
-        proposal["n_master"], proposal["n_layout"],
+        dark_bg_hex=dark_bg_hex, dark_bg_slot=dark_bg_slot,
+        font_heading=proposal["font_heading"], font_body=proposal["font_body"],
+        strip_master_backgrounds=strip_master_backgrounds,
+        colors=proposal["colors"],
+        n_master=proposal["n_master"], n_layout=proposal["n_layout"],
     )
 
     # v0.2 P1.2: extract chrome.yml after brand.yml + theme.json land. User
@@ -2246,7 +2598,8 @@ def _main_commit(args) -> int:
         print(f"  WARNING: picks.layout_classifications is not a dict; ignored.")
         layout_overrides = {}
     rc = _write_chrome_yml_for(tpl, sha8=proposal["sha8"],
-                               layout_overrides=layout_overrides)
+                               layout_overrides=layout_overrides,
+                               commit_method=picks.get("commit_method"))
     if rc != 0:
         return rc
 

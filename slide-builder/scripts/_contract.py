@@ -628,6 +628,8 @@ def check_chrome_schema_roundtrip() -> list[str]:
                 name="body_canonical_light", layout_class="body-canonical",
                 text_role="dark_on_light", background="light",
                 has_page_number=True,
+                title_placeholder_idx=0,
+                body_top_y_px=90, body_bottom_y_px=665,
             ),
             "cover_dark": LayoutChrome(
                 name="cover_dark", layout_class="bespoke",

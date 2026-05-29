@@ -481,6 +481,11 @@ class OptionStatus:
     n_shapes: int = 0
     n_subs: int = 0
     error: str = ""
+    # v0.3 dark-variant collision tracking — populated by graft_and_theme
+    # when slide.variant == "dark" and content fill/text colors collide with
+    # brand.dark_bg_hex. Empty list means clean; non-empty triggers hard fail
+    # in main() after all options are processed.
+    dark_collisions: list = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -952,8 +957,254 @@ def build_pptx(st: OptionStatus, mermaid_theme: Path,
 # ---------------------------------------------------------------------------
 # Step 2: graft + theme remap — verbatim from v1
 # ---------------------------------------------------------------------------
+def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
+                                     src_slide, slide_n: int,
+                                     fallback_title: str = "",
+                                     dark_variant: bool = False,
+                                     dark_bg_hex: str = "") -> None:
+    """Body-canonical post-graft.
+
+    Light variant (default): populate inherited title/footer/page-number
+    placeholders. Layout's decorative chrome inherits as designed.
+
+    Dark variant (per-slide ``**Variant:** dark`` in brief): insert a
+    full-bleed overlay with the brand's ``dark_bg_hex``, draw the title
+    fresh as a slide-level white text box at the layout's title-placeholder
+    position. The inherited title placeholder is hidden under the overlay,
+    so we draw on top instead of populating it.
+
+    Title text priority: source slide's 'title' shape -> fallback_title
+    (passed from _meta.json) -> empty. Page number gets the slide index.
+    """
+    from twins.composer import _populate_layout_placeholders
+    from pptx.enum.shapes import MSO_SHAPE
+    from pptx.dml.color import RGBColor
+    from pptx.util import Emu, Pt
+
+    # Title text: prefer source-slide 'title' shape, then meta fallback.
+    src_title = ""
+    for shape in src_slide.shapes:
+        try:
+            name = (shape.name or "").strip().lower()
+        except Exception:
+            name = ""
+        if name == "title" or name.startswith("title"):
+            try:
+                src_title = (shape.text_frame.text or "").strip()
+            except Exception:
+                src_title = ""
+            if src_title:
+                break
+    if not src_title:
+        src_title = (fallback_title or "").strip()
+
+    if dark_variant and dark_bg_hex:
+        # Dark path: full-bleed brand-dark overlay, title drawn fresh on top.
+        # NOTE: the strip happens upstream in graft_and_theme BEFORE the
+        # graft loop (so we don't wipe grafted source content). Here we only
+        # add the overlay + title — content is already on the slide.
+        hex_s = (dark_bg_hex or "").lstrip("#")
+        if len(hex_s) != 6:
+            sys.stderr.write(
+                f"  WARN: dark_bg_hex {dark_bg_hex!r} malformed on slide "
+                f"{slide_n}; skipping dark overlay\n"
+            )
+            return
+        try:
+            r = int(hex_s[0:2], 16); g = int(hex_s[2:4], 16); b = int(hex_s[4:6], 16)
+        except ValueError:
+            sys.stderr.write(
+                f"  WARN: dark_bg_hex {dark_bg_hex!r} non-hex on slide "
+                f"{slide_n}\n"
+            )
+            return
+
+        # Full-bleed overlay at z-order position 2 (above layout chrome,
+        # below any subsequently appended slide content)
+        overlay = new_slide.shapes.add_shape(
+            MSO_SHAPE.RECTANGLE,
+            0, 0, prs.slide_width, prs.slide_height,
+        )
+        overlay.name = "dark-variant-overlay"
+        overlay.fill.solid()
+        overlay.fill.fore_color.rgb = RGBColor(r, g, b)
+        overlay.line.fill.background()
+        sp_tree = new_slide.shapes._spTree
+        elem = overlay.element
+        sp_tree.remove(elem)
+        sp_tree.insert(2, elem)
+
+        # Title at the layout's title-placeholder position (from chrome.yml
+        # body-canonical fields), drawn white. body_top_y_px is the title
+        # placeholder bottom in our schema, so use a default 40-px-from-top
+        # position. If the layout exposes a real title placeholder bound,
+        # honor its top. Source slide's grafted shapes will sit above this
+        # text box because they were appended last to spTree.
+        title_x_emu = Emu(40 * 9525)
+        title_y_emu = Emu(40 * 9525)
+        title_w_emu = Emu(1200 * 9525)
+        title_h_emu = Emu(44 * 9525)
+        tb = new_slide.shapes.add_textbox(title_x_emu, title_y_emu,
+                                            title_w_emu, title_h_emu)
+        tb.text_frame.word_wrap = True
+        p = tb.text_frame.paragraphs[0]
+        p.text = src_title or ""
+        if p.runs:
+            run = p.runs[0]
+            run.font.size = Pt(24)
+            run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
+        return
+
+    # Light path: keep existing behavior — overlay only if the layout's
+    # chrome ships a body_overlay_hex (legacy per-layout dark path), then
+    # populate inherited placeholders.
+    from twins.composer import _insert_dark_overlay
+    overlay_hex = getattr(layout_chrome, "body_overlay_hex", None)
+    body_top_px = getattr(layout_chrome, "body_top_y_px", None)
+    body_bot_px = getattr(layout_chrome, "body_bottom_y_px", None)
+    if overlay_hex and body_top_px is not None and body_bot_px is not None:
+        _insert_dark_overlay(
+            new_slide, prs,
+            int(body_top_px) * 9525,
+            int(body_bot_px) * 9525,
+            overlay_hex,
+        )
+
+    _populate_layout_placeholders(
+        new_slide,
+        title=src_title or None,
+        footer=None,
+        page_num=str(slide_n),
+    )
+
+
+class DarkVariantCollisionError(RuntimeError):
+    """Raised when a dark-variant slide has content whose color collides with
+    the brand's ``dark_bg_hex``, making the content invisible against the
+    full-bleed dark overlay.
+
+    Hard fail (not a warning) because invisible content is worse than a build
+    failure — at least the failure tells the user exactly what to fix.
+
+    Per ``feedback_sidecar_fallback_must_be_loud``: silent fallback on
+    rendering issues is the v1 bug class we're not repeating.
+    """
+
+
+def _hex_to_rgb_tuple(hex_str: str) -> tuple[int, int, int]:
+    s = (hex_str or "").lstrip("#")
+    if len(s) != 6:
+        return (0, 0, 0)
+    try:
+        return (int(s[0:2], 16), int(s[2:4], 16), int(s[4:6], 16))
+    except ValueError:
+        return (0, 0, 0)
+
+
+def _rgb_distance(hex_a: str, hex_b: str) -> float:
+    """Euclidean distance in RGB space between two hex strings.
+    Max value ~441 (#000000 vs #FFFFFF). 0 = identical.
+    """
+    a = _hex_to_rgb_tuple(hex_a)
+    b = _hex_to_rgb_tuple(hex_b)
+    return ((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2) ** 0.5
+
+
+# Distance under which a fill/text color is considered "collides with dark_bg"
+# and would render effectively invisible. Tuned empirically: identical hex = 0,
+# imperceptible difference < 30, low contrast < 60. We hard-fail at < 40 to
+# catch exact-and-near-exact collisions without flagging legitimately distinct
+# colors that just happen to share a hue family.
+_DARK_VARIANT_COLLISION_THRESHOLD = 40.0
+
+
+def _check_dark_variant_collisions(slide, dark_bg_hex: str,
+                                    slide_n: int) -> list[str]:
+    """Walk every shape on a slide; flag any fill or text-run color whose RGB
+    distance to ``dark_bg_hex`` is below the collision threshold.
+
+    Returns a list of human-readable collision descriptions (empty list = no
+    collisions). Skips the dark-overlay shape itself (it's SUPPOSED to be the
+    dark_bg color).
+    """
+    issues: list[str] = []
+    if not dark_bg_hex:
+        return issues
+    dark_hex = (dark_bg_hex or "").lstrip("#").upper()
+
+    def _check(label: str, hex_in: str) -> None:
+        if not hex_in:
+            return
+        h = (hex_in or "").lstrip("#").upper()
+        if len(h) != 6:
+            return
+        dist = _rgb_distance(dark_hex, h)
+        if dist < _DARK_VARIANT_COLLISION_THRESHOLD:
+            issues.append(
+                f"slide {slide_n}: {label} (#{h}) collides with "
+                f"dark_bg_hex (#{dark_hex}), distance={dist:.1f}"
+            )
+
+    for shape in slide.shapes:
+        try:
+            shape_name = (shape.name or "<unnamed>").strip()
+        except Exception:
+            shape_name = "<unnamed>"
+        # Skip the overlay itself
+        if shape_name == "dark-variant-overlay":
+            continue
+
+        # Shape solid fill: collision = shape disappears against the dark bg
+        shape_has_solid_fill = False
+        try:
+            fill = getattr(shape, "fill", None)
+            if fill is not None and fill.type == 1:  # MSO_FILL_TYPE.SOLID
+                shape_has_solid_fill = True
+                try:
+                    rgb = fill.fore_color.rgb
+                    if rgb is not None:
+                        _check(f"shape {shape_name!r} fill", str(rgb))
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        # Text run colors — only flag if the containing shape has NO solid
+        # fill. If the shape has a solid fill, the text sits on THAT fill
+        # (not on the dark bg), so a "collision with dark_bg" here is a
+        # false positive (e.g., dark text inside a white bar on a purple bg).
+        if not shape_has_solid_fill:
+            try:
+                tf = getattr(shape, "text_frame", None)
+                if tf is not None:
+                    for p in tf.paragraphs:
+                        for run in p.runs:
+                            try:
+                                c = run.font.color
+                                if c is not None and c.type is not None:
+                                    try:
+                                        rgb = c.rgb
+                                        if rgb is not None:
+                                            _check(
+                                                f"text in {shape_name!r} "
+                                                f"(\"{(run.text or '')[:30]}\")",
+                                                str(rgb),
+                                            )
+                                    except Exception:
+                                        pass
+                            except Exception:
+                                pass
+            except Exception:
+                pass
+
+    return issues
+
+
 def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
-                    layout_name: str = "") -> None:
+                    layout_name: str = "",
+                    layout_chrome=None,
+                    slide_title: str = "",
+                    slide_variant: str = "") -> None:
     try:
         src_prs = Presentation(str(st.pptx_path))
         src_slide = src_prs.slides[0]
@@ -966,7 +1217,29 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
         # that didn't carry a layout (P1.4 wires per-slide layout via meta).
         target_layout = _find_named_layout(prs, layout_name) or _find_blank_layout(prs)
         new_slide = prs.slides.add_slide(target_layout)
-        _strip_layout_placeholders(new_slide)
+
+        # v0.3 (2026-05-28) body-canonical layout inheritance:
+        # When the chosen layout is body-canonical AND chrome.yml carries the
+        # v2 layout-inheritance fields (title_placeholder_idx set), KEEP the
+        # layout's inherited placeholders + decorative shapes. Slide Lab's
+        # source-slide content gets grafted on top; the inherited title +
+        # footer placeholders get populated with text from the source slide
+        # after the graft. Otherwise (bespoke / cover / v1 chrome) strip the
+        # placeholders so Slide Lab redraws everything at canonical position.
+        # Dark-variant slides also strip — they want a clean canvas under
+        # the full-bleed overlay (no gradient bar / orange bar bleeding
+        # around the dark fill), and they draw their own title white on the
+        # overlay rather than populating the inherited title placeholder.
+        # MUST happen BEFORE the graft loop, otherwise the strip wipes out
+        # the just-grafted source content (audit-failed 2026-05-28).
+        _is_body_canonical = (
+            layout_chrome is not None
+            and getattr(layout_chrome, "layout_class", None) == "body-canonical"
+            and getattr(layout_chrome, "title_placeholder_idx", None) is not None
+        )
+        _is_dark_variant = (slide_variant or "").strip().lower() == "dark"
+        if (not _is_body_canonical) or _is_dark_variant:
+            _strip_layout_placeholders(new_slide)
 
         sp_tree = new_slide.shapes._spTree
         for shape in src_slide.shapes:
@@ -1001,6 +1274,35 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
                     # diagnose. Better than swallowing the picture entirely.
                     pass
             sp_tree.append(deepcopy(shape.element))
+
+        # v0.3 body-canonical: insert dark-overlay rectangle (if any) so it
+        # sits BEFORE the source-slide content in z-order, and write the source
+        # slide's title + footer text into the layout's inherited placeholders.
+        if _is_body_canonical:
+            try:
+                _is_dark = (slide_variant or "").strip().lower() == "dark"
+                _dark_bg = getattr(theme, "dark_bg_hex", "") or ""
+                _apply_body_canonical_finishing(
+                    new_slide, prs, layout_chrome, src_slide, st.slide_n,
+                    fallback_title=slide_title,
+                    dark_variant=_is_dark,
+                    dark_bg_hex=_dark_bg,
+                )
+                # v0.3: hard-fail collision check on dark-variant slides.
+                # If any shape fill or text color collides with dark_bg_hex,
+                # the content would render invisible. Record on st so the
+                # main loop can refuse the build after all options finish.
+                if _is_dark and _dark_bg:
+                    st.dark_collisions = _check_dark_variant_collisions(
+                        new_slide, _dark_bg, st.slide_n,
+                    )
+            except Exception as _exc:
+                # Don't fail the graft on overlay/populate trouble — surface
+                # in qc later. The grafted slide is still valid.
+                sys.stderr.write(
+                    f"  WARN: body-canonical finishing skipped on slide "
+                    f"{st.slide_n}: {type(_exc).__name__}: {_exc}\n"
+                )
 
         subs = 0
         for shape in new_slide.shapes:
@@ -1224,18 +1526,32 @@ def main() -> int:
 
     # v0.2 P1.3: slide_n -> layout name lookup. meta.slides[i].layout is
     # added in P1.4; until then every slide gets default_layout_name.
+    # v0.3: slide_n -> variant lookup ("dark" or "" / "light"). Read from
+    # meta.slides[i].variant; defaults to light.
     _slide_layout_names: dict[int, str] = {}
+    _slide_titles: dict[int, str] = {}
+    _slide_variants: dict[int, str] = {}
     try:
         _meta_dict_layouts = json.loads(_p.meta_json(args.out).read_text(encoding="utf-8"))
         for s in _meta_dict_layouts.get("slides", []):
             n = s.get("n")
             if isinstance(n, int):
                 _slide_layout_names[n] = (s.get("layout") or "").strip() or default_layout_name
+                _slide_titles[n] = (s.get("title") or "").strip()
+                _slide_variants[n] = (s.get("variant") or "").strip().lower()
     except Exception:
         _slide_layout_names = {}
+        _slide_titles = {}
+        _slide_variants = {}
 
     def _layout_name_for(slide_n: int) -> str:
         return _slide_layout_names.get(slide_n, default_layout_name)
+
+    def _slide_title_for(slide_n: int) -> str:
+        return _slide_titles.get(slide_n, "")
+
+    def _slide_variant_for(slide_n: int) -> str:
+        return _slide_variants.get(slide_n, "")
 
     def _layout_chrome_for(slide_n: int):
         name = _layout_name_for(slide_n)
@@ -1323,12 +1639,40 @@ def main() -> int:
         graft_and_theme(
             st, args.template, theme, color_map,
             layout_name=_layout_name_for(st.slide_n),
+            layout_chrome=_layout_chrome_for(st.slide_n),
+            slide_title=_slide_title_for(st.slide_n),
+            slide_variant=_slide_variant_for(st.slide_n),
         )
         flag = f"ok (shapes={st.n_shapes} subs={st.n_subs})" if st.themed else f"FAIL ({st.error[:50]})"
         print(f"  [{i:>3}/{len(built_statuses)}] slide_{st.slide_n:02d}/option_{st.letter}  {flag}")
 
     themed_statuses = [s for s in built_statuses if s.themed]
     print(f"  themed: {len(themed_statuses)} / {len(built_statuses)}")
+
+    # v0.3 dark-variant collision gate. Before any further work, refuse to
+    # ship a build that contains shapes/text whose color would render
+    # invisible against the brand's dark background. Loud, named failure.
+    _all_dark_issues: list[str] = []
+    for s in themed_statuses:
+        _all_dark_issues.extend(s.dark_collisions)
+    if _all_dark_issues:
+        print("\n[4b] DARK-VARIANT COLLISION CHECK — BUILD REFUSED")
+        print(f"  Found {len(_all_dark_issues)} content color(s) that collide "
+              f"with brand dark_bg_hex.")
+        print(f"  These shapes/text runs would render invisible on the dark "
+              f"overlay. Build aborted.\n")
+        for issue in _all_dark_issues:
+            print(f"    - {issue}")
+        print("")
+        print("  To fix: open the affected option scripts and change the")
+        print("  colliding fill / text color to something with contrast "
+              "against dark_bg_hex.")
+        print("  Or change brand.yml dark_bg_hex to a color that doesn't "
+              "match your content.")
+        raise DarkVariantCollisionError(
+            f"{len(_all_dark_issues)} dark-variant collision(s); "
+            f"build refused. See [4b] output above for the offending slides."
+        )
 
     if not args.skip_render:
         print(f"\n[5] Render themed .pptx -> .png (parallel x4)")

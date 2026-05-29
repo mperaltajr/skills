@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Register template — FDX Template.pptx</title>
+<style>
+  :root {
+    --bg:        #FAFAFA;
+    --panel:     #FFFFFF;
+    --rule:      #E1E1E6;
+    --text-dk:   #1A1A1A;
+    --text-mid:  #555;
+    --text-dim:  #888;
+    --accent:    #4D148C;
+    --ok:        #10B981;
+    --warn:      #F59E0B;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text-dk);
+    padding: 24px 32px 64px;
+    line-height: 1.5;
+    max-width: 1280px;
+    margin: 0 auto;
+  }
+  header {
+    border-bottom: 2px solid var(--accent);
+    padding-bottom: 16px;
+    margin-bottom: 24px;
+  }
+  header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  header .sub {
+    font-size: 13px;
+    color: var(--text-mid);
+  }
+  header code { font-family: ui-monospace, Consolas, monospace; font-size: 12px; }
+  section {
+    background: var(--panel);
+    border: 1px solid var(--rule);
+    border-radius: 8px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+  }
+  section h2 {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--text-dk);
+    margin-bottom: 12px;
+  }
+  section .help {
+    font-size: 13px;
+    color: var(--text-mid);
+    margin-bottom: 16px;
+  }
+  .preview-img {
+    display: block;
+    max-width: 100%;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+  }
+  .preview-img-caption {
+    font-size: 11px;
+    color: var(--text-dim);
+    text-align: center;
+    margin-top: 6px;
+    font-style: italic;
+  }
+  .preview-missing {
+    padding: 16px;
+    background: #FEF3C7;
+    border: 1px solid var(--warn);
+    border-radius: 4px;
+    font-size: 13px;
+  }
+  .picker { margin-bottom: 28px; }
+  .picker:last-child { margin-bottom: 0; }
+  .picker-label {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-dk);
+    margin-bottom: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .picker-label .current {
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 12px;
+    color: var(--text-mid);
+    font-weight: 400;
+  }
+  .role-explainer {
+    font-size: 12.5px;
+    color: var(--text-mid);
+    margin-bottom: 10px;
+    padding: 8px 12px;
+    background: #F9FAFB;
+    border-left: 3px solid var(--accent);
+    border-radius: 0 4px 4px 0;
+    line-height: 1.55;
+  }
+  .role-explainer strong { color: var(--text-dk); }
+  .role-explainer em { color: var(--text-dk); font-style: normal; font-weight: 600; }
+  .swatches {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    gap: 6px;
+  }
+  .swatch {
+    aspect-ratio: 1 / 1;
+    border: 2px solid var(--rule);
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+    transition: transform 80ms ease, border-color 80ms ease;
+  }
+  .swatch:hover { transform: scale(1.08); border-color: var(--text-mid); }
+  .swatch.selected {
+    border-color: var(--accent);
+    border-width: 3px;
+    box-shadow: 0 0 0 2px rgba(77, 20, 140, 0.18);
+  }
+  .swatch .idx {
+    position: absolute;
+    top: 4px;
+    left: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    text-shadow: 0 0 2px rgba(0,0,0,0.6), 0 0 2px rgba(0,0,0,0.6);
+    color: #fff;
+    pointer-events: none;
+  }
+  .strip-toggle {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    background: #F9FAFB;
+    border-radius: 6px;
+  }
+  .strip-toggle input { margin-top: 3px; transform: scale(1.3); cursor: pointer; }
+  .strip-toggle .label-block { flex: 1; }
+  .strip-toggle .label-block strong { display: block; font-size: 14px; margin-bottom: 4px; }
+  .strip-toggle .label-block .note { font-size: 12px; color: var(--text-mid); }
+  .picks-block {
+    background: #1A1A1A;
+    color: #E5E7EB;
+    border-radius: 6px;
+    padding: 16px;
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 13px;
+    white-space: pre-wrap;
+    word-break: break-all;
+    margin-bottom: 12px;
+  }
+  .picks-block .json-key   { color: #93C5FD; }
+  .picks-block .json-str   { color: #FBBF24; }
+  .picks-block .json-bool  { color: #F472B6; }
+  .copy-btn {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .copy-btn:hover { opacity: 0.9; }
+  .copy-btn.ok { background: var(--ok); }
+  .hint {
+    font-size: 12px;
+    color: var(--text-mid);
+    margin-top: 8px;
+  }
+  .layout-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 10px 12px;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    margin-bottom: 6px;
+    background: #FFFFFF;
+  }
+  .layout-meta { flex: 1; min-width: 0; }
+  .layout-name {
+    font-weight: 600;
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 13px;
+    color: var(--text-dk);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .layout-sub {
+    font-size: 11.5px;
+    color: var(--text-mid);
+    margin-top: 2px;
+  }
+  .layout-sub code {
+    font-family: ui-monospace, Consolas, monospace;
+    font-size: 11px;
+    color: var(--accent);
+  }
+  .layout-toggle {
+    display: flex;
+    gap: 12px;
+    font-size: 12.5px;
+    color: var(--text-dk);
+    white-space: nowrap;
+  }
+  .layout-toggle label { cursor: pointer; }
+  .layout-toggle input[type="radio"] { margin-right: 4px; cursor: pointer; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Register template — FDX Template.pptx</h1>
+  <div class="sub">
+    abc46115 <code>abc46115</code> · 12 masters / 178 layouts ·
+    fonts heading <code>FedEx Sans</code> / body <code>FedEx Sans</code>
+  </div>
+</header>
+
+<section id="preview-section">
+  <h2>1. Does this preview look like the client's brand?</h2>
+  <div class="help">
+    Three sample slides built with the auto-best-guess colors so you can eyeball them before
+    committing. Top is a cover-style slide; middle is a typical content layout with a KPI
+    callout; bottom is a 2&times;2 dashboard. If the dominant color looks like the client's
+    brand, you're done &mdash; jump to step 4 and copy the JSON. If it looks wrong (inverted,
+    washed out, off-brand), fix in step 2.
+  </div>
+  <img src="FDX Template.preview.png" alt="Preview composite" class="preview-img">
+</section>
+
+<section id="picks-section">
+  <h2>2. Pick brand colors</h2>
+  <div class="help">
+    Click a swatch to assign it. Each row picks one color from the template's palette.
+    The auto-best-guess is pre-selected (purple ring). Auto-pick has historically inverted
+    on most client templates &mdash; if the preview above looked wrong, this is where you
+    correct it.
+  </div>
+
+  <div class="picker" data-role="primary_slot">
+    <div class="picker-label">
+      Primary brand color
+      <span class="current" id="cur-primary"></span>
+    </div>
+    <div class="role-explainer">
+      <strong>The dominant brand color.</strong> Used for title bars, headers, dark-canvas
+      fills, anything that should read as "this is a &lt;client&gt; deck." For most clients
+      this is the color in their logo and on their website headers
+      (e.g. FedEx purple, Accenture purple, IBM blue).
+    </div>
+    <div class="swatches" id="sw-primary"></div>
+  </div>
+
+  <div class="picker" data-role="accent_slot">
+    <div class="picker-label">
+      Accent / highlight color
+      <span class="current" id="cur-accent"></span>
+    </div>
+    <div class="role-explainer">
+      <strong>The "look at this" color.</strong> Used sparingly &mdash; one accent moment
+      per slide (a single hero KPI, a highlight stripe, a recommended row). Never for body
+      text or background. Typically the brand's secondary
+      color (e.g. FedEx orange, Accenture violet/magenta). Should
+      contrast strongly with primary.
+    </div>
+    <div class="swatches" id="sw-accent"></div>
+  </div>
+
+  <div class="picker" data-role="cover_bg_slot">
+    <div class="picker-label">
+      Cover-slide background color
+      <span class="current" id="cur-cover"></span>
+    </div>
+    <div class="role-explainer">
+      <strong>The fill behind the cover slide only.</strong> Drives the dramatic full-bleed
+      background on slide 1 (the deck title page). Most often the same as primary, but some
+      brands prefer a lighter or darker variant for the cover. <em>Default to primary unless
+      you have a specific cover style in mind.</em>
+    </div>
+    <div class="swatches" id="sw-cover"></div>
+  </div>
+</section>
+
+<section id="layouts-section">
+  <h2>3. Pick the slide design you want</h2>
+  <div id="layouts-pick-cluster"></div>
+</section>
+
+<section id="strip-section">
+  <h2>4. Strip baked-in master backgrounds?</h2>
+  <div class="help">
+    Many client templates ship with photographic decoration baked into the slide master
+    (stadium photos, building shots, brand watermarks). Those bleed through behind every
+    slide and break clean layouts. <strong>Default: strip.</strong> Untick only if the
+    decoration is intentional brand chrome.
+  </div>
+  <label class="strip-toggle">
+    <input type="checkbox" id="strip-bg" checked>
+    <div class="label-block">
+      <strong>Strip master-slide background photos / decoration</strong>
+      <div class="note">
+        Recommended for almost every template. Photographic decoration in the master
+        will appear behind every built slide and overlap the chrome zones.
+      </div>
+    </div>
+  </label>
+</section>
+
+<section id="commit-section">
+  <h2>5. Copy picks JSON and paste back to the chat</h2>
+  <div class="help">
+    Click the button to copy the picks JSON to your clipboard. Paste it back to the chat
+    where you opened this page. The orchestrator will write it to disk and run
+    <code>register_template.py commit</code>.
+  </div>
+  <div class="picks-block" id="picks-json"></div>
+  <button class="copy-btn" id="copy-btn">Copy picks JSON to clipboard</button>
+  <div class="hint">
+    Or save the JSON to a file and run:
+    <code>py -3 register_template.py commit "C:\\Users\\m.a.peralta\\.claude\\skills\\.claude\\worktrees\\agent-abaae9e70ed8f6544\\slide-builder\\_decisions\\v0.3-audit-workspace\\fdx\\FDX Template.pptx" --picks &lt;picks.json&gt;</code>
+  </div>
+</section>
+
+<script>
+const palette = [{"index": 1, "slot": "dk1", "hex": "333333"}, {"index": 2, "slot": "lt1", "hex": "FFFFFF"}, {"index": 3, "slot": "dk2", "hex": "4D148C"}, {"index": 4, "slot": "lt2", "hex": "FF6600"}, {"index": 5, "slot": "accent1", "hex": "7D22C3"}, {"index": 6, "slot": "accent2", "hex": "A63685"}, {"index": 7, "slot": "accent3", "hex": "C74755"}, {"index": 8, "slot": "accent4", "hex": "8E8E8E"}, {"index": 9, "slot": "accent5", "hex": "E3E3E3"}, {"index": 10, "slot": "accent6", "hex": "F2F2F2"}, {"index": 11, "slot": "hlink", "hex": "333333"}, {"index": 12, "slot": "folHlink", "hex": "4D148C"}];
+const layouts = [{"name": "1_Title Slide", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 4, "n_placeholders": 2, "has_page_number": false, "thumbnail": "FDX Template.thumbnails/thumb_00_1_Title_Slide.png"}, {"name": "2_Title Slide", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 4, "n_placeholders": 3, "has_page_number": false, "thumbnail": "FDX Template.thumbnails/thumb_01_2_Title_Slide.png"}, {"name": "3_Title Slide", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 4, "n_placeholders": 2, "has_page_number": false, "thumbnail": "FDX Template.thumbnails/thumb_02_3_Title_Slide.png"}, {"name": "4_Title Slide", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 4, "n_placeholders": 3, "has_page_number": false, "thumbnail": "FDX Template.thumbnails/thumb_03_4_Title_Slide.png"}, {"name": "5_Title Slide", "auto_class": "bespoke", "text_role": "dark_on_light", "background": "light", "n_shapes": 4, "n_placeholders": 1, "has_page_number": false, "thumbnail": "FDX Template.thumbnails/thumb_04_5_Title_Slide.png"}, {"name": "6__Title Slide", "auto_class": "bespoke", "text_role": "dark_on_light", "background": "light", "n_shapes": 4, "n_placeholders": 1, "has_page_number": false, "thumbnail": "FDX Template.thumbnails/thumb_05_6__Title_Slide.png"}, {"name": "7_Title Slide", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 3, "n_placeholders": 2, "has_page_number": false, "thumbnail": "FDX Template.thumbnails/thumb_06_7_Title_Slide.png"}, {"name": "8__Title Slide", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 3, "n_placeholders": 2, "has_page_number": false, "thumbnail": "FDX Template.thumbnails/thumb_07_8__Title_Slide.png"}, {"name": "9_Title Slide", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 3, "n_placeholders": 3, "has_page_number": false, "thumbnail": "FDX Template.thumbnails/thumb_08_9_Title_Slide.png"}, {"name": "10_Title Slide", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 2, "n_placeholders": 1, "has_page_number": false, "thumbnail": "FDX Template.thumbnails/thumb_09_10_Title_Slide.png"}, {"name": "11_Title Slide", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 4, "n_placeholders": 3, "has_page_number": false, "thumbnail": "FDX Template.thumbnails/thumb_10_11_Title_Slide.png"}, {"name": "12_Title Slide", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 3, "n_placeholders": 3, "has_page_number": false, "thumbnail": "FDX Template.thumbnails/thumb_11_12_Title_Slide.png"}, {"name": "13_Title Slide", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 3, "n_placeholders": 3, "has_page_number": false, "thumbnail": "FDX Template.thumbnails/thumb_12_13_Title_Slide.png"}, {"name": "1_Closing", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 2, "n_placeholders": 1, "has_page_number": false, "thumbnail": "FDX Template.thumbnails/thumb_13_1_Closing.png"}, {"name": "2_Closing", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 2, "n_placeholders": 1, "has_page_number": false, "thumbnail": "FDX Template.thumbnails/thumb_14_2_Closing.png"}, {"name": "3_Closing", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 3, "n_placeholders": 3, "has_page_number": false, "thumbnail": "FDX Template.thumbnails/thumb_15_3_Closing.png"}, {"name": "4_Closing", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 3, "n_placeholders": 3, "has_page_number": false, "thumbnail": "FDX Template.thumbnails/thumb_16_4_Closing.png"}, {"name": "5_Closing", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 4, "n_placeholders": 3, "has_page_number": false, "thumbnail": "FDX Template.thumbnails/thumb_17_5_Closing.png"}, {"name": "1_Agenda", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 4, "n_placeholders": 4, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_18_1_Agenda.png"}, {"name": "2_Agenda", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 4, "n_placeholders": 4, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_19_2_Agenda.png"}, {"name": "3_Agenda", "auto_class": "bespoke", "text_role": "dark_on_light", "background": "light", "n_shapes": 7, "n_placeholders": 4, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_20_3_Agenda.png"}, {"name": "4_Agenda", "auto_class": "bespoke", "text_role": "dark_on_light", "background": "light", "n_shapes": 7, "n_placeholders": 4, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_21_4_Agenda.png"}, {"name": "5_Agenda", "auto_class": "bespoke", "text_role": "dark_on_light", "background": "light", "n_shapes": 8, "n_placeholders": 4, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_22_5_Agenda.png"}, {"name": "6_Agenda", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 6, "n_placeholders": 4, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_23_6_Agenda.png"}, {"name": "7_Agenda", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 6, "n_placeholders": 5, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_24_7_Agenda.png"}, {"name": "8_Agenda", "auto_class": "bespoke", "text_role": "dark_on_light", "background": "light", "n_shapes": 7, "n_placeholders": 4, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_25_8_Agenda.png"}, {"name": "9_Agenda", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 7, "n_placeholders": 5, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_26_9_Agenda.png"}, {"name": "10_Agenda", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 6, "n_placeholders": 4, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_27_10_Agenda.png"}, {"name": "11_Agenda", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 6, "n_placeholders": 4, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_28_11_Agenda.png"}, {"name": "12_Agenda", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 14, "n_placeholders": 13, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_29_12_Agenda.png"}, {"name": "13_Agenda", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 14, "n_placeholders": 14, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_30_13_Agenda.png"}, {"name": "14_Agenda", "auto_class": "bespoke", "text_role": "dark_on_light", "background": "light", "n_shapes": 16, "n_placeholders": 13, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_31_14_Agenda.png"}, {"name": "15_Agenda", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 15, "n_placeholders": 14, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_32_15_Agenda.png"}, {"name": "16_Agenda", "auto_class": "bespoke", "text_role": "dark_on_light", "background": "light", "n_shapes": 16, "n_placeholders": 13, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_33_16_Agenda.png"}, {"name": "17_Agenda", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 15, "n_placeholders": 14, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_34_17_Agenda.png"}, {"name": "1_Section Divider", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 3, "n_placeholders": 3, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_35_1_Section_Divider.png"}, {"name": "2_Section Divider", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 5, "n_placeholders": 4, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_36_2_Section_Divider.png"}, {"name": "3_Section Divider", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 4, "n_placeholders": 4, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_37_3_Section_Divider.png"}, {"name": "4_Section Divider", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 4, "n_placeholders": 3, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_38_4_Section_Divider.png"}, {"name": "5_Section Divider", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 4, "n_placeholders": 4, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_39_5_Section_Divider.png"}, {"name": "6_Section Divider", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 4, "n_placeholders": 4, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_40_6_Section_Divider.png"}, {"name": "7_Section Divider", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 4, "n_placeholders": 4, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_41_7_Section_Divider.png"}, {"name": "1_Appendix Section Divider", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 3, "n_placeholders": 3, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_42_1_Appendix_Section_Divider.png"}, {"name": "1_Section Bar", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 9, "n_placeholders": 8, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_43_1_Section_Bar.png"}, {"name": "2_Section Bar", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 9, "n_placeholders": 8, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_44_2_Section_Bar.png"}, {"name": "3_Section Bar", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 9, "n_placeholders": 8, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_45_3_Section_Bar.png"}, {"name": "4_Section Bar", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 9, "n_placeholders": 8, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_46_4_Section_Bar.png"}, {"name": "5_Section Bar", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 9, "n_placeholders": 8, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_47_5_Section_Bar.png"}, {"name": "1_Text Only", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 4, "n_placeholders": 4, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_48_1_Text_Only.png"}, {"name": "2_Text Only", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 4, "n_placeholders": 4, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_49_2_Text_Only.png"}, {"name": "3_Text Only", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 5, "n_placeholders": 5, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_50_3_Text_Only.png"}, {"name": "4_Text Only", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 5, "n_placeholders": 5, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_51_4_Text_Only.png"}, {"name": "5_Text Only", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 5, "n_placeholders": 5, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_52_5_Text_Only.png"}, {"name": "6_Text Only", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 5, "n_placeholders": 5, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_53_6_Text_Only.png"}, {"name": "7_Text Only", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 6, "n_placeholders": 6, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_54_7_Text_Only.png"}, {"name": "8_Text Only", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 7, "n_placeholders": 7, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_55_8_Text_Only.png"}, {"name": "9_Text Only", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 9, "n_placeholders": 9, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_56_9_Text_Only.png"}, {"name": "1_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 5, "n_placeholders": 4, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_57_1_Highly_Visual.png"}, {"name": "2_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 5, "n_placeholders": 5, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_58_2_Highly_Visual.png"}, {"name": "3_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 5, "n_placeholders": 4, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_59_3_Highly_Visual.png"}, {"name": "4_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 5, "n_placeholders": 5, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_60_4_Highly_Visual.png"}, {"name": "5_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 5, "n_placeholders": 4, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_61_5_Highly_Visual.png"}, {"name": "6_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 5, "n_placeholders": 5, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_62_6_Highly_Visual.png"}, {"name": "7_Highly Visual", "auto_class": "bespoke", "text_role": "dark_on_light", "background": "light", "n_shapes": 12, "n_placeholders": 9, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_63_7_Highly_Visual.png"}, {"name": "8_Highly Visual", "auto_class": "bespoke", "text_role": "dark_on_light", "background": "light", "n_shapes": 15, "n_placeholders": 11, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_64_8_Highly_Visual.png"}, {"name": "9_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 9, "n_placeholders": 7, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_65_9_Highly_Visual.png"}, {"name": "10_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 9, "n_placeholders": 7, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_66_10_Highly_Visual.png"}, {"name": "11_Highly Visual", "auto_class": "bespoke", "text_role": "dark_on_light", "background": "light", "n_shapes": 12, "n_placeholders": 9, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_67_11_Highly_Visual.png"}, {"name": "12_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 7, "n_placeholders": 7, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_68_12_Highly_Visual.png"}, {"name": "13_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 9, "n_placeholders": 9, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_69_13_Highly_Visual.png"}, {"name": "14_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 9, "n_placeholders": 9, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_70_14_Highly_Visual.png"}, {"name": "15_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 12, "n_placeholders": 12, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_71_15_Highly_Visual.png"}, {"name": "16_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 11, "n_placeholders": 11, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_72_16_Highly_Visual.png"}, {"name": "17_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 15, "n_placeholders": 15, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_73_17_Highly_Visual.png"}, {"name": "18_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 21, "n_placeholders": 21, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_74_18_Highly_Visual.png"}, {"name": "19_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 9, "n_placeholders": 8, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_75_19_Highly_Visual.png"}, {"name": "20_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 9, "n_placeholders": 9, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_76_20_Highly_Visual.png"}, {"name": "21_Highly Visual", "auto_class": "bespoke", "text_role": "dark_on_light", "background": "light", "n_shapes": 13, "n_placeholders": 10, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_77_21_Highly_Visual.png"}, {"name": "22_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 13, "n_placeholders": 11, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_78_22_Highly_Visual.png"}, {"name": "23_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 10, "n_placeholders": 8, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_79_23_Highly_Visual.png"}, {"name": "24_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 5, "n_placeholders": 5, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_80_24_Highly_Visual.png"}, {"name": "25_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 5, "n_placeholders": 5, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_81_25_Highly_Visual.png"}, {"name": "26_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 11, "n_placeholders": 10, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_82_26_Highly_Visual.png"}, {"name": "27_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 11, "n_placeholders": 11, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_83_27_Highly_Visual.png"}, {"name": "28_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 11, "n_placeholders": 11, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_84_28_Highly_Visual.png"}, {"name": "29_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 5, "n_placeholders": 5, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_85_29_Highly_Visual.png"}, {"name": "30_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 7, "n_placeholders": 7, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_86_30_Highly_Visual.png"}, {"name": "31_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 6, "n_placeholders": 6, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_87_31_Highly_Visual.png"}, {"name": "32_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 6, "n_placeholders": 6, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_88_32_Highly_Visual.png"}, {"name": "33_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 6, "n_placeholders": 6, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_89_33_Highly_Visual.png"}, {"name": "34_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 6, "n_placeholders": 6, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_90_34_Highly_Visual.png"}, {"name": "35_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 5, "n_placeholders": 5, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_91_35_Highly_Visual.png"}, {"name": "36_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 6, "n_placeholders": 6, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_92_36_Highly_Visual.png"}, {"name": "37_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 6, "n_placeholders": 6, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_93_37_Highly_Visual.png"}, {"name": "38_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 6, "n_placeholders": 6, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_94_38_Highly_Visual.png"}, {"name": "39_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 7, "n_placeholders": 7, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_95_39_Highly_Visual.png"}, {"name": "40_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 7, "n_placeholders": 7, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_96_40_Highly_Visual.png"}, {"name": "41_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 9, "n_placeholders": 9, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_97_41_Highly_Visual.png"}, {"name": "42_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 12, "n_placeholders": 12, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_98_42_Highly_Visual.png"}, {"name": "43_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 9, "n_placeholders": 9, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_99_43_Highly_Visual.png"}, {"name": "44_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 11, "n_placeholders": 11, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_100_44_Highly_Visual.png"}, {"name": "45_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 11, "n_placeholders": 11, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_101_45_Highly_Visual.png"}, {"name": "46_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 5, "n_placeholders": 5, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_102_46_Highly_Visual.png"}, {"name": "47_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 4, "n_placeholders": 4, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_103_47_Highly_Visual.png"}, {"name": "48_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 4, "n_placeholders": 4, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_104_48_Highly_Visual.png"}, {"name": "49_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 5, "n_placeholders": 5, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_105_49_Highly_Visual.png"}, {"name": "50_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 5, "n_placeholders": 4, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_106_50_Highly_Visual.png"}, {"name": "51_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 9, "n_placeholders": 9, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_107_51_Highly_Visual.png"}, {"name": "52_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 8, "n_placeholders": 8, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_108_52_Highly_Visual.png"}, {"name": "53_Highly Visual", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 4, "n_placeholders": 4, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_109_53_Highly_Visual.png"}, {"name": "1_Statement / Quote", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 4, "n_placeholders": 3, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_110_1_Statement_Quote.png"}, {"name": "2_Statement / Quote", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 4, "n_placeholders": 3, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_111_2_Statement_Quote.png"}, {"name": "3_Statement / Quote", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 3, "n_placeholders": 3, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_112_3_Statement_Quote.png"}, {"name": "4_Statement / Quote", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 3, "n_placeholders": 3, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_113_4_Statement_Quote.png"}, {"name": "5_Statement / Quote", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 4, "n_placeholders": 3, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_114_5_Statement_Quote.png"}, {"name": "6_Statement / Quote", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 4, "n_placeholders": 4, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_115_6_Statement_Quote.png"}, {"name": "7_Statement / Quote", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 4, "n_placeholders": 3, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_116_7_Statement_Quote.png"}, {"name": "8__Statement / Quote", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 4, "n_placeholders": 4, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_117_8__Statement_Quote.png"}, {"name": "9_Statement / Quote", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 4, "n_placeholders": 3, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_118_9_Statement_Quote.png"}, {"name": "10_Statement / Quote", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 4, "n_placeholders": 4, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_119_10_Statement_Quote.png"}, {"name": "11_Statement / Quote", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 3, "n_placeholders": 3, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_120_11_Statement_Quote.png"}, {"name": "12_Statement / Quote", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 4, "n_placeholders": 3, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_121_12_Statement_Quote.png"}, {"name": "13_Statement / Quote", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 4, "n_placeholders": 4, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_122_13_Statement_Quote.png"}, {"name": "14_Statement / Quote", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 4, "n_placeholders": 4, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_123_14_Statement_Quote.png"}, {"name": "15_Statement / Quote", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 5, "n_placeholders": 5, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_124_15_Statement_Quote.png"}, {"name": "1_Insert Chart", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 5, "n_placeholders": 5, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_125_1_Insert_Chart.png"}, {"name": "2_Insert Chart", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 5, "n_placeholders": 5, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_126_2_Insert_Chart.png"}, {"name": "3_Insert Chart", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 6, "n_placeholders": 6, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_127_3_Insert_Chart.png"}, {"name": "4_Insert Chart", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 6, "n_placeholders": 6, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_128_4_Insert_Chart.png"}, {"name": "5_Insert Chart", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 6, "n_placeholders": 6, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_129_5_Insert_Chart.png"}, {"name": "6_Insert Chart", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 7, "n_placeholders": 7, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_130_6_Insert_Chart.png"}, {"name": "7_Insert Chart", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 7, "n_placeholders": 7, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_131_7_Insert_Chart.png"}, {"name": "8_Insert Chart", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 7, "n_placeholders": 7, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_132_8_Insert_Chart.png"}, {"name": "9_Insert Chart", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 9, "n_placeholders": 9, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_133_9_Insert_Chart.png"}, {"name": "10_Insert Chart", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 11, "n_placeholders": 11, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_134_10_Insert_Chart.png"}, {"name": "1_Map_EU", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 6, "n_placeholders": 5, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_135_1_Map_EU.png"}, {"name": "1_Map_Americas", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 6, "n_placeholders": 5, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_136_1_Map_Americas.png"}, {"name": "3_Map_AMEA", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 6, "n_placeholders": 5, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_137_3_Map_AMEA.png"}, {"name": "4_Map_World", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 6, "n_placeholders": 5, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_138_4_Map_World.png"}, {"name": "5_Map_US", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 6, "n_placeholders": 5, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_139_5_Map_US.png"}, {"name": "1_Insert Table", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 5, "n_placeholders": 5, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_140_1_Insert_Table.png"}, {"name": "2_Insert Table", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 5, "n_placeholders": 5, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_141_2_Insert_Table.png"}, {"name": "3_Insert Table", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 6, "n_placeholders": 6, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_142_3_Insert_Table.png"}, {"name": "1_Timeline", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 14, "n_placeholders": 14, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_143_1_Timeline.png"}, {"name": "2_Timeline", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 23, "n_placeholders": 23, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_144_2_Timeline.png"}, {"name": "3_Timeline", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 22, "n_placeholders": 22, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_145_3_Timeline.png"}, {"name": "4_Timeline", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 18, "n_placeholders": 18, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_146_4_Timeline.png"}, {"name": "5_Timeline", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 32, "n_placeholders": 32, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_147_5_Timeline.png"}, {"name": "6_Timeline", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 21, "n_placeholders": 21, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_148_6_Timeline.png"}, {"name": "1_Process", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 20, "n_placeholders": 20, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_149_1_Process.png"}, {"name": "2_Process", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 21, "n_placeholders": 21, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_150_2_Process.png"}, {"name": "3_Process", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 21, "n_placeholders": 21, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_151_3_Process.png"}, {"name": "4_Process", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 22, "n_placeholders": 22, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_152_4_Process.png"}, {"name": "5_Process", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 24, "n_placeholders": 24, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_153_5_Process.png"}, {"name": "6_Process", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 24, "n_placeholders": 24, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_154_6_Process.png"}, {"name": "7_Process", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 15, "n_placeholders": 15, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_155_7_Process.png"}, {"name": "8_Process", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 7, "n_placeholders": 7, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_156_8_Process.png"}, {"name": "1_Process Circle", "auto_class": "bespoke", "text_role": "dark_on_light", "background": "light", "n_shapes": 23, "n_placeholders": 18, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_157_1_Process_Circle.png"}, {"name": "1_Process Grid", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 18, "n_placeholders": 18, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_158_1_Process_Grid.png"}, {"name": "1_Team Structure", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 40, "n_placeholders": 40, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_159_1_Team_Structure.png"}, {"name": "1_Headshot Organizational Chart", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 16, "n_placeholders": 16, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_160_1_Headshot_Organizational_Chart.png"}, {"name": "1_Insert Video", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 1, "n_placeholders": 1, "has_page_number": false, "thumbnail": "FDX Template.thumbnails/thumb_161_1_Insert_Video.png"}, {"name": "2_Insert Video", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 2, "n_placeholders": 1, "has_page_number": false, "thumbnail": "FDX Template.thumbnails/thumb_162_2_Insert_Video.png"}, {"name": "3_Insert Video", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 4, "n_placeholders": 4, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_163_3_Insert_Video.png"}, {"name": "4_Insert Video", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 4, "n_placeholders": 4, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_164_4_Insert_Video.png"}, {"name": "1_Mobile Samsung Mock-up", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 6, "n_placeholders": 5, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_165_1_Mobile_Samsung_Mock-up.png"}, {"name": "2_Mobile Samsung Mock-up", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 9, "n_placeholders": 7, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_166_2_Mobile_Samsung_Mock-up.png"}, {"name": "3_Mobile Samsung Mock-up", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 21, "n_placeholders": 20, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_167_3_Mobile_Samsung_Mock-up.png"}, {"name": "1_Mobile iPhone Mock-up", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 6, "n_placeholders": 5, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_168_1_Mobile_iPhone_Mock-up.png"}, {"name": "2_Mobile iPhone Mock-up", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 9, "n_placeholders": 7, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_169_2_Mobile_iPhone_Mock-up.png"}, {"name": "3_Mobile iPhone Mock-up", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 21, "n_placeholders": 20, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_170_3_Mobile_iPhone_Mock-up.png"}, {"name": "1_Laptop Mock-up", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 5, "n_placeholders": 4, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_171_1_Laptop_Mock-up.png"}, {"name": "2_Laptop Mock-up", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 6, "n_placeholders": 5, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_172_2_Laptop_Mock-up.png"}, {"name": "3_Laptop Mock-up", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 13, "n_placeholders": 12, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_173_3_Laptop_Mock-up.png"}, {"name": "1_Desktop Mock-up", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 5, "n_placeholders": 4, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_174_1_Desktop_Mock-up.png"}, {"name": "2_Desktop Mock-up", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 6, "n_placeholders": 5, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_175_2_Desktop_Mock-up.png"}, {"name": "3_Desktop Mock-up", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 13, "n_placeholders": 12, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_176_3_Desktop_Mock-up.png"}, {"name": "1_Blank", "auto_class": "body-canonical", "text_role": "dark_on_light", "background": "light", "n_shapes": 2, "n_placeholders": 2, "has_page_number": true, "thumbnail": "FDX Template.thumbnails/thumb_177_1_Blank.png"}];
+const bestGuess = {
+  primary_slot: "lt2",
+  accent_slot:  "dk2",
+  cover_bg_slot:"lt2",
+};
+const layoutClassifications = {};
+layouts.forEach(l => { layoutClassifications[l.name] = l.auto_class; });
+
+// Build swatches for one picker row.
+function buildSwatches(rowId, role) {
+  const row = document.getElementById(rowId);
+  row.innerHTML = "";
+  palette.forEach(entry => {
+    const sw = document.createElement("div");
+    sw.className = "swatch";
+    sw.style.backgroundColor = "#" + entry.hex;
+    sw.title = `${entry.index}. slot ${entry.slot} - #${entry.hex}`;
+    sw.dataset.slot = entry.slot;
+    sw.dataset.hex  = entry.hex;
+    sw.dataset.idx  = entry.index;
+    const idx = document.createElement("span");
+    idx.className = "idx";
+    idx.textContent = entry.index;
+    sw.appendChild(idx);
+    sw.addEventListener("click", () => selectSwatch(role, entry));
+    row.appendChild(sw);
+  });
+}
+
+// Active selections
+const state = {
+  primary_slot: bestGuess.primary_slot,
+  primary_hex:  paletteHex(bestGuess.primary_slot),
+  accent_slot:  bestGuess.accent_slot,
+  accent_hex:   paletteHex(bestGuess.accent_slot),
+  cover_bg_slot:bestGuess.cover_bg_slot,
+  cover_bg_hex: paletteHex(bestGuess.cover_bg_slot),
+  strip_master_backgrounds: true,
+};
+
+function paletteHex(slot) {
+  const e = palette.find(p => p.slot === slot);
+  return e ? e.hex : "";
+}
+
+function selectSwatch(role, entry) {
+  if (role === "primary_slot") {
+    state.primary_slot = entry.slot;
+    state.primary_hex  = entry.hex;
+  } else if (role === "accent_slot") {
+    state.accent_slot = entry.slot;
+    state.accent_hex  = entry.hex;
+  } else if (role === "cover_bg_slot") {
+    state.cover_bg_slot = entry.slot;
+    state.cover_bg_hex  = entry.hex;
+  }
+  refreshUI();
+}
+
+function refreshUI() {
+  // Highlight selected in each row
+  document.querySelectorAll("#sw-primary .swatch").forEach(s => {
+    s.classList.toggle("selected", s.dataset.slot === state.primary_slot);
+  });
+  document.querySelectorAll("#sw-accent .swatch").forEach(s => {
+    s.classList.toggle("selected", s.dataset.slot === state.accent_slot);
+  });
+  document.querySelectorAll("#sw-cover .swatch").forEach(s => {
+    s.classList.toggle("selected", s.dataset.slot === state.cover_bg_slot);
+  });
+
+  // Update "current" labels
+  document.getElementById("cur-primary").textContent = `selected: #${state.primary_hex} (slot ${state.primary_slot})`;
+  document.getElementById("cur-accent").textContent  = `selected: #${state.accent_hex} (slot ${state.accent_slot})`;
+  document.getElementById("cur-cover").textContent   = `selected: #${state.cover_bg_hex} (slot ${state.cover_bg_slot})`;
+
+  // Update strip toggle
+  state.strip_master_backgrounds = document.getElementById("strip-bg").checked;
+
+  // Update picks JSON preview
+  const payload = {
+    accept: false,
+    primary_slot:  state.primary_slot,
+    primary_hex:   state.primary_hex,
+    accent_slot:   state.accent_slot,
+    accent_hex:    state.accent_hex,
+    cover_bg_slot: state.cover_bg_slot,
+    cover_bg_hex:  state.cover_bg_hex,
+    strip_master_backgrounds: state.strip_master_backgrounds,
+    layout_classifications: layoutClassifications,
+  };
+  document.getElementById("picks-json").textContent = JSON.stringify(payload, null, 2);
+
+  // Reset copy button if it was showing "Copied!"
+  const btn = document.getElementById("copy-btn");
+  btn.classList.remove("ok");
+  btn.textContent = "Copy picks JSON to clipboard";
+}
+
+// Pick state: which named layout is the body. Covers stay on Slide Lab's
+// draw-everything path (no layout pick — Slide Lab builds them from scratch
+// on a blank layout the same way it did before v0.3).
+const layoutPicks = { body: null };
+
+function autoBodyGuess() {
+  // First preference: a non-dark layout whose name contains "default slide
+  // template" — that's the common convention for the workhorse body layout.
+  let g = layouts.find(l => l.background !== "dark"
+                        && (l.name || "").toLowerCase().includes("default slide template"));
+  if (g) return g.name;
+  // Fallback: first non-dark, non-cover layout with >= 1 placeholder.
+  g = layouts.find(l => l.background !== "dark"
+                    && !(l.name || "").toLowerCase().includes("cover")
+                    && (l.n_placeholders || 0) >= 1);
+  return g ? g.name : (layouts[0] && layouts[0].name) || null;
+}
+
+function buildLayoutGrid() {
+  const container = document.getElementById("layouts-pick-cluster");
+  if (!container) return;
+  container.innerHTML = "";
+  if (!layouts.length) {
+    container.innerHTML = '<div class="help">No slide designs found.</div>';
+    return;
+  }
+  if (!layoutPicks.body) layoutPicks.body = autoBodyGuess();
+
+  const help = document.createElement("div");
+  help.style.fontSize = "13px";
+  help.style.color = "var(--text-mid)";
+  help.style.marginBottom = "16px";
+  help.innerHTML =
+    "Slide Lab has rendered every layout in your template below. Click " +
+    "<strong>Use for body</strong> on the layout you want for ~95% of pages. " +
+    "<br><br>" +
+    "<strong>Cover and section-divider slides are handled separately</strong> " +
+    "— Slide Lab draws those from scratch on a blank canvas the way it always " +
+    "has. You don't pick a cover layout here.";
+  container.appendChild(help);
+
+  const grid = document.createElement("div");
+  grid.style.display = "grid";
+  grid.style.gridTemplateColumns = "repeat(auto-fill, minmax(320px, 1fr))";
+  grid.style.gap = "16px";
+
+  layouts.forEach(l => {
+    const card = document.createElement("div");
+    card.className = "layout-row";
+    card.style.flexDirection = "column";
+    card.style.alignItems = "stretch";
+    card.style.padding = "12px";
+    const isBody = layoutPicks.body === l.name;
+    if (isBody) {
+      card.style.borderColor = "var(--accent)";
+      card.style.borderWidth = "2px";
+    }
+
+    // Thumbnail
+    const thumbWrap = document.createElement("div");
+    thumbWrap.style.cssText = "background: #F0F0F0; border: 1px solid var(--rule);"
+      + "border-radius: 4px; overflow: hidden; aspect-ratio: 16 / 9;"
+      + "display: flex; align-items: center; justify-content: center;"
+      + "margin-bottom: 10px;";
+    if (l.thumbnail) {
+      const img = document.createElement("img");
+      img.src = l.thumbnail;
+      img.alt = l.name;
+      img.style.cssText = "width: 100%; height: 100%; object-fit: contain; display: block;";
+      thumbWrap.appendChild(img);
+    } else {
+      thumbWrap.innerHTML = "<span style='color: var(--text-dim); font-size: 12px;'>(no thumbnail)</span>";
+    }
+    card.appendChild(thumbWrap);
+
+    // BODY badge if picked
+    const badges = document.createElement("div");
+    badges.style.cssText = "display: flex; gap: 6px; margin-bottom: 8px; min-height: 18px;";
+    if (isBody) {
+      const b = document.createElement("span");
+      b.style.cssText = "background: var(--accent); color: white; font-size: 11px;"
+        + "font-weight: 600; padding: 2px 8px; border-radius: 3px;";
+      b.textContent = "BODY";
+      badges.appendChild(b);
+    }
+    card.appendChild(badges);
+
+    // Layout name (raw)
+    const nameEl = document.createElement("div");
+    nameEl.style.cssText = "font-family: ui-monospace, Consolas, monospace;"
+      + "font-size: 12px; color: var(--text-mid); margin-bottom: 10px;"
+      + "word-break: break-all;";
+    nameEl.textContent = l.name;
+    card.appendChild(nameEl);
+
+    // Single button: Use for body
+    const bodyBtn = document.createElement("button");
+    bodyBtn.className = "copy-btn";
+    bodyBtn.style.cssText = "width: 100%; padding: 8px 10px; font-size: 13px;";
+    bodyBtn.textContent = isBody ? "✓ Picked for body" : "Use for body";
+    bodyBtn.addEventListener("click", () => pickBody(l.name));
+    card.appendChild(bodyBtn);
+
+    grid.appendChild(card);
+  });
+
+  container.appendChild(grid);
+}
+
+function pickBody(name) {
+  layoutPicks.body = name;
+  // Update classifications: picked body becomes body-canonical; everything
+  // else stays as Slide Lab's auto guess. Cover-style layouts stay bespoke
+  // by their auto class; user can override per-slide via **Layout:** in
+  // the brief if needed.
+  layouts.forEach(l => {
+    if (l.name === layoutPicks.body) {
+      layoutClassifications[l.name] = "body-canonical";
+    }
+  });
+  buildLayoutGrid();
+  refreshUI();
+}
+
+// Build per-layout classification rows (collapsed under "Show all" details)
+function buildLayoutRows() {
+  const container = document.getElementById("layouts-list");
+  if (!container) return;
+  container.innerHTML = "";
+  if (!layouts.length) {
+    container.innerHTML = '<div class="help">No layouts detected in this template.</div>';
+    return;
+  }
+  layouts.forEach(l => {
+    const row = document.createElement("div");
+    row.className = "layout-row";
+    const auto = l.auto_class;
+    const bgLabel = l.background === "dark" ? "dark bg" : "light bg";
+    const pnLabel = l.has_page_number ? "page#" : "no-page#";
+    row.innerHTML = `
+      <div class="layout-meta">
+        <div class="layout-name">${l.name}</div>
+        <div class="layout-sub">
+          auto: <code>${auto}</code> &middot;
+          ${l.n_placeholders} placeholders, ${l.n_shapes} shapes &middot;
+          ${bgLabel} &middot; ${pnLabel}
+        </div>
+      </div>
+      <div class="layout-toggle">
+        <label><input type="radio" name="lc-${l.name}" value="body-canonical"
+               ${auto === 'body-canonical' ? 'checked' : ''}> body-canonical</label>
+        <label><input type="radio" name="lc-${l.name}" value="bespoke"
+               ${auto === 'bespoke' ? 'checked' : ''}> bespoke</label>
+      </div>
+    `;
+    container.appendChild(row);
+    row.querySelectorAll(`input[name="lc-${l.name}"]`).forEach(input => {
+      input.addEventListener("change", (e) => {
+        layoutClassifications[l.name] = e.target.value;
+        refreshUI();
+      });
+    });
+  });
+}
+
+// Wire up
+buildSwatches("sw-primary", "primary_slot");
+buildSwatches("sw-accent",  "accent_slot");
+buildSwatches("sw-cover",   "cover_bg_slot");
+buildLayoutGrid();
+document.getElementById("strip-bg").addEventListener("change", refreshUI);
+document.getElementById("copy-btn").addEventListener("click", () => {
+  const txt = document.getElementById("picks-json").textContent;
+  navigator.clipboard.writeText(txt).then(() => {
+    const btn = document.getElementById("copy-btn");
+    btn.textContent = "Copied! Paste back to the chat.";
+    btn.classList.add("ok");
+  }).catch(err => {
+    alert("Clipboard copy failed: " + err + "\nSelect the JSON above and copy manually.");
+  });
+});
+refreshUI();
+</script>
+
+</body>
+</html>
