@@ -264,63 +264,101 @@ def assert_structural(spec: ChromeSpec) -> list[str]:
 # ---------------------------------------------------------------------------
 
 def assert_text_role_color_flip(spec: ChromeSpec) -> list[str]:
-    """Build a slide via add_title_block under each layout, inspect title
-    color, assert light vs dark variants produce different text colors.
-    """
+    # v0.3: bespoke-path text_role color flip via cover_dark.
     errors: list[str] = []
     import twins.helpers as h
-    from pptx.dml.color import RGBColor
-
     saved_chrome = h._ACTIVE_CHROME
     saved_yml = os.environ.pop("SLIDE_LAB_CHROME_YML", None)
     saved_lay = os.environ.pop("SLIDE_LAB_LAYOUT_NAME", None)
     try:
-        def _title_color_for(layout_name: str) -> str | None:
-            lc = spec.layouts.get(layout_name)
-            if lc is None:
-                return None
-            prs, slide = h.new_slide()
-            h.add_title_block(slide, "Title text", "Subtitle", chrome=lc)
-            for shp in slide.shapes:
-                if shp.name == "title":
-                    for p in shp.text_frame.paragraphs:
-                        for r in p.runs:
-                            try:
-                                return str(r.font.color.rgb)
-                            except Exception:
-                                return None
-            return None
-
-        light_color = _title_color_for("body_canonical_light")
-        dark_color = _title_color_for("body_canonical_dark")
-        cover_dark_color = _title_color_for("cover_dark")
-
-        if light_color != "000000":
-            errors.append(
-                f"body_canonical_light title color {light_color!r} != "
-                f"TEXT_DARK ('000000') — dark_on_light flip broken"
-            )
-        if dark_color != "FFFFFF":
-            errors.append(
-                f"body_canonical_dark title color {dark_color!r} != "
-                f"WHITE ('FFFFFF') — light_on_dark flip broken"
-            )
-        if cover_dark_color != "FFFFFF":
-            errors.append(
-                f"cover_dark title color {cover_dark_color!r} != WHITE — "
-                f"bespoke dark layout should also flip to light_on_dark"
-            )
-        if light_color and dark_color and light_color == dark_color:
-            errors.append(
-                f"light and dark title colors identical ({light_color}) — "
-                f"text_role flip is a no-op"
-            )
+        lc = spec.layouts.get("cover_dark")
+        if lc is None:
+            errors.append("text_role: cover_dark missing")
+            return errors
+        prs, slide = h.new_slide()
+        h.add_title_block(slide, "Title text", "Subtitle", chrome=lc)
+        color = None
+        for shp in slide.shapes:
+            if (shp.name or "").lower() == "title":
+                for para in shp.text_frame.paragraphs:
+                    for r in para.runs:
+                        try:
+                            color = str(r.font.color.rgb)
+                        except Exception:
+                            pass
+                        break
+                    break
+        if color != "FFFFFF":
+            errors.append(f"cover_dark title color {color!r} != WHITE")
+        pd, _ = h._text_colors_for("dark_on_light")
+        pl, _ = h._text_colors_for("light_on_dark")
+        if str(pd) == str(pl):
+            errors.append("_text_colors_for: flip is a no-op")
     finally:
         h._ACTIVE_CHROME = saved_chrome
         if saved_yml is not None:
             os.environ["SLIDE_LAB_CHROME_YML"] = saved_yml
         if saved_lay is not None:
             os.environ["SLIDE_LAB_LAYOUT_NAME"] = saved_lay
+    return errors
+
+
+def assert_v2_inheritance_fields(spec: ChromeSpec) -> list[str]:
+    # v0.3: body-canonical layouts in v2 chrome carry inheritance fields;
+    # add_title_block on body-canonical draws no title shape.
+    errors: list[str] = []
+    import twins.helpers as h
+    for name in ("body_canonical_light", "body_canonical_dark"):
+        lc = spec.layouts.get(name)
+        if lc is None:
+            errors.append(f"v2: {name} missing")
+            continue
+        if getattr(lc, "title_placeholder_idx", None) is None:
+            errors.append(f"v2: {name}.title_placeholder_idx is None")
+        if getattr(lc, "body_top_y_px", None) is None:
+            errors.append(f"v2: {name}.body_top_y_px is None")
+        if getattr(lc, "body_bottom_y_px", None) is None:
+            errors.append(f"v2: {name}.body_bottom_y_px is None")
+    lc = spec.layouts.get("body_canonical_light")
+    if lc is not None and getattr(lc, "title_placeholder_idx", None) is not None:
+        saved = h._ACTIVE_CHROME
+        try:
+            prs, slide = h.new_slide()
+            h.add_title_block(slide, "Title text", chrome=lc)
+            for shp in slide.shapes:
+                if (shp.name or "").lower() == "title":
+                    errors.append("v2: add_title_block drew title shape")
+                    break
+        finally:
+            h._ACTIVE_CHROME = saved
+    return errors
+
+
+def assert_v1_chrome_yml_still_loadable() -> list[str]:
+    errors: list[str] = []
+    import tempfile
+    from _chrome_schema import load_chrome_yml as _load
+    import yaml as _yaml
+    v1d = {"schema_version": 1, "source_template_sha8": "v1abcd00",
+           "layouts": {"some_body": {"name": "some_body",
+               "layout_class": "body-canonical", "text_role": "dark_on_light",
+               "background": "light", "has_page_number": True}}}
+    with tempfile.TemporaryDirectory() as td:
+        path = Path(td) / "v1_legacy.chrome.yml"
+        path.write_text(_yaml.safe_dump(v1d), encoding="utf-8")
+        try:
+            spec = _load(path)
+        except Exception as exc:
+            errors.append(f"v1 load failed: {type(exc).__name__}: {exc}")
+            return errors
+        lc = spec.layouts.get("some_body")
+        if lc is None:
+            errors.append("v1: layout vanished")
+            return errors
+        for field in ("title_placeholder_idx", "body_top_y_px",
+                      "body_bottom_y_px", "body_overlay_hex"):
+            if getattr(lc, field) is not None:
+                errors.append(f"v1: {field}={getattr(lc, field)!r}; expected None")
     return errors
 
 
@@ -485,10 +523,26 @@ def run_smoke(rebuild: bool = False, verbose: bool = True) -> int:
         for e in color_errs:
             print(f"  FAIL: {e}")
     elif verbose:
-        print("  ok: body_canonical_light title -> 000000 (TEXT_DARK)")
-        print("  ok: body_canonical_dark  title -> FFFFFF (WHITE)")
-        print("  ok: cover_dark           title -> FFFFFF (WHITE)")
+        print("  ok: cover_dark title -> FFFFFF (light_on_dark flip)")
+        print("  ok: _text_colors_for differs between dark_on_light and light_on_dark")
 
+    if verbose:
+        print("\n[Phase 4b] v2 inheritance fields populated")
+    v2_errs = assert_v2_inheritance_fields(spec)
+    if v2_errs:
+        for e in v2_errs:
+            print(f"  FAIL: {e}")
+    elif verbose:
+        print("  ok: body_canonical layouts carry v2 inheritance fields")
+        print("  ok: add_title_block on body-canonical draws no title shape")
+    if verbose:
+        print("\n[Phase 4c] legacy v1 chrome.yml still loadable")
+    v1_errs = assert_v1_chrome_yml_still_loadable()
+    if v1_errs:
+        for e in v1_errs:
+            print(f"  FAIL: {e}")
+    elif verbose:
+        print("  ok: v1 chrome.yml validates; v2 fields default to None")
     if verbose:
         print("\n[Phase 5] build_deck.py end-to-end against 4-slide brief")
     exit_code, build_errs = run_build_deck_against_fixture(FIXTURE_PPTX)
@@ -503,7 +557,7 @@ def run_smoke(rebuild: bool = False, verbose: bool = True) -> int:
     elif verbose:
         print("  ok: build_deck exit 0; _meta.json v3 with layout per slide")
 
-    all_errs = struct_errs + color_errs + build_errs
+    all_errs = struct_errs + color_errs + v2_errs + v1_errs + build_errs
     if verbose:
         print()
         print("=" * 72)

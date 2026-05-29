@@ -143,6 +143,7 @@ FIELD_LABELS = {
     "title":               ("slide title",),
     "archetype":           ("archetype",),
     "layout":              ("layout",),  # v0.2 P1.4
+    "variant":             ("variant",),  # v0.3: "dark" triggers dark-background variant
     "governing_thought":   ("governing thought", "governing thought (the claim)"),
     "so_what":             ("so-what", "so what", "so-what (the takeaway)"),
     "editorial_emphasis":  ("editorial emphasis",),
@@ -302,6 +303,7 @@ def parse_brief(brief_path: Path) -> dict[str, Any]:
                       or f"Slide {slide_n}"),
             "archetype": extract_field(block, FIELD_LABELS["archetype"]),
             "layout": extract_field(block, FIELD_LABELS["layout"]),  # v0.2 P1.4
+            "variant": (extract_field(block, FIELD_LABELS["variant"]) or "").strip().lower(),  # v0.3
             "governing_thought": extract_field(block, FIELD_LABELS["governing_thought"]),
             "so_what": extract_field(block, FIELD_LABELS["so_what"]),
             "editorial_emphasis": extract_field(block, FIELD_LABELS["editorial_emphasis"]),
@@ -1020,6 +1022,10 @@ def write_meta_json(
             # v0.2 P1.4: chrome.yml layout name for this slide. Required at
             # v3; resolve_slide_layouts already gates this is non-empty.
             "layout":             slide.get("layout", "") or "",
+            # v0.3: per-slide variant flag. "dark" triggers full-bleed
+            # brand.dark_bg_hex overlay + white title at finalize-time.
+            # Empty / "light" / anything else = light variant (default).
+            "variant":            (slide.get("variant", "") or "").strip().lower(),
         })
 
     # `generated_at` lives at TOP LEVEL because build_review.py:1117 reads it
