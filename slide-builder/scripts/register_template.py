@@ -396,15 +396,57 @@ def _clear_existing_slides(prs) -> None:
 
 
 def _pick_blank_layout(prs):
-    """Pick a blank layout if the template has one; else the first layout."""
+    """Pick the best body-style layout for preview rendering.
+
+    The preview surfaces (color swatches, KPI tiles, bullet bars) need to
+    land somewhere LEGIBLE. The cover / title layout typically ships with
+    art-direction baked into the master (FedEx's huge X graphic, NFL
+    stadium photos, Accenture branding) that swamps anything drawn on top.
+    Picking a body-canonical-style layout puts the preview where the
+    eventual deck body slides will live — which is also where master
+    decoration is lightest.
+
+    Priority:
+      1. A layout literally named "Blank" (case-insensitive, after
+         stripping numeric prefixes like "1_" or "12__"), searched across
+         EVERY master — `prs.slide_layouts` only returns master[0]'s
+         layouts, but FedEx-style templates put the Blank layout on a
+         later master.
+      2. Otherwise the layout with the FEWEST non-placeholder shapes —
+         that's the closest analogue to a body-canonical layout when no
+         explicit Blank exists.
+      3. Last resort: the first layout in the presentation.
+    """
+    import re as _re
+    # Pass 1: find "blank" by name across every master.
+    for master in prs.slide_masters:
+        for layout in master.slide_layouts:
+            n = (layout.name or "").strip().lower()
+            n = _re.sub(r"^[\d_]+", "", n)  # strip "1_", "12__"
+            if n == "blank":
+                return layout
+    # Pass 2: prefer the layout with the fewest non-placeholder shapes.
+    best_layout = None
+    best_count = None
+    for master in prs.slide_masters:
+        for layout in master.slide_layouts:
+            try:
+                count = sum(
+                    1 for shp in layout.shapes
+                    if not getattr(shp, "is_placeholder", False)
+                )
+            except Exception:
+                continue
+            if best_count is None or count < best_count:
+                best_count = count
+                best_layout = layout
+    if best_layout is not None:
+        return best_layout
+    # Pass 3: legacy fallback.
+    if prs.slide_masters and list(prs.slide_masters[0].slide_layouts):
+        return prs.slide_masters[0].slide_layouts[0]
     layouts = list(prs.slide_layouts)
-    if not layouts:
-        return None
-    for layout in layouts:
-        name = (layout.name or "").lower()
-        if "blank" in name:
-            return layout
-    return layouts[0]
+    return layouts[0] if layouts else None
 
 
 def _add_text(slide, x_px, y_px, w_px, h_px, *, text, size_pt, bold=False,
