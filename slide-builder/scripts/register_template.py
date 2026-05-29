@@ -45,7 +45,7 @@ Picks JSON shape (consumed by `commit`):
     "accent_hex":   "FF6600",
     "cover_bg_slot": "dk2",          # optional; defaults to primary
     "cover_bg_hex":  "4D148C",
-    "strip_master_backgrounds": true # optional; defaults to true
+    "strip_master_backgrounds": false # optional; defaults to false (keep master decoration)
   }
 
 Outputs (all subcommands): absolute paths printed to stdout for each
@@ -1211,18 +1211,21 @@ def render_register_html(proposal: dict, html_path: Path) -> bool:
 <section id="strip-section">
   <h2>4. Strip baked-in master backgrounds?</h2>
   <div class="help">
-    Many client templates ship with photographic decoration baked into the slide master
-    (stadium photos, building shots, brand watermarks). Those bleed through behind every
-    slide and break clean layouts. <strong>Default: strip.</strong> Untick only if the
-    decoration is intentional brand chrome.
+    For most client templates the master <strong>is</strong> the brand chrome — FedEx purple bars,
+    Accenture branding, header rules, footer marks. Keeping it is the right default. Tick this box
+    <strong>only</strong> if the master ships with unwanted photographic decoration
+    (stadium photos, building shots, watermarks you don't want behind every slide).
+    Stripping is destructive — leave unchecked if in doubt.
+    <strong>Default: keep.</strong>
   </div>
   <label class="strip-toggle">
-    <input type="checkbox" id="strip-bg" checked>
+    <input type="checkbox" id="strip-bg">
     <div class="label-block">
       <strong>Strip master-slide background photos / decoration</strong>
       <div class="note">
-        Recommended for almost every template. Photographic decoration in the master
-        will appear behind every built slide and overlap the chrome zones.
+        Opt in only when the master has photographic decoration you do NOT want behind
+        every built slide. Stripping the master removes the brand chrome along with the
+        decoration — for FedEx / Accenture / most consulting templates that's the wrong move.
       </div>
     </div>
   </label>
@@ -1285,7 +1288,7 @@ const state = {
   cover_bg_hex: paletteHex(bestGuess.cover_bg_slot),
   dark_bg_slot: bestGuess.primary_slot,   // default to primary
   dark_bg_hex:  paletteHex(bestGuess.primary_slot),
-  strip_master_backgrounds: true,
+  strip_master_backgrounds: false,
 };
 
 function paletteHex(slot) {
@@ -1603,8 +1606,11 @@ font_heading:    "{font_heading}"
 font_body:       "{font_body}"
 
 # Background handling
-# Set false ONLY if the template's photographic decoration is intentional
-# brand chrome that should appear behind every slide.
+# Default false — KEEP the master decoration. For most client templates
+# (FedEx, Accenture, etc.) the master IS the brand chrome and stripping
+# makes every slide look off-spec. Set true ONLY when the master ships
+# unwanted photographic decoration (stadium photos, watermarks) that you
+# do NOT want behind every slide.
 strip_master_backgrounds: {strip_master_bg}
 """
 
@@ -1810,8 +1816,12 @@ def _main_interactive(args) -> int:
     print(f"  best-guess accent:   #{accent_hex} (slot: {accent_slot})")
     print(f"  best-guess cover-bg: #{cover_bg_hex} (slot: {cover_bg_slot})")
 
-    # Default: strip baked-in master backgrounds. Conservative default per spec.
-    strip_master_backgrounds = True
+    # Default: KEEP master backgrounds. Stripping is destructive — for many
+    # client templates (FedEx purple chrome, Accenture branding, etc.) the
+    # master IS the brand identity and stripping makes every built slide look
+    # off-spec. Opt in to strip only when the master carries photographic
+    # decoration the user explicitly does not want behind every slide.
+    strip_master_backgrounds = False
 
     # ---- Phase 2: preview build (always) ----
     preview_path = tpl.with_name(f"{tpl.stem}.preview.pptx")
@@ -1935,10 +1945,12 @@ def _main_interactive(args) -> int:
                     cover_bg_slot, cover_bg_hex = primary_slot, primary_hex
             ans3 = input(
                 "  Strip baked-in master backgrounds on content slides?\n"
-                "    (Recommended yes for templates with photographic decoration.)\n"
-                "  [Y/n]: "
+                "    Default NO — keeps the client's brand chrome (FedEx purple,\n"
+                "    Accenture branding, etc.) behind every slide. Answer yes ONLY\n"
+                "    if the master ships unwanted photographic decoration.\n"
+                "  [y/N]: "
             ).strip().lower()
-            strip_master_backgrounds = (ans3 != "n" and ans3 != "no")
+            strip_master_backgrounds = (ans3 == "y" or ans3 == "yes")
             # Rebuild preview (3 surfaces, against client template)
             print(f"\n  Rebuilding preview with primary={primary_hex} accent={accent_hex} cover_bg={cover_bg_hex}")
             build_preview_pptx(
@@ -2549,7 +2561,7 @@ def _main_commit(args) -> int:
         # Dark-variant default: primary (same default as the picker UI).
         dark_bg_slot = primary_slot
         dark_bg_hex  = primary_hex
-        strip_master_backgrounds = True
+        strip_master_backgrounds = False
         source = "Phase-1 best-guess (accept=true)"
     else:
         # Required fields when not accepting:
@@ -2568,7 +2580,7 @@ def _main_commit(args) -> int:
         # (older picks JSON without the dark_bg_* fields still work).
         dark_bg_slot = picks.get("dark_bg_slot", primary_slot)
         dark_bg_hex  = picks.get("dark_bg_hex",  primary_hex).upper().lstrip("#")
-        strip_master_backgrounds = picks.get("strip_master_backgrounds", True)
+        strip_master_backgrounds = picks.get("strip_master_backgrounds", False)
         source = "user picks via chat orchestrator"
 
     print(f"register_template commit - {tpl.name}")

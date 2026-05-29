@@ -165,6 +165,10 @@ def register_fixture(fixture_pptx: Path) -> Path:
         primary_hex="1F2937", primary_slot="dk2",
         accent_hex="F59E0B",  accent_slot="lt2",
         cover_bg_hex="0A1A2E", cover_bg_slot="dk2",
+        # v0.3 added a dark-variant body fill alongside cover_bg. Use the
+        # same dark hex as cover_bg for the fixture — the smoke doesn't
+        # discriminate between cover_dark and body_canonical_dark fills.
+        dark_bg_hex="0A1A2E",  dark_bg_slot="dk2",
         font_heading="Arial", font_body="Arial",
         strip_master_backgrounds=False,  # fixture has no decoration
         colors={"dk1": "000000", "lt1": "FFFFFF",
