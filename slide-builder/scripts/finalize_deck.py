@@ -481,6 +481,11 @@ class OptionStatus:
     n_shapes: int = 0
     n_subs: int = 0
     error: str = ""
+    # v0.3 dark-variant collision tracking — populated by graft_and_theme
+    # when slide.variant == "dark" and content fill/text colors collide with
+    # brand.dark_bg_hex. Empty list means clean; non-empty triggers hard fail
+    # in main() after all options are processed.
+    dark_collisions: list = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -1075,6 +1080,128 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
     )
 
 
+class DarkVariantCollisionError(RuntimeError):
+    """Raised when a dark-variant slide has content whose color collides with
+    the brand's ``dark_bg_hex``, making the content invisible against the
+    full-bleed dark overlay.
+
+    Hard fail (not a warning) because invisible content is worse than a build
+    failure — at least the failure tells the user exactly what to fix.
+
+    Per ``feedback_sidecar_fallback_must_be_loud``: silent fallback on
+    rendering issues is the v1 bug class we're not repeating.
+    """
+
+
+def _hex_to_rgb_tuple(hex_str: str) -> tuple[int, int, int]:
+    s = (hex_str or "").lstrip("#")
+    if len(s) != 6:
+        return (0, 0, 0)
+    try:
+        return (int(s[0:2], 16), int(s[2:4], 16), int(s[4:6], 16))
+    except ValueError:
+        return (0, 0, 0)
+
+
+def _rgb_distance(hex_a: str, hex_b: str) -> float:
+    """Euclidean distance in RGB space between two hex strings.
+    Max value ~441 (#000000 vs #FFFFFF). 0 = identical.
+    """
+    a = _hex_to_rgb_tuple(hex_a)
+    b = _hex_to_rgb_tuple(hex_b)
+    return ((a[0] - b[0]) ** 2 + (a[1] - b[1]) ** 2 + (a[2] - b[2]) ** 2) ** 0.5
+
+
+# Distance under which a fill/text color is considered "collides with dark_bg"
+# and would render effectively invisible. Tuned empirically: identical hex = 0,
+# imperceptible difference < 30, low contrast < 60. We hard-fail at < 40 to
+# catch exact-and-near-exact collisions without flagging legitimately distinct
+# colors that just happen to share a hue family.
+_DARK_VARIANT_COLLISION_THRESHOLD = 40.0
+
+
+def _check_dark_variant_collisions(slide, dark_bg_hex: str,
+                                    slide_n: int) -> list[str]:
+    """Walk every shape on a slide; flag any fill or text-run color whose RGB
+    distance to ``dark_bg_hex`` is below the collision threshold.
+
+    Returns a list of human-readable collision descriptions (empty list = no
+    collisions). Skips the dark-overlay shape itself (it's SUPPOSED to be the
+    dark_bg color).
+    """
+    issues: list[str] = []
+    if not dark_bg_hex:
+        return issues
+    dark_hex = (dark_bg_hex or "").lstrip("#").upper()
+
+    def _check(label: str, hex_in: str) -> None:
+        if not hex_in:
+            return
+        h = (hex_in or "").lstrip("#").upper()
+        if len(h) != 6:
+            return
+        dist = _rgb_distance(dark_hex, h)
+        if dist < _DARK_VARIANT_COLLISION_THRESHOLD:
+            issues.append(
+                f"slide {slide_n}: {label} (#{h}) collides with "
+                f"dark_bg_hex (#{dark_hex}), distance={dist:.1f}"
+            )
+
+    for shape in slide.shapes:
+        try:
+            shape_name = (shape.name or "<unnamed>").strip()
+        except Exception:
+            shape_name = "<unnamed>"
+        # Skip the overlay itself
+        if shape_name == "dark-variant-overlay":
+            continue
+
+        # Shape solid fill: collision = shape disappears against the dark bg
+        shape_has_solid_fill = False
+        try:
+            fill = getattr(shape, "fill", None)
+            if fill is not None and fill.type == 1:  # MSO_FILL_TYPE.SOLID
+                shape_has_solid_fill = True
+                try:
+                    rgb = fill.fore_color.rgb
+                    if rgb is not None:
+                        _check(f"shape {shape_name!r} fill", str(rgb))
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+        # Text run colors — only flag if the containing shape has NO solid
+        # fill. If the shape has a solid fill, the text sits on THAT fill
+        # (not on the dark bg), so a "collision with dark_bg" here is a
+        # false positive (e.g., dark text inside a white bar on a purple bg).
+        if not shape_has_solid_fill:
+            try:
+                tf = getattr(shape, "text_frame", None)
+                if tf is not None:
+                    for p in tf.paragraphs:
+                        for run in p.runs:
+                            try:
+                                c = run.font.color
+                                if c is not None and c.type is not None:
+                                    try:
+                                        rgb = c.rgb
+                                        if rgb is not None:
+                                            _check(
+                                                f"text in {shape_name!r} "
+                                                f"(\"{(run.text or '')[:30]}\")",
+                                                str(rgb),
+                                            )
+                                    except Exception:
+                                        pass
+                            except Exception:
+                                pass
+            except Exception:
+                pass
+
+    return issues
+
+
 def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
                     layout_name: str = "",
                     layout_chrome=None,
@@ -1156,6 +1283,14 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
                     dark_variant=_is_dark,
                     dark_bg_hex=_dark_bg,
                 )
+                # v0.3: hard-fail collision check on dark-variant slides.
+                # If any shape fill or text color collides with dark_bg_hex,
+                # the content would render invisible. Record on st so the
+                # main loop can refuse the build after all options finish.
+                if _is_dark and _dark_bg:
+                    st.dark_collisions = _check_dark_variant_collisions(
+                        new_slide, _dark_bg, st.slide_n,
+                    )
             except Exception as _exc:
                 # Don't fail the graft on overlay/populate trouble — surface
                 # in qc later. The grafted slide is still valid.
@@ -1508,6 +1643,31 @@ def main() -> int:
 
     themed_statuses = [s for s in built_statuses if s.themed]
     print(f"  themed: {len(themed_statuses)} / {len(built_statuses)}")
+
+    # v0.3 dark-variant collision gate. Before any further work, refuse to
+    # ship a build that contains shapes/text whose color would render
+    # invisible against the brand's dark background. Loud, named failure.
+    _all_dark_issues: list[str] = []
+    for s in themed_statuses:
+        _all_dark_issues.extend(s.dark_collisions)
+    if _all_dark_issues:
+        print("\n[4b] DARK-VARIANT COLLISION CHECK — BUILD REFUSED")
+        print(f"  Found {len(_all_dark_issues)} content color(s) that collide "
+              f"with brand dark_bg_hex.")
+        print(f"  These shapes/text runs would render invisible on the dark "
+              f"overlay. Build aborted.\n")
+        for issue in _all_dark_issues:
+            print(f"    - {issue}")
+        print("")
+        print("  To fix: open the affected option scripts and change the")
+        print("  colliding fill / text color to something with contrast "
+              "against dark_bg_hex.")
+        print("  Or change brand.yml dark_bg_hex to a color that doesn't "
+              "match your content.")
+        raise DarkVariantCollisionError(
+            f"{len(_all_dark_issues)} dark-variant collision(s); "
+            f"build refused. See [4b] output above for the offending slides."
+        )
 
     if not args.skip_render:
         print(f"\n[5] Render themed .pptx -> .png (parallel x4)")
