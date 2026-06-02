@@ -59,14 +59,25 @@ Four CLI subcommands:
 Picks JSON shape (consumed by `commit`):
 
   {
-    "accept": false,                 # if true, ignore the fields below
+    "accept": false,                 # if true, ignore the color fields below
     "primary_slot": "dk2",           # one of the theme slot names
     "primary_hex":  "4D148C",        # 6-char hex without leading #
     "accent_slot":  "lt2",
     "accent_hex":   "FF6600",
     "cover_bg_slot": "dk2",          # optional; defaults to primary
     "cover_bg_hex":  "4D148C",
-    "strip_master_backgrounds": false # optional; defaults to false (keep master decoration)
+    "strip_master_backgrounds": false, # optional; default false (keep master)
+    "default_content_layout": "2_Title & Text 01",  # optional but recommended;
+                                     # the layout the user picked as the
+                                     # default for content slides. Validated
+                                     # against chrome.yml at commit time.
+                                     # Read by build_deck.py as the template-
+                                     # level fallback before sole-body-
+                                     # canonical auto-detection.
+    "layout_classifications": {      # optional; per-layout class override
+      "Cover": "bespoke",
+      "1_Title & Text 01": "body-canonical"
+    }
   }
 
 Outputs (all subcommands): absolute paths printed to stdout for each
@@ -104,7 +115,7 @@ from _chrome_schema import (  # noqa: E402
     BoxPx, LayoutChrome, ChromeSpec,
     CHROME_SCHEMA_VERSION_CURRENT,
     CANONICAL_BODY_TOP_Y, CANONICAL_BODY_BOTTOM_Y,
-    dump_chrome_yml,
+    dump_chrome_yml, load_chrome_yml,
 )
 
 try:
@@ -1706,13 +1717,20 @@ def write_brand_yml(path: Path, *, primary_hex: str, accent_hex: str,
 def write_theme_json(path: Path, *, template_path: Path, sha: str,
                      brand_dict: dict, all_colors: dict, all_fonts: dict,
                      master_count: int, layout_count: int,
-                     brand_yml_path: Path) -> None:
+                     brand_yml_path: Path,
+                     default_content_layout: str = "") -> None:
+    """Schema v2 (2026-06-02): adds `default_content_layout` — the layout
+    the user picked as the default for content slides in briefs that don't
+    override per-slide. Read by build_deck.py:resolve_slide_layouts as the
+    template-level fallback. Empty string = not set (orchestrator should
+    ask, or build_deck falls back to sole-body-canonical heuristic)."""
     obj = {
-        "schema_version": 1,
+        "schema_version": 2,
         "template_path": str(template_path),
         "template_sha": sha,
         "registered_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "registered_by": os.environ.get("USERNAME") or os.environ.get("USER") or "",
+        "default_content_layout": default_content_layout or "",
         "brand": brand_dict,
         "extracted": {
             "all_colors": all_colors,
@@ -2050,7 +2068,8 @@ def _write_outputs(tpl: Path, sha: str, sha8: str,
                    dark_bg_hex: str, dark_bg_slot: str,
                    font_heading: str, font_body: str,
                    strip_master_backgrounds: bool,
-                   colors: dict, n_master: int, n_layout: int) -> None:
+                   colors: dict, n_master: int, n_layout: int,
+                   default_content_layout: str = "") -> None:
     _p.template_sidecar_dir(tpl).mkdir(parents=True, exist_ok=True)
     brand_yml = _p.brand_yml(tpl)
     theme_json = _p.theme_json(tpl)
@@ -2086,6 +2105,7 @@ def _write_outputs(tpl: Path, sha: str, sha8: str,
         all_colors=colors, all_fonts={"heading": font_heading, "body": font_body},
         master_count=n_master, layout_count=n_layout,
         brand_yml_path=brand_yml,
+        default_content_layout=default_content_layout,
     )
 
     print(f"  Registered.")
@@ -2594,6 +2614,38 @@ def _main_propose(args) -> int:
     return 0
 
 
+def _warn_on_picks_drift(tpl: Path) -> None:
+    """Detect multiple picks-like files in the template's sidecar dir.
+
+    The canonical filename is `register.picks.json` (written by the
+    registration scripts via _p.register_picks_json). But the `commit`
+    subcommand accepts an arbitrary path via `--picks`, so an orchestrator
+    can drift into writing `picks.json` (or any other name) instead. When
+    that happens we end up with multiple competing files describing what
+    SHOULD be a single source of truth. Surface that loudly so the
+    operator can resolve it before the next commit silently picks one.
+
+    The 2026-06-02 OTC rebuild surfaced this: `picks.json` (today) and
+    `register.picks.json` (May 29) co-existed with different layout
+    classifications, and the operator had to manually diff them to figure
+    out which one was authoritative.
+    """
+    sidecar_dir = _p.template_sidecar_dir(tpl)
+    if not sidecar_dir.exists():
+        return
+    candidates = sorted(p for p in sidecar_dir.glob("*picks*.json"))
+    if len(candidates) <= 1:
+        return
+    canonical = _p.register_picks_json(tpl)
+    print(f"  WARNING: multiple picks files found in {sidecar_dir}:")
+    for c in candidates:
+        marker = " (canonical)" if c == canonical else " (stray)"
+        print(f"    {c.name}{marker}")
+    print(f"  Only {canonical.name} should exist. Consolidate manually "
+          f"before the next commit, or the orchestrator's choice of "
+          f"--picks path silently determines which one wins.")
+
+
 def _commit_from_picks_dict(tpl: Path, picks: dict, *, source: str) -> int:
     """Shared commit core: takes a picks dict (from any source — JSON file
     or CLI flags), runs the extract pass, writes brand.yml + theme.json +
@@ -2640,6 +2692,14 @@ def _commit_from_picks_dict(tpl: Path, picks: dict, *, source: str) -> int:
     print(f"  dark_bg:       #{dark_bg_hex} (slot {dark_bg_slot})")
     print(f"  strip masters: {strip_master_backgrounds}")
 
+    # default_content_layout (2026-06-02): the layout the user wants for
+    # content slides in briefs that don't override. Stored in theme.json
+    # so build_deck.py can use it as the template-level fallback before
+    # the sole-body-canonical auto-detect heuristic fires.
+    # Validated against the template's actual layout names below (after
+    # chrome.yml lands) so we never persist a phantom name.
+    default_content_layout = (picks.get("default_content_layout") or "").strip()
+
     _write_outputs(
         tpl, proposal["sha"], proposal["sha8"],
         primary_hex, primary_slot, accent_hex, accent_slot,
@@ -2649,6 +2709,7 @@ def _commit_from_picks_dict(tpl: Path, picks: dict, *, source: str) -> int:
         strip_master_backgrounds=strip_master_backgrounds,
         colors=proposal["colors"],
         n_master=proposal["n_master"], n_layout=proposal["n_layout"],
+        default_content_layout=default_content_layout,
     )
 
     layout_overrides = picks.get("layout_classifications") or {}
@@ -2660,6 +2721,29 @@ def _commit_from_picks_dict(tpl: Path, picks: dict, *, source: str) -> int:
                                commit_method=picks.get("commit_method"))
     if rc != 0:
         return rc
+
+    # Validate default_content_layout against the newly-written chrome.yml.
+    # Loud-fail if the user picked a layout name that doesn't exist in the
+    # template — better to halt registration than to ship a theme.json
+    # pointing at a phantom layout. See feedback_sidecar_fallback_must_be_loud.
+    if default_content_layout:
+        try:
+            chrome_spec = load_chrome_yml(_p.chrome_yml(tpl))
+            if default_content_layout not in chrome_spec.layouts:
+                print(
+                    f"  ERROR: default_content_layout {default_content_layout!r} "
+                    f"is not a layout in {tpl.name}.\n"
+                    f"  available layouts: "
+                    f"{', '.join(sorted(chrome_spec.layouts.keys())) or '(none)'}"
+                )
+                return 2
+            klass = getattr(chrome_spec.layouts[default_content_layout],
+                            "layout_class", None)
+            print(f"  default_content_layout: {default_content_layout!r} "
+                  f"(class: {klass})")
+        except Exception as _exc:
+            print(f"  WARNING: could not validate default_content_layout "
+                  f"against chrome.yml: {type(_exc).__name__}: {_exc}")
 
     brand_yml  = _p.brand_yml(tpl)
     theme_json = _p.theme_json(tpl)
@@ -2688,7 +2772,22 @@ def _main_commit(args) -> int:
         print(f"ERROR: could not parse picks JSON: {e}")
         return 2
 
-    return _commit_from_picks_dict(tpl, picks, source="picks JSON")
+    _warn_on_picks_drift(tpl)
+
+    rc = _commit_from_picks_dict(tpl, picks, source="picks JSON")
+    if rc != 0:
+        return rc
+
+    # Normalize: ensure register.picks.json (the canonical filename) reflects
+    # this commit's picks, regardless of which path --picks pointed at.
+    # Prevents the drift class that produced two competing picks files on
+    # the OTC template (see _warn_on_picks_drift docstring).
+    canonical = _p.register_picks_json(tpl)
+    canonical.parent.mkdir(parents=True, exist_ok=True)
+    canonical.write_text(json.dumps(picks, indent=2), encoding="utf-8")
+    if picks_path.resolve() != canonical.resolve():
+        print(f"  normalized: copied picks -> {canonical}")
+    return 0
 
 
 def _main_commit_cli(args) -> int:
@@ -2748,9 +2847,24 @@ def _main_commit_cli(args) -> int:
     if layout_classifications:
         picks["layout_classifications"] = layout_classifications
 
+    if args.default_content_layout:
+        picks["default_content_layout"] = args.default_content_layout
+
     picks["commit_method"] = "cli_flags"
 
-    return _commit_from_picks_dict(tpl, picks, source="CLI flags")
+    _warn_on_picks_drift(tpl)
+
+    rc = _commit_from_picks_dict(tpl, picks, source="CLI flags")
+    if rc != 0:
+        return rc
+
+    # Write the synthesized picks to the canonical filename so a later
+    # `commit --picks <register.picks.json>` re-run replays this state.
+    canonical = _p.register_picks_json(tpl)
+    canonical.parent.mkdir(parents=True, exist_ok=True)
+    canonical.write_text(json.dumps(picks, indent=2), encoding="utf-8")
+    print(f"  wrote picks audit: {canonical}")
+    return 0
 
 
 # ---------------------------------------------------------------------------
@@ -2810,6 +2924,14 @@ def main() -> int:
         help="Override auto-detected layout classification. CLASS must be "
              "'body-canonical' or 'bespoke'. Repeatable. "
              "Example: --layout-class \"Title and Content=body-canonical\"")
+    p_cli.add_argument("--default-content-layout", type=str, default="",
+        metavar="NAME",
+        help="The layout the user picked as the default for content slides. "
+             "Stored in theme.json and used by build_deck.py as the "
+             "template-level layout fallback when a brief doesn't specify "
+             "per-slide Layout: or front-matter default_layout:. Validated "
+             "against the template's registered layouts at commit time. "
+             "Example: --default-content-layout \"2_Title & Text 01\"")
 
     p_int = sub.add_parser("interactive",
         help="Legacy 4-phase interactive flow with TTY confirmation gate.")

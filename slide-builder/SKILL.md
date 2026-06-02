@@ -127,6 +127,10 @@ Optional flags: `--cover-bg-slot`, `--cover-bg-hex`, `--dark-bg-slot`, `--dark-b
 
 The same hard rule applies: the orchestrator MUST take picks from the user in chat first; never invent slot assignments. Use `commit-cli` only when `register.html` cannot be displayed — the HTML picker is still the preferred path because it shows live swatch updates.
 
+**Capture the default content layout at registration.** Distinct from per-layout classifications, the orchestrator MUST also ask the user: *"Which layout do you want your content slides to use by default?"* — and pass the answer through as `default_content_layout` (in the picks JSON or via `--default-content-layout NAME` on `commit-cli`). This is stored in `theme.json` and read by `build_deck.py` as the template-level layout fallback. Without it, every fresh brief that lacks a per-slide `Layout:` either auto-falls to the sole body-canonical layout (when unambiguous) or hard-fails — both leave the user picking layouts mid-build instead of once at registration.
+
+> **Never expose architectural vocabulary to the user.** The terms `body-canonical` and `bespoke` are implementation details for chrome resolution. When asking the user to pick a layout, always show layout thumbnails (`<sidecar-dir>/thumbnails/*.png`) and ask *"which one should the slide look like?"* — never *"which body-canonical layout do you want?"* The 2026-06-02 OTC rebuild surfaced this gap (user picked `2_Title & Text 01` thinking they had selected it; system treated the pick as classification metadata only).
+
 ---
 
 ## Routing
@@ -158,6 +162,8 @@ Full reference (one paragraph + one PNG per pattern) lives at `reference/layouts
 ---
 
 ## Build flow — four-stage architecture
+
+> **Inherited briefs: confirm the layout before building.** If the brief carries `mode: rebuild-slice` in front-matter, OR the brief file was authored in a prior session (different `_session/` folder than the current working session, OR `generated_at` more than ~24 hours old), the orchestrator MUST restate the brief's `default_layout` (or the template's `default_content_layout` from `theme.json`) and ask the user: *"This brief will build against the **<layout name>** layout. Still the right choice? (Show thumbnails)"* — and wait for confirmation BEFORE running `build_deck.py`. Reference: `feedback_validate_user_architecture`. Inherited briefs were the proximate cause of the 2026-06-02 OTC chrome regression where the orchestrator silently trusted a stale `default_layout` value and produced slides with broken footer boxes.
 
 N parallel agents per deck, three options per slide. The per-slide prompt injects the 14-pattern reference + 5 hardline rules + anti-pattern library.
 
