@@ -522,12 +522,45 @@ def _chrome_box_for(chrome: LayoutChrome, role: str):
     """Resolve a chrome BoxPx for the given role under the layout's class.
 
     body-canonical -> canonical_*_box() from _chrome_schema
-    bespoke        -> chrome.<role> (raises if None)
+    bespoke -> chrome.<role>, with a documented exception:
+        footnote / source / page_number are universal invariant-zone
+        elements that virtually every template reserves space for at the
+        bottom of every slide. When a bespoke layout's chrome.yml entry
+        for one of these three is null (because the layout itself has no
+        such placeholder to extract a position from — e.g. FedEx workhorse
+        layouts with only title + body placeholders), fall back to the
+        canonical position at the bottom of the slide. The fallback is
+        silent by design (per Mario's call 2026-06-02) — it's the safe
+        path for almost every brand, and surfacing a per-build warning
+        for every bespoke slide that uses these zones would create noise
+        without informational value.
+
+        This is the ONE deliberate departure from
+        feedback_sidecar_fallback_must_be_loud. The reasoning is that
+        canonical_footnote_box / canonical_source_box /
+        canonical_page_number_box are documented public coordinates in
+        _chrome_schema.py (constants, not heuristics), so the fallback
+        produces a known-good outcome rather than a guessed one. The
+        loud-fallback rule still applies to title and subtitle, which
+        are content-positioning fields where wrong guesses caused the
+        v1 bug class.
     """
     if chrome.layout_class == "body-canonical":
         return {
             "title":       canonical_title_box(),
             "subtitle":    canonical_subtitle_box(),
+            "footnote":    canonical_footnote_box(),
+            "source":      canonical_source_box(),
+            "page_number": canonical_page_number_box(),
+        }[role]
+    # Bespoke path: title + subtitle still raise loud on null (content
+    # positions need explicit specification). Invariant-zone roles get
+    # canonical fallback when the layout doesn't carry the position.
+    if role in ("footnote", "source", "page_number"):
+        explicit = getattr(chrome, role, None)
+        if explicit is not None:
+            return explicit
+        return {
             "footnote":    canonical_footnote_box(),
             "source":      canonical_source_box(),
             "page_number": canonical_page_number_box(),

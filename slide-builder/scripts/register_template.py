@@ -2221,19 +2221,64 @@ def _detect_text_role_for_layout(layout) -> tuple[str, str]:
 def _classify_layout(layout) -> str:
     """Heuristic classifier: body-canonical vs bespoke.
 
-    Counts non-placeholder shapes (art-direction candidates). <=2 -> body-
-    canonical (master decorates, layout is mostly empty). Higher counts mean
-    cover-style art direction lives in the layout itself. The user overrides
-    in register.html before commit when the heuristic is wrong.
+    v0.4.1 (2026-06-02) — wide-net rule. A layout is body-canonical if it
+    has BOTH a top-anchored title placeholder AND at least one content
+    placeholder (body / object / chart / table / picture). Decorative
+    shapes (FedEx chevron + footer band, Accenture brand rules, etc.)
+    don't trigger bespoke anymore — those are inherited chrome, not
+    content geometry, and they don't interfere with Slide Lab's
+    title-plus-body content flow.
+
+    The old rule counted non-placeholder shapes (≤2 → body-canonical).
+    That misclassified every FedEx/OTC workhorse layout as bespoke
+    because the chevron + footer band each count as one non-placeholder
+    shape. The resulting bespoke chrome.yml entries had null footnote /
+    source / page-number positions (the layout has no such placeholders
+    to extract from), and finalize_deck failed loud when trying to render
+    those zones.
+
+    Bespoke is reserved for true art-directed layouts: covers (centered
+    title only, no body), section dividers (large title or quote, no
+    body), thank-you slides, and similar — layouts where the layout
+    itself dictates content position rather than serving as a workhorse
+    title+body chassis.
     """
-    non_placeholder = 0
-    for shape in layout.shapes:
+    has_top_title = False
+    has_body_content = False
+    has_only_center_title = False
+    title_count = 0
+
+    BODY_CONTENT_TYPES = {
+        PP_PLACEHOLDER.BODY,
+        PP_PLACEHOLDER.OBJECT,
+        PP_PLACEHOLDER.CHART,
+        PP_PLACEHOLDER.TABLE,
+        PP_PLACEHOLDER.PICTURE,
+        PP_PLACEHOLDER.MEDIA_CLIP,
+    }
+
+    for ph in layout.placeholders:
         try:
-            if not shape.is_placeholder:
-                non_placeholder += 1
+            t = ph.placeholder_format.type
         except Exception:
-            non_placeholder += 1
-    return "body-canonical" if non_placeholder <= 2 else "bespoke"
+            continue
+        if t == PP_PLACEHOLDER.TITLE:
+            has_top_title = True
+            title_count += 1
+        elif t == PP_PLACEHOLDER.CENTER_TITLE:
+            # Center-title is cover/divider hallmark, NOT a workhorse title.
+            has_only_center_title = True
+            title_count += 1
+        elif t in BODY_CONTENT_TYPES:
+            has_body_content = True
+
+    # Body-canonical: top-anchored title + at least one content placeholder.
+    if has_top_title and has_body_content:
+        return "body-canonical"
+
+    # Cover / divider / quote / thank-you style: center title only, or
+    # no title, or no body — these are art-directed by the layout itself.
+    return "bespoke"
 
 
 def _placeholder_role(shape) -> str | None:
