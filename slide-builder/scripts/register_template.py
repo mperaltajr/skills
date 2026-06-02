@@ -1423,6 +1423,11 @@ function refreshUI() {
     dark_bg_slot:  state.dark_bg_slot,
     dark_bg_hex:   state.dark_bg_hex,
     strip_master_backgrounds: state.strip_master_backgrounds,
+    // default_content_layout is the layout the user picked as the
+    // default for content slides (built-by-default, no per-slide override).
+    // Read by build_deck.py:resolve_slide_layouts as the template-level
+    // fallback. Distinct from layout_classifications (architectural).
+    default_content_layout: layoutPicks.body || "",
     layout_classifications: layoutClassifications,
   };
   document.getElementById("picks-json").textContent = JSON.stringify(payload, null, 2);
@@ -1543,14 +1548,23 @@ function buildLayoutGrid() {
 }
 
 function pickBody(name) {
+  // Single-pick semantics (2026-06-02): clicking a layout in the grid
+  // selects it as THE default content layout. Reset every other layout
+  // to its auto-detected classification first so prior clicks don't
+  // accumulate (the additive behavior was the 2026-06-02 register-html
+  // bug — every click added another "body-canonical" without unsetting
+  // the previous pick, ending up with 12+ body-canonicals).
   layoutPicks.body = name;
-  // Update classifications: picked body becomes body-canonical; everything
-  // else stays as Slide Lab's auto guess. Cover-style layouts stay bespoke
-  // by their auto class; user can override per-slide via **Layout:** in
-  // the brief if needed.
   layouts.forEach(l => {
     if (l.name === layoutPicks.body) {
+      // Picked layout: classify as body-canonical so chrome resolution
+      // populates the inherited title/footer placeholders post-graft.
       layoutClassifications[l.name] = "body-canonical";
+    } else {
+      // Everything else: revert to Slide Lab's auto guess. The user can
+      // still flip individual layouts via the advanced "Show all"
+      // disclosure below; this just removes accidental additive picks.
+      layoutClassifications[l.name] = l.auto_class;
     }
   });
   buildLayoutGrid();
