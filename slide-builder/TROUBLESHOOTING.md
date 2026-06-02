@@ -23,6 +23,9 @@ Tables below were re-derived from each script's actual `sys.exit()` / `return` c
 | 5  | Brief load error (filesystem / encoding) | Check the brief file is readable + UTF-8 encoded. |
 | 6  | Theme generation or validation failed (brand.yml malformed, primary == accent, etc.) | Re-register the template via the chat-driven `propose` → `commit` flow. See SKILL.md § "Register a new client template." |
 | 7  | Stage-1 sanity check failed — `BrandSidecarMissing` / `BrandSidecarStale` / `mmdc` not installed / `mmdc` version mismatch | Re-register the template (BrandSidecar errors) or `npm install -g @mermaid-js/mermaid-cli@11.4.0` (mmdc errors). |
+| 8  | Template confirmation aborted — user answered "n" at the Y/N prompt, or stdin is not a TTY and `--confirm-template` was not passed | Re-run with the correct `--template`, or add `--confirm-template` for scripted/CI runs. |
+| 9  | Layout resolution failed — no per-slide `Layout:` AND no front-matter `default_layout:` AND chrome.yml has zero or multiple body-canonical layouts | Add `default_layout: <name>` to the brief's YAML front-matter (or `Layout:` per slide). See the error message for the list of available layouts. |
+| 10 | Storyline gate marker missing OR brief edited after gate pass | Re-run storyline-helper on the brief to emit `storyline_gate_passed: true` + a fresh `storyline_gate_sha256`. Or add `mode: template-fill` / `mode: rebuild-slice` to the front-matter for legitimate non-narrative flows. |
 
 ### `finalize_deck.py`
 
@@ -30,6 +33,7 @@ Tables below were re-derived from each script's actual `sys.exit()` / `return` c
 |---|---|---|
 | 2  | `--out` missing or not a directory, OR `_meta.json` missing under `--out` | Pass the same `--out` you gave `build_deck.py`. If `_meta.json` is missing, run `build_deck.py` first. |
 | 7  | Mermaid theme missing — `_meta.json::mermaid_theme` references a file that doesn't exist | Re-run `build_deck.py` to regenerate the theme. |
+| 11 | Pre-flight gate — one or more expected `option_X.py` files are absent (interrupted worker) | The error message lists which slides need re-dispatch and prints the `_prompt.md` path for each. Re-dispatch the slide-builder-worker agent for those slides, then re-run `finalize_deck.py`. Override with `--allow-missing` to proceed with gaps (slides surface as `[MISSING]` in RESULT.md). |
 
 ### `compile_picks.py`
 
@@ -77,10 +81,25 @@ Tables below were re-derived from each script's actual `sys.exit()` / `return` c
 ## Common console-message diagnoses
 
 ### "BrandSidecarMissing"
-The client template at `<path>.pptx` lacks `<stem>.brand.yml` next to it. Register the template (see SKILL.md § "Register a new client template").
+The client template at `<path>.pptx` lacks `<stem>/brand.yml` in the per-template sidecar subfolder. Register the template (see SKILL.md § "Register a new client template").
 
 ### "BrandSidecarStale"
-The `<stem>.brand.yml` exists but its SHA stamp doesn't match the template's current SHA (the template was edited). Re-register the template — run `register_template.py propose` and `commit` again.
+The `<stem>/brand.yml` exists but its SHA stamp doesn't match the template's current SHA (the template was edited). Re-register the template — run `register_template.py propose` and `commit` again.
+
+### "LegacyTemplateLayoutError"
+The template was registered with the pre-v0.4 flat sidecar layout (sidecars sit next to the .pptx instead of inside a `<stem>/` subfolder). Run the one-shot migration:
+
+```powershell
+py -3 slide-builder/scripts/migrate_template_layout.py "<directory containing the .pptx>"
+```
+
+This moves `<stem>.brand.yml`, `<stem>.theme.json`, `<stem>.chrome.yml`, and other sidecars into `<stem>/`. Existing builds keep working after the migration; no re-registration required.
+
+### "ChromeSidecarMissingError"
+The template's `<stem>/chrome.yml` is missing or has a null required field. Re-register the template — `register_template.py propose` then `commit` (or `commit-cli`). The chrome sidecar is regenerated from the template's actual layout XML each time.
+
+### "ChromeLayoutMissingError"
+A slide in `_meta.json` references a layout name that doesn't exist in `chrome.yml`. Either fix the slide's `Layout:` field in the brief to match a registered layout, OR re-register the template (a recent template edit may have removed/renamed the layout). The error message lists the layout names available in chrome.yml.
 
 ### "mmdc not on PATH" / "Mermaid CLI version mismatch"
 `npm install -g @mermaid-js/mermaid-cli@11.4.0`. The pinned version matters — fallback diagram rendering was tested against 11.4.0 specifically.

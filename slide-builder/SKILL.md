@@ -97,13 +97,13 @@ The chat-driven flow replaces the legacy PowerShell TTY flow (still available as
    ```powershell
    py -3 scripts/register_template.py propose <path-to-template.pptx>
    ```
-   This writes `<stem>.preview.pptx`, `<stem>.preview.png`, `<stem>.palette.png`, `<stem>.register.html`, and `<stem>.register.proposal.json` next to the template. No prompts, no writes to `brand.yml`.
+   This creates a per-template sidecar folder at `<template-parent>/<stem>/` and writes `preview.pptx`, `preview.png`, `palette.png`, `register.html`, and `register.proposal.json` inside it. No prompts, no writes to `brand.yml` yet.
 
-2. **Show + take picks.** The orchestrator **MUST display the `<stem>.register.html` file path to the user and wait** for the user to respond before writing `picks.json`. That page embeds the preview composite PNG + clickable palette swatches + the strip-master-backgrounds checkbox + a live picks-JSON payload. The user clicks swatches to pick primary / accent / cover-bg by visible color (no hex typing), toggles strip-bg, copies the picks JSON to clipboard, and pastes back to the chat.
+2. **Show + take picks.** The orchestrator **MUST display the `<stem>/register.html` file path to the user and wait** for the user to respond before writing `picks.json`. That page embeds the preview composite PNG + clickable palette swatches + the strip-master-backgrounds checkbox + a live picks-JSON payload. The user clicks swatches to pick primary / accent / cover-bg by visible color (no hex typing), toggles strip-bg, copies the picks JSON to clipboard, and pastes back to the chat.
 
    > **⛔ Hard rule — no auto-accept (added 2026-05-26 after OTC dry run failure).**
    >
-   > - Reading `<stem>.preview.png` or `<stem>.palette.png` does **not** substitute for the user opening `register.html`. Those artifacts confirm that colors EXIST, not that the role ASSIGNMENT (primary vs accent vs cover-bg) is correct. Auto-pick has historically inverted on most client templates — the chat-driven flow exists precisely to catch that.
+   > - Reading `<stem>/preview.png` or `<stem>/palette.png` does **not** substitute for the user opening `register.html`. Those artifacts confirm that colors EXIST, not that the role ASSIGNMENT (primary vs accent vs cover-bg) is correct. Auto-pick has historically inverted on most client templates — the chat-driven flow exists precisely to catch that.
    > - The `{"accept": true}` flag is a **user-issued shortcut**, not an orchestrator default. It may only be written when the user explicitly types "accept" or equivalent in chat. If the user has not responded to the register.html prompt, the picks JSON has not been written.
    > - Halt and ask, even if the auto-best-guess in `register.proposal.json` looks plausible. Defensible-default bias caused the 2026-05-26 OTC dry run failure (orange/purple swap committed without user review). See memory `feedback_cocreate_not_infer.md`.
 
@@ -308,7 +308,7 @@ Every session must:
 
 - Use the `sessions/YYYY-MM-DD Topic/` folder structure under the client's project root.
 - Write to `_session/DECISIONS.md` for any session-level decision worth keeping (template choice, scope cut, brand override, etc.).
-- Ensure the client template is registered before any build — `<template-stem>.brand.yml` + `<template-stem>.theme.json` sidecars must exist next to the PPTX. See § "Register a new client template" above for the chat-driven flow.
+- Ensure the client template is registered before any build — `<template-stem>/brand.yml` + `<template-stem>/theme.json` sidecars must exist in the per-template subfolder next to the PPTX (v0.4+ layout). See § "Register a new client template" above for the chat-driven flow.
 - Output full absolute Windows paths for every artifact, never preview links (so the user can copy without parsing markdown).
 
 Deck artifacts (brief, PPTX outputs, REVIEW.html, picks.json, DECISIONS.md) live in the project / session folder. They never live inside the skill directory.

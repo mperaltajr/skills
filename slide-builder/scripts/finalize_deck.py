@@ -234,6 +234,15 @@ def _is_body_role_name(name: str) -> bool:
 
 
 def detect_installed_fonts() -> set:
+    """Enumerate installed fonts via PowerShell. Returns set of family names
+    (empty set on any failure, but the failure is now logged loudly).
+
+    Pre-2026-06-02 the function silently swallowed every exception and
+    returned an empty set, which suppressed font-mismatch warnings for
+    operators on non-Windows shells or systems without PowerShell. Now the
+    failure mode is loud so the operator knows font warnings are absent
+    because detection failed, not because everything is installed.
+    """
     try:
         cmd = (
             "Add-Type -AssemblyName System.Drawing; "
@@ -245,9 +254,30 @@ def detect_installed_fonts() -> set:
             capture_output=True, text=True, timeout=10,
         )
         if result.returncode != 0:
+            sys.stderr.write(
+                f"  WARN: PowerShell font enumeration exited {result.returncode}: "
+                f"{(result.stderr or '').strip()[:200]}\n"
+                f"  Client-font mismatch warnings will not appear this run.\n"
+            )
             return set()
         return {line.strip() for line in result.stdout.splitlines() if line.strip()}
-    except Exception:
+    except FileNotFoundError:
+        sys.stderr.write(
+            "  WARN: powershell.exe not found on PATH. Font detection skipped; "
+            "client-font mismatch warnings will not appear this run.\n"
+        )
+        return set()
+    except subprocess.TimeoutExpired:
+        sys.stderr.write(
+            "  WARN: PowerShell font enumeration timed out after 10s. "
+            "Client-font mismatch warnings will not appear this run.\n"
+        )
+        return set()
+    except Exception as exc:
+        sys.stderr.write(
+            f"  WARN: font enumeration failed ({type(exc).__name__}: {exc}). "
+            f"Client-font mismatch warnings will not appear this run.\n"
+        )
         return set()
 
 
@@ -985,18 +1015,28 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
 
     # Title text: prefer source-slide 'title' shape, then meta fallback.
     src_title = ""
+    src_subtitle = ""
     for shape in src_slide.shapes:
         try:
             name = (shape.name or "").strip().lower()
         except Exception:
             name = ""
-        if name == "title" or name.startswith("title"):
+        if (not src_title) and (name == "title" or name.startswith("title")):
             try:
                 src_title = (shape.text_frame.text or "").strip()
             except Exception:
                 src_title = ""
-            if src_title:
-                break
+            continue
+        # v2.1 (2026-06-02, Bug #2): also harvest the source slide's
+        # subtitle textbox so finalize can populate the layout's inherited
+        # subtitle placeholder. Worker scripts name the shape "subtitle"
+        # by convention when they author a free-floating one.
+        if (not src_subtitle) and (name == "subtitle" or name.startswith("subtitle")):
+            try:
+                src_subtitle = (shape.text_frame.text or "").strip()
+            except Exception:
+                src_subtitle = ""
+            continue
     if not src_title:
         src_title = (fallback_title or "").strip()
 
@@ -1072,9 +1112,13 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
             overlay_hex,
         )
 
+    # v2.1 (2026-06-02, Bug #2): pass subtitle through so finalize populates
+    # the inherited subtitle placeholder. Composer no-ops cleanly when
+    # subtitle is None or the layout has no subtitle placeholder type.
     _populate_layout_placeholders(
         new_slide,
         title=src_title or None,
+        subtitle=src_subtitle or None,
         footer=None,
         page_num=str(slide_n),
     )

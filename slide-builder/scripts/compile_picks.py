@@ -233,6 +233,30 @@ def main() -> int:
     _theme = load_client_theme(str(template_path))
     _keep_master = not bool(getattr(_theme, "strip_master_backgrounds", True))
 
+    # Bug #2 fix (2026-06-02): load chrome.yml so we can thread the per-slide
+    # layout_chrome into copy_picked_slide_into. Without this, body-canonical
+    # slides graft onto the blank layout and lose their decorative chrome
+    # (top chevron / footer bar inherited from the named layout). See
+    # feedback-2026-06-02.md Bug #2.
+    from _chrome_schema import load_chrome_yml  # noqa: E402
+    _chrome_spec = None
+    try:
+        _chrome_spec = load_chrome_yml(_p.chrome_yml(template_path))
+    except Exception as _exc:
+        print(f"  WARN: chrome.yml unavailable; compile will fall back to blank "
+              f"layout for every slide (loses body-canonical chrome): "
+              f"{type(_exc).__name__}: {_exc}")
+
+    # Per-slide layout lookup from _meta.json.
+    _slide_layouts: dict[str, str] = {}
+    try:
+        for s in meta.get("slides", []):
+            n = s.get("n")
+            if isinstance(n, int):
+                _slide_layouts[_p.slide_key(n)] = (s.get("layout") or "").strip()
+    except Exception:
+        _slide_layouts = {}
+
     print("\n[2] Copy picked themed slides")
     rows: list[str] = []
     failures: list[str] = []
@@ -247,8 +271,19 @@ def main() -> int:
             rows.append(f"| {key} | {letter} | `{src.name}` | - | FAIL ({msg}) |")
             print(f"  {key} pick {letter}  FAIL ({msg})")
             continue
+        # Resolve layout_name + layout_chrome for this slide so the
+        # body-canonical branch in copy_picked_slide_into actually fires.
+        slide_layout_name = _slide_layouts.get(key, "")
+        slide_layout_chrome = None
+        if _chrome_spec is not None and slide_layout_name:
+            slide_layout_chrome = _chrome_spec.layouts.get(slide_layout_name)
         try:
-            n_shapes = copy_picked_slide_into(dst_prs, src, keep_master_shapes=_keep_master)
+            n_shapes = copy_picked_slide_into(
+                dst_prs, src,
+                layout_name=slide_layout_name,
+                layout_chrome=slide_layout_chrome,
+                keep_master_shapes=_keep_master,
+            )
             copied_count += 1
             rows.append(f"| {key} | {letter} | `{src.name}` | {n_shapes} | ok |")
             print(f"  {key} pick {letter}  ok (shapes={n_shapes})")

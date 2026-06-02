@@ -2284,14 +2284,20 @@ def _extract_bespoke_boxes(layout) -> dict[str, BoxPx | None]:
 
 def _extract_body_zone_for_canonical(layout) -> dict:
     """For a body-canonical layout, return v2 inheritance fields:
-       title_placeholder_idx, body_top_y_px, body_bottom_y_px.
+       title_placeholder_idx, subtitle_placeholder_idx, body_top_y_px,
+       body_bottom_y_px.
 
     title_placeholder_idx: the .placeholder_format.idx of the FIRST title-
        type inherited placeholder (None if no title placeholder).
+    subtitle_placeholder_idx: the .placeholder_format.idx of the FIRST
+       subtitle-type inherited placeholder (None if no subtitle placeholder).
+       Added 2026-06-02 for Bug #2: subtitle was rendering at hardcoded
+       canonical position because finalize_deck had no idx to write into.
     body_top_y_px: bottom of the title placeholder in px (or 110 fallback).
     body_bottom_y_px: top of the footer placeholder in px (or 660 fallback).
     """
     title_idx = None
+    subtitle_idx = None
     title_bottom_px = None
     footer_top_px = None
     for ph in layout.placeholders:
@@ -2301,12 +2307,15 @@ def _extract_body_zone_for_canonical(layout) -> dict:
             idx = int(pf.idx)
         except Exception:
             continue
+        # type values: 1=TITLE, 13=CENTER_TITLE, 4=SUBTITLE, 15=FOOTER
         if t in (1, 13) and title_idx is None:
             title_idx = idx
             try:
                 title_bottom_px = _emu_to_px(int(ph.top) + int(ph.height))
             except Exception:
                 pass
+        if t == 4 and subtitle_idx is None:
+            subtitle_idx = idx
         if t == 15 and footer_top_px is None:
             try:
                 footer_top_px = _emu_to_px(int(ph.top))
@@ -2318,6 +2327,7 @@ def _extract_body_zone_for_canonical(layout) -> dict:
         footer_top_px = CANONICAL_BODY_BOTTOM_Y
     return {
         "title_placeholder_idx": title_idx,
+        "subtitle_placeholder_idx": subtitle_idx,
         "body_top_y_px": int(title_bottom_px),
         "body_bottom_y_px": int(footer_top_px),
     }
@@ -2365,9 +2375,10 @@ def _propose_layout_chromes(prs, classifications_override: dict[str, str] | None
             if final_class == "bespoke":
                 position_fields = _extract_bespoke_boxes(layout)
 
-            # v2 (2026-05-28) body-canonical inheritance fields
+            # v2 (2026-05-28) + v2.1 (2026-06-02) body-canonical inheritance fields
             inherit_fields = {
                 "title_placeholder_idx": None,
+                "subtitle_placeholder_idx": None,
                 "body_top_y_px": None,
                 "body_bottom_y_px": None,
                 "body_overlay_hex": None,
@@ -2387,6 +2398,7 @@ def _propose_layout_chromes(prs, classifications_override: dict[str, str] | None
                 source=position_fields["source"],
                 page_number=position_fields["page_number"],
                 title_placeholder_idx=inherit_fields["title_placeholder_idx"],
+                subtitle_placeholder_idx=inherit_fields["subtitle_placeholder_idx"],
                 body_top_y_px=inherit_fields["body_top_y_px"],
                 body_bottom_y_px=inherit_fields["body_bottom_y_px"],
                 body_overlay_hex=inherit_fields["body_overlay_hex"],

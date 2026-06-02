@@ -1393,6 +1393,19 @@ def stage1_sanity_check(template_path: Path) -> int:
     # Both checks passed — propagate version info to console for audit
     print(f"[stage-1 sanity] brand sidecar OK for: {template_path}")
     print(f"[stage-1 sanity] mmdc version: {info}")
+    # Warn loudly when mmdc isn't the pinned version. Don't block — coworkers
+    # with a different mmdc for unrelated work shouldn't be unable to build.
+    # Diagram rendering may vary; the warning gives the operator a chance to
+    # downgrade if a Mermaid fallback shows up off-spec.
+    PINNED_MMDC = "11.4.0"
+    if PINNED_MMDC not in (info or ""):
+        sys.stderr.write(
+            f"  WARNING: mmdc version {info!r} does not match pinned "
+            f"{PINNED_MMDC!r}. Mermaid fallback diagram rendering was tested "
+            f"against {PINNED_MMDC} specifically. If a fallback slide renders "
+            f"off-spec, downgrade with:\n"
+            f"    npm install -g @mermaid-js/mermaid-cli@{PINNED_MMDC}\n"
+        )
     return 0
 
 

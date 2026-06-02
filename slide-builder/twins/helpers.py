@@ -626,7 +626,14 @@ def add_title_block(slide, title, subtitle="", *,
     # placeholder after grafting.
     if (chrome.layout_class == "body-canonical"
             and getattr(chrome, "title_placeholder_idx", None) is not None):
-        if subtitle:
+        # v2.1 (2026-06-02, Bug #2): when the layout ALSO has a subtitle
+        # placeholder index, skip drawing the free-floating subtitle textbox
+        # too — finalize_deck will populate the subtitle placeholder
+        # post-graft, so the subtitle ends up at the layout's intended
+        # position instead of the hardcoded canonical box. When the layout
+        # has a title placeholder but NO subtitle placeholder, fall back to
+        # the legacy free-floating subtitle box (pre-v2.1 behavior).
+        if subtitle and getattr(chrome, "subtitle_placeholder_idx", None) is None:
             subtitle_box = _chrome_box_for(chrome, "subtitle")
             add_text(
                 slide, "subtitle", subtitle,

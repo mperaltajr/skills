@@ -371,7 +371,8 @@ _DIR_DELETED_BY_DESIGN = {
 # Catching them as broken refs is noise.
 _RUNTIME_ARTIFACTS = {
     "_meta.json", "_prompt.md", "_finalize_meta.json",
-    "picks.json", "brand.yml", "theme.json",
+    "picks.json", "brand.yml", "theme.json", "chrome.yml",
+    "register.picks.json", "chrome.commit_method.txt",
     "final_deck.pptx", "final.pptx",  # legacy/example name
     "REVIEW.html", "GATE3-PREVIEW.html",
     "register.html", "register.proposal.json",
@@ -924,16 +925,36 @@ _REGISTERED_TEMPLATE_SEARCH_ROOTS: tuple[Path, ...] = (
 def _opportunistic_chrome_yml_pairs() -> list[tuple[Path, Path]]:
     """Find (chrome.yml, sibling .pptx) pairs under the search roots.
     Returns []; the disk scan is best-effort + bounded — we don't want the
-    contract test to take minutes scanning a large file tree."""
+    contract test to take minutes scanning a large file tree.
+
+    v0.4 layout: chrome.yml lives at `<template-parent>/<stem>/chrome.yml`,
+    sibling .pptx is at `<template-parent>/<stem>.pptx`. Pre-v0.4 flat
+    layout (`<stem>.chrome.yml` next to `<stem>.pptx`) is no longer
+    supported in production but the scan handles both for legacy diagnostic
+    runs.
+    """
     pairs: list[tuple[Path, Path]] = []
     for root in _REGISTERED_TEMPLATE_SEARCH_ROOTS:
         if not root.exists():
             continue
         try:
-            # Bound the scan to 2 levels deep — registered templates live
-            # alongside their .pptx, typically <root>/<client>/template.pptx.
+            # v0.4 subfolder layout: <stem>/chrome.yml
+            for chrome_yml in root.rglob("chrome.yml"):
+                depth = len(chrome_yml.relative_to(root).parts)
+                if depth > 5:
+                    continue
+                # Sibling .pptx lives one level up, named <stem>.pptx where
+                # <stem> is the parent dir name.
+                stem = chrome_yml.parent.name
+                pptx_sibling = chrome_yml.parent.parent / f"{stem}.pptx"
+                if not pptx_sibling.exists():
+                    pptx_sibling = chrome_yml.parent.parent / f"{stem}.potx"
+                if pptx_sibling.exists():
+                    pairs.append((chrome_yml, pptx_sibling))
+                if len(pairs) >= 8:
+                    return pairs
+            # Legacy flat layout fallback: <stem>.chrome.yml + <stem>.pptx
             for chrome_yml in root.rglob("*.chrome.yml"):
-                # Skip anything more than 5 levels deep (cheap cap).
                 depth = len(chrome_yml.relative_to(root).parts)
                 if depth > 5:
                     continue

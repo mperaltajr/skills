@@ -195,7 +195,7 @@ def render_tmp_dir(pptx: Path) -> Path:
 # Pre-v0.4 templates used a FLAT layout (every sidecar as a sibling of the
 # .pptx, prefixed with the stem: `<stem>.brand.yml` etc.). The migration
 # script `scripts/migrate_template_layout.py` moves a flat template into the
-# new layout; readers raise `LegacyTemplateLayoutError` (see _chrome_schema)
+# new layout; readers raise `LegacyTemplateLayoutError` (defined in twins/client_theme.py)
 # when they detect a flat-only template, pointing the operator at the
 # migration command. Silent fallback to the flat path is forbidden — see
 # feedback_sidecar_fallback_must_be_loud.
@@ -331,7 +331,12 @@ ARTIFACT_MANIFEST: list[dict] = [
     # rather than the _paths helpers directly. build_deck.py also reads
     # theme_json directly to surface registered_at in the confirmation gate.
     {"name": "brand_yml",                 "writer": "register_template.py",  "readers": ["twins/client_theme.py"], "accepted": True, "reason": "Resolved by twins/client_theme.py:sidecar_paths; pipeline scripts call load_brand_sidecar() rather than _paths.brand_yml directly"},
-    {"name": "theme_json",                "writer": "register_template.py",  "readers": ["twins/client_theme.py", "build_deck.py"]},
+    # theme_json: build_deck.py reads directly via _p.theme_json (caught by
+    # the grep); twins/client_theme.py reads via sidecar_paths() which lazy-
+    # imports _paths inside the function body (intentional — twins/ is loaded
+    # from places where scripts/ isn't on sys.path). The lazy import evades
+    # the contract tool's _p.<name> regex, so we mark this entry accepted.
+    {"name": "theme_json",                "writer": "register_template.py",  "readers": ["build_deck.py"], "accepted": True, "reason": "twins/client_theme.py reads via sidecar_paths() with a lazy _paths import that the contract grep can't detect; build_deck.py reads directly via _p.theme_json"},
     {"name": "chrome_yml",                "writer": "register_template.py",  "readers": ["finalize_deck.py", "build_deck.py"]},
     {"name": "chrome_commit_method_txt",  "writer": "register_template.py",  "readers": [], "accepted": True, "reason": "Operator audit only — no pipeline reader"},
     {"name": "preview_pptx",              "writer": "register_template.py",  "readers": [], "accepted": True, "reason": "Registration UI artifact — opened in chat preview"},
