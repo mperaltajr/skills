@@ -183,6 +183,74 @@ def _normalize_archetype_to_page_type(archetype: str) -> str:
     return ARCHETYPE_TO_PAGE_TYPE.get(archetype.strip().lower(), "")
 
 
+# ----------------------------------------------------------------------
+# Storyline gate enforcement
+#
+# Slide quality drops drastically when briefs bypass storyline-helper's
+# 9-part quality gate (governing thought too vague, slides without a clear
+# so-what, missing evidence, mis-sequenced argument). To stop the bypass,
+# storyline-helper writes a `storyline_gate_passed: true` marker into the
+# brief's YAML front-matter on a successful gate pass, along with a SHA
+# of the brief body. build_deck refuses to run without that marker.
+#
+# Carve-out: `mode: template-fill` or `mode: rebuild-slice` in front-matter
+# explicitly opts out of the gate (PMO recurring reports, single-slide
+# rebuilds — both legitimate flows that don't have a narrative to gate).
+#
+# SHA check: hashing the brief body (everything below the front-matter)
+# means edits after the gate pass invalidate the marker; the operator must
+# re-gate via storyline-helper. Prevents "gated once, edited freely after."
+# ----------------------------------------------------------------------
+
+GATE_BYPASS_MODES = {"template-fill", "rebuild-slice"}
+
+
+def _brief_body_sha256(body: str) -> str:
+    import hashlib
+    return hashlib.sha256(body.encode("utf-8")).hexdigest()
+
+
+def _enforce_storyline_gate(front_matter: dict[str, str], body: str,
+                            brief_path: Path) -> None:
+    mode = (front_matter.get("mode") or "").strip().lower()
+    if mode in GATE_BYPASS_MODES:
+        return
+
+    passed_raw = (front_matter.get("storyline_gate_passed") or "").strip().lower()
+    if passed_raw not in ("true", "yes", "1"):
+        sys.stderr.write(
+            "ERROR: brief is missing the storyline-helper gate marker.\n\n"
+            f"  Brief: {brief_path}\n\n"
+            "Slide-builder requires briefs to be produced by storyline-helper\n"
+            "and pass its 9-part quality gate. To fix, one of:\n\n"
+            "  (1) Run storyline-helper on this brief. On a clean gate-pass it\n"
+            "      will write the required front-matter fields:\n"
+            "        storyline_gate_passed: true\n"
+            "        storyline_gate_at: <ISO timestamp>\n"
+            "        storyline_gate_sha256: <hash of brief body>\n\n"
+            "  (2) If this is a legitimate non-narrative flow (PMO recurring\n"
+            "      report or single-slide rebuild), add to the front-matter:\n"
+            "        mode: template-fill      # for PMO / template fill mode\n"
+            "        mode: rebuild-slice      # for single-slide rebuild\n"
+        )
+        sys.exit(10)
+
+    declared_sha = (front_matter.get("storyline_gate_sha256") or "").strip().lower()
+    if declared_sha:
+        actual_sha = _brief_body_sha256(body)
+        if declared_sha != actual_sha:
+            sys.stderr.write(
+                "ERROR: brief was edited after the storyline-helper gate pass.\n\n"
+                f"  Brief: {brief_path}\n"
+                f"  Declared SHA: {declared_sha}\n"
+                f"  Actual SHA:   {actual_sha}\n\n"
+                "The gate's SHA pin is invalidated by any post-gate edit.\n"
+                "Re-run storyline-helper on the edited brief to re-gate and\n"
+                "refresh the SHA marker.\n"
+            )
+            sys.exit(10)
+
+
 def parse_yaml_simple(yaml_text: str) -> dict[str, str]:
     """Tiny YAML reader — handles flat 'key: value' pairs only. The brief's
     front-matter is shallow by convention (client_template, deck_type, etc.)
@@ -280,6 +348,7 @@ def parse_brief(brief_path: Path) -> dict[str, Any]:
         sys.exit(1)
 
     front_matter, body = extract_front_matter(text)
+    _enforce_storyline_gate(front_matter, body, brief_path)
     deck_notes = extract_deck_notes(body)
     blocks = split_slide_blocks(body)
     if not blocks:
@@ -718,17 +787,18 @@ def validate_theme(
         errors:   hard-halt conditions. Build refuses to proceed.
         warnings: soft conditions surfaced in dispatch_plan.md.
 
-    Brand source is `<template-stem>.brand.yml` (human-authored via
-    slide-builder/scripts/register_template.py, Phase 3 interactive color
-    confirmation). The slot-position-guessing class of bugs is gone by
-    construction; these checks defend against human authoring errors in
-    brand.yml (typo'd hexes, same color in both slots, etc.).
+    Brand source is `<template-stem>/brand.yml` (subfolder layout, v0.4+;
+    human-authored via slide-builder/scripts/register_template.py, Phase 3
+    interactive color confirmation). The slot-position-guessing class of
+    bugs is gone by construction; these checks defend against human
+    authoring errors in brand.yml (typo'd hexes, same color in both slots,
+    etc.).
     """
     errors: list[str] = []
     warnings: list[str] = []
     primary = theme_variables.get("primaryColor", "").strip()
     accent = theme_variables.get("secondaryColor", "").strip()
-    brand_yml = template_path.with_suffix("").as_posix() + ".brand.yml"
+    brand_yml = str(_p.brand_yml(template_path))
 
     # Check 1: both colors loaded
     if not primary or not accent:
@@ -1123,6 +1193,7 @@ def resolve_slide_layouts(
     slides = brief.get("slides", []) or []
 
     available: list[str] = []
+    spec = None
     try:
         spec = load_chrome_yml(_p.chrome_yml(template_path))
         available = sorted(spec.layouts)
@@ -1133,11 +1204,28 @@ def resolve_slide_layouts(
     except Exception:
         available = []
 
+    # RC-3 auto-fallback (2026-06-02): if neither the slide nor the
+    # deck-default specifies a layout, AND chrome.yml has exactly one
+    # body-canonical layout, fall back to it with a one-line warning.
+    # Storyline-helper currently does not emit per-slide `Layout:` fields,
+    # which previously caused a hard exit 9 on every fresh build. The
+    # auto-fallback only fires when the choice is unambiguous (exactly one
+    # canonical body layout); ambiguous templates still hard-fail so the
+    # operator must disambiguate.
+    auto_default = ""
+    if not deck_default and spec is not None:
+        body_canonicals = sorted(
+            name for name, lc in spec.layouts.items()
+            if getattr(lc, "layout_class", None) == "body-canonical"
+        )
+        if len(body_canonicals) == 1:
+            auto_default = body_canonicals[0]
+
     resolved: list[str] = []
     errors: list[str] = []
     for slide in slides:
         per_slide = (slide.get("layout") or "").strip()
-        chosen = per_slide or deck_default
+        chosen = per_slide or deck_default or auto_default
         if not chosen:
             errors.append(
                 f"Slide {slide['slide_n']} — \"{slide.get('title', '(untitled)')}\""
@@ -1152,6 +1240,17 @@ def resolve_slide_layouts(
             resolved.append("")
             continue
         resolved.append(chosen)
+
+    if auto_default and not deck_default:
+        # One-line breadcrumb so the operator knows the fallback fired.
+        # Not a warning level event — this is the intended ergonomic path
+        # for templates with a single body layout.
+        sys.stderr.write(
+            f"[layout] auto-fallback: no `default_layout:` or per-slide "
+            f"`Layout:` set; using sole body-canonical layout "
+            f"{auto_default!r} for every slide that didn't override.\n"
+        )
+
     return resolved, available, errors
 
 
@@ -1282,6 +1381,82 @@ def stage1_sanity_check(template_path: Path) -> int:
 
 
 # ----------------------------------------------------------------------
+# Template confirmation gate — surface the resolved template BEFORE dispatch
+# so the operator catches wrong-template runs at the prompt instead of in
+# REVIEW.html three minutes later.
+# ----------------------------------------------------------------------
+
+def confirm_template_choice(template_path: Path, auto_confirm: bool) -> int:
+    """Print a summary of the chosen template (name, brand colors, layout
+    count, registration timestamp) and require explicit Y/N confirmation.
+
+    Returns 0 to proceed, non-zero to abort.
+
+    --confirm-template (auto_confirm=True) skips the prompt for scripted runs.
+    Non-TTY stdin without --confirm-template also aborts loudly: orchestrators
+    that pipe input must opt in to the flag rather than silently bypass.
+    """
+    # Load brand + chrome sidecars to surface the facts the operator needs.
+    # Both already pass sanity check, so they're guaranteed loadable here.
+    try:
+        brand = load_brand_sidecar(template_path)
+    except Exception as exc:
+        sys.stderr.write(f"ERROR: cannot load brand sidecar for confirmation: {exc}\n")
+        return 8
+    try:
+        spec = load_chrome_yml(_p.chrome_yml(template_path))
+        layout_count = len(spec.layouts)
+    except Exception:
+        layout_count = 0
+
+    # theme.json carries the registration timestamp (informational).
+    registered_at = "(unknown)"
+    try:
+        theme_json_path = _p.theme_json(template_path)
+        if theme_json_path.exists():
+            theme_data = json.loads(theme_json_path.read_text(encoding="utf-8"))
+            registered_at = str(theme_data.get("registered_at", "(unknown)"))
+    except Exception:
+        pass
+
+    print()
+    print("=" * 72)
+    print("TEMPLATE CONFIRMATION")
+    print("=" * 72)
+    print(f"  Path           : {template_path}")
+    print(f"  File           : {template_path.name}")
+    print(f"  Brand primary  : {brand.get('primary_hex', '(unknown)')}")
+    print(f"  Brand accent   : {brand.get('accent_hex', '(unknown)')}")
+    print(f"  Layouts (chrome.yml): {layout_count}")
+    print(f"  Registered     : {registered_at}")
+    print("=" * 72)
+
+    if auto_confirm:
+        print("  [--confirm-template] auto-confirmed, proceeding.")
+        print()
+        return 0
+
+    if not sys.stdin.isatty():
+        sys.stderr.write(
+            "ERROR: template confirmation required but stdin is not a TTY.\n"
+            "       Re-run with --confirm-template to acknowledge this is the "
+            "intended template.\n"
+        )
+        return 8
+
+    try:
+        ans = input("  Proceed with this template? [y/N]: ").strip().lower()
+    except (EOFError, KeyboardInterrupt):
+        sys.stderr.write("\nERROR: confirmation aborted by user.\n")
+        return 8
+    if ans not in ("y", "yes"):
+        sys.stderr.write("Aborted: template not confirmed. Re-run with the correct --template.\n")
+        return 8
+    print()
+    return 0
+
+
+# ----------------------------------------------------------------------
 # Main
 # ----------------------------------------------------------------------
 
@@ -1298,6 +1473,13 @@ def main() -> int:
         "--client-name",
         default=None,
         help="Override client slug detection. By default, derived from the template's parent directory.",
+    )
+    parser.add_argument(
+        "--confirm-template",
+        action="store_true",
+        help="Skip the interactive 'is this the right template?' prompt. Use for scripted/CI runs. "
+             "When omitted, build_deck halts and asks for Y/N confirmation showing the resolved template name, "
+             "brand colors, layout count, and registration timestamp.",
     )
     args = parser.parse_args()
 
@@ -1318,6 +1500,16 @@ def main() -> int:
     sanity_rc = stage1_sanity_check(args.template)
     if sanity_rc != 0:
         return sanity_rc
+
+    # 0.5. TEMPLATE CONFIRMATION GATE — surface what template will drive the
+    # build BEFORE any agent dispatch. Wrong-template builds are silent + slow
+    # to catch otherwise: every page comes out off-brand and only the operator's
+    # eye in REVIEW.html spots it. Show the resolved name + colors + registration
+    # timestamp and require explicit OK (--confirm-template flag for scripted
+    # runs, or Y/N when stdin is a TTY).
+    confirm_rc = confirm_template_choice(args.template, args.confirm_template)
+    if confirm_rc != 0:
+        return confirm_rc
 
     # Output dir — only created after sanity check passes
     try:

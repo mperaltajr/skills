@@ -111,9 +111,21 @@ The chat-driven flow replaces the legacy PowerShell TTY flow (still available as
    ```powershell
    py -3 scripts/register_template.py commit <path-to-template.pptx> --picks <picks.json>
    ```
-   This writes `<stem>.brand.yml` + `<stem>.theme.json`. Template is now registered.
+   This writes `<stem>/brand.yml` + `<stem>/theme.json` (subfolder layout, v0.4+). Template is now registered.
 
 The picks JSON shape and full subcommand documentation lives at the top of `scripts/register_template.py` (run with `--help`).
+
+**Fallback for chat-only environments (`commit-cli`).** When the chat cannot open `register.html` (no local browser, JS-restricted preview panel, etc.), use the `commit-cli` subcommand instead. The orchestrator shows the user `palette.png` directly in chat, takes color picks conversationally, then invokes:
+
+```powershell
+py -3 scripts/register_template.py commit-cli <path-to-template.pptx> `
+   --primary-slot dk2 --primary-hex 4D148C `
+   --accent-slot lt2  --accent-hex FF6600
+```
+
+Optional flags: `--cover-bg-slot`, `--cover-bg-hex`, `--dark-bg-slot`, `--dark-bg-hex`, `--strip-master-backgrounds`, and repeatable `--layout-class "NAME=body-canonical|bespoke"`. Use `--accept` to take the Phase-1 best-guess verbatim (still requires explicit user opt-in per the no-auto-accept rule above).
+
+The same hard rule applies: the orchestrator MUST take picks from the user in chat first; never invent slot assignments. Use `commit-cli` only when `register.html` cannot be displayed — the HTML picker is still the preferred path because it shows live swatch updates.
 
 ---
 
