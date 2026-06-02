@@ -1204,16 +1204,28 @@ def resolve_slide_layouts(
     except Exception:
         available = []
 
-    # RC-3 auto-fallback (2026-06-02): if neither the slide nor the
-    # deck-default specifies a layout, AND chrome.yml has exactly one
-    # body-canonical layout, fall back to it with a one-line warning.
-    # Storyline-helper currently does not emit per-slide `Layout:` fields,
-    # which previously caused a hard exit 9 on every fresh build. The
-    # auto-fallback only fires when the choice is unambiguous (exactly one
-    # canonical body layout); ambiguous templates still hard-fail so the
-    # operator must disambiguate.
+    # Layout resolution precedence (highest -> lowest):
+    #   1. per-slide `Layout:` field in the brief
+    #   2. brief front-matter `default_layout:`
+    #   3. theme.json `default_content_layout` (set at registration time —
+    #      "the layout the user wants their content slides to look like";
+    #      added 2026-06-02 to bridge the picks-vs-layout-selection
+    #      conflation surfaced in feedback-2026-06-02.md)
+    #   4. RC-3 sole-body-canonical auto-fallback (when chrome.yml has
+    #      exactly one body-canonical layout, use it without asking)
+    # Ambiguous templates with none of #1-#4 set still hard-fail with
+    # exit 9 so the operator must disambiguate.
+    template_default = ""
+    try:
+        theme_path = _p.theme_json(template_path)
+        if theme_path.exists():
+            theme_data = json.loads(theme_path.read_text(encoding="utf-8"))
+            template_default = (theme_data.get("default_content_layout") or "").strip()
+    except Exception:
+        template_default = ""
+
     auto_default = ""
-    if not deck_default and spec is not None:
+    if not deck_default and not template_default and spec is not None:
         body_canonicals = sorted(
             name for name, lc in spec.layouts.items()
             if getattr(lc, "layout_class", None) == "body-canonical"
@@ -1225,7 +1237,7 @@ def resolve_slide_layouts(
     errors: list[str] = []
     for slide in slides:
         per_slide = (slide.get("layout") or "").strip()
-        chosen = per_slide or deck_default or auto_default
+        chosen = per_slide or deck_default or template_default or auto_default
         if not chosen:
             errors.append(
                 f"Slide {slide['slide_n']} — \"{slide.get('title', '(untitled)')}\""
@@ -1241,14 +1253,18 @@ def resolve_slide_layouts(
             continue
         resolved.append(chosen)
 
-    if auto_default and not deck_default:
-        # One-line breadcrumb so the operator knows the fallback fired.
-        # Not a warning level event — this is the intended ergonomic path
-        # for templates with a single body layout.
+    if template_default and not deck_default:
+        sys.stderr.write(
+            f"[layout] template default: using "
+            f"theme.json:default_content_layout = {template_default!r} "
+            f"for slides without per-slide Layout: override.\n"
+        )
+    elif auto_default and not deck_default and not template_default:
+        # Sole-body-canonical fallback breadcrumb (RC-3).
         sys.stderr.write(
             f"[layout] auto-fallback: no `default_layout:` or per-slide "
-            f"`Layout:` set; using sole body-canonical layout "
-            f"{auto_default!r} for every slide that didn't override.\n"
+            f"`Layout:` set, theme.json has no default_content_layout; "
+            f"using sole body-canonical layout {auto_default!r}.\n"
         )
 
     return resolved, available, errors
