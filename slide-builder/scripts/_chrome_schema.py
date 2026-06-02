@@ -178,22 +178,30 @@ class LayoutChrome(BaseModel):
     source: BoxPx | None = None
     page_number: BoxPx | None = None
     # v2 (2026-05-28) — body-canonical layout-inheritance fields.
+    # v2.1 (2026-06-02) — subtitle_placeholder_idx added.
     # For body-canonical layouts ONLY:
     #   title_placeholder_idx: which inherited placeholder holds the title
     #     (so finalize_deck writes the slide title text into the layout's
     #      title placeholder rather than drawing a free-floating textbox).
+    #   subtitle_placeholder_idx: same idea for the subtitle. When set, the
+    #     worker skips drawing a free-floating subtitle textbox and finalize
+    #     populates the inherited subtitle placeholder instead. Bug #2
+    #     (feedback-2026-06-02.md) traced subtitle drift to the absence of
+    #     this field — the worker drew subtitle at a hardcoded canonical
+    #     position while the real subtitle placeholder sat empty.
     #   body_top_y_px / body_bottom_y_px: drawable zone between the inherited
     #     title placeholder bottom and the footer placeholder top — patterns
     #     compose body content inside this zone.
-    #   body_overlay_hex: when set, finalize_deck inserts a solid rectangle
-    #     of that color covering the body zone as the first slide-level
-    #     shape (used to paint a dark variant on top of a light layout when
-    #     the template ships no dark body layout). None = no overlay.
     # For bespoke layouts these remain None (covers/dividers keep today's
     # strip-and-redraw path).
     title_placeholder_idx: int | None = None
+    subtitle_placeholder_idx: int | None = None
     body_top_y_px: int | None = None
     body_bottom_y_px: int | None = None
+    # body_overlay_hex retained for backward-compat with existing chrome.yml
+    # files; never populated by current register_template and unread by any
+    # downstream code as of 2026-06-02. See Round D cleanup task — slated
+    # for removal once existing templates are re-registered.
     body_overlay_hex: str | None = None
 
 
@@ -237,18 +245,12 @@ class ChromeLayoutMissingError(RuntimeError):
     """
 
 
-class LegacyTemplateLayoutError(RuntimeError):
-    """Raised when a template still uses the pre-v0.4 flat sidecar layout.
-
-    Pre-v0.4 templates dumped ~9 sidecar files + a thumbnails dir flat into
-    `_templates/`, prefixed with the template stem. v0.4 moved them into a
-    per-template subfolder. Readers detect the legacy layout and raise this
-    error pointing the operator at the one-shot migration command rather
-    than silently reading from the flat path (which would leave the
-    `_templates/` directory in its old messy state forever).
-
-    See feedback_sidecar_fallback_must_be_loud.md.
-    """
+# Note: LegacyTemplateLayoutError (raised when pre-v0.4 flat sidecar layout
+# is detected) lives in twins/client_theme.py, where it's the only thing
+# that raises it. Removed the duplicate definition here on 2026-06-02 —
+# previously both files defined the same name with different parent classes
+# (RuntimeError vs FileNotFoundError), which would have caught operators by
+# surprise if anyone tried to except-block both.
 
 
 # ---------------------------------------------------------------------------

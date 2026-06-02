@@ -1,9 +1,21 @@
 # Slide Lab — Python runtime dependencies. Pinned for reproducibility.
 # Install: py -3 -m pip install -r requirements.txt
-# Verify:  py -3 -c "import pptx, PIL, yaml, lxml; print('python deps OK')"
+# Verify:  py -3 -c "import pptx, PIL, yaml, lxml, pydantic, pypdfium2; print('python deps OK')"
 
 python-pptx==1.0.2
 Pillow==11.0.0
 PyYAML==6.0.2
 lxml==5.3.0
 pydantic==2.13.4
+
+# Used by slide-qc/scripts/render_slides.py for PDF -> PNG conversion in the
+# default (LibreOffice headless) render path. Pinning to 4.30.x to match the
+# tested ABI; auto-install on first render was removed 2026-06-02 in favor of
+# a documented requirements.txt entry.
+pypdfium2==4.30.0
+
+# Optional: needed only for the pixel-perfect `--engine ppt` render path
+# (PowerPoint COM automation). Windows-only — installs as `pywin32`, imports
+# as `win32com`. Skipped automatically on non-Windows platforms via the
+# environment marker. Safe to skip if you only use LibreOffice rendering.
+pywin32==308; sys_platform == "win32"
