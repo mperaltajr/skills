@@ -1411,7 +1411,13 @@ function refreshUI() {
   // Update strip toggle
   state.strip_master_backgrounds = document.getElementById("strip-bg").checked;
 
-  // Update picks JSON preview
+  // Update picks JSON preview. v0.4.1 (2026-06-02): no longer emits
+  // layout_classifications — that field is architectural metadata
+  // (does Slide Lab strip placeholders or inherit them?) that the user
+  // shouldn't have to think about. register_template.py commit recomputes
+  // it from the template's actual placeholder structure. The picks JSON
+  // now carries only editorial intent: brand colors + the layout the user
+  // picked as the default for content slides.
   const payload = {
     accept: false,
     primary_slot:  state.primary_slot,
@@ -1423,12 +1429,7 @@ function refreshUI() {
     dark_bg_slot:  state.dark_bg_slot,
     dark_bg_hex:   state.dark_bg_hex,
     strip_master_backgrounds: state.strip_master_backgrounds,
-    // default_content_layout is the layout the user picked as the
-    // default for content slides (built-by-default, no per-slide override).
-    // Read by build_deck.py:resolve_slide_layouts as the template-level
-    // fallback. Distinct from layout_classifications (architectural).
     default_content_layout: layoutPicks.body || "",
-    layout_classifications: layoutClassifications,
   };
   document.getElementById("picks-json").textContent = JSON.stringify(payload, null, 2);
 
