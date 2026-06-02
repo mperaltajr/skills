@@ -124,12 +124,21 @@ def _sha256_of_file(path: Path) -> str:
 
 
 def sidecar_paths(template_path: Path) -> tuple:
-    """Return (brand_yml_path, theme_json_path) for a given template."""
-    stem = template_path.stem  # filename without final extension
-    return (
-        template_path.with_name(f"{stem}.brand.yml"),
-        template_path.with_name(f"{stem}.theme.json"),
-    )
+    """Return (brand_yml_path, theme_json_path) for a given template.
+
+    Resolves via _paths.py to the v0.4 subfolder layout
+    (`<template-stem>/brand.yml`, `<template-stem>/theme.json`).
+    """
+    # Local import: twins/ is imported in many places where the scripts/
+    # dir isn't on sys.path. Defer the resolve so import-time doesn't
+    # require the scripts dir.
+    import sys
+    from pathlib import Path as _P
+    _scripts = str((_P(__file__).resolve().parent.parent / "scripts").resolve())
+    if _scripts not in sys.path:
+        sys.path.insert(0, _scripts)
+    import _paths as _p  # type: ignore
+    return (_p.brand_yml(template_path), _p.theme_json(template_path))
 
 
 class BrandSidecarMissing(FileNotFoundError):
@@ -139,6 +148,14 @@ class BrandSidecarMissing(FileNotFoundError):
 
 class BrandSidecarStale(ValueError):
     """Raised when theme.json's template_sha doesn't match the template file."""
+    pass
+
+
+class LegacyTemplateLayoutError(FileNotFoundError):
+    """Raised when a template is registered with the pre-v0.4 flat sidecar
+    layout. Points the operator at the one-shot migration script rather than
+    silently reading from the legacy path. See feedback_sidecar_fallback_must_be_loud.
+    """
     pass
 
 
@@ -160,6 +177,24 @@ def load_brand_sidecar(template_path: Path) -> dict:
     brand_yml, theme_json = sidecar_paths(template_path)
 
     if not brand_yml.exists() or not theme_json.exists():
+        # Detect pre-v0.4 flat layout — point operator at migration script
+        # rather than ask them to re-register from scratch.
+        import sys as _sys
+        from pathlib import Path as _P
+        _scripts = str((_P(__file__).resolve().parent.parent / "scripts").resolve())
+        if _scripts not in _sys.path:
+            _sys.path.insert(0, _scripts)
+        import _paths as _p  # type: ignore
+        if _p.detect_legacy_template_layout(template_path):
+            raise LegacyTemplateLayoutError(
+                f"Template {template_path.name} uses the pre-v0.4 flat sidecar "
+                f"layout (sidecars live next to the .pptx instead of in a "
+                f"subfolder). Run the one-shot migration:\n"
+                f'  py -3 slide-builder/scripts/migrate_template_layout.py "{template_path.parent}"\n'
+                f"This moves <stem>.brand.yml, <stem>.theme.json, <stem>.chrome.yml "
+                f"and all other sidecars into <stem>/ next to the .pptx. "
+                f"Existing builds will continue to work after the migration."
+            )
         msg_lines = [
             f"Brand sidecar(s) missing for template: {template_path}",
         ]
@@ -216,8 +251,14 @@ def load_brand_sidecar(template_path: Path) -> dict:
         ),
         "font_heading": str(brand_raw.get("font_heading", "") or ""),
         "font_body": str(brand_raw.get("font_body", "") or ""),
+        # Default false — KEEP the master decoration. The master IS the
+        # brand chrome for most templates (FedEx purple bars, Accenture
+        # rules, OTC top/bottom bands). Stripping makes every slide look
+        # off-spec. Set true ONLY for legacy templates with photographic
+        # decoration that shouldn't bleed behind every slide.
+        # (Matches register_template.py commit a8a79e2 and brand.yml docs.)
         "strip_master_backgrounds": bool(
-            brand_raw.get("strip_master_backgrounds", True)
+            brand_raw.get("strip_master_backgrounds", False)
         ),
         "_template_sha": actual_sha,
     }
@@ -262,7 +303,7 @@ class ClientTheme:
     accent_slot: str = ""                # informational
     cover_bg_slot: str = ""              # informational
     dark_bg_slot: str = ""               # informational
-    strip_master_backgrounds: bool = True
+    strip_master_backgrounds: bool = False
     template_sha: str = ""
 
     # Cached map

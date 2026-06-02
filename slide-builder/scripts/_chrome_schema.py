@@ -224,6 +224,33 @@ class ChromeSchemaError(RuntimeError):
     """Raised when chrome.yml fails validation or has unsupported version."""
 
 
+class ChromeLayoutMissingError(RuntimeError):
+    """Raised when a slide references a layout name that does not exist in
+    the loaded chrome.yml.
+
+    Silent fallback to a default layout was the bug that hid the OTC Sizing
+    chrome regression (2026-06-01) — slides resolved to a stand-in layout
+    whose geometry didn't match the actual template. Helpers MUST raise this
+    instead of substituting a default.
+
+    See feedback_sidecar_fallback_must_be_loud.md.
+    """
+
+
+class LegacyTemplateLayoutError(RuntimeError):
+    """Raised when a template still uses the pre-v0.4 flat sidecar layout.
+
+    Pre-v0.4 templates dumped ~9 sidecar files + a thumbnails dir flat into
+    `_templates/`, prefixed with the template stem. v0.4 moved them into a
+    per-template subfolder. Readers detect the legacy layout and raise this
+    error pointing the operator at the one-shot migration command rather
+    than silently reading from the flat path (which would leave the
+    `_templates/` directory in its old messy state forever).
+
+    See feedback_sidecar_fallback_must_be_loud.md.
+    """
+
+
 # ---------------------------------------------------------------------------
 # Loader / validator
 # ---------------------------------------------------------------------------

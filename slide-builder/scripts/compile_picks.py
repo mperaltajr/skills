@@ -106,7 +106,8 @@ def parse_picks(arg: Optional[str], out_dir: Path) -> dict[str, str]:
 # ---------------------------------------------------------------------------
 def copy_picked_slide_into(dst_prs, src_pptx: Path,
                            layout_name: str = "",
-                           layout_chrome=None) -> int:
+                           layout_chrome=None,
+                           keep_master_shapes: bool = False) -> int:
     """Open `src_pptx`, append its first slide's shapes onto a new slide in
     `dst_prs`.
 
@@ -132,7 +133,7 @@ def copy_picked_slide_into(dst_prs, src_pptx: Path,
 
     new_slide = dst_prs.slides.add_slide(target)
     if not _is_body_canonical:
-        _strip_layout_placeholders(new_slide)
+        _strip_layout_placeholders(new_slide, keep_master_shapes=keep_master_shapes)
 
     sp_tree = new_slide.shapes._spTree
     count = 0
@@ -225,6 +226,13 @@ def main() -> int:
     dst_prs = Presentation(str(template_path))
     _clear_existing_slides(dst_prs)
 
+    # Load brand.yml to honor strip_master_backgrounds. When false (FedEx /
+    # OTC default), the master IS the brand chrome — top/bottom bands must
+    # survive into the compiled deck. See feedback_sidecar_fallback_must_be_loud.
+    from twins.client_theme import load_client_theme  # noqa: E402
+    _theme = load_client_theme(str(template_path))
+    _keep_master = not bool(getattr(_theme, "strip_master_backgrounds", True))
+
     print("\n[2] Copy picked themed slides")
     rows: list[str] = []
     failures: list[str] = []
@@ -240,7 +248,7 @@ def main() -> int:
             print(f"  {key} pick {letter}  FAIL ({msg})")
             continue
         try:
-            n_shapes = copy_picked_slide_into(dst_prs, src)
+            n_shapes = copy_picked_slide_into(dst_prs, src, keep_master_shapes=_keep_master)
             copied_count += 1
             rows.append(f"| {key} | {letter} | `{src.name}` | {n_shapes} | ok |")
             print(f"  {key} pick {letter}  ok (shapes={n_shapes})")

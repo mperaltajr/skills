@@ -1,30 +1,51 @@
 ﻿"""Register a client PPTX template — one-time setup per template.
 
-Produces two files NEXT TO the template:
-  - <stem>.brand.yml    : human-editable, ~15 lines
-  - <stem>.theme.json   : machine-generated, SHA-stamped audit
+Produces per-template sidecars in a subfolder NEXT TO the .pptx (v0.4+):
+  <template-parent>/<stem>/
+    brand.yml             : human-editable, ~15 lines
+    theme.json            : machine-generated, SHA-stamped audit
+    chrome.yml            : per-layout chrome geometry
+    preview.pptx / .png   : 3-surface registration preview
+    palette.png           : swatch grid
+    register.html         : interactive picker UI
+    register.proposal.json: Phase-1 output
+    register.picks.json   : user's confirmed picks (when used)
+    thumbnails/           : per-layout PNG thumbnails
 
-Three CLI subcommands:
+Four CLI subcommands:
 
   propose      (chat-driven flow, default for coworker setup)
   -----------------------------------------------------------------------
   py -3 scripts/register_template.py propose <template.pptx>
       Extracts theme XML colors + fonts. Best-guess primary/accent. Builds
-      preview PPTX (3 surfaces). Renders to PNG. Writes a proposal JSON next
-      to the template at <stem>.register.proposal.json. NO interactive
+      preview PPTX (3 surfaces). Renders to PNG. Writes a proposal JSON +
+      preview + palette + register.html into <stem>/. NO interactive
       prompts, NO TTY gate, NO writes to brand.yml/theme.json.
       The orchestrator (chat layer) reads the proposal JSON, shows the
-      preview PNG to the user, takes picks in chat, then invokes `commit`.
+      register.html to the user, takes picks in chat, then invokes
+      `commit` (browser available) or `commit-cli` (chat-only).
 
-  commit       (chat-driven flow, after user confirms picks)
+  commit       (chat-driven flow, picks via JSON file)
   -----------------------------------------------------------------------
   py -3 scripts/register_template.py commit <template.pptx> --picks <picks.json>
       Consumes a picks JSON with the user's chosen primary/accent (or
       {"accept": true} to use the Phase-1 best-guess unchanged) and writes
-      <stem>.brand.yml + <stem>.theme.json. NO TTY gate.
-      The safety property the legacy TTY gate provided (no accidental
-      pipe-y commits) is preserved because picks.json is an explicit named
-      input the chat must construct intentionally.
+      <stem>/brand.yml + <stem>/theme.json + <stem>/chrome.yml. NO TTY gate.
+      Use this when register.html is openable in a real browser and the
+      chat can receive the live-edited picks JSON back.
+
+  commit-cli   (chat-driven flow, picks via CLI flags — RC-2 fallback)
+  -----------------------------------------------------------------------
+  py -3 scripts/register_template.py commit-cli <template.pptx> \\
+      --primary-slot dk2 --primary-hex 4D148C \\
+      --accent-slot lt2  --accent-hex FF6600
+      Same write side as `commit`, but takes picks from CLI flags instead
+      of a JSON file. Use when the chat cannot render register.html with
+      live JS (e.g., chat-only preview panels). The orchestrator shows
+      palette.png in chat, takes user picks conversationally, then runs
+      this. Optional flags: --cover-bg-slot/--cover-bg-hex,
+      --dark-bg-slot/--dark-bg-hex, --strip-master-backgrounds,
+      repeatable --layout-class "NAME=body-canonical|bespoke", --accept.
 
   interactive  (legacy PowerShell flow, power users with a real TTY)
   -----------------------------------------------------------------------
@@ -33,7 +54,7 @@ Three CLI subcommands:
       The original 4-phase interactive flow with input() prompts and the
       TTY confirmation gate. For batch registration / migration / power
       users running from a real terminal. NOT for coworkers — see `propose`
-      / `commit` for the chat-driven path.
+      / `commit` / `commit-cli` for the chat-driven paths.
 
 Picks JSON shape (consumed by `commit`):
 
@@ -1780,7 +1801,7 @@ def pick_index(prompt: str, n_max: int) -> int:
 def _write_chrome_yml_for(tpl: Path, *, sha8: str,
                           layout_overrides: dict | None,
                           commit_method: str | None = None) -> int:
-    """Extract and dump <stem>.chrome.yml next to the template.
+    """Extract and dump chrome.yml next to the template (subfolder layout).
 
     sha8 freshness-stamps the spec so finalize_deck.py can hard-fail when the
     .pptx mutates after registration. layout_overrides lets picks.json
@@ -1792,6 +1813,7 @@ def _write_chrome_yml_for(tpl: Path, *, sha8: str,
     vs. real user input via the registration page.
     """
     chrome_yml_path = _p.chrome_yml(tpl)
+    chrome_yml_path.parent.mkdir(parents=True, exist_ok=True)
     try:
         prs = Presentation(str(tpl))
         spec = extract_chrome_spec(prs, sha8=sha8,
@@ -1801,16 +1823,10 @@ def _write_chrome_yml_for(tpl: Path, *, sha8: str,
         print(f"  ERROR: chrome.yml extraction failed: "
               f"{type(exc).__name__}: {exc}")
         return 2
-    # Append commit_method as a top-level audit field if supplied. We do this
-    # by re-loading + re-dumping the YAML so the field sits next to
-    # schema_version / source_template_sha8 / layouts. validate_chrome_dict
-    # ignores unknown top-level keys via pydantic default Strict-no behavior?
-    # Pydantic by default rejects extras; rather than weaken validation we
-    # keep commit_method OUTSIDE the validated ChromeSpec by writing it to a
-    # sibling marker file: <stem>.chrome.commit_method.txt. Cleaner and
-    # keeps the schema contract pure.
+    # Keep commit_method outside the validated ChromeSpec by writing it to a
+    # sibling marker file. Cleaner than weakening pydantic strict validation.
     if commit_method:
-        sib = chrome_yml_path.with_name(chrome_yml_path.stem + '.commit_method.txt')
+        sib = _p.chrome_commit_method_txt(tpl)
         sib.write_text(str(commit_method).strip() + "\n", encoding="utf-8")
         print(f"  commit_method marker: {sib} -> {commit_method}")
     n_layouts = len(spec.layouts)
@@ -1866,8 +1882,9 @@ def _main_interactive(args) -> int:
     strip_master_backgrounds = False
 
     # ---- Phase 2: preview build (always) ----
-    preview_path = tpl.with_name(f"{tpl.stem}.preview.pptx")
-    preview_png = tpl.with_name(f"{tpl.stem}.preview.png")
+    _p.template_sidecar_dir(tpl).mkdir(parents=True, exist_ok=True)
+    preview_path = _p.preview_pptx(tpl)
+    preview_png = _p.preview_png(tpl)
     print("\n[Phase 2] Preview build (3 surfaces: title + content + dashboard)")
     build_preview_pptx(
         template_path=tpl,
@@ -1938,7 +1955,7 @@ def _main_interactive(args) -> int:
                 strip_master_backgrounds=strip_master_backgrounds,
                 colors=colors, n_master=n_master, n_layout=n_layout,
             )
-            brand_yml = tpl.with_name(f"{tpl.stem}.brand.yml")
+            brand_yml = _p.brand_yml(tpl)
             try:
                 os.startfile(str(brand_yml))
             except Exception as e:
@@ -2034,8 +2051,9 @@ def _write_outputs(tpl: Path, sha: str, sha8: str,
                    font_heading: str, font_body: str,
                    strip_master_backgrounds: bool,
                    colors: dict, n_master: int, n_layout: int) -> None:
-    brand_yml = tpl.with_name(f"{tpl.stem}.brand.yml")
-    theme_json = tpl.with_name(f"{tpl.stem}.theme.json")
+    _p.template_sidecar_dir(tpl).mkdir(parents=True, exist_ok=True)
+    brand_yml = _p.brand_yml(tpl)
+    theme_json = _p.theme_json(tpl)
 
     write_brand_yml(
         brand_yml,
@@ -2425,10 +2443,11 @@ def _extract_theme_and_preview(tpl: Path) -> dict:
         _best_guess_primary_accent(colors, tpl)
     cover_bg_hex, cover_bg_slot = primary_hex, primary_slot
 
-    preview_pptx     = tpl.with_name(f"{tpl.stem}.preview.pptx")
-    preview_png      = tpl.with_name(f"{tpl.stem}.preview.png")
-    palette_png    = tpl.with_name(f"{tpl.stem}.palette.png")
-    register_html  = tpl.with_name(f"{tpl.stem}.register.html")
+    _p.template_sidecar_dir(tpl).mkdir(parents=True, exist_ok=True)
+    preview_pptx     = _p.preview_pptx(tpl)
+    preview_png      = _p.preview_png(tpl)
+    palette_png      = _p.palette_png(tpl)
+    register_html    = _p.register_html(tpl)
     build_preview_pptx(
         template_path=tpl,
         primary_hex=primary_hex, accent_hex=accent_hex,
@@ -2452,8 +2471,8 @@ def _extract_theme_and_preview(tpl: Path) -> dict:
 
     # v0.3 (2026-05-28): render one PNG per layout so the registration HTML
     # can show the user what each layout actually looks like before they
-    # pick. Stored in <tpl-stem>.thumbnails/ next to the chrome.yml.
-    thumbnails_dir = tpl.with_name(f"{tpl.stem}.thumbnails")
+    # pick. v0.4: stored in <sidecar-dir>/thumbnails/ (sibling of register.html).
+    thumbnails_dir = _p.thumbnails_dir(tpl)
     try:
         layout_thumbnails = render_layout_thumbnails(tpl, thumbnails_dir, dpi=96)
         print(f"  layout thumbnails: {len(layout_thumbnails)} rendered "
@@ -2474,13 +2493,16 @@ def _extract_theme_and_preview(tpl: Path) -> dict:
         layout_proposals = []
     # Attach thumbnail paths (relative to the register.html location) so the
     # <img src=...> loads under file:// without security blocks.
+    # Thumbnails live at <sidecar-dir>/thumbnails/<name>.png; register.html
+    # lives at <sidecar-dir>/register.html. So relative paths from the HTML
+    # are just `thumbnails/<name>.png`.
+    _sidecar_dir = _p.template_sidecar_dir(tpl)
     for lp in layout_proposals:
         name = lp.get("name")
         if name in layout_thumbnails:
             abs_path = layout_thumbnails[name]
             try:
-                rel = abs_path.relative_to(tpl.parent)
-                # Use forward slashes for HTML
+                rel = abs_path.relative_to(_sidecar_dir)
                 lp["thumbnail"] = str(rel).replace("\\", "/")
             except ValueError:
                 lp["thumbnail"] = str(abs_path).replace("\\", "/")
@@ -2546,7 +2568,8 @@ def _main_propose(args) -> int:
 
     proposal = _extract_theme_and_preview(tpl)
 
-    proposal_path = tpl.with_name(f"{tpl.stem}.register.proposal.json")
+    proposal_path = _p.register_proposal_json(tpl)
+    proposal_path.parent.mkdir(parents=True, exist_ok=True)
     proposal_path.write_text(json.dumps(proposal, indent=2), encoding="utf-8")
 
     print(f"  best-guess primary: #{proposal['best_guess']['primary_hex']} "
@@ -2571,26 +2594,14 @@ def _main_propose(args) -> int:
     return 0
 
 
-def _main_commit(args) -> int:
-    """Phase 4: read picks JSON, write brand.yml + theme.json. No TTY gate."""
-    sys.stdout.reconfigure(encoding="utf-8")
+def _commit_from_picks_dict(tpl: Path, picks: dict, *, source: str) -> int:
+    """Shared commit core: takes a picks dict (from any source — JSON file
+    or CLI flags), runs the extract pass, writes brand.yml + theme.json +
+    chrome.yml. Returns 0 on success, non-zero on error.
 
-    tpl = args.template.resolve()
-    if not tpl.exists():
-        print(f"ERROR: template not found: {tpl}")
-        return 2
-
-    picks_path = args.picks.resolve()
-    if not picks_path.exists():
-        print(f"ERROR: picks JSON not found: {picks_path}")
-        return 2
-
-    try:
-        picks = json.loads(picks_path.read_text(encoding="utf-8"))
-    except Exception as e:
-        print(f"ERROR: could not parse picks JSON: {e}")
-        return 2
-
+    `source` is a one-line human-readable label printed at the top of the
+    commit output for audit ("picks JSON", "CLI flags", "Phase-1 best-guess").
+    """
     # Recompute extraction so we have the fonts/colors/sha — even on "accept",
     # we don't trust the picks file to carry every field.
     proposal = _extract_theme_and_preview(tpl)
@@ -2600,16 +2611,15 @@ def _main_commit(args) -> int:
         primary_slot = bg["primary_slot"]; primary_hex = bg["primary_hex"]
         accent_slot  = bg["accent_slot"];  accent_hex  = bg["accent_hex"]
         cover_bg_slot = bg["cover_bg_slot"]; cover_bg_hex = bg["cover_bg_hex"]
-        # Dark-variant default: primary (same default as the picker UI).
         dark_bg_slot = primary_slot
         dark_bg_hex  = primary_hex
         strip_master_backgrounds = False
-        source = "Phase-1 best-guess (accept=true)"
+        source = f"{source} (accept=true → Phase-1 best-guess)"
     else:
         # Required fields when not accepting:
         for k in ("primary_slot", "primary_hex", "accent_slot", "accent_hex"):
             if k not in picks:
-                print(f"ERROR: picks JSON missing required field '{k}' "
+                print(f"ERROR: picks missing required field '{k}' "
                       f"(when accept is not true). Got keys: {list(picks.keys())}")
                 return 2
         primary_slot = picks["primary_slot"]
@@ -2618,12 +2628,9 @@ def _main_commit(args) -> int:
         accent_hex   = picks["accent_hex"].upper().lstrip("#")
         cover_bg_slot = picks.get("cover_bg_slot", primary_slot)
         cover_bg_hex  = picks.get("cover_bg_hex",  primary_hex).upper().lstrip("#")
-        # Dark-variant background: defaults to primary if not in picks
-        # (older picks JSON without the dark_bg_* fields still work).
         dark_bg_slot = picks.get("dark_bg_slot", primary_slot)
         dark_bg_hex  = picks.get("dark_bg_hex",  primary_hex).upper().lstrip("#")
         strip_master_backgrounds = picks.get("strip_master_backgrounds", False)
-        source = "user picks via chat orchestrator"
 
     print(f"register_template commit - {tpl.name}")
     print(f"  source:        {source}")
@@ -2644,9 +2651,6 @@ def _main_commit(args) -> int:
         n_master=proposal["n_master"], n_layout=proposal["n_layout"],
     )
 
-    # v0.2 P1.2: extract chrome.yml after brand.yml + theme.json land. User
-    # may pass `layout_classifications: {<name>: 'body-canonical'|'bespoke'}`
-    # in picks.json to override the auto-detected classification per layout.
     layout_overrides = picks.get("layout_classifications") or {}
     if not isinstance(layout_overrides, dict):
         print(f"  WARNING: picks.layout_classifications is not a dict; ignored.")
@@ -2657,11 +2661,96 @@ def _main_commit(args) -> int:
     if rc != 0:
         return rc
 
-    brand_yml  = tpl.with_name(f"{tpl.stem}.brand.yml")
-    theme_json = tpl.with_name(f"{tpl.stem}.theme.json")
+    brand_yml  = _p.brand_yml(tpl)
+    theme_json = _p.theme_json(tpl)
     print(f"  brand.yml:   {brand_yml}")
     print(f"  theme.json:  {theme_json}")
     return 0
+
+
+def _main_commit(args) -> int:
+    """Phase 4: read picks JSON, write brand.yml + theme.json. No TTY gate."""
+    sys.stdout.reconfigure(encoding="utf-8")
+
+    tpl = args.template.resolve()
+    if not tpl.exists():
+        print(f"ERROR: template not found: {tpl}")
+        return 2
+
+    picks_path = args.picks.resolve()
+    if not picks_path.exists():
+        print(f"ERROR: picks JSON not found: {picks_path}")
+        return 2
+
+    try:
+        picks = json.loads(picks_path.read_text(encoding="utf-8"))
+    except Exception as e:
+        print(f"ERROR: could not parse picks JSON: {e}")
+        return 2
+
+    return _commit_from_picks_dict(tpl, picks, source="picks JSON")
+
+
+def _main_commit_cli(args) -> int:
+    """Phase 4 variant: build picks from CLI flags. No picks JSON, no
+    register.html required — for chat orchestrators that can't render local
+    HTML with live JS. RC-2 fix (2026-06-02).
+
+    The orchestrator reads `palette.png` in chat, decides colors with the
+    user, then invokes this subcommand with the slot + hex flags. Bypasses
+    the register.html / picks.json round-trip entirely.
+    """
+    sys.stdout.reconfigure(encoding="utf-8")
+
+    tpl = args.template.resolve()
+    if not tpl.exists():
+        print(f"ERROR: template not found: {tpl}")
+        return 2
+
+    # Build the same dict shape _commit_from_picks_dict expects.
+    picks: dict = {}
+    if args.accept:
+        picks["accept"] = True
+    else:
+        # When not accepting, primary/accent are required.
+        missing = []
+        if not args.primary_slot or not args.primary_hex:
+            missing.append("--primary-slot + --primary-hex")
+        if not args.accent_slot or not args.accent_hex:
+            missing.append("--accent-slot + --accent-hex")
+        if missing:
+            print(f"ERROR: --accept not set; missing required: {', '.join(missing)}")
+            return 2
+        picks["primary_slot"]  = args.primary_slot
+        picks["primary_hex"]   = args.primary_hex
+        picks["accent_slot"]   = args.accent_slot
+        picks["accent_hex"]    = args.accent_hex
+        if args.cover_bg_slot: picks["cover_bg_slot"] = args.cover_bg_slot
+        if args.cover_bg_hex:  picks["cover_bg_hex"]  = args.cover_bg_hex
+        if args.dark_bg_slot:  picks["dark_bg_slot"]  = args.dark_bg_slot
+        if args.dark_bg_hex:   picks["dark_bg_hex"]   = args.dark_bg_hex
+        picks["strip_master_backgrounds"] = args.strip_master_backgrounds
+
+    # Parse --layout-class flags into the layout_classifications dict.
+    # Format: --layout-class "Layout Name=body-canonical"
+    layout_classifications: dict = {}
+    for entry in (args.layout_class or []):
+        if "=" not in entry:
+            print(f"ERROR: --layout-class entry must be NAME=CLASS, got {entry!r}")
+            return 2
+        name, _, klass = entry.partition("=")
+        klass = klass.strip().lower()
+        if klass not in ("body-canonical", "bespoke"):
+            print(f"ERROR: --layout-class CLASS must be 'body-canonical' or "
+                  f"'bespoke', got {klass!r} for layout {name.strip()!r}")
+            return 2
+        layout_classifications[name.strip()] = klass
+    if layout_classifications:
+        picks["layout_classifications"] = layout_classifications
+
+    picks["commit_method"] = "cli_flags"
+
+    return _commit_from_picks_dict(tpl, picks, source="CLI flags")
 
 
 # ---------------------------------------------------------------------------
@@ -2686,6 +2775,42 @@ def main() -> int:
     p_comm.add_argument("--picks", type=Path, required=True,
         help="Path to picks JSON (see module docstring for shape).")
 
+    # RC-2 fix (2026-06-02): CLI-flag variant of commit for chat orchestrators
+    # that cannot render register.html. The orchestrator inspects palette.png
+    # in chat, decides colors with the user, then invokes this subcommand
+    # with the slot + hex flags directly. No picks.json round-trip needed.
+    p_cli = sub.add_parser("commit-cli",
+        help="Phase 4 variant: take picks from CLI flags (no picks.json, no register.html). "
+             "Use when the chat cannot open register.html with live JS.")
+    p_cli.add_argument("template", type=Path, help="Path to .pptx/.potx")
+    p_cli.add_argument("--accept", action="store_true",
+        help="Accept Phase-1 best-guess colors verbatim. When set, every other "
+             "color flag is ignored.")
+    p_cli.add_argument("--primary-slot", type=str, default="",
+        help="Theme slot name for the primary brand color (e.g. dk2, lt2, accent1).")
+    p_cli.add_argument("--primary-hex", type=str, default="",
+        help="Primary hex (6-char, with or without #).")
+    p_cli.add_argument("--accent-slot", type=str, default="",
+        help="Theme slot name for the accent color.")
+    p_cli.add_argument("--accent-hex", type=str, default="",
+        help="Accent hex (6-char, with or without #).")
+    p_cli.add_argument("--cover-bg-slot", type=str, default="",
+        help="Optional. Cover slide background slot. Defaults to primary-slot.")
+    p_cli.add_argument("--cover-bg-hex", type=str, default="",
+        help="Optional. Cover slide background hex. Defaults to primary-hex.")
+    p_cli.add_argument("--dark-bg-slot", type=str, default="",
+        help="Optional. Dark-variant background slot. Defaults to primary-slot.")
+    p_cli.add_argument("--dark-bg-hex", type=str, default="",
+        help="Optional. Dark-variant background hex. Defaults to primary-hex.")
+    p_cli.add_argument("--strip-master-backgrounds", action="store_true",
+        help="Strip master decoration from every built slide. Default: false "
+             "(keep the master — it is usually the brand chrome).")
+    p_cli.add_argument("--layout-class", action="append", default=[],
+        metavar="NAME=CLASS",
+        help="Override auto-detected layout classification. CLASS must be "
+             "'body-canonical' or 'bespoke'. Repeatable. "
+             "Example: --layout-class \"Title and Content=body-canonical\"")
+
     p_int = sub.add_parser("interactive",
         help="Legacy 4-phase interactive flow with TTY confirmation gate.")
     p_int.add_argument("template", type=Path, help="Path to .pptx/.potx")
@@ -2697,6 +2822,8 @@ def main() -> int:
         return _main_propose(args)
     if args.cmd == "commit":
         return _main_commit(args)
+    if args.cmd == "commit-cli":
+        return _main_commit_cli(args)
     if args.cmd == "interactive":
         return _main_interactive(args)
     ap.print_help()

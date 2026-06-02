@@ -74,23 +74,22 @@ def _find_blank_layout(prs):
     return prs.slide_masters[0].slide_layouts[0]
 
 
-def _strip_layout_placeholders(slide) -> int:
-    """Remove every shape inherited from the slide's layout AND hide all
-    master shapes BEFORE copying our twin shapes on top.
+def _strip_layout_placeholders(slide, *, keep_master_shapes: bool = False) -> int:
+    """Remove layout-level placeholders that were copied onto the slide
+    when `add_slide(layout)` was called (Click to add title, sample bullets).
 
-    Two-step strip:
-      1. Remove layout-level placeholders that were copied onto the slide
-         when `add_slide(layout)` was called (Click to add title, sample
-         bullets).
-      2. Set ``<p:sld showMasterSp="0">`` so master-level shapes (Click to
-         edit Master title style, FedEx Proprietary & Confidential footer,
-         <Customize with Department> placeholders) do NOT inherit onto the
-         slide.
+    By default ALSO sets ``<p:sld showMasterSp="0">`` to hide master-level
+    shapes (Click to edit Master title, footer placeholders) — the v1
+    behavior for templates whose masters carried only placeholder leakage.
+
+    When ``keep_master_shapes=True``: only the slide-level shape strip runs;
+    master shapes (FedEx purple bars, header rules, OTC top/bottom bands)
+    remain visible. Use this for bespoke layouts on templates where the
+    master IS the brand chrome — i.e., brand.yml has
+    ``strip_master_backgrounds: false``.
 
     Background, theme colors, and theme fonts inherit regardless of
-    `showMasterSp` — those are not "shapes" in OOXML's sense. So the
-    client's brand styling stays; only the leaky placeholder TEXT goes
-    away.
+    `showMasterSp` — those are not "shapes" in OOXML's sense.
 
     Returns the number of slide-level shapes removed.
     """
@@ -103,10 +102,11 @@ def _strip_layout_placeholders(slide) -> int:
         except (ValueError, AttributeError):
             pass
 
-    try:
-        slide.element.set("showMasterSp", "0")
-    except Exception:
-        pass
+    if not keep_master_shapes:
+        try:
+            slide.element.set("showMasterSp", "0")
+        except Exception:
+            pass
 
     return removed
 

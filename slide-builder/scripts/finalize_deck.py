@@ -86,7 +86,8 @@ from twins.composer import (  # noqa: E402
     _strip_layout_placeholders,
 )
 from _chrome_schema import (  # noqa: E402
-    ChromeSpec, ChromeSidecarMissingError, load_chrome_yml,
+    ChromeSpec, ChromeSidecarMissingError, ChromeLayoutMissingError,
+    load_chrome_yml,
 )
 import twins.helpers as _twins_helpers  # noqa: E402
 
@@ -609,7 +610,8 @@ def _sha256_of_file(path: Path) -> str:
 
 
 def _load_and_verify_chrome(template_path: Path) -> ChromeSpec:
-    """Load chrome.yml next to the template and hard-fail on SHA mismatch.
+    """Load chrome.yml from the template's sidecar subfolder
+    (`<template-stem>/chrome.yml`, v0.4+ layout) and hard-fail on SHA mismatch.
 
     Raises:
       ChromeSidecarMissingError if chrome.yml is absent (operator must run
@@ -1238,8 +1240,20 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
             and getattr(layout_chrome, "title_placeholder_idx", None) is not None
         )
         _is_dark_variant = (slide_variant or "").strip().lower() == "dark"
-        if (not _is_body_canonical) or _is_dark_variant:
+        # Dark variant: full strip (hide master too) — gives a clean canvas
+        # under the full-bleed dark overlay so the master's purple bars /
+        # header rules don't bleed around the dark fill.
+        # Bespoke non-dark: respect brand.yml `strip_master_backgrounds`.
+        # When false (default for FedEx-style brands), the master IS the
+        # brand chrome — keep the top/bottom bands inherited from the master.
+        # When true (legacy templates with photographic backgrounds), strip.
+        # Body-canonical: no strip — inherits everything including placeholders
+        # for the post-graft populate step.
+        if _is_dark_variant:
             _strip_layout_placeholders(new_slide)
+        elif not _is_body_canonical:
+            _keep_master = not bool(getattr(theme, "strip_master_backgrounds", True))
+            _strip_layout_placeholders(new_slide, keep_master_shapes=_keep_master)
 
         sp_tree = new_slide.shapes._spTree
         for shape in src_slide.shapes:
@@ -1450,6 +1464,10 @@ def main() -> int:
                     help="Per-deck Mermaid theme JSON (default: read from _meta.json['mermaid_theme'])")
     ap.add_argument("--skip-build", action="store_true", help="Skip executing option_X.py")
     ap.add_argument("--skip-render", action="store_true", help="Skip PNG rendering")
+    ap.add_argument("--allow-missing", action="store_true",
+                    help="Proceed even when some expected option_X.py files are absent "
+                         "(e.g., an interrupted worker). Default: hard-fail with a re-dispatch "
+                         "punch list so the deck doesn't ship with hidden gaps.")
     args = ap.parse_args()
 
     from _log import attach as _log_attach
@@ -1556,9 +1574,23 @@ def main() -> int:
     def _layout_chrome_for(slide_n: int):
         name = _layout_name_for(slide_n)
         lc = chrome_spec.layouts.get(name)
-        if lc is None and chrome_spec.layouts:
-            # name doesn't exist in chrome.yml -> fall back to default
-            lc = chrome_spec.layouts.get(default_layout_name)
+        if lc is None:
+            # Loud-fail per feedback_sidecar_fallback_must_be_loud. Silent
+            # fallback to a default layout was the OTC Sizing bug class —
+            # slides got built against geometry that didn't match the
+            # template's actual layout shapes.
+            available = ", ".join(sorted(chrome_spec.layouts.keys())) or "(none)"
+            raise ChromeLayoutMissingError(
+                f"slide {slide_n} references layout {name!r}, which is not "
+                f"in chrome.yml.\n"
+                f"  available layouts: {available}\n"
+                f"  Either fix the slide's 'layout' field in _meta.json, or "
+                f"re-register the template:\n"
+                f"    py -3 slide-builder/scripts/register_template.py propose "
+                f"\"<template.pptx>\"\n"
+                f"    py -3 slide-builder/scripts/register_template.py commit "
+                f"\"<template.pptx>\" --picks <picks.json>"
+            )
         return lc
 
     statuses = discover_options(args.out, expected=expected_pairs)
@@ -1567,7 +1599,41 @@ def main() -> int:
     n_rejected = sum(1 for s in statuses if s.classification == "skeleton_rejected")
     n_missing = sum(1 for s in statuses if s.classification == "missing")
     if n_missing:
-        print(f"  [missing] {n_missing} worker output(s) absent — surfaced as classification=missing in RESULT.md / REVIEW.html")
+        # Pre-flight gate (RC-5 fix, 2026-06-02): if any expected option_X.py
+        # is absent, halt BEFORE the build loop with a punch list of slides
+        # that need re-dispatch. Otherwise finalize runs for several minutes,
+        # then crashes mid-build when it tries to execute the missing script,
+        # and the operator has to scroll through logs to find which slides
+        # failed. Override with --allow-missing for the rare partial-rebuild
+        # case (e.g., the operator only wants to re-finalize 5/6 slides).
+        missing_groups: dict[int, list[str]] = {}
+        for s in statuses:
+            if s.classification == "missing":
+                missing_groups.setdefault(s.slide_n, []).append(s.letter)
+        if not args.allow_missing:
+            sys.stderr.write(
+                f"\nERROR: {n_missing} expected worker output(s) absent. "
+                f"finalize would crash mid-build.\n\n"
+                f"Slides needing re-dispatch:\n"
+            )
+            for slide_n in sorted(missing_groups):
+                letters = ", ".join(sorted(missing_groups[slide_n]))
+                slide_dir = _p.slide_dir(args.out, slide_n)
+                prompt_path = _p.prompt_md(args.out, slide_n)
+                sys.stderr.write(
+                    f"  slide_{slide_n:02d}  (missing option(s): {letters})\n"
+                    f"    prompt:  {prompt_path}\n"
+                    f"    out dir: {slide_dir}\n"
+                )
+            sys.stderr.write(
+                f"\nRe-dispatch the worker agent for each slide above using "
+                f"the prompt file, then re-run finalize_deck.py.\n"
+                f"Override with --allow-missing to proceed with gaps "
+                f"(surfaced as classification=missing in RESULT.md).\n"
+            )
+            return 11
+        print(f"  [missing] {n_missing} worker output(s) absent — proceeding "
+              f"under --allow-missing (will be surfaced in RESULT.md / REVIEW.html)")
     print(f"  found {len(statuses)} option scripts across "
           f"{len({s.slide_n for s in statuses})} slides")
     print(f"  classification: native={n_native}  mermaid={n_fallback}  rejected={n_rejected}")

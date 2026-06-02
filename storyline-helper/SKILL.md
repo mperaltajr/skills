@@ -704,6 +704,30 @@ When a reason is given, append to the brief's `## Flags` section in the format:
 
 Once the user has resolved Criticals and handled (fix-or-override) all Majors, save the brief as `_session/narrative-brief-[deck-topic].md` inside the session folder established in Step 0. The brief lives inside `_session/` so the human-readable dot-dash storyline (next step) is the only file the user sees at the session root.
 
+**Gate marker (required).** Slide-builder hard-fails any brief without the storyline-helper gate marker. After all Criticals are resolved and Majors are handled, write the gate marker into the YAML front-matter BEFORE saving:
+
+```yaml
+storyline_gate_passed: true
+storyline_gate_at: <ISO-8601 timestamp in UTC, e.g. 2026-06-02T14:00:00Z>
+storyline_gate_sha256: <sha256 of the brief body — everything below the closing --- fence>
+```
+
+Compute the SHA in one step (PowerShell):
+
+```powershell
+$brief = "<absolute path to _session/narrative-brief-[topic].md>"
+$body = (Get-Content -Raw $brief) -replace '(?s)^---\r?\n.*?\r?\n---\r?\n', ''
+[System.BitConverter]::ToString([System.Security.Cryptography.SHA256]::Create().ComputeHash([System.Text.Encoding]::UTF8.GetBytes($body))).Replace('-','').ToLower()
+```
+
+The SHA pins the gate to this body. Any post-gate edit to the brief invalidates the marker — slide-builder will refuse the build and ask for a re-gate. This stops the "gated once, edited freely after" bypass.
+
+**Carve-out modes** that legitimately skip the gate (don't have a narrative to gate):
+- `mode: template-fill` — PMO recurring report / template fill flow
+- `mode: rebuild-slice` — single-slide rebuild against an already-built deck
+
+When operating in either mode, set `mode:` in the front-matter and omit the `storyline_gate_*` fields.
+
 Then immediately generate the companion dot-dash storyline file by running:
 
 ```bash
@@ -777,6 +801,10 @@ Saved as `_session/narrative-brief-[topic].md` inside the session folder (establ
 client_template: <absolute path to .pptx>     # required — slide-builder errors if missing
 deck_type: <one of the 7 canonical types (or Training edge)>    # required — drives selector deck_types match
 session_folder: <absolute path to _session>    # optional — helps slide-builder anchor outputs
+storyline_gate_passed: true                   # required — slide-builder hard-fails without this
+storyline_gate_at: 2026-06-02T14:00:00Z       # required — ISO-8601 UTC timestamp of the gate pass
+storyline_gate_sha256: <hex sha256 of body>   # required — body integrity check; edits invalidate
+# mode: template-fill                          # OR set mode: to skip the gate (PMO / rebuild flows)
 ---
 
 # Narrative brief: [topic]
