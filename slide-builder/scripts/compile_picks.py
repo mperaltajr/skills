@@ -140,7 +140,114 @@ def copy_picked_slide_into(dst_prs, src_pptx: Path,
     for shape in src_slide.shapes:
         sp_tree.append(deepcopy(shape.element))
         count += 1
+
+    # Defect 5 fix (2026-06-15 CDIO QBR feedback): for body-canonical
+    # destinations, the new_slide already has layout-inherited placeholders
+    # (empty Title 1, Text Placeholder 2, etc.). The source slide carries
+    # its OWN populated copies of the same placeholders (finalize_deck wrote
+    # text into them on the source's instance of the layout). After deepcopy,
+    # the destination ends up with TWO placeholders per (type, idx) key:
+    # one empty inherited, one populated from source. LibreOffice suppresses
+    # the empty one; PowerPoint renders BOTH — the empty one shows the
+    # "Click to add title" prompt overlaying the real title.
+    #
+    # Dedupe: walk all placeholder shapes on the new slide, group by
+    # (type, idx), and when two exist for the same key, drop the empty one.
+    if _is_body_canonical:
+        _dedupe_placeholder_duplicates(new_slide)
     return count
+
+
+def _dedupe_zip_entries(pptx_path: Path) -> int:
+    """Rewrite a PPTX zip in place, keeping only the LAST entry for each
+    name. Returns count of duplicates removed.
+
+    LibreOffice rejects zips with duplicate entry names as corrupt; python-
+    pptx occasionally produces them on multi-slide saves where shape
+    relationships overlap. The user wrote `_session/dedupe_pptx_zip.py` as
+    a workaround during the CDIO QBR build. Folded into compile_picks as
+    of 2026-06-15 (Defect 6 secondary).
+    """
+    import zipfile
+    import io
+    if not pptx_path.exists():
+        return 0
+    try:
+        raw = pptx_path.read_bytes()
+        with zipfile.ZipFile(io.BytesIO(raw), "r") as zin:
+            names = zin.namelist()
+            if len(names) == len(set(names)):
+                return 0  # no duplicates; cheap exit
+            # Walk infos so we keep LAST occurrence per name (overrides earlier)
+            kept: dict[str, tuple] = {}
+            for info in zin.infolist():
+                kept[info.filename] = (info, zin.read(info.filename))
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zout:
+            for info, data in kept.values():
+                zout.writestr(info, data)
+        pptx_path.write_bytes(buf.getvalue())
+        n_removed = len(names) - len(set(names))
+        print(f"  dedupe: removed {n_removed} duplicate zip entries")
+        return n_removed
+    except Exception as exc:
+        sys.stderr.write(
+            f"  WARN: zip dedupe failed ({type(exc).__name__}: {exc}). "
+            f"Deck may not open in LibreOffice if it had duplicate entries.\n"
+        )
+        return 0
+
+
+def _dedupe_placeholder_duplicates(slide) -> int:
+    """Remove duplicate placeholder shapes that share (type, idx). When two
+    placeholders have the same key, keep the one with text content and drop
+    the other. Returns number of shapes removed.
+
+    Used after compile_picks's deepcopy path to clean up the layout-inherited
+    + source-copied duplicate pair that otherwise renders as visible empty
+    placeholder prompts in PowerPoint.
+    """
+    from collections import defaultdict
+    groups: dict[tuple, list] = defaultdict(list)
+    for shp in list(slide.shapes):
+        try:
+            pf = shp.placeholder_format
+        except Exception:
+            continue
+        if pf is None:
+            continue
+        try:
+            key = (int(pf.type), int(pf.idx))
+        except Exception:
+            continue
+        groups[key].append(shp)
+
+    sp_tree = slide.shapes._spTree
+    removed = 0
+    for key, shapes in groups.items():
+        if len(shapes) <= 1:
+            continue
+        # Prefer the shape that has actual text content; drop empties.
+        def _has_text(shp) -> bool:
+            try:
+                return bool((shp.text_frame.text or "").strip())
+            except Exception:
+                return False
+        with_text = [s for s in shapes if _has_text(s)]
+        empties  = [s for s in shapes if not _has_text(s)]
+        # If at least one has text, drop ALL the empties.
+        # If none have text, keep the first (arbitrary; both empty anyway).
+        if with_text:
+            to_drop = empties
+        else:
+            to_drop = shapes[1:]
+        for shp in to_drop:
+            try:
+                sp_tree.remove(shp.element)
+                removed += 1
+            except (ValueError, AttributeError):
+                pass
+    return removed
 
 
 # ---------------------------------------------------------------------------
@@ -183,7 +290,19 @@ def main() -> int:
     ap.add_argument("--picks", default=None, help="picks.json path OR JSON string")
     ap.add_argument("--final", default=None, type=Path,
                     help="Final deck path (default: <out>/final_deck.pptx)")
+    ap.add_argument("--all-variations", action="store_true",
+                    help="Defect 6 fix (CDIO QBR, 2026-06-15): instead of "
+                         "selecting one pick per slide, iterate ALL options "
+                         "(A/B/C) per slide and stack them into the final "
+                         "deck. Useful for shipping a stakeholder-review "
+                         "artifact where the audience picks among variants. "
+                         "Mutually exclusive with --picks.")
     args = ap.parse_args()
+    if args.all_variations and args.picks:
+        print("ERROR: --all-variations is mutually exclusive with --picks. "
+              "Choose one: pick-driven compile (--picks) OR all-variations "
+              "stack (--all-variations).")
+        return 2
 
     from _log import attach as _log_attach
     _log_attach(args.out, "compile_picks.py")
@@ -210,8 +329,22 @@ def main() -> int:
         print(f"ERROR: template (from _meta.json) not found: {template_path}")
         return 2
 
-    picks = parse_picks(args.picks, out_dir)
-    final_path: Path = args.final or (out_dir / "final_deck.pptx")
+    # Defect 6 (CDIO QBR, 2026-06-15) — all-variations mode synthesizes a
+    # picks-like structure that carries ALL options per slide instead of
+    # one. Downstream rendering iterates the same loop; the only difference
+    # is the picks dict value is a LIST of letters instead of a single str.
+    if args.all_variations:
+        picks: dict = {}
+        for s in meta.get("slides", []):
+            n = s.get("n")
+            if isinstance(n, int):
+                picks[_p.slide_key(n)] = ["A", "B", "C"]
+        print(f"  all-variations mode: {len(picks)} slides × 3 options = "
+              f"{sum(len(v) for v in picks.values())} planned outputs")
+        final_path: Path = args.final or (out_dir / "final_deck_all_variations.pptx")
+    else:
+        picks = parse_picks(args.picks, out_dir)
+        final_path = args.final or (out_dir / "final_deck.pptx")
     final_path.parent.mkdir(parents=True, exist_ok=True)
 
     print("=" * 72)
@@ -263,36 +396,37 @@ def main() -> int:
     ordered_keys = sorted(picks.keys(), key=lambda k: int(k.split("_")[1]))
     copied_count = 0
     for key in ordered_keys:
-        letter = picks[key]
-        src = out_dir / key / _p.option_pptx_name(letter)
-        if not src.exists():
-            msg = f"missing source: {src}"
-            failures.append(f"- **{key} pick {letter}**: {msg}")
-            rows.append(f"| {key} | {letter} | `{src.name}` | - | FAIL ({msg}) |")
-            print(f"  {key} pick {letter}  FAIL ({msg})")
-            continue
-        # Resolve layout_name + layout_chrome for this slide so the
-        # body-canonical branch in copy_picked_slide_into actually fires.
+        # Normalize: pick-mode value is a str letter; all-variations is a list.
+        raw = picks[key]
+        letters = raw if isinstance(raw, list) else [raw]
         slide_layout_name = _slide_layouts.get(key, "")
         slide_layout_chrome = None
         if _chrome_spec is not None and slide_layout_name:
             slide_layout_chrome = _chrome_spec.layouts.get(slide_layout_name)
-        try:
-            n_shapes = copy_picked_slide_into(
-                dst_prs, src,
-                layout_name=slide_layout_name,
-                layout_chrome=slide_layout_chrome,
-                keep_master_shapes=_keep_master,
-            )
-            copied_count += 1
-            rows.append(f"| {key} | {letter} | `{src.name}` | {n_shapes} | ok |")
-            print(f"  {key} pick {letter}  ok (shapes={n_shapes})")
-        except Exception as e:
-            tb = traceback.format_exc().strip().splitlines()[-1]
-            msg = f"{type(e).__name__}: {e} | {tb}"
-            failures.append(f"- **{key} pick {letter}**: {msg}")
-            rows.append(f"| {key} | {letter} | `{src.name}` | - | FAIL ({msg[:60]}...) |")
-            print(f"  {key} pick {letter}  FAIL ({msg[:80]})")
+        for letter in letters:
+            src = out_dir / key / _p.option_pptx_name(letter)
+            if not src.exists():
+                msg = f"missing source: {src}"
+                failures.append(f"- **{key} pick {letter}**: {msg}")
+                rows.append(f"| {key} | {letter} | `{src.name}` | - | FAIL ({msg}) |")
+                print(f"  {key} pick {letter}  FAIL ({msg})")
+                continue
+            try:
+                n_shapes = copy_picked_slide_into(
+                    dst_prs, src,
+                    layout_name=slide_layout_name,
+                    layout_chrome=slide_layout_chrome,
+                    keep_master_shapes=_keep_master,
+                )
+                copied_count += 1
+                rows.append(f"| {key} | {letter} | `{src.name}` | {n_shapes} | ok |")
+                print(f"  {key} pick {letter}  ok (shapes={n_shapes})")
+            except Exception as e:
+                tb = traceback.format_exc().strip().splitlines()[-1]
+                msg = f"{type(e).__name__}: {e} | {tb}"
+                failures.append(f"- **{key} pick {letter}**: {msg}")
+                rows.append(f"| {key} | {letter} | `{src.name}` | - | FAIL ({msg[:60]}...) |")
+                print(f"  {key} pick {letter}  FAIL ({msg[:80]})")
 
     print(f"\n[3] Save final deck -> {final_path}")
     # Backup existing final deck before overwrite so re-runs don't silently
@@ -326,6 +460,14 @@ def main() -> int:
             f"and re-run compile_picks.py.\n"
         )
         sys.exit(3)
+
+    # Defect 6 secondary fix (CDIO QBR, 2026-06-15): python-pptx can write
+    # zips with duplicate entry names when many slides graft from
+    # similarly-structured source decks. LibreOffice rejects such PPTX files
+    # as corrupt. Run an unconditional zip rewrite that keeps the LAST
+    # occurrence of each name (matches the user's _session/dedupe_pptx_zip.py
+    # workaround). Cheap on size, unbreakable for downstream readers.
+    _dedupe_zip_entries(final_path)
     print(f"  saved ({final_path.stat().st_size:,} bytes)")
 
     print("\n[4] Verify opens cleanly")

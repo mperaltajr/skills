@@ -1870,6 +1870,30 @@ def _write_chrome_yml_for(tpl: Path, *, sha8: str,
     print(f"               {n_layouts} layouts "
           f"({n_canonical} body-canonical, {n_bespoke} bespoke); "
           f"sha8={sha8}")
+
+    # Defect 1 follow-on (2026-06-15 CDIO QBR feedback): if every layout
+    # auto-classifies to the same text_role/background combo, the heuristic
+    # almost certainly failed — emit a loud warning so the operator can
+    # spot-check the chrome.yml against the actual template look. A
+    # well-designed FedEx/Accenture template has a MIX of light and dark
+    # backgrounds (light workhorse layouts + dark covers/dividers); 100%
+    # uniformity is a near-certain detector failure.
+    text_roles = {v.text_role for v in spec.layouts.values()}
+    backgrounds = {v.background for v in spec.layouts.values()}
+    if n_layouts >= 4 and (len(text_roles) == 1 or len(backgrounds) == 1):
+        only_role = next(iter(text_roles))
+        only_bg = next(iter(backgrounds))
+        print(
+            f"  WARNING: all {n_layouts} layouts auto-classified as "
+            f"{only_role!r}/{only_bg!r}. The dark-background detector "
+            f"likely missed the template's covers/dividers (gradient or "
+            f"picture fills not resolvable via srgb scan). Open the "
+            f"template and verify titles render legibly on every layout. "
+            f"If covers/dividers ship dark, the workaround until detection "
+            f"improves is to hand-edit chrome.yml: set "
+            f"text_role: light_on_dark and background: dark on the "
+            f"affected layouts and re-run finalize."
+        )
     return 0
 
 
@@ -2203,16 +2227,107 @@ def _bg_is_dark(element) -> bool | None:
     return lum < 128.0
 
 
+def _scan_full_bleed_dark_shape(layout_or_master, slide_w_emu: int,
+                                 slide_h_emu: int) -> bool | None:
+    """Defect 1 fix (CDIO QBR, 2026-06-15): walk shapes for a full-bleed
+    dark-fill that the <p:cSld><p:bg> srgb path misses.
+
+    FedEx/Accenture-style templates deliver "dark background" via a master-
+    or layout-level full-bleed shape with a solid or gradient fill, not via
+    `<p:cSld><p:bg>`. The original _bg_is_dark missed those, so every
+    layout auto-classified as dark_on_light even when slides actually
+    rendered dark. This walker:
+
+      1. Iterates all shapes on the layout (or master)
+      2. Filters to shapes covering >= 80% of slide area
+      3. For each, checks fill: solid -> luminance check;
+         gradient -> luminance check on the FIRST gradient stop
+         (good enough as a heuristic — gradients usually run dark->dark
+         or dark->slightly-darker for branded backgrounds)
+      4. Returns True on first dark hit, False if all full-bleed shapes
+         scan light, None if no full-bleed shape is found.
+
+    None signals "no signal" so the caller can fall back to the master.
+    """
+    slide_area = max(1, slide_w_emu * slide_h_emu)
+    found_full_bleed = False
+    saw_light_full_bleed = False
+    try:
+        shapes = list(layout_or_master.shapes)
+    except Exception:
+        return None
+    for shp in shapes:
+        try:
+            w = int(shp.width or 0)
+            h = int(shp.height or 0)
+        except Exception:
+            continue
+        if w * h < 0.8 * slide_area:
+            continue
+        found_full_bleed = True
+        # Walk the shape's fill XML for srgb colors.
+        try:
+            hex_val = _walk_for_first_srgb(shp.element)
+        except Exception:
+            hex_val = ""
+        if not hex_val:
+            # No resolvable color — could be a picture fill or theme-color
+            # reference we don't follow. Skip; might be light or dark.
+            continue
+        lum = _luminance_from_hex(hex_val)
+        if lum != lum:
+            continue
+        if lum < 128.0:
+            return True
+        saw_light_full_bleed = True
+    if found_full_bleed and saw_light_full_bleed:
+        return False
+    return None
+
+
 def _detect_text_role_for_layout(layout) -> tuple[str, str]:
     """Return (text_role, background) for one layout.
 
-    Inspects the LAYOUT's own background first; falls back to its slide
-    MASTER's background; defaults to light_on_dark only when there's an
-    explicit dark fill signal. Defaults to dark_on_light otherwise.
+    Inspects, in order:
+      1. The LAYOUT's <p:cSld><p:bg> srgb fill (cheapest, most explicit)
+      2. The MASTER's <p:cSld><p:bg> srgb fill
+      3. Full-bleed dark shapes on the LAYOUT (Defect 1 — covers / dividers
+         often deliver their dark background via a layout-level rectangle
+         with a brand-color fill rather than a <p:bg> element)
+      4. Full-bleed dark shapes on the MASTER (same pattern at master level)
+    Defaults to dark_on_light only when no signal anywhere returns dark.
     """
     layout_dark = _bg_is_dark(layout.element)
     master_dark = _bg_is_dark(layout.slide_master.element)
     is_dark = layout_dark if layout_dark is not None else master_dark
+    if is_dark is None:
+        # Fall back to full-bleed shape scan (Defect 1 fix).
+        try:
+            prs_part = layout.slide_master.part.package
+            slide_w = layout.slide_master.element.find(qn("p:cSld"))
+            # Recover slide dimensions from the presentation. python-pptx
+            # exposes them at the package level via the presentation part.
+            from pptx.util import Emu  # noqa
+            # Direct access via slide_master's element doesn't expose
+            # presentation dimensions; rely on common defaults if unavailable.
+            slide_w_emu = 12192000  # 16:9 widescreen default
+            slide_h_emu = 6858000
+            try:
+                # Walk up to find slideSize.
+                for _master in [layout.slide_master]:
+                    _prs = _master.part.package.presentation_part.presentation
+                    slide_w_emu = int(_prs.slide_width)
+                    slide_h_emu = int(_prs.slide_height)
+                    break
+            except Exception:
+                pass
+        except Exception:
+            slide_w_emu = 12192000
+            slide_h_emu = 6858000
+        layout_shape_dark = _scan_full_bleed_dark_shape(layout, slide_w_emu, slide_h_emu)
+        master_shape_dark = _scan_full_bleed_dark_shape(layout.slide_master,
+                                                        slide_w_emu, slide_h_emu)
+        is_dark = layout_shape_dark if layout_shape_dark is not None else master_shape_dark
     if is_dark is True:
         return "light_on_dark", "dark"
     return "dark_on_light", "light"

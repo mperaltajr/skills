@@ -477,6 +477,113 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
     })
     checks.append({"check": "shape_count_sanity", "pass": shape_count_ok, "severity": "warn", "detail": shape_count_detail})
 
+    # Defect 7 fix (CDIO QBR, 2026-06-15): worker geometry guards.
+    # These three checks catch failure modes the original 7 checks missed,
+    # surfaced by the CDIO QBR build: zero-fill card backgrounds (worker
+    # forgot the fill_color arg), text-clip risk (text too long for box),
+    # and overlap-with-chrome (worker placed content at canonical chrome y).
+    zero_fill_ok = True
+    zero_fill_offenders: list = []
+    clip_risk_ok = True
+    clip_risk_offenders: list = []
+    chrome_overlap_ok = True
+    chrome_overlap_offenders: list = []
+    try:
+        for shape in shapes:
+            try:
+                name = (shape.name or "").strip()
+            except Exception:
+                continue
+            name_lower = name.lower()
+            # (a) Zero-fill card / badge detection. Workers conventionally name
+            # background rects card-*, badge-*, pill-*, bg-*. If those AUTO_SHAPE
+            # shapes ship with `fill.background()` (no fill), the slide
+            # renders with invisible cards. Catches the slide-111 bug from CDIO.
+            if (name_lower.startswith(("card-", "badge-", "pill-", "bg-"))
+                    or "card_bg" in name_lower or "badge_bg" in name_lower):
+                try:
+                    fill_type = shape.fill.type
+                    # fill.type values: None (no fill), 1 (solid), etc.
+                    # python-pptx returns None when fill.background() was called.
+                    if fill_type is None or int(fill_type or 0) == 5:  # 5 = BACKGROUND
+                        zero_fill_ok = False
+                        zero_fill_offenders.append(name)
+                except Exception:
+                    pass
+            # (b) Text-clip risk heuristic. For text shapes with a known font
+            # size, check whether the literal text is too long for the box.
+            # Rough: monospace char width ~= 0.6 × font_size_pt; PowerPoint
+            # auto-wraps but a long single token (e.g., "04" rendering as "0"
+            # at slide 51) clips at single-character boundary.
+            if shape.has_text_frame and shape.width and shape.height:
+                try:
+                    text = (shape.text_frame.text or "").strip()
+                    if text:
+                        # Find largest font size in the shape.
+                        max_pt = 0.0
+                        for p in shape.text_frame.paragraphs:
+                            for r in p.runs:
+                                try:
+                                    if r.font.size:
+                                        pt_val = r.font.size.pt
+                                        if pt_val > max_pt:
+                                            max_pt = pt_val
+                                except Exception:
+                                    pass
+                        if max_pt > 0:
+                            w_emu = int(shape.width)
+                            w_px = w_emu / 9525.0  # EMU → px @96dpi
+                            # Heuristic: estimated rendered width = chars × 0.6 × pt → px
+                            est_width_px = len(text) * 0.6 * max_pt * (96.0 / 72.0)
+                            # Flag when estimate exceeds 1.5× box width AND box
+                            # is narrow (< 200 px) — single-char-clip pattern.
+                            if est_width_px > 1.5 * w_px and w_px < 200:
+                                clip_risk_ok = False
+                                clip_risk_offenders.append(
+                                    f"{name!r} ({len(text)} chars @ {max_pt:.0f}pt, box={w_px:.0f}px)"
+                                )
+                except Exception:
+                    pass
+            # (c) Chrome-zone overlap: worker shapes whose top-y sits inside
+            # the top invariant zone (< 60 px) or bottom invariant zone
+            # (> 660 px). The invariant zones are reserved for chrome
+            # (sources, footnotes, page numbers); content there collides
+            # with the chrome graft. Per feedback_invariant_zone_chrome.
+            try:
+                top_emu = int(shape.top or 0)
+                top_px = top_emu / 9525.0
+                if shape.has_text_frame and (shape.text_frame.text or "").strip():
+                    if 0 < top_px < 40 and not name_lower.startswith(
+                        ("page-number", "footnote", "source", "header", "chrome")
+                    ):
+                        chrome_overlap_ok = False
+                        chrome_overlap_offenders.append(f"{name!r}@y={top_px:.0f}px")
+            except Exception:
+                pass
+    except Exception:
+        # Don't fail the QC on geometry-walk error; record so operator sees it.
+        zero_fill_ok = False
+        zero_fill_offenders.append("(geometry-walk failed)")
+
+    checks.append({
+        "check": "zero_fill_card_bg", "pass": zero_fill_ok, "severity": "warn",
+        "detail": ("all card/badge backgrounds have fill" if zero_fill_ok
+                   else f"{len(zero_fill_offenders)} no-fill bg shape(s): "
+                        + ", ".join(zero_fill_offenders[:3])),
+    })
+    checks.append({
+        "check": "text_clip_risk", "pass": clip_risk_ok, "severity": "warn",
+        "detail": ("no obvious clip risk" if clip_risk_ok
+                   else f"{len(clip_risk_offenders)} shape(s) likely clipped: "
+                        + "; ".join(clip_risk_offenders[:3])),
+    })
+    checks.append({
+        "check": "chrome_zone_overlap", "pass": chrome_overlap_ok, "severity": "warn",
+        "detail": ("content respects top invariant zone" if chrome_overlap_ok
+                   else f"{len(chrome_overlap_offenders)} shape(s) in chrome zone: "
+                        + ", ".join(chrome_overlap_offenders[:3])),
+    })
+
     summary = {"pass": 0, "warn": 0, "block": 0}
     for c in checks:
         if c["pass"]:

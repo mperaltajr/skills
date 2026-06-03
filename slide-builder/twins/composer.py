@@ -124,7 +124,7 @@ def _populate_layout_placeholders(slide, *, title=None, subtitle=None,
     Caller is responsible for choosing whether to invoke this (body-canonical)
     vs. _strip_layout_placeholders (bespoke / cover).
     """
-    from pptx.enum.text import PP_ALIGN
+    from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
     TITLE_TYPES = {1, 13}      # TITLE, CENTER_TITLE
     SUBTITLE_TYPES = {4}        # SUBTITLE
     FOOTER_TYPES = {15}         # FOOTER
@@ -133,7 +133,7 @@ def _populate_layout_placeholders(slide, *, title=None, subtitle=None,
     found = {"title": False, "subtitle": False,
              "footer": False, "page_number": False}
 
-    def _write(ph, text):
+    def _write(ph, text, *, anchor_bottom: bool = False):
         tf = ph.text_frame
         # Replace existing paragraph text in the first paragraph; clear extras.
         if not tf.paragraphs:
@@ -144,6 +144,18 @@ def _populate_layout_placeholders(slide, *, title=None, subtitle=None,
             r._r.getparent().remove(r._r)
         run = first.add_run()
         run.text = str(text) if text is not None else ""
+        # Defect 4 fix (2026-06-15 CDIO QBR feedback): enforce
+        # feedback_title_bottom_anchor on placeholder-populated titles too.
+        # Without this, the inherited title placeholder uses the layout's
+        # default vertical anchor (usually TOP), so 2-line titles grow DOWN
+        # into the body content zone. With anchor_bottom=True, the title's
+        # bottom-y stays fixed and longer titles grow UPWARD into the chrome
+        # zone (which is reserved space — never displaces subtitle or body).
+        if anchor_bottom:
+            try:
+                tf.vertical_anchor = MSO_ANCHOR.BOTTOM
+            except Exception:
+                pass
 
     for ph in list(slide.placeholders):
         try:
@@ -151,7 +163,8 @@ def _populate_layout_placeholders(slide, *, title=None, subtitle=None,
         except Exception:
             continue
         if title is not None and not found["title"] and t in TITLE_TYPES:
-            _write(ph, title)
+            # Title gets bottom-anchor invariant per feedback_title_bottom_anchor.
+            _write(ph, title, anchor_bottom=True)
             found["title"] = True
             continue
         if subtitle is not None and not found["subtitle"] and t in SUBTITLE_TYPES:
