@@ -153,8 +153,8 @@ def _split_runs(text, *, base_bold=False, base_italic=False,
 
 
 def add_text(slide, shape_id, text, x_px, y_px, w_px, h_px, *,
-             font_size_px=14, font_size_pt=None, color=TEXT_DARK, bold=False, italic=False,
-             font_name="Inter", align="left", anchor="top",
+             font_size_px=None, font_size_pt=None, color=None, bold=None, italic=None,
+             font_name=None, align="left", anchor="top",
              letter_spacing_px=0, uppercase=False, bg_fill=None,
              padding_px=(0, 0, 0, 0), emphasis_color=None):
     """
@@ -165,6 +165,17 @@ def add_text(slide, shape_id, text, x_px, y_px, w_px, h_px, *,
     text is split into multiple runs. Strong runs get `bold=True` and (if
     provided) `emphasis_color` (typically brand-primary). Em runs get italic.
     Other tags pass through unchanged.
+
+    Defect 3 fix (2026-06-15 CDIO QBR feedback): font_name, font_size_px,
+    color, bold, italic now default to None instead of legacy "Inter" /
+    14 / TEXT_DARK / False / False. When None, the property is NOT written
+    onto the run, so the template's layout/master cascade (font, color,
+    size, weight, italic) wins. Pre-fix behavior unconditionally wrote
+    explicit run-level overrides on every run, defeating the brand cascade
+    on every subtitle and free-floating textbox.
+
+    Callers wanting explicit styling continue to pass values explicitly.
+    Callers wanting template inheritance pass None (now the default).
     """
     tb = slide.shapes.add_textbox(
         px_to_emu(x_px), px_to_emu(y_px),
@@ -214,10 +225,19 @@ def add_text(slide, shape_id, text, x_px, y_px, w_px, h_px, *,
         run = p.add_run()
         run.text = seg.upper() if uppercase else seg
         f = run.font
-        f.name = font_name
-        f.size = Pt(font_size_pt) if font_size_pt is not None else px_to_pt(font_size_px)
-        f.bold = seg_bold
-        f.italic = seg_italic
+        # Only write run-level properties when the caller specified them.
+        # Anything left None inherits from the layout/master/theme cascade.
+        # See Defect 3 docstring above for the 2026-06-15 contract change.
+        if font_name is not None:
+            f.name = font_name
+        if font_size_pt is not None:
+            f.size = Pt(font_size_pt)
+        elif font_size_px is not None:
+            f.size = px_to_pt(font_size_px)
+        if seg_bold is not None:
+            f.bold = seg_bold
+        if seg_italic is not None:
+            f.italic = seg_italic
         if seg_color is not None:
             f.color.rgb = seg_color
 
@@ -569,7 +589,8 @@ def _chrome_box_for(chrome: LayoutChrome, role: str):
 
 
 def add_footer(slide, page_num, source=None, footnote=None, *,
-               chrome: LayoutChrome | None = None):
+               chrome: LayoutChrome | None = None,
+               presenter_prompts: bool = False):
     """Footnote line + source line + page number.
 
     Positions come from `chrome` (LayoutChrome). When chrome is None,
@@ -581,9 +602,21 @@ def add_footer(slide, page_num, source=None, footnote=None, *,
     'CONFIDENTIAL' tag, no copyright. NO footer-rule divider line either —
     the user flagged that as visual noise.
 
-    BOTH source and footnote lines are ALWAYS drawn — pass real text for each,
-    or omit for placeholders. The user is expected to fill or delete in
-    PowerPoint; the builder never guesses whether the slide needs them.
+    **Contract change 2026-06-15 (CDIO QBR feedback Defect 2):**
+
+    Pre-2026-06-15: footnote + source lines were ALWAYS drawn. When the
+    caller didn't pass real text, Slide Lab substituted bracketed presenter
+    prompts ("[add footnote here or delete]", "[add source here or delete]").
+    The user was expected to clean those up in PowerPoint before showing
+    the deck. In the CDIO QBR build, 207 placeholder strings shipped visible
+    across 111 slides because the substitute-and-render path was always-on.
+
+    Post-2026-06-15: footnote / source are **suppressed when None**. The
+    builder draws them only when the caller passes real text. Workers that
+    legitimately want presenter prompts for stakeholder-review decks must
+    opt in via `presenter_prompts=True` — then the legacy substitute-and-
+    render behavior runs and slide-qc's identity-match carve-out continues
+    to allow the prompt strings as Advisory (not Critical).
 
     The page-number is suppressed when chrome.has_page_number is False
     (cover-class layouts; replaces slide-qc's page_type == "cover" exemption).
@@ -601,20 +634,31 @@ def add_footer(slide, page_num, source=None, footnote=None, *,
     fn_box  = _chrome_box_for(chrome, "footnote")
     src_box = _chrome_box_for(chrome, "source")
 
-    footnote_text = footnote if footnote else INTENTIONAL_FOOTNOTE_PLACEHOLDER
-    add_text(
-        slide, "footnote-1", f"1. {footnote_text}",
-        x_px=fn_box.x_px, y_px=fn_box.y_px,
-        w_px=fn_box.w_px, h_px=fn_box.h_px,
-        font_size_px=CANONICAL_FOOTNOTE_FONT_PX, color=faint_color,
-    )
-    source_text = source if source else INTENTIONAL_SOURCE_PLACEHOLDER
-    add_text(
-        slide, "source", f"Source: {source_text}",
-        x_px=src_box.x_px, y_px=src_box.y_px,
-        w_px=src_box.w_px, h_px=src_box.h_px,
-        font_size_px=CANONICAL_SOURCE_FONT_PX, color=faint_color, italic=True,
-    )
+    # Footnote: draw when caller passed real text, OR when presenter_prompts
+    # is explicitly enabled (legacy substitute-and-render path).
+    footnote_text = footnote
+    if footnote_text is None and presenter_prompts:
+        footnote_text = INTENTIONAL_FOOTNOTE_PLACEHOLDER
+    if footnote_text:
+        add_text(
+            slide, "footnote-1", f"1. {footnote_text}",
+            x_px=fn_box.x_px, y_px=fn_box.y_px,
+            w_px=fn_box.w_px, h_px=fn_box.h_px,
+            font_size_px=CANONICAL_FOOTNOTE_FONT_PX, color=faint_color,
+        )
+
+    # Source: same opt-in pattern.
+    source_text = source
+    if source_text is None and presenter_prompts:
+        source_text = INTENTIONAL_SOURCE_PLACEHOLDER
+    if source_text:
+        add_text(
+            slide, "source", f"Source: {source_text}",
+            x_px=src_box.x_px, y_px=src_box.y_px,
+            w_px=src_box.w_px, h_px=src_box.h_px,
+            font_size_px=CANONICAL_SOURCE_FONT_PX, color=faint_color, italic=True,
+        )
+
     if chrome.has_page_number and not _inherit_chrome:
         pn_box = _chrome_box_for(chrome, "page_number")
         add_text(
@@ -667,13 +711,17 @@ def add_title_block(slide, title, subtitle="", *,
         # has a title placeholder but NO subtitle placeholder, fall back to
         # the legacy free-floating subtitle box (pre-v2.1 behavior).
         if subtitle and getattr(chrome, "subtitle_placeholder_idx", None) is None:
+            # Defect 3 fix (2026-06-15): drop the hardcoded color=text_color
+            # and italic=True. The template's subtitle styling (color, font,
+            # italic, weight) is defined in the layout's <a:defRPr> cascade;
+            # passing None lets it inherit. Only position + size come from
+            # chrome.yml; everything else defers to the template.
             subtitle_box = _chrome_box_for(chrome, "subtitle")
             add_text(
                 slide, "subtitle", subtitle,
                 x_px=subtitle_box.x_px, y_px=subtitle_box.y_px,
                 w_px=subtitle_box.w_px, h_px=subtitle_box.h_px,
                 font_size_pt=subtitle_box.font_pt or CANONICAL_SUBTITLE_FONT_PT,
-                color=text_color, italic=True,
             )
         return None
 
@@ -694,13 +742,14 @@ def add_title_block(slide, title, subtitle="", *,
         # body-canonical always has subtitle via canonical_subtitle_box.
         if chrome.layout_class == "bespoke" and chrome.subtitle is None:
             return
+        # Defect 3 fix (2026-06-15): drop hardcoded color/italic. Subtitle
+        # styling comes from the layout's <a:defRPr> cascade now.
         subtitle_box = _chrome_box_for(chrome, "subtitle")
         add_text(
             slide, "subtitle", subtitle,
             x_px=subtitle_box.x_px, y_px=subtitle_box.y_px,
             w_px=subtitle_box.w_px, h_px=subtitle_box.h_px,
             font_size_pt=subtitle_box.font_pt or CANONICAL_SUBTITLE_FONT_PT,
-            color=text_color, italic=True,
         )
 
 
