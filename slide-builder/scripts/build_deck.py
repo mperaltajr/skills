@@ -892,6 +892,135 @@ def validate_theme(
 
 
 # ----------------------------------------------------------------------
+# Gate C.1 — per-slide context bundle (_context.md)
+# ----------------------------------------------------------------------
+#
+# Generated alongside _prompt.md, this file gives the per-slide worker
+# agent the full constraint set — canonical reference, design rules,
+# brief metadata, and prior-slide context — to reason against as
+# context, not as gates. See SLIDE_LAB_FEEDBACK_LOG.md Issue #4 and
+# memory feedback_per_slide_agent_full_context.
+
+CONTEXT_TEMPLATE = """# Slide {slide_n} — Worker context bundle
+
+> This is **context to reason against**, not a checklist to mechanically
+> enforce. The worker agent should use these constraints to inform its
+> pattern picks and variant choices, and is free to bend a soft rule when
+> it has a good reason. Hard rules are surfaced in `_prompt.md` and the
+> skill's hardline rules — not here.
+
+## 1. Canonical reference (from brand.yml)
+
+{reference_block}
+
+## 2. Design rules — soft constraints
+
+- **Title wrap:** if the title renders to >2 lines at the registered font
+  size, the slide drops its subtitle automatically (Mario's design rule).
+  Implication: keep titles to ≤2 visual lines; if a 3-line title is
+  intentional, the subtitle/so-what won't render.
+- **Subtitle fit:** ~130 chars at 16pt in a ~12.5"×0.39" box. Above ~130
+  chars the subtitle will wrap and crowd the body zone.
+- **Accent placement:** legends go right-aligned below the sub-headline
+  (primary), or top-right of the chart when the right side is occupied
+  (fallback). Top/bottom invariant zones hold sources/footnotes/page
+  numbers only — NO ACCENTURE/DRAFT/CONFIDENTIAL tags.
+- **Title bottom-anchor:** title bottom-y is fixed; 2-line titles grow
+  UPWARD into the chrome zone, never displacing the subtitle.
+- **No inline run formatting on placeholders.** Title/subtitle inherit
+  fonts and colors from the master theme. Workers should not bake in
+  hardcoded colors.
+
+## 3. This slide's brief metadata
+
+- Title: {title!r} ({title_len} chars)
+- So-what: {so_what!r} ({so_what_len} chars)
+- Archetype: {archetype!r}
+- Editorial emphasis: {emphasis!r}
+- Layout: {layout!r}
+
+## 4. QC anchor
+
+The compiled deck will be QC'd by the `slide-qc` skill, which does
+zone-by-zone vision review of every rendered slide. The reference-slide
+spec above is the visual anchor — every output slide should match its
+chrome (top/bottom bands, footer geometry, title/subtitle position) and
+respect the canonical palette ({primary_hex} / {accent_hex}).
+
+## 5. Feedback ledger (prior rejections for this slide)
+
+{prior_feedback}
+"""
+
+
+def _format_reference_block_for_context(brand: dict) -> str:
+    ref = brand.get("reference_slide") if isinstance(brand, dict) else None
+    if not ref or not isinstance(ref, dict):
+        return (
+            "_No reference slide was captured at registration. The worker has "
+            "no canonical anchor for this template — fall back to the skill's "
+            "5 hardline rules + anti-pattern library. Re-register with "
+            "`reference_slide_n` in picks.json to enable richer context._"
+        )
+    lines = [
+        f"- **Reference slide:** {ref.get('slide_n', '?')} in the registered "
+        f"template",
+        f"- **Layout:** `{ref.get('layout_name') or '(unknown)'}`",
+    ]
+    tb = ref.get("title_box_px")
+    if tb:
+        lines.append(
+            f"- **Title box (px):** x={tb.get('x')} y={tb.get('y')} "
+            f"w={tb.get('w')} h={tb.get('h')}"
+        )
+    sb = ref.get("subtitle_box_px")
+    if sb:
+        lines.append(
+            f"- **Subtitle box (px):** x={sb.get('x')} y={sb.get('y')} "
+            f"w={sb.get('w')} h={sb.get('h')}"
+        )
+    obs = ref.get("observed_colors") or []
+    if obs:
+        lines.append(
+            f"- **Observed colors on the reference slide:** "
+            + ", ".join(f"`#{c}`" for c in obs[:8])
+        )
+    return "\n".join(lines)
+
+
+def write_slide_context_md(slide: dict, brand: dict, slide_dir: Path,
+                            slide_n: int) -> Path:
+    """Write `_context.md` next to `_prompt.md` for the per-slide worker
+    agent. Gate C.1 (2026-06-08, SLIDE_LAB_FEEDBACK_LOG Issue #4)."""
+    title = (slide.get("title") or "").strip()
+    so_what = (slide.get("so_what") or "").strip()
+    archetype = (slide.get("archetype") or "").strip()
+    emphasis = (slide.get("editorial_emphasis") or "").strip()
+    layout = (slide.get("layout") or "").strip()
+    content = CONTEXT_TEMPLATE.format(
+        slide_n=slide_n,
+        reference_block=_format_reference_block_for_context(brand),
+        title=title,
+        title_len=len(title),
+        so_what=so_what,
+        so_what_len=len(so_what),
+        archetype=archetype,
+        emphasis=emphasis,
+        layout=layout,
+        primary_hex=brand.get("primary_hex", "(unset)"),
+        accent_hex=brand.get("accent_hex", "(unset)"),
+        prior_feedback=(
+            "_No prior feedback recorded for this slide. Workers iterating "
+            "after a REVIEW pass should consult REVIEW.html for per-slide "
+            "comments._"
+        ),
+    )
+    ctx_path = slide_dir / "_context.md"
+    ctx_path.write_text(content, encoding="utf-8")
+    return ctx_path
+
+
+# ----------------------------------------------------------------------
 # Prompt rendering
 # ----------------------------------------------------------------------
 
@@ -1029,18 +1158,27 @@ def write_dispatch_plan(
     lines.append("")
     lines.append("## Per-slide artifact locations")
     lines.append("")
+    lines.append(
+        "Each slide directory now contains TWO sibling files. Workers read "
+        "**`_context.md` first** (Gate C.1, canonical reference + design "
+        "rules + brief metadata), then **`_prompt.md`** (build procedure)."
+    )
+    lines.append("")
     for slide in slides:
         slide_dir = _p.slide_dir(out_dir, slide["slide_n"])
-        lines.append(f"- Slide {slide['slide_n']}: `{slide_dir / '_prompt.md'}`")
+        lines.append(f"- Slide {slide['slide_n']}:")
+        lines.append(f"    - context: `{slide_dir / '_context.md'}`")
+        lines.append(f"    - prompt:  `{slide_dir / '_prompt.md'}`")
     lines.append("")
     lines.append("## Next step")
     lines.append("")
     lines.append(
         "Parent session dispatches one `slide-builder-worker` agent per slide "
-        "IN PARALLEL using the rendered `_prompt.md` files above. Each agent writes "
-        "`option_A.py`, `option_B.py`, `option_C.py` (plus `option_X.mmd` for "
-        "Mermaid-fallback slides) into its own `slide_NN/` directory. Then run "
-        "`finalize_deck.py` to graft, render, and produce REVIEW.html."
+        "IN PARALLEL. Each worker reads its `_context.md` first, then "
+        "`_prompt.md`, and writes `option_A.py`, `option_B.py`, `option_C.py` "
+        "(plus `option_X.mmd` for Mermaid-fallback slides) into its own "
+        "`slide_NN/` directory. Then run `finalize_deck.py` to graft, render, "
+        "and produce REVIEW.html."
     )
     plan_path.write_text("\n".join(lines), encoding="utf-8")
     return plan_path
@@ -1654,6 +1792,17 @@ def main() -> int:
         )
         rendered = render_prompt(template_text, placeholders)
         _p.prompt_md(args.out, slide_n).write_text(rendered, encoding="utf-8")
+        # Gate C.1 (2026-06-08, SLIDE_LAB_FEEDBACK_LOG Issue #4): write a
+        # `_context.md` sibling that bundles the canonical reference,
+        # design rules, brief metadata, and feedback ledger for the
+        # per-slide worker agent to reason against.
+        try:
+            write_slide_context_md(slide, brand, slide_dir, slide_n)
+        except Exception as _exc:
+            sys.stderr.write(
+                f"  WARN: could not write slide {slide_n} _context.md: "
+                f"{type(_exc).__name__}: {_exc}\n"
+            )
 
     # Deck manifest (_meta.json) — single source of truth for downstream
     # pipeline scripts. Writes AFTER slide prompts are rendered so that any
@@ -1704,8 +1853,9 @@ def main() -> int:
     print(f"Dispatch plan:")
     print(f"  {plan_path}")
     print()
-    print("Next: dispatch one slide-builder-worker agent per slide in parallel,")
-    print("reading the rendered _prompt.md in each slide_NN/ directory. Then run finalize_deck.py.")
+    print("Next: dispatch one slide-builder-worker agent per slide in parallel.")
+    print("Each worker reads _context.md first, then _prompt.md in its slide_NN/")
+    print("directory. Then run finalize_deck.py.")
     return 0
 
 

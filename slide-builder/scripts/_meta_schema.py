@@ -57,6 +57,13 @@ class SlideMeta(BaseModel):
     # slide onto the named layout. Empty string only legal during the v2
     # compat shim transition window — see validate_meta_dict.
     layout: str = ""
+    # v2.2 (2026-06-05, SLIDE_LAB_FEEDBACK_LOG #3): so-what subtitle text to
+    # populate into the layout's SUBTITLE placeholder. Source: brief's
+    # **So-what:** line per slide. Empty string is legitimate (cover slides,
+    # divider slides, or any slide whose title is self-contained). Writer
+    # (build_deck.py) populates from the brief; reader (finalize_deck.py)
+    # passes through as fallback_subtitle to _apply_body_canonical_finishing.
+    subtitle: str = ""
 
 
 class DeckMeta(BaseModel):

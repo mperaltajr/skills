@@ -1,0 +1,269 @@
+schema_version: 2
+source_template_sha8: 46a7230c
+layouts:
+  cover_light:
+    name: cover_light
+    layout_class: bespoke
+    text_role: dark_on_light
+    background: light
+    has_page_number: true
+    title:
+      x_px: 72
+      y_px: 224
+      w_px: 816
+      h_px: 154
+      font_pt: null
+      anchor: top
+    subtitle:
+      x_px: 144
+      y_px: 408
+      w_px: 672
+      h_px: 184
+      font_pt: null
+      anchor: top
+    footnote: null
+    source:
+      x_px: 328
+      y_px: 667
+      w_px: 304
+      h_px: 38
+      font_pt: null
+      anchor: top
+    page_number:
+      x_px: 688
+      y_px: 667
+      w_px: 224
+      h_px: 38
+      font_pt: null
+      anchor: top
+    title_placeholder_idx: null
+    subtitle_placeholder_idx: null
+    body_top_y_px: null
+    body_bottom_y_px: null
+    body_overlay_hex: null
+  body_canonical_light:
+    name: body_canonical_light
+    layout_class: body-canonical
+    text_role: dark_on_light
+    background: light
+    has_page_number: true
+    title: null
+    subtitle: null
+    footnote: null
+    source: null
+    page_number: null
+    title_placeholder_idx: 0
+    subtitle_placeholder_idx: null
+    body_top_y_px: 149
+    body_bottom_y_px: 667
+    body_overlay_hex: null
+  section_divider:
+    name: section_divider
+    layout_class: bespoke
+    text_role: dark_on_light
+    background: light
+    has_page_number: true
+    title:
+      x_px: 76
+      y_px: 463
+      w_px: 816
+      h_px: 143
+      font_pt: null
+      anchor: top
+    subtitle: null
+    footnote: null
+    source:
+      x_px: 328
+      y_px: 667
+      w_px: 304
+      h_px: 38
+      font_pt: null
+      anchor: top
+    page_number:
+      x_px: 688
+      y_px: 667
+      w_px: 224
+      h_px: 38
+      font_pt: null
+      anchor: top
+    title_placeholder_idx: null
+    subtitle_placeholder_idx: null
+    body_top_y_px: null
+    body_bottom_y_px: null
+    body_overlay_hex: null
+  cover_dark:
+    name: cover_dark
+    layout_class: bespoke
+    text_role: light_on_dark
+    background: dark
+    has_page_number: true
+    title:
+      x_px: 48
+      y_px: 29
+      w_px: 864
+      h_px: 120
+      font_pt: null
+      anchor: top
+    subtitle: null
+    footnote: null
+    source:
+      x_px: 328
+      y_px: 667
+      w_px: 304
+      h_px: 38
+      font_pt: null
+      anchor: top
+    page_number:
+      x_px: 688
+      y_px: 667
+      w_px: 224
+      h_px: 38
+      font_pt: null
+      anchor: top
+    title_placeholder_idx: null
+    subtitle_placeholder_idx: null
+    body_top_y_px: null
+    body_bottom_y_px: null
+    body_overlay_hex: null
+  body_canonical_dark:
+    name: body_canonical_dark
+    layout_class: body-canonical
+    text_role: light_on_dark
+    background: dark
+    has_page_number: true
+    title: null
+    subtitle: null
+    footnote: null
+    source: null
+    page_number: null
+    title_placeholder_idx: 0
+    subtitle_placeholder_idx: null
+    body_top_y_px: 149
+    body_bottom_y_px: 667
+    body_overlay_hex: null
+  section_divider_dark:
+    name: section_divider_dark
+    layout_class: bespoke
+    text_role: light_on_dark
+    background: dark
+    has_page_number: true
+    title:
+      x_px: 48
+      y_px: 29
+      w_px: 864
+      h_px: 120
+      font_pt: null
+      anchor: top
+    subtitle: null
+    footnote: null
+    source:
+      x_px: 328
+      y_px: 667
+      w_px: 304
+      h_px: 38
+      font_pt: null
+      anchor: top
+    page_number:
+      x_px: 688
+      y_px: 667
+      w_px: 224
+      h_px: 38
+      font_pt: null
+      anchor: top
+    title_placeholder_idx: null
+    subtitle_placeholder_idx: null
+    body_top_y_px: null
+    body_bottom_y_px: null
+    body_overlay_hex: null
+  Blank:
+    name: Blank
+    layout_class: bespoke
+    text_role: dark_on_light
+    background: light
+    has_page_number: true
+    title: null
+    subtitle: null
+    footnote: null
+    source:
+      x_px: 328
+      y_px: 667
+      w_px: 304
+      h_px: 38
+      font_pt: null
+      anchor: top
+    page_number:
+      x_px: 688
+      y_px: 667
+      w_px: 224
+      h_px: 38
+      font_pt: null
+      anchor: top
+    title_placeholder_idx: null
+    subtitle_placeholder_idx: null
+    body_top_y_px: null
+    body_bottom_y_px: null
+    body_overlay_hex: null
+  Content with Caption:
+    name: Content with Caption
+    layout_class: body-canonical
+    text_role: dark_on_light
+    background: light
+    has_page_number: true
+    title: null
+    subtitle: null
+    footnote: null
+    source: null
+    page_number: null
+    title_placeholder_idx: 0
+    subtitle_placeholder_idx: null
+    body_top_y_px: 151
+    body_bottom_y_px: 667
+    body_overlay_hex: null
+  Picture with Caption:
+    name: Picture with Caption
+    layout_class: body-canonical
+    text_role: dark_on_light
+    background: light
+    has_page_number: true
+    title: null
+    subtitle: null
+    footnote: null
+    source: null
+    page_number: null
+    title_placeholder_idx: 0
+    subtitle_placeholder_idx: null
+    body_top_y_px: 564
+    body_bottom_y_px: 667
+    body_overlay_hex: null
+  Title and Vertical Text:
+    name: Title and Vertical Text
+    layout_class: body-canonical
+    text_role: dark_on_light
+    background: light
+    has_page_number: true
+    title: null
+    subtitle: null
+    footnote: null
+    source: null
+    page_number: null
+    title_placeholder_idx: 0
+    subtitle_placeholder_idx: null
+    body_top_y_px: 149
+    body_bottom_y_px: 667
+    body_overlay_hex: null
+  Vertical Title and Text:
+    name: Vertical Title and Text
+    layout_class: body-canonical
+    text_role: dark_on_light
+    background: light
+    has_page_number: true
+    title: null
+    subtitle: null
+    footnote: null
+    source: null
+    page_number: null
+    title_placeholder_idx: 0
+    subtitle_placeholder_idx: null
+    body_top_y_px: 643
+    body_bottom_y_px: 667
+    body_overlay_hex: null

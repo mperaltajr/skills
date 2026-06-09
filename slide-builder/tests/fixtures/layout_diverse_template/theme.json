@@ -1,0 +1,38 @@
+{
+  "schema_version": 2,
+  "template_path": "C:\\Users\\m.a.peralta\\.claude\\skills\\slide-builder\\tests\\fixtures\\layout_diverse_template.pptx",
+  "template_sha": "46a7230c9ad63b154a81c7968c5f54906bce7b176fbca177ebffe599358f6112",
+  "registered_at": "2026-06-05T11:10:46+00:00",
+  "registered_by": "m.a.peralta",
+  "default_content_layout": "",
+  "brand": {
+    "primary_hex": "#1F2937",
+    "accent_hex": "#F59E0B",
+    "cover_bg_hex": "#0A1A2E",
+    "dark_bg_hex": "#0A1A2E",
+    "primary_slot": "dk2",
+    "accent_slot": "lt2",
+    "cover_bg_slot": "dk2",
+    "dark_bg_slot": "dk2",
+    "font_heading": "Arial",
+    "font_body": "Arial",
+    "strip_master_backgrounds": false
+  },
+  "extracted": {
+    "all_colors": {
+      "dk1": "000000",
+      "lt1": "FFFFFF",
+      "dk2": "1F2937",
+      "lt2": "F59E0B",
+      "accent1": "1F2937",
+      "accent2": "F59E0B"
+    },
+    "all_fonts": {
+      "heading": "Arial",
+      "body": "Arial"
+    },
+    "master_count": 1,
+    "layout_count": 6
+  },
+  "brand_yml_path": "C:\\Users\\m.a.peralta\\.claude\\skills\\slide-builder\\tests\\fixtures\\layout_diverse_template\\brand.yml"
+}
