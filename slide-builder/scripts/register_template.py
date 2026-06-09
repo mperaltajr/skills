@@ -831,6 +831,73 @@ def render_layout_thumbnails(template_path: Path, out_dir: Path,
     return mapping
 
 
+def render_slide_thumbnails(template_path: Path, out_dir: Path,
+                              dpi: int = 96) -> list[dict]:
+    """Render one PNG thumbnail per ACTUAL slide in the client template.
+
+    Gap 1.a (2026-06-08): Distinct from render_layout_thumbnails (which renders
+    empty layouts so the user can see chrome), this renders the template's
+    real slides as-is, so the user can point at "make every output look like
+    THIS one" — Mario's stated mental model.
+
+    Returns a list of {slide_n (1-indexed), layout_name, thumbnail_path} dicts
+    in slide order.
+    """
+    try:
+        from render_slides import render_libre
+    except ImportError as e:
+        print(f"WARNING: could not import render_libre: {e}")
+        return []
+    from pptx import Presentation as _Pres
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    try:
+        prs = _Pres(str(template_path))
+    except Exception as e:
+        print(f"WARNING: could not open template for slide thumbnails: {e}")
+        return []
+    n_slides = len(prs.slides)
+    if n_slides == 0:
+        return []
+
+    # Capture layout names per slide BEFORE we render — we need to relay them
+    # to the picker UI so users see which layout each slide uses.
+    layout_names: list[str] = []
+    for s in prs.slides:
+        try:
+            layout_names.append((s.slide_layout.name or "").strip())
+        except Exception:
+            layout_names.append("")
+
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td)
+        try:
+            render_libre(template_path, tmp, dpi=dpi)
+        except Exception as e:
+            print(f"WARNING: render_libre failed for slide thumbnails: {e}")
+            return []
+        pngs = sorted(tmp.glob("slide_*.png"))
+        if len(pngs) < n_slides:
+            print(f"  WARNING: rendered {len(pngs)} slide PNGs but expected "
+                  f"{n_slides}; some thumbnails may be missing")
+        result: list[dict] = []
+        for i, png in enumerate(pngs):
+            slide_n = i + 1
+            dst = out_dir / f"slide_thumb_{slide_n:02d}.png"
+            try:
+                shutil.copy(str(png), str(dst))
+                result.append({
+                    "slide_n": slide_n,
+                    "layout_name": layout_names[i] if i < len(layout_names) else "",
+                    "thumbnail_path": dst,
+                })
+            except Exception as e:
+                print(f"WARNING: could not copy slide thumbnail "
+                      f"{slide_n}: {e}")
+    return result
+
+
 # ---------------------------------------------------------------------------
 # Palette swatch PNG — visual aid for chat-driven picks
 # ---------------------------------------------------------------------------
@@ -956,6 +1023,7 @@ def render_register_html(proposal: dict, html_path: Path) -> bool:
     # Build palette JSON for the JS (the page is interactive, JS holds state)
     palette_json = json.dumps(palette)
     layouts_json = json.dumps(proposal.get("layouts", []))
+    slides_json  = json.dumps(proposal.get("slides", []))
 
     preview_block = (
         f'<img src="{_html.escape(preview_rel)}" alt="Preview composite" class="preview-img">'
@@ -1282,8 +1350,28 @@ def render_register_html(proposal: dict, html_path: Path) -> bool:
   <div id="layouts-pick-cluster"></div>
 </section>
 
+<section id="reference-section">
+  <h2>4. Optional &mdash; pick a reference slide</h2>
+  <div class="help">
+    Point at <strong>one slide in this template</strong> that defines how every output slide
+    should look &mdash; title position, subtitle box, footer chrome, accent placement.
+    When you pick one, every Slide Lab worker that builds a slide for you gets that
+    reference as <em>context to reason against</em>, so output stays consistent with
+    your canonical example.<br><br>
+    <strong>Pick a normal content slide</strong> &mdash; one with a title, a subtitle, and
+    body content in their final positions. <strong>Do NOT pick</strong> a cover slide,
+    a section divider, a thank-you slide, or any other special-purpose layout. The worker
+    would then try to make every output slide look like that special slide, which is
+    not what you want.<br><br>
+    If your template is only covers, dividers, and special slides &mdash; <strong>skip
+    this section</strong>. Slide Lab falls back to its built-in design rules &mdash;
+    builds still work, just with less template-specific guidance.
+  </div>
+  <div id="slides-pick-cluster"></div>
+</section>
+
 <section id="strip-section">
-  <h2>4. Strip baked-in master backgrounds?</h2>
+  <h2>5. Strip baked-in master backgrounds?</h2>
   <div class="help">
     For most client templates the master <strong>is</strong> the brand chrome — FedEx purple bars,
     Accenture branding, header rules, footer marks. Keeping it is the right default. Tick this box
@@ -1306,7 +1394,7 @@ def render_register_html(proposal: dict, html_path: Path) -> bool:
 </section>
 
 <section id="commit-section">
-  <h2>5. Copy picks JSON and paste back to the chat</h2>
+  <h2>6. Copy picks JSON and paste back to the chat</h2>
   <div class="help">
     Click the button to copy the picks JSON to your clipboard. Paste it back to the chat
     where you opened this page. The orchestrator will write it to disk and run
@@ -1323,6 +1411,9 @@ def render_register_html(proposal: dict, html_path: Path) -> bool:
 <script>
 const palette = PALETTE_JSON;
 const layouts = LAYOUTS_JSON;
+const slides = SLIDES_JSON;
+// Gap 1.b (2026-06-08): which slide is the canonical reference. null = none picked.
+const referenceSlide = { slide_n: null };
 const bestGuess = {
   primary_slot: "BG_PRIMARY",
   accent_slot:  "BG_ACCENT",
@@ -1430,6 +1521,9 @@ function refreshUI() {
     dark_bg_hex:   state.dark_bg_hex,
     strip_master_backgrounds: state.strip_master_backgrounds,
     default_content_layout: layoutPicks.body || "",
+    // Gap 1.b: optional — which slide in the template is the canonical
+    // reference. null when the user skipped this section.
+    reference_slide_n: referenceSlide.slide_n,
   };
   document.getElementById("picks-json").textContent = JSON.stringify(payload, null, 2);
 
@@ -1445,10 +1539,18 @@ function refreshUI() {
 const layoutPicks = { body: null };
 
 function autoBodyGuess() {
-  // First preference: a non-dark layout whose name contains "default slide
-  // template" — that's the common convention for the workhorse body layout.
+  // v2.2 (2026-06-05, SLIDE_LAB_FEEDBACK_LOG #1): exact-name match wins
+  // over substring. Templates with a bespoke "1_Use as default slide
+  // template" (TITLE-only) sitting before the body-canonical
+  // "Use as default slide template" used to be picked by substring
+  // matching, which silently dropped subtitles on every slide. Prefer the
+  // exact (canonical) name first; fall back to substring only when no
+  // exact match exists.
   let g = layouts.find(l => l.background !== "dark"
-                        && (l.name || "").toLowerCase().includes("default slide template"));
+                        && (l.name || "").toLowerCase() === "use as default slide template");
+  if (g) return g.name;
+  g = layouts.find(l => l.background !== "dark"
+                    && (l.name || "").toLowerCase().includes("default slide template"));
   if (g) return g.name;
   // Fallback: first non-dark, non-cover layout with >= 1 placeholder.
   g = layouts.find(l => l.background !== "dark"
@@ -1572,6 +1674,118 @@ function pickBody(name) {
   refreshUI();
 }
 
+// Gap 1.b (2026-06-08): reference-slide picker — single-pick semantics.
+function buildSlidesGrid() {
+  const container = document.getElementById("slides-pick-cluster");
+  if (!container) return;
+  container.innerHTML = "";
+  if (!slides.length) {
+    container.innerHTML = '<div class="help">'
+      + 'No slide thumbnails were rendered for this template. The template '
+      + 'may have zero slides, or LibreOffice rendering failed at propose '
+      + 'time. Skip this section — registration still completes without it.'
+      + '</div>';
+    return;
+  }
+
+  const help = document.createElement("div");
+  help.style.fontSize = "13px";
+  help.style.color = "var(--text-mid)";
+  help.style.marginBottom = "16px";
+  help.innerHTML =
+    "Click <strong>Use as reference</strong> on the slide whose look should "
+    + "define every output. Only one slide can be the reference. Click "
+    + "<strong>Clear pick</strong> to undo.";
+  container.appendChild(help);
+
+  const clearWrap = document.createElement("div");
+  clearWrap.style.marginBottom = "12px";
+  const clearBtn = document.createElement("button");
+  clearBtn.className = "copy-btn";
+  clearBtn.textContent = referenceSlide.slide_n
+    ? `Clear pick (slide ${referenceSlide.slide_n})`
+    : "(no slide picked — optional)";
+  clearBtn.disabled = !referenceSlide.slide_n;
+  clearBtn.addEventListener("click", () => pickReference(null));
+  clearWrap.appendChild(clearBtn);
+  container.appendChild(clearWrap);
+
+  const grid = document.createElement("div");
+  grid.style.display = "grid";
+  grid.style.gridTemplateColumns = "repeat(auto-fill, minmax(260px, 1fr))";
+  grid.style.gap = "16px";
+
+  slides.forEach(s => {
+    const card = document.createElement("div");
+    card.className = "layout-row";
+    card.style.flexDirection = "column";
+    card.style.alignItems = "stretch";
+    card.style.padding = "10px";
+    const isRef = referenceSlide.slide_n === s.slide_n;
+    if (isRef) {
+      card.style.borderColor = "var(--accent)";
+      card.style.borderWidth = "2px";
+    }
+
+    // Thumbnail
+    const thumbWrap = document.createElement("div");
+    thumbWrap.style.cssText = "background: #F0F0F0; border: 1px solid var(--rule);"
+      + "border-radius: 4px; overflow: hidden; aspect-ratio: 16 / 9;"
+      + "display: flex; align-items: center; justify-content: center;"
+      + "margin-bottom: 8px;";
+    if (s.thumbnail) {
+      const img = document.createElement("img");
+      img.src = s.thumbnail;
+      img.alt = "Slide " + s.slide_n;
+      img.style.cssText = "width: 100%; height: 100%; object-fit: contain; display: block;";
+      thumbWrap.appendChild(img);
+    } else {
+      thumbWrap.innerHTML = "<span style='color: var(--text-dim); font-size: 12px;'>(no thumbnail)</span>";
+    }
+    card.appendChild(thumbWrap);
+
+    // REFERENCE badge if picked
+    const badges = document.createElement("div");
+    badges.style.cssText = "display: flex; gap: 6px; margin-bottom: 6px; min-height: 18px;";
+    if (isRef) {
+      const b = document.createElement("span");
+      b.style.cssText = "background: var(--accent); color: white; font-size: 11px;"
+        + "font-weight: 600; padding: 2px 8px; border-radius: 3px;";
+      b.textContent = "REFERENCE";
+      badges.appendChild(b);
+    }
+    card.appendChild(badges);
+
+    // Slide number + layout name
+    const meta = document.createElement("div");
+    meta.style.cssText = "font-size: 12px; color: var(--text-mid); margin-bottom: 8px;"
+      + "word-break: break-all;";
+    meta.innerHTML = `<strong>Slide ${s.slide_n}</strong>`
+      + (s.layout_name ? ` &middot; <code>${s.layout_name}</code>` : "");
+    card.appendChild(meta);
+
+    // Single button: Use as reference
+    const refBtn = document.createElement("button");
+    refBtn.className = "copy-btn";
+    refBtn.style.cssText = "width: 100%; padding: 8px 10px; font-size: 13px;";
+    refBtn.textContent = isRef ? "✓ Picked as reference" : "Use as reference";
+    refBtn.addEventListener("click", () => pickReference(s.slide_n));
+    card.appendChild(refBtn);
+
+    grid.appendChild(card);
+  });
+
+  container.appendChild(grid);
+}
+
+function pickReference(slideN) {
+  // Single-pick: clicking a slide replaces any prior reference pick.
+  // Passing null clears the pick (used by the Clear button).
+  referenceSlide.slide_n = slideN;
+  buildSlidesGrid();
+  refreshUI();
+}
+
 // Build per-layout classification rows (collapsed under "Show all" details)
 function buildLayoutRows() {
   const container = document.getElementById("layouts-list");
@@ -1619,6 +1833,7 @@ buildSwatches("sw-accent",  "accent_slot");
 buildSwatches("sw-cover",   "cover_bg_slot");
 buildSwatches("sw-dark",    "dark_bg_slot");
 buildLayoutGrid();
+buildSlidesGrid();
 document.getElementById("strip-bg").addEventListener("change", refreshUI);
 document.getElementById("copy-btn").addEventListener("click", () => {
   const txt = document.getElementById("picks-json").textContent;
@@ -1648,6 +1863,7 @@ refreshUI();
         .replace("PREVIEW_BLOCK", preview_block)
         .replace("PALETTE_JSON", palette_json)
         .replace("LAYOUTS_JSON", layouts_json)
+        .replace("SLIDES_JSON",  slides_json)
         .replace("LAYOUTS",     str(n_layout))
         .replace("BG_PRIMARY",  _html.escape(bg_primary))
         .replace("BG_ACCENT",   _html.escape(bg_accent))
@@ -1694,6 +1910,13 @@ dark_bg_slot:    {dark_bg_slot}
 font_heading:    "{font_heading}"
 font_body:       "{font_body}"
 
+# Resolved on-disk TTF path for the heading font (Gate A.3, 2026-06-08).
+# Recorded at registration so finalize_deck doesn't have to scan
+# Windows fonts on every build. Empty string = TTF not discovered on
+# this machine at registration time; finalize_deck falls back to a
+# disk scan (transitional) and warns the operator to install the font.
+title_font_ttf_path: "{title_font_ttf_path}"
+
 # Background handling
 # Default false — KEEP the master decoration. For most client templates
 # (FedEx, Accenture, etc.) the master IS the brand chrome and stripping
@@ -1704,12 +1927,58 @@ strip_master_backgrounds: {strip_master_bg}
 """
 
 
+def _resolve_brand_ttf_path(font_name: str) -> str:
+    """Resolve a brand font name (e.g. 'FedEx Sans') to an absolute TTF path
+    on the registering machine.
+
+    Tries several filename conventions that map a display name to TTF files
+    (no spaces, with spaces, -Regular suffix, etc.). Returns empty string
+    when the font is not installed locally — registration still succeeds;
+    finalize_deck falls back to a disk scan + warning.
+
+    Gate A.3 (2026-06-08): persists the TTF path into brand.yml so the
+    per-build _find_brand_ttf() scan can be skipped.
+    """
+    if not font_name:
+        return ""
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        from _chrome_schema import _find_brand_ttf
+    except Exception:
+        return ""
+    # Build candidate TTF filenames from the display name.
+    clean = font_name.strip()
+    nospace = clean.replace(" ", "")
+    candidates = [
+        f"{nospace}.ttf",
+        f"{nospace}-Regular.ttf",
+        f"{nospace}_0.ttf",
+        f"{clean}.ttf",
+        f"{clean}-Regular.ttf",
+    ]
+    seen: set[str] = set()
+    for cand in candidates:
+        if cand in seen:
+            continue
+        seen.add(cand)
+        found = _find_brand_ttf(cand)
+        if found:
+            return found
+    # Last resort: the default FedEx Sans list inside _find_brand_ttf — only
+    # if the font name looks like a FedEx font (otherwise we'd write a
+    # FedEx Sans path for a non-FedEx template).
+    if "fedex" in clean.lower():
+        return _find_brand_ttf() or ""
+    return ""
+
+
 def write_brand_yml(path: Path, *, primary_hex: str, accent_hex: str,
                     cover_bg_hex: str, primary_slot: str, accent_slot: str,
                     cover_bg_slot: str,
                     dark_bg_hex: str, dark_bg_slot: str,
                     font_heading: str, font_body: str,
-                    strip_master_backgrounds: bool, sha8: str) -> None:
+                    strip_master_backgrounds: bool, sha8: str,
+                    title_font_ttf_path: str = "") -> None:
     content = BRAND_YML_TEMPLATE.format(
         stem=path.stem.replace(".brand", ""),
         date=datetime.now().strftime("%Y-%m-%d"),
@@ -1724,6 +1993,7 @@ def write_brand_yml(path: Path, *, primary_hex: str, accent_hex: str,
         dark_bg_slot=dark_bg_slot,
         font_heading=font_heading or "",
         font_body=font_body or "",
+        title_font_ttf_path=title_font_ttf_path or "",
         strip_master_bg="true" if strip_master_backgrounds else "false",
     )
     path.write_text(content, encoding="utf-8")
@@ -2108,10 +2378,20 @@ def _write_outputs(tpl: Path, sha: str, sha8: str,
                    font_heading: str, font_body: str,
                    strip_master_backgrounds: bool,
                    colors: dict, n_master: int, n_layout: int,
-                   default_content_layout: str = "") -> None:
+                   default_content_layout: str = "",
+                   reference_slide_spec: dict | None = None) -> None:
     _p.template_sidecar_dir(tpl).mkdir(parents=True, exist_ok=True)
     brand_yml = _p.brand_yml(tpl)
     theme_json = _p.theme_json(tpl)
+
+    # Gate A.3: resolve the heading font's on-disk TTF and persist into
+    # brand.yml so finalize_deck doesn't scan Windows fonts each build.
+    title_font_ttf_path = _resolve_brand_ttf_path(font_heading)
+    if title_font_ttf_path:
+        print(f"  title_font_ttf_path: {title_font_ttf_path}")
+    else:
+        print(f"  title_font_ttf_path: <not resolved on this machine — "
+              f"finalize_deck will fall back to disk scan>")
 
     write_brand_yml(
         brand_yml,
@@ -2123,7 +2403,17 @@ def _write_outputs(tpl: Path, sha: str, sha8: str,
         font_heading=font_heading, font_body=font_body,
         strip_master_backgrounds=strip_master_backgrounds,
         sha8=sha8,
+        title_font_ttf_path=title_font_ttf_path,
     )
+
+    # Gate A.1: append the reference_slide block (if any) to brand.yml.
+    # Append-after-write keeps the BRAND_YML_TEMPLATE simple and avoids
+    # threading a 4-field dict through the template format string.
+    if reference_slide_spec:
+        ref_block = _format_reference_slide_block(reference_slide_spec)
+        if ref_block:
+            with brand_yml.open("a", encoding="utf-8") as fh:
+                fh.write(ref_block)
 
     brand_dict = {
         "primary_hex": f"#{primary_hex.upper()}",
@@ -2331,6 +2621,208 @@ def _detect_text_role_for_layout(layout) -> tuple[str, str]:
     if is_dark is True:
         return "light_on_dark", "dark"
     return "dark_on_light", "light"
+
+
+def _extract_reference_slide_spec(tpl: Path, slide_n: int) -> dict | None:
+    """Extract a 'reference slide' spec from the registering template.
+
+    Gate A.1 (2026-06-08): the user designates one slide in the template
+    that looks how output should look. We snapshot its layout name and
+    placeholder geometry so future builds can validate against it (Gate C
+    bundles this into per-slide worker context, slide-qc can diff against
+    the rendered version).
+
+    slide_n is 1-indexed (matches what the user types in chat / register.html).
+
+    Returns None when slide_n is out of range or the slide can't be opened.
+    Returns a dict otherwise:
+      {
+        slide_n: <int 1-indexed>,
+        layout_name: <str>,
+        title_box_px: {x, y, w, h} | None,
+        subtitle_box_px: {x, y, w, h} | None,
+        observed_colors: [<hex>, ...]  # colors used by non-master shapes
+      }
+    """
+    if not slide_n or slide_n < 1:
+        return None
+    try:
+        prs = Presentation(str(tpl))
+    except Exception:
+        return None
+    if slide_n > len(prs.slides):
+        return None
+    slide = prs.slides[slide_n - 1]
+    try:
+        layout_name = (slide.slide_layout.name or "").strip()
+    except Exception:
+        layout_name = ""
+
+    def _box_px(shape):
+        try:
+            return {
+                "x": int(shape.left) // _EMU_PER_PX,
+                "y": int(shape.top) // _EMU_PER_PX,
+                "w": int(shape.width) // _EMU_PER_PX,
+                "h": int(shape.height) // _EMU_PER_PX,
+            }
+        except Exception:
+            return None
+
+    title_box = None
+    subtitle_box = None
+    for ph in slide.placeholders:
+        try:
+            t = int(ph.placeholder_format.type)
+            idx = ph.placeholder_format.idx
+        except Exception:
+            continue
+        # Title types: 1=TITLE, 13=CENTER_TITLE
+        if t in (1, 13) and title_box is None:
+            title_box = _box_px(ph)
+        # Subtitle type: 4=SUBTITLE. Many real templates use BODY (idx=10)
+        # as the subtitle slot — capture idx=10 as a secondary candidate.
+        elif t == 4 and subtitle_box is None:
+            subtitle_box = _box_px(ph)
+        elif idx == 10 and subtitle_box is None:
+            subtitle_box = _box_px(ph)
+
+    # Observed colors: solidFill hex from slide-level shapes (skip
+    # placeholders; their fills usually inherit from master).
+    observed: list[str] = []
+    A_NS = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
+    SRGB = A_NS + "srgbClr"
+    for shape in slide.shapes:
+        try:
+            for el in shape.element.iter(SRGB):
+                v = el.get("val")
+                if v:
+                    vu = v.upper()
+                    if vu not in observed:
+                        observed.append(vu)
+        except Exception:
+            continue
+
+    return {
+        "slide_n": int(slide_n),
+        "layout_name": layout_name,
+        "title_box_px": title_box,
+        "subtitle_box_px": subtitle_box,
+        "observed_colors": observed[:12],  # cap to keep brand.yml readable
+    }
+
+
+def _format_reference_slide_block(ref: dict) -> str:
+    """Render a reference_slide dict as a YAML block to append to brand.yml.
+
+    Hand-rolled (not yaml.dump) because brand.yml is human-edited and the
+    formatting style — leading comments, inline scalars in box dicts — must
+    match the rest of the file's hand-written feel.
+    """
+    if not ref:
+        return ""
+    lines = [
+        "",
+        "# Reference slide (Gate A.1, 2026-06-08).",
+        "# The slide in the template that defines how every output slide should",
+        "# look. slide_n is 1-indexed. Used by Gate C to build per-slide worker",
+        "# context bundles, and by slide-qc as a visual-diff anchor.",
+        "reference_slide:",
+        f"  slide_n: {ref['slide_n']}",
+        f"  layout_name: \"{ref.get('layout_name', '')}\"",
+    ]
+    tb = ref.get("title_box_px")
+    if tb:
+        lines.append(f"  title_box_px: {{x: {tb['x']}, y: {tb['y']}, w: {tb['w']}, h: {tb['h']}}}")
+    else:
+        lines.append("  title_box_px: null")
+    sb = ref.get("subtitle_box_px")
+    if sb:
+        lines.append(f"  subtitle_box_px: {{x: {sb['x']}, y: {sb['y']}, w: {sb['w']}, h: {sb['h']}}}")
+    else:
+        lines.append("  subtitle_box_px: null")
+    obs = ref.get("observed_colors") or []
+    if obs:
+        lines.append("  observed_colors:")
+        for c in obs:
+            lines.append(f"    - \"{c}\"")
+    else:
+        lines.append("  observed_colors: []")
+    return "\n".join(lines) + "\n"
+
+
+def _scan_canonical_inline_formatting(prs, layout_name: str) -> list[str]:
+    """Walk the canonical body-canonical layout's placeholders and flag any
+    inline run-properties that hardcode font color, fill, or size — these
+    override master inheritance silently at populate time, so the output
+    looks correct on the chosen layout but drifts on any rebuild that
+    changes the master theme.
+
+    Gate A.2 (2026-06-08): Mario's "no random text boxes; everything inherits
+    from the master" rule. If a layout's title placeholder ships with
+    inline <a:solidFill> or <a:rPr sz="..." b="1"> overrides, every grafted
+    slide picks up those overrides even if master theme says otherwise.
+
+    Returns a list of human-readable warning strings (empty list = clean).
+    Does NOT fail registration — emits as warnings the user can act on.
+    """
+    if not layout_name:
+        return []
+    warnings: list[str] = []
+    target = None
+    for master in prs.slide_masters:
+        for layout in master.slide_layouts:
+            if (layout.name or "").strip() == layout_name.strip():
+                target = layout
+                break
+        if target is not None:
+            break
+    if target is None:
+        return []  # validated separately; nothing to scan
+
+    # Namespace tags
+    A_NS = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
+    SOLID_FILL = A_NS + "solidFill"
+    GRAD_FILL = A_NS + "gradFill"
+    LATIN = A_NS + "latin"
+
+    for ph in target.placeholders:
+        try:
+            ph_name = ph.name or "<unnamed>"
+            ph_idx = ph.placeholder_format.idx
+        except Exception:
+            ph_name = "<unknown>"
+            ph_idx = "?"
+        try:
+            tf_el = ph.text_frame._txBody
+        except Exception:
+            continue
+        # Scan every rPr / endParaRPr for hardcoded style overrides.
+        rprs = list(tf_el.iter(A_NS + "rPr")) + list(tf_el.iter(A_NS + "endParaRPr"))
+        for rpr in rprs:
+            offenders: list[str] = []
+            if rpr.find(SOLID_FILL) is not None:
+                offenders.append("inline solidFill (color override)")
+            if rpr.find(GRAD_FILL) is not None:
+                offenders.append("inline gradFill (gradient override)")
+            if rpr.get("sz"):
+                offenders.append(f"font size override sz={rpr.get('sz')}")
+            if rpr.get("b") == "1":
+                offenders.append("bold override")
+            if rpr.get("i") == "1":
+                offenders.append("italic override")
+            latin = rpr.find(LATIN)
+            if latin is not None and latin.get("typeface"):
+                offenders.append(
+                    f"font typeface override ({latin.get('typeface')!r})"
+                )
+            if offenders:
+                warnings.append(
+                    f"placeholder idx={ph_idx} ({ph_name!r}): "
+                    + "; ".join(offenders)
+                )
+                break  # one warning per placeholder is enough
+    return warnings
 
 
 def _classify_layout(layout) -> str:
@@ -2689,6 +3181,18 @@ def _extract_theme_and_preview(tpl: Path) -> dict:
               f"{type(_exc).__name__}: {_exc}")
         layout_thumbnails = {}
 
+    # Gap 1.a (2026-06-08): render one PNG per ACTUAL slide in the template
+    # so register.html can show a reference-slide picker — the user points
+    # at the slide that defines how every output should look.
+    try:
+        slide_thumbnails = render_slide_thumbnails(tpl, thumbnails_dir, dpi=96)
+        print(f"  slide thumbnails:  {len(slide_thumbnails)} rendered "
+              f"to {thumbnails_dir}")
+    except Exception as _exc:
+        print(f"  WARNING: slide thumbnails render failed: "
+              f"{type(_exc).__name__}: {_exc}")
+        slide_thumbnails = []
+
     # v0.2 P1.2: per-layout chrome proposals for register.html UI. Auto-detected
     # classification + text_role per slide_layout. User reclassifies in the
     # picks JSON before commit.
@@ -2716,6 +3220,23 @@ def _extract_theme_and_preview(tpl: Path) -> dict:
         else:
             lp["thumbnail"] = None
 
+    # Gap 1.a (2026-06-08): attach slide-thumbnail relative paths for the
+    # reference-slide picker in register.html. Mirrors the layout-thumbnail
+    # path-relativization pattern above.
+    slides_payload: list[dict] = []
+    for st in slide_thumbnails:
+        abs_path = st["thumbnail_path"]
+        try:
+            rel = abs_path.relative_to(_sidecar_dir)
+            rel_str = str(rel).replace("\\", "/")
+        except ValueError:
+            rel_str = str(abs_path).replace("\\", "/")
+        slides_payload.append({
+            "slide_n": st["slide_n"],
+            "layout_name": st.get("layout_name", ""),
+            "thumbnail": rel_str,
+        })
+
     proposal_dict = {
         "template":        str(tpl),
         "sha":             sha,
@@ -2736,6 +3257,7 @@ def _extract_theme_and_preview(tpl: Path) -> dict:
         "palette_png":     str(palette_png) if palette_rendered else None,
         "palette":         palette,
         "layouts":         layout_proposals,
+        "slides":          slides_payload,
     }
 
     # Render the one-page interactive register.html using the proposal dict
@@ -2749,6 +3271,33 @@ def _extract_theme_and_preview(tpl: Path) -> dict:
     return proposal_dict
 
 
+def _check_libreoffice_available() -> tuple[bool, str]:
+    """Detect LibreOffice on PATH. Returns (ok, error_message).
+
+    Audit blocker (2026-06-08): without LibreOffice the propose flow silently
+    produces empty thumbnail grids in register.html — the user sees blank
+    sections and concludes Slide Lab is broken. Hard-fail early with a clear
+    install hint so the failure mode is obvious, not silent.
+    """
+    import shutil as _sh
+    for cand in ("soffice", "soffice.exe", "libreoffice", "libreoffice.exe"):
+        if _sh.which(cand):
+            return True, ""
+    msg = (
+        "LibreOffice is not on your PATH. Slide Lab needs it to render the "
+        "preview, the layout thumbnails, and the per-slide thumbnails shown "
+        "in register.html.\n\n"
+        "  Install LibreOffice (free): https://www.libreoffice.org/download/\n\n"
+        "  On Windows the default install path is\n"
+        "    C:\\Program Files\\LibreOffice\\program\\soffice.exe\n"
+        "  After installing, either add that directory to PATH or restart\n"
+        "  your shell so the new PATH is picked up.\n\n"
+        "  Then re-run:\n"
+        "    py -3 scripts/register_template.py propose <your-template.pptx>"
+    )
+    return False, msg
+
+
 def _main_propose(args) -> int:
     """Phase 1 + Phase 2: extract + preview build. Write proposal JSON. No prompts."""
     sys.stdout.reconfigure(encoding="utf-8")
@@ -2757,6 +3306,15 @@ def _main_propose(args) -> int:
     if not tpl.exists():
         print(f"ERROR: template not found: {tpl}")
         return 2
+
+    # Audit blocker (2026-06-08): block propose when LibreOffice is missing.
+    # Without it, render_libre returns empty, thumbnail dicts are empty, and
+    # register.html opens with blank sections. Better to hard-fail here with
+    # an install hint than to ship a confusing UI.
+    _lo_ok, _lo_msg = _check_libreoffice_available()
+    if not _lo_ok:
+        print(f"ERROR: {_lo_msg}", file=sys.stderr)
+        return 7
 
     print(f"register_template propose - {tpl.name}")
     print(f"  extracting theme XML + colors + fonts...")
@@ -2887,6 +3445,31 @@ def _commit_from_picks_dict(tpl: Path, picks: dict, *, source: str) -> int:
     # chrome.yml lands) so we never persist a phantom name.
     default_content_layout = (picks.get("default_content_layout") or "").strip()
 
+    # Gate A.1 (2026-06-08): optional reference_slide_n in picks. When set,
+    # extract the spec from that slide and append to brand.yml as a
+    # canonical "look like this" anchor.
+    reference_slide_n = picks.get("reference_slide_n")
+    reference_slide_spec = None
+    if reference_slide_n:
+        try:
+            reference_slide_spec = _extract_reference_slide_spec(
+                tpl, int(reference_slide_n),
+            )
+            if reference_slide_spec:
+                print(
+                    f"  reference_slide: slide {reference_slide_spec['slide_n']} "
+                    f"on layout {reference_slide_spec.get('layout_name') or '(unknown)'!r}"
+                )
+            else:
+                print(
+                    f"  WARN: reference_slide_n={reference_slide_n} could not "
+                    f"be extracted (slide out of range, or template can't be "
+                    f"opened). Skipping reference_slide block in brand.yml."
+                )
+        except Exception as _exc:
+            print(f"  WARN: reference_slide extraction failed: "
+                  f"{type(_exc).__name__}: {_exc}")
+
     _write_outputs(
         tpl, proposal["sha"], proposal["sha8"],
         primary_hex, primary_slot, accent_hex, accent_slot,
@@ -2897,6 +3480,7 @@ def _commit_from_picks_dict(tpl: Path, picks: dict, *, source: str) -> int:
         colors=proposal["colors"],
         n_master=proposal["n_master"], n_layout=proposal["n_layout"],
         default_content_layout=default_content_layout,
+        reference_slide_spec=reference_slide_spec,
     )
 
     layout_overrides = picks.get("layout_classifications") or {}
@@ -2926,8 +3510,60 @@ def _commit_from_picks_dict(tpl: Path, picks: dict, *, source: str) -> int:
                 return 2
             klass = getattr(chrome_spec.layouts[default_content_layout],
                             "layout_class", None)
+            # v2.2 (2026-06-05, SLIDE_LAB_FEEDBACK_LOG #1): backstop for
+            # autoBodyGuess. default_content_layout MUST be body-canonical
+            # (has TITLE idx=0 + BODY/subtitle idx=10) — anything else
+            # silently drops subtitles at populate time. Hard-fail
+            # registration rather than ship a bad theme.json.
+            if klass != "body-canonical":
+                subtitle_idx = getattr(
+                    chrome_spec.layouts[default_content_layout],
+                    "subtitle_placeholder_idx", None,
+                )
+                body_canonicals = sorted(
+                    n for n, lc in chrome_spec.layouts.items()
+                    if getattr(lc, "layout_class", None) == "body-canonical"
+                )
+                print(
+                    f"  ERROR: default_content_layout {default_content_layout!r} "
+                    f"is class {klass!r}, not 'body-canonical'.\n"
+                    f"  This layout has subtitle_placeholder_idx="
+                    f"{subtitle_idx!r}; populate step would silently drop every "
+                    f"slide's subtitle.\n"
+                    f"  Pick one of these body-canonical layouts instead: "
+                    f"{', '.join(body_canonicals) or '(none — template lacks a body-canonical layout)'}\n"
+                    f"  Recovery: edit picks JSON to set default_content_layout "
+                    f"to a body-canonical layout, then re-run commit."
+                )
+                return 2
             print(f"  default_content_layout: {default_content_layout!r} "
                   f"(class: {klass})")
+            # Gate A.2 (2026-06-08): inline-formatting scan on the canonical
+            # layout's placeholders. Warn — do not fail — because some
+            # client templates legitimately ship with curated typography
+            # overrides we don't want to forbid outright.
+            try:
+                _prs = Presentation(str(tpl))
+                _inline_warns = _scan_canonical_inline_formatting(
+                    _prs, default_content_layout,
+                )
+                if _inline_warns:
+                    print(
+                        f"  WARN: canonical layout "
+                        f"{default_content_layout!r} has inline placeholder "
+                        f"formatting that may override master inheritance:"
+                    )
+                    for w in _inline_warns:
+                        print(f"    - {w}")
+                    print(
+                        f"  These overrides will follow every grafted slide "
+                        f"and may surprise users who expect master-theme "
+                        f"inheritance. Clean the layout in PowerPoint and "
+                        f"re-register if this is unintended."
+                    )
+            except Exception as _exc:
+                print(f"  WARNING: inline-format scan skipped: "
+                      f"{type(_exc).__name__}: {_exc}")
         except Exception as _exc:
             print(f"  WARNING: could not validate default_content_layout "
                   f"against chrome.yml: {type(_exc).__name__}: {_exc}")

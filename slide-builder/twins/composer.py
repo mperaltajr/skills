@@ -35,6 +35,21 @@ import re
 from pptx.oxml.ns import qn
 
 
+class TemplatePlaceholderEmptyError(RuntimeError):
+    """Raised when a target placeholder has no paragraph element to write
+    into — i.e., the layout's placeholder XML is malformed or stripped.
+
+    Gate B.3 (2026-06-08, SLIDE_LAB_FEEDBACK_LOG Deferred #3): the silent
+    no-op in _write was the same bug class as TitleDropError but one layer
+    deeper. The placeholder exists, the populate step found it, but the
+    text write silently returns because tf.paragraphs is empty. Net effect:
+    placeholder is found, write is "successful," but no text lands.
+
+    Per feedback_sidecar_fallback_must_be_loud — silent placeholder no-op
+    is invisible data loss.
+    """
+
+
 def _find_named_layout(prs, layout_name: str):
     """Find a slide layout by EXACT name across all masters.
 
@@ -112,7 +127,8 @@ def _strip_layout_placeholders(slide, *, keep_master_shapes: bool = False) -> in
 
 
 def _populate_layout_placeholders(slide, *, title=None, subtitle=None,
-                                   footer=None, page_num=None):
+                                   footer=None, page_num=None,
+                                   title_idx=None, subtitle_idx=None):
     """Write text into the slide's inherited layout placeholders.
 
     For body-canonical grafts: instead of stripping the layout's title/footer/
@@ -120,6 +136,15 @@ def _populate_layout_placeholders(slide, *, title=None, subtitle=None,
     keep them in place and write text into the FIRST placeholder of each
     matching type. Returns a dict {role: bool} flagging which roles were
     found-and-populated.
+
+    title_idx / subtitle_idx (v2.2, SLIDE_LAB_FEEDBACK_LOG #2 follow-up):
+    when chrome.yml registers a specific placeholder idx for title or
+    subtitle (e.g., FedEx layouts where the "subtitle" slot is actually a
+    BODY-type placeholder at idx=10, not a SUBTITLE-type placeholder),
+    pass that idx in. The function will then match by idx FIRST and fall
+    back to type-based matching only if idx-based lookup fails. This
+    closes the silent-drop bug where BODY-type slots that serve as
+    subtitles were skipped by strict type matching.
 
     Caller is responsible for choosing whether to invoke this (body-canonical)
     vs. _strip_layout_placeholders (bespoke / cover).
@@ -137,7 +162,37 @@ def _populate_layout_placeholders(slide, *, title=None, subtitle=None,
         tf = ph.text_frame
         # Replace existing paragraph text in the first paragraph; clear extras.
         if not tf.paragraphs:
-            return
+            # Gate B.3 (2026-06-08, SLIDE_LAB_FEEDBACK_LOG Deferred #3):
+            # silent no-op was the v1 bug class. If the placeholder is
+            # well-formed enough that we found it, it must have at least
+            # one paragraph element to receive text. Empty text_frame means
+            # malformed template — fail loudly with recovery instructions.
+            try:
+                _idx = ph.placeholder_format.idx
+            except Exception:
+                _idx = "?"
+            try:
+                _name = ph.name
+            except Exception:
+                _name = "<unnamed>"
+            raise TemplatePlaceholderEmptyError(
+                f"A placeholder in your template "
+                f"(idx={_idx}, name={_name!r}) is missing the internal text "
+                f"structure that Slide Lab needs to write into. We tried to "
+                f"place: {(text or '')[:60]!r}\n\n"
+                f"  Why this happens: PowerPoint normally ships every "
+                f"placeholder with a default empty paragraph. Some templates "
+                f"end up with an 'orphan' placeholder (no paragraph) after "
+                f"being edited and saved.\n\n"
+                f"  What to do:\n"
+                f"    1. Open the template in PowerPoint.\n"
+                f"    2. Go to View > Slide Master and find the layout this "
+                f"slide uses.\n"
+                f"    3. Click once into the placeholder named {_name!r} — "
+                f"PowerPoint will write the missing paragraph for you.\n"
+                f"    4. Save the template, then re-register it:\n"
+                f"         py -3 scripts/register_template.py propose <your-template.pptx>"
+            )
         first = tf.paragraphs[0]
         # Clear existing runs
         for r in list(first.runs):
@@ -157,6 +212,30 @@ def _populate_layout_placeholders(slide, *, title=None, subtitle=None,
             except Exception:
                 pass
 
+    # First pass: idx-based matching for any role that supplied an idx.
+    # This honors chrome.yml's registered placeholder ids (e.g., FedEx
+    # template's subtitle is at idx=10 as a BODY-type placeholder — strict
+    # type matching would silently miss it).
+    if title is not None and title_idx is not None:
+        for ph in list(slide.placeholders):
+            try:
+                if ph.placeholder_format.idx == title_idx:
+                    _write(ph, title, anchor_bottom=True)
+                    found["title"] = True
+                    break
+            except Exception:
+                continue
+    if subtitle is not None and subtitle_idx is not None:
+        for ph in list(slide.placeholders):
+            try:
+                if ph.placeholder_format.idx == subtitle_idx:
+                    _write(ph, subtitle)
+                    found["subtitle"] = True
+                    break
+            except Exception:
+                continue
+
+    # Second pass: type-based matching for roles not yet placed.
     for ph in list(slide.placeholders):
         try:
             t = int(ph.placeholder_format.type)

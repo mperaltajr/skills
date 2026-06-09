@@ -1,0 +1,29 @@
+# brand.brand.yml
+# Registered 2026-06-05 - Template SHA: 46a7230c
+# Source: theme1.xml + register_template.py
+
+# Ground-truth hexes - these drive every build.
+# Edit and re-run register_template.py to re-validate.
+primary_hex:     "#1F2937"
+accent_hex:      "#F59E0B"
+cover_bg_hex:    "#0A1A2E"
+dark_bg_hex:     "#0A1A2E"
+
+# Informational only - slot names from PowerPoint (not used by builds,
+# kept for human reference)
+primary_slot:    dk2
+accent_slot:     lt2
+cover_bg_slot:   dk2
+dark_bg_slot:    dk2
+
+# Fonts
+font_heading:    "Arial"
+font_body:       "Arial"
+
+# Background handling
+# Default false — KEEP the master decoration. For most client templates
+# (FedEx, Accenture, etc.) the master IS the brand chrome and stripping
+# makes every slide look off-spec. Set true ONLY when the master ships
+# unwanted photographic decoration (stadium photos, watermarks) that you
+# do NOT want behind every slide.
+strip_master_backgrounds: false

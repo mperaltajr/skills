@@ -360,6 +360,49 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
             "classification": classification,
         })
 
+    # Gap 3 (2026-06-08): worker context-ack telemetry. When build_deck.py
+    # has written `_context.md` and the worker has followed the soft-
+    # enforcement protocol, it leaves `_context_ack.txt` next to it with a
+    # one-line citation of the constraint that informed its pattern pick.
+    # Surface absence as an advisory chip — non-blocking; the user decides
+    # whether to re-dispatch.
+    #
+    # Audit blocker (2026-06-08): when the template was registered WITHOUT
+    # a reference_slide_n, _context.md still gets written (it carries design
+    # rules + brief metadata) but contains a sentinel string flagging the
+    # absence of canonical anchor. In that case there's no meaningful
+    # constraint for the worker to cite, and a yellow ⚠ chip on every slide
+    # of every build is pure noise. Detect the sentinel and suppress the
+    # chip entirely.
+    context_md_path = src_dir / "_context.md"
+    context_ack_path = src_dir / "_context_ack.txt"
+    context_present = context_md_path.exists()
+    context_has_reference = False
+    if context_present:
+        try:
+            _ctx_head = context_md_path.read_text(
+                encoding="utf-8", errors="replace"
+            )[:600]
+            # Sentinel from _format_reference_block_for_context() — see
+            # scripts/build_deck.py. If absent, the user registered with
+            # reference_slide_n and the context bundle is meaningful.
+            context_has_reference = (
+                "No reference slide was captured" not in _ctx_head
+            )
+        except Exception:
+            context_has_reference = False
+    ack_present = context_ack_path.exists()
+    ack_text = ""
+    if ack_present:
+        try:
+            ack_text = context_ack_path.read_text(
+                encoding="utf-8", errors="replace"
+            ).strip().splitlines()[0] if context_ack_path.read_text(
+                encoding="utf-8", errors="replace"
+            ).strip() else ""
+        except Exception:
+            ack_text = ""
+
     return {
         "n": slide_num,
         "slide_id": slide_id,
@@ -371,6 +414,10 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
         "prompt_path": src_dir / _p.PROMPT_MD,
         "prompt_found": prompt.get("found", False),
         "options": options,
+        "context_present": context_present,
+        "context_has_reference": context_has_reference,
+        "context_ack_present": ack_present,
+        "context_ack_text": ack_text,
     }
 
 
@@ -610,12 +657,55 @@ def render_adjacency_banner(slide_n: int, warnings: list[str]) -> str:
     )
 
 
+def render_context_ack_chip(slide: dict) -> str:
+    """Gap 3 (2026-06-08): per-slide worker context-ack telemetry chip.
+
+    Shows one of three states next to the slide title:
+      - green: worker wrote `_context_ack.txt` with a citation; show the
+        first line so the user can see what the worker reasoned against.
+      - yellow: `_context.md` was generated AND a reference slide was
+        registered, but the worker didn't write an ack file. Advisory.
+      - hidden: no `_context.md` (older brief) OR `_context.md` exists but
+        the template was registered without a reference slide — the chip
+        would be noise on every slide if shown here, so suppress (audit
+        blocker, 2026-06-08).
+    """
+    if not slide.get("context_present"):
+        return ""
+    # Suppress the chip when no reference slide was registered — there's no
+    # canonical constraint for the worker to have cited, so a yellow ⚠ on
+    # every slide of every build is pure noise that Mario asked us not to
+    # ship.
+    if not slide.get("context_has_reference"):
+        return ""
+    if slide.get("context_ack_present"):
+        cite = html.escape(slide.get("context_ack_text") or "(empty citation)")
+        return (
+            '<div class="context-chip context-chip-ok">'
+            '<span class="context-chip-icon">&#10003;</span> '
+            f'<strong>Worker used your reference slide.</strong> {cite}'
+            '</div>'
+        )
+    return (
+        '<div class="context-chip context-chip-warn">'
+        '<span class="context-chip-icon">&#9888;</span> '
+        '<strong>Worker may not have used your reference slide.</strong> '
+        'Output could drift from your canonical example. Spot-check the slide '
+        'in PowerPoint; if it looks off-brand, re-dispatch this slide.'
+        '</div>'
+    )
+
+
 def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
     sid = slide["slide_id"]
     n = slide["n"]
     title = html.escape(slide.get("title") or f"Slide {n}")
     adjacency = (adjacency_warnings or {}).get(n, [])
     adjacency_banner = render_adjacency_banner(n, adjacency)
+    # Gap 3: worker context-ack chip (green ✓ with citation, or yellow ⚠
+    # when ack is missing). Empty string when there's no _context.md to
+    # judge against (older builds).
+    context_chip = render_context_ack_chip(slide)
 
     themed_paths = {
         o["letter"]: (str(o["themed_pptx"].resolve()) if o["themed_exists"] else "")
@@ -662,6 +752,7 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
   </div>
 
   {adjacency_banner}
+  {context_chip}
 
   <div class="options-row">
     {option_tiles}
@@ -760,6 +851,14 @@ code { font-family: Consolas, monospace; font-size: 12px; color: var(--text-dim)
 .dd-bullets { list-style: none; margin: 4px 0 0; padding-left: 22px; }
 .dd-bullets li { font-size: 13px; color: var(--text-dim); padding: 3px 0; position: relative; line-height: 1.5; }
 .dd-bullets li::before { content: "– "; color: var(--accent-soft); position: absolute; left: -16px; }
+
+/* Gap 3 (2026-06-08): worker context-ack chip */
+.context-chip { margin: 0 20px 10px; padding: 8px 12px; border-radius: 4px; font-size: 12px; line-height: 1.4; }
+.context-chip-icon { margin-right: 6px; font-weight: 700; }
+.context-chip-ok { background: rgba(16,185,129,0.12); border-left: 3px solid #10B981; color: #6EE7B7; }
+.context-chip-ok strong { color: #10B981; }
+.context-chip-warn { background: rgba(202,138,4,0.14); border-left: 3px solid var(--tweak); color: #FDE68A; }
+.context-chip-warn strong { color: var(--tweak); }
 
 /* v2 addition: adjacency advisory banner */
 .adjacency-banner { margin: 0 20px 12px; padding: 10px 14px; background: rgba(202,138,4,0.14); border-left: 4px solid var(--tweak); border-radius: 4px; color: #FDE68A; font-size: 13px; line-height: 1.45; }

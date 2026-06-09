@@ -260,6 +260,19 @@ def load_brand_sidecar(template_path: Path) -> dict:
         "strip_master_backgrounds": bool(
             brand_raw.get("strip_master_backgrounds", False)
         ),
+        # Gate A.3: resolved TTF path from brand.yml (empty when unresolved
+        # at registration; finalize_deck falls back to disk scan).
+        "title_font_ttf_path": str(
+            brand_raw.get("title_font_ttf_path", "") or ""
+        ),
+        # Gate A.1: reference-slide spec (dict or None). Captured at
+        # registration when the user designates a canonical slide in the
+        # template ("make every output look like this slide").
+        "reference_slide": (
+            brand_raw.get("reference_slide")
+            if isinstance(brand_raw.get("reference_slide"), dict)
+            else None
+        ),
         "_template_sha": actual_sha,
     }
 
@@ -305,6 +318,15 @@ class ClientTheme:
     dark_bg_slot: str = ""               # informational
     strip_master_backgrounds: bool = False
     template_sha: str = ""
+    # Gate A.3 (2026-06-08): on-disk path to the heading font's TTF, resolved
+    # at registration time. Empty string when the registering machine did not
+    # have the font installed; finalize_deck falls back to a runtime disk scan.
+    title_font_ttf_path: str = ""
+    # Gate A.1 (2026-06-08): canonical reference-slide spec from brand.yml.
+    # None when the user did not designate a reference slide at registration.
+    # Schema: {slide_n, layout_name, title_box_px, subtitle_box_px,
+    #          observed_colors}.
+    reference_slide: Optional[dict] = None
 
     # Cached map
     _color_map: Optional[Dict[str, str]] = field(default=None, repr=False)
@@ -500,6 +522,8 @@ def load_client_theme(template_path: str) -> ClientTheme:
         dark_bg_slot=brand["dark_bg_slot"],
         strip_master_backgrounds=brand["strip_master_backgrounds"],
         template_sha=brand["_template_sha"],
+        title_font_ttf_path=brand.get("title_font_ttf_path", "") or "",
+        reference_slide=brand.get("reference_slide"),
     )
 
 

@@ -150,6 +150,109 @@ def canonical_page_number_box() -> "BoxPx":
 
 
 # ---------------------------------------------------------------------------
+# Title-wrap line count (v2.2, SLIDE_LAB_FEEDBACK_LOG #4/#5)
+# ---------------------------------------------------------------------------
+
+class TitleMetricsUnavailableError(RuntimeError):
+    """Raised when title line-count cannot be measured because the configured
+    TTF font cannot be loaded or Pillow is missing. Per
+    feedback_sidecar_fallback_must_be_loud — silent char-count fallback was
+    the v1 bug class we're not repeating. Recovery: re-run register_template
+    so it records the brand TTF path in brand.yml.
+    """
+
+
+# Common Windows locations to scan when brand.yml hasn't yet recorded the TTF.
+# user-fonts dir first (where FedEx Sans installs by default on Windows 10/11),
+# then system fonts. Pre-registered templates won't have the TTF path in
+# brand.yml yet; this list is the transitional discovery fallback. Once
+# register_template records `title_font_ttf_path` in brand.yml, finalize_deck
+# reads from there and skips this scan.
+_FEDEX_SANS_DEFAULT_NAMES = (
+    "FedExSans_0.ttf",
+    "FedExSans-Regular.ttf",
+    "FedExSans.ttf",
+)
+
+
+def _find_brand_ttf(font_name: str | None = None) -> str | None:
+    """Discover a brand TTF on disk by name. Returns absolute path or None.
+
+    Scans `%LOCALAPPDATA%\\Microsoft\\Windows\\Fonts` (user fonts —
+    FedEx Sans installs there) then `C:\\Windows\\Fonts` (system fonts).
+    Used as a transitional fallback when brand.yml doesn't yet record the
+    TTF path; once register_template writes the resolved path into
+    brand.yml, callers should prefer that and skip this scan.
+    """
+    import os
+    candidates: list[str] = []
+    if font_name:
+        candidates.append(font_name)
+    else:
+        candidates.extend(_FEDEX_SANS_DEFAULT_NAMES)
+    user_fonts = os.path.expandvars(r"%LOCALAPPDATA%\Microsoft\Windows\Fonts")
+    system_fonts = r"C:\Windows\Fonts"
+    for dir_path in (user_fonts, system_fonts):
+        for fn in candidates:
+            full = os.path.join(dir_path, fn)
+            if os.path.isfile(full):
+                return full
+    return None
+
+
+def count_wrapped_lines(text: str, ttf_path: str | None,
+                         size_pt: int, box_width_px: int) -> int:
+    """Return the number of visual lines `text` wraps to in a box of width
+    `box_width_px` at `size_pt` using the TTF at `ttf_path`.
+
+    Greedy word-wrap (matches PowerPoint's behavior closely enough for the
+    threshold check). Raises TitleMetricsUnavailableError when Pillow is
+    missing or the TTF can't be loaded — this is a loud-fail surface per
+    feedback_sidecar_fallback_must_be_loud. The caller is responsible for
+    either re-registering the template to record a valid TTF path OR
+    falling back to a char-count proxy and warning the operator.
+    """
+    if not text:
+        return 0
+    try:
+        from PIL import ImageFont
+    except ImportError as e:
+        raise TitleMetricsUnavailableError(
+            f"Pillow not available for title-wrap measurement: {e}. "
+            f"Pillow is a pinned dependency — check requirements.txt."
+        ) from e
+    if not ttf_path:
+        raise TitleMetricsUnavailableError(
+            "No TTF path supplied for title-wrap measurement. Recovery: "
+            "re-run register_template so brand.yml records the resolved "
+            "title font path."
+        )
+    try:
+        # 96 DPI: px = pt * 96/72
+        font = ImageFont.truetype(ttf_path, int(round(size_pt * 96 / 72)))
+    except (OSError, IOError) as e:
+        raise TitleMetricsUnavailableError(
+            f"Cannot load TTF {ttf_path!r}: {e}. Recovery: re-run "
+            f"register_template to discover and record a valid TTF path."
+        ) from e
+    words = text.split()
+    if not words:
+        return 0
+    lines = 0
+    current = ""
+    for word in words:
+        trial = word if not current else f"{current} {word}"
+        if font.getlength(trial) <= box_width_px:
+            current = trial
+        else:
+            lines += 1
+            current = word
+    if current:
+        lines += 1
+    return lines
+
+
+# ---------------------------------------------------------------------------
 # Pydantic models
 # ---------------------------------------------------------------------------
 

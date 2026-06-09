@@ -78,12 +78,14 @@ import io  # noqa: E402
 from pptx import Presentation  # noqa: E402
 from pptx.util import Emu, Pt  # noqa: E402
 from pptx.enum.shapes import MSO_SHAPE_TYPE  # noqa: E402
+from pptx.oxml.ns import qn  # noqa: E402
 from twins.client_theme import load_client_theme, apply_theme_to_shape_xml  # noqa: E402
 from twins.composer import (  # noqa: E402
     _clear_existing_slides,
     _find_blank_layout,
     _find_named_layout,
     _strip_layout_placeholders,
+    TemplatePlaceholderEmptyError,
 )
 from _chrome_schema import (  # noqa: E402
     ChromeSpec, ChromeSidecarMissingError, ChromeLayoutMissingError,
@@ -1099,8 +1101,10 @@ def build_pptx(st: OptionStatus, mermaid_theme: Path,
 def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
                                      src_slide, slide_n: int,
                                      fallback_title: str = "",
+                                     fallback_subtitle: str = "",
                                      dark_variant: bool = False,
-                                     dark_bg_hex: str = "") -> None:
+                                     dark_bg_hex: str = "",
+                                     brand_ttf_path: str = "") -> None:
     """Body-canonical post-graft.
 
     Light variant (default): populate inherited title/footer/page-number
@@ -1146,6 +1150,12 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
             continue
     if not src_title:
         src_title = (fallback_title or "").strip()
+    # v2.2 (2026-06-05, SLIDE_LAB_FEEDBACK_LOG #1): fall back to meta-supplied
+    # subtitle when source slide has no "subtitle" shape. Workers built before
+    # the body-canonical default fix don't name a subtitle shape, so without
+    # this fallback the so-what from the brief never lands on the slide.
+    if not src_subtitle:
+        src_subtitle = (fallback_subtitle or "").strip()
 
     if dark_variant and dark_bg_hex:
         # Dark path: full-bleed brand-dark overlay, title drawn fresh on top.
@@ -1204,6 +1214,62 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
             run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
         return
 
+    # v2.2 (2026-06-05, SLIDE_LAB_FEEDBACK_LOG #3): Mario's design rule —
+    # "if title wraps to >2 lines, no subtitle." Use Pillow + brand TTF
+    # measurement (NOT char count — proportional fonts misfire on char
+    # thresholds). Only fires when the layout actually exposes a subtitle
+    # slot (otherwise there's nothing to drop) and src_subtitle is set.
+    # Gated to LIGHT path only — dark-variant titles are drawn freshly and
+    # don't share the subtitle box.
+    _subtitle_idx = getattr(layout_chrome, "subtitle_placeholder_idx", None)
+    if src_title and src_subtitle and _subtitle_idx is not None:
+        from _chrome_schema import (
+            count_wrapped_lines,
+            _find_brand_ttf,
+            TitleMetricsUnavailableError,
+        )
+        # Prefer brand-yml-recorded TTF path (Gate A.3, persisted at register
+        # time); fall back to layout-chrome override; final fallback is a
+        # transitional disk scan with a WARN telling the operator to
+        # re-register.
+        _ttf = (
+            getattr(layout_chrome, "title_font_ttf_path", None)
+            or brand_ttf_path
+            or _find_brand_ttf()
+        )
+        # Title box width in px: layout's title_box_width_px if available,
+        # else canonical CANONICAL_TITLE_W. Title font size: layout's
+        # title_font_pt if available, else 28pt (canonical for body-canonical
+        # FedEx layouts).
+        _title_w_px = getattr(layout_chrome, "title_box_width_px", None) or 1190
+        _title_pt = getattr(layout_chrome, "title_font_pt", None) or 28
+        try:
+            _n_lines = count_wrapped_lines(src_title, _ttf, _title_pt, _title_w_px)
+            if _n_lines >= 3:
+                sys.stderr.write(
+                    f"  INFO: slide {slide_n} title wraps to {_n_lines} lines "
+                    f"at {_title_pt}pt in {_title_w_px}px box; dropping "
+                    f"subtitle per Mario's >2-line rule.\n"
+                )
+                src_subtitle = ""
+        except TitleMetricsUnavailableError as _exc:
+            # Transitional fallback: brand.yml doesn't yet record the title
+            # TTF (older registration). Char-count proxy at ≥110 chars is
+            # imperfect for proportional fonts but better than skipping the
+            # rule entirely. Re-register the template to fix permanently.
+            sys.stderr.write(
+                f"  WARN: slide {slide_n} title-wrap measurement unavailable "
+                f"({_exc}); falling back to char-count proxy. Recovery: "
+                f"re-run register_template to record the brand TTF path.\n"
+            )
+            if len(src_title) > 110:
+                sys.stderr.write(
+                    f"  INFO: slide {slide_n} title is {len(src_title)} chars "
+                    f"(>110, char-count proxy); dropping subtitle per "
+                    f"Mario's >2-line rule.\n"
+                )
+                src_subtitle = ""
+
     # Light path: keep existing behavior — overlay only if the layout's
     # chrome ships a body_overlay_hex (legacy per-layout dark path), then
     # populate inherited placeholders.
@@ -1222,13 +1288,96 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
     # v2.1 (2026-06-02, Bug #2): pass subtitle through so finalize populates
     # the inherited subtitle placeholder. Composer no-ops cleanly when
     # subtitle is None or the layout has no subtitle placeholder type.
-    _populate_layout_placeholders(
+    # v2.2 (2026-06-05, SLIDE_LAB_FEEDBACK_LOG #2 follow-up): pass the
+    # chrome-registered placeholder ids so the composer can match by idx
+    # FIRST. FedEx layout's "subtitle" slot is actually a BODY-type
+    # placeholder at idx=10; strict type matching alone would silently
+    # miss it.
+    _title_idx = getattr(layout_chrome, "title_placeholder_idx", None)
+    _subtitle_idx = getattr(layout_chrome, "subtitle_placeholder_idx", None)
+    found = _populate_layout_placeholders(
         new_slide,
         title=src_title or None,
         subtitle=src_subtitle or None,
         footer=None,
         page_num=str(slide_n),
+        title_idx=_title_idx,
+        subtitle_idx=_subtitle_idx,
     )
+
+    # v2.2 (2026-06-05, SLIDE_LAB_FEEDBACK_LOG #2): loud-fail when non-empty
+    # title or subtitle text was supplied but the layout had no matching
+    # placeholder type to populate. The FedEx OTC bug shipped because this
+    # check did not exist — every slide's subtitle silently disappeared
+    # because the bespoke layout had no SUBTITLE placeholder. Honor
+    # feedback_sidecar_fallback_must_be_loud: invisible data loss is never
+    # a recoverable runtime state.
+    layout_name = getattr(layout_chrome, "name", "(unknown)") if layout_chrome else "(unknown)"
+    if src_title and not found.get("title"):
+        raise TitleDropError(
+            f"slide {slide_n}: title text supplied ({len(src_title)} chars) "
+            f"but layout {layout_name!r} has no TITLE placeholder to host it.\n"
+            f"  This is the silent-drop bug class — every word of the title "
+            f"would have been thrown away.\n"
+            f"  Recovery: pick a body-canonical layout for this slide (edit "
+            f"_meta.json slides[].layout), or re-register the template so "
+            f"default_content_layout points to a body-canonical layout."
+        )
+    if src_subtitle and not found.get("subtitle"):
+        raise SubtitleDropError(
+            f"slide {slide_n}: subtitle text supplied ({len(src_subtitle)} chars) "
+            f"but layout {layout_name!r} has no SUBTITLE placeholder to host it.\n"
+            f"  This is the silent-drop bug class — the so-what for this slide "
+            f"would have been invisibly dropped.\n"
+            f"  Recovery: pick a body-canonical layout for this slide (edit "
+            f"_meta.json slides[].layout to a layout with "
+            f"subtitle_placeholder_idx set), or omit the subtitle field if "
+            f"this slide intentionally has no so-what."
+        )
+
+
+class TitleDropError(RuntimeError):
+    """Raised when title text was supplied but the slide's layout has no
+    TITLE placeholder. Per feedback_sidecar_fallback_must_be_loud — silent
+    data loss is never a recoverable runtime state. The FedEx OTC bug
+    (2026-06-05) shipped a deck with every subtitle silently dropped
+    because this check did not exist for subtitle; add for both to prevent
+    recurrence in either direction.
+    """
+
+
+class SubtitleDropError(RuntimeError):
+    """Raised when subtitle text was supplied but the slide's layout has
+    no SUBTITLE placeholder. See TitleDropError for the design rationale.
+    """
+
+
+class TemplateLayoutMissingError(RuntimeError):
+    """Raised when a per-slide layout name is supplied but no layout in the
+    registered template matches that name.
+
+    Killing Feedback Log Deferred #1 (2026-06-05): _find_named_layout returned
+    None silently and the caller fell back to _find_blank_layout, hiding the
+    fact that the slide is now on the wrong layout. The most common real-world
+    cause: template was re-saved in PowerPoint and a layout got renamed (or
+    deleted) after registration; per-slide _meta.json still references the old
+    name. Silent fallback = subtitle drop + chrome misalignment with no signal.
+
+    Per feedback_sidecar_fallback_must_be_loud — silent template-vs-meta drift
+    is invisible data loss.
+    """
+
+
+class PrimaryAccentCollisionError(RuntimeError):
+    """Raised when the loaded ClientTheme's primary_hex and accent_hex are
+    too close in RGB space — a signal that the registration step picked the
+    wrong color slots (e.g., swapped primary and accent, or both pointing at
+    the same brand color).
+
+    Catches a class of error the visual-confirmation gate at registration is
+    designed to prevent, but acts as a backstop at build time in case the
+    user accepted a bad auto-pick without confirming the preview.
+    """
 
 
 class DarkVariantCollisionError(RuntimeError):
@@ -1357,6 +1506,7 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
                     layout_name: str = "",
                     layout_chrome=None,
                     slide_title: str = "",
+                    slide_subtitle: str = "",
                     slide_variant: str = "") -> None:
     try:
         src_prs = Presentation(str(st.pptx_path))
@@ -1368,7 +1518,38 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
         # v0.2 P1.3: graft onto the layout named in chrome.yml / meta when one
         # is supplied; fall back to blank for body-canonical and for slides
         # that didn't carry a layout (P1.4 wires per-slide layout via meta).
-        target_layout = _find_named_layout(prs, layout_name) or _find_blank_layout(prs)
+        #
+        # Gate B.2 (2026-06-08, SLIDE_LAB_FEEDBACK_LOG Deferred #1): when a
+        # non-empty layout_name was requested but not found, raise loudly
+        # instead of silently falling back to blank. The blank fallback is
+        # ONLY for slides that asked for no specific layout (layout_name == "").
+        target_layout = _find_named_layout(prs, layout_name)
+        if target_layout is None:
+            if (layout_name or "").strip():
+                available = sorted({
+                    (lyt.name or "").strip()
+                    for m in prs.slide_masters
+                    for lyt in m.slide_layouts
+                    if (lyt.name or "").strip()
+                })
+                raise TemplateLayoutMissingError(
+                    f"This slide asks to use layout {layout_name!r}, but no "
+                    f"layout with that name exists in your template "
+                    f"({template_path.name!r}).\n\n"
+                    f"  Most common cause: someone renamed or deleted that "
+                    f"layout in PowerPoint after the template was registered "
+                    f"with Slide Lab.\n\n"
+                    f"  Layouts currently in this template: {available}\n\n"
+                    f"  What to do:\n"
+                    f"    1. If you (or the client) recently re-saved the "
+                    f"template, re-register it:\n"
+                    f"         py -3 scripts/register_template.py propose "
+                    f"\"{template_path}\"\n"
+                    f"    2. Otherwise, open _meta.json in the build output "
+                    f"folder and change this slide's 'layout' field to one "
+                    f"of the names above."
+                )
+            target_layout = _find_blank_layout(prs)
         new_slide = prs.slides.add_slide(target_layout)
 
         # v0.3 (2026-05-28) body-canonical layout inheritance:
@@ -1407,6 +1588,16 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
             _strip_layout_placeholders(new_slide, keep_master_shapes=_keep_master)
 
         sp_tree = new_slide.shapes._spTree
+        # Gate B.1 fix (2026-06-08, SLIDE_LAB_FEEDBACK_LOG #8 root cause):
+        # When body-canonical, new_slide already has title/subtitle/footer
+        # placeholders via layout inheritance — _populate_layout_placeholders
+        # writes into them after the graft. If we also deepcopy the src_slide's
+        # placeholder shapes here, we end up with N+1 copies of each placeholder
+        # on every finalize re-run (1 inherited + 1 from src). Five re-runs in
+        # one session → 6 stacked title placeholders, all populated identically,
+        # rendering as garbled anti-aliased text. compile_picks.py had a
+        # post-hoc dedupe; this is the real fix.
+        _PH_TAG = qn("p:ph")
         for shape in src_slide.shapes:
             # Picture shapes carry a blipFill that references an image via
             # an rId in the source part's relationships. A naive deepcopy
@@ -1438,6 +1629,10 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
                     # preserves the (broken) shape so the operator can
                     # diagnose. Better than swallowing the picture entirely.
                     pass
+            # Body-canonical: skip placeholder shapes — new_slide already
+            # has them via inheritance, populate step writes the content.
+            if _is_body_canonical and shape.element.find(".//" + _PH_TAG) is not None:
+                continue
             sp_tree.append(deepcopy(shape.element))
 
         # v0.3 body-canonical: insert dark-overlay rectangle (if any) so it
@@ -1450,8 +1645,10 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
                 _apply_body_canonical_finishing(
                     new_slide, prs, layout_chrome, src_slide, st.slide_n,
                     fallback_title=slide_title,
+                    fallback_subtitle=slide_subtitle,
                     dark_variant=_is_dark,
                     dark_bg_hex=_dark_bg,
+                    brand_ttf_path=getattr(theme, "title_font_ttf_path", "") or "",
                 )
                 # v0.3: hard-fail collision check on dark-variant slides.
                 # If any shape fill or text color collides with dark_bg_hex,
@@ -1461,6 +1658,16 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
                     st.dark_collisions = _check_dark_variant_collisions(
                         new_slide, _dark_bg, st.slide_n,
                     )
+            except (TitleDropError, SubtitleDropError,
+                    TemplatePlaceholderEmptyError):
+                # v2.2 (2026-06-05, SLIDE_LAB_FEEDBACK_LOG #2): silent-drop
+                # errors are hard fails per feedback_sidecar_fallback_must_be_loud.
+                # Re-raise so the graft fails loudly with the named exception
+                # and stops the build — invisible data loss is worse than
+                # a stopped build.
+                # Gate B.3 (2026-06-08): TemplatePlaceholderEmptyError is the
+                # same silent-drop bug class one layer deeper; same handling.
+                raise
             except Exception as _exc:
                 # Don't fail the graft on overlay/populate trouble — surface
                 # in qc later. The grafted slide is still valid.
@@ -1480,6 +1687,17 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
         st.themed_pptx_path.parent.mkdir(parents=True, exist_ok=True)
         prs.save(str(st.themed_pptx_path))
         st.themed = True
+    except (TitleDropError, SubtitleDropError,
+            TemplateLayoutMissingError, TemplatePlaceholderEmptyError):
+        # Gate B fixes (2026-06-08): named silent-drop / layout-drift errors
+        # must propagate out of graft_and_theme so main() halts the whole
+        # build (not just records one option as failed). Per
+        # feedback_sidecar_fallback_must_be_loud — invisible data loss is
+        # worse than a stopped build. Without this, the outer generic
+        # `except Exception` below would catch them and the build would
+        # continue with the bad option recorded only in RESULT.md.
+        st.themed = False
+        raise
     except Exception as e:
         st.themed = False
         st.error = f"graft: {type(e).__name__}: {e}"
@@ -1699,6 +1917,7 @@ def main() -> int:
     # meta.slides[i].variant; defaults to light.
     _slide_layout_names: dict[int, str] = {}
     _slide_titles: dict[int, str] = {}
+    _slide_subtitles: dict[int, str] = {}
     _slide_variants: dict[int, str] = {}
     try:
         _meta_dict_layouts = json.loads(_p.meta_json(args.out).read_text(encoding="utf-8"))
@@ -1707,10 +1926,12 @@ def main() -> int:
             if isinstance(n, int):
                 _slide_layout_names[n] = (s.get("layout") or "").strip() or default_layout_name
                 _slide_titles[n] = (s.get("title") or "").strip()
+                _slide_subtitles[n] = (s.get("subtitle") or "").strip()
                 _slide_variants[n] = (s.get("variant") or "").strip().lower()
     except Exception:
         _slide_layout_names = {}
         _slide_titles = {}
+        _slide_subtitles = {}
         _slide_variants = {}
 
     def _layout_name_for(slide_n: int) -> str:
@@ -1718,6 +1939,9 @@ def main() -> int:
 
     def _slide_title_for(slide_n: int) -> str:
         return _slide_titles.get(slide_n, "")
+
+    def _slide_subtitle_for(slide_n: int) -> str:
+        return _slide_subtitles.get(slide_n, "")
 
     def _slide_variant_for(slide_n: int) -> str:
         return _slide_variants.get(slide_n, "")
@@ -1826,6 +2050,47 @@ def main() -> int:
     print(f"  color_map entries: {len(color_map)}")
     print(f"  expected palette  : {len(expected_palette)} hex codes")
 
+    # Gate B.4 (2026-06-08): primary/accent RGB-distance backstop.
+    # Catches the registration-best-guess-inverted class of failure where
+    # _best_guess_primary_accent() picks the same slot for both (or two
+    # slots whose colors are visually indistinguishable). The visual-
+    # confirmation gate at registration is the primary defense; this is the
+    # backstop that catches builds where the user accepted a bad auto-pick.
+    # Threshold tuned conservatively — primary/accent on a real brand should
+    # be at least 60 units apart in RGB-Euclidean (e.g., FedEx purple
+    # #4D148C vs orange #FF6600 = ~310 units).
+    try:
+        _pa_dist = _rgb_distance(theme.brand_primary or "", theme.brand_accent or "")
+        if _pa_dist < 30.0:
+            raise PrimaryAccentCollisionError(
+                f"Your brand's primary color (#{theme.brand_primary}) and "
+                f"accent color (#{theme.brand_accent}) are nearly identical "
+                f"(RGB distance {_pa_dist:.1f}; we need at least 30).\n\n"
+                f"  Why this matters: if primary and accent look the same, "
+                f"every accent stripe, callout, and emphasis color on every "
+                f"slide will be invisible against the primary fill — the deck "
+                f"will look flat and chromatically wrong.\n\n"
+                f"  Most common cause: when you registered the template, the "
+                f"primary and accent swatches in register.html were the same "
+                f"color (or two near-identical swatches).\n\n"
+                f"  What to do: re-register the template and pick visibly "
+                f"distinct primary and accent colors:\n"
+                f"    py -3 scripts/register_template.py propose <your-template.pptx>\n"
+                f"  Then open register.html and pick TWO different swatches for "
+                f"primary and accent."
+            )
+        if _pa_dist < 60.0:
+            print(
+                f"  WARN: primary/accent RGB distance is {_pa_dist:.1f} (soft "
+                f"threshold=60). Colors may be visually indistinct on some "
+                f"slides. Re-register if this surprises you."
+            )
+    except PrimaryAccentCollisionError as exc:
+        # Surface the operator-facing message cleanly with non-zero exit,
+        # not a raw stack trace.
+        print(f"\nERROR: brand color collision.\n{exc}", file=sys.stderr)
+        return 8
+
     print("\n[3.1] Detect client-template fonts on local machine")
     font_missing = detect_missing_client_fonts(theme)
     if font_missing:
@@ -1853,13 +2118,30 @@ def main() -> int:
 
     print("\n[4] Graft + theme remap (serial — python-pptx not thread-safe)")
     for i, st in enumerate(built_statuses, 1):
-        graft_and_theme(
-            st, args.template, theme, color_map,
-            layout_name=_layout_name_for(st.slide_n),
-            layout_chrome=_layout_chrome_for(st.slide_n),
-            slide_title=_slide_title_for(st.slide_n),
-            slide_variant=_slide_variant_for(st.slide_n),
-        )
+        try:
+            graft_and_theme(
+                st, args.template, theme, color_map,
+                layout_name=_layout_name_for(st.slide_n),
+                layout_chrome=_layout_chrome_for(st.slide_n),
+                slide_title=_slide_title_for(st.slide_n),
+                slide_subtitle=_slide_subtitle_for(st.slide_n),
+                slide_variant=_slide_variant_for(st.slide_n),
+            )
+        except (TitleDropError, SubtitleDropError,
+                TemplateLayoutMissingError,
+                TemplatePlaceholderEmptyError) as _exc:
+            # Gate B fixes (2026-06-08): silent-drop / layout-drift errors
+            # halt the build cleanly with a recovery hint instead of a raw
+            # stack trace. The named exception messages were written for the
+            # operator; relay them verbatim and exit non-zero.
+            print(
+                f"  [{i:>3}/{len(built_statuses)}] slide_"
+                f"{st.slide_n:02d}/option_{st.letter}  FAIL ({type(_exc).__name__})"
+            )
+            print(f"\nERROR: build halted — {type(_exc).__name__} on "
+                  f"slide {st.slide_n} option {st.letter}.\n{_exc}",
+                  file=sys.stderr)
+            return 8
         flag = f"ok (shapes={st.n_shapes} subs={st.n_subs})" if st.themed else f"FAIL ({st.error[:50]})"
         print(f"  [{i:>3}/{len(built_statuses)}] slide_{st.slide_n:02d}/option_{st.letter}  {flag}")
 
