@@ -322,9 +322,107 @@ If the content doesn't fit the chosen framework after all: build bespoke. Don't 
 
 Walk through slides one at a time. For each slide, the user produces an archetype classification (5.0) plus five fields (5a–5e), then runs an archetype-specific quality check (5f) before the slide is complete. The archetype determines which quality questions apply — different slide types fail in different ways.
 
-> **⛔ Hard rule — per-slide handshake (added 2026-05-26 after OTC dry run failure).** Each slide requires **at least one user turn** between archetype classification (5.0) and the archetype-specific quality check (5f). If you have not received a user turn for slide N, you may not begin slide N+1. **No batching. No inference from prior documents.** If the user gave rich input documents (POV, framework, notes, prior decks), use them as evidence to *push back* when the user's per-slide answer contradicts them — never as a *substitute* for the user's per-slide answer. The user's tacit knowledge is never fully captured in their input documents; the coaching loop is where it surfaces.
+> **⛔ Hard rule — authorship locking on governing thought and so-what (revised 2026-06-09 after Mario's per-slide UX feedback; universal-batch model).**
 >
-> **Defensible-default trap.** When the input documents make it possible to "guess" the governing thought for slide N, the tempting move is to write it for the user and ask them to react. Resist. The reaction-mode answer ("looks good") is not the same as the authorship answer ("here's what I actually believe and why"). The deck inherits whichever one shows up. See memory `feedback_cocreate_not_infer.md`.
+> **5a (governing thought) and 5b (so-what) MUST be asked per-question, never batched, never proposed-then-approved.** The user must type the claim and the takeaway themselves. These are the locking moments — where the user commits to a specific argument and a specific belief shift. If the AI proposes them and the user merely approves, the user has *endorsed* a claim, not *made* one. The deck inherits whichever showed up. The skill's coaching value lives here.
+>
+> If you have not received a user turn for slide N's governing thought AND a separate user turn for slide N's so-what, you may not begin slide N+1's per-slide loop. If the user gave rich input documents (POV, framework, notes, prior decks), use them as evidence to *push back* when the user's answer contradicts them — never as a *substitute* for the user's answer.
+>
+> **The remaining per-slide fields (archetype 5.0, editorial emphasis 5c, what-this-is-NOT 5d, chart info 5e, quality check 5f) ARE batched into a single proposal per slide.** These are execution decisions that derive mechanically from the governing thought + so-what the user just authored. Batching them cuts ~5 turns per slide to ~1 while preserving the authorship moments where coaching value lives. The batch proposal MUST be framed as **starting points derived from the user's 5a/5b**, not as finished answers — see the proposal template at § "Per-slide loop — batched execution-field flow" below.
+>
+> **This is the universal model.** It applies to every user, every deck, regardless of experience level. The skill does not have a "coached mode" toggle. The per-question authorship lock on 5a/5b is the coaching, and it's universal. There are scoped fallbacks to full per-question on a *single slide* when specific signals fire (see § "When to suppress batch mode for one slide") — but the default never changes deck-wide.
+>
+> **Defensible-default trap.** When the input documents make it possible to "guess" the governing thought or so-what for slide N, the tempting move is to write them for the user and ask them to react. Resist. The reaction-mode answer ("looks good") is not the same as the authorship answer ("here's what I actually believe and why"). This trap applies specifically to 5a and 5b — the carve-out above is for execution fields, not for the claim or the takeaway. See memory `feedback_cocreate_not_infer.md`.
+>
+> **Slide 1 exception.** Slide 1 always uses the full per-question flow (5.0 → 5a → 5b → 5c → 5d → 5e → 5f, one question per turn). Slide 1 sets the calibration anchor for the whole deck — the user needs to see what good looks like for *this* brief, *this* audience, before downstream slides get batched-proposed.
+
+#### Per-slide loop — batched execution-field flow (slides 2+)
+
+For every slide from slide 2 onward, the per-slide loop is:
+
+1. **Ask 5a per-question.** *"What's the governing thought for slide N? What's the one declarative sentence that slide proves?"* Wait for the user's answer. Push back if vague.
+
+2. **Ask 5b per-question.** *"If the exec remembers one thing from this slide after they leave the room, what should it be? Not what the slide claims — what the claim should change in their head."* Wait for the user's answer. Push back if it's a restatement of 5a.
+
+3. **Emit ONE batched proposal message containing the remaining fields.** The template:
+
+   > **Slide N — execution starting points** (your governing thought + so-what are locked above)
+   >
+   > These are starting points derived from what you just told me — not finished answers. Review and edit anything that's not right.
+   >
+   > - **Archetype (5.0):** `<proposed archetype>` — *why this one fits this slide*
+   > - **Editorial emphasis (5c):** `<proposed emphasis>` — *one of: the conclusion / the evidence / the contrast / the data / the ask / the numbers*
+   > - **What this slide is NOT (5d):** `<proposed scope exclusion>`
+   > - **Chart needed (5e):** `<yes/no>` — if yes: `<proposed chart type>`. *If you need a chart, paste the data or a file path in your reply.*
+   > - **Quality check (5f):** `<any failures of the archetype-specific check, or "all checks pass">`
+   >
+   > **Three ways to reply:**
+   > - **Approve** — lock the slide and move to slide N+1
+   > - **Approve with edits** — tell me what to change in plain English; I apply and lock
+   > - **Walk me through this slide** — drop into per-question coaching for the execution fields
+
+4. **Parse the user's reply** with the table below. The reply types accept synonyms — match by intent, not exact string.
+
+   | Reply intent | Triggering phrases (case-insensitive substring match) | Action |
+   |---|---|---|
+   | **Approve as-is** | `approved`, `approve`, `approve it`, `lock it`, `looks good`, `looks fine`, `fine`, `lgtm`, `all good`, `ok`, `okay`, `yes`, `yep`, `yup`, `sure`, `confirmed`, `ship it`, `ship`, `go`, `go for it`, `move on`, `next slide`, `next` | Lock all fields. Increment to slide N+1. |
+   | **Approve with edits** | message starts with `approve` AND contains any of: `with edits`, `but`, `except`, `change`, `swap`, `remove`, `add`, `make`, OR contains a colon followed by edit description (e.g. `approved with edits: ...`) | Parse deltas in natural language. See "Edit parsing" below. |
+   | **Walk through** | `walk me through`, `walk through`, `coach me`, `step me through`, `go question by question`, `question by question`, `let's go slow`, `i want more coaching` | Drop into per-question for the execution fields only (see "Walk-through semantics" below). |
+
+   **Edit parsing.** The user's edits are in natural language. Extract field-level deltas by intent — "the emphasis should be data" → 5c = "the data"; "we don't need a chart" → 5e = "no"; "make the governing thought punchier: <text>" → 5a = `<text>` (triggers cascade — see below). When the user mentions a field by name (archetype, emphasis, what-this-is-NOT, chart) OR by content (e.g., "the part about not including financials"), apply the delta. When the user's intent is unambiguous, apply silently. When two reasonable interpretations exist, pick the one that changes less and surface the other in the re-emitted proposal as: *"I read your edit as X. If you meant Y instead, tell me and I'll switch."*
+
+   **Ambiguous reply fallback.** If the reply doesn't match any of the three intents above (e.g., a question back at the AI, free-form prose with no clear action verb), ask exactly ONE clarifying question:
+
+   > *"I'm not sure if you want me to lock the slide as-is, edit it, or drop into coaching. Which is it?"*
+
+   If the user's response to the clarifying question is *still* ambiguous, auto-drop into walk-through for this slide and say:
+
+   > *"Let's just walk through it — I'll ask one question at a time so we can get this slide right."*
+
+   Never ask the same clarifying question twice on the same slide.
+
+#### Cascading-edit protocol (when 5a or 5b changes after the batch)
+
+If the user's "approve with edits" reply changes 5a (governing thought) or 5b (so-what) — the authorship fields — the downstream execution fields may now be incoherent because they were derived from the original 5a/5b. The skill must:
+
+1. Apply the user's edit to 5a and/or 5b.
+2. Regenerate the execution fields (5.0, 5c, 5d, 5e, 5f) from the updated 5a/5b.
+3. Re-emit the batched proposal, prefixed with this signal:
+
+   > *"You edited [the governing thought / the so-what / both]. I regenerated the archetype, emphasis, scope, and chart proposal so they match your updated claim. Here's the revised slide:"*
+
+4. Wait for a new approval before locking.
+
+**Cascade back-stop.** The cascade can repeat ONCE — i.e., the user can edit 5a/5b on the first batch reply, see the regenerated proposal, and edit 5a/5b again on that reply. On the THIRD pass (original + first regen + second regen — i.e., the user's second 5a/5b edit on this slide), do NOT regenerate again. Instead, drop into per-question for the remaining execution fields and tell the user:
+
+> *"You've revised the core claim twice on this slide, and that's a signal your thinking is still settling. Rather than keep regenerating proposals, let me walk you through the remaining decisions one at a time — so we ground each choice in what you're actually trying to prove. That'll take a few more turns, but you'll land on something tighter."*
+
+#### When to suppress batch mode for one slide
+
+Batch mode is the universal default for slides 2+ but the skill drops into full per-question on a *single slide* when any of these fire. Each trigger has an explicit user-facing message so the mode switch is never silent:
+
+1. **The user explicitly requests it** (any walk-through synonym from the parse table above).
+   > *"Got it — let's coach through the execution fields for this slide one at a time."*
+
+2. **The cascade back-stop fires** (user edited 5a/5b twice on the same slide). Message specified in the cascade-back-stop section above.
+
+3. **The archetype-specific quality check (5f) flags a Critical or Major failure.** Surface the specific failure when announcing the switch:
+   > *"I found a structural issue: [verbatim 5f failure, e.g., 'the recommendation doesn't have a success metric — what will prove it worked?']. That's not something batch approval can fix; it needs us to work through it together. Let me drop into per-question for this slide so we can shore it up."*
+
+These three triggers apply per-slide only. The next slide (N+1) returns to the batched flow unless that slide independently fires a trigger.
+
+#### Walk-through semantics
+
+When walk-through fires (any of the three triggers above), the skill drops to per-question coaching for the EXECUTION fields only: 5.0 → 5c → 5d → 5e → 5f, one question per turn. **The user's 5a and 5b stay locked** — they were already authored per-question and re-asking them would discard the authorship moment. Discard the batched proposal for this slide; the user is starting the execution-field coaching from scratch.
+
+After 5f passes, lock the slide and increment to slide N+1. Slide N+1 begins in batched mode again.
+
+---
+
+The field definitions below (5.0, 5a–5e, 5f) apply in BOTH modes:
+
+- **In full per-question mode** (slide 1, or any slide where a walk-through trigger fired): work the fields sequentially, one question per turn, as written.
+- **In batched mode** (slides 2+ default): use the field definitions to author 5a and 5b per-question, then derive 5.0, 5c, 5d, 5e proposals for the batched message; run 5f internally and surface any failures in the batched proposal's quality-check line.
 
 **5.0 — Classify the slide's archetype.** Before working 5a–5e, identify which archetype this slide is. The archetype determines the questions in 5f.
 
