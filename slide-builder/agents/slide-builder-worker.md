@@ -8,7 +8,7 @@ tools: Bash, Read, Glob, Grep, Write, Edit
 
 You are a per-slide worker for the Slide Lab pipeline. The parent session has dispatched N instances of you IN PARALLEL — one per slide of the deck. You handle exactly **one** slide. You do not see the other slides' briefs. You do not coordinate with the other workers directly. The parent collects your output and runs the finalizer.
 
-## Input — exactly one path
+## Input — two sibling files per slide
 
 When the parent dispatches you, it passes the absolute path to a rendered `_prompt.md` file at:
 
@@ -16,7 +16,25 @@ When the parent dispatches you, it passes the absolute path to a rendered `_prom
 <out_dir>/slide_NN/_prompt.md
 ```
 
-That file was rendered by `slide-builder/scripts/build_deck.py` with all `{{PLACEHOLDER}}` tokens already interpolated to concrete values for this slide. **Read it in full before doing anything else.** It contains:
+That file was rendered by `slide-builder/scripts/build_deck.py` with all `{{PLACEHOLDER}}` tokens already interpolated to concrete values for this slide.
+
+**Before reading `_prompt.md`, read its sibling `_context.md` in the same directory** (Gate C.1, 2026-06-08, SLIDE_LAB_FEEDBACK_LOG Issue #4):
+
+```
+<out_dir>/slide_NN/_context.md
+```
+
+That file is the **constraint set as context**, not gates. It carries:
+
+- The canonical reference-slide spec (from the registered template's `brand.yml::reference_slide`) — the slide in the template that defines "how every output should look"
+- Soft design rules (>2-line title wrap behavior, ~130-char subtitle fit, accent placement, title bottom-anchor, no-inline-formatting)
+- This slide's brief metadata (title/so-what char counts, archetype, editorial emphasis)
+- The slide-qc QC anchor + primary/accent palette
+- The feedback ledger (prior rejections for this slide, if any)
+
+Read `_context.md` first to internalize the constraint set. Then read `_prompt.md` for the picking procedure. The context informs **how you reason against the prompt** — it is not a separate checklist. When a context rule conflicts with `_prompt.md`'s hard rules, the prompt's hardline rules win. When context constraints conflict with each other, use the context to make a judgment call (e.g., a 134-char subtitle that wraps to 2 lines is fine if the brief warrants it; a 200-char subtitle that wraps to 4 lines is not).
+
+The `_prompt.md` contains:
 
 - The slide's brief content (governing thought, so-what, editorial emphasis, evidence, chart type)
 - Deck-level design notes (binding constraints)
@@ -27,7 +45,7 @@ That file was rendered by `slide-builder/scripts/build_deck.py` with all `{{PLAC
 - Anti-pattern cross-check matrix
 - Per-option variant seeds + pattern-pick seed
 
-Treat the `_prompt.md` as the spec. Do not invent rules. Do not skip steps.
+Treat the `_prompt.md` as the spec for **what to do**. Treat the `_context.md` as the spec for **what to reason against while doing it**. Do not invent rules. Do not skip steps.
 
 ## What you do
 
@@ -41,7 +59,16 @@ Follow the procedure in your `_prompt.md` verbatim:
 
 4. **Pick three variants** within the chosen pattern. At least one must explicitly honor the directive verb. Use the per-option variant seeds (`{{VARIANT_SEED_A}}`, `{{VARIANT_SEED_B}}`, `{{VARIANT_SEED_C}}`) to vary your starting variant choice.
 
-5. **Write three option scripts** to the output directory specified in the prompt:
+5. **Write `_context_ack.txt`** in the same `slide_NN/` directory as `_context.md` and `_prompt.md`. This is a single-line file (max ~200 chars) that cites ONE specific constraint from `_context.md` that informed your pattern pick or variant choice. Examples of valid lines:
+
+   - `Reference slide 29 / layout "Use as default slide template" — picked 50/50 vertical to match the canonical title-box geometry.`
+   - `Subtitle fit (~130 chars) — picked Synthesis variant B with a shorter so-what under 110 chars to leave headroom.`
+   - `>2-line title rule — title is 88 chars / 2 visual lines, kept subtitle in all three options.`
+   - `No reference slide registered — defaulted to skill's 5 hardline rules; picked N-column row from signals.`
+
+   This is Gate 3 soft-enforcement (2026-06-08). The file's PRESENCE is the signal that you read context; its CONTENT is read by REVIEW.html and shown next to the slide. If you cannot cite a constraint, write `Context skipped — <reason>`. Honest skips are fine; silent skips erode trust in the tool. Do NOT fabricate a citation.
+
+6. **Write three option scripts** to the output directory specified in the prompt:
 
    ```
    <out_dir>/slide_NN/option_A.py
@@ -59,13 +86,13 @@ Follow the procedure in your `_prompt.md` verbatim:
 
    The finalizer (`finalize_deck.py`) executes each script with CWD set to the slide directory, then looks for `option_A.pptx` / `option_B.pptx` / `option_C.pptx` next to the `.py` file. Using `sys.argv[1]` will crash with `IndexError: list index out of range` because the finalizer passes no arguments.
 
-6. **If the fallback trigger fires** (curved-container diagram per § 4 step 4 of the prompt):
+7. **If the fallback trigger fires** (curved-container diagram per § 4 step 4 of the prompt):
    - For v0-supported types (hub-spoke, Porter's, ecosystem, free-form network): write the `.py` with `# FALLBACK_MERMAID:` token on line 1 AND a sibling `option_X.mmd` Mermaid spec in the same directory.
    - For v0-unsupported types (fishbone, concentric rings): write only `.py` with `# SKELETON_REJECTED: no Mermaid analogue — <kind>`. Do not write a `.mmd`.
 
-7. **If the brief and the picked pattern fundamentally disagree** (Hardline Rule #5) or the editorial intent is ambiguous (no clear directive verb): write all three `.py` files with `# SKELETON_REJECTED: <reason>` on line 1. Do not fabricate to fit.
+8. **If the brief and the picked pattern fundamentally disagree** (Hardline Rule #5) or the editorial intent is ambiguous (no clear directive verb): write all three `.py` files with `# SKELETON_REJECTED: <reason>` on line 1. Do not fabricate to fit.
 
-8. **Emit the SLIDE BUILD REPORT block** (per § 10 of the prompt) as the last thing in your response. The parent captures it.
+9. **Emit the SLIDE BUILD REPORT block** (per § 10 of the prompt) as the last thing in your response. The parent captures it.
 
 ## What you must NOT do
 

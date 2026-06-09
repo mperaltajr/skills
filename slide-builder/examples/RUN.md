@@ -4,8 +4,39 @@ This example uses `quickstart-brief.md` (4 slides) and any registered client PPT
 
 ## What you need
 
-- A registered client template — a `.pptx` file with `<stem>.brand.yml` and `<stem>.theme.json` sidecars next to it. If you don't have one, see SKILL.md § "Register a new client template" for the chat-driven flow.
+- A registered client template — a `.pptx` file with `<stem>.brand.yml` and `<stem>.theme.json` sidecars next to it.
 - The verification step from INSTALL.md passing.
+
+## If you don't have a registered template yet (do this first)
+
+Slide Lab can't build against a raw `.pptx`; it builds against a *registered* template (one with sidecar `brand.yml` + `theme.json` + `chrome.yml` files capturing the client's colors, fonts, layouts). Registration is a one-time chat-driven flow per template:
+
+```powershell
+# Phase 1 — propose (no writes to brand.yml yet)
+py -3 "$env:USERPROFILE\.claude\skills\slide-builder\scripts\register_template.py" propose `
+    "<path to your raw template.pptx>"
+```
+
+This produces a `register.html` page next to your template. Open it. The page asks you to:
+
+1. **Pick a primary brand color** — click a swatch (no hex typing).
+2. **Pick an accent color** — click a swatch.
+3. **Pick the default content layout** — the layout your slides should use 95% of the time.
+4. **Optionally pick a reference slide** — point at one slide in your template that defines how every output should look (title position, subtitle box, accent placement, footer chrome). Recommended when your template has specific chrome geometry. Skip if your template is only covers/dividers.
+5. **Strip-master-backgrounds toggle** — usually leave unchecked.
+
+Copy the picks JSON from register.html, save it as `picks.json` next to the template, then commit:
+
+```powershell
+# Phase 2 — commit (writes brand.yml + theme.json + chrome.yml)
+py -3 "$env:USERPROFILE\.claude\skills\slide-builder\scripts\register_template.py" commit `
+    "<path to your template.pptx>" `
+    --picks "<path to picks.json>"
+```
+
+That's it — your template is now registered. The sidecar files (`<stem>.brand.yml`, `<stem>.theme.json`, `<stem>.chrome.yml`) sit next to the `.pptx`. You only need to repeat this if the template's master/layouts change.
+
+For the full registration flow with diagrams, see SKILL.md § "Register a new client template."
 
 ## The full sequence
 
