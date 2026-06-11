@@ -3450,6 +3450,32 @@ def _commit_from_picks_dict(tpl: Path, picks: dict, *, source: str) -> int:
     # chrome.yml lands) so we never persist a phantom name.
     default_content_layout = (picks.get("default_content_layout") or "").strip()
 
+    # Hard-fail (2026-06-11) — refuse to commit when default_content_layout
+    # is empty in the explicit-picks path. The accept-mode shortcut handles
+    # its own fallback via autoBodyGuess (caller surfaces the chosen layout
+    # back to the user); explicit picks must always set this field. Silent
+    # commit-with-empty was the gap that surfaced as a hard error mid-build
+    # in the 2026-06-11 OTC Final Deliverable session — the user was forced
+    # to pick a layout under time pressure, between brief lock and build.
+    if not default_content_layout and not picks.get("accept", False):
+        print(
+            "ERROR: picks.json is missing `default_content_layout` (and not in "
+            "accept-mode).\n"
+            "  Slide Lab requires you to designate one layout as the default "
+            "for content slides — the layout that build_deck.py will use for "
+            "every slide unless the brief overrides per-slide. Without this, "
+            "build_deck.py fails mid-build with no clean recovery.\n\n"
+            "  Fix one of:\n"
+            "    1. Open register.html again, click 'Use for body' on the layout "
+            "you want as the default, copy the picks JSON, retry commit.\n"
+            "    2. Use `commit-cli` with `--default-content-layout \"<layout name>\"`.\n"
+            "    3. Use `accept: true` in picks.json to fall back to Slide Lab's "
+            "best-guess (autoBodyGuess picks the layout named "
+            "`Use as default slide template` exact-match first, then substring "
+            "match, then the first non-dark layout with a body placeholder).\n"
+        )
+        return 2
+
     # Gate A.1 (2026-06-08): optional reference_slide_n in picks. When set,
     # extract the spec from that slide and append to brand.yml as a
     # canonical "look like this" anchor.
