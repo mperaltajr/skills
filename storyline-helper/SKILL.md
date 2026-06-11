@@ -147,40 +147,52 @@ If they redirect → adjust your inference and re-confirm. One follow-up questio
 
 ---
 
-### Step 0 — Establish the session folder and confirm the template
+### Step 0 — Establish the session folder, confirm the template, confirm the default layout
 
-Now that the pipeline is confirmed as a consulting insight deck, collect two things in a single question. Both are needed before any commands can run.
-
-**Session folder** — the root for the narrative brief, source data, and the final deck. Follows the Project Folder Convention:
-
-```
-<Client>/sessions/YYYY-MM-DD Topic Name/
-```
-
-**Client template** — the `.pptx` file that carries the client's brand colors, fonts, and layouts. It must be **registered** (have `<stem>.brand.yml` + `<stem>.theme.json` sidecars next to it) before slide-builder will accept it; if the sidecars are missing, register via the chat-driven `register_template.py propose` → `commit` flow at handoff time. Getting the template wrong means every font, color, and layout in the output deck will be incorrect.
-
-Ask the user:
-
-> *"Two things before we start:*
-> *1. Client name and topic — so I can set up the session folder (e.g., `FedEx / Vendor Gap Analysis`).*
-> *2. Path to the client's PowerPoint template (e.g., `C:\Users\...\FedEx\_templates\Template2.pptx`).*
+> **⛔ Hard rule (revised 2026-06-11 after OTC Final Deliverable session) — Step 0 is unconditional and must NEVER be inferred from project memory.**
 >
-> *If you don't have a template yet, let me know and we'll use a blank."*
+> Even when project memory contains a plausible template path, a recent session folder, or any other defensible-default values, **the orchestrator MUST ask the user and wait for explicit confirmation on all four items below**. Inferring from memory has historically picked the wrong session folder (Library tree instead of Claude Projects tree), the wrong template (a stale one from a prior session), and the wrong default layout (auto-falling to whatever build_deck.py guesses mid-build). The user's tacit input on "is this the right setup for THIS deck?" is load-bearing.
+>
+> The orchestrator MAY propose values from project memory ("I see in memory that recent FedEx sessions live at `…/Claude Projects/FedEx/sessions/`; should this one go there too?") — but the user must explicitly say yes / change-to / use this instead before the values are locked.
 
-Once confirmed, state both resolved values before proceeding:
+**Four things to confirm in Step 0** (combine into one or two messages, but get explicit confirmation on each):
+
+1. **Session folder root** — the parent directory where the dated session folder will be created. The Project Folder Convention is `<Client>/sessions/YYYY-MM-DD Topic Name/`, but the *client root* itself can live under several places (Claude Projects tree, OneDrive Library, a local working directory). **Always ask** which root the user wants, even if memory has a default — propose the memory default, require confirmation.
+
+2. **Client name and topic** — drives the dated subfolder name and the brief filename. E.g., `FedEx / Vendor Gap Analysis` → `FedEx/sessions/2026-05-06 Vendor Gap Analysis/`.
+
+3. **Client template** — the `.pptx` file that carries the client's brand colors, fonts, and layouts. It must be **registered** (have `<stem>.brand.yml` + `<stem>.theme.json` + `<stem>.chrome.yml` sidecars next to it) before slide-builder will accept it. If the sidecars are missing, register via the chat-driven `register_template.py propose` → `commit` flow at Step 10 (handoff). Getting the template wrong means every font, color, and layout in the output deck will be incorrect.
+
+4. **Default content layout** — the slide layout that build_deck.py uses for every content slide unless the brief overrides per-slide. If the template is registered, read `<stem>.theme.json::default_content_layout` and surface it ("the registered default is `Use as default slide template`; still right for this deck?"). If the template is unregistered OR the registered theme.json has an empty `default_content_layout`, ask the user to pick at Step 10 registration time and treat THIS Step 0 as deferring layout confirmation until after registration. Never let the build_deck.py command run with an empty / unknown default layout — that surfaces as a hard error mid-build at the worst possible moment.
+
+**Combine the asks** — don't do four separate turns. One message is fine:
+
+> *"Before we start, four things to confirm. I'll propose values from project memory where available; correct any that aren't right:*
+>
+> *1. Session folder root: `<proposed root>` (e.g., `C:\Users\…\Claude Projects\<Client>\sessions\`).*
+> *2. Client name + topic: `<proposed client> / <proposed topic>`.*
+> *3. Template path: `<proposed template path>` (registered if `brand.yml` + `theme.json` + `chrome.yml` exist next to it).*
+> *4. Default content layout: `<proposed layout from theme.json>` — or `(needs registration)` if the template isn't registered yet.*
+>
+> *Reply with any corrections, or `confirm` to lock all four."*
+
+Wait for explicit confirmation (`confirm` or specific corrections). `looks good` / `yes` without naming the values isn't sufficient — restate the four values and ask which need changing.
+
+Once confirmed, state all four resolved values before proceeding:
 ```
-Session folder:    C:\Users\...\FedEx\sessions\2026-05-06 Vendor Gap Analysis\
-Dot-dash will save:   ...\2026-05-06 Vendor Gap Analysis\dot-dash-vendor-gap.md   (markdown, version control)
-                      ...\2026-05-06 Vendor Gap Analysis\dot-dash-vendor-gap.html (rendered, share with stakeholders)
-Brief will save:      ...\2026-05-06 Vendor Gap Analysis\_session\narrative-brief-vendor-gap.md  (slide-builder input)
-Template:          C:\Users\...\FedEx\_templates\Template2.pptx
+Session folder:    C:\Users\…\Claude Projects\FedEx\sessions\2026-05-06 Vendor Gap Analysis\
+Dot-dash will save:   …\2026-05-06 Vendor Gap Analysis\dot-dash-vendor-gap.md
+                      …\2026-05-06 Vendor Gap Analysis\dot-dash-vendor-gap.html
+Brief will save:      …\2026-05-06 Vendor Gap Analysis\_session\narrative-brief-vendor-gap.md
+Template:          C:\Users\…\FedEx\_templates\Template2.pptx (registered)
+Default layout:    "Use as default slide template" (from theme.json)
 ```
 
-Store the template path — slide-builder reads it from the brief front-matter and uses the registered `brand.yml` sidecar at build time. If the template is unregistered, Step 10 walks through the chat-driven registration flow before handoff.
+Store all four — slide-builder reads template + default layout from the brief front-matter at build time (storyline-helper Step 9 auto-injects `default_layout` into the YAML front-matter from theme.json; if the template wasn't registered at Step 0 confirmation time, the layout must be set at Step 10).
 
-**Terminology note:** "Session folder" = the dated subfolder (`FedEx/sessions/2026-05-07 Topic/`). "Client root" = the parent folder (`FedEx/`). These are different. The brief, deck output, and all session files live in the session folder. The template lives at the client root under `_templates/`.
+**Terminology note:** "Session folder" = the dated subfolder (`FedEx/sessions/2026-05-07 Topic/`). "Client root" = the parent folder (`FedEx/`). "Session folder root" = the directory ABOVE the client root (e.g., `Claude Projects/` or `Library/`). The brief, deck output, and all session files live in the session folder. The template lives at the client root under `_templates/`.
 
-If the user is already mid-deck (a brief file already exists in the session folder), skip this step — locate the brief in the session folder and resume from the edge case handler (see "Handling edge cases").
+**Resumption path (only on explicit user signal).** If the user explicitly says they're resuming a prior deck (e.g., *"continuing from yesterday"*, *"pick up where we left off on slide 8"*, *"use the brief in `<path>`"*), the orchestrator may skip the four-value confirmation and locate the brief in the named session folder. Do NOT skip the confirmation when memory merely *suggests* a prior session — only when the user explicitly invokes resumption.
 
 ---
 
@@ -923,6 +935,14 @@ When a reason is given, append to the brief's `## Flags` section in the format:
 
 Once the user has resolved Criticals and handled (fix-or-override) all Majors, save the brief as `_session/narrative-brief-[deck-topic].md` inside the session folder established in Step 0. The brief lives inside `_session/` so the human-readable dot-dash storyline (next step) is the only file the user sees at the session root.
 
+**Auto-inject `default_layout` into the front-matter (required, 2026-06-11).** Before saving the brief, read the registered template's `theme.json` (located next to the `.pptx` at `<template-stem>.theme.json` OR in the sidecar subfolder `<template-stem>/theme.json` depending on registration era). Extract the `default_content_layout` field and inject it into the brief's YAML front-matter as `default_layout: <value>`. This stops the build-time silent gap where build_deck.py couldn't find a default layout and fell into mid-build error.
+
+If `theme.json` is missing OR `default_content_layout` is empty: HALT. Do not save the brief. Tell the user the template isn't fully registered and re-route to Step 10's registration flow:
+
+> *"Your template doesn't have a default content layout set yet — I need this before I can hand off to slide-builder, or the build will fail mid-stream. Let me walk you through registering it now. Run `py -3 scripts/register_template.py propose '<template path>'`, then we'll pick a layout together at register.html section 3."*
+
+The brief save is the LAST possible moment to catch this gap cleanly. Catching it here means the user fixes the gap before any build_deck.py compute is sunk.
+
 **Gate marker (required).** Slide-builder hard-fails any brief without the storyline-helper gate marker. After all Criticals are resolved and Majors are handled, write the gate marker into the YAML front-matter BEFORE saving:
 
 ```yaml
@@ -1019,6 +1039,7 @@ Saved as `_session/narrative-brief-[topic].md` inside the session folder (establ
 ---
 client_template: <absolute path to .pptx>     # required — slide-builder errors if missing
 deck_type: <one of the 7 canonical types (or Training edge)>    # required — drives selector deck_types match
+default_layout: <layout name from theme.json>  # required — storyline-helper Step 9 auto-injects from theme.json::default_content_layout; build_deck.py errors mid-build if missing
 session_folder: <absolute path to _session>    # optional — helps slide-builder anchor outputs
 storyline_gate_passed: true                   # required — slide-builder hard-fails without this
 storyline_gate_at: 2026-06-02T14:00:00Z       # required — ISO-8601 UTC timestamp of the gate pass
