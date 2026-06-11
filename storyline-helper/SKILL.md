@@ -332,7 +332,7 @@ Walk through slides one at a time. For each slide, the user produces an archetyp
 >
 > **The remaining per-slide fields (archetype 5.0, editorial emphasis 5c, what-this-is-NOT 5d, chart info 5e, quality check 5f) ARE batched into a single proposal per slide.** These are execution decisions that derive mechanically from the governing thought + so-what the user just committed to. Batching them preserves the authorship moments where coaching value lives while cutting turn count per slide.
 >
-> **This is the universal model.** Applies to every user, every deck, regardless of experience level. No "coached mode" toggle. The per-question authorship lock on 5a/5b via drafts + explicit pick/sharpen/own is the coaching, and it's universal. Scoped per-slide fallbacks to full per-question (see § "When to suppress batch mode for one slide") apply only to the execution-field batch — 5a/5b drafts-up-front always run.
+> **What's universal vs. what varies.** The **authorship lock on 5a/5b** is universal — every user, every deck, every slide gets drafts + an explicit pick/sharpen/own commit. No "coached mode" toggle to turn this off. The **pacing** (how the rest of the per-slide fields are presented) is conditional — see the three pacing levels in the paragraph below. Scoped per-slide fallbacks to full per-question (see § "When to suppress batch mode for one slide") apply only to the execution-field batch — 5a/5b drafts-up-front always run.
 >
 > **Three pacing levels across the deck.** The same underlying authorship lock runs at three different ceremony levels depending on where you are in the deck and how cleanly the user has been committing:
 >
