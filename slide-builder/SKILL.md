@@ -105,7 +105,7 @@ The chat-driven flow replaces the legacy PowerShell TTY flow (still available as
    >
    > - Reading `<stem>/preview.png` or `<stem>/palette.png` does **not** substitute for the user opening `register.html`. Those artifacts confirm that colors EXIST, not that the role ASSIGNMENT (primary vs accent vs cover-bg) is correct. Auto-pick has historically inverted on most client templates — the chat-driven flow exists precisely to catch that.
    > - The `{"accept": true}` flag is a **user-issued shortcut**, not an orchestrator default. It may only be written when the user explicitly types "accept" or equivalent in chat. If the user has not responded to the register.html prompt, the picks JSON has not been written.
-   > - Halt and ask, even if the auto-best-guess in `register.proposal.json` looks plausible. Defensible-default bias caused the 2026-05-26 OTC dry run failure (orange/purple swap committed without user review). See memory `feedback_cocreate_not_infer.md`.
+   > - Halt and ask, even if the auto-best-guess in `register.proposal.json` looks plausible. Defensible-default bias caused the 2026-05-26 OTC dry run failure (orange/purple swap committed without user review). For design decisions like brand-slot assignment, the AI's "defensible default" is not a substitute for the user's tacit knowledge — halt and ask, every time.
 
 3. **Commit.** The orchestrator writes a `picks.json` capturing the user's choices and runs:
    ```powershell
