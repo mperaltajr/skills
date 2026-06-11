@@ -334,7 +334,13 @@ Walk through slides one at a time. For each slide, the user produces an archetyp
 >
 > **This is the universal model.** Applies to every user, every deck, regardless of experience level. No "coached mode" toggle. The per-question authorship lock on 5a/5b via drafts + explicit pick/sharpen/own is the coaching, and it's universal. Scoped per-slide fallbacks to full per-question (see § "When to suppress batch mode for one slide") apply only to the execution-field batch — 5a/5b drafts-up-front always run.
 >
-> **Slide 1 also uses drafts-up-front for 5a and 5b** — the drafts ARE the calibration anchor. Showing the user three concrete examples of what a strong claim and a strong belief-shift look like for *this* brief and *this* audience is how slide 1 sets the quality bar for the whole deck. Slide 1 then continues per-question through 5.0/5c/5d/5e/5f (no batch on slide 1).
+> **Three pacing levels across the deck.** The same underlying authorship lock runs at three different ceremony levels depending on where you are in the deck and how cleanly the user has been committing:
+>
+> 1. **Slide 1 — full per-question (calibration anchor).** Drafts-up-front for 5a/5b in one paired message, then per-question through 5.0 → 5c → 5d → 5e → 5f one field per turn. No batch on slide 1.
+> 2. **Slides 2–3 — standard mode (calibration ramp).** Drafts-up-front for 5a/5b in one paired message (`5a lock A, 5b lock B`), then a single batched execution-field proposal (5.0/5c/5d/5e/5f) approved or edited in one reply.
+> 3. **Slides 4+ — compressed mode IF slides 1–3 were clean** (no walk-throughs, ≤1 execution-batch edit, no 5f Major/Critical). See § "Compressed mode" below. Compressed mode bundles paired 5a/5b drafts AND the execution proposal into ONE message; the user commits to everything in ONE reply. If slides 1–3 had any of those triggers, slides 4+ continue in standard mode.
+>
+> **Slide 1 sets the quality bar by showing the user three concrete drafts** for both 5a and 5b — examples of what a strong claim and a strong belief-shift look like for *this* brief and *this* audience — then walking field-by-field through the rest. Slides 2–3 are the calibration ramp: still paired drafts + batched execution, but the user demonstrates whether they've internalized the bar. The slide 3 → slide 4 transition is the moment the skill decides whether to keep coaching at full ceremony or trust the user to compress.
 >
 > **Defensible-default trap — narrowed scope.** This trap applies to *design decisions* (deck architecture, framework choice, narrative spine, ask framing) — resist proposing these, because the user needs to think through the trade-offs themselves. It does NOT apply to *narrative authorship* (5a/5b): providing three concrete draft claims up-front and requiring `lock` / `sharpen` / `my own` IS coaching, not substitution. The user's explicit commit to a framing is authentic authorship; blind asks without drafts are the actual failure mode (frustration without coaching value).
 
@@ -359,31 +365,28 @@ Each 5a and 5b ask presents three concrete drafts. The drafts must be:
 
 For every slide from slide 2 onward, the per-slide loop is:
 
-1. **Ask 5a per-question with three drafts up-front.** Generate three distinct draft governing thoughts per the draft-set spec above. Present them like this:
+1. **Ask 5a + 5b together with paired drafts-up-front.** Generate three distinct governing-thought drafts AND three distinct so-what drafts per the draft-set spec above, then present BOTH sets in a single message. The pairing makes the relationship between the claim and the belief shift visible side-by-side — easier to verify that the so-what shifts a belief rather than restating the claim. Template:
 
-   > *Here are three angles for slide N's governing thought. Pick one to lock, sharpen one to your wording, or write your own.*
+   > **Slide N — pick a governing thought AND a so-what** (both required to lock the slide)
    >
+   > **Governing thought (5a):** *the declarative claim the slide proves*
    > - **A) [Framing 1 claim, ≤15 words]** — *emphasizes [what this framing highlights]*
    > - **B) [Framing 2 claim, ≤15 words]** — *emphasizes [what this framing highlights]*
    > - **C) [Framing 3 claim, ≤15 words]** — *emphasizes [what this framing highlights]*
    >
-   > *Reply with `lock A` (or B/C), `sharpen B to say [your wording]`, or `my own: [your wording]`.*
-
-   Wait for an explicit commit. `looks good` / `yes` without naming an option is not a commit — ask which option. Push back per Step 8 if the locked or sharpened text reads as a topic, restatement, or generic claim. A `my own:` reply is subject to the same Step 8 quality check as the original blind-ask flow — drafts are a shortcut to good framings, not an exemption from the gate.
-
-2. **Ask 5b per-question with three drafts up-front.** Generate three distinct draft belief shifts (each a takeaway, NOT a restatement of 5a) per the draft-set spec. Present them like this:
-
-   > *Here are three belief shifts this slide could land. What should change in the exec's head — pick one, sharpen, or write your own.*
-   >
+   > **So-what (5b):** *the belief shift the audience should leave with — NOT a restatement of the claim*
    > - **A) [Belief shift 1, ≤15 words]** — *shifts thinking from [prior assumption] to [new frame]*
    > - **B) [Belief shift 2, ≤15 words]** — *shifts thinking from [prior assumption] to [new frame]*
    > - **C) [Belief shift 3, ≤15 words]** — *shifts thinking from [prior assumption] to [new frame]*
    >
-   > *Reply with `lock A` (or B/C), `sharpen B to say [your wording]`, or `my own: [your wording]`.*
+   > *Reply with one commit per field. Examples:*
+   > *`5a lock A, 5b lock B`*
+   > *`5a sharpen C to say [your wording], 5b lock A`*
+   > *`5a my own: [your claim], 5b sharpen B to say [your wording]`*
 
-   Wait for an explicit commit. Push back per Step 8 if the picked or written so-what restates 5a (it must shift a belief, not repeat the claim). A `my own:` reply is subject to the same Step 8 quality check.
+   Wait for an explicit commit on BOTH 5a AND 5b. If the user replies with a commit on only one (e.g. `5a lock A` with no 5b decision), ask for the missing one before proceeding. `looks good` / `yes` without naming options for both is not a commit. Push back per Step 8 if either locked or sharpened text reads weak: governing thought that's a topic, restatement, or generic claim; so-what that restates 5a instead of shifting a belief. A `my own:` reply on either field is subject to the same Step 8 quality check as the original blind-ask flow — drafts are a shortcut to good framings, not an exemption from the gate.
 
-3. **Emit ONE batched proposal message containing the remaining fields.** The template:
+2. **Emit ONE batched proposal message containing the remaining fields.** The template:
 
    > **Slide N — execution starting points** (your governing thought + so-what are locked above)
    >
@@ -400,7 +403,7 @@ For every slide from slide 2 onward, the per-slide loop is:
    > - **Approve with edits** — tell me what to change in plain English; I apply and lock
    > - **Walk me through this slide** — drop into per-question coaching for the execution fields
 
-4. **Parse the user's reply** with the table below. The reply types accept synonyms — match by intent, not exact string.
+3. **Parse the user's reply** with the table below. The reply types accept synonyms — match by intent, not exact string.
 
    | Reply intent | Triggering phrases (case-insensitive substring match) | Action |
    |---|---|---|
@@ -459,6 +462,63 @@ When walk-through fires (any of the three triggers above), the skill drops to pe
 **Walk-through asks do NOT use drafts-up-front for execution fields.** The 3-drafts pattern is reserved for 5a and 5b (narrative authorship). When the user invokes walk-through, they have explicitly asked for high-touch coaching — asking sequential open questions one at a time is the right shape there. Use the field definitions below (5.0, 5c, 5d, 5e, 5f) as the question prompts.
 
 After 5f passes, lock the slide and increment to slide N+1. Slide N+1 begins in batched mode again with drafts-up-front for its 5a and 5b.
+
+#### Compressed mode — confidence-gated speed-up after calibration
+
+After slide 3 locks, evaluate the user's approval pattern on slides 1–3. If ALL of the following are true, auto-shift to compressed mode starting at slide 4:
+
+- **No walk-through trigger fired** on slides 1–3 (no `walk me through this slide` requests, no 5f Critical/Major failures, no cascade back-stops).
+- **At most one execution-field edit** across all three slides (a `5a sharpen` or `5b sharpen` at the drafts step does NOT count — those are initial commits; only `approve with edits` on the execution batch counts).
+- **All three 5f quality checks passed** with no Major or Critical flags.
+
+If any one of these is false, stay in standard mode for the rest of the deck. The check runs once after slide 3 and does not re-evaluate later — the user has demonstrated either calibration competence or coaching need; commit to one path for the rest of the deck.
+
+When the criteria are met, announce the mode shift explicitly (never silent):
+
+> *"You've approved slides 1–3 cleanly — you've got the deck's quality bar. I'm switching to compressed mode for slides 4–N: I'll batch the 5a drafts, 5b drafts, and execution proposal into ONE message per slide, and you reply with all commits in one go. Say `walk me through this slide` anytime to drop back to full coaching for that slide."*
+
+**Compressed-mode per-slide flow (slides 4+ when triggered).** Emit ONE message containing the paired 5a/5b drafts AND the execution proposal:
+
+> **Slide N — compressed proposal** (one message; one reply locks everything)
+>
+> **Governing thought (5a):**
+> - **A) [Framing 1 claim, ≤15 words]** — *emphasizes [X]*
+> - **B) [Framing 2 claim, ≤15 words]** — *emphasizes [Y]*
+> - **C) [Framing 3 claim, ≤15 words]** — *emphasizes [Z]*
+>
+> **So-what (5b):**
+> - **A) [Belief shift 1, ≤15 words]** — *shifts thinking from [prior] to [new]*
+> - **B) [Belief shift 2, ≤15 words]** — *shifts thinking from [prior] to [new]*
+> - **C) [Belief shift 3, ≤15 words]** — *shifts thinking from [prior] to [new]*
+>
+> **Execution starting points** (derived from the strongest pairing of 5a + 5b — review and edit anything that's not right):
+> - **Archetype (5.0):** `<proposed archetype>`
+> - **Editorial emphasis (5c):** `<proposed emphasis>`
+> - **What this slide is NOT (5d):** `<proposed scope exclusion>`
+> - **Chart needed (5e):** `<yes/no, type, data status>`
+> - **Quality check (5f):** `<failures or "all checks pass">`
+>
+> *Reply with all three commits in one message. Examples:*
+> *`5a lock A, 5b lock B, exec approved`*
+> *`5a sharpen C to say [text], 5b lock A, exec change emphasis to data`*
+> *`5a my own: [text], 5b lock B, exec approved`*
+> *Or `walk me through this slide` for full coaching.*
+
+The execution-field proposal in compressed mode is generated **provisionally** from the AI's read of the strongest 5a/5b pairing (typically A+A). If the user picks a different 5a/5b combination, regenerate execution fields BEFORE locking and re-emit the proposal with the regenerated execution section prefixed by:
+
+> *"You picked [5a=X, 5b=Y]. I regenerated archetype/emphasis/scope/chart to match. Approve or edit?"*
+
+This is the cascade equivalent inside compressed mode. It costs one extra turn but preserves coherence between authorship picks and execution fields.
+
+**Drop-back from compressed mode to standard or per-question.** Three triggers force a single-slide fallback even when compressed mode is active:
+
+1. **User says `walk me through this slide`** → drop to per-question for that slide (5a/5b already locked from compressed reply if user committed; otherwise re-ask with drafts).
+2. **5f flags Critical or Major** → drop to per-question for that slide with the same surface-the-specific-failure message as the standard-mode trigger.
+3. **User edits 5a or 5b twice on the same slide** (cascade back-stop counter — counts post-commit edits only) → drop to per-question with the cascade back-stop message.
+
+After the fallback slide locks, return to compressed mode for slide N+1. Compressed mode is the default for the rest of the deck once enabled; only single-slide drop-backs occur.
+
+**Why this works.** Slides 1–3 establish the quality bar through full ceremony. By slide 4, if the user has been locking drafts cleanly, they've demonstrated they understand what "strong" looks like for this deck. The remaining work is execution at the pace of their judgment, not the pace of the coaching scaffolding. The fallback triggers ensure compressed mode never papers over a slide that actually needs coaching.
 
 ---
 
