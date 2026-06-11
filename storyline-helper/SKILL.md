@@ -17,7 +17,7 @@ Storyline Helper produces a **narrative brief**: a sequenced outline where each 
 
 1. **Do not produce a narrative brief until the gate passes.** Five-part gate: (a) every slide has a declarative governing thought (insight, not topic); (b) every slide has a so-what that names a belief shift, not a restatement of the claim; (c) every slide has a single editorial emphasis (what dominates the slide visually) that's consistent with the so-what; (d) title-only coherence test across the sequence; (e) deck-type governing thought test (Part 5 — see Step 7). Fail any part → back to conversation.
 
-2. **Do not invent arguments the user has not made.** Storyline Helper sharpens the user's thinking; it does not replace it. If thinking is weak or absent, surface that and ask what they believe. Never fabricate.
+2. **Do not invent arguments the user has not made.** Storyline Helper sharpens the user's thinking; it does not replace it. If thinking is weak or absent, surface that and ask what they believe. Never fabricate. **Scope (clarified 2026-06-11):** this constraint applies to *design decisions* — framework choice, deck architecture, ask framing, narrative spine — where the user must own the trade-offs. It does NOT apply to *narrative authorship of 5a (governing thought) and 5b (so-what)*, where the skill now presents three concrete drafts up-front and requires an explicit pick / sharpen / write-my-own commit. Picking among distinct framings IS authorship — it is an explicit choice between framings, not passive endorsement of a single proposal. See Step 5 and memory `feedback_provide_drafts_upfront.md`.
 
 3. **Pushback is mandatory when thinking is unclear.** Default: name the problem, explain the consequence, show what good looks like, ask one specific question. Escalate to framework walkthrough only after pushback fails once or user asks for it.
 
@@ -322,27 +322,66 @@ If the content doesn't fit the chosen framework after all: build bespoke. Don't 
 
 Walk through slides one at a time. For each slide, the user produces an archetype classification (5.0) plus five fields (5a–5e), then runs an archetype-specific quality check (5f) before the slide is complete. The archetype determines which quality questions apply — different slide types fail in different ways.
 
-> **⛔ Hard rule — authorship locking on governing thought and so-what (revised 2026-06-09 after Mario's per-slide UX feedback; universal-batch model).**
+> **⛔ Hard rule — authorship locking on governing thought and so-what (revised 2026-06-11; drafts-up-front model).**
 >
-> **5a (governing thought) and 5b (so-what) MUST be asked per-question, never batched, never proposed-then-approved.** The user must type the claim and the takeaway themselves. These are the locking moments — where the user commits to a specific argument and a specific belief shift. If the AI proposes them and the user merely approves, the user has *endorsed* a claim, not *made* one. The deck inherits whichever showed up. The skill's coaching value lives here.
+> **5a (governing thought) and 5b (so-what) MUST be asked per-question, each with three concrete drafts presented before user input.** The user does not author from scratch (blind asks force users to compress what's in their head into a 12-word claim without reference points — most produce weak negations, topic restatements, or vague language, and the skill then pushes back repeatedly, which feels like the AI making the user do all the work then critiquing it).
 >
-> If you have not received a user turn for slide N's governing thought AND a separate user turn for slide N's so-what, you may not begin slide N+1's per-slide loop. If the user gave rich input documents (POV, framework, notes, prior decks), use them as evidence to *push back* when the user's answer contradicts them — never as a *substitute* for the user's answer.
+> Instead, the user explicitly commits to one draft via a specific action verb: **`lock A`** / **`sharpen B to say [X]`** / **`my own: [text]`**. Passive approval (`looks good`) is rejected — ask which option they're picking. This is the authorship lock: the user makes an explicit choice between distinct framings or supplies their own.
 >
-> **The remaining per-slide fields (archetype 5.0, editorial emphasis 5c, what-this-is-NOT 5d, chart info 5e, quality check 5f) ARE batched into a single proposal per slide.** These are execution decisions that derive mechanically from the governing thought + so-what the user just authored. Batching them cuts ~5 turns per slide to ~1 while preserving the authorship moments where coaching value lives. The batch proposal MUST be framed as **starting points derived from the user's 5a/5b**, not as finished answers — see the proposal template at § "Per-slide loop — batched execution-field flow" below.
+> If you have not received an explicit commit for slide N's 5a AND a separate explicit commit for slide N's 5b, you may not begin slide N+1's per-slide loop. If the user gave rich input documents (POV, framework, notes, prior decks), use them to *inform the draft set* (ensure the drafts reflect their available thinking) and to *push back* if the user's pick contradicts them. Never substitute the documents for the user's commit.
 >
-> **This is the universal model.** It applies to every user, every deck, regardless of experience level. The skill does not have a "coached mode" toggle. The per-question authorship lock on 5a/5b is the coaching, and it's universal. There are scoped fallbacks to full per-question on a *single slide* when specific signals fire (see § "When to suppress batch mode for one slide") — but the default never changes deck-wide.
+> **The remaining per-slide fields (archetype 5.0, editorial emphasis 5c, what-this-is-NOT 5d, chart info 5e, quality check 5f) ARE batched into a single proposal per slide.** These are execution decisions that derive mechanically from the governing thought + so-what the user just committed to. Batching them preserves the authorship moments where coaching value lives while cutting turn count per slide.
 >
-> **Defensible-default trap.** When the input documents make it possible to "guess" the governing thought or so-what for slide N, the tempting move is to write them for the user and ask them to react. Resist. The reaction-mode answer ("looks good") is not the same as the authorship answer ("here's what I actually believe and why"). This trap applies specifically to 5a and 5b — the carve-out above is for execution fields, not for the claim or the takeaway. See memory `feedback_cocreate_not_infer.md`.
+> **This is the universal model.** Applies to every user, every deck, regardless of experience level. No "coached mode" toggle. The per-question authorship lock on 5a/5b via drafts + explicit pick/sharpen/own is the coaching, and it's universal. Scoped per-slide fallbacks to full per-question (see § "When to suppress batch mode for one slide") apply only to the execution-field batch — 5a/5b drafts-up-front always run.
 >
-> **Slide 1 exception.** Slide 1 always uses the full per-question flow (5.0 → 5a → 5b → 5c → 5d → 5e → 5f, one question per turn). Slide 1 sets the calibration anchor for the whole deck — the user needs to see what good looks like for *this* brief, *this* audience, before downstream slides get batched-proposed.
+> **Slide 1 also uses drafts-up-front for 5a and 5b** — the drafts ARE the calibration anchor. Showing the user three concrete examples of what a strong claim and a strong belief-shift look like for *this* brief and *this* audience is how slide 1 sets the quality bar for the whole deck. Slide 1 then continues per-question through 5.0/5c/5d/5e/5f (no batch on slide 1).
+>
+> **Defensible-default trap — narrowed scope.** This trap applies to *design decisions* (deck architecture, framework choice, narrative spine, ask framing) — resist proposing these, because the user needs to think through the trade-offs themselves. It does NOT apply to *narrative authorship* (5a/5b): providing three concrete draft claims up-front and requiring `lock` / `sharpen` / `my own` IS coaching, not substitution. The user's explicit commit to a framing is authentic authorship; blind asks without drafts are the actual failure mode (frustration without coaching value). See memory `feedback_provide_drafts_upfront.md`.
+
+#### Draft-set format specification (5a and 5b)
+
+Each 5a and 5b ask presents three concrete drafts. The drafts must be:
+
+1. **Distinct in framing.** Each draft approaches the claim or belief shift from a different angle — different framings, not three rewordings of the same sentence. Example for a Q3 customer-churn slide:
+   - **A) Product-fit framing:** "Q3 churn is the activation flow failing — 72% cancel within 14 days." — *emphasizes onboarding as the failure point*
+   - **B) Spend-reallocation framing:** "Q3 churn breaks the marketing-spend assumption — the leak is post-signup, not pre." — *emphasizes the budget pivot required*
+   - **C) Cohort framing:** "Q3 cohorts cancel within 14 days; older cohorts stay sticky." — *emphasizes the time-window pattern*
+
+2. **Concise.** Each draft claim or belief shift is ≤ 15 words. Specificity over length. Avoid hedging, motherhood, or run-on clauses.
+
+3. **Accompanied by a one-line emphasis note.** Format for 5a: `emphasizes [what this framing highlights]`. Format for 5b: `shifts thinking from [prior assumption] to [new frame]`. One line only.
+
+4. **Informed by available context.** The drafts are derived from the user's brief, POV, prior session notes, and the deck's argument shape — not generic. If the user gave input documents, the drafts must reflect what's available there.
+
+5. **Quality-checked before showing the user.** Before asking the user to pick, verify: at least 2 of 3 are genuinely distinct framings (not synonyms); none reads as a topic or restatement (each asserts a direction); each emphasis note is clear enough that an observer could guess which frame it represents; at least one is a realistic fit for the deck's intent and audience. If the draft set is weak, regenerate before showing — do not ask the user to pick from mediocre options.
 
 #### Per-slide loop — batched execution-field flow (slides 2+)
 
 For every slide from slide 2 onward, the per-slide loop is:
 
-1. **Ask 5a per-question.** *"What's the governing thought for slide N? What's the one declarative sentence that slide proves?"* Wait for the user's answer. Push back if vague.
+1. **Ask 5a per-question with three drafts up-front.** Generate three distinct draft governing thoughts per the draft-set spec above. Present them like this:
 
-2. **Ask 5b per-question.** *"If the exec remembers one thing from this slide after they leave the room, what should it be? Not what the slide claims — what the claim should change in their head."* Wait for the user's answer. Push back if it's a restatement of 5a.
+   > *Here are three angles for slide N's governing thought. Pick one to lock, sharpen one to your wording, or write your own.*
+   >
+   > - **A) [Framing 1 claim, ≤15 words]** — *emphasizes [what this framing highlights]*
+   > - **B) [Framing 2 claim, ≤15 words]** — *emphasizes [what this framing highlights]*
+   > - **C) [Framing 3 claim, ≤15 words]** — *emphasizes [what this framing highlights]*
+   >
+   > *Reply with `lock A` (or B/C), `sharpen B to say [your wording]`, or `my own: [your wording]`.*
+
+   Wait for an explicit commit. `looks good` / `yes` without naming an option is not a commit — ask which option. Push back per Step 8 if the locked or sharpened text reads as a topic, restatement, or generic claim. A `my own:` reply is subject to the same Step 8 quality check as the original blind-ask flow — drafts are a shortcut to good framings, not an exemption from the gate.
+
+2. **Ask 5b per-question with three drafts up-front.** Generate three distinct draft belief shifts (each a takeaway, NOT a restatement of 5a) per the draft-set spec. Present them like this:
+
+   > *Here are three belief shifts this slide could land. What should change in the exec's head — pick one, sharpen, or write your own.*
+   >
+   > - **A) [Belief shift 1, ≤15 words]** — *shifts thinking from [prior assumption] to [new frame]*
+   > - **B) [Belief shift 2, ≤15 words]** — *shifts thinking from [prior assumption] to [new frame]*
+   > - **C) [Belief shift 3, ≤15 words]** — *shifts thinking from [prior assumption] to [new frame]*
+   >
+   > *Reply with `lock A` (or B/C), `sharpen B to say [your wording]`, or `my own: [your wording]`.*
+
+   Wait for an explicit commit. Push back per Step 8 if the picked or written so-what restates 5a (it must shift a belief, not repeat the claim). A `my own:` reply is subject to the same Step 8 quality check.
 
 3. **Emit ONE batched proposal message containing the remaining fields.** The template:
 
@@ -383,7 +422,7 @@ For every slide from slide 2 onward, the per-slide loop is:
 
 #### Cascading-edit protocol (when 5a or 5b changes after the batch)
 
-If the user's "approve with edits" reply changes 5a (governing thought) or 5b (so-what) — the authorship fields — the downstream execution fields may now be incoherent because they were derived from the original 5a/5b. The skill must:
+If the user's `approved with edits` reply on the execution-field batch changes 5a (governing thought) or 5b (so-what) — the authorship fields — the downstream execution fields may now be incoherent because they were derived from the original 5a/5b. The skill must:
 
 1. Apply the user's edit to 5a and/or 5b.
 2. Regenerate the execution fields (5.0, 5c, 5d, 5e, 5f) from the updated 5a/5b.
@@ -393,7 +432,9 @@ If the user's "approve with edits" reply changes 5a (governing thought) or 5b (s
 
 4. Wait for a new approval before locking.
 
-**Cascade back-stop.** The cascade can repeat ONCE — i.e., the user can edit 5a/5b on the first batch reply, see the regenerated proposal, and edit 5a/5b again on that reply. On the THIRD pass (original + first regen + second regen — i.e., the user's second 5a/5b edit on this slide), do NOT regenerate again. Instead, drop into per-question for the remaining execution fields and tell the user:
+**What about `sharpen B to say [X]` at the drafts-up-front step?** The `sharpen` action is the user's commit on the 5a or 5b ask — it produces the locked 5a/5b value before the execution-field batch has been generated. So `sharpen` is NOT a cascade trigger; the execution-field batch is built from the sharpened text in the normal flow. The cascade fires only when the user changes 5a/5b *in the execution-field batch reply*, after that batch has been emitted.
+
+**Cascade back-stop.** The cascade can repeat ONCE — i.e., the user can edit 5a/5b in the first batch reply, see the regenerated proposal, and edit 5a/5b again in that reply. On the THIRD pass (original batch + first regen + second regen — the user's second 5a/5b edit on the execution-field batch for this slide), do NOT regenerate again. **Counter rule:** the back-stop counts only *post-batch edits to 5a/5b*. Picks at the drafts-up-front step (`lock A`, `sharpen B to [X]`, `my own: [Y]`) do NOT increment the counter — those are the user's initial commit, not edits. When the back-stop fires, drop into per-question for the remaining execution fields and tell the user:
 
 > *"You've revised the core claim twice on this slide, and that's a signal your thinking is still settling. Rather than keep regenerating proposals, let me walk you through the remaining decisions one at a time — so we ground each choice in what you're actually trying to prove. That'll take a few more turns, but you'll land on something tighter."*
 
@@ -413,16 +454,18 @@ These three triggers apply per-slide only. The next slide (N+1) returns to the b
 
 #### Walk-through semantics
 
-When walk-through fires (any of the three triggers above), the skill drops to per-question coaching for the EXECUTION fields only: 5.0 → 5c → 5d → 5e → 5f, one question per turn. **The user's 5a and 5b stay locked** — they were already authored per-question and re-asking them would discard the authorship moment. Discard the batched proposal for this slide; the user is starting the execution-field coaching from scratch.
+When walk-through fires (any of the three triggers above), the skill drops to per-question coaching for the EXECUTION fields only: 5.0 → 5c → 5d → 5e → 5f, one question per turn. **The user's 5a and 5b stay locked** — they were already committed via drafts-up-front and re-asking them would discard the authorship moment. Discard the batched proposal for this slide; the user is starting the execution-field coaching from scratch.
 
-After 5f passes, lock the slide and increment to slide N+1. Slide N+1 begins in batched mode again.
+**Walk-through asks do NOT use drafts-up-front for execution fields.** The 3-drafts pattern is reserved for 5a and 5b (narrative authorship). When the user invokes walk-through, they have explicitly asked for high-touch coaching — asking sequential open questions one at a time is the right shape there. Use the field definitions below (5.0, 5c, 5d, 5e, 5f) as the question prompts.
+
+After 5f passes, lock the slide and increment to slide N+1. Slide N+1 begins in batched mode again with drafts-up-front for its 5a and 5b.
 
 ---
 
 The field definitions below (5.0, 5a–5e, 5f) apply in BOTH modes:
 
-- **In full per-question mode** (slide 1, or any slide where a walk-through trigger fired): work the fields sequentially, one question per turn, as written.
-- **In batched mode** (slides 2+ default): use the field definitions to author 5a and 5b per-question, then derive 5.0, 5c, 5d, 5e proposals for the batched message; run 5f internally and surface any failures in the batched proposal's quality-check line.
+- **In full per-question mode** (slide 1's execution fields, or any slide where a walk-through trigger fired): work the fields sequentially, one question per turn, as written. 5a and 5b still use drafts-up-front per the spec above; the other fields ask sequentially without drafts.
+- **In batched mode** (slides 2+ default for the execution fields): 5a and 5b are asked per-question with drafts-up-front per the spec above; THEN 5.0, 5c, 5d, 5e proposals are derived for the single batched message; 5f runs internally and any failures are surfaced in the batched proposal's quality-check line.
 
 **5.0 — Classify the slide's archetype.** Before working 5a–5e, identify which archetype this slide is. The archetype determines the questions in 5f.
 
