@@ -39,6 +39,14 @@ mmdc --version
 
 Expected: `11.4.0`. If a different major version is installed, fallback diagram rendering may differ from what the v0 reference was tested against. Pin to `11.4.0`.
 
+If verify still shows the wrong version after re-running the install, your global npm cache is holding the old binary. Uninstall, then reinstall:
+
+```powershell
+npm uninstall -g @mermaid-js/mermaid-cli
+npm install -g @mermaid-js/mermaid-cli@11.4.0
+mmdc --version   # should now show 11.4.0
+```
+
 ## Step 3 — LibreOffice headless
 
 Download from https://www.libreoffice.org/download and install. The default Windows install path is `C:\Program Files\LibreOffice\program\soffice.exe`.
