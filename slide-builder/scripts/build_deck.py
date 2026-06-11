@@ -988,10 +988,42 @@ def _format_reference_block_for_context(brand: dict) -> str:
     return "\n".join(lines)
 
 
+def _load_prior_feedback_for_slide(slide_dir: Path) -> str:
+    """B7 fix (2026-06-11, feedback-2026-06-11 Part B): hydrate the
+    prior-feedback section from an on-disk file when one exists.
+
+    Convention: any rebuild flow that wants the per-slide worker to see
+    prior rejections / coach notes / reference-image pointers writes them
+    to `<slide_dir>/_prior_feedback.md`. This function reads that file
+    if present and returns its content for inlining into _context.md.
+    When the file doesn't exist (fresh build, no prior rejection), return
+    a placeholder that ALSO tells the operator how to populate it.
+    """
+    feedback_path = slide_dir / "_prior_feedback.md"
+    if feedback_path.exists():
+        try:
+            text = feedback_path.read_text(encoding="utf-8", errors="replace").strip()
+            if text:
+                return text
+        except Exception:
+            pass
+    return (
+        "_No prior feedback recorded for this slide. To carry "
+        "rejection feedback or coaching notes from a previous build "
+        "iteration, write them to:_\n\n"
+        f"    {feedback_path}\n\n"
+        "_Any markdown content in that file is inlined verbatim into "
+        "this section on the next `build_deck.py` run, so the worker "
+        "agent reasons against the rejection history instead of "
+        "repeating the rejected approach._"
+    )
+
+
 def write_slide_context_md(slide: dict, brand: dict, slide_dir: Path,
                             slide_n: int) -> Path:
     """Write `_context.md` next to `_prompt.md` for the per-slide worker
-    agent. Gate C.1 (2026-06-08, SLIDE_LAB_FEEDBACK_LOG Issue #4)."""
+    agent. Gate C.1 (2026-06-08, SLIDE_LAB_FEEDBACK_LOG Issue #4).
+    B7 prior-feedback hydration added 2026-06-11."""
     title = (slide.get("title") or "").strip()
     so_what = (slide.get("so_what") or "").strip()
     archetype = (slide.get("archetype") or "").strip()
@@ -1009,11 +1041,7 @@ def write_slide_context_md(slide: dict, brand: dict, slide_dir: Path,
         layout=layout,
         primary_hex=brand.get("primary_hex", "(unset)"),
         accent_hex=brand.get("accent_hex", "(unset)"),
-        prior_feedback=(
-            "_No prior feedback recorded for this slide. Workers iterating "
-            "after a REVIEW pass should consult REVIEW.html for per-slide "
-            "comments._"
-        ),
+        prior_feedback=_load_prior_feedback_for_slide(slide_dir),
     )
     ctx_path = slide_dir / "_context.md"
     ctx_path.write_text(content, encoding="utf-8")
