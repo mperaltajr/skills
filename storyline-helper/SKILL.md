@@ -342,6 +342,18 @@ Walk through slides one at a time. For each slide, the user produces an archetyp
 >
 > **Slide 1 sets the quality bar by showing the user three concrete drafts** for both 5a and 5b — examples of what a strong claim and a strong belief-shift look like for *this* brief and *this* audience — then walking field-by-field through the rest. Slides 2–3 are the calibration ramp: still paired drafts + batched execution, but the user demonstrates whether they've internalized the bar. The slide 3 → slide 4 transition is the moment the skill decides whether to keep coaching at full ceremony or trust the user to compress.
 >
+> **Early-compression opt-in after slide 1.** Some users know the pattern after slide 1 and don't need the slides 2–3 calibration ramp. Immediately after slide 1 locks (and BEFORE asking 5a for slide 2), the skill MUST offer the user the choice:
+>
+> > *"Slide 1 is locked. Do you want me to compress the remaining slides now — bundle the 5a drafts, 5b drafts, and execution proposal into ONE message per slide, with one reply locking everything? Or keep the standard pace (paired 5a/5b drafts, then a separate execution proposal) for slides 2–3 and re-evaluate after that?"*
+> >
+> > *Reply `compress now` or `standard pace`.*
+>
+> - **`compress now`** (or any synonym: `compress`, `speed up`, `compressed mode`, `bundle it`, `fast mode`, `skip calibration`) → switch to compressed mode for slides 2+. The slide 3 conditional check is bypassed; compressed mode is locked in. Drop-back triggers (walk-through request, 5f Critical/Major, 2nd post-commit 5a/5b edit) still apply per-slide.
+> - **`standard pace`** (or any synonym: `standard`, `keep pace`, `take it slow`, `coach me`, `regular`, `slow mode`) → slides 2–3 run standard mode as the calibration ramp; the standard slide-3 conditional check then runs as documented (compressed for slides 4+ IF clean, else continued standard).
+> - **Ambiguous reply** → ask exactly one clarifying question, then default to `standard pace` if the user doesn't pick.
+>
+> This opt-in costs one turn at slide 1 → slide 2 but saves ~5–10 turns across the rest of the deck for fluent users. Do NOT skip the opt-in even if the user seems experienced — the explicit user choice is the contract.
+>
 > **Defensible-default trap — narrowed scope.** This trap applies to *design decisions* (deck architecture, framework choice, narrative spine, ask framing) — resist proposing these, because the user needs to think through the trade-offs themselves. It does NOT apply to *narrative authorship* (5a/5b): providing three concrete draft claims up-front and requiring `lock` / `sharpen` / `my own` IS coaching, not substitution. The user's explicit commit to a framing is authentic authorship; blind asks without drafts are the actual failure mode (frustration without coaching value).
 
 #### Draft-set format specification (5a and 5b)
@@ -463,17 +475,23 @@ When walk-through fires (any of the three triggers above), the skill drops to pe
 
 After 5f passes, lock the slide and increment to slide N+1. Slide N+1 begins in batched mode again with drafts-up-front for its 5a and 5b.
 
-#### Compressed mode — confidence-gated speed-up after calibration
+#### Compressed mode — two paths in, one mode
 
-After slide 3 locks, evaluate the user's approval pattern on slides 1–3. If ALL of the following are true, auto-shift to compressed mode starting at slide 4:
+Compressed mode can be entered via TWO paths. Both produce the same per-slide flow (described below); the difference is just when compressed mode activates.
+
+**Path 1 — User opt-in after slide 1 (early compression).** Per the "Early-compression opt-in" section in the hard rule above, after slide 1 locks the skill asks the user to choose `compress now` or `standard pace`. If the user picks `compress now`, slides 2+ use compressed mode immediately; the slide-3 conditional check below is bypassed. Announce the activation:
+
+> *"Got it — compressed mode active starting slide 2. I'll batch the 5a drafts, 5b drafts, and execution proposal into ONE message per slide. Reply with all commits in one go (`5a A, 5b A, exec approved`). Say `walk me through this slide` anytime to drop back to full coaching for that slide."*
+
+**Path 2 — Auto-evaluation after slide 3 (clean-approval gate).** If the user picked `standard pace` at the slide 1 opt-in, slides 2–3 run standard mode. After slide 3 locks, evaluate the user's approval pattern on slides 1–3. If ALL of the following are true, auto-shift to compressed mode starting at slide 4:
 
 - **No walk-through trigger fired** on slides 1–3 (no `walk me through this slide` requests, no 5f Critical/Major failures, no cascade back-stops).
 - **At most one execution-field edit** across all three slides (a `5a sharpen` or `5b sharpen` at the drafts step does NOT count — those are initial commits; only `approve with edits` on the execution batch counts).
 - **All three 5f quality checks passed** with no Major or Critical flags.
 
-If any one of these is false, stay in standard mode for the rest of the deck. The check runs once after slide 3 and does not re-evaluate later — the user has demonstrated either calibration competence or coaching need; commit to one path for the rest of the deck.
+If any one of these is false, stay in standard mode for the rest of the deck. The Path-2 check runs once after slide 3 and does not re-evaluate later — the user has demonstrated either calibration competence or coaching need; commit to one path for the rest of the deck.
 
-When the criteria are met, announce the mode shift explicitly (never silent):
+When the Path-2 criteria are met, announce the mode shift explicitly (never silent):
 
 > *"You've approved slides 1–3 cleanly — you've got the deck's quality bar. I'm switching to compressed mode for slides 4–N: I'll batch the 5a drafts, 5b drafts, and execution proposal into ONE message per slide, and you reply with all commits in one go. Say `walk me through this slide` anytime to drop back to full coaching for that slide."*
 

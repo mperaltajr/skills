@@ -1543,7 +1543,28 @@ def stage1_sanity_check(template_path: Path) -> int:
         )
         return 7
 
-    # Check (b): mmdc installed at runnable version
+    # Check (b): slide-qc sibling skill installed at the expected path.
+    # finalize_deck.py imports render_slides from slide-qc; without it,
+    # Stage 3 cascades into a confusing ImportError hours into the build.
+    # Halt at prep so the user re-installs the sibling skill upfront.
+    # (Audit fix 2026-06-11 — fresh-install gap.)
+    qc_render_path = SKILL_ROOT.parent / "slide-qc" / "scripts" / "render_slides.py"
+    if not qc_render_path.exists():
+        sys.stderr.write(
+            "ERROR: slide-qc sibling skill not found.\n\n"
+            f"  Expected at: {qc_render_path}\n\n"
+            "Slide Lab calls slide-qc/scripts/render_slides.py at Stage 3 to "
+            "render every option PPTX to PNG via LibreOffice. Without it, the "
+            "build runs Stages 1-2, dispatches workers, then cascades into an "
+            "import error during finalize. Halting at prep saves you the wasted "
+            "agent compute.\n\n"
+            "Install the slide-qc skill at the expected path:\n"
+            f"  {SKILL_ROOT.parent / 'slide-qc'}\n\n"
+            "See slide-builder/INSTALL.md Step 5 for the canonical install.\n"
+        )
+        return 7
+
+    # Check (c): mmdc installed at runnable version
     ok, info = _check_mmdc_installed()
     if not ok:
         sys.stderr.write(
@@ -1556,8 +1577,9 @@ def stage1_sanity_check(template_path: Path) -> int:
         )
         return 7
 
-    # Both checks passed — propagate version info to console for audit
+    # All checks passed — propagate version info to console for audit
     print(f"[stage-1 sanity] brand sidecar OK for: {template_path}")
+    print(f"[stage-1 sanity] slide-qc sibling OK: {qc_render_path}")
     print(f"[stage-1 sanity] mmdc version: {info}")
     # Warn loudly when mmdc isn't the pinned version. Don't block — coworkers
     # with a different mmdc for unrelated work shouldn't be unable to build.

@@ -1351,21 +1351,26 @@ def render_register_html(proposal: dict, html_path: Path) -> bool:
 </section>
 
 <section id="reference-section">
-  <h2>4. Optional &mdash; pick a reference slide</h2>
+  <h2>4. Recommended &mdash; pick a reference slide</h2>
   <div class="help">
     Point at <strong>one slide in this template</strong> that defines how every output slide
     should look &mdash; title position, subtitle box, footer chrome, accent placement.
     When you pick one, every Slide Lab worker that builds a slide for you gets that
     reference as <em>context to reason against</em>, so output stays consistent with
     your canonical example.<br><br>
+    <strong>Why this is recommended, not optional.</strong> If you skip this section,
+    every slide of every build will show a yellow &#9888; advisory chip in REVIEW.html
+    saying &ldquo;Worker may not have used your reference slide.&rdquo; The chip is
+    suppressed only when you pick a reference here. Builds still work without one, but
+    the per-slide quality signal goes away.<br><br>
     <strong>Pick a normal content slide</strong> &mdash; one with a title, a subtitle, and
     body content in their final positions. <strong>Do NOT pick</strong> a cover slide,
     a section divider, a thank-you slide, or any other special-purpose layout. The worker
     would then try to make every output slide look like that special slide, which is
     not what you want.<br><br>
     If your template is only covers, dividers, and special slides &mdash; <strong>skip
-    this section</strong>. Slide Lab falls back to its built-in design rules &mdash;
-    builds still work, just with less template-specific guidance.
+    this section</strong>. The yellow chips on REVIEW.html will be the trade-off; builds
+    still complete and Slide Lab falls back to its built-in design rules.
   </div>
   <div id="slides-pick-cluster"></div>
 </section>
