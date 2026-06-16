@@ -58,7 +58,7 @@ import re
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 # _meta.json schema version. Canonical source is _meta_schema.py; this
 # assignment lands AFTER the import of META_SCHEMA_VERSION_CURRENT (further
@@ -181,6 +181,138 @@ def _normalize_archetype_to_page_type(archetype: str) -> str:
     if not archetype:
         return ""
     return ARCHETYPE_TO_PAGE_TYPE.get(archetype.strip().lower(), "")
+
+
+# ----------------------------------------------------------------------
+# M1 — Pattern B routing helpers (2026-06-16)
+#
+# Spec references:
+#   _decisions/pattern-b/spec-7-schema-version-migration.md (extends v3)
+#   _decisions/pattern-b/spec-8-rollback-flag.md (--pattern flag + settings.json)
+#
+# Default behavior: when --pattern is omitted and settings.json::enable_pattern_b
+# is False (the shipped default), effective_pattern resolves to "legacy" and
+# write_meta_json omits all Pattern B optional fields entirely. _meta.json
+# is byte-identical to pre-M1 output. Only when the user opts in does any
+# Pattern B field appear in _meta.json.
+# ----------------------------------------------------------------------
+
+_SETTINGS_JSON_PATH = SKILL_ROOT / "settings.json"
+
+
+def _load_skill_settings() -> dict[str, Any]:
+    """Load slide-builder/settings.json if present. Returns {} when missing
+    or malformed (skill ships with a sane settings.json; absence is treated
+    as 'use hard-coded defaults' rather than fail-loud)."""
+    try:
+        if not _SETTINGS_JSON_PATH.exists():
+            return {}
+        raw = json.loads(_SETTINGS_JSON_PATH.read_text(encoding="utf-8"))
+        if not isinstance(raw, dict):
+            return {}
+        return raw
+    except (OSError, json.JSONDecodeError):
+        # Don't crash on a malformed settings.json; warn and fall back.
+        sys.stderr.write(
+            f"  WARN: failed to parse {_SETTINGS_JSON_PATH}; falling back to "
+            f"hard-coded defaults (legacy pattern, Pattern B disabled).\n"
+        )
+        return {}
+
+
+def _resolve_effective_pattern(cli_value: Optional[str]) -> str:
+    """Resolve the effective pattern for this build.
+
+    Resolution order:
+      1. --pattern CLI flag (if provided)
+      2. settings.json::default_pattern
+      3. Hard default 'legacy' (preserve current behavior)
+
+    Master switch: settings.json::enable_pattern_b. When False, any non-legacy
+    resolved value is downgraded to 'legacy' with a stderr warning. This is
+    the rollback lever — flipping enable_pattern_b: false in settings.json
+    forces every build (including those passing --pattern B) back to the
+    pre-Pattern-B pipeline.
+
+    Returns: "legacy" | "auto" | "B" | "C"
+    """
+    settings = _load_skill_settings()
+    if cli_value is not None:
+        resolved = cli_value
+    else:
+        resolved = settings.get("default_pattern", "legacy")
+    if resolved not in ("legacy", "auto", "B", "C"):
+        sys.stderr.write(
+            f"  WARN: invalid pattern value {resolved!r}; falling back to "
+            f"'legacy'.\n"
+        )
+        resolved = "legacy"
+    enable = settings.get("enable_pattern_b", False)
+    if not enable and resolved != "legacy":
+        sys.stderr.write(
+            f"  WARN: pattern={resolved!r} requested but settings.json has "
+            f"enable_pattern_b: false. Downgrading to 'legacy'. To enable "
+            f"Pattern B, edit {_SETTINGS_JSON_PATH} and set "
+            f"enable_pattern_b: true.\n"
+        )
+        resolved = "legacy"
+    return resolved
+
+
+def _classify_slide_pattern(brief_slide: dict[str, Any]) -> str:
+    """Classify a single slide as Pattern B or Pattern C.
+
+    Per Decision 2 (Moderate routing, 2026-06-16):
+      - Pure-text archetypes (Cover/Title, Section Divider) -> C
+      - Visual archetypes (Analytical, Framework, Synthesis, Roadmap, Risk,
+        Financial) -> B
+      - Any slide referencing a chart / table / iconography -> B
+      - Default: B (when in doubt, route to higher quality path)
+
+    See _decisions/pattern-b/spec-8-rollback-flag.md §5 for the locked logic.
+    """
+    archetype = (brief_slide.get("archetype") or "").strip().lower()
+    # Normalize whitespace around the "/" so "cover / title" and "cover/title"
+    # both match. Also include the standalone "cover" and "title" forms that
+    # ARCHETYPE_TO_PAGE_TYPE accepts (line 161-163).
+    archetype = archetype.replace(" / ", "/").replace(" /", "/").replace("/ ", "/")
+    pure_text = {"cover/title", "cover", "title", "section divider"}
+    visual = {
+        "analytical", "framework/conceptual", "synthesis/findings",
+        "roadmap/implementation", "risk", "financial/business case",
+    }
+    if archetype in pure_text:
+        return "C"
+    if archetype in visual:
+        return "B"
+    # Content signals
+    if brief_slide.get("chart_type"):
+        return "B"
+    evidence_lc = (brief_slide.get("evidence", "") or "").lower()
+    if "table" in evidence_lc or "icon" in evidence_lc:
+        return "B"
+    # Default: when in doubt, route to higher quality path (B)
+    return "B"
+
+
+def _classify_all_slides(slides: list[dict[str, Any]],
+                          effective_pattern: str) -> dict[str, str]:
+    """Return {slide_n_str: 'B'|'C'} for every slide given the effective pattern.
+
+    - effective_pattern == 'legacy': returns {} (Pattern B fields omitted from
+      _meta.json; readers route through legacy path).
+    - 'auto': per-slide via _classify_slide_pattern.
+    - 'B': force all slides to B.
+    - 'C': force all slides to C.
+    """
+    if effective_pattern == "legacy":
+        return {}
+    if effective_pattern == "B":
+        return {str(s["slide_n"]): "B" for s in slides}
+    if effective_pattern == "C":
+        return {str(s["slide_n"]): "C" for s in slides}
+    # 'auto'
+    return {str(s["slide_n"]): _classify_slide_pattern(s) for s in slides}
 
 
 # ----------------------------------------------------------------------
@@ -1238,13 +1370,26 @@ def write_meta_json(
     client_slug: str,
     forecasts: list[str],
     brand: dict[str, Any],
+    effective_pattern: str = "legacy",
+    pattern_per_slide: Optional[dict[str, str]] = None,
 ) -> Path:
-    """Write <out>/_meta.json, the canonical deck manifest."""
+    """Write <out>/_meta.json, the canonical deck manifest.
+
+    M1 extension (2026-06-16): when effective_pattern != "legacy", Pattern B
+    optional fields are populated (pattern_default, pattern_per_slide,
+    html_render_canvas, translator_dispatched, translation_reports, and
+    per-slide pattern/artifacts). When "legacy" (or pattern_per_slide is
+    None/empty), the optional fields are omitted entirely so the on-disk
+    JSON is byte-identical to pre-M1 output. This preserves the M1 DoD
+    guarantee: "OTC build with no flag is byte-identical to pre-M1."
+    """
+    pattern_per_slide = pattern_per_slide or {}
     front_matter = brief.get("front_matter", {}) or {}
     slides_meta: list[dict[str, Any]] = []
     for slide, forecast in zip(brief["slides"], forecasts):
-        slides_meta.append({
-            "n":                  slide["slide_n"],
+        slide_n = slide["slide_n"]
+        entry = {
+            "n":                  slide_n,
             "title":              slide.get("title", "") or "",
             "forecasted_pattern": forecast,
             # page_type is explicit if the brief sets it, else derived from
@@ -1262,7 +1407,14 @@ def write_meta_json(
             # brand.dark_bg_hex overlay + white title at finalize-time.
             # Empty / "light" / anything else = light variant (default).
             "variant":            (slide.get("variant", "") or "").strip().lower(),
-        })
+        }
+        # M1: only populate Pattern B fields when classifier produced
+        # routing for this slide. Empty pattern_per_slide (legacy mode)
+        # leaves the per-slide entry shape unchanged.
+        if str(slide_n) in pattern_per_slide:
+            entry["pattern"] = pattern_per_slide[str(slide_n)]
+            entry["artifacts"] = {}  # populated as build progresses
+        slides_meta.append(entry)
 
     # `generated_at` lives at TOP LEVEL because build_review.py:1117 reads it
     # there (`(meta or {}).get("generated_at")`). Schema validation in v0.1
@@ -1286,6 +1438,15 @@ def write_meta_json(
             "audience":           front_matter.get("audience", "") or "",
         },
     }
+    # M1: Pattern B optional top-level fields. Only added when effective
+    # pattern is non-legacy AND classifier produced routing. Preserves
+    # byte-identical output for legacy builds (no flag, default settings).
+    if effective_pattern != "legacy" and pattern_per_slide:
+        meta["pattern_default"] = effective_pattern
+        meta["pattern_per_slide"] = pattern_per_slide
+        meta["html_render_canvas"] = "1280x720"  # locked Decision 1
+        meta["translator_dispatched"] = False
+        meta["translation_reports"] = {}
     # Validate against the pydantic schema before writing so a malformed
     # write fails loudly here rather than at a downstream reader.
     MetaJson.model_validate(meta)
@@ -1698,7 +1859,33 @@ def main() -> int:
              "When omitted, build_deck halts and asks for Y/N confirmation showing the resolved template name, "
              "brand colors, layout count, and registration timestamp.",
     )
+    # M1 — Pattern B rollback flag (2026-06-16). Per-build override of
+    # settings.json::default_pattern. Default None = use settings.json (which
+    # ships at "legacy"). See _decisions/pattern-b/spec-8-rollback-flag.md.
+    parser.add_argument(
+        "--pattern",
+        choices=["auto", "B", "C", "legacy"],
+        default=None,
+        help=(
+            "Pattern B routing override. 'auto' routes per-slide via the "
+            "Decision-2 classifier (visual structure -> B; bullets/dividers "
+            "-> C). 'B' forces every slide through Pattern B (HTML-spec -> "
+            "native translation). 'C' forces every slide through Pattern C "
+            "(native python-pptx direct, no HTML stage). 'legacy' uses the "
+            "pre-Pattern-B pipeline verbatim. When omitted, defaults from "
+            "settings.json::default_pattern (shipped at 'legacy')."
+        ),
+    )
     args = parser.parse_args()
+
+    # M1 — Resolve effective pattern from CLI flag + settings.json + ship default.
+    # Resolution order:
+    #   1. --pattern flag wins outright (if provided)
+    #   2. settings.json::default_pattern (read if file exists at skill root)
+    #   3. Hard default "legacy" (preserve current behavior)
+    # If enable_pattern_b is False in settings.json, any non-legacy value is
+    # downgraded to "legacy" with a stderr warning -- the master switch.
+    effective_pattern = _resolve_effective_pattern(args.pattern)
 
     from _log import attach as _log_attach  # noqa: E402
     _log_attach(args.out, "build_deck.py")
@@ -1854,6 +2041,14 @@ def main() -> int:
                 f"{type(_exc).__name__}: {_exc}\n"
             )
 
+    # M1: classify per-slide pattern (empty dict in legacy mode).
+    pattern_per_slide = _classify_all_slides(brief["slides"], effective_pattern)
+    if effective_pattern != "legacy":
+        sys.stderr.write(
+            f"  Pattern B routing: effective_pattern={effective_pattern!r}; "
+            f"per-slide map = {pattern_per_slide}\n"
+        )
+
     # Deck manifest (_meta.json) — single source of truth for downstream
     # pipeline scripts. Writes AFTER slide prompts are rendered so that any
     # exception in render_prompt aborts before the manifest claims success.
@@ -1866,6 +2061,8 @@ def main() -> int:
         client_slug=client_slug,
         forecasts=forecasts,
         brand=brand,
+        effective_pattern=effective_pattern,
+        pattern_per_slide=pattern_per_slide,
     )
 
     # Dispatch plan

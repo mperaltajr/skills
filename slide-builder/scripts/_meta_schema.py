@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field, ValidationError
 
@@ -64,6 +64,23 @@ class SlideMeta(BaseModel):
     # (build_deck.py) populates from the brief; reader (finalize_deck.py)
     # passes through as fallback_subtitle to _apply_body_canonical_finishing.
     subtitle: str = ""
+    # M1 — Pattern B (2026-06-16) optional fields. Default None preserves
+    # legacy semantics: readers that don't know about Pattern B see slides
+    # with pattern=None and route through the existing python-pptx-direct
+    # path verbatim. Writers set these only when --pattern is not "legacy"
+    # (or when settings.json::default_pattern enables Pattern B).
+    #
+    #   pattern  ∈ {"B", "C", None}
+    #     B = HTML-spec → translator → native python-pptx (Pattern B routing)
+    #     C = native python-pptx direct (no HTML stage); identical to legacy
+    #     None = field absent (legacy behavior; finalize_deck routes through
+    #            existing graft/render path)
+    #   artifacts: per-slide artifact paths, schema-versioned. Empty dict
+    #     for legacy slides; populated with {html, png_target,
+    #     translated_py, translated_pptx, translation_report} keys for
+    #     Pattern B slides as the build progresses.
+    pattern: Optional[str] = None
+    artifacts: Optional[dict[str, Any]] = None
 
 
 class DeckMeta(BaseModel):
@@ -85,6 +102,31 @@ class MetaJson(BaseModel):
     brand_accent:   str = ""  # Same.
     slides:         list[SlideMeta]
     deck_meta:      DeckMeta
+    # M1 — Pattern B (2026-06-16) optional top-level fields. Default None /
+    # empty preserves legacy semantics: readers that don't know about
+    # Pattern B see these as absent and route through the existing pipeline.
+    # Writers set these only when --pattern != "legacy".
+    #
+    #   pattern_default  ∈ {"legacy", "auto", "B", "C", None}
+    #     "legacy" = use pre-Pattern-B pipeline verbatim (default when no flag)
+    #     "auto"   = per-slide routing via _classify_all_slides
+    #     "B"      = force all slides to Pattern B
+    #     "C"      = force all slides to Pattern C (native, no HTML stage)
+    #     None     = field absent; readers treat as "legacy"
+    #   pattern_per_slide: optional {slide_n_str: "B"|"C"} dict produced by
+    #     the classifier when pattern_default is "auto". Absent / empty for
+    #     non-auto modes.
+    #   html_render_canvas: locked at "1280x720" per Decision 1; only set
+    #     when Pattern B is in play.
+    #   translator_dispatched: flipped True after Stage 3.5 completes.
+    #   translation_reports: {slide_n_str: report_relative_path} populated
+    #     by Stage 3.5 dispatcher; consumed by build_review.py for SSIM
+    #     surfacing.
+    pattern_default:       Optional[str] = None
+    pattern_per_slide:     Optional[dict[str, str]] = None
+    html_render_canvas:    Optional[str] = None
+    translator_dispatched: bool = False
+    translation_reports:   dict[str, str] = Field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------

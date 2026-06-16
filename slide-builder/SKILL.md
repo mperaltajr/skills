@@ -246,6 +246,32 @@ Adjacency (Hardline #3 — no 3+ consecutive same-split) is **soft-enforced at p
 
 Rebuild individual slides with "rebuild slide N with v2" — re-prep the prompt for slide N, dispatch a single agent, finalize, replace the picked option.
 
+### Pattern routing flag (M1, 2026-06-16) — opt-in until M7
+
+`build_deck.py` accepts a `--pattern` flag that controls which slide-build path the deck uses. The shipped default is `legacy` — the pipeline behaves exactly as before. Pattern B (HTML-spec → translator → native python-pptx) is opt-in until the M7 cutover validation completes.
+
+```powershell
+py -3 scripts/build_deck.py --brief <brief.md> --template <template.pptx> --out <out>
+#   ↑ no flag → uses settings.json::default_pattern (ships at "legacy")
+
+py -3 scripts/build_deck.py --brief ... --template ... --out ... --pattern legacy
+#   ↑ explicit legacy = pre-Pattern-B pipeline verbatim
+
+py -3 scripts/build_deck.py --brief ... --template ... --out ... --pattern auto
+#   ↑ per-slide routing via the Decision-2 classifier (bullets/dividers → C;
+#     visual structure → B). Requires settings.json::enable_pattern_b: true.
+
+py -3 scripts/build_deck.py --brief ... --template ... --out ... --pattern B
+#   ↑ force all slides through Pattern B (HTML stage + translator)
+
+py -3 scripts/build_deck.py --brief ... --template ... --out ... --pattern C
+#   ↑ force all slides through Pattern C (native python-pptx direct)
+```
+
+Master switch is `settings.json::enable_pattern_b` (shipped `false`). When `false`, any non-legacy value is downgraded to `legacy` with a stderr warning — flipping `enable_pattern_b: false` is the skill-wide rollback if Pattern B underperforms.
+
+Full Pattern B spec + locked decisions live in `_decisions/pattern-b/`. Build plan lives in `_decisions/pattern-b/build-plan/` (after M0 lands). The four quality guarantees that must hold across the refactor are documented in `_decisions/pattern-b/README.md`.
+
 ---
 
 ## Hardline rules (5)

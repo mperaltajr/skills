@@ -1,0 +1,23 @@
+{
+  "_schema_version": 1,
+  "_doc": "slide-builder skill settings. Read by build_deck.py at startup. Per-build CLI flags override these. Edit + save; takes effect on next invocation. Pattern B documented in _decisions/pattern-b/README.md.",
+
+  "default_pattern": "legacy",
+  "_doc_default_pattern": "One of: legacy | auto | B | C. 'legacy' = pre-Pattern-B pipeline verbatim (the safe shipped default). 'auto' = per-slide routing via _classify_all_slides. 'B' = force all slides Pattern B. 'C' = force all slides Pattern C (native, no HTML stage). Per-build override: build_deck.py --pattern <value>.",
+
+  "enable_pattern_b": false,
+  "_doc_enable_pattern_b": "Master switch. When false, default_pattern is forced to 'legacy' regardless of its value, and --pattern auto|B is rejected. Flip to true after Pattern B validation lands (M7).",
+
+  "html_render_canvas": "1280x720",
+  "_doc_html_render_canvas": "Locked per Decision 1 (2026-06-16). Do not change without re-validating geometry across all locked specs.",
+
+  "ssim_thresholds": {
+    "critical": 0.70,
+    "major": 0.85,
+    "pass": 0.90
+  },
+  "_doc_ssim_thresholds": "Per Decision 5 + Spec 5 §3. Critical < 0.70 halts the build; Major < 0.85 surfaces in REVIEW.html; Pass >= 0.90 ships clean.",
+
+  "translator_timeout_seconds": 120,
+  "_doc_translator_timeout_seconds": "Per-slide timeout for the slide-builder-translator agent dispatch. Exceeded → translator subprocess killed and slide marked as TRANSLATOR_BLOCKED."
+}
