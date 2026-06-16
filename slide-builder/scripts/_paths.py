@@ -226,6 +226,18 @@ def chrome_yml(template_pptx: Path) -> Path:
     return template_sidecar_dir(template_pptx) / "chrome.yml"
 
 
+def brand_css(template_pptx: Path) -> Path:
+    """<sidecar-dir>/brand.css — CSS-variables sidecar for Pattern B.
+
+    Writer: register_template.py commit (Pattern B foundation, M3,
+    2026-06-16). Consumed at render time by the worker HTML
+    (`<link rel="stylesheet" href="brand.css">`) and at translate time
+    by the Pattern B translator agent for `var(--brand-*)` resolution
+    (per Spec 2 §4 "static resolution").
+    """
+    return template_sidecar_dir(template_pptx) / "brand.css"
+
+
 def chrome_commit_method_txt(template_pptx: Path) -> Path:
     """<sidecar-dir>/chrome.commit_method.txt — audit marker.
     Writer: register_template.py commit. Readers: (none — operator audit only)."""
@@ -338,6 +350,7 @@ ARTIFACT_MANIFEST: list[dict] = [
     # the contract tool's _p.<name> regex, so we mark this entry accepted.
     {"name": "theme_json",                "writer": "register_template.py",  "readers": ["build_deck.py"], "accepted": True, "reason": "twins/client_theme.py reads via sidecar_paths() with a lazy _paths import that the contract grep can't detect; build_deck.py reads directly via _p.theme_json"},
     {"name": "chrome_yml",                "writer": "register_template.py",  "readers": ["finalize_deck.py", "build_deck.py"]},
+    {"name": "brand_css",                 "writer": "register_template.py",  "readers": [], "accepted": True, "reason": "Pattern B foundation (M3, 2026-06-16); no reader until M5 wires the HTML render path. Pure ADD — presence does not affect legacy python-pptx pipeline."},
     {"name": "chrome_commit_method_txt",  "writer": "register_template.py",  "readers": [], "accepted": True, "reason": "Operator audit only — no pipeline reader"},
     {"name": "preview_pptx",              "writer": "register_template.py",  "readers": [], "accepted": True, "reason": "Registration UI artifact — opened in chat preview"},
     {"name": "preview_png",               "writer": "register_template.py",  "readers": [], "accepted": True, "reason": "Registration UI artifact"},

@@ -25,6 +25,24 @@ py -3 -c "import pptx, PIL, yaml, lxml, pydantic, pypdfium2, skimage; print('pyt
 
 Expected: `python deps OK`. If `import` fails, re-run the pip install. `pypdfium2` is used by the slide-qc render path; if it's missing here, slide-qc would auto-install it mid-build (which works but surprises the user with a pip log during finalize) — pin it at install time instead. `skimage` (scikit-image) is used by the Pattern B regression-check harness (`tests/capture_baseline.py` + `tests/regression_check.py`); it adds ~30 MB to the install but is the load-bearing dep for the "no silent regressions" quality guarantee.
 
+## Step 1.5 — Playwright Chromium binary
+
+`pip install` brings the Playwright Python package, but the headless Chromium binary it drives is downloaded separately. One-time, run:
+
+```powershell
+py -3 -m playwright install chromium
+```
+
+Downloads ~170 MB. Required for `scripts/render_html.py` (the Pattern B render path that turns worker-authored HTML into the 1280×720 PNG the operator picks from). Skip only if you have no plans to use Pattern B; the legacy python-pptx pipeline does not depend on it.
+
+Verify:
+
+```powershell
+py -3 -c "from playwright.sync_api import sync_playwright; sync_playwright().__enter__().chromium.launch(headless=True).close(); print('playwright + chromium OK')"
+```
+
+Expected: `playwright + chromium OK`. If you see `BrowserType.launch: Executable doesn't exist`, re-run the `playwright install chromium` step.
+
 ## Step 2 — Mermaid CLI (pinned)
 
 ```powershell
