@@ -25,3 +25,10 @@ pywin32==308; sys_platform == "win32"
 # regression-no-silent-drift guarantee). ~30 MB install. Pinned per
 # Spec 5 §1 (`structural_similarity` from skimage.metrics).
 scikit-image>=0.21,<1.0
+
+# Pattern B refactor (M3, 2026-06-16). Used by scripts/render_html.py to
+# convert worker-authored HTML into the 1280×720 PNG that gets reviewed
+# and (M4+) translated back to native python-pptx. After `pip install`,
+# also run `py -3 -m playwright install chromium` to download the headless
+# Chromium binary (~170 MB; one-time). See INSTALL.md Step 1.5.
+playwright>=1.40,<2.0

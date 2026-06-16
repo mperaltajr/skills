@@ -98,10 +98,118 @@ SLIDE_LAB_DEFAULT_FONT = "Inter"
 # Color math — mechanical derivations only (no heuristic picking)
 # ---------------------------------------------------------------------------
 def _mix_hex(hex_a: str, hex_b: str, ratio: float) -> str:
-    """Blend two RGB hex strings. ratio=0 -> hex_a, ratio=1 -> hex_b."""
-    a = [int(hex_a[i:i + 2], 16) for i in (0, 2, 4)]
-    b = [int(hex_b[i:i + 2], 16) for i in (0, 2, 4)]
+    """Blend two RGB hex strings. ratio=0 -> hex_a, ratio=1 -> hex_b.
+
+    Internal name kept for the many existing call sites in this module.
+    Pattern B (M3) added the public alias `mix_hex` below; new code should
+    use the public name.
+    """
+    a_s = (hex_a or "").lstrip("#")
+    b_s = (hex_b or "").lstrip("#")
+    a = [int(a_s[i:i + 2], 16) for i in (0, 2, 4)]
+    b = [int(b_s[i:i + 2], 16) for i in (0, 2, 4)]
     return "".join(f"{int(a[i] + (b[i] - a[i]) * ratio):02X}" for i in range(3))
+
+
+# Public alias (Pattern B M3, 2026-06-16). Promoted from `_mix_hex` so
+# register_template.py::write_brand_css and the Pattern B translator can
+# import without reaching into a private name. Same semantics; same return.
+mix_hex = _mix_hex
+
+
+def hex_to_rgbcolor(hex_str: str):
+    """Convert '#4D148C' or '4D148C' to python-pptx RGBColor.
+
+    Pattern B helper (Spec 2 §2). Used by the translator agent (M4+) when
+    converting CSS hex colors back to native python-pptx fills. Raises
+    ValueError on malformed input — translator surfaces the slide with QC
+    rule R4 (the translator-blocked severity).
+    """
+    from pptx.dml.color import RGBColor
+    s = (hex_str or "").lstrip("#").upper()
+    if len(s) != 6:
+        raise ValueError(
+            f"hex must be 6 chars after stripping '#'; got {hex_str!r}"
+        )
+    try:
+        return RGBColor(int(s[0:2], 16), int(s[2:4], 16), int(s[4:6], 16))
+    except ValueError as exc:
+        raise ValueError(f"hex contains non-hex chars: {hex_str!r}") from exc
+
+
+def css_color_to_rgbcolor(css_value: str):
+    """Parse a CSS color value. Returns (RGBColor, alpha) where alpha is 0.0-1.0.
+
+    Supports the CSS forms the Pattern B translator encounters in computed
+    styles: hex `#RGB`/`#RRGGBB`, `rgb(r,g,b)`, `rgba(r,g,b,a)`. Spec 2 §3.
+    Raises ValueError on unsupported forms (named colors, hsl(), color()).
+    """
+    import re
+    v = (css_value or "").strip()
+    if not v:
+        raise ValueError("empty CSS color")
+    if v.startswith("#"):
+        body = v.lstrip("#")
+        if len(body) == 3:
+            v = "#" + "".join(c * 2 for c in body)
+        return hex_to_rgbcolor(v), 1.0
+    m = re.match(
+        r"rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*(?:,\s*([\d.]+)\s*)?\)",
+        v, flags=re.IGNORECASE,
+    )
+    if m:
+        from pptx.dml.color import RGBColor
+        r, g, b = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        for n, name in ((r, "r"), (g, "g"), (b, "b")):
+            if not 0 <= n <= 255:
+                raise ValueError(f"CSS {name} channel out of range in {css_value!r}")
+        alpha = float(m.group(4)) if m.group(4) is not None else 1.0
+        return RGBColor(r, g, b), alpha
+    raise ValueError(f"unsupported CSS color form: {css_value!r}")
+
+
+def resolve_css_var(var_expr: str, brand_css_vars: dict) -> str:
+    """Resolve a `var(--name)` or `var(--name, fallback)` expression.
+
+    Pattern B helper (Spec 2 §4 "static resolution"). `brand_css_vars` is
+    the dict the translator builds by parsing the `:root` block of
+    brand.css. Returns the resolved CSS value (typically a hex string)
+    or raises KeyError when the variable is undefined and no fallback was
+    given.
+    """
+    import re
+    m = re.match(
+        r"var\(\s*(--[A-Za-z0-9_-]+)\s*(?:,\s*([^)]+?)\s*)?\)",
+        (var_expr or "").strip(),
+    )
+    if not m:
+        raise ValueError(f"not a CSS var() expression: {var_expr!r}")
+    name, fallback = m.group(1), m.group(2)
+    if name in brand_css_vars:
+        return brand_css_vars[name]
+    if fallback is not None:
+        return fallback
+    raise KeyError(f"CSS variable {name!r} not defined and no fallback")
+
+
+def wcag_contrast(fg_hex: str, bg_hex: str) -> float:
+    """WCAG 2.1 contrast ratio between two hex colors. Returns a float >= 1.0.
+
+    Pattern B helper (Spec 2 §5). Used by register_template.py to warn
+    when brand primary on brand accent fails the AA 4.5:1 threshold.
+    Pure function; safe on any 6-digit hex (with or without leading '#').
+    """
+    def _rel_lum(hex_str: str) -> float:
+        s = (hex_str or "").lstrip("#")
+        rgb = [int(s[i:i + 2], 16) / 255.0 for i in (0, 2, 4)]
+        rgb = [
+            (c / 12.92) if c <= 0.03928 else ((c + 0.055) / 1.055) ** 2.4
+            for c in rgb
+        ]
+        return 0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]
+    l1, l2 = _rel_lum(fg_hex), _rel_lum(bg_hex)
+    lighter, darker = max(l1, l2), min(l1, l2)
+    return (lighter + 0.05) / (darker + 0.05)
 
 
 def _normalize_hex(value: str) -> str:

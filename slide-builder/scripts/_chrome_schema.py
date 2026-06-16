@@ -57,6 +57,44 @@ SUPPORTED_SCHEMA_VERSIONS: tuple[int, ...] = (1, 2)
 
 
 # ---------------------------------------------------------------------------
+# Canvas <-> EMU helpers (Pattern B foundation, M3, 2026-06-16)
+# ---------------------------------------------------------------------------
+#
+# python-pptx convention at 96 DPI is 1 px = 9525 EMU. Slide Lab locked the
+# Pattern B HTML render canvas at 1280×720 (Decision 1), which makes the
+# px↔EMU mapping exact: 12,192,000 EMU (the standard 16:9 slide width) ÷
+# 1280 px = 9525. There is no scaling factor — one HTML pixel is one OOXML
+# EMU step.
+#
+# These helpers are the canonical location for that conversion. Used by
+# register_template.py (which extracts placeholder geometry from PPTX
+# layout XML) and by the Pattern B translator agent (M4+) when it converts
+# HTML pixel coordinates from `getComputedStyle()` into `Emu(...)` kwargs
+# for `slide.shapes.add_shape(...)`. No magic 9525s elsewhere — see
+# `_contract.py::check_chrome_field_single_source` for the contract test.
+EMU_PER_PX_AT_1280: int = 9525
+
+
+def emu_to_px(emu: int) -> int:
+    """Convert OOXML EMU to HTML pixel at the locked 1280×720 canvas scale."""
+    return int(round(int(emu) / EMU_PER_PX_AT_1280))
+
+
+def px_to_emu(px: int) -> int:
+    """Convert HTML pixel to OOXML EMU at the locked 1280×720 canvas scale."""
+    return int(round(int(px) * EMU_PER_PX_AT_1280))
+
+
+def _emu_to_px_dict(emu_box: dict) -> dict:
+    """Convert a {x,y,width,height,...} EMU dict to its pixel equivalent.
+
+    Used by register_template.py to derive `BoxPx` fields from the EMU
+    values it reads off PPTX layout placeholders.
+    """
+    return {k: emu_to_px(v) for k, v in emu_box.items()}
+
+
+# ---------------------------------------------------------------------------
 # Canonical body-canonical chrome positions
 # ---------------------------------------------------------------------------
 #
