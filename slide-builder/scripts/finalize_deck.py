@@ -1860,6 +1860,30 @@ def main() -> int:
         print(f"ERROR: cannot resolve Mermaid theme.\n{exc}", file=sys.stderr)
         return 7
 
+    # M1 — Pattern B routing read (2026-06-16). Defensive only: log the
+    # effective pattern from _meta.json so operator output makes routing
+    # visible. Legacy mode (pattern_default absent or "legacy") proceeds
+    # with the existing code path verbatim. Translator dispatch (Stage 3.5)
+    # lands in M4; until then, even a non-legacy pattern_default takes the
+    # current path. This keeps M1 byte-identical to pre-M1 for legacy builds.
+    try:
+        _meta_path = _p.meta_json(args.out)
+        _meta_dict = json.loads(_meta_path.read_text(encoding="utf-8"))
+        _pattern_default = _meta_dict.get("pattern_default")
+        if _pattern_default and _pattern_default != "legacy":
+            print(
+                f"  [pattern routing] _meta.json::pattern_default = "
+                f"{_pattern_default!r}; per-slide map = "
+                f"{_meta_dict.get('pattern_per_slide', {})}"
+            )
+            print(
+                f"  [pattern routing] NOTE: Stage 3.5 (translator dispatch) "
+                f"lands in M4. Proceeding via legacy path for this build."
+            )
+    except (OSError, json.JSONDecodeError):
+        # Defensive read; never block the build on a parse error here.
+        pass
+
     # v0.2 P1.3: load + verify chrome.yml. Hard-fail on sha mismatch — refuse
     # to build slides against a chrome spec the template has drifted away from.
     try:
