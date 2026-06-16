@@ -20,10 +20,10 @@ py -3 -m pip install -r requirements.txt
 Verify:
 
 ```powershell
-py -3 -c "import pptx, PIL, yaml, lxml, pydantic, pypdfium2; print('python deps OK')"
+py -3 -c "import pptx, PIL, yaml, lxml, pydantic, pypdfium2, skimage; print('python deps OK')"
 ```
 
-Expected: `python deps OK`. If `import` fails, re-run the pip install. `pypdfium2` is used by the slide-qc render path; if it's missing here, slide-qc would auto-install it mid-build (which works but surprises the user with a pip log during finalize) — pin it at install time instead.
+Expected: `python deps OK`. If `import` fails, re-run the pip install. `pypdfium2` is used by the slide-qc render path; if it's missing here, slide-qc would auto-install it mid-build (which works but surprises the user with a pip log during finalize) — pin it at install time instead. `skimage` (scikit-image) is used by the Pattern B regression-check harness (`tests/capture_baseline.py` + `tests/regression_check.py`); it adds ~30 MB to the install but is the load-bearing dep for the "no silent regressions" quality guarantee.
 
 ## Step 2 — Mermaid CLI (pinned)
 

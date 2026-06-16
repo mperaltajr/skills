@@ -1,6 +1,6 @@
 # Slide Lab — Python runtime dependencies. Pinned for reproducibility.
 # Install: py -3 -m pip install -r requirements.txt
-# Verify:  py -3 -c "import pptx, PIL, yaml, lxml, pydantic, pypdfium2; print('python deps OK')"
+# Verify:  py -3 -c "import pptx, PIL, yaml, lxml, pydantic, pypdfium2, skimage; print('python deps OK')"
 
 python-pptx==1.0.2
 Pillow==11.0.0
@@ -19,3 +19,9 @@ pypdfium2==4.30.0
 # as `win32com`. Skipped automatically on non-Windows platforms via the
 # environment marker. Safe to skip if you only use LibreOffice rendering.
 pywin32==308; sys_platform == "win32"
+
+# Pattern B refactor (M2, 2026-06-16). Used by tests/capture_baseline.py
+# and tests/regression_check.py for SSIM-based fidelity measurement (the
+# regression-no-silent-drift guarantee). ~30 MB install. Pinned per
+# Spec 5 §1 (`structural_similarity` from skimage.metrics).
+scikit-image>=0.21,<1.0
