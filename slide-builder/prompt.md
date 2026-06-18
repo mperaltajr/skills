@@ -30,6 +30,7 @@ Placeholders rendered by `build_deck.py`:
 | `{{FALLBACK_EXAMPLES_DIR}}` | Absolute path to `reference/fallback-examples/` — worked Mermaid specs for curved-container diagrams |
 | `{{SKILL_MD_PATH}}` | Absolute path to `SKILL.md` |
 | `{{HELPERS_MODULE_PATH}}` | Absolute path to `slide-builder/` — the parent directory of `twins/helpers.py`. Goes on `sys.path` so `from twins.helpers import ...` resolves. |
+| `{{PATTERN}}` | Pattern routing for this slide (M5, 2026-06-17): `B` = HTML output (worker writes `option_X.html`; translator converts to native python-pptx at Stage 3.5), `C` = python-pptx direct (legacy). Defaults to `C` for legacy / unrouted builds so the default path matches pre-Pattern-B behavior. |
 
 ---
 
@@ -226,7 +227,12 @@ This list is a heuristic for which entries are most load-bearing per pattern. Th
 
 ## 8. Output contract
 
-Write three files to `{{OUTPUT_DIR}}`:
+**Pattern routing for this slide:** `{{PATTERN}}`
+
+- **Pattern C** (default; python-pptx direct): write the three files listed below as `.py` scripts. This is the legacy contract and the only path until Pattern B is enabled.
+- **Pattern B** (HTML-first; M5, 2026-06-17): write `option_A.html`, `option_B.html`, `option_C.html` instead of `.py` files. Conventions in `slide-builder/_decisions/pattern-b/SPEC.md`. Chrome text on elements with `data-template-field`; body shapes on elements with `data-shape-id`. Self-check by rendering each HTML via `scripts/render_html.py` and reading the resulting 1280×720 PNG before declaring done. Do NOT also write `.py` files — Pattern B's downstream translator agent converts the picked HTML to native python-pptx at Stage 3.5.
+
+For Pattern C, write three files to `{{OUTPUT_DIR}}`:
 
 ```
 {{OUTPUT_DIR}}\option_A.py
