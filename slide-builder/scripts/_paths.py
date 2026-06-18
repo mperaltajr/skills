@@ -332,8 +332,13 @@ ARTIFACT_MANIFEST: list[dict] = [
     {"name": "option_py",          "writer": "per-slide agent",       "readers": ["finalize_deck.py", "build_gate_preview.py", "build_review.py"], "accepted": True, "reason": "Written by per-slide worker agent"},
     {"name": "option_pptx",        "writer": "finalize_deck.py",      "readers": ["compile_picks.py", "build_review.py"]},
     {"name": "option_png",         "writer": "finalize_deck.py",      "readers": ["build_gate_preview.py", "build_review.py"]},
-    {"name": "option_mmd",         "writer": "per-slide agent",       "readers": ["finalize_deck.py"], "accepted": True, "reason": "Written by per-slide worker agent (FALLBACK_MERMAID only)"},
-    {"name": "option_mermaid_png", "writer": "finalize_deck.py",      "readers": ["finalize_deck.py"], "note": "finalize_deck.py constructs the path and invokes render_mermaid.py via subprocess; render_mermaid.py is brand-agnostic and writes wherever --output points."},
+    # M7 (Mermaid retirement, 2026-06-17): `option_mmd` and `option_mermaid_png`
+    # are no longer produced by any code path. The path helpers
+    # `option_mmd_name` / `option_mermaid_png_name` / `option_mmd` /
+    # `option_mermaid_png` remain in _paths.py as no-op references for
+    # backward compatibility with `clean.py` which uses them to sweep
+    # legacy build dirs. Manifest entries removed so the contract
+    # handoff-coverage check stays clean.
     {"name": "option_qc_json",     "writer": "build_review.py",       "readers": ["build_review.py"]},
     {"name": "option_raw_pptx",    "writer": "finalize_deck.py",      "readers": [], "accepted": True, "reason": "Audit archive — not re-read"},
 

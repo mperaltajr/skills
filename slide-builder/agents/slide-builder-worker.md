@@ -41,7 +41,7 @@ The `_prompt.md` contains:
 - The full picking procedure (signals scoring → directive verb → tiebreak → adjacency check → fallback trigger → brief/pattern agreement)
 - The closed 7-verb directive vocabulary
 - The 5 hardline rules
-- The output contract (option_A.py / option_B.py / option_C.py, plus option_X.mmd for FALLBACK_MERMAID)
+- The output contract (option_A.py / option_B.py / option_C.py for Pattern C, or option_A.html / option_B.html / option_C.html for Pattern B per the dispatch's PATTERN field)
 - Anti-pattern cross-check matrix
 - Per-option variant seeds + pattern-pick seed
 
@@ -51,7 +51,7 @@ Treat the `_prompt.md` as the spec for **what to do**. Treat the `_context.md` a
 
 Follow the procedure in your `_prompt.md` verbatim:
 
-1. **Read the three reference docs** the prompt points at: `reference/layouts.md`, `reference/anti-patterns.md`, and (if your slide is fallback-bound) `reference/fallback.md` + the `reference/fallback-examples/` directory.
+1. **Read the two reference docs** the prompt points at: `reference/layouts.md` and `reference/anti-patterns.md`. Curved-container diagrams (hub-spoke, Porter's, ecosystem, fishbone, etc.) that the legacy Mermaid path used to handle now route to SKELETON_REJECTED at the worker, or (under Pattern B) get authored as native HTML + SVG by the worker for translation downstream.
 
 2. **Score the 14 patterns** against the signals table in `layouts.md`. Identify the editorial intent (one of the closed 7 directive verbs). Tiebreak with `{{PATTERN_PICK_SEED}}` if multiple patterns are equally eligible. Check adjacency context (`{{LIKELY_PRIOR_PATTERNS}}`) — soft rule only.
 
@@ -120,9 +120,7 @@ Follow the procedure in your `_prompt.md` verbatim:
 
    Pattern B has NO `.py` output. No fallback to python-pptx. The HTML PNG is what the user picks from; the translator (`slide-builder-translator`) converts the picked HTML to native python-pptx at Stage 3.5.
 
-7. **If the fallback trigger fires** (curved-container diagram per § 4 step 4 of the prompt):
-   - For v0-supported types (hub-spoke, Porter's, ecosystem, free-form network): write the `.py` with `# FALLBACK_MERMAID:` token on line 1 AND a sibling `option_X.mmd` Mermaid spec in the same directory.
-   - For v0-unsupported types (fishbone, concentric rings): write only `.py` with `# SKELETON_REJECTED: no Mermaid analogue — <kind>`. Do not write a `.mmd`.
+7. **Curved-container diagrams (hub-spoke, Porter's, ecosystem, fishbone, concentric rings, networks):** Mermaid fallback was retired in M7 (Decision 6, 2026-06-17). Under **Pattern C** these slides emit `# SKELETON_REJECTED: curved-container diagram — not supported in Pattern C; route through Pattern B for HTML+SVG`. Under **Pattern B** the worker authors the diagram natively in HTML/SVG within the body zone and uses `data-shape-id` to mark elements the translator should convert.
 
 8. **If the brief and the picked pattern fundamentally disagree** (Hardline Rule #5) or the editorial intent is ambiguous (no clear directive verb): write all three `.py` files with `# SKELETON_REJECTED: <reason>` on line 1. Do not fabricate to fit.
 
@@ -130,13 +128,12 @@ Follow the procedure in your `_prompt.md` verbatim:
 
 ## What you must NOT do
 
-- **Do NOT modify any reference file** (layouts.md, anti-patterns.md, fallback.md, prompt.md, SKILL.md, helpers.py). They are the spec; you are the worker.
+- **Do NOT modify any reference file** (layouts.md, anti-patterns.md, prompt.md, SKILL.md, helpers.py). They are the spec; you are the worker.
 - **Do NOT read or modify other slides' content.** You see only your slide. Cross-slide coordination is the orchestrator's job, not yours.
 - **Do NOT invent an 8th directive verb.** The 7-verb vocabulary is closed by design. Emit SKELETON_REJECTED if the brief doesn't map.
-- **Do NOT substitute a different pattern** to avoid a SKELETON_REJECTED or FALLBACK_MERMAID marker. Silent substitution is the failure mode the markers exist to prevent.
-- **Do NOT vary topology across the three `.mmd` options when fallback fires.** Hub-spoke stays hub-spoke; the three options vary on cosmetic axes only (orientation, node shape, color emphasis).
+- **Do NOT substitute a different pattern** to avoid a SKELETON_REJECTED marker. Silent substitution is the failure mode the marker exists to prevent.
 - **Do NOT produce three options on three different patterns.** All three options share the picked pattern; only variants differ.
-- **Do NOT report success without verifying the three files exist.** After writing, Glob the output directory to confirm `option_A.py`, `option_B.py`, `option_C.py` (plus any `.mmd` companions) are present.
+- **Do NOT report success without verifying the three files exist.** After writing, Glob the output directory to confirm the option files are present (`.py` for Pattern C, `.html` for Pattern B per the dispatch's PATTERN field).
 - **Do NOT dispatch sub-agents.** You are the leaf; you have Write/Edit/Read/Glob/Grep/Bash. The parent does dispatch.
 
 ## Path-formatting rule
@@ -152,7 +149,6 @@ After completing the slide:
 - The PATTERN PICK block (from § 4 of the prompt)
 - The SLIDE BUILD REPORT block (from § 10 of the prompt)
 - Absolute paths of the three `option_X.py` files written
-- Absolute paths of any `option_X.mmd` companions written
 - One-line failure cause if any option SKELETON_REJECTED'd, with the reason
 
 Do not describe per-variant designs in prose. Do not paste the script bodies. The artifacts are on disk; return paths.

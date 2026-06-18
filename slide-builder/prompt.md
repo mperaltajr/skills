@@ -26,8 +26,7 @@ Placeholders rendered by `build_deck.py`:
 | `{{LIKELY_PRIOR_PATTERNS}}` | Forecasted patterns for slides N-1 and N-2 from the prep-time pattern-hint pass — **context, not constraint**. The agent can override if its brief read differs from the forecast. |
 | `{{LAYOUTS_MD_PATH}}` | Absolute path to `reference/layouts.md` |
 | `{{ANTI_PATTERNS_MD_PATH}}` | Absolute path to `reference/anti-patterns.md` |
-| `{{FALLBACK_MD_PATH}}` | Absolute path to `reference/fallback.md` — read only if the fallback trigger fires |
-| `{{FALLBACK_EXAMPLES_DIR}}` | Absolute path to `reference/fallback-examples/` — worked Mermaid specs for curved-container diagrams |
+| _(M7, 2026-06-17: `{{FALLBACK_MD_PATH}}` and `{{FALLBACK_EXAMPLES_DIR}}` were retired with the Mermaid fallback. Pattern B HTML→PNG replaces them.)_ | |
 | `{{SKILL_MD_PATH}}` | Absolute path to `SKILL.md` |
 | `{{HELPERS_MODULE_PATH}}` | Absolute path to `slide-builder/` — the parent directory of `twins/helpers.py`. Goes on `sys.path` so `from twins.helpers import ...` resolves. |
 | `{{PATTERN}}` | Pattern routing for this slide (M5, 2026-06-17): `B` = HTML output (worker writes `option_X.html`; translator converts to native python-pptx at Stage 3.5), `C` = python-pptx direct (legacy). Defaults to `C` for legacy / unrouted builds so the default path matches pre-Pattern-B behavior. |
@@ -135,18 +134,13 @@ There is no pre-classifier. You pick the pattern from the 14 in `layouts.md` bas
 
    Do not bend brief fidelity (Hardline #4) to satisfy adjacency. Brief fidelity wins; adjacency is the lower-priority concern that gets resolved at the gate-preview + review steps.
 
-4. **Check the fallback trigger.** If the slide concept implies a curved-container diagram, route to fallback. Two cases:
+4. **Check the curved-container trigger.** If the slide concept implies a curved-container diagram (hub-spoke, Porter's Five Forces, ecosystem map, fishbone, concentric rings, free-form network), the routing depends on `{{PATTERN}}` from the dispatch:
 
-   **(a) v0-supported via Mermaid: hub-and-spoke, Porter's Five Forces, ecosystem map, free-form network.** For each of the three options:
-   - Write `option_X.py` with line 1 = `# FALLBACK_MERMAID: curved-container diagram, see option_X.mmd`. The script body has `import sys; sys.exit(0)`. **Use the exact token `# FALLBACK_MERMAID:`** — not `# SKELETON_REJECTED:`. finalize_deck.py uses the token as a hard discriminator.
-   - Write a sibling `option_X.mmd` file in the same `{{OUTPUT_DIR}}` directory. This is your Mermaid spec — finalize_deck.py renders it to PNG (at body-zone size 1240×540) and embeds the PNG in the slide.
-   - Read `{{FALLBACK_MD_PATH}}` for the full fallback contract, the supported Mermaid diagram types per failure case, and the brand theme override mechanism.
-   - Read the worked examples at `{{FALLBACK_EXAMPLES_DIR}}` (`hub-spoke.mmd`, `porters-five-forces.mmd`) for the structural pattern matching your brief. Adapt the example to your brief's content; preserve the `classDef` block (Mermaid uses these for brand color emphasis).
-   - The three `.mmd` files differ only on **cosmetic variants**: orientation (`graph TD`/`LR`/`TB`), node shape (rectangles, rounded, stadium, circles), connector style, color emphasis. Do **not** vary the underlying topology — a hub-spoke stays a hub-spoke.
+   **Pattern C (legacy python-pptx, no native curve primitives):** For each of the three options write `option_X.py` with line 1 = `# SKELETON_REJECTED: curved-container diagram — not supported in Pattern C; re-route through Pattern B for HTML+SVG`. The script body has `import sys; sys.exit(0)`. The rejection surfaces in REVIEW.html and the user re-routes the slide through Pattern B.
 
-   **(b) Not v0-supported via Mermaid: fishbone / Ishikawa, concentric rings.** Mermaid has no analogue for these. For each of the three options write `option_X.py` with line 1 = `# SKELETON_REJECTED: no Mermaid analogue — <fishbone|concentric-rings>` and `import sys; sys.exit(0)`. Do NOT write a `.mmd` file. The rejection surfaces in REVIEW.html and the user resolves manually (SmartArt, manual build, or wait for v0.1).
+   **Pattern B (HTML-first):** Author the curved diagram natively in HTML/SVG within the body zone. Use `data-shape-id` to mark elements the translator should convert to native shapes; use `<img>` or inline `<svg>` for genuinely curve-shaped paths. The Pattern B path is the modern replacement for the legacy Mermaid fallback retired in M7 (Decision 6, 2026-06-17).
 
-   Do **not** substitute a different pattern just to avoid the marker. Silent substitution is the failure mode this protocol exists to prevent.
+   Do **not** substitute a different pattern just to avoid the trigger. Silent substitution is the failure mode this protocol exists to prevent.
 
 5. **Check the brief/pattern agreement (Hardline #5).** If the brief enumerates 2 items but your picked pattern needs 4 cells (and vice versa), brief and pattern fundamentally disagree. Emit:
    ```
@@ -164,7 +158,7 @@ PATTERN PICK — Slide {{SLIDE_N}}
   Variant tilt  : <one-line description of how the verb will shape at least one of the three variants — e.g., "Option B asymmetric weight toward recommended option, accent stripe">
   Seed used?    : <yes/no — yes if you tiebroke with {{PATTERN_PICK_SEED}}>
   Adjacency     : <one of: matches hint / overrides hint / no prior context / would-be-3-in-a-row, kept anyway because top scorer>
-  Fallback?     : <yes/no — yes if FALLBACK_MERMAID, "skipped" if SKELETON_REJECTED for unsupported fallback>
+  Curved-container? : <no | yes-rejected-routed-to-Pattern-B | yes-authored-in-Pattern-B-HTML>
 ```
 
 ---
@@ -289,45 +283,31 @@ import sys
 sys.exit(0)
 ```
 
-If the option must be rejected for **fallback to Mermaid** (v0-supported curved-container diagram per § 4 step 4(a)), write **both** the `.py` and the sibling `.mmd`:
+If the option must be rejected for **curved-container diagram under Pattern C** (per § 4 step 4), write **only** the `.py`:
 
 ```python
-# FALLBACK_MERMAID: curved-container diagram, see option_<A|B|C>.mmd
+# SKELETON_REJECTED: curved-container diagram — not supported in Pattern C; re-route through Pattern B for HTML+SVG
 # Slide {{SLIDE_N}} option <A|B|C> — pattern attempted: <pattern name>
 import sys
 sys.exit(0)
 ```
 
-And in the same `{{OUTPUT_DIR}}`:
-
-```
-option_<A|B|C>.mmd          # Mermaid spec, one of the worked example shapes adapted to the brief
-```
-
-The exact token `# FALLBACK_MERMAID:` is a hard discriminator. finalize_deck.py branches on (line 1 starts with that token) OR (sibling `.mmd` exists and is non-empty). Either signal triggers the Mermaid render path; using the literal token plus writing the `.mmd` is the belt-and-braces convention.
-
-If the option must be rejected for **fallback NOT supported in v0** (fishbone or concentric rings per § 4 step 4(b)), write **only** the `.py` (no `.mmd`):
-
-```python
-# SKELETON_REJECTED: no Mermaid analogue — <fishbone|concentric-rings>
-# Slide {{SLIDE_N}} option <A|B|C> — pattern attempted: <pattern name>
-import sys
-sys.exit(0)
-```
+(For Pattern B the worker authors the curved diagram natively in HTML/SVG inside the body zone; no SKELETON_REJECTED is needed.)
 
 finalize_deck.py reads line 1. Token prefix decides routing:
-- `# FALLBACK_MERMAID:` → Mermaid render path.
-- `# SKELETON_REJECTED:` → rejection surfaces in REVIEW.html for user resolution (brief/pattern disagreement OR unsupported-fallback case).
+- `# SKELETON_REJECTED:` → rejection surfaces in REVIEW.html for user resolution (brief/pattern disagreement OR unsupported curved-container under Pattern C).
+
+The legacy `# FALLBACK_MERMAID:` token was retired in M7 (Decision 6, 2026-06-17). Stale scripts carrying it fall through to the `native` classifier and fail loudly at execution time.
 
 ---
 
 ## 9. Constraints
 
-- **Touch only files in `{{OUTPUT_DIR}}`.** The expected files are `option_A.py`, `option_B.py`, `option_C.py` (always), plus the generated `option_A.pptx` / `option_B.pptx` / `option_C.pptx` (when the script runs), plus `option_<A|B|C>.mmd` siblings (only if FALLBACK_MERMAID fires for that option). Do not write to any other path. Do not modify `_prompt.md` or any file outside this directory.
+- **Touch only files in `{{OUTPUT_DIR}}`.** The expected files are `option_A.py`, `option_B.py`, `option_C.py` (Pattern C — always) OR `option_A.html`, `option_B.html`, `option_C.html` (Pattern B — when the dispatch's `{{PATTERN}}` field is `B`), plus the generated `.pptx` / `.png` siblings (when the script or renderer runs). Do not write to any other path. Do not modify `_prompt.md` or any file outside this directory.
 - **Do not modify `slide-builder\twins\helpers.py`.** It is shared with v1; structural changes break both versions.
 - **Do not read or modify other slides' brief content.** You see only this slide's brief.
 - **Do not write summaries, plans, or design docs to disk.** Inline reasoning goes in your response, not in side-files.
-- **No external assets.** No PIL, no PNG embedding for native patterns, no chart image generation outside the Mermaid fallback. Bars, waterfalls, KPI tiles — all drawn with `add_rect` + `add_text`.
+- **No external assets.** No PIL, no PNG embedding for native patterns, no chart image generation. Bars, waterfalls, KPI tiles — all drawn with `add_rect` + `add_text`. (Curved diagrams that historically used the Mermaid fallback now route to Pattern B HTML+SVG; see § 4 step 4.)
 - **Use the brand palette constants only.** Never raw `RGBColor(...)` literals. The named constants from `twins.helpers` are: `BRAND_PRIMARY`, `BRAND_PRIMARY_MID`, `BRAND_ACCENT`, `BRAND_ACCENT_SOFT`, `TEXT_DARK`, `TEXT_MID`, `TEXT_FAINT`, `CARD_BG`, `CARD_BORDER`, `WHITE`.
 - **Body font floor: 14px (≈10.5pt PPTX).** Eyebrows can be 11px; meta italic lines 12px; body claims and bullets ≥14px. No exceptions.
 - **Insertion order = paint order.** Background fills first, foreground/text last.
@@ -343,10 +323,10 @@ SLIDE {{SLIDE_N}} BUILD REPORT
   Pattern picked  : <pattern name>
   Directive verb  : <one of the 7 verbs>
   Variant tilt    : <one-line — which option (A/B/C) honors the directive, and how>
-  Variant A       : <one-line variant description>  | <status: built | FALLBACK_MERMAID | SKELETON_REJECTED>
+  Variant A       : <one-line variant description>  | <status: built | SKELETON_REJECTED>
   Variant B       : <one-line variant description>  | <status>
   Variant C       : <one-line variant description>  | <status>
-  Fallback?       : <yes/no — yes if FALLBACK_MERMAID for at least one option>
+  Curved container? : <no | rejected-routed-to-Pattern-B | yes-via-Pattern-B-HTML>
   Anti-patterns   : <list any anti-pattern entry numbers you specifically guarded against>
   Brief fidelity  : <one-line statement, e.g., "every word on every option traces to brief or chrome">
 ```

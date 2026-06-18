@@ -2,7 +2,38 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
-## [Unreleased] — v0.1 hardening + taxonomy consolidation (2026-05-26 post-tag)
+## [Unreleased] — Pattern B refactor (M1 – M7, 2026-06-16 → 2026-06-17)
+
+### Added — Pattern B HTML-first build path (M1 – M5)
+- **M1** (`9623efb`): `--pattern {auto,B,C,legacy}` CLI flag on `build_deck.py`; per-slide classifier `_classify_slide_pattern`; `_meta.json` schema-v3 extension with optional Pattern B fields (`pattern_default`, `pattern_per_slide`, `html_render_canvas`, `translator_dispatched`, `translation_reports`, per-slide `pattern` / `artifacts`); shipped `settings.json` with `default_pattern: legacy` + `enable_pattern_b: false` master switch.
+- **M2** (`6c246a3`): SSIM regression-test harness (`tests/capture_baseline.py` + `tests/regression_check.py`); `scikit-image>=0.21,<1.0` dep.
+- **M3** (`2981661`): `scripts/render_html.py` Playwright wrapper (headless Chromium → 1280×720 PNG); public color helpers in `twins/client_theme.py` (`hex_to_rgbcolor`, `css_color_to_rgbcolor`, `resolve_css_var`, `wcag_contrast`, public `mix_hex`); `EMU_PER_PX_AT_1280` + `emu_to_px` / `px_to_emu` / `_emu_to_px_dict` in `scripts/_chrome_schema.py`; `write_brand_css()` in `register_template.py` (emits `brand.css` sidecar at registration); WCAG AA contrast warning at register time; `playwright>=1.40,<2.0` dep + INSTALL.md Step 1.5.
+- **M4** (`c16b36e`): NEW `agents/slide-builder-translator.md` (~350 lines, per Spec 4); Pattern B branch added to `agents/slide-builder-worker.md`; INSTALL.md Step 7 for translator agent install + verify.
+- **M5** (`0812fc5`): `build_deck.py` emits `PATTERN: B|C` into per-slide `_prompt.md` via `_classify_all_slides()` + `build_placeholders()`; `finalize_deck.py` discovers `option_X_native.py` (translator output), classifies it as `pattern_b_translated`, parses `__template_fields__` header for placeholder population, threads through `_apply_body_canonical_finishing()` with new `template_fields_override` kwarg.
+- **M6** (`a712129`): R4.1 – R4.8 QC rules in `finalize_deck.py::_check_r4_rules_for_pattern_b()` (3 Critical / 4 Major / 1 Advisory per Spec 6); REVIEW.html surfaces per-zone SSIM + R4 severity chips via `build_review.py::render_pattern_b_qc_section()`; new `slide-qc/VISION_QC_PROTOCOL.md` documents R1 – R8 with severity table.
+
+### Removed — M7 Mermaid retirement (2026-06-17, Decision 6 locked)
+- `scripts/render_mermaid.py` — Mermaid CLI wrapper deleted. Pattern B HTML→PNG replaces it for curved-container diagrams.
+- `reference/fallback.md` + `reference/fallback-examples/` directory — Mermaid contract docs + worked `.mmd` examples deleted.
+- `scripts/finalize_deck.py` functions: `_resolve_mermaid_theme()`, `_render_mermaid_png()`, `_assemble_fallback_pptx()`. `FALLBACK_MERMAID_TOKEN` constant + the `fallback_mermaid` branch of `_classify_option()` + the build_pptx fallback branch removed. `--theme` CLI argument removed. `mermaid_theme` argument removed from `build_pptx()`, `write_result()`, `write_meta_json()` writes, and the dispatch_plan output. `OptionStatus.mmd_path` / `OptionStatus.mermaid_png_path` fields removed.
+- `scripts/build_deck.py` functions: `_compute_theme_variables()`, `generate_mermaid_theme()`. The inline brand-theme sanity check that followed Mermaid theme generation was retired with it (brand-color validation now lives at `register_template.py` Phase 3 + M3 WCAG warning).
+- `_meta_schema.py::MetaJson.mermaid_theme` made OPTIONAL (default `""`) so existing v3 metas with the field still validate; new writes omit it. No schema version bump.
+- `INSTALL.md` Step 2 (Mermaid CLI install + verify). Consolidated verify block (line ~165) no longer checks `mmdc`.
+- `agents/slide-builder-worker.md` fallback-trigger Step 7: replaced with Pattern C `SKELETON_REJECTED` route or Pattern B native HTML+SVG authoring.
+- `prompt.md`: `{{FALLBACK_MD_PATH}}` and `{{FALLBACK_EXAMPLES_DIR}}` placeholder rows removed; Step 4 "fallback trigger" rewritten for the Pattern B / C split; output contract no longer mentions `# FALLBACK_MERMAID:` token.
+- `SKILL.md`: Fallback-path description rewritten — Pattern B is the supersession; Mermaid CLI removed from the INSTALL.md summary.
+
+Stale builds that carry `# FALLBACK_MERMAID:` line-1 markers will now fall through to the `native` classifier and crash at execution. The operator re-builds; no production decks contained Mermaid artifacts at retirement time.
+
+### Resolved — Slide 16 strikethrough (2026-06-17)
+The OTC slide 16 strikethrough defect (forensic entry in private `SLIDE_LAB_FEEDBACK_LOG.md` 2026-06-16) is closed as `resolved-by-pattern-b-superseding`. M4 demonstrated Pattern B rebuilds slide 16 cleanly. The actual root cause was confirmed in PowerPoint: overlapping textbox content from undersized description boxes — a geometry-cascade in the python-pptx layer, not a font-decoration bug. No inline patch to `option_A_native.py` is required because Pattern B replaces the rendering path wholesale.
+
+### Deferred (M7 scope, not flipped)
+Production defaults remain `enable_pattern_b: false` + `default_pattern: legacy`. Flipping the master switch requires a separate gating task — Mario validates Pattern B end-to-end on a real (non-test) deck before cutover. See plan at `C:\Users\m.a.peralta\.claude\plans\stop-telling-me-to-indexed-puzzle.md`.
+
+---
+
+## [Unreleased — pre-Pattern B] — v0.1 hardening + taxonomy consolidation (2026-05-26 post-tag)
 
 ### Changed — Deck-type taxonomy: 17 → 7 + 1 edge (2026-05-26)
 

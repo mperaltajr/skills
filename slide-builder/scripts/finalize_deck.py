@@ -13,20 +13,19 @@ Originally forked from the legacy chassis-vocabulary skill; current behaviors:
 Inputs:
   --out PATH       output dir from build_deck.py
   --template PATH  client PPTX template (same one used in Part A)
-  --theme PATH     per-deck Mermaid theme override JSON (default: read
-                   from <out>/_meta.json['mermaid_theme'] — required field)
   --skip-build     skip executing option_X.py (use existing option_X.pptx)
   --skip-render    skip rendering PNGs
 
 Pipeline (unchanged from v1 except step 2's per-option branching):
-  1. Discover every <out>/slide_NN/option_X.py.
+  1. Discover every <out>/slide_NN/option_X.py and option_X_native.py
+     (the Pattern B translator output added in M5).
   2. For each option:
-       2a. Classify by line-1 token.
-       2b. NATIVE      -> run via subprocess to produce option_X.pptx
-                          at <out>/slide_NN/option_X.pptx (raw, pre-theme).
-       2c. FALLBACK    -> render .mmd via render_mermaid.py, assemble PPTX
-                          with chrome + embedded PNG. (NEW for v2.)
-       2d. REJECTED    -> skip; logged for the report.
+       2a. Classify by line-1 / header token.
+       2b. NATIVE                 -> run via subprocess to produce
+                                     option_X.pptx (raw, pre-theme).
+       2c. PATTERN_B_TRANSLATED   -> run via subprocess; finalize merges
+                                     __template_fields__ into placeholders.
+       2d. REJECTED               -> skip; logged for the report.
   3. Stash raw output to <out>/slide_NN/_raw/option_X.pptx.
   4. Graft + theme-remap each raw pptx onto the client template; write themed
      to <out>/slide_NN/option_X.pptx.
@@ -98,7 +97,6 @@ import twins.helpers as _twins_helpers  # noqa: E402
 # ---------------------------------------------------------------------------
 # v2 ADDITION — option-classification tokens
 # ---------------------------------------------------------------------------
-FALLBACK_MERMAID_TOKEN = "# FALLBACK_MERMAID:"
 SKELETON_REJECTED_TOKEN = "# SKELETON_REJECTED:"
 # M5 (Pattern B production wiring, 2026-06-17): the Pattern B translator agent
 # emits scripts whose header begins with `# CONTEXT_READ:` followed by
@@ -161,12 +159,16 @@ def _classify_option(py_path: Path) -> tuple[str, str]:
         'pattern_b_translated' -> Pattern B translator output (M5, 2026-06-17);
                                    executes like native but the parent flow extracts
                                    __template_fields__ for placeholder population.
-        'fallback_mermaid'    -> render sibling .mmd, assemble PPTX with PNG
         'skeleton_rejected'   -> skip; surface in REVIEW.html
 
     Discriminator is the line-1 token for legacy classifications; Pattern B
     translator output is detected by a `# PATTERN: B-translated` line in the
     first ~10 lines (Spec 4 §4 prescribes the header format).
+
+    Mermaid fallback was retired in M7 (Decision 6, 2026-06-17) — Pattern B
+    HTML→PNG supersedes it. Stale scripts carrying the old
+    `# FALLBACK_MERMAID:` marker now fall through to the native classifier
+    and fail loudly at execution time so the operator re-builds.
     """
     if not py_path.exists():
         return "missing", f"option script not found at {py_path}"
@@ -176,15 +178,7 @@ def _classify_option(py_path: Path) -> tuple[str, str]:
         return "missing", f"could not read {py_path}: {exc}"
 
     line1 = text.splitlines()[0].strip() if text else ""
-    mmd_sibling = py_path.with_suffix(".mmd")
-    mmd_exists = mmd_sibling.exists() and mmd_sibling.stat().st_size > 0
 
-    if line1.startswith(FALLBACK_MERMAID_TOKEN):
-        reason = line1[len(FALLBACK_MERMAID_TOKEN):].strip()
-        return "fallback_mermaid", reason or "Mermaid fallback (no reason given)"
-    if mmd_exists and not line1.startswith(SKELETON_REJECTED_TOKEN):
-        # belt-and-braces: .mmd exists but token missing — still treat as fallback
-        return "fallback_mermaid", "Mermaid fallback (token missing; .mmd present)"
     if line1.startswith(SKELETON_REJECTED_TOKEN):
         reason = line1[len(SKELETON_REJECTED_TOKEN):].strip()
         return "skeleton_rejected", reason or "SKELETON_REJECTED (no reason given)"
@@ -845,10 +839,10 @@ class OptionStatus:
     themed_pptx_path: Path
     themed_png_path: Path
     # v2 additions
-    classification: str = "native"           # one of: native, fallback_mermaid, skeleton_rejected, missing
+    # M7 (Mermaid retirement, 2026-06-17): `fallback_mermaid` is no longer
+    # produced by the classifier. `mmd_path` / `mermaid_png_path` removed.
+    classification: str = "native"           # one of: native, pattern_b_translated, skeleton_rejected, missing
     classification_reason: str = ""
-    mmd_path: Optional[Path] = None
-    mermaid_png_path: Optional[Path] = None
     # v1 fields
     built: Optional[bool] = None
     themed: Optional[bool] = None
@@ -916,12 +910,6 @@ def discover_options(out_dir: Path, expected: Optional[set] = None) -> list:
             continue
         slide_dir = py.parent
         classification, reason = _classify_option(py)
-        mmd_path = py.with_suffix(".mmd") if classification == "fallback_mermaid" else None
-        mermaid_png_path = (
-            slide_dir / _p.option_mermaid_png_name(letter)
-            if classification == "fallback_mermaid"
-            else None
-        )
         statuses.append(OptionStatus(
             slide_n=slide_n,
             letter=letter,
@@ -932,8 +920,6 @@ def discover_options(out_dir: Path, expected: Optional[set] = None) -> list:
             themed_png_path=slide_dir / _p.option_png_name(letter),
             classification=classification,
             classification_reason=reason,
-            mmd_path=mmd_path,
-            mermaid_png_path=mermaid_png_path,
         ))
         found_pairs.add((slide_n, letter))
 
@@ -960,8 +946,6 @@ def discover_options(out_dir: Path, expected: Optional[set] = None) -> list:
             themed_png_path=slide_dir / _p.option_png_name(letter),
             classification=classification,
             classification_reason=reason,
-            mmd_path=None,
-            mermaid_png_path=None,
         ))
         found_pairs.add((slide_n, letter))
 
@@ -980,8 +964,6 @@ def discover_options(out_dir: Path, expected: Optional[set] = None) -> list:
                 themed_png_path=slide_dir / _p.option_png_name(letter),
                 classification="missing",
                 classification_reason="worker did not produce option script",
-                mmd_path=None,
-                mermaid_png_path=None,
             ))
         statuses.sort(key=lambda s: (s.slide_n, s.letter))
     return statuses
@@ -1020,12 +1002,6 @@ def stash_raw(st: OptionStatus) -> None:
             st.error = msg
         return
     st.pptx_path = st.raw_archive_path
-
-
-# ---------------------------------------------------------------------------
-# v2 ADDITION — Mermaid fallback assembly
-# ---------------------------------------------------------------------------
-RENDER_MERMAID_SCRIPT = SKILL_ROOT / "scripts" / "render_mermaid.py"
 
 
 # ---------------------------------------------------------------------------
@@ -1097,153 +1073,17 @@ def _pick_default_layout_name(spec: ChromeSpec) -> str:
 PX_TO_EMU = 9525  # python-pptx convention: 1 px = 9525 EMU at 96 DPI
 
 
-def _resolve_mermaid_theme(out_dir: Path, override: Optional[Path]) -> Path:
-    """Pick the Mermaid theme JSON.
-
-    Precedence:
-      1. --theme CLI override (if file exists).
-      2. <out>/_meta.json['mermaid_theme'] — REQUIRED in v2.
-
-    No generic theme fallback exists. A historical theme/mermaid-brand.json
-    file was FedEx-shaped by convention and was deleted in Phase 1 cleanup
-    (2026-05-26) precisely because a silent fallback would render Mermaid in
-    FedEx purple for non-FedEx clients (the false-positive class flagged in
-    _decisions/smoke-test-finding-2026-05-25.md § "Critical correction"). The
-    per-deck mermaid_theme is now produced from the client brand.yml at
-    build_deck.py time — fail loudly here if it's missing so the operator
-    runs build_deck.py first.
-
-    Raises FileNotFoundError on missing _meta.json or missing mermaid_theme.
-    Caller propagates via exit code 7.
-    """
-    if override and override.exists():
-        return override
-
-    meta_path = _p.meta_json(out_dir)
-    if not meta_path.exists():
-        raise FileNotFoundError(
-            f"_meta.json not found in {out_dir}.\n"
-            f"build_deck.py must run before finalize_deck.py to produce the deck manifest.\n"
-            f"No silent fallback to default theme - would risk silent-wrong-color rendering "
-            f"for non-FedEx clients.\n"
-            f"Run:\n"
-            f"  py -3 slide-builder/scripts/build_deck.py "
-            f"--brief <brief.md> --template <template.pptx> --out \"{out_dir}\""
-        )
-
-    try:
-        meta = json.loads(meta_path.read_text(encoding="utf-8"))
-        from _meta_schema import validate_warn
-        validate_warn(meta, source="finalize_deck:_resolve_mermaid_theme")
-    except (OSError, json.JSONDecodeError) as exc:
-        raise FileNotFoundError(
-            f"_meta.json at {meta_path} is unreadable: {type(exc).__name__}: {exc}\n"
-            f"Re-run build_deck.py to regenerate the manifest."
-        ) from exc
-
-    cand = meta.get("mermaid_theme")
-    if not cand:
-        raise FileNotFoundError(
-            f"_meta.json['mermaid_theme'] missing in {meta_path}.\n"
-            f"Re-run build_deck.py — the manifest schema requires this field "
-            f"(schema_version >= 1)."
-        )
-    cand_path = Path(cand)
-    if not cand_path.exists():
-        raise FileNotFoundError(
-            f"_meta.json['mermaid_theme'] points to a non-existent file: {cand_path}\n"
-            f"Source: {meta_path}\n"
-            f"Re-run build_deck.py to regenerate the per-client theme."
-        )
-    return cand_path
-
-
-def _render_mermaid_png(st: OptionStatus, theme_path: Path) -> tuple[bool, str]:
-    """Invoke scripts/render_mermaid.py on st.mmd_path. Returns (ok, err)."""
-    if not RENDER_MERMAID_SCRIPT.exists():
-        return False, f"render_mermaid.py not found at {RENDER_MERMAID_SCRIPT}"
-    if not st.mmd_path or not st.mmd_path.exists():
-        return False, f".mmd sibling missing: {st.mmd_path}"
-    if not theme_path.exists():
-        return False, f"theme file missing: {theme_path}"
-    if st.mermaid_png_path is None:
-        return False, "mermaid_png_path not set"
-    st.mermaid_png_path.parent.mkdir(parents=True, exist_ok=True)
-    cmd = [
-        sys.executable,
-        str(RENDER_MERMAID_SCRIPT),
-        "--input",  str(st.mmd_path),
-        "--output", str(st.mermaid_png_path),
-        "--theme",  str(theme_path),
-        "--width",  "1240",
-        "--height", "540",
-    ]
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=90)
-    except subprocess.TimeoutExpired:
-        return False, "render_mermaid.py timed out (90s)"
-    except Exception as exc:
-        return False, f"render_mermaid.py invocation failed: {type(exc).__name__}: {exc}"
-    if result.returncode != 0:
-        tail = (result.stderr or result.stdout or "").strip()[-400:]
-        return False, f"render_mermaid.py exit {result.returncode}: {tail}"
-    if not st.mermaid_png_path.exists() or st.mermaid_png_path.stat().st_size == 0:
-        return False, "render_mermaid.py reported success but PNG missing/empty"
-    return True, ""
-
-
-def _assemble_fallback_pptx(st: OptionStatus, brief_title: str) -> tuple[bool, str]:
-    """Build a single-slide PPTX with title block + Mermaid PNG + footer.
-
-    The PPTX goes to st.pptx_path (the raw pre-theme location). The graft step
-    later moves it onto the client template.
-
-    Layout: title block at top, PNG centered in body zone (y~110-650), footer
-    at bottom. Matches the chrome conventions in twins.helpers.
-    """
-    if st.mermaid_png_path is None or not st.mermaid_png_path.exists():
-        return False, "Mermaid PNG missing — cannot assemble fallback PPTX"
-    try:
-        # Use twins.helpers for chrome (title block + footer + brand colors)
-        from twins.helpers import new_slide, add_title_block, add_footer
-        prs, slide = new_slide()
-        # Title: pull from the brief title that build_deck.py interpolated into
-        # the per-slide _prompt.md. If we can't recover it, fall back to a
-        # generic placeholder; the graft step will theme-remap anyway.
-        title_text = brief_title or f"Slide {st.slide_n}"
-        try:
-            add_title_block(slide, title=title_text)
-        except TypeError:
-            # add_title_block signature variation across helpers versions
-            add_title_block(slide, title=title_text, subtitle="")
-
-        # Embed Mermaid PNG at body-zone coordinates
-        # Body zone: x=20 to x=1260 (1240 wide), y=110 to y=650 (540 tall)
-        slide.shapes.add_picture(
-            str(st.mermaid_png_path),
-            left=Emu(20 * PX_TO_EMU),
-            top=Emu(110 * PX_TO_EMU),
-            width=Emu(1240 * PX_TO_EMU),
-            height=Emu(540 * PX_TO_EMU),
-        )
-
-        # Footer with page number
-        try:
-            add_footer(slide, page_num=st.slide_n)
-        except TypeError:
-            add_footer(slide)
-
-        st.pptx_path.parent.mkdir(parents=True, exist_ok=True)
-        prs.save(str(st.pptx_path))
-        st.n_shapes = len(list(slide.shapes))
-        return True, ""
-    except Exception as exc:
-        tb = traceback.format_exc().strip().splitlines()[-1]
-        return False, f"{type(exc).__name__}: {exc} | {tb}"
-
 
 # ---------------------------------------------------------------------------
-# Step 1: build pptx — v1 native path + v2 fallback branch
+# Step 1: build pptx — v1 native path + Pattern B translator path (M5)
+# ---------------------------------------------------------------------------
+# M7 (Mermaid retirement, Decision 6, 2026-06-17): the Mermaid fallback path
+# was removed here. `_resolve_mermaid_theme`, `_render_mermaid_png`, and
+# `_assemble_fallback_pptx` were deleted. Pattern B HTML→PNG (per
+# `_decisions/pattern-b/SPEC.md`) supersedes Mermaid for curved-container
+# diagrams. Stale `option_X.py` scripts carrying `# FALLBACK_MERMAID:` on
+# line 1 now fall through to the `native` classifier and fail loudly at
+# execution time — the operator re-builds.
 # ---------------------------------------------------------------------------
 def _try_load_brief_title_from_prompt(st: OptionStatus) -> str:
     """Extract the slide title from <slide_dir>/_prompt.md so the fallback
@@ -1309,43 +1149,28 @@ def _option_subprocess_env(chrome_yml_path: Path, layout_name: str) -> dict[str,
     return env
 
 
-def build_pptx(st: OptionStatus, mermaid_theme: Path,
+def build_pptx(st: OptionStatus,
                chrome_yml_path: Path | None = None,
                layout_chrome=None,
                layout_name: str = "",
                prefer_runpy: bool = False) -> None:
     """v2: branch on classification before invoking the native path.
 
-    fallback_mermaid  -> render .mmd to PNG, assemble PPTX with embedded image
-    skeleton_rejected -> mark not-built; rejection surfaces in REVIEW.html
-    native            -> v1's subprocess/runpy execution
+    skeleton_rejected     -> mark not-built; rejection surfaces in REVIEW.html
+    pattern_b_translated  -> Pattern B translator output (M5); runs via the
+                              native path; finalize merges __template_fields__
+                              into the placeholder population step.
+    native                -> v1's subprocess/runpy execution
+
+    M7 (Mermaid retirement, Decision 6, 2026-06-17): the `fallback_mermaid`
+    branch was removed. `mermaid_theme` parameter was retired (it was only
+    consumed by the Mermaid fallback's `_render_mermaid_png` call).
     """
     if st.pptx_path.exists():
         try:
             st.pptx_path.unlink()
         except Exception:
             pass
-
-    # v2 fallback branch
-    if st.classification == "fallback_mermaid":
-        ok, err = _render_mermaid_png(st, mermaid_theme)
-        if not ok:
-            st.built = False
-            st.error = f"fallback render: {err}"
-            return
-        brief_title = _try_load_brief_title_from_prompt(st)
-        # In-process chrome injection for the fallback assembler.
-        _twins_helpers.set_active_chrome(layout_chrome)
-        try:
-            ok, err = _assemble_fallback_pptx(st, brief_title)
-        finally:
-            _twins_helpers.set_active_chrome(None)
-        if not ok:
-            st.built = False
-            st.error = f"fallback assemble: {err}"
-            return
-        st.built = True
-        return
 
     # v2 skeleton-rejected branch — no build attempt
     if st.classification == "skeleton_rejected":
@@ -2058,13 +1883,12 @@ Generated: {ts}
 
 Out: `{out}`
 Template: `{template}`
-Mermaid theme: `{mermaid_theme}`
 
 ## Counts
 
 - Total options: **{total}**
 - Native      : {native_count}
-- Mermaid     : {mermaid_count}
+- Pattern B   : {pattern_b_count}
 - Rejected    : {rejected_count}
 - Missing     : {missing_count}
 - Built       : **{built_ok} / {total}**
@@ -2081,7 +1905,6 @@ Mermaid theme: `{mermaid_theme}`
 
 - **Themed PPTX**: `<out>/slide_NN/option_X.pptx`
 - **PNG thumbnails**: `<out>/slide_NN/option_X.png`
-- **Mermaid PNG (fallback only)**: `<out>/slide_NN/option_X-mermaid.png`
 - **QC self-check**: `<out>/slide_NN/option_X.qc.json`
 - **Raw pre-theme PPTX**: `<out>/slide_NN/_raw/option_X.pptx`
 
@@ -2100,10 +1923,15 @@ def _mark(ok):
 
 
 def _class_short(c: str) -> str:
-    return {"native": "native", "fallback_mermaid": "mermaid", "skeleton_rejected": "rejected", "missing": "missing"}.get(c, c)
+    return {
+        "native": "native",
+        "pattern_b_translated": "pattern_b",
+        "skeleton_rejected": "rejected",
+        "missing": "missing",
+    }.get(c, c)
 
 
-def write_result(out_dir: Path, template_path: Path, mermaid_theme: Path, statuses: list) -> Path:
+def write_result(out_dir: Path, template_path: Path, statuses: list) -> Path:
     rows = []
     for st in statuses:
         err_or_reason = st.error or (st.classification_reason if st.classification != "native" else "")
@@ -2128,10 +1956,9 @@ def write_result(out_dir: Path, template_path: Path, mermaid_theme: Path, status
         ts=datetime.now().isoformat(timespec="seconds"),
         out=out_dir,
         template=template_path,
-        mermaid_theme=mermaid_theme,
         total=total,
         native_count=sum(1 for s in statuses if s.classification == "native"),
-        mermaid_count=sum(1 for s in statuses if s.classification == "fallback_mermaid"),
+        pattern_b_count=sum(1 for s in statuses if s.classification == "pattern_b_translated"),
         rejected_count=sum(1 for s in statuses if s.classification == "skeleton_rejected"),
         missing_count=sum(1 for s in statuses if s.classification == "missing"),
         built_ok=sum(1 for s in statuses if s.built),
@@ -2152,8 +1979,6 @@ def main() -> int:
     ap = argparse.ArgumentParser(description="Slide Lab v2 deck orchestrator — Part B (finalize)")
     ap.add_argument("--out", required=True, type=Path, help="Output dir from Part A")
     ap.add_argument("--template", required=True, type=Path, help="Client PPTX template")
-    ap.add_argument("--theme", type=Path, default=None,
-                    help="Per-deck Mermaid theme JSON (default: read from _meta.json['mermaid_theme'])")
     ap.add_argument("--skip-build", action="store_true", help="Skip executing option_X.py")
     ap.add_argument("--skip-render", action="store_true", help="Skip PNG rendering")
     ap.add_argument("--allow-missing", action="store_true",
@@ -2177,11 +2002,10 @@ def main() -> int:
         print(f"ERROR: template not found: {args.template}")
         return 2
 
-    try:
-        mermaid_theme = _resolve_mermaid_theme(args.out, args.theme)
-    except FileNotFoundError as exc:
-        print(f"ERROR: cannot resolve Mermaid theme.\n{exc}", file=sys.stderr)
-        return 7
+    # M7 (Mermaid retirement, 2026-06-17): the Mermaid theme resolution step
+    # was removed here. `_resolve_mermaid_theme` and the `--theme` CLI arg
+    # are retired; Pattern B HTML→PNG (per Decision 6) supersedes Mermaid for
+    # curved-container diagrams.
 
     # M1 — Pattern B routing read (2026-06-16). Defensive only: log the
     # effective pattern from _meta.json so operator output makes routing
@@ -2233,7 +2057,6 @@ def main() -> int:
     print("Slide Lab v2 deck orchestrator — Part B (finalize)")
     print(f"  out           : {args.out}")
     print(f"  template      : {args.template}")
-    print(f"  mermaid theme : {mermaid_theme}")
     print(f"  chrome.yml    : {chrome_yml_path}")
     print(f"  layouts       : {len(chrome_spec.layouts)} "
           f"(default for slides w/o layout field: {default_layout_name!r})")
@@ -2317,7 +2140,7 @@ def main() -> int:
 
     statuses = discover_options(args.out, expected=expected_pairs)
     n_native = sum(1 for s in statuses if s.classification == "native")
-    n_fallback = sum(1 for s in statuses if s.classification == "fallback_mermaid")
+    n_pattern_b = sum(1 for s in statuses if s.classification == "pattern_b_translated")
     n_rejected = sum(1 for s in statuses if s.classification == "skeleton_rejected")
     n_missing = sum(1 for s in statuses if s.classification == "missing")
     if n_missing:
@@ -2358,10 +2181,10 @@ def main() -> int:
               f"under --allow-missing (will be surfaced in RESULT.md / REVIEW.html)")
     print(f"  found {len(statuses)} option scripts across "
           f"{len({s.slide_n for s in statuses})} slides")
-    print(f"  classification: native={n_native}  mermaid={n_fallback}  rejected={n_rejected}")
+    print(f"  classification: native={n_native}  pattern_b={n_pattern_b}  rejected={n_rejected}")
     if not statuses:
         print("  nothing to do.")
-        write_result(args.out, args.template, mermaid_theme, statuses)
+        write_result(args.out, args.template, statuses)
         return 0
 
     print("\n[2] Execute / assemble / skip per option (serial)")
@@ -2371,7 +2194,7 @@ def main() -> int:
             print(f"  [{i:>3}/{len(statuses)}] slide_{st.slide_n:02d}/option_{st.letter}  [{_class_short(st.classification)}]  skip-build (exists)")
             continue
         build_pptx(
-            st, mermaid_theme=mermaid_theme,
+            st,
             chrome_yml_path=chrome_yml_path,
             layout_chrome=_layout_chrome_for(st.slide_n),
             layout_name=_layout_name_for(st.slide_n),
@@ -2451,8 +2274,7 @@ def main() -> int:
         "major_font": theme.major_font,
         "minor_font": theme.minor_font,
         "font_missing": font_missing,
-        "mermaid_theme": str(mermaid_theme),
-        "classification_counts": {"native": n_native, "fallback_mermaid": n_fallback, "skeleton_rejected": n_rejected},
+        "classification_counts": {"native": n_native, "pattern_b_translated": n_pattern_b, "skeleton_rejected": n_rejected},
     }
     try:
         _p.finalize_meta_json(args.out).write_text(json.dumps(finalize_meta, indent=2), encoding="utf-8")
@@ -2592,7 +2414,7 @@ def main() -> int:
     print(f"  QC totals: all-ok={qc_counts['all_ok']}  warn-only={qc_counts['warn_only']}  block={qc_counts['block']}")
 
     print("\n[6] Write RESULT.md")
-    result_path = write_result(args.out, args.template, mermaid_theme, statuses)
+    result_path = write_result(args.out, args.template, statuses)
     print(f"  {result_path}")
 
     print("\n[7] Generate Gate 3 visual preview (GATE3-PREVIEW.html)")
@@ -2619,9 +2441,9 @@ def main() -> int:
 
     print("\n" + "=" * 72)
     print("DONE — Part B complete.")
-    print(f"  Native   : {n_native}")
-    print(f"  Mermaid  : {n_fallback}")
-    print(f"  Rejected : {n_rejected}")
+    print(f"  Native     : {n_native}")
+    print(f"  Pattern B  : {n_pattern_b}")
+    print(f"  Rejected   : {n_rejected}")
     print(f"  Built    : {sum(1 for s in statuses if s.built)} / {len(statuses)}")
     print(f"  Themed   : {sum(1 for s in statuses if s.themed)} / {len(statuses)}")
     print(f"  Rendered : {sum(1 for s in statuses if s.rendered)} / {len(statuses)}")

@@ -74,8 +74,14 @@ SKILL_ROOT = SCRIPTS_DIR.parent
 PROMPT_TEMPLATE = SKILL_ROOT / "prompt.md"
 LAYOUTS_MD = SKILL_ROOT / "reference" / "layouts.md"
 ANTI_PATTERNS_MD = SKILL_ROOT / "reference" / "anti-patterns.md"
-FALLBACK_MD = SKILL_ROOT / "reference" / "fallback.md"
-FALLBACK_EXAMPLES_DIR = SKILL_ROOT / "reference" / "fallback-examples"
+# M7 (Mermaid retirement, 2026-06-17): the FALLBACK_MD / FALLBACK_EXAMPLES_DIR
+# constants pointed at the legacy Mermaid fallback docs at
+# reference/fallback.md + reference/fallback-examples/. Both were deleted per
+# Decision 6. The constants are retained as no-op references for any external
+# code that still imports them — they point at paths that no longer exist on
+# disk, but no production code path reads them.
+FALLBACK_MD = SKILL_ROOT / "reference" / "fallback.md"           # path no longer exists
+FALLBACK_EXAMPLES_DIR = SKILL_ROOT / "reference" / "fallback-examples"  # path no longer exists
 SKILL_MD = SKILL_ROOT / "SKILL.md"
 THEME_DIR = SKILL_ROOT / "theme"
 
@@ -719,132 +725,10 @@ def detect_client_slug(template_path: Path, override: str | None) -> str:
     return slugify(template_path.stem)
 
 
-def _compute_theme_variables(brand: dict) -> dict[str, str]:
-    """Map v1's brand-sidecar fields to Mermaid themeVariables.
-
-    `brand` is the dict returned by `twins.client_theme.load_brand_sidecar()`.
-    Hexes in the dict are 6-char UPPERCASE WITHOUT '#' prefix; we prepend.
-
-    Brand-driven fields (sourced from brand.yml):
-      primary_hex   -> primaryColor, primaryBorderColor, lineColor,
-                       nodeBorder, defaultLinkColor              (5 vars)
-      accent_hex    -> secondaryColor, secondaryBorderColor      (2 vars)
-      font_heading  -> fontFamily (composed with font_body + fallback stack)
-      font_body     -> fontFamily
-
-    Universal neutrals (NOT brand-specific; same hex across all clients):
-      primaryTextColor, secondaryTextColor    (white-on-dark text)
-      tertiaryTextColor, titleColor, textColor (dark-on-light text)
-      tertiaryColor, tertiaryBorderColor       (neutral grays)
-      background, mainBkg, secondBkg, clusterBkg, clusterBorder
-      edgeLabelBackground, fontSize
-
-    NO slot-position guessing. NO walking template.json["extracted"]["all_colors"].
-    Brand source is brand.yml only; that's the v1-canonical contract.
-    """
-    def _hex(field: str) -> str:
-        # Production-grade bar: NO silent fallback. Prior FedEx smoke's
-        # "purple/orange correct" was a false-positive — hardcoded FedEx-shaped
-        # defaults coincidentally matched. Fail loudly so the operator
-        # re-registers the template instead of shipping wrong colors.
-        raw = brand.get(field, "")
-        v = (raw or "").strip().upper()
-        if not v:
-            raise ValueError(
-                f"brand.{field} missing or empty. "
-                f"Re-register the template (scripts/register_template.py propose → commit)."
-            )
-        if not re.fullmatch(r"[0-9A-F]{6}", v):
-            raise ValueError(
-                f"brand.{field} malformed: {raw!r}. "
-                f"Expected 6-char hex (no leading '#'). "
-                f"Re-register the template (scripts/register_template.py propose → commit)."
-            )
-        return f"#{v}"
-
-    primary = _hex("primary_hex")
-    accent  = _hex("accent_hex")
-
-    font_heading = (brand.get("font_heading", "") or "").strip()
-    font_body    = (brand.get("font_body", "") or "").strip()
-    family_parts: list[str] = []
-    if font_body:
-        family_parts.append(f'"{font_body}"')
-    if font_heading and font_heading != font_body:
-        family_parts.append(f'"{font_heading}"')
-    family_parts.extend(["Helvetica", "Arial", "sans-serif"])
-    font_family = ", ".join(family_parts)
-
-    return {
-        # Brand-driven primary (5 vars from brand.primary_hex)
-        "primaryColor":         primary,
-        "primaryBorderColor":   primary,
-        "lineColor":             primary,
-        "nodeBorder":            primary,
-        "defaultLinkColor":      primary,
-        # Brand-driven accent (2 vars from brand.accent_hex)
-        "secondaryColor":        accent,
-        "secondaryBorderColor":  accent,
-        # Universal text-on-fill (white on dark brand, dark on light)
-        "primaryTextColor":      "#FFFFFF",
-        "secondaryTextColor":    "#FFFFFF",
-        "tertiaryTextColor":     "#1A1A1A",
-        "titleColor":            "#1A1A1A",
-        "textColor":             "#1A1A1A",
-        # Universal neutrals (no slot-position guessing)
-        "tertiaryColor":         "#F2F2F2",
-        "tertiaryBorderColor":   "#E3E3E3",
-        "background":            "#FFFFFF",
-        "mainBkg":               "#FAFAFA",
-        "secondBkg":             "#F2F2F2",
-        "clusterBkg":            "#FAFAFA",
-        "clusterBorder":         "#E3E3E3",
-        "edgeLabelBackground":   "#FFFFFF",
-        # Brand-driven font + fixed size
-        "fontFamily":            font_family,
-        "fontSize":              "16px",
-    }
-
-
-def generate_mermaid_theme(client_slug: str, brand: dict) -> tuple[Path, list[str]]:
-    """Write theme/mermaid-<slug>.json from v1's brand-sidecar dict.
-
-    `brand` is the dict from `twins.client_theme.load_brand_sidecar()`.
-
-    Returns (theme_file_path, slots_using_fallback). slots_using_fallback
-    lists any brand fields that fell back to default values (e.g., missing
-    fonts → Helvetica stack). It does NOT cover universal-neutral fields,
-    which are hardcoded by design (no slot-position guessing).
-    """
-    THEME_DIR.mkdir(parents=True, exist_ok=True)
-    out_path = THEME_DIR / f"mermaid-{client_slug}.json"
-
-    theme_variables = _compute_theme_variables(brand)
-    slots_using_fallback: list[str] = []
-    if not (brand.get("primary_hex") or "").strip():
-        slots_using_fallback.append("primary_hex missing in brand.yml → primaryColor fell back")
-    if not (brand.get("accent_hex") or "").strip():
-        slots_using_fallback.append("accent_hex missing in brand.yml → secondaryColor fell back")
-    if not (brand.get("font_body") or "").strip() and not (brand.get("font_heading") or "").strip():
-        slots_using_fallback.append("font_body + font_heading both missing → fontFamily fell back to Helvetica stack")
-
-    config = {
-        "_comment_generated_by":   "scripts/build_deck.py",
-        "_comment_client_slug":    client_slug,
-        "_comment_brand_source":   "brand.yml via twins.client_theme.load_brand_sidecar (v1 canonical)",
-        "_comment_fallbacks_used": slots_using_fallback,
-        "theme": "base",
-        "themeVariables": theme_variables,
-        "flowchart": {
-            "curve": "basis",
-            "padding": 20,
-            "nodeSpacing": 50,
-            "rankSpacing": 60,
-            "useMaxWidth": False,
-        },
-    }
-    out_path.write_text(json.dumps(config, indent=2), encoding="utf-8")
-    return out_path, slots_using_fallback
+# M7 (Mermaid retirement, Decision 6, 2026-06-17): `_compute_theme_variables`
+# and `generate_mermaid_theme` were removed here. Pattern B HTML→PNG
+# supersedes Mermaid for curved-container diagrams; per-client Mermaid theme
+# generation is no longer needed.
 
 
 # ----------------------------------------------------------------------
@@ -1246,8 +1130,12 @@ def build_placeholders(
         "LIKELY_PRIOR_PATTERNS":   likely_prior_patterns,
         "LAYOUTS_MD_PATH":         str(LAYOUTS_MD),
         "ANTI_PATTERNS_MD_PATH":   str(ANTI_PATTERNS_MD),
-        "FALLBACK_MD_PATH":        str(FALLBACK_MD),
-        "FALLBACK_EXAMPLES_DIR":   str(FALLBACK_EXAMPLES_DIR),
+        # M7 (Mermaid retirement, 2026-06-17): the FALLBACK_MD_PATH and
+        # FALLBACK_EXAMPLES_DIR placeholders were removed from prompt.md;
+        # render_prompt() will leave any residual `{{FALLBACK_*}}` token
+        # literally interpolated to empty if a stale template is loaded.
+        "FALLBACK_MD_PATH":        "",
+        "FALLBACK_EXAMPLES_DIR":   "",
         "SKILL_MD_PATH":           str(SKILL_MD),
         "HELPERS_MODULE_PATH":     str(HELPERS_MODULE_PATH),
     }
@@ -1278,14 +1166,17 @@ def write_dispatch_plan(
     slides: list[dict[str, Any]],
     forecasts: list[str],
     client_slug: str,
-    theme_path: Path,
-    fallbacks_used: list[str],
     theme_warnings: list[str],
     brief_path: Path,
     client_template_path: Path,
 ) -> Path:
     """Write a deck-level dispatch_plan.md so the parent session has a
-    one-stop summary of what was prepped."""
+    one-stop summary of what was prepped.
+
+    M7 (Mermaid retirement, 2026-06-17): the Mermaid-theme reference + the
+    theme fallbacks section were removed — Pattern B HTML→PNG supersedes
+    Mermaid; brand validation now happens at template registration time.
+    """
     plan_path = _p.dispatch_plan_md(out_dir)
     lines: list[str] = [
         "# Dispatch plan — slide-builder prep",
@@ -1293,16 +1184,9 @@ def write_dispatch_plan(
         f"- Brief:           {brief_path}",
         f"- Client template: {client_template_path}",
         f"- Client slug:     {client_slug}",
-        f"- Mermaid theme:   {theme_path}",
         f"- Slide total:     {len(slides)}",
         "",
     ]
-    if fallbacks_used:
-        lines.append("## Theme fallbacks (slots that used hardcoded defaults)")
-        lines.append("")
-        for entry in fallbacks_used:
-            lines.append(f"- {entry}")
-        lines.append("")
     if theme_warnings:
         lines.append("## Theme validation warnings — REVIEW BEFORE APPROVING BUILD")
         lines.append("")
@@ -1373,7 +1257,6 @@ def write_meta_json(
     brief_path: Path,
     brief: dict[str, Any],
     template_path: Path,
-    theme_path: Path,
     client_slug: str,
     forecasts: list[str],
     brand: dict[str, Any],
@@ -1432,7 +1315,10 @@ def write_meta_json(
         "template":        str(template_path.resolve()),
         "brief":           str(brief_path.resolve()),
         "out":             str(out_dir.resolve()),
-        "mermaid_theme":   str(theme_path.resolve()),
+        # M7 (Mermaid retirement, 2026-06-17): mermaid_theme field is no
+        # longer written. _meta_schema.py keeps it as an optional empty-
+        # default str so existing v3 readers continue to work without
+        # surgery; new writes simply omit it.
         "client_slug":     client_slug,
         "slide_count":     len(slides_meta),
         "generated_at":    datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -1732,36 +1618,13 @@ def stage1_sanity_check(template_path: Path) -> int:
         )
         return 7
 
-    # Check (c): mmdc installed at runnable version
-    ok, info = _check_mmdc_installed()
-    if not ok:
-        sys.stderr.write(
-            "ERROR: Mermaid CLI (mmdc) not installed or not runnable.\n\n"
-            f"  Detail: {info}\n\n"
-            "Install the pinned version:\n"
-            "  npm install -g @mermaid-js/mermaid-cli@11.4.0\n\n"
-            "Verify:\n"
-            "  mmdc --version   # expected: 11.4.0\n"
-        )
-        return 7
+    # M7 (Mermaid retirement, 2026-06-17): the mmdc CLI installation check
+    # used to live here. Mermaid was retired per Decision 6; Pattern B
+    # HTML→PNG via Playwright (verified at install via INSTALL.md Step 1.5)
+    # supersedes it.
 
-    # All checks passed — propagate version info to console for audit
     print(f"[stage-1 sanity] brand sidecar OK for: {template_path}")
     print(f"[stage-1 sanity] slide-qc sibling OK: {qc_render_path}")
-    print(f"[stage-1 sanity] mmdc version: {info}")
-    # Warn loudly when mmdc isn't the pinned version. Don't block — coworkers
-    # with a different mmdc for unrelated work shouldn't be unable to build.
-    # Diagram rendering may vary; the warning gives the operator a chance to
-    # downgrade if a Mermaid fallback shows up off-spec.
-    PINNED_MMDC = "11.4.0"
-    if PINNED_MMDC not in (info or ""):
-        sys.stderr.write(
-            f"  WARNING: mmdc version {info!r} does not match pinned "
-            f"{PINNED_MMDC!r}. Mermaid fallback diagram rendering was tested "
-            f"against {PINNED_MMDC} specifically. If a fallback slide renders "
-            f"off-spec, downgrade with:\n"
-            f"    npm install -g @mermaid-js/mermaid-cli@{PINNED_MMDC}\n"
-        )
     return 0
 
 
@@ -1957,66 +1820,23 @@ def main() -> int:
     # 3. Seeds — content_hash + 4 per slide
     seeds_by_slide: list[dict[str, str]] = [compute_seeds(s) for s in slides]
 
-    # 4. Per-client Mermaid theme generation.
-    # Reads from v1's brand sidecar (canonical). The sanity check above already
-    # verified the sidecar exists + SHA-matches, so this load is safe.
+    # 4. Load brand sidecar (still needed for write_meta_json + per-slide
+    # context). M7 (Mermaid retirement, 2026-06-17): the per-client Mermaid
+    # theme generation that used to live here was removed — Pattern B HTML
+    # path supersedes Mermaid. Brand-color validation now happens at template
+    # registration time (Phase 3 interactive color confirmation +
+    # register_template.py's WCAG warning emitted at M3).
     client_slug = detect_client_slug(args.template, args.client_name)
     brand = load_brand_sidecar(args.template)
-    try:
-        theme_path, fallbacks_used = generate_mermaid_theme(client_slug, brand)
-    except ValueError as exc:
-        sys.stderr.write(
-            "ERROR: brand.yml has missing or malformed hex values.\n\n"
-            f"  Detail: {exc}\n\n"
-            f"Brand source: {args.template.with_suffix('').as_posix()}.brand.yml\n\n"
-            "Re-register the template (chat-driven flow with a human in the loop):\n\n"
-            f"  py -3 scripts/register_template.py propose \"{args.template}\"\n"
-            f"  py -3 scripts/register_template.py commit  \"{args.template}\" --picks <picks.json>\n\n"
-            "Production-grade bar: refusing to generate a Mermaid theme with silent\n"
-            "fallback defaults — the historical FedEx smoke's 'colors correct' was a\n"
-            "false-positive (hardcoded fallback shape coincidentally matched). See\n"
-            "_decisions/smoke-test-finding-2026-05-25.md § 'Critical correction'.\n"
-        )
-        return 6
 
-    # 4.5 Theme sanity-check — structural belt-and-braces.
-    # The brand.yml is human-authored via register_template.py (Phase 3 manual
-    # color confirmation), so the slot-position guessing-bug class of failures
-    # is gone by construction. validate_theme still runs as a structural guard:
-    # primary != accent, plausible saturation/luminance, optional client-hue-range
-    # confirmation if KNOWN_CLIENT_HUE_RANGES has an entry.
-    try:
-        theme_doc = json.loads(theme_path.read_text(encoding="utf-8"))
-        theme_variables = theme_doc.get("themeVariables", {})
-    except (OSError, json.JSONDecodeError) as exc:
-        sys.stderr.write(f"ERROR: failed to re-read generated theme {theme_path}: {exc}\n")
-        return 6
-    theme_errors, theme_warnings = validate_theme(theme_variables, args.template)
-    if theme_errors:
-        sys.stderr.write(
-            "ERROR: client theme validation failed.\n"
-            "       Refusing to build slides with wrong colors.\n\n"
-        )
-        for err in theme_errors:
-            sys.stderr.write(f"  - {err}\n\n")
-        sys.stderr.write(
-            f"Resolved theme: {theme_path}\n"
-            f"Template path:  {args.template}\n"
-            f"Brand source:   {args.template.with_suffix('').with_suffix('.brand.yml').name}\n\n"
-            "Likely causes:\n"
-            "  1. Human error in brand.yml — primary_hex and accent_hex are the same,\n"
-            "     or one of them is near-black / near-white / near-grey. Re-register the\n"
-            "     template via the chat-driven propose → commit flow so a human can\n"
-            "     confirm the preview PNG before the picks land.\n"
-            "  2. brand.yml has a hex format the validator can't parse — verify hex codes\n"
-            "     match /^[0-9A-F]{6}$/ (uppercase, no '#') after _normalize_hex.\n"
-            "  3. Template path doesn't match a known client convention — if the brand colors\n"
-            "     are actually correct, extend KNOWN_CLIENT_HUE_RANGES.\n\n"
-            f"To re-register:\n"
-            f"  py -3 scripts/register_template.py propose \"{args.template}\"\n"
-            f"  py -3 scripts/register_template.py commit  \"{args.template}\" --picks <picks.json>\n"
-        )
-        return 6
+    # M7 (Mermaid retirement, 2026-06-17): the inline theme sanity-check
+    # block that ran here used to re-read the generated Mermaid theme JSON
+    # and call validate_theme() on it. Validation now lives at template
+    # registration time (register_template.py Phase 3 + M3 WCAG warning);
+    # the runtime backstop here is dropped along with the Mermaid theme
+    # generation. theme_warnings (formerly returned by validate_theme) are
+    # no longer surfaced in the dispatch plan.
+    theme_warnings: list = []
 
     # M1/M5: classify per-slide pattern BEFORE rendering prompts (empty dict
     # in legacy mode). The result threads into per-slide _prompt.md via the
@@ -2071,7 +1891,6 @@ def main() -> int:
         brief_path=args.brief,
         brief=brief,
         template_path=args.template,
-        theme_path=theme_path,
         client_slug=client_slug,
         forecasts=forecasts,
         brand=brand,
@@ -2085,8 +1904,6 @@ def main() -> int:
         slides=slides,
         forecasts=forecasts,
         client_slug=client_slug,
-        theme_path=theme_path,
-        fallbacks_used=fallbacks_used,
         theme_warnings=theme_warnings,
         brief_path=args.brief.resolve(),
         client_template_path=args.template.resolve(),
@@ -2096,10 +1913,6 @@ def main() -> int:
     print(f"Prepped {slide_total} slides at:")
     print(f"  {args.out.resolve()}")
     print()
-    print(f"Mermaid theme (per-client):")
-    print(f"  {theme_path}")
-    if fallbacks_used:
-        print(f"  Theme slots using hardcoded fallback: {len(fallbacks_used)} (see dispatch_plan.md)")
     if theme_warnings:
         print()
         print(f"Theme validation warnings: {len(theme_warnings)} (see dispatch_plan.md § 'Theme validation warnings')")
