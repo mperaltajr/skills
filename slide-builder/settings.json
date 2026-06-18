@@ -2,10 +2,10 @@
   "_schema_version": 1,
   "_doc": "slide-builder skill settings. Read by build_deck.py at startup. Per-build CLI flags override these. Edit + save; takes effect on next invocation. Pattern B documented in _decisions/pattern-b/README.md.",
 
-  "default_pattern": "legacy",
+  "default_pattern": "auto",
   "_doc_default_pattern": "One of: legacy | auto | B | C. 'legacy' = pre-Pattern-B pipeline verbatim (the safe shipped default). 'auto' = per-slide routing via _classify_all_slides. 'B' = force all slides Pattern B. 'C' = force all slides Pattern C (native, no HTML stage). Per-build override: build_deck.py --pattern <value>.",
 
-  "enable_pattern_b": false,
+  "enable_pattern_b": true,
   "_doc_enable_pattern_b": "Master switch. When false, default_pattern is forced to 'legacy' regardless of its value, and --pattern auto|B is rejected. Flip to true after Pattern B validation lands (M7).",
 
   "html_render_canvas": "1280x720",

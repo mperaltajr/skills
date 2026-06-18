@@ -68,7 +68,23 @@ If a chrome zone has text in the HTML but no `data-template-field` attribute, th
 
 For every HTML element with attribute `data-shape-id` that sits in the body zone (between `body_top_y_px` and `body_bottom_y_px` from chrome.yml), generate a native python-pptx shape.
 
-You will use Playwright `getComputedStyle()` to read post-layout coordinates and styling. Spin up a headless Chromium, navigate to `file://<HTML_PATH>`, then for each `data-shape-id` element:
+**Graceful fallback for under-tagged HTML (added 2026-06-18, post-M8 cutover validation):**
+The original contract required workers to put `data-shape-id` on every body element they wanted translated. Real-world OTC validation surfaced ~30% under-tagging rate even on workers that produced visually-clean HTML. To avoid hard-blocking a deck on worker compliance, fall back as follows when fewer than 3 elements carry `data-shape-id` in the body zone (or none at all):
+
+1. Walk every DOM element in the body zone (`getBoundingClientRect().top >= body_top_y_px AND .bottom <= body_bottom_y_px`).
+2. Filter to elements with **meaningful visual presence** — at least one of:
+   - non-transparent `backgroundColor` (anything other than `rgba(0,0,0,0)` or `transparent`)
+   - non-zero `borderWidth` with a non-`none` `borderStyle`
+   - a `boxShadow` that isn't `none`
+   - direct text content (`el.childNodes` containing a non-empty text node, OR `el.textContent.trim()` non-empty AND no child elements with their own visible shapes)
+   - explicit positioning (`position: absolute` or `position: relative` with non-`auto` top/left/bottom/right)
+3. Skip elements that are pure layout wrappers — a `<div>` whose only role is to flex/grid its children, with no background/border/shadow/text of its own. Heuristic: if `getComputedStyle.display ∈ {"flex","grid"}` AND no `backgroundColor`/`border`/`text content` of its own, the element is a wrapper; recurse into children instead of emitting a shape for the wrapper.
+4. Each kept element becomes a native python-pptx shape using the same getComputedStyle approach as the explicit-data-shape-id path. Synthesize a `shape_id` from the element's CSS class or position (e.g., `inferred-card-0`, `inferred-h2-1`).
+5. Append a `TRANSLATOR_WARNING: data-shape-id_fallback_used: <n> shapes inferred from HTML structure` to the translation report so the operator knows the worker should have tagged these explicitly. Translation proceeds; do NOT block.
+
+Hard block only when both data-shape-id is absent AND the fallback walk also produces zero shapes (e.g., empty body zone, or all elements filtered as pure wrappers). That's truly empty content — emit `# TRANSLATOR_BLOCKED: empty body zone (no data-shape-id elements; fallback walk found no meaningful shapes either)`.
+
+You will use Playwright `getComputedStyle()` to read post-layout coordinates and styling. Spin up a headless Chromium, navigate to `file://<HTML_PATH>`, then for each `data-shape-id` element (or fallback-selected element per the rules above):
 
 ```javascript
 const rect = el.getBoundingClientRect();
@@ -299,7 +315,7 @@ Every artifact path you return must be a **plain absolute path on its own line**
 ## Failure handling
 
 - **Required input missing** → `# TRANSLATOR_BLOCKED: missing <file>`. Halt.
-- **HTML lacks any `data-shape-id`** (worker output non-conformant) → `# TRANSLATOR_BLOCKED: no data-shape-id elements found in HTML body zone`. Halt.
+- **HTML lacks any `data-shape-id`** → ALSO run the fallback walk from Task 2 (graceful-fallback section). Halt with `# TRANSLATOR_BLOCKED: empty body zone` ONLY if the fallback walk produces zero meaningful shapes. Otherwise proceed normally with a `TRANSLATOR_WARNING: data-shape-id_fallback_used` entry in the report.
 - **HTML lacks chrome `data-template-field`** → `# TRANSLATOR_BLOCKED: no data-template-field elements found`. Halt.
 - **Playwright import fails** → `# TRANSLATOR_BLOCKED: Playwright not installed; run 'py -3 -m playwright install chromium'`. Halt.
 - **Subprocess execution of own script fails** → `# TRANSLATOR_BLOCKED: generated script raised <exception>`. Halt; do NOT iterate. Report so the parent can diagnose.
