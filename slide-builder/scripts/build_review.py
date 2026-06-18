@@ -344,6 +344,39 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
         # v2 addition: extract pattern + classification from the .py header
         pattern, classification = extract_option_pattern(src_py)
 
+        # M6 (Pattern B QC surfacing, 2026-06-17): when the translator wrote a
+        # per-zone SSIM + warnings report (Spec 4 §8 + Spec 6), surface it in
+        # REVIEW.html so the user sees the fidelity story alongside the option
+        # PNG. Path convention is sibling to the .py file:
+        #   slide_NN/option_X_translation_report.json
+        # Missing report is the common case for Pattern C slides — we just
+        # carry empty data through; render_card decides what to show.
+        translation_report_path = themed_dir / f"option_{letter}_translation_report.json"
+        ssim_per_zone: dict = {}
+        translation_warnings: list = []
+        translation_pass: Optional[bool] = None
+        if translation_report_path.exists():
+            try:
+                tr = json.loads(translation_report_path.read_text(encoding="utf-8"))
+                ssim_per_zone = (tr.get("translator_self_check", {}) or {}).get("ssim_per_zone", {}) or {}
+                translation_pass = (tr.get("translator_self_check", {}) or {}).get("pass")
+                # Spec 6 severity mapping: codes that contain MAJOR / CRITICAL /
+                # advisory mappings are inferred by code prefix. The translator
+                # report's warnings array carries {code, detail} dicts.
+                for w in tr.get("warnings", []) or []:
+                    code = (w.get("code") or "").upper()
+                    detail = w.get("detail") or ""
+                    if "CRITICAL" in code or code in ("EDITABILITY_VIOLATION", "TRANSLATOR_BLOCKED"):
+                        sev = "Critical"
+                    elif "MAJOR" in code or "MISMATCH" in code or "BELOW_MAJOR" in code:
+                        sev = "Major"
+                    else:
+                        sev = "Advisory"
+                    translation_warnings.append({"code": w.get("code", ""), "detail": detail, "severity": sev})
+            except Exception:
+                # Malformed report is non-blocking; just don't surface it.
+                pass
+
         options.append({
             "letter": letter,
             "png": png,
@@ -358,6 +391,11 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
             # v2 fields
             "pattern": pattern,
             "classification": classification,
+            # M6 — Pattern B translation QC fields
+            "translation_report_path": translation_report_path if translation_report_path.exists() else None,
+            "ssim_per_zone": ssim_per_zone,
+            "translation_warnings": translation_warnings,
+            "translation_pass": translation_pass,
         })
 
     # Gap 3 (2026-06-08): worker context-ack telemetry. When build_deck.py
@@ -696,6 +734,90 @@ def render_context_ack_chip(slide: dict) -> str:
     )
 
 
+def render_pattern_b_qc_section(slide: dict) -> str:
+    """M6 (Pattern B QC surfacing, 2026-06-17): per-slide block showing
+    translator self-check results for any Pattern B options on this slide.
+
+    Rendered between the option-tile row and the decision buttons. Shows:
+      - Per-zone SSIM scores (title / subtitle / body / footer) per option
+      - R4 severity chips (Critical red / Major yellow / Advisory gray)
+        for any warning the translator emitted.
+
+    Empty string when no option on this slide carries a translation report
+    (Pattern C / legacy builds always hit this path).
+    """
+    pattern_b_opts = [
+        o for o in slide.get("options", [])
+        if o.get("translation_report_path") is not None
+    ]
+    if not pattern_b_opts:
+        return ""
+
+    def _ssim_cell(score: Optional[float]) -> str:
+        if score is None:
+            return '<span class="ssim-na">—</span>'
+        try:
+            s = float(score)
+        except (TypeError, ValueError):
+            return '<span class="ssim-na">—</span>'
+        # Per Spec 5 §3 thresholds.
+        if s >= 0.90:
+            cls = "ssim-pass"
+        elif s >= 0.85:
+            cls = "ssim-major"
+        elif s >= 0.70:
+            cls = "ssim-major"
+        else:
+            cls = "ssim-critical"
+        return f'<span class="{cls}">{s:.2f}</span>'
+
+    SEVERITY_CSS = {
+        "Critical": "r4-chip-critical",
+        "Major":    "r4-chip-major",
+        "Advisory": "r4-chip-advisory",
+    }
+
+    rows = []
+    for o in pattern_b_opts:
+        letter = o["letter"]
+        ssim = o.get("ssim_per_zone") or {}
+        ssim_html = (
+            f'<span class="ssim-zone">title {_ssim_cell(ssim.get("title"))}</span>'
+            f'<span class="ssim-zone">subtitle {_ssim_cell(ssim.get("subtitle"))}</span>'
+            f'<span class="ssim-zone">body {_ssim_cell(ssim.get("body"))}</span>'
+            f'<span class="ssim-zone">footer {_ssim_cell(ssim.get("footer"))}</span>'
+        )
+        warnings = o.get("translation_warnings") or []
+        if warnings:
+            chip_html = "".join(
+                f'<span class="r4-chip {SEVERITY_CSS.get(w.get("severity", "Advisory"), "r4-chip-advisory")}" '
+                f'title="{html.escape(w.get("detail", ""))}">'
+                f'{html.escape(w.get("severity", "Advisory"))}: {html.escape(w.get("code", ""))}'
+                f'</span>'
+                for w in warnings
+            )
+        else:
+            chip_html = '<span class="r4-chip r4-chip-pass">no warnings</span>'
+        rows.append(
+            f'<div class="pattern-b-row">'
+            f'<div class="pattern-b-letter">Option {letter}</div>'
+            f'<div class="pattern-b-ssim">{ssim_html}</div>'
+            f'<div class="pattern-b-chips">{chip_html}</div>'
+            f'</div>'
+        )
+
+    return (
+        '<div class="pattern-b-qc">'
+        '<div class="pattern-b-qc-title">'
+        '<span class="pattern-b-qc-icon">&#9678;</span> Pattern B translation QC '
+        '<span class="pattern-b-qc-hint">(per-zone SSIM thresholds: pass &#8805; 0.90; '
+        'major 0.85&#8211;0.90; critical &lt; 0.70 per Spec 5)</span>'
+        '</div>'
+        f'{"".join(rows)}'
+        '</div>'
+    )
+
+
 def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
     sid = slide["slide_id"]
     n = slide["n"]
@@ -757,6 +879,8 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
   <div class="options-row">
     {option_tiles}
   </div>
+
+  {render_pattern_b_qc_section(slide)}
 
   <div class="card-controls">
     <div>
@@ -866,6 +990,26 @@ code { font-family: Consolas, monospace; font-size: 12px; color: var(--text-dim)
 .adjacency-icon { color: var(--tweak); margin-right: 4px; }
 .adjacency-banner ul { margin: 4px 0 0; padding-left: 18px; }
 .adjacency-banner li { padding: 2px 0; }
+
+/* M6 (Pattern B translation QC, 2026-06-17) */
+.pattern-b-qc { margin: 0 20px 14px; padding: 10px 14px; background: rgba(99,102,241,0.10); border-left: 4px solid #6366F1; border-radius: 4px; color: #C7D2FE; font-size: 12.5px; line-height: 1.5; }
+.pattern-b-qc-title { font-size: 11px; font-weight: 800; color: #A5B4FC; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.pattern-b-qc-icon { color: #A5B4FC; margin-right: 4px; }
+.pattern-b-qc-hint { font-weight: 500; text-transform: none; letter-spacing: 0; color: #94A3B8; font-size: 11px; margin-left: 6px; }
+.pattern-b-row { display: grid; grid-template-columns: 80px 1fr 1fr; gap: 14px; padding: 4px 0; align-items: center; }
+.pattern-b-letter { font-weight: 700; color: #C7D2FE; font-size: 12px; }
+.pattern-b-ssim { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11.5px; color: #94A3B8; }
+.pattern-b-ssim .ssim-zone { display: inline-flex; gap: 4px; align-items: center; }
+.pattern-b-ssim .ssim-pass     { color: #10B981; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pattern-b-ssim .ssim-major    { color: #FBBF24; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pattern-b-ssim .ssim-critical { color: #F87171; font-weight: 700; font-variant-numeric: tabular-nums; }
+.pattern-b-ssim .ssim-na       { color: #64748B; }
+.pattern-b-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+.r4-chip { display: inline-block; padding: 2px 8px; border-radius: 11px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.25px; }
+.r4-chip-critical { background: rgba(248,113,113,0.16); color: #FCA5A5; border: 1px solid rgba(248,113,113,0.35); }
+.r4-chip-major    { background: rgba(251,191,36,0.16); color: #FDE68A; border: 1px solid rgba(251,191,36,0.35); }
+.r4-chip-advisory { background: rgba(148,163,184,0.16); color: #CBD5E1; border: 1px solid rgba(148,163,184,0.30); }
+.r4-chip-pass     { background: rgba(16,185,129,0.14); color: #6EE7B7; border: 1px solid rgba(16,185,129,0.30); }
 
 /* v2 addition: classification badge on option frame */
 .class-badge { position: absolute; bottom: 6px; right: 6px; padding: 3px 8px; border-radius: 10px; font-size: 9px; font-weight: 800; letter-spacing: 0.6px; line-height: 1.1; z-index: 2; box-shadow: 0 2px 5px rgba(0,0,0,0.25); cursor: help; }
