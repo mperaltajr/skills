@@ -1,6 +1,6 @@
 ---
 name: slide-builder-worker
-description: Per-slide worker for the slide-builder skill. Reads one rendered _prompt.md (produced by build_deck.py) and writes three structurally distinct python-pptx option scripts (option_A.py, option_B.py, option_C.py) plus, when the fallback trigger fires, sibling .mmd Mermaid specs. Dispatched in parallel from the parent session — one instance per slide. Does NOT orchestrate the deck; it builds exactly one slide's options.
+description: Per-slide worker for the slide-builder skill. Reads one rendered _prompt.md (produced by build_deck.py) and writes three structurally distinct option scripts per slide. Output format depends on the pattern flag in _prompt.md — Pattern B emits HTML (option_A.html / B / C); Pattern C emits python-pptx scripts (option_A.py / B / C); the legacy default is Pattern C. Dispatched in parallel from the parent session — one instance per slide. Does NOT orchestrate the deck; it builds exactly one slide's options.
 tools: Bash, Read, Glob, Grep, Write, Edit
 ---
 
@@ -68,7 +68,11 @@ Follow the procedure in your `_prompt.md` verbatim:
 
    This is Gate 3 soft-enforcement (2026-06-08). The file's PRESENCE is the signal that you read context; its CONTENT is read by REVIEW.html and shown next to the slide. If you cannot cite a constraint, write `Context skipped — <reason>`. Honest skips are fine; silent skips erode trust in the tool. Do NOT fabricate a citation.
 
-6. **Write three option scripts** to the output directory specified in the prompt:
+6. **Write three option scripts** to the output directory specified in the prompt. The output format depends on the `PATTERN` field in `_prompt.md` (or the dispatch message). Two branches:
+
+   ### Pattern C (legacy / default — python-pptx direct)
+
+   When `PATTERN: C` or the field is absent, write python-pptx scripts:
 
    ```
    <out_dir>/slide_NN/option_A.py
@@ -85,6 +89,36 @@ Follow the procedure in your `_prompt.md` verbatim:
    ```
 
    The finalizer (`finalize_deck.py`) executes each script with CWD set to the slide directory, then looks for `option_A.pptx` / `option_B.pptx` / `option_C.pptx` next to the `.py` file. Using `sys.argv[1]` will crash with `IndexError: list index out of range` because the finalizer passes no arguments.
+
+   ### Pattern B (HTML-first — Pattern B refactor, 2026-06-16)
+
+   When `PATTERN: B`, write HTML files INSTEAD of `.py` files:
+
+   ```
+   <out_dir>/slide_NN/option_A.html
+   <out_dir>/slide_NN/option_B.html
+   <out_dir>/slide_NN/option_C.html
+   ```
+
+   Each HTML file MUST follow `slide-builder/_decisions/pattern-b/SPEC.md` exactly:
+   - Canvas: `width: 1280px; height: 720px; overflow: hidden; position: relative;` on the root `.slide` element
+   - Inline `<link rel="stylesheet" href="../../brand.css">` for the brand CSS variables (`var(--brand-primary)`, etc.) OR copy the `:root { ... }` block inline
+   - Title / subtitle / footer / page-number text MUST be on elements with `data-template-field="title|subtitle|footer|page_number"` — these become template-inherited placeholders; do NOT position them as freeform shapes
+   - Every body-zone element you want translated to a native PowerPoint shape MUST have `data-shape-id="<unique-id>"`. Elements without `data-shape-id` are visual-context-only and will be ignored by the translator
+   - Body zone is between `--body-top` and `--body-bottom` (from chrome.yml; inlined into _context.md)
+   - Use ONLY the CSS properties permitted by SPEC.md §7 (no gradients in body, no shadows, no filters, no text-decoration on body text)
+
+   **Worker self-check before declaring done (Pattern B):**
+
+   Render your HTML to PNG via the project's render wrapper and READ the resulting PNG before emitting your done marker:
+
+   ```
+   py -3 <skill_root>/scripts/render_html.py <out_dir>/slide_NN/option_A.html <out_dir>/slide_NN/option_A.png
+   ```
+
+   Look at the PNG. Cite what you saw in `_context_ack.txt` (per step 5). If the visual doesn't match your intent, fix the HTML and re-render. The PNG is your feedback loop — without it you're coding blind.
+
+   Pattern B has NO `.py` output. No fallback to python-pptx. The HTML PNG is what the user picks from; the translator (`slide-builder-translator`) converts the picked HTML to native python-pptx at Stage 3.5.
 
 7. **If the fallback trigger fires** (curved-container diagram per § 4 step 4 of the prompt):
    - For v0-supported types (hub-spoke, Porter's, ecosystem, free-form network): write the `.py` with `# FALLBACK_MERMAID:` token on line 1 AND a sibling `option_X.mmd` Mermaid spec in the same directory.

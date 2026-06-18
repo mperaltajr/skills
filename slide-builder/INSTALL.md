@@ -132,15 +132,51 @@ $wp = "$env:USERPROFILE\.claude\agents\slide-builder-worker.md"
 (Test-Path $wp) `
   -and (Select-String -Path $wp -Pattern "option_A\.py" -Quiet) `
   -and (Select-String -Path $wp -Pattern "_context\.md" -Quiet) `
-  -and (Select-String -Path $wp -Pattern "_context_ack\.txt" -Quiet)
+  -and (Select-String -Path $wp -Pattern "_context_ack\.txt" -Quiet) `
+  -and (Select-String -Path $wp -Pattern "PATTERN: B" -Quiet)
 ```
 
-Expected: `True`. The three greps prove the installed file is the current worker contract:
+Expected: `True`. The four greps prove the installed file is the current worker contract:
   - `option_A.py` — writes `option_A.py` / `option_B.py` / `option_C.py` (rules out v1-era workers that wrote 4 options or used `sys.argv` paths)
   - `_context.md` — knows to read the per-slide context bundle BEFORE the prompt (Gate C.1, added 2026-06-08)
   - `_context_ack.txt` — knows to write the soft-enforcement acknowledgment (Gap 3, added 2026-06-08)
+  - `PATTERN: B` — knows the Pattern B branch (HTML output when dispatched with `PATTERN: B`; added M4 2026-06-17). A worker pre-dating this branch silently falls back to python-pptx output even when Pattern B is enabled
 
 **Without this file (or with the wrong content), Stage 2 dispatch silently does nothing** — your build will reach `finalize_deck.py` with zero option scripts and produce nothing useful. A stale worker that passes only the first grep will silently produce builds without context awareness, with yellow ⚠ chips on every slide in REVIEW.html.
+
+## Step 7 — Translator agent (Pattern B Stage-3.5 dispatch, 2026-06-17)
+
+When Pattern B is enabled (`--pattern B` or `settings.json::default_pattern: "auto"|"B"`), Stage 3.5 dispatches **one `slide-builder-translator` agent per picked Pattern B slide**. That subagent converts the picked `option_X.html` to a native `option_X_native.py` with editable text frames. Its definition must exist at:
+
+```
+%USERPROFILE%\.claude\agents\slide-builder-translator.md
+```
+
+The skill ships the source-of-truth copy at `slide-builder/agents/slide-builder-translator.md`. Install it with:
+
+```powershell
+Copy-Item "$env:USERPROFILE\.claude\skills\slide-builder\agents\slide-builder-translator.md" `
+          "$env:USERPROFILE\.claude\agents\slide-builder-translator.md" -Force
+```
+
+Verify (existence AND content — a stale copy will silently produce non-editable or visually-broken Pattern B output):
+
+```powershell
+$tp = "$env:USERPROFILE\.claude\agents\slide-builder-translator.md"
+(Test-Path $tp) `
+  -and (Select-String -Path $tp -Pattern "data-template-field" -Quiet) `
+  -and (Select-String -Path $tp -Pattern "data-shape-id" -Quiet) `
+  -and (Select-String -Path $tp -Pattern "__template_fields__" -Quiet) `
+  -and (Select-String -Path $tp -Pattern "EDITABILITY_VIOLATION" -Quiet)
+```
+
+Expected: `True`. The four greps prove the installed translator understands the Pattern B contract:
+  - `data-template-field` — extracts chrome (title/subtitle/footer/page_number) from HTML attributes per Spec 4 §5
+  - `data-shape-id` — translates body-zone elements to native python-pptx shapes per Spec 4 §6
+  - `__template_fields__` — emits the structured comment header `finalize_deck.py` reads for placeholder population
+  - `EDITABILITY_VIOLATION` — implements the R4.7 Critical editability self-check
+
+**Without this file**, Pattern B dispatch (Stage 3.5) emits `TRANSLATOR_BLOCKED` on every picked slide and finalize halts. Legacy / Pattern C builds (the shipped default) are unaffected and continue working without this file.
 
 ## Verification step
 
@@ -156,13 +192,20 @@ $worker_path  = "$env:USERPROFILE\.claude\agents\slide-builder-worker.md"
 $worker_ok    = (Test-Path $worker_path) `
   -and (Select-String -Path $worker_path -Pattern "option_A\.py" -Quiet) `
   -and (Select-String -Path $worker_path -Pattern "_context\.md" -Quiet) `
-  -and (Select-String -Path $worker_path -Pattern "_context_ack\.txt" -Quiet)
+  -and (Select-String -Path $worker_path -Pattern "_context_ack\.txt" -Quiet) `
+  -and (Select-String -Path $worker_path -Pattern "PATTERN: B" -Quiet)
+$translator_path = "$env:USERPROFILE\.claude\agents\slide-builder-translator.md"
+$translator_ok   = (Test-Path $translator_path) `
+  -and (Select-String -Path $translator_path -Pattern "data-template-field" -Quiet) `
+  -and (Select-String -Path $translator_path -Pattern "data-shape-id" -Quiet) `
+  -and (Select-String -Path $translator_path -Pattern "__template_fields__" -Quiet) `
+  -and (Select-String -Path $translator_path -Pattern "EDITABILITY_VIOLATION" -Quiet)
 $build_ok     = $false
 try { py -3 "$skill\scripts\build_deck.py" --help *>$null; $build_ok = ($LASTEXITCODE -eq 0) } catch { $build_ok = $false }
-if ($mmdc_ok -and $soffice_ok -and $qc_ok -and $worker_ok -and $build_ok) {
+if ($mmdc_ok -and $soffice_ok -and $qc_ok -and $worker_ok -and $translator_ok -and $build_ok) {
     "install OK"
 } else {
-    "install INCOMPLETE - mmdc11.4=$mmdc_ok  soffice=$soffice_ok  slide-qc=$qc_ok  worker-agent=$worker_ok  build_deck-help=$build_ok"
+    "install INCOMPLETE - mmdc11.4=$mmdc_ok  soffice=$soffice_ok  slide-qc=$qc_ok  worker-agent=$worker_ok  translator-agent=$translator_ok  build_deck-help=$build_ok"
 }
 ```
 
