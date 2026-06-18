@@ -657,6 +657,182 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
 
 
 # ---------------------------------------------------------------------------
+# M6 (Pattern B QC, 2026-06-17) — R4.1 through R4.8 checks per Spec 6
+# ---------------------------------------------------------------------------
+def _check_r4_rules_for_pattern_b(st: "OptionStatus") -> list[dict]:
+    """Run R4.1-R4.8 QC checks on a Pattern B translator output.
+
+    Per Spec 6 (_decisions/pattern-b/spec-6-qc-rules-R4.md), Pattern B
+    introduces a parallel rule family R4 that operates on the
+    translator's output and report:
+
+      R4.1 Strikethrough/underline on body text       (Critical)
+      R4.2 Opacity / transparency on text             (Major)
+      R4.3 Font-weight mismatch                       (Major)
+      R4.4 Gradient conversion to solid               (Major)
+      R4.5 CSS filters dropped                        (Advisory)
+      R4.6 Icons rendering cleanly                    (Major)
+      R4.7 Editability verified at build time         (Critical)
+      R4.8 Text decorations audit (catch-all)         (Critical)
+
+    Each return entry has the same shape as run_option_qc's `checks`
+    items: {check, severity, pass, detail}. Severity values use the
+    legacy run_option_qc vocabulary: "block" = Critical hard-fail,
+    "warn" = Major surfaceable in REVIEW.html, "info" = Advisory.
+
+    Returns an empty list when:
+      - st.classification != "pattern_b_translated" (Pattern C / legacy),
+      - the translator's translation_report.json is missing or malformed.
+    """
+    if st.classification != "pattern_b_translated":
+        return []
+
+    # Translation report lives next to the .py file; sibling convention.
+    report_path = st.py_path.parent / f"option_{st.letter}_translation_report.json"
+    report: dict = {}
+    if report_path.exists():
+        try:
+            report = json.loads(report_path.read_text(encoding="utf-8"))
+        except Exception:
+            report = {}
+
+    # Defensive accessors — every field below is optional in the report.
+    # A malformed translator report could carry unexpected types (e.g.,
+    # `"warnings": "error string"`); type-guard so finalize never crashes
+    # on a bad report. Missing or wrong-type fields degrade to defaults.
+    kill_list = report.get("css_kill_list_applied", {})
+    if not isinstance(kill_list, dict):
+        kill_list = {}
+    editability = report.get("editability_self_check", {})
+    if not isinstance(editability, dict):
+        editability = {}
+    warnings = report.get("warnings", [])
+    if not isinstance(warnings, list):
+        warnings = []
+    warning_codes = {
+        (w.get("code") or "").upper()
+        for w in warnings
+        if isinstance(w, dict)
+    }
+
+    # Script-source scan for R4.1 (defense-in-depth alongside translator
+    # report). Pattern B output should never set strikethrough/underline
+    # on body runs unless the brief explicitly authorizes — and the brief
+    # gating happens at the translator, so any survivor here is a bug.
+    script_has_strikethrough = False
+    script_has_underline = False
+    try:
+        script_text = st.py_path.read_text(encoding="utf-8")
+        script_has_strikethrough = "font.strikethrough = True" in script_text
+        script_has_underline = "font.underline = True" in script_text
+    except Exception:
+        pass
+
+    checks: list[dict] = []
+
+    # R4.1 Strikethrough / underline on body text (Critical)
+    text_decorations_stripped = int(kill_list.get("text_decorations_stripped", 0) or 0)
+    r41_fail = (
+        script_has_strikethrough
+        or script_has_underline
+        or "R4.1" in warning_codes
+    )
+    checks.append({
+        "check": "R4.1 strikethrough/underline on body text",
+        "severity": "block",
+        "pass": not r41_fail,
+        "detail": (
+            f"strikethrough={script_has_strikethrough}, underline={script_has_underline}, "
+            f"stripped_at_translate={text_decorations_stripped}"
+        ),
+    })
+
+    # R4.2 Opacity / transparency on text (Major)
+    opacity_normalized = int(kill_list.get("opacity_on_text_normalized", 0) or 0)
+    r42_fail = opacity_normalized > 0 or "R4.2" in warning_codes
+    checks.append({
+        "check": "R4.2 opacity on text",
+        "severity": "warn",
+        "pass": not r42_fail,
+        "detail": f"opacity_normalized_count={opacity_normalized}",
+    })
+
+    # R4.3 Font-weight mismatch (Major) — translator warns by emitting a
+    # warning whose code contains FONT_WEIGHT.
+    r43_fail = any("FONT_WEIGHT" in c for c in warning_codes)
+    checks.append({
+        "check": "R4.3 font-weight mismatch",
+        "severity": "warn",
+        "pass": not r43_fail,
+        "detail": "translator reported font-weight fallback" if r43_fail else "no font-weight warnings",
+    })
+
+    # R4.4 Gradient conversion to solid (Major)
+    gradients = int(kill_list.get("gradients_flattened", 0) or 0)
+    r44_fail = gradients > 0
+    checks.append({
+        "check": "R4.4 gradient conversion",
+        "severity": "warn",
+        "pass": not r44_fail,
+        "detail": f"gradients_flattened={gradients}",
+    })
+
+    # R4.5 CSS filters / shadows dropped (Advisory)
+    filters_dropped = int(kill_list.get("filters_dropped", 0) or 0)
+    shadows_stripped = int(kill_list.get("shadows_stripped", 0) or 0)
+    r45_dropped = filters_dropped + shadows_stripped
+    checks.append({
+        "check": "R4.5 CSS filters / shadows dropped",
+        "severity": "info",
+        "pass": r45_dropped == 0,
+        "detail": f"filters={filters_dropped}, shadows={shadows_stripped}",
+    })
+
+    # R4.6 Icons rendering (Major) — v0 trusts the translator's warning array.
+    r46_fail = any("ICON" in c for c in warning_codes)
+    checks.append({
+        "check": "R4.6 icons rendering",
+        "severity": "warn",
+        "pass": not r46_fail,
+        "detail": "translator flagged icon issue" if r46_fail else "no icon warnings",
+    })
+
+    # R4.7 Editability verified (Critical, load-bearing).
+    # Translator's self-check is the authoritative source. R4.7 passes only
+    # when the report exists AND `editability_self_check.pass` is explicitly
+    # True. Missing report, missing editability subfield, or any non-True
+    # value all fail Critical — we have no proof of editability otherwise.
+    editability_pass = editability.get("pass") if isinstance(editability, dict) else None
+    r47_pass = (report != {} and editability_pass is True)
+    checks.append({
+        "check": "R4.7 editability verified at build time",
+        "severity": "block",
+        "pass": r47_pass,
+        "detail": (
+            f"translator self-check pass={editability_pass!r}"
+            if report
+            else f"translation report missing at {report_path.name}"
+        ),
+    })
+
+    # R4.8 Text decorations audit catch-all (Critical) — any warning whose
+    # code mentions a decoration we didn't explicitly bucket above.
+    decoration_keywords = ("TEXT_DECORATION", "UNDERLINE", "STRIKE", "OVERLINE")
+    r48_fail = any(
+        any(k in c for k in decoration_keywords)
+        for c in warning_codes
+    )
+    checks.append({
+        "check": "R4.8 text decorations audit (catch-all)",
+        "severity": "block",
+        "pass": not r48_fail,
+        "detail": "catch-all decoration warning from translator" if r48_fail else "no decoration warnings",
+    })
+
+    return checks
+
+
+# ---------------------------------------------------------------------------
 # Data classes — v1 base + v2 status enum
 # ---------------------------------------------------------------------------
 @dataclass
@@ -685,6 +861,11 @@ class OptionStatus:
     # brand.dark_bg_hex. Empty list means clean; non-empty triggers hard fail
     # in main() after all options are processed.
     dark_collisions: list = field(default_factory=list)
+    # M6 (Pattern B QC, 2026-06-17): R4.1-R4.8 check results from
+    # _check_r4_rules_for_pattern_b. Empty for legacy / Pattern C builds;
+    # populated for Pattern B picks after graft+theme so QC surfaces in
+    # REVIEW.html via the .qc.json file.
+    r4_checks: list = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -2377,6 +2558,22 @@ def main() -> int:
             pt = _slide_page_types.get(st.slide_n, "")
             result = run_option_qc(st.themed_pptx_path, st.themed_png_path, expected_palette,
                                    page_type=pt)
+            # M6 (Pattern B, 2026-06-17): for Pattern B picks, run R4.1-R4.8
+            # checks against the translator's report + script. Merge into the
+            # same QC JSON so build_review.py renders them uniformly with
+            # R1-R3 results. Pattern C / legacy returns [] and is a no-op.
+            r4 = _check_r4_rules_for_pattern_b(st)
+            if r4:
+                st.r4_checks = r4
+                result["checks"] = list(result.get("checks", [])) + r4
+                summary = result.setdefault("summary", {"pass": 0, "block": 0, "warn": 0})
+                for c in r4:
+                    if c["pass"]:
+                        summary["pass"] = summary.get("pass", 0) + 1
+                    elif c["severity"] == "block":
+                        summary["block"] = summary.get("block", 0) + 1
+                    else:
+                        summary["warn"] = summary.get("warn", 0) + 1
             qc_path = st.themed_pptx_path.parent / (st.themed_pptx_path.stem + ".qc.json")
             qc_path.write_text(json.dumps(result, indent=2), encoding="utf-8")
             summ = result["summary"]
