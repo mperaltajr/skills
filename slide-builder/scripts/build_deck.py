@@ -1216,9 +1216,16 @@ def build_placeholders(
     output_dir: Path,
     seeds: dict[str, str],
     likely_prior_patterns: str,
+    slide_pattern: str = "C",
 ) -> dict[str, str]:
-    """Assemble the {{TOKEN}} → value dictionary for one slide."""
+    """Assemble the {{TOKEN}} → value dictionary for one slide.
+
+    `slide_pattern` is "B" (HTML output) or "C" (python-pptx output, default).
+    Defaults to "C" so legacy callers keep working without code changes; the
+    worker branches on the rendered PATTERN field per Pattern B M4/M5 spec.
+    """
     return {
+        "PATTERN":                 slide_pattern,
         "SLIDE_N":                 str(slide["slide_n"]),
         "SLIDE_TOTAL":             str(slide_total),
         "SLIDE_TITLE":             slide.get("title", "") or "(untitled)",
@@ -2011,6 +2018,17 @@ def main() -> int:
         )
         return 6
 
+    # M1/M5: classify per-slide pattern BEFORE rendering prompts (empty dict
+    # in legacy mode). The result threads into per-slide _prompt.md via the
+    # PATTERN placeholder so the worker knows whether to emit .py (Pattern C)
+    # or .html (Pattern B) outputs.
+    pattern_per_slide = _classify_all_slides(brief["slides"], effective_pattern)
+    if effective_pattern != "legacy":
+        sys.stderr.write(
+            f"  Pattern B routing: effective_pattern={effective_pattern!r}; "
+            f"per-slide map = {pattern_per_slide}\n"
+        )
+
     # 5. Render per-slide prompts
     template_text = PROMPT_TEMPLATE.read_text(encoding="utf-8")
     for slide, seeds in zip(slides, seeds_by_slide):
@@ -2018,6 +2036,9 @@ def main() -> int:
         slide_dir = _p.slide_dir(args.out, slide_n)
         slide_dir.mkdir(parents=True, exist_ok=True)
         likely_prior = format_prior_patterns(slide_n, forecasts)
+        # Pattern routing for this slide: B = HTML output, C = python-pptx.
+        # Legacy / unrouted slides default to C (worker's pre-Pattern-B path).
+        slide_pattern = pattern_per_slide.get(str(slide_n), "C")
         placeholders = build_placeholders(
             slide=slide,
             slide_total=slide_total,
@@ -2026,6 +2047,7 @@ def main() -> int:
             output_dir=slide_dir.resolve(),
             seeds=seeds,
             likely_prior_patterns=likely_prior,
+            slide_pattern=slide_pattern,
         )
         rendered = render_prompt(template_text, placeholders)
         _p.prompt_md(args.out, slide_n).write_text(rendered, encoding="utf-8")
@@ -2040,14 +2062,6 @@ def main() -> int:
                 f"  WARN: could not write slide {slide_n} _context.md: "
                 f"{type(_exc).__name__}: {_exc}\n"
             )
-
-    # M1: classify per-slide pattern (empty dict in legacy mode).
-    pattern_per_slide = _classify_all_slides(brief["slides"], effective_pattern)
-    if effective_pattern != "legacy":
-        sys.stderr.write(
-            f"  Pattern B routing: effective_pattern={effective_pattern!r}; "
-            f"per-slide map = {pattern_per_slide}\n"
-        )
 
     # Deck manifest (_meta.json) — single source of truth for downstream
     # pipeline scripts. Writes AFTER slide prompts are rendered so that any

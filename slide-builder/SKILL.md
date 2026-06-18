@@ -186,28 +186,50 @@ STAGE 1 · PREP            build_deck.py
 STAGE 2 · PARALLEL FANOUT slide-builder-worker agents
                           Parent session dispatches one agent per slide IN
                           PARALLEL (Task tool, single message with N calls).
-                          Each agent reads its _prompt.md, picks one of the
-                          14 patterns (with the rotation seed as tiebreaker),
-                          and produces three standalone python-pptx scripts:
-                          option_A.py / option_B.py / option_C.py
-                          Each script builds ONE slide against the client
-                          template.
+                          Each agent reads its _prompt.md and branches on
+                          the PATTERN field (M5, 2026-06-17):
+                            PATTERN: C → option_A.py / B.py / C.py
+                                        (legacy python-pptx direct)
+                            PATTERN: B → option_A.html / B.html / C.html
+                                        (HTML-first; translator converts
+                                         to native at Stage 3.5)
                           NOTE: dispatched from the parent session, not from
                           inside the agent itself.
 
-STAGE 3 · FINALIZE        finalize_deck.py
-                          Executes every option_X.py, grafts each rendered
-                          slide onto the client template, and renders PNGs
-                          via LibreOffice headless. Produces option_A.pptx /
-                          option_B.pptx / option_C.pptx + matching .png per
-                          slide.
+STAGE 2.5 · HTML RENDER   (Pattern B only) For each option_X.html, parent
+                          session renders to option_X.png via
+                          scripts/render_html.py (1280×720 headless
+                          Chromium). Workers self-check via the same path
+                          before declaring done; this stage is a safety net.
 
-STAGE 4 · REVIEW          build_review.py + compile_picks.py
-                          Builds REVIEW.html with all 3N options laid out
-                          for user picks. User picks per-slide options.
-                          compile_picks.py then stitches the chosen option
-                          per slide into the final deck.pptx grafted onto
-                          the client template.
+STAGE 3 · REVIEW          build_review.py + REVIEW.html
+                          Builds REVIEW.html with all 3N options (PNG
+                          thumbnails for both Pattern C and Pattern B).
+                          User picks per-slide; picks written to picks.json.
+
+STAGE 3.5 · TRANSLATE     (Pattern B only) For each picked Pattern B slide,
+                          parent session dispatches one slide-builder-
+                          translator agent per pick. Translator reads the
+                          picked option_X.html + its rendered PNG + brief
+                          + brand context; emits option_X_native.py
+                          (native python-pptx with editable text frames)
+                          + option_X_translation_report.json (SSIM + QC).
+
+STAGE 4 · FINALIZE        finalize_deck.py
+                          Pattern C picks: execute option_X.py as before,
+                            graft body, populate placeholders from brief
+                            title/subtitle (legacy behavior).
+                          Pattern B picks: execute option_X_native.py
+                            (translator output), graft body, parse the
+                            script's __template_fields__ header, populate
+                            placeholders from THOSE values (extracted from
+                            the HTML's data-template-field attributes,
+                            takes priority over brief fallback).
+                          Renders PNGs via LibreOffice headless.
+
+STAGE 5 · COMPILE         compile_picks.py stitches the chosen option per
+                          slide into the final deck.pptx grafted onto the
+                          client template.
 ```
 
 ### Classifier — not a classifier, just a hint + tiebreaker
@@ -237,12 +259,19 @@ Adjacency (Hardline #3 — no 3+ consecutive same-split) is **soft-enforced at p
 
 1. **Setup.** Confirm the client template path with the user. Read the brief and explicitly read the `## Deck-level design notes` section before proceeding; those constraints are binding.
 2. **Narrative + content gates.** Verify governing thoughts are specific and assertive; verify enough raw content per slide. Skip if storyline-helper already gated this session.
-3. **Stage 1 — Prep.** Run `build_deck.py` to render one self-contained `_prompt.md` per slide. Each prompt is `prompt.md` (the v2 template) with brief content interpolated, layouts/anti-patterns reference paths injected, and the rotation seed computed.
-4. **Stage 2 — Parallel fanout.** Dispatch one `slide-builder-worker` agent per slide IN PARALLEL from the parent session. Each agent picks one pattern from the 14, applies the rotation seed if multiple patterns fit, and produces three standalone python-pptx option scripts.
-5. **Stage 3 — Finalize.** Run `finalize_deck.py` to execute every option script, graft onto the client template, and render PNGs via LibreOffice.
-6. **Stage 4 — Review + compile.** Run `build_review.py` to build REVIEW.html; user picks per-slide options; `compile_picks.py` stitches the final deck.
-7. **QC.** Run slide-qc against the compiled deck.
-8. **Deliver.** PPTX. Output full absolute Windows path. No preview links.
+3. **Stage 1 — Prep.** Run `build_deck.py` to render one self-contained `_prompt.md` per slide. Each prompt is `prompt.md` (the v2 template) with brief content interpolated, layouts/anti-patterns reference paths injected, the rotation seed computed, and (M5, 2026-06-17) the per-slide pattern routing (`PATTERN: B|C`) from M1's classifier.
+4. **Stage 2 — Parallel fanout.** Dispatch one `slide-builder-worker` agent per slide IN PARALLEL from the parent session. Each agent reads the rendered `_prompt.md` and branches on the PATTERN field:
+   - **Pattern C** (default, legacy): worker produces three standalone python-pptx option scripts `option_A.py / B / C`.
+   - **Pattern B** (M5+, opt-in): worker produces three HTML files `option_A.html / B / C`, then self-checks by rendering each via `scripts/render_html.py` and reading the resulting 1280×720 PNG before declaring done.
+5. **Stage 2.5 — HTML render (Pattern B only).** For each Pattern B slide's HTML options, the parent session renders to PNG via `py -3 scripts/render_html.py <html> <png>` so REVIEW.html has visual previews. Workers may also do this as part of their self-check; the parent renders any not-yet-rendered as a safety net.
+6. **Stage 3 — Review + compile.** Run `build_review.py` to build REVIEW.html (shows PNGs for both Pattern C and Pattern B options); user picks per-slide; picks written to `picks.json`.
+7. **Stage 3.5 — Translate (Pattern B only).** For each picked Pattern B slide, the parent session dispatches a `slide-builder-translator` agent. The translator reads the picked `option_X.html` + its rendered PNG + brief + brand context, produces `option_X_native.py` (native python-pptx script with editable text frames) + `option_X_translation_report.json` (SSIM zone scores + R4 QC findings).
+8. **Stage 4 — Finalize.** Run `finalize_deck.py`:
+   - For Pattern C picks: execute `option_X.py` as before, graft body onto template, populate placeholders from brief title/subtitle.
+   - For Pattern B picks: execute `option_X_native.py`, graft body, parse the script's `__template_fields__` header, populate placeholders from THOSE values (translator-extracted from the HTML's `data-template-field` attributes, takes priority over brief fallback).
+9. **Stage 5 — Compile.** `compile_picks.py` stitches the final deck.
+10. **QC.** Run slide-qc against the compiled deck.
+11. **Deliver.** PPTX. Output full absolute Windows path. No preview links.
 
 Rebuild individual slides with "rebuild slide N with v2" — re-prep the prompt for slide N, dispatch a single agent, finalize, replace the picked option.
 

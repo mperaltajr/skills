@@ -47,6 +47,7 @@ Path convention after finalize, per slide_NN/ folder (unchanged from v1):
 from __future__ import annotations
 
 import argparse
+import ast
 import json
 import os
 import re
@@ -99,20 +100,73 @@ import twins.helpers as _twins_helpers  # noqa: E402
 # ---------------------------------------------------------------------------
 FALLBACK_MERMAID_TOKEN = "# FALLBACK_MERMAID:"
 SKELETON_REJECTED_TOKEN = "# SKELETON_REJECTED:"
+# M5 (Pattern B production wiring, 2026-06-17): the Pattern B translator agent
+# emits scripts whose header begins with `# CONTEXT_READ:` followed by
+# `# BRIEF_IS_AUTHORITATIVE: True` and `# PATTERN: B-translated`. We detect by
+# looking for the PATTERN: B-translated line in the first ~10 lines (Spec 4 §4).
+PATTERN_B_TRANSLATED_TOKEN = "# PATTERN: B-translated"
+
+
+def _parse_template_fields(py_path: Path) -> dict[str, str]:
+    """Extract the ``__template_fields__`` dict from a translator script header.
+
+    Pattern B translator output (Spec 4 §4) carries the chrome text
+    (title/subtitle/footer/page_number) in a structured comment block at the
+    top of `option_X_native.py`:
+
+        # __template_fields__ = {
+        #     "title": "...",
+        #     "subtitle": "...",
+        #     ...
+        # }
+
+    Returns the parsed dict, or an empty dict if the block is missing or
+    malformed. Malformed blocks are non-blocking — finalize falls back to the
+    brief's title/subtitle so existing builds keep shipping; the translation
+    report flags the parse failure for QC.
+    """
+    if not py_path.exists():
+        return {}
+    try:
+        text = py_path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return {}
+    match = re.search(
+        r"#\s*__template_fields__\s*=\s*(\{.*?\n#\s*\})",
+        text,
+        re.DOTALL,
+    )
+    if not match:
+        return {}
+    raw = match.group(1)
+    # Strip the leading "# " on every line so the result parses as a Python literal.
+    payload = "\n".join(line.lstrip("# ").rstrip() for line in raw.splitlines())
+    try:
+        result = ast.literal_eval(payload)
+        return result if isinstance(result, dict) else {}
+    except (ValueError, SyntaxError) as exc:
+        sys.stderr.write(
+            f"  WARN: __template_fields__ in {py_path.name} failed to parse "
+            f"({type(exc).__name__}: {exc}); finalize will fall back to the "
+            f"brief's title/subtitle.\n"
+        )
+        return {}
 
 
 def _classify_option(py_path: Path) -> tuple[str, str]:
-    """Read line 1 of option_X.py and classify the option.
+    """Read the header of option_X.py and classify the option.
 
     Returns (status, reason) where status is one of:
-        'native'              -> normal python-pptx execution path
+        'native'              -> normal python-pptx execution path (Pattern C / legacy)
+        'pattern_b_translated' -> Pattern B translator output (M5, 2026-06-17);
+                                   executes like native but the parent flow extracts
+                                   __template_fields__ for placeholder population.
         'fallback_mermaid'    -> render sibling .mmd, assemble PPTX with PNG
         'skeleton_rejected'   -> skip; surface in REVIEW.html
 
-    The discriminator is the line-1 token, with the sibling .mmd as a
-    belt-and-braces fallback (token present BUT .mmd missing is logged
-    as an error; token absent BUT .mmd present is treated as fallback).
-    See reference/fallback.md § "The .py companion — hard discriminator token".
+    Discriminator is the line-1 token for legacy classifications; Pattern B
+    translator output is detected by a `# PATTERN: B-translated` line in the
+    first ~10 lines (Spec 4 §4 prescribes the header format).
     """
     if not py_path.exists():
         return "missing", f"option script not found at {py_path}"
@@ -134,6 +188,11 @@ def _classify_option(py_path: Path) -> tuple[str, str]:
     if line1.startswith(SKELETON_REJECTED_TOKEN):
         reason = line1[len(SKELETON_REJECTED_TOKEN):].strip()
         return "skeleton_rejected", reason or "SKELETON_REJECTED (no reason given)"
+    # M5: detect Pattern B translator output via the PATTERN: B-translated token
+    # in the script header (Spec 4 §4 mandates this format).
+    head = "\n".join(text.splitlines()[:10])
+    if PATTERN_B_TRANSLATED_TOKEN in head:
+        return "pattern_b_translated", "Pattern B translator output"
     return "native", ""
 
 
@@ -646,9 +705,34 @@ def discover_options(out_dir: Path, expected: Optional[set] = None) -> list:
     """
     statuses: list = []
     found_pairs: set = set()
+    # M5: prefer Pattern B translator output (`option_X_native.py`) when both it
+    # and a sibling `option_X.py` are present for the same slide+letter.
+    # Build a map of which (slide_n, letter) pairs have a translator output so
+    # we can skip the worker's `.py` if the translator already converted that
+    # option. In production, Pattern B slides emit only HTML (no `option_X.py`
+    # ever exists), so this guard mostly only matters for mixed-mode test runs.
+    translator_pairs: set = set()
+    for npy in out_dir.glob("slide_*/option_*_native.py"):
+        try:
+            slide_n = int(npy.parent.name.split("_")[1])
+            # filename shape: option_<letter>_native.py -> letter = stem.split('_')[1]
+            letter = npy.stem.split("_")[1]
+        except (IndexError, ValueError):
+            continue
+        translator_pairs.add((slide_n, letter))
+
+    # First pass: legacy `option_X.py` worker output (Pattern C / native).
     for py in sorted(out_dir.glob("slide_*/option_*.py")):
+        # Skip translator-output files; they get their own pass below.
+        if py.stem.endswith("_native"):
+            continue
         slide_n = int(py.parent.name.split("_")[1])
         letter = py.stem.split("_")[1]
+        # Translator output for this slide+letter exists → the translator's
+        # script supersedes the worker's. Skip the worker's `.py`; the
+        # translator's `_native.py` is appended in the second pass.
+        if (slide_n, letter) in translator_pairs:
+            continue
         slide_dir = py.parent
         classification, reason = _classify_option(py)
         mmd_path = py.with_suffix(".mmd") if classification == "fallback_mermaid" else None
@@ -669,6 +753,34 @@ def discover_options(out_dir: Path, expected: Optional[set] = None) -> list:
             classification_reason=reason,
             mmd_path=mmd_path,
             mermaid_png_path=mermaid_png_path,
+        ))
+        found_pairs.add((slide_n, letter))
+
+    # M5: second pass — Pattern B translator output. Each `option_X_native.py`
+    # gets an OptionStatus whose `py_path` is the translator script. The
+    # downstream build_pptx + graft_and_theme paths execute it via the normal
+    # native code path; the `__template_fields__` header is parsed for
+    # placeholder population in `_apply_body_canonical_finishing`.
+    for npy in sorted(out_dir.glob("slide_*/option_*_native.py")):
+        try:
+            slide_n = int(npy.parent.name.split("_")[1])
+            letter = npy.stem.split("_")[1]
+        except (IndexError, ValueError):
+            continue
+        slide_dir = npy.parent
+        classification, reason = _classify_option(npy)
+        statuses.append(OptionStatus(
+            slide_n=slide_n,
+            letter=letter,
+            py_path=npy,
+            pptx_path=npy.with_suffix(".pptx"),
+            raw_archive_path=slide_dir / _p.RAW_DIR / _p.option_pptx_name(letter),
+            themed_pptx_path=slide_dir / _p.option_pptx_name(letter),
+            themed_png_path=slide_dir / _p.option_png_name(letter),
+            classification=classification,
+            classification_reason=reason,
+            mmd_path=None,
+            mermaid_png_path=None,
         ))
         found_pairs.add((slide_n, letter))
 
@@ -1104,7 +1216,17 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
                                      fallback_subtitle: str = "",
                                      dark_variant: bool = False,
                                      dark_bg_hex: str = "",
-                                     brand_ttf_path: str = "") -> None:
+                                     brand_ttf_path: str = "",
+                                     template_fields_override: Optional[dict] = None) -> None:
+    """Body-canonical chrome population + title/subtitle finishing.
+
+    M5 (Pattern B production wiring, 2026-06-17): `template_fields_override`
+    is the dict parsed from a Pattern B translator's `__template_fields__`
+    header. When non-None and a `title` / `subtitle` key is present, that
+    value takes priority over `fallback_title` / `fallback_subtitle` (which
+    come from the brief). For Pattern C / legacy builds, this kwarg is
+    always None and behavior is byte-identical to pre-M5.
+    """
     """Body-canonical post-graft.
 
     Light variant (default): populate inherited title/footer/page-number
@@ -1148,6 +1270,18 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
             except Exception:
                 src_subtitle = ""
             continue
+    # M5 (Pattern B production wiring, 2026-06-17): translator's
+    # __template_fields__ takes priority over both source-shape harvest and
+    # brief fallback. Pattern B HTML stores title/subtitle as DATA fields
+    # (data-template-field attributes), extracted by the translator and
+    # carried in the script header. They are NEVER positioned as freeform
+    # shapes in the body, so the source-slide harvest above never finds
+    # them — this branch is how chrome lands for Pattern B picks.
+    if template_fields_override:
+        if template_fields_override.get("title"):
+            src_title = str(template_fields_override["title"]).strip()
+        if template_fields_override.get("subtitle"):
+            src_subtitle = str(template_fields_override["subtitle"]).strip()
     if not src_title:
         src_title = (fallback_title or "").strip()
     # v2.2 (2026-06-05, SLIDE_LAB_FEEDBACK_LOG #1): fall back to meta-supplied
@@ -1642,6 +1776,13 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
             try:
                 _is_dark = (slide_variant or "").strip().lower() == "dark"
                 _dark_bg = getattr(theme, "dark_bg_hex", "") or ""
+                # M5: for Pattern B translator output, parse the script's
+                # __template_fields__ header. Result is {} for Pattern C /
+                # legacy classifications (the parser exits early if the
+                # marker isn't found), so this is safe for every code path.
+                _tf_override = None
+                if st.classification == "pattern_b_translated":
+                    _tf_override = _parse_template_fields(st.py_path)
                 _apply_body_canonical_finishing(
                     new_slide, prs, layout_chrome, src_slide, st.slide_n,
                     fallback_title=slide_title,
@@ -1649,6 +1790,7 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
                     dark_variant=_is_dark,
                     dark_bg_hex=_dark_bg,
                     brand_ttf_path=getattr(theme, "title_font_ttf_path", "") or "",
+                    template_fields_override=_tf_override,
                 )
                 # v0.3: hard-fail collision check on dark-variant slides.
                 # If any shape fill or text color collides with dark_bg_hex,
