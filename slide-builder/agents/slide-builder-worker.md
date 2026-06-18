@@ -104,19 +104,29 @@ Follow the procedure in your `_prompt.md` verbatim:
    - Canvas: `width: 1280px; height: 720px; overflow: hidden; position: relative;` on the root `.slide` element
    - Inline `<link rel="stylesheet" href="../../brand.css">` for the brand CSS variables (`var(--brand-primary)`, etc.) OR copy the `:root { ... }` block inline
    - Title / subtitle / footer / page-number text MUST be on elements with `data-template-field="title|subtitle|footer|page_number"` — these become template-inherited placeholders; do NOT position them as freeform shapes
-   - Every body-zone element you want translated to a native PowerPoint shape MUST have `data-shape-id="<unique-id>"`. Elements without `data-shape-id` are visual-context-only and will be ignored by the translator
+   - **Every body-zone element you want translated to a native PowerPoint shape MUST have `data-shape-id="<unique-id>"`.** This is the LOAD-BEARING contract for the translator. Without `data-shape-id` on a body element, the translator will infer a shape via its fallback walk (lenient, but produces a `TRANSLATOR_WARNING` in the QC report) or skip the element entirely if it looks like a pure layout wrapper. Tag EVERY meaningful card / row / column / pill / badge / chart bar / label / heading / chip / divider in the body zone. **If you draw it on the slide, tag it.** The only exceptions are pure flex/grid wrapper `<div>`s with no background / border / text of their own — those route their children, not themselves.
    - Body zone is between `--body-top` and `--body-bottom` (from chrome.yml; inlined into _context.md)
    - Use ONLY the CSS properties permitted by SPEC.md §7 (no gradients in body, no shadows, no filters, no text-decoration on body text)
 
-   **Worker self-check before declaring done (Pattern B):**
+   **Worker self-check before declaring done (Pattern B) — TWO mandatory checks:**
 
-   Render your HTML to PNG via the project's render wrapper and READ the resulting PNG before emitting your done marker:
+   **Check 1 — render + read.** Render your HTML to PNG via the project's render wrapper and READ the resulting PNG before emitting your done marker:
 
    ```
    py -3 <skill_root>/scripts/render_html.py <out_dir>/slide_NN/option_A.html <out_dir>/slide_NN/option_A.png
    ```
 
-   Look at the PNG. Cite what you saw in `_context_ack.txt` (per step 5). If the visual doesn't match your intent, fix the HTML and re-render. The PNG is your feedback loop — without it you're coding blind.
+   Look at the PNG. Cite what you saw in `_context_ack.txt` (per step 5). If the visual doesn't match your intent, fix the HTML and re-render.
+
+   **Check 2 — data-shape-id audit (added 2026-06-18 post-OTC end-to-end validation).** Before declaring done, grep-count `data-shape-id` occurrences in each HTML file you wrote:
+
+   ```
+   grep -c 'data-shape-id' <out_dir>/slide_NN/option_A.html
+   ```
+
+   The count MUST be at least 3 for any non-trivial body content (cards, comparison rows, badges, etc.). A count of 0 means the translator will produce inferred shapes with no semantic IDs and surface a `TRANSLATOR_WARNING`. A count of 1-2 on a slide with 5+ visible body elements is also a smell — the worker likely under-tagged. Re-edit the HTML to tag every meaningful card / row / column / pill / chip / badge / chart bar before declaring done.
+
+   If you legitimately produced a body with only 1-2 shapes (a single hero card with one inner number, say), that's fine — note it in `_context_ack.txt`.
 
    Pattern B has NO `.py` output. No fallback to python-pptx. The HTML PNG is what the user picks from; the translator (`slide-builder-translator`) converts the picked HTML to native python-pptx at Stage 3.5.
 
