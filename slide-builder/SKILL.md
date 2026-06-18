@@ -13,7 +13,7 @@ The build layer of Slide Lab. The split is the spec.
 
 If you have never run this skill before, read these in order before anything else:
 
-1. **[INSTALL.md](INSTALL.md)** — pinned Python deps, mmdc 11.4.0, LibreOffice, sibling `slide-qc` skill, worker agent install. End with the verification step printing `install OK`.
+1. **[INSTALL.md](INSTALL.md)** — pinned Python deps, Playwright + headless Chromium (Pattern B render), LibreOffice, sibling `slide-qc` skill, worker + translator agent install. End with the verification step printing `install OK`. (Mermaid CLI was retired in M7, Decision 6 — Pattern B supersedes it.)
 2. **[examples/RUN.md](examples/RUN.md)** — the canonical end-to-end walkthrough (prep → agent dispatch → finalize → gate → compile → review) against the bundled example brief + your registered template. Ends with a `REVIEW.html` you can open in a browser.
 
 After that, the input contract for real briefs is documented below in § "Input contract — narrative brief", and registering a new client template is below in § "Register a new client template."
@@ -325,11 +325,9 @@ The aesthetics layer (don't-library) starts with 26 entries from the v2 design s
 
 Triggers when a brief implies a hub-and-spoke, Porter's Five Forces, fishbone, ecosystem map, or free-form network. python-pptx cannot shape-fit text to ovals, so native rendering produces text that wraps badly across the curve.
 
-**Stack (v0):** Mermaid with brand theme overrides. Mermaid covers the entire curved-container failure set with existing syntax and supports CSS-style theme customization for brand colors. The agent emits a Mermaid spec; the build script renders it to PNG via headless Mermaid CLI; the PNG is embedded as a full-bleed image on the slide.
+**Stack (M7+, 2026-06-17):** **Pattern B HTML+SVG rendered via Playwright.** Per Decision 6 the legacy Mermaid fallback was retired entirely — Pattern B HTML→PNG via headless Chromium supersedes Mermaid for every curved-container archetype. The worker authors the diagram natively in HTML/SVG within the body zone (using `data-shape-id` to mark elements the translator should convert to native shapes); Playwright renders the page to a 1280×720 PNG; the translator (`agents/slide-builder-translator.md`) converts the picked HTML to editable native python-pptx at Stage 3.5.
 
-If brand fidelity is visibly wrong on the first real test, v0.1 escalates to raw HTML+CSS rendered via Playwright. Playwright is not on the day-1 ship list.
-
-The fallback path implementation is artifact #5 in the v2 build sequence. See `_decisions/DECISIONS.md § "What's new for v2"` for the artifact list.
+Under **Pattern C** (legacy python-pptx direct), curved containers route to `# SKELETON_REJECTED:` — the user re-routes the slide through Pattern B for the visual treatment.
 
 ---
 

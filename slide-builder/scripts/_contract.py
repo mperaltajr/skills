@@ -194,7 +194,10 @@ def check_pipeline_imports() -> list[str]:
         "build_deck", "finalize_deck", "compile_picks",
         "build_review", "build_gate_preview",
         "register_template", "clean", "diagnostic",
-        "icon_helper", "render_mermaid", "migrate_brief_to_v3",
+        # M7 (Mermaid retirement, 2026-06-17): "render_mermaid" was removed
+        # from this list along with scripts/render_mermaid.py. Pattern B
+        # supersedes Mermaid per Decision 6.
+        "icon_helper", "migrate_brief_to_v3",
     ]
     imported = 0
     for name in targets:
@@ -360,6 +363,9 @@ _DIR_DELETED_BY_DESIGN = {
     "slide-builder/icons/_audit/",
     "slide-builder/icons/_backup/",
     "icons/_audit/", "icons/_backup/",
+    # M7 (Mermaid retirement, 2026-06-17): worked-example .mmd corpus retired
+    # alongside scripts/render_mermaid.py and reference/fallback.md.
+    "fallback-examples/", "reference/fallback-examples/",
     # v1 do/ positive-exemplar corpus never ported
     "do/", "do/single-finding/", "do/chart-bottom-takeaway/",
     "do/hero-kpi-tile/", "do/2panel-delta-spine/",
@@ -408,8 +414,13 @@ _DELETED_BY_DESIGN = {
     "stage-a-precommit.md", "slide-builder-simple-worker.md",
     "slide-builder.md", "slide-designer.md", "deck-builder.md",
     "smoke_test.py",
+    # M7 (Mermaid retirement, Decision 6, 2026-06-17): the Mermaid fallback
+    # path was retired entirely; Pattern B HTML→PNG supersedes it.
+    "render_mermaid.py", "fallback.md",
+    "hub-spoke.mmd", "porters-five-forces.mmd", "fishbone.mmd",
     # Path-class deletions
     "theme/mermaid-brand.json", "scripts/_verify_critical_fixes.py",
+    "scripts/render_mermaid.py", "reference/fallback.md",
     # v0.2 candidate work — documented as future-pending, not present
     "check_brief_fidelity.py", "extract_lucide.py",
 }
@@ -569,7 +580,10 @@ def check_type_hints_resolve() -> list[str]:
         "build_deck", "finalize_deck", "compile_picks",
         "build_review", "build_gate_preview",
         "register_template", "clean", "diagnostic",
-        "icon_helper", "render_mermaid", "migrate_brief_to_v3",
+        # M7 (Mermaid retirement, 2026-06-17): "render_mermaid" was removed
+        # from this list along with scripts/render_mermaid.py. Pattern B
+        # supersedes Mermaid per Decision 6.
+        "icon_helper", "migrate_brief_to_v3",
     ]
     callables_checked = 0
     for mod_name in targets:

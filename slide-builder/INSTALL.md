@@ -43,27 +43,9 @@ py -3 -c "from playwright.sync_api import sync_playwright; sync_playwright().__e
 
 Expected: `playwright + chromium OK`. If you see `BrowserType.launch: Executable doesn't exist`, re-run the `playwright install chromium` step.
 
-## Step 2 — Mermaid CLI (pinned)
+## Step 2 — _(retired)_ Mermaid CLI
 
-```powershell
-npm install -g @mermaid-js/mermaid-cli@11.4.0
-```
-
-Verify:
-
-```powershell
-mmdc --version
-```
-
-Expected: `11.4.0`. If a different major version is installed, fallback diagram rendering may differ from what the v0 reference was tested against. Pin to `11.4.0`.
-
-If verify still shows the wrong version after re-running the install, your global npm cache is holding the old binary. Uninstall, then reinstall:
-
-```powershell
-npm uninstall -g @mermaid-js/mermaid-cli
-npm install -g @mermaid-js/mermaid-cli@11.4.0
-mmdc --version   # should now show 11.4.0
-```
+Removed in M7 (Decision 6, 2026-06-17). The Mermaid fallback path was retired entirely — Pattern B HTML→PNG via Playwright (Step 1.5 above) supersedes Mermaid for curved-container diagrams. If you have a previously-installed `mermaid-cli`, leaving it installed is harmless but no longer required for any Slide Lab path.
 
 ## Step 3 — LibreOffice headless
 
@@ -180,12 +162,10 @@ Expected: `True`. The four greps prove the installed translator understands the 
 
 ## Verification step
 
-One command exercises every install step. `install OK` only if all five subsystems pass:
+One command exercises every install step. `install OK` only if all subsystems pass:
 
 ```powershell
 $skill        = "$env:USERPROFILE\.claude\skills\slide-builder"
-$mmdc_ok      = $false
-try { $mmdc_ok = ((mmdc --version 2>$null) -match "11\.4") } catch {}
 $soffice_ok   = (Test-Path "C:\Program Files\LibreOffice\program\soffice.exe")
 $qc_ok        = (Test-Path "$env:USERPROFILE\.claude\skills\slide-qc\scripts\render_slides.py")
 $worker_path  = "$env:USERPROFILE\.claude\agents\slide-builder-worker.md"
@@ -202,10 +182,10 @@ $translator_ok   = (Test-Path $translator_path) `
   -and (Select-String -Path $translator_path -Pattern "EDITABILITY_VIOLATION" -Quiet)
 $build_ok     = $false
 try { py -3 "$skill\scripts\build_deck.py" --help *>$null; $build_ok = ($LASTEXITCODE -eq 0) } catch { $build_ok = $false }
-if ($mmdc_ok -and $soffice_ok -and $qc_ok -and $worker_ok -and $translator_ok -and $build_ok) {
+if ($soffice_ok -and $qc_ok -and $worker_ok -and $translator_ok -and $build_ok) {
     "install OK"
 } else {
-    "install INCOMPLETE - mmdc11.4=$mmdc_ok  soffice=$soffice_ok  slide-qc=$qc_ok  worker-agent=$worker_ok  translator-agent=$translator_ok  build_deck-help=$build_ok"
+    "install INCOMPLETE - soffice=$soffice_ok  slide-qc=$qc_ok  worker-agent=$worker_ok  translator-agent=$translator_ok  build_deck-help=$build_ok"
 }
 ```
 
