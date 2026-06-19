@@ -1896,10 +1896,12 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
                 )
 
         subs = 0
+        slot_map = theme.theme_slot_map()
         for shape in new_slide.shapes:
             subs += apply_theme_to_shape_xml(
                 shape.element, color_map,
                 major_font=theme.major_font, minor_font=theme.minor_font,
+                theme_slot_map=slot_map,
             )
         st.n_subs = subs
 
@@ -2284,6 +2286,7 @@ def main() -> int:
     print("\n[3] Load client theme")
     theme = load_client_theme(str(args.template))
     color_map = theme.color_map()
+    theme_slot_map = theme.theme_slot_map()
     expected_palette = _expected_palette_for_theme(theme)
     print(f"  raw dk2={theme.dk2}  lt2={theme.lt2}  font={theme.minor_font}")
     print(f"  brand_primary=#{theme.brand_primary} (source: {theme.brand_primary_source})")

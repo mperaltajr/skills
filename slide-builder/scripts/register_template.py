@@ -134,8 +134,21 @@ _COLOR_SLOTS = ("dk1", "lt1", "dk2", "lt2",
 
 
 def _read_theme_xml(template_path: Path) -> str:
-    """Extract the first theme1.xml from a .pptx/.potx zip."""
+    """Extract the canonical theme XML (the part referenced by slideMaster1).
+
+    Falls back to first-hit-in-zip-iteration when the relationship graph
+    can't be resolved. The canonical-resolution path matches what the
+    runtime loader (``twins.client_theme._extract_raw_theme``) does, so
+    registration and runtime agree on which theme part is brand truth.
+    """
+    from twins.client_theme import _canonical_theme_part_name
+    canonical = _canonical_theme_part_name(template_path)
     with zipfile.ZipFile(str(template_path), "r") as zf:
+        if canonical:
+            try:
+                return zf.read(canonical).decode("utf-8", errors="replace")
+            except KeyError:
+                pass
         for name in zf.namelist():
             ln = name.lower()
             if "/theme/theme" in ln and ln.endswith(".xml"):
@@ -2071,18 +2084,80 @@ def write_brand_css(path: Path, *,
     path.write_text(content, encoding="utf-8")
 
 
+def _enumerate_theme_parts(template_path: Path) -> dict:
+    """Enumerate every theme part in the .pptx and identify orphans.
+
+    Returns a dict with:
+      - ``canonical``: zip part name of the theme used by the primary
+        slide master (matches ``twins.client_theme._canonical_theme_part_name``).
+        Empty string when unresolvable.
+      - ``referenced``: list of theme part names referenced by any master.
+      - ``orphan``: list of theme part names present in the zip but NOT
+        referenced by any master. These are dead weight — usually leftover
+        from a deleted notes/handout master. Inert at render time but
+        previously load-bearing on the loader's first-hit-in-zip-order bug.
+      - ``all_themes``: every theme part in the zip (referenced + orphan).
+
+    Diagnostic only — registration does not mutate the .pptx to strip
+    orphans. Operators see the orphan list in theme.json and via the
+    post-commit smoke warning so they can clean up manually if desired.
+    """
+    import posixpath
+    info = {"canonical": "", "referenced": [], "orphan": [], "all_themes": []}
+    try:
+        with zipfile.ZipFile(str(template_path)) as zf:
+            names = zf.namelist()
+            info["all_themes"] = sorted(
+                n for n in names
+                if "/theme/theme" in n.lower() and n.lower().endswith(".xml")
+            )
+            referenced: set = set()
+            master_rels = sorted(
+                n for n in names
+                if "/slideMasters/_rels/slideMaster" in n
+                and n.endswith(".xml.rels")
+            )
+            for mr in master_rels:
+                try:
+                    rels = zf.read(mr).decode("utf-8", errors="replace")
+                except KeyError:
+                    continue
+                tm = re.search(
+                    r'Target="([^"]*theme/theme\d+\.xml)"', rels
+                )
+                if not tm:
+                    continue
+                master_part = mr.replace("/_rels/", "/").replace(".rels", "")
+                theme_part = posixpath.normpath(
+                    posixpath.join(
+                        posixpath.dirname(master_part), tm.group(1)
+                    )
+                )
+                referenced.add(theme_part)
+            info["referenced"] = sorted(referenced)
+            info["orphan"] = sorted(
+                t for t in info["all_themes"] if t not in referenced
+            )
+    except (zipfile.BadZipFile, OSError):
+        return info
+
+    from twins.client_theme import _canonical_theme_part_name
+    info["canonical"] = _canonical_theme_part_name(template_path) or ""
+    return info
+
+
 def write_theme_json(path: Path, *, template_path: Path, sha: str,
                      brand_dict: dict, all_colors: dict, all_fonts: dict,
                      master_count: int, layout_count: int,
                      brand_yml_path: Path,
-                     default_content_layout: str = "") -> None:
-    """Schema v2 (2026-06-02): adds `default_content_layout` — the layout
-    the user picked as the default for content slides in briefs that don't
-    override per-slide. Read by build_deck.py:resolve_slide_layouts as the
-    template-level fallback. Empty string = not set (orchestrator should
-    ask, or build_deck falls back to sole-body-canonical heuristic)."""
+                     default_content_layout: str = "",
+                     theme_parts: Optional[dict] = None) -> None:
+    """Schema v3 (2026-06-18): adds ``theme_parts`` capturing the canonical
+    theme part + any orphan theme parts in the .pptx. Diagnostic; the
+    loader walks the OOXML rels graph to resolve canonical at load time, so
+    this is informational. ``default_content_layout`` (v2) preserved."""
     obj = {
-        "schema_version": 2,
+        "schema_version": 3,
         "template_path": str(template_path),
         "template_sha": sha,
         "registered_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -2094,6 +2169,9 @@ def write_theme_json(path: Path, *, template_path: Path, sha: str,
             "all_fonts": all_fonts,
             "master_count": master_count,
             "layout_count": layout_count,
+        },
+        "theme_parts": theme_parts or {
+            "canonical": "", "referenced": [], "orphan": [], "all_themes": [],
         },
         "brand_yml_path": str(brand_yml_path),
     }
@@ -2500,6 +2578,7 @@ def _write_outputs(tpl: Path, sha: str, sha8: str,
         "font_body": font_body,
         "strip_master_backgrounds": strip_master_backgrounds,
     }
+    theme_parts = _enumerate_theme_parts(tpl)
     write_theme_json(
         theme_json,
         template_path=tpl, sha=sha, brand_dict=brand_dict,
@@ -2507,6 +2586,7 @@ def _write_outputs(tpl: Path, sha: str, sha8: str,
         master_count=n_master, layout_count=n_layout,
         brand_yml_path=brand_yml,
         default_content_layout=default_content_layout,
+        theme_parts=theme_parts,
     )
 
     # Pattern B foundation (M3, 2026-06-16). Emit brand.css alongside
@@ -3714,7 +3794,148 @@ def _commit_from_picks_dict(tpl: Path, picks: dict, *, source: str) -> int:
     theme_json = _p.theme_json(tpl)
     print(f"  brand.yml:   {brand_yml}")
     print(f"  theme.json:  {theme_json}")
+
+    # Post-commit smoke validation. Catches the failures registration used to
+    # ship silently: theme1.xml drift from brand.yml, missing brand.css,
+    # color_map not binding the brand primary, fonts not captured. Run after
+    # all sidecars are written so the smoke exercises the just-committed
+    # state. Non-zero return signals "registration produced files but they
+    # don't form a working contract" — operator should investigate before
+    # building real decks.
+    if not _post_commit_smoke(tpl):
+        return 3
     return 0
+
+
+def _post_commit_smoke(tpl: Path) -> bool:
+    """Validate that the just-registered template is brand-bound and ready.
+
+    Lightweight contract checks — no LibreOffice rendering, no agent
+    dispatch. Catches the structural failure modes registration used to
+    ship silently:
+      - theme1.xml's primary_slot/accent_slot values diverging from
+        brand.yml (the OTC theme4.xml orphan issue, now also guarded by
+        the canonical-theme-part loader fix);
+      - brand.css missing or not referencing brand_primary (observed
+        2026-06-18: FDX Template + OTC slide deck shipped without
+        brand.css, blocking Pattern B HTML renders);
+      - color_map not producing the brand primary remap;
+      - theme1.xml missing major/minor font names.
+
+    Returns True on success, False on any failure. Prints PASS/FAIL detail.
+    """
+    from twins.client_theme import load_client_theme, SLIDE_LAB_BRAND_PRIMARY
+
+    print("\nPost-commit smoke validation...")
+    fails: list[str] = []
+
+    try:
+        theme = load_client_theme(str(tpl))
+    except Exception as exc:
+        print(f"  FAIL: load_client_theme raised {type(exc).__name__}: {exc}")
+        return False
+    print(f"  ok: load_client_theme succeeded")
+
+    slot_lookup = {
+        "dk1": theme.dk1, "lt1": theme.lt1,
+        "dk2": theme.dk2, "lt2": theme.lt2,
+        "accent1": theme.accent1, "accent2": theme.accent2,
+        "accent3": theme.accent3, "accent4": theme.accent4,
+        "accent5": theme.accent5, "accent6": theme.accent6,
+    }
+    if theme.primary_slot:
+        slot_val = (slot_lookup.get(theme.primary_slot, "") or "").upper()
+        brand_val = (theme.brand_primary or "").upper()
+        if slot_val != brand_val:
+            fails.append(
+                f"brand.yml primary_hex=#{brand_val} does NOT match "
+                f"theme1.xml {theme.primary_slot}=#{slot_val} — recipient "
+                f"won't render brand primary correctly when re-theming."
+            )
+        else:
+            print(f"  ok: brand_primary #{brand_val} == theme1.xml "
+                  f"{theme.primary_slot}")
+    if theme.accent_slot:
+        slot_val = (slot_lookup.get(theme.accent_slot, "") or "").upper()
+        brand_val = (theme.brand_accent or "").upper()
+        if slot_val != brand_val:
+            fails.append(
+                f"brand.yml accent_hex=#{brand_val} does NOT match "
+                f"theme1.xml {theme.accent_slot}=#{slot_val}."
+            )
+        else:
+            print(f"  ok: brand_accent #{brand_val} == theme1.xml "
+                  f"{theme.accent_slot}")
+
+    cm = theme.color_map()
+    primary_key = SLIDE_LAB_BRAND_PRIMARY.upper()
+    if primary_key not in cm:
+        fails.append(
+            f"color_map missing SLIDE_LAB_BRAND_PRIMARY (#{primary_key}) "
+            f"entry; finalize won't be able to remap shape fills."
+        )
+    elif cm[primary_key].upper() != (theme.brand_primary or "").upper():
+        fails.append(
+            f"color_map binds SLIDE_LAB_BRAND_PRIMARY -> #{cm[primary_key]}, "
+            f"expected brand.brand_primary=#{theme.brand_primary}."
+        )
+    else:
+        print(f"  ok: color_map binds SLIDE_LAB_BRAND_PRIMARY -> "
+              f"#{cm[primary_key]}")
+
+    if not theme.major_font:
+        fails.append("theme.major_font empty — theme1.xml has no majorFont.")
+    if not theme.minor_font:
+        fails.append("theme.minor_font empty — theme1.xml has no minorFont.")
+    if theme.major_font and theme.minor_font:
+        print(f"  ok: fonts major={theme.major_font!r} "
+              f"minor={theme.minor_font!r}")
+
+    brand_css = _p.brand_css(tpl)
+    if not brand_css.exists():
+        fails.append(
+            f"brand.css missing at {brand_css} — Pattern B HTML renders "
+            f"won't pick up brand variables."
+        )
+    else:
+        css = brand_css.read_text(encoding="utf-8", errors="replace").lower()
+        if "--brand-primary" not in css:
+            fails.append("brand.css missing --brand-primary CSS variable.")
+        elif (theme.brand_primary or "").lower() not in css:
+            fails.append(
+                f"brand.css does not reference brand_primary "
+                f"(#{theme.brand_primary})."
+            )
+        else:
+            print(f"  ok: brand.css declares --brand-primary "
+                  f"#{theme.brand_primary}")
+
+    # Orphan theme parts — diagnostic warning only. Inert at render time
+    # (no master references them) so non-blocking, but flagged so operators
+    # can clean up the .pptx manually. Pre-2026-06-18 loader picked these
+    # up by zip-order luck; the canonical-theme-part fix removed that risk.
+    tp = _enumerate_theme_parts(tpl)
+    if tp.get("orphan"):
+        print(f"  warn: {len(tp['orphan'])} orphan theme part(s) in the .pptx "
+              f"(not referenced by any slide master):")
+        for o in tp["orphan"]:
+            print(f"    - {o}")
+        print(f"    These are inert at render time but bloat the file. "
+              f"Open the .pptx in PowerPoint, delete unused masters/slide "
+              f"sizes that reference them, and re-register if you want a "
+              f"cleaner template.")
+
+    if fails:
+        print(f"\n  Smoke FAILED — {len(fails)} issue(s):")
+        for f in fails:
+            print(f"    - {f}")
+        print(f"\n  Sidecars were written but registration did NOT produce "
+              f"a working contract. Investigate the issues above and re-run "
+              f"commit. Decks built against this template will likely "
+              f"misrender brand colors or font.")
+        return False
+    print(f"\n  Smoke PASSED — registration is brand-bound and ready.")
+    return True
 
 
 def _main_commit(args) -> int:

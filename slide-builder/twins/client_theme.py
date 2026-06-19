@@ -436,8 +436,9 @@ class ClientTheme:
     #          observed_colors}.
     reference_slide: Optional[dict] = None
 
-    # Cached map
+    # Cached maps
     _color_map: Optional[Dict[str, str]] = field(default=None, repr=False)
+    _theme_slot_map: Optional[Dict[str, str]] = field(default=None, repr=False)
 
     @property
     def brand_primary_source(self) -> str:
@@ -508,21 +509,134 @@ class ClientTheme:
             self._color_map[hex_in] = border_neutral
         return self._color_map
 
+    def theme_slot_map(self) -> Dict[str, str]:
+        """Reverse map: theme-slot hex value -> schemeClr slot name.
+
+        Used by ``apply_theme_to_shape_xml`` to rewrite literal srgbClr
+        references emitted by the translator/worker into schemeClr
+        references that bind to the template's color scheme. Recipient can
+        then re-theme the deck by editing the template master.
+
+        Built from the canonical theme part (the one referenced by
+        slideMaster1; resolved by ``_canonical_theme_part_name`` rather
+        than zip-iteration luck) — so the values reflect the brand truth,
+        not a dead orphan theme.
+
+        Slot names use modern OOXML vocabulary (tx1/tx2/bg1/bg2/accent1-6).
+        First slot in iteration order wins on collision.
+        """
+        if self._theme_slot_map is not None:
+            return self._theme_slot_map
+        mapping: Dict[str, str] = {}
+        for hex_val, slot in (
+            (self.dk1, "tx1"),
+            (self.lt1, "bg1"),
+            (self.dk2, "tx2"),
+            (self.lt2, "bg2"),
+            (self.accent1, "accent1"),
+            (self.accent2, "accent2"),
+            (self.accent3, "accent3"),
+            (self.accent4, "accent4"),
+            (self.accent5, "accent5"),
+            (self.accent6, "accent6"),
+        ):
+            if hex_val:
+                up = hex_val.upper().lstrip("#")
+                if up not in mapping:
+                    mapping[up] = slot
+        self._theme_slot_map = mapping
+        return mapping
+
 
 # ---------------------------------------------------------------------------
-# Theme loader — extracts raw theme1.xml + reads brand.yml sidecar
+# Theme loader — extracts canonical theme + reads brand.yml sidecar
 # ---------------------------------------------------------------------------
-def _extract_raw_theme(template_path: Path) -> dict:
-    """Parse theme1.xml from a .pptx/.potx. Returns a dict with dk1..accent6
-    plus major_font/minor_font. All hex values are 6-char uppercase (no '#').
+def _canonical_theme_part_name(template_path: Path) -> Optional[str]:
+    """Return the zip part name of the theme referenced by the primary slide
+    master, or None if the relationship graph can't be resolved.
+
+    Walks: ``ppt/_rels/presentation.xml.rels`` -> first slideMaster's
+    ``_rels`` -> theme Target. The returned name is the canonical theme for
+    brand-color extraction.
+
+    Without this, callers that iterate the zip's parts get a non-deterministic
+    "first hit" (depends on storage order in the zip). The OTC template was
+    authored with an orphan ``theme4.xml`` carrying Microsoft Office defaults
+    (accent1=156082); zip-order luck made the loader pick that part instead
+    of the FedEx-correct ``theme1.xml``. This function fixes that by reading
+    the OOXML relationship graph the way PowerPoint itself does.
     """
+    import zipfile
+    import posixpath
+    try:
+        with zipfile.ZipFile(str(template_path)) as zf:
+            try:
+                pres_rels = zf.read(
+                    "ppt/_rels/presentation.xml.rels"
+                ).decode("utf-8", errors="replace")
+            except KeyError:
+                return None
+            m = re.search(
+                r'Target="([^"]*slideMaster\d+\.xml)"', pres_rels
+            )
+            if not m:
+                return None
+            # presentation.xml.rels Targets are relative to ppt/
+            master_part = posixpath.normpath(
+                posixpath.join("ppt", m.group(1))
+            )
+            master_rels = posixpath.join(
+                posixpath.dirname(master_part), "_rels",
+                posixpath.basename(master_part) + ".rels",
+            )
+            try:
+                rels_data = zf.read(master_rels).decode(
+                    "utf-8", errors="replace"
+                )
+            except KeyError:
+                return None
+            tm = re.search(
+                r'Target="([^"]*theme/theme\d+\.xml)"', rels_data
+            )
+            if not tm:
+                return None
+            theme_part = posixpath.normpath(
+                posixpath.join(posixpath.dirname(master_part), tm.group(1))
+            )
+            try:
+                zf.getinfo(theme_part)
+            except KeyError:
+                return None
+            return theme_part
+    except (zipfile.BadZipFile, OSError):
+        return None
+
+
+def _extract_raw_theme(template_path: Path) -> dict:
+    """Parse the canonical theme part from a .pptx/.potx. Returns a dict with
+    dk1..accent6 plus major_font/minor_font. All hex values are 6-char
+    uppercase (no '#').
+
+    Canonical = the theme referenced by slideMaster1 (see
+    ``_canonical_theme_part_name``). Falls back to first-hit-in-iter-parts
+    only when the rels graph is unreadable (corrupt zip, unusual structure).
+    """
+    canonical = _canonical_theme_part_name(template_path)
     prs = Presentation(str(template_path))
 
     theme_xml = None
-    for part in prs.part.package.iter_parts():
-        if "/theme/theme" in part.partname.lower():
-            theme_xml = part.blob.decode("utf-8", errors="replace")
-            break
+    if canonical:
+        target = canonical.lower().lstrip("/")
+        for part in prs.part.package.iter_parts():
+            if part.partname.lower().lstrip("/") == target:
+                theme_xml = part.blob.decode("utf-8", errors="replace")
+                break
+    if not theme_xml:
+        # Fallback: any theme part (legacy non-deterministic behavior).
+        for part in prs.part.package.iter_parts():
+            if "/theme/theme" in part.partname.lower():
+                theme_xml = part.blob.decode("utf-8", errors="replace")
+                break
     if not theme_xml:
         raise ValueError(f"No theme XML found in {template_path}")
 
@@ -696,24 +810,54 @@ def strip_master_layout_backgrounds(prs) -> int:
 # ---------------------------------------------------------------------------
 _SRGB_RE = re.compile(rb'(srgbClr\s+val=")([0-9A-Fa-f]{6})(")')
 _LATIN_RE = re.compile(rb'(latin\s+typeface=")([^"]+)(")')
+# Self-closing srgbClr (no child color modifications). Only this form is
+# eligible for srgbClr -> schemeClr swap; srgbClr with children (alpha,
+# lumMod, etc.) is left to the hex-substitution path so children survive.
+_SRGB_SELFCLOSE_RE = re.compile(
+    rb'<a:srgbClr\s+val="([0-9A-Fa-f]{6})"\s*/>'
+)
 
 
 def apply_theme_to_shape_xml(element, color_map: Dict[str, str],
-                             major_font: str = "", minor_font: str = "") -> int:
-    """Walk a shape's XML (in-place), rewriting srgbClr and latin typeface
-    attributes per the provided maps. Returns the number of substitutions made.
+                             major_font: str = "", minor_font: str = "",
+                             theme_slot_map: Optional[Dict[str, str]] = None) -> int:
+    """Walk a shape's XML (in-place), rewriting srgbClr / latin typeface
+    references to be theme-aware. Returns the number of substitutions made.
 
-    Color matching is case-insensitive on the hex value but writes upper-case
-    output. Both color_map keys and values should be uppercase hex (no #).
+    Three ordered passes:
 
-    Font remap: any latin typeface gets rewritten to `minor_font`. Icon-glyph
-    fonts (Wingdings, Segoe UI Symbol, etc.) pass through unchanged because
-    their characters don't exist in body fonts.
+    1. **srgbClr -> schemeClr** (when theme_slot_map is provided): self-
+       closing srgbClr elements whose hex matches a theme slot become
+       ``<a:schemeClr val="accent1"/>`` (or the appropriate slot). Self-
+       closing form only — srgbClr with child color modifications (alpha,
+       lumMod, etc.) is preserved for Pass 2 so children survive. Once a
+       shape's brand fills become schemeClr refs, the recipient can re-
+       theme the deck by editing the template master.
+    2. **srgbClr hex rewrite** (color_map): remaining srgb hex values that
+       match a Slide-Lab-canonical literal are remapped to the client's
+       equivalent hex. Preserves the srgbClr tag and any children.
+    3. **latin typeface -> theme font reference**: literal font names that
+       match the minor_font become ``+mn-lt``; matches against major_font
+       become ``+mj-lt``. Icon glyph fonts (Wingdings, Segoe UI Symbol,
+       etc.) pass through. Any other non-icon font falls back to the
+       minor_font literal — so the recipient sees the template's body font
+       rather than whatever the worker typed.
     """
     from lxml import etree
     xml = etree.tostring(element)
 
     n_subs = 0
+
+    if theme_slot_map:
+        def _replace_to_scheme(m):
+            nonlocal n_subs
+            hex_in = m.group(1).decode("ascii").upper()
+            slot = theme_slot_map.get(hex_in)
+            if slot:
+                n_subs += 1
+                return b'<a:schemeClr val="' + slot.encode("ascii") + b'"/>'
+            return m.group(0)
+        xml = _SRGB_SELFCLOSE_RE.sub(_replace_to_scheme, xml)
 
     def _replace_color(m):
         nonlocal n_subs
@@ -725,20 +869,33 @@ def apply_theme_to_shape_xml(element, color_map: Dict[str, str],
 
     xml = _SRGB_RE.sub(_replace_color, xml)
 
-    target_font = (minor_font or "").encode("utf-8")
     _ICON_FONTS = {
         "segoe ui symbol", "segoe ui emoji", "wingdings", "wingdings 2",
         "wingdings 3", "symbol", "symbola", "noto color emoji",
         "apple color emoji", "marlett", "webdings",
     }
-    if target_font:
+    minor_norm = (minor_font or "").strip().lower()
+    major_norm = (major_font or "").strip().lower()
+    fallback_font = (minor_font or "").encode("utf-8")
+    if minor_norm or major_norm or fallback_font:
         def _replace_font(m):
             nonlocal n_subs
-            cur = m.group(2).decode("utf-8")
-            if cur.strip().lower() in _ICON_FONTS:
+            cur = m.group(2).decode("utf-8").strip()
+            cur_lower = cur.lower()
+            if cur_lower in _ICON_FONTS:
+                return m.group(0)
+            if cur.startswith("+"):
+                return m.group(0)
+            if major_norm and cur_lower == major_norm:
+                replacement = b"+mj-lt"
+            elif minor_norm and cur_lower == minor_norm:
+                replacement = b"+mn-lt"
+            elif fallback_font:
+                replacement = fallback_font
+            else:
                 return m.group(0)
             n_subs += 1
-            return m.group(1) + target_font + m.group(3)
+            return m.group(1) + replacement + m.group(3)
         xml = _LATIN_RE.sub(_replace_font, xml)
 
     new_el = etree.fromstring(xml)
@@ -751,11 +908,13 @@ def apply_theme_to_shape_xml(element, color_map: Dict[str, str],
 def apply_theme_to_slide(slide, theme: ClientTheme) -> int:
     """Apply the theme to every shape on a slide. Returns substitution count."""
     color_map = theme.color_map()
+    slot_map = theme.theme_slot_map()
     total = 0
     for shape in list(slide.shapes):
         total += apply_theme_to_shape_xml(
             shape.element, color_map,
             major_font=theme.major_font, minor_font=theme.minor_font,
+            theme_slot_map=slot_map,
         )
     return total
 
