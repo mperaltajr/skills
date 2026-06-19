@@ -1933,7 +1933,7 @@ font_body:       "{font_body}"
 # Windows fonts on every build. Empty string = TTF not discovered on
 # this machine at registration time; finalize_deck falls back to a
 # disk scan (transitional) and warns the operator to install the font.
-title_font_ttf_path: "{title_font_ttf_path}"
+title_font_ttf_path: '{title_font_ttf_path}'
 
 # Background handling
 # Default false — KEEP the master decoration. For most client templates
