@@ -231,9 +231,17 @@ def phase_5_r4_checks(tmp: Path, py_path: Path) -> None:
     import finalize_deck  # noqa: E402
     from finalize_deck import OptionStatus
 
+    # R4.7 (post-cutover) introspects st.pptx_path structurally, so the
+    # native script must run before the helper is exercised. Run it here so
+    # the clean-fixture assertion below sees an actual editable .pptx.
+    pptx_path = py_path.with_suffix(".pptx")
+    if not pptx_path.exists():
+        subprocess.run(["py", "-3", str(py_path)], check=False, timeout=60,
+                       cwd=str(py_path.parent), capture_output=True)
+
     st = OptionStatus(
         slide_n=1, letter="A", py_path=py_path,
-        pptx_path=py_path.with_suffix(".pptx"),
+        pptx_path=pptx_path,
         raw_archive_path=tmp / "_raw" / "option_A.pptx",
         themed_pptx_path=py_path.with_suffix(".pptx"),
         themed_png_path=py_path.with_suffix(".png"),

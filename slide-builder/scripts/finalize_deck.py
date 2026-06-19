@@ -653,6 +653,76 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
 # ---------------------------------------------------------------------------
 # M6 (Pattern B QC, 2026-06-17) — R4.1 through R4.8 checks per Spec 6
 # ---------------------------------------------------------------------------
+def _check_editability_structural(pptx_path: Path) -> dict:
+    """Verify the translator's saved .pptx contains structurally editable text.
+
+    Opens the file with python-pptx and walks every shape on every slide:
+      - editable_text_shapes: shape has a text_frame with non-empty text
+        and non-zero bounding box
+      - picture_shapes: bitmap; counted as a flatten candidate but not a fail
+        on its own (legitimate when a slide carries a real image)
+      - zero_size_text: shape has text but zero width/height (unselectable
+        in PowerPoint — equivalent to a flatten)
+
+    Passes when at least one editable text shape exists AND no zero-size
+    text frames are present. Used by R4.7 instead of the translator's
+    SSIM-based self-report, which conflates editability with pre-graft
+    visual fidelity (chrome zones are empty pre-graft by design, so
+    title-zone SSIM tanks and a structurally-fine slide gets blocked).
+    """
+    try:
+        prs = Presentation(str(pptx_path))
+    except Exception as exc:
+        return {
+            "pass": False,
+            "detail": f"could not open native .pptx for introspection: {exc}",
+            "counts": {},
+        }
+
+    editable_text_shapes = 0
+    picture_shapes = 0
+    zero_size_text = 0
+
+    for slide in prs.slides:
+        for shp in slide.shapes:
+            try:
+                if shp.shape_type == MSO_SHAPE_TYPE.PICTURE:
+                    picture_shapes += 1
+                    continue
+                if not getattr(shp, "has_text_frame", False):
+                    continue
+                tf = shp.text_frame
+                has_text = any(p.text.strip() for p in tf.paragraphs)
+                if not has_text:
+                    continue
+                if (shp.width or 0) <= 0 or (shp.height or 0) <= 0:
+                    zero_size_text += 1
+                    continue
+                editable_text_shapes += 1
+            except Exception:
+                continue
+
+    counts = {
+        "editable_text_shapes": editable_text_shapes,
+        "picture_shapes": picture_shapes,
+        "zero_size_text": zero_size_text,
+    }
+    passed = editable_text_shapes >= 1 and zero_size_text == 0
+    if passed:
+        detail = f"{editable_text_shapes} editable text shapes, no flatten signals"
+    elif editable_text_shapes == 0:
+        detail = (
+            f"no editable text shapes found "
+            f"({picture_shapes} pictures, {zero_size_text} zero-size text)"
+        )
+    else:
+        detail = (
+            f"{editable_text_shapes} editable text shapes but "
+            f"{zero_size_text} zero-size text frame(s) — unselectable"
+        )
+    return {"pass": passed, "detail": detail, "counts": counts}
+
+
 def _check_r4_rules_for_pattern_b(st: "OptionStatus") -> list[dict]:
     """Run R4.1-R4.8 QC checks on a Pattern B translator output.
 
@@ -697,9 +767,6 @@ def _check_r4_rules_for_pattern_b(st: "OptionStatus") -> list[dict]:
     kill_list = report.get("css_kill_list_applied", {})
     if not isinstance(kill_list, dict):
         kill_list = {}
-    editability = report.get("editability_self_check", {})
-    if not isinstance(editability, dict):
-        editability = {}
     warnings = report.get("warnings", [])
     if not isinstance(warnings, list):
         warnings = []
@@ -792,21 +859,25 @@ def _check_r4_rules_for_pattern_b(st: "OptionStatus") -> list[dict]:
     })
 
     # R4.7 Editability verified (Critical, load-bearing).
-    # Translator's self-check is the authoritative source. R4.7 passes only
-    # when the report exists AND `editability_self_check.pass` is explicitly
-    # True. Missing report, missing editability subfield, or any non-True
-    # value all fail Critical — we have no proof of editability otherwise.
-    editability_pass = editability.get("pass") if isinstance(editability, dict) else None
-    r47_pass = (report != {} and editability_pass is True)
+    # Structural introspection of the translator's saved .pptx — replaces the
+    # earlier SSIM-based translator self-report (2026-06-18 cutover validation
+    # found that self-report conflated editability with pre-graft visual
+    # fidelity, producing 11/15 false-positive BLOCKs on the OTC deck).
+    # Passes when the native .pptx contains at least one editable text shape
+    # and no zero-size text frames. The translator's `editability_self_check`
+    # subfield is now ignored — its prose is advisory only.
+    if st.pptx_path.exists():
+        struct = _check_editability_structural(st.pptx_path)
+        r47_pass = struct["pass"]
+        r47_detail = struct["detail"]
+    else:
+        r47_pass = False
+        r47_detail = f"native .pptx missing at {st.pptx_path.name}"
     checks.append({
         "check": "R4.7 editability verified at build time",
         "severity": "block",
         "pass": r47_pass,
-        "detail": (
-            f"translator self-check pass={editability_pass!r}"
-            if report
-            else f"translation report missing at {report_path.name}"
-        ),
+        "detail": r47_detail,
     })
 
     # R4.8 Text decorations audit catch-all (Critical) — any warning whose
