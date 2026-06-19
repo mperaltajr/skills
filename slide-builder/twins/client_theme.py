@@ -826,16 +826,18 @@ def apply_theme_to_shape_xml(element, color_map: Dict[str, str],
 
     Three ordered passes:
 
-    1. **srgbClr -> schemeClr** (when theme_slot_map is provided): self-
-       closing srgbClr elements whose hex matches a theme slot become
-       ``<a:schemeClr val="accent1"/>`` (or the appropriate slot). Self-
-       closing form only — srgbClr with child color modifications (alpha,
-       lumMod, etc.) is preserved for Pass 2 so children survive. Once a
-       shape's brand fills become schemeClr refs, the recipient can re-
-       theme the deck by editing the template master.
-    2. **srgbClr hex rewrite** (color_map): remaining srgb hex values that
-       match a Slide-Lab-canonical literal are remapped to the client's
-       equivalent hex. Preserves the srgbClr tag and any children.
+    1. **srgbClr hex rewrite** (color_map): srgb hex values matching a
+       Slide-Lab-canonical literal are remapped to the client's equivalent
+       hex. Preserves the srgbClr tag and any children. Runs first so
+       Pass 2 sees client hexes (worker/translator may emit either
+       canonical or client hexes — this normalizes).
+    2. **srgbClr -> schemeClr** (when theme_slot_map is provided): self-
+       closing srgbClr elements whose hex (now the client hex post-Pass 1)
+       matches a theme slot become ``<a:schemeClr val="accent1"/>`` (or
+       the appropriate slot). Self-closing form only — srgbClr with child
+       modifications (alpha, lumMod, etc.) was preserved through Pass 1
+       and stays as srgbClr here. Once brand fills become schemeClr refs,
+       the recipient can re-theme the deck by editing the template master.
     3. **latin typeface -> theme font reference**: literal font names that
        match the minor_font become ``+mn-lt``; matches against major_font
        become ``+mj-lt``. Icon glyph fonts (Wingdings, Segoe UI Symbol,
@@ -848,6 +850,16 @@ def apply_theme_to_shape_xml(element, color_map: Dict[str, str],
 
     n_subs = 0
 
+    def _replace_color(m):
+        nonlocal n_subs
+        hex_in = m.group(2).decode("ascii").upper()
+        if hex_in in color_map:
+            n_subs += 1
+            return m.group(1) + color_map[hex_in].encode("ascii") + m.group(3)
+        return m.group(0)
+
+    xml = _SRGB_RE.sub(_replace_color, xml)
+
     if theme_slot_map:
         def _replace_to_scheme(m):
             nonlocal n_subs
@@ -859,16 +871,6 @@ def apply_theme_to_shape_xml(element, color_map: Dict[str, str],
             return m.group(0)
         xml = _SRGB_SELFCLOSE_RE.sub(_replace_to_scheme, xml)
 
-    def _replace_color(m):
-        nonlocal n_subs
-        hex_in = m.group(2).decode("ascii").upper()
-        if hex_in in color_map:
-            n_subs += 1
-            return m.group(1) + color_map[hex_in].encode("ascii") + m.group(3)
-        return m.group(0)
-
-    xml = _SRGB_RE.sub(_replace_color, xml)
-
     _ICON_FONTS = {
         "segoe ui symbol", "segoe ui emoji", "wingdings", "wingdings 2",
         "wingdings 3", "symbol", "symbola", "noto color emoji",
@@ -876,8 +878,7 @@ def apply_theme_to_shape_xml(element, color_map: Dict[str, str],
     }
     minor_norm = (minor_font or "").strip().lower()
     major_norm = (major_font or "").strip().lower()
-    fallback_font = (minor_font or "").encode("utf-8")
-    if minor_norm or major_norm or fallback_font:
+    if minor_norm or major_norm:
         def _replace_font(m):
             nonlocal n_subs
             cur = m.group(2).decode("utf-8").strip()
@@ -888,10 +889,11 @@ def apply_theme_to_shape_xml(element, color_map: Dict[str, str],
                 return m.group(0)
             if major_norm and cur_lower == major_norm:
                 replacement = b"+mj-lt"
-            elif minor_norm and cur_lower == minor_norm:
+            elif minor_norm:
+                # Match against minor OR fall back to minor for any
+                # unrecognized font — recipient sees the template's body
+                # font (theme-bound) rather than a worker-chosen literal.
                 replacement = b"+mn-lt"
-            elif fallback_font:
-                replacement = fallback_font
             else:
                 return m.group(0)
             n_subs += 1
