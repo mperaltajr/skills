@@ -915,21 +915,22 @@ def check_chrome_field_single_source() -> list[str]:
 # per-template aggregate. Synthetic in-memory pass always runs; opportunistic
 # disk scan catches drift against real templates.
 
-_REGISTERED_TEMPLATE_SEARCH_ROOTS: tuple[Path, ...] = (
-    # Common locations where a coworker keeps client templates.
-    # This catcher had zero coverage
-    # against real templates until OneDrive paths were added — templates that
-    # live under "OneDrive - Accenture/Claude Projects/_templates/"
-    # were invisible to the contract test prior to this extension.
-    Path.home() / "Documents",
-    Path.home() / "OneDrive - Accenture" / "Claude Projects" / "_templates",
-    # Per-client library subdirs (each <client>/_templates/ holds registered
-    # templates for that client). Non-existent roots are skipped harmlessly
-    # by _opportunistic_chrome_yml_pairs; safe to enumerate hypothetical
-    # locations alongside existing ones.
-    Path.home() / "OneDrive - Accenture" / "Library" / "FedEx" / "_templates",
-    Path.home() / "OneDrive - Accenture" / "Library" / "Accenture" / "_templates",
-)
+def _registered_template_search_roots() -> tuple[Path, ...]:
+    """Best-effort locations where registered client templates may live.
+
+    Discovered generically — no client or organization names are hardcoded, so
+    this works for any user. The scanner rglobs each root (bounded depth) for
+    `chrome.yml`, so any `<client>/_templates/<stem>/chrome.yml` beneath these
+    parents is found. Non-existent roots are skipped harmlessly.
+    """
+    home = Path.home()
+    roots: list[Path] = [home / "Documents"]
+    # Any OneDrive root, whether personal ("OneDrive") or org-branded
+    # ("OneDrive - <Org>"). Templates typically sit under a project parent.
+    for onedrive in sorted(home.glob("OneDrive*")):
+        roots.append(onedrive / "Claude Projects")
+        roots.append(onedrive / "Library")
+    return tuple(roots)
 
 
 def _opportunistic_chrome_yml_pairs() -> list[tuple[Path, Path]]:
@@ -944,7 +945,7 @@ def _opportunistic_chrome_yml_pairs() -> list[tuple[Path, Path]]:
     runs.
     """
     pairs: list[tuple[Path, Path]] = []
-    for root in _REGISTERED_TEMPLATE_SEARCH_ROOTS:
+    for root in _registered_template_search_roots():
         if not root.exists():
             continue
         try:
@@ -1221,7 +1222,7 @@ def check_layout_inheritance_roundtrip_per_layout() -> list[str]:
             _ok(
                 "layout inheritance roundtrip: synthetic roundtrip OK; "
                 "no registered templates found on disk (search roots: "
-                + ", ".join(str(r) for r in _REGISTERED_TEMPLATE_SEARCH_ROOTS)
+                + ", ".join(str(r) for r in _registered_template_search_roots())
                 + ")"
             )
         else:

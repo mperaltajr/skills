@@ -934,6 +934,13 @@ class OptionStatus:
     # direct builds; populated for sketch picks after graft+theme so QC
     # surfaces in REVIEW.html via the .qc.json file.
     r4_checks: list = field(default_factory=list)
+    # QC self-check summary ({"pass","warn","block"} counts) from run_option_qc,
+    # populated after the QC pass so RESULT.md reflects warnings/blocks instead
+    # of reading clean. Empty when the option never reached the QC stage.
+    qc_summary: dict = field(default_factory=dict)
+    # Human-readable per-check detail for any non-passing QC check, surfaced in
+    # the RESULT.md "QC findings" section.
+    qc_findings: list = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -1950,12 +1957,17 @@ Template: `{template}`
 - Built       : **{built_ok} / {total}**
 - Themed      : **{themed_ok} / {total}**
 - Rendered    : **{rendered_ok} / {total}**
+- QC          : **{qc_clean} clean / {qc_warn} warn / {qc_block} block**
 
 ## Per-option status
 
-| Slide | Option | Class | Built | Themed | Rendered | Shapes | Subs | Error/Reason |
-|-------|--------|-------|-------|--------|----------|--------|------|--------------|
+| Slide | Option | Class | Built | Themed | Rendered | Shapes | Subs | QC | Error/Reason |
+|-------|--------|-------|-------|--------|----------|--------|------|----|--------------|
 {rows}
+
+## QC findings
+
+{qc_findings}
 
 ## Outputs
 
@@ -1987,6 +1999,24 @@ def _class_short(c: str) -> str:
     }.get(c, c)
 
 
+def _qc_cell(st) -> str:
+    """One-token QC status for the per-option table.
+
+    "-" when the option never reached QC; "ok" when clean; "Nw" for N warnings;
+    "BLOCK Nb·Nw" when any blocking check fired.
+    """
+    summ = st.qc_summary or {}
+    if not summ:
+        return "-"
+    block = summ.get("block", 0)
+    warn = summ.get("warn", 0)
+    if block:
+        return f"BLOCK {block}b·{warn}w"
+    if warn:
+        return f"{warn}w"
+    return "ok"
+
+
 def write_result(out_dir: Path, template_path: Path, statuses: list) -> Path:
     rows = []
     for st in statuses:
@@ -1994,7 +2024,7 @@ def write_result(out_dir: Path, template_path: Path, statuses: list) -> Path:
         rows.append(
             f"| {st.slide_n:>2} | {st.letter} | {_class_short(st.classification)} | "
             f"{_mark(st.built)} | {_mark(st.themed)} | {_mark(st.rendered)} | "
-            f"{st.n_shapes} | {st.n_subs} | "
+            f"{st.n_shapes} | {st.n_subs} | {_qc_cell(st)} | "
             f"{(err_or_reason[:80] + '...') if len(err_or_reason) > 80 else err_or_reason} |"
         )
 
@@ -2006,6 +2036,13 @@ def write_result(out_dir: Path, template_path: Path, statuses: list) -> Path:
             failures.append(f"- **slide {st.slide_n:02d} option {st.letter}** [MISSING]: {st.classification_reason} — re-dispatch the worker if a fuller deck is wanted")
         elif st.error:
             failures.append(f"- **slide {st.slide_n:02d} option {st.letter}**: {st.error}")
+
+    # QC findings — every non-passing check, so the report never reads clean
+    # when warnings or blocks exist.
+    qc_finding_lines = []
+    for st in statuses:
+        for finding in st.qc_findings:
+            qc_finding_lines.append(f"- **slide {st.slide_n:02d} option {st.letter}**: {finding}")
 
     total = len(statuses)
     content = RESULT_TEMPLATE.format(
@@ -2020,7 +2057,11 @@ def write_result(out_dir: Path, template_path: Path, statuses: list) -> Path:
         built_ok=sum(1 for s in statuses if s.built),
         themed_ok=sum(1 for s in statuses if s.themed),
         rendered_ok=sum(1 for s in statuses if s.rendered),
+        qc_clean=sum(1 for s in statuses if s.qc_summary and not s.qc_summary.get("block") and not s.qc_summary.get("warn")),
+        qc_warn=sum(1 for s in statuses if s.qc_summary and s.qc_summary.get("warn") and not s.qc_summary.get("block")),
+        qc_block=sum(1 for s in statuses if s.qc_summary and s.qc_summary.get("block")),
         rows="\n".join(rows) if rows else "| (no options found) |",
+        qc_findings="\n".join(qc_finding_lines) if qc_finding_lines else "(none)",
         failures="\n".join(failures) if failures else "(none)",
     )
     target = out_dir / "RESULT.md"
@@ -2458,6 +2499,14 @@ def main() -> int:
             qc_path = st.themed_pptx_path.parent / (st.themed_pptx_path.stem + ".qc.json")
             qc_path.write_text(json.dumps(result, indent=2), encoding="utf-8")
             summ = result["summary"]
+            # Carry the QC outcome onto the status so write_result surfaces it in
+            # RESULT.md (otherwise the report reads clean despite warnings/blocks).
+            st.qc_summary = dict(summ)
+            st.qc_findings = [
+                f"{c.get('check', '?')} [{c.get('severity', 'warn')}]: {c.get('detail', '')}"
+                for c in result.get("checks", [])
+                if not c.get("pass", False)
+            ]
             if summ["block"] > 0:
                 qc_counts["block"] += 1
                 flag = f"BLOCK ({summ['block']}b/{summ['warn']}w)"

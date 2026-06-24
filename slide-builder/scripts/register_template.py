@@ -1945,7 +1945,7 @@ strip_master_backgrounds: {strip_master_bg}
 
 
 def _resolve_brand_ttf_path(font_name: str) -> str:
-    """Resolve a brand font name (e.g. 'FedEx Sans') to an absolute TTF path
+    """Resolve a brand font name (e.g. 'Acme Sans') to an absolute TTF path
     on the registering machine.
 
     Tries several filename conventions that map a display name to TTF files
@@ -1981,11 +1981,8 @@ def _resolve_brand_ttf_path(font_name: str) -> str:
         found = _find_brand_ttf(cand)
         if found:
             return found
-    # Last resort: the default FedEx Sans list inside _find_brand_ttf — only
-    # if the font name looks like a FedEx font (otherwise we'd write a
-    # FedEx Sans path for a non-FedEx template).
-    if "fedex" in clean.lower():
-        return _find_brand_ttf() or ""
+    # No TTF matched any name variation; the caller falls back gracefully and
+    # warns the operator to record the font path at registration.
     return ""
 
 

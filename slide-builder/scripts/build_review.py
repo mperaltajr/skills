@@ -1365,19 +1365,10 @@ def build_html(out_dir: Path, meta: Optional[dict], slides: list, storyline: dic
     template_path = (meta or {}).get("template", "")
     slide_count = (meta or {}).get("slide_count", len(slides))
     # client_slug surfaces in the topbar so reviewers can tell different
-    # clients' REVIEW.html apart at a glance. Brand-specific overrides handle
-    # camel-case capitalizations that plain title() gets wrong.
-    # Add new brands here as encountered; fall back to title-case for unknowns.
-    _BRAND_DISPLAY = {
-        "fedex":     "FedEx",
-        "accenture": "Accenture",
-        "acn":       "Accenture",
-        "nfl":       "NFL",
-    }
+    # clients' REVIEW.html apart at a glance. Title-cased from the slug.
     client_slug_raw = (meta or {}).get("client_slug", "") or ""
     client_display = (
-        _BRAND_DISPLAY.get(client_slug_raw.lower().strip())
-        or client_slug_raw.replace("-", " ").replace("_", " ").title()
+        client_slug_raw.replace("-", " ").replace("_", " ").title()
         or client_slug_raw
     )
 
@@ -1456,6 +1447,10 @@ def build_html(out_dir: Path, meta: Optional[dict], slides: list, storyline: dic
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description="Build REVIEW.html for slide-builder output.")
     ap.add_argument("--out", required=True, help="Orchestrator output directory.")
+    ap.add_argument("--template", default=None,
+                    help="Client template path. Accepted for CLI consistency with "
+                         "the other stages; build_review reads everything it needs "
+                         "from --out and does not use it.")
     args = ap.parse_args(argv)
 
     from _log import attach as _log_attach

@@ -199,34 +199,22 @@ class TitleMetricsUnavailableError(RuntimeError):
     """
 
 
-# Common Windows locations to scan when brand.yml hasn't yet recorded the TTF.
-# user-fonts dir first (where FedEx Sans installs by default on Windows 10/11),
-# then system fonts. Pre-registered templates won't have the TTF path in
-# brand.yml yet; this list is the transitional discovery fallback. Once
-# register_template records `title_font_ttf_path` in brand.yml, finalize_deck
-# reads from there and skips this scan.
-_FEDEX_SANS_DEFAULT_NAMES = (
-    "FedExSans_0.ttf",
-    "FedExSans-Regular.ttf",
-    "FedExSans.ttf",
-)
-
-
 def _find_brand_ttf(font_name: str | None = None) -> str | None:
     """Discover a brand TTF on disk by name. Returns absolute path or None.
 
-    Scans `%LOCALAPPDATA%\\Microsoft\\Windows\\Fonts` (user fonts —
-    FedEx Sans installs there) then `C:\\Windows\\Fonts` (system fonts).
-    Used as a transitional fallback when brand.yml doesn't yet record the
-    TTF path; once register_template writes the resolved path into
-    brand.yml, callers should prefer that and skip this scan.
+    Scans `%LOCALAPPDATA%\\Microsoft\\Windows\\Fonts` (user fonts) then
+    `C:\\Windows\\Fonts` (system fonts) for a file matching `font_name`. Used
+    as a transitional fallback when brand.yml doesn't yet record the TTF path;
+    once register_template writes the resolved path into brand.yml, callers
+    prefer that and skip this scan. With no `font_name` there is nothing to
+    search for, so the function returns None.
     """
     import os
     candidates: list[str] = []
     if font_name:
         candidates.append(font_name)
     else:
-        candidates.extend(_FEDEX_SANS_DEFAULT_NAMES)
+        return None
     user_fonts = os.path.expandvars(r"%LOCALAPPDATA%\Microsoft\Windows\Fonts")
     system_fonts = r"C:\Windows\Fonts"
     for dir_path in (user_fonts, system_fonts):
