@@ -258,7 +258,7 @@ Order of operations:
 
 **Fixable programmatically (one pass, no rebuild):** lorem ipsum removal, page-number insertion, footer text fixes, font size adjustments, quotation mark normalization, weasel-word removal at user's direction.
 
-**Fixable by re-running Phase B for specific slides:** blank chart rectangles, missing content from the mockup, font/color regressions from a buggy build.
+**Fixable by re-running for specific slides:** blank chart rectangles, missing content from the mockup, font/color regressions from a buggy build.
 
 **Not fixable without user input:** wrong source data, content the user needs to supply, governing-thought changes (those go back to storyline-helper).
 

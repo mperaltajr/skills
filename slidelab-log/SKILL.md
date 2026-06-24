@@ -117,7 +117,7 @@ Or for a general improvement suggestion:
 ## Report quality rules
 
 - **You write the technical content.** The user's description is one field, not the whole report. The rest comes from your session observation.
-- **Be specific.** "Model skipped the Phase A pre-check output block (Hard Constraint #0)" is useful. "Something went wrong in Phase A" is not.
+- **Be specific.** "Model skipped the the pre-build hygiene check output" is useful. "Something went wrong in the build setup" is not.
 - **Name the root cause from the skill's perspective.** If the model deviated from a constraint, say which constraint. If a section was in the wrong order, say which section.
 - **Do not soften failures.** If you skipped a step you were supposed to run, say so directly. The point of the report is to improve the skill — not to look good.
 - **If the session was clean, say so.** A "no issues" report is still useful — it confirms what's working.
@@ -141,7 +141,7 @@ storyline-helper, slide-builder
 HTML mockup
 
 ## Steps skipped or mis-sequenced
-- Phase A pre-check output block was not produced before HTML was written (Hard Constraint #0 violated)
+- Pre-build hygiene check output was not produced before HTML was written
 - Deck-level design notes were read but not stated before Phase A began
 
 ## Commands run
@@ -150,7 +150,7 @@ HTML mockup
 - py -3 ... (build) → ✓ succeeded
 
 ## Deviations from skill instructions
-- Hard Constraint #0: Phase A pre-check block was absent. HTML mockup was written without
+- Pre-build hygiene check was absent. HTML mockup was written without
   producing the required confirmation block first.
 - Setup step 1: Deck-level design notes section was not explicitly stated before Phase A.
 
@@ -158,7 +158,7 @@ HTML mockup
 Slide 2 body text appeared larger than slides 1 and 3. User noticed inconsistency after build.
 
 ## Root cause
-Phase A pre-check was skipped, so the canonical type scale (Hard Constraint #10) was not
+The pre-build hygiene check was skipped, so the canonical type scale was not
 confirmed before HTML authoring. Slide 2 used 18px body text (not in the allowed scale)
 which converted to 13.5pt — visibly larger than the 12pt on the other slides.
 
@@ -169,7 +169,7 @@ User accepted output. Slide 2 body text inconsistency was noted for manual corre
 "the text on slide 2 looked bigger than the others"
 
 ## Suggested skill improvement
-Hard Constraint #10 (type scale) should also appear in the Phase A pre-check block as
+The canonical type scale should also appear in the pre-build hygiene check output as
 a required confirmation line, not just in the hard constraints list. This creates a
 second enforcement point at the moment of HTML authoring.
 ```

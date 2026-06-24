@@ -90,7 +90,7 @@ Follow the procedure in your `_prompt.md` verbatim:
 
    The finalizer (`finalize_deck.py`) executes each script with CWD set to the slide directory, then looks for `option_A.pptx` / `option_B.pptx` / `option_C.pptx` next to the `.py` file. Using `sys.argv[1]` will crash with `IndexError: list index out of range` because the finalizer passes no arguments.
 
-   ### Pattern B (HTML-first — Pattern B refactor, 2026-06-16)
+   ### Pattern B (HTML-first — the html-first pipeline)
 
    When `PATTERN: B`, write HTML files INSTEAD of `.py` files:
 
@@ -118,7 +118,7 @@ Follow the procedure in your `_prompt.md` verbatim:
 
    Look at the PNG. Cite what you saw in `_context_ack.txt` (per step 5). If the visual doesn't match your intent, fix the HTML and re-render.
 
-   **Check 2 — data-shape-id audit (added 2026-06-18 post-OTC end-to-end validation).** Before declaring done, grep-count `data-shape-id` occurrences in each HTML file you wrote:
+   **Check 2 — data-shape-id audit.** Before declaring done, grep-count `data-shape-id` occurrences in each HTML file you wrote:
 
    ```
    grep -c 'data-shape-id' <out_dir>/slide_NN/option_A.html
@@ -130,7 +130,7 @@ Follow the procedure in your `_prompt.md` verbatim:
 
    Pattern B has NO `.py` output. No fallback to python-pptx. The HTML PNG is what the user picks from; the translator (`slide-builder-translator`) converts the picked HTML to native python-pptx at Stage 3.5.
 
-7. **Curved-container diagrams (hub-spoke, Porter's, ecosystem, fishbone, concentric rings, networks):** Mermaid fallback was retired in M7 (Decision 6, 2026-06-17). Under **Pattern C** these slides emit `# SKELETON_REJECTED: curved-container diagram — not supported in Pattern C; route through Pattern B for HTML+SVG`. Under **Pattern B** the worker authors the diagram natively in HTML/SVG within the body zone and uses `data-shape-id` to mark elements the translator should convert.
+7. **Curved-container diagrams (hub-spoke, Porter's, ecosystem, fishbone, concentric rings, networks):** The Mermaid fallback is retired. Under **Pattern C** these slides emit `# SKELETON_REJECTED: curved-container diagram — not supported in Pattern C; route through Pattern B for HTML+SVG`. Under **Pattern B** the worker authors the diagram natively in HTML/SVG within the body zone and uses `data-shape-id` to mark elements the translator should convert.
 
 8. **If the brief and the picked pattern fundamentally disagree** (Hardline Rule #5) or the editorial intent is ambiguous (no clear directive verb): write all three `.py` files with `# SKELETON_REJECTED: <reason>` on line 1. Do not fabricate to fit.
 

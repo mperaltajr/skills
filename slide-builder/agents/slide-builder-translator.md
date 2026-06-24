@@ -68,7 +68,7 @@ If a chrome zone has text in the HTML but no `data-template-field` attribute, th
 
 For every HTML element with attribute `data-shape-id` that sits in the body zone (between `body_top_y_px` and `body_bottom_y_px` from chrome.yml), generate a native python-pptx shape.
 
-**Graceful fallback for under-tagged HTML (added 2026-06-18, post-M8 cutover validation):**
+**Graceful fallback for under-tagged HTML:**
 The original contract required workers to put `data-shape-id` on every body element they wanted translated. Real-world OTC validation surfaced ~30% under-tagging rate even on workers that produced visually-clean HTML. To avoid hard-blocking a deck on worker compliance, fall back as follows when fewer than 3 elements carry `data-shape-id` in the body zone (or none at all):
 
 1. Walk every DOM element in the body zone (`getBoundingClientRect().top >= body_top_y_px AND .bottom <= body_bottom_y_px`).
