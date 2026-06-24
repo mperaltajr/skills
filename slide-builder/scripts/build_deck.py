@@ -155,7 +155,16 @@ FIELD_LABELS = {
     "editorial_emphasis":  ("editorial emphasis",),
     "evidence_content":    ("evidence", "evidence / content", "evidence/content", "content"),
     "chart_type":          ("chart type",),
+    "chart_data":          ("chart data",),
     "not_this_slide":      ("what this slide is not",),
+    # Optional per-slide steering fields. The brief author may set these to
+    # bias the worker's pattern + composition choices; absent fields fall
+    # back to the worker's own judgment. Threaded into _prompt.md so the
+    # worker actually honors them (not parse-only).
+    "visual_rhythm":       ("visual rhythm",),
+    "mandatory_shape":     ("mandatory shape",),
+    "forbidden_patterns":  ("forbidden patterns",),
+    "accent_placement":    ("accent placement",),
 }
 
 
@@ -430,6 +439,26 @@ def extract_deck_notes(body: str) -> str:
     return match.group(1).strip()
 
 
+def extract_deck_section(body: str, *heading_aliases: str) -> str:
+    """Extract the body text under a deck-level `## <heading>` section.
+
+    Used for deck-level fields that storyline-helper writes as `##` headings
+    rather than YAML front-matter (governing thought, audience). Tries each
+    alias in order; returns the first non-empty match, or "".
+
+    Section runs from the matched `## heading` to the next H1-H3 boundary.
+    """
+    for alias in heading_aliases:
+        pat = re.compile(
+            r"^##\s+" + re.escape(alias) + r"\s*\n(.*?)(?=^#{1,3}\s|\Z)",
+            re.MULTILINE | re.IGNORECASE | re.DOTALL,
+        )
+        m = pat.search(body)
+        if m and m.group(1).strip():
+            return m.group(1).strip()
+    return ""
+
+
 def split_slide_blocks(body: str) -> list[tuple[int, str, str]]:
     """Split body into (slide_n, title, block_text) tuples.
 
@@ -525,13 +554,29 @@ def parse_brief(brief_path: Path) -> dict[str, Any]:
             "editorial_emphasis": extract_field(block, FIELD_LABELS["editorial_emphasis"]),
             "evidence_content": extract_field(block, FIELD_LABELS["evidence_content"]),
             "chart_type": (extract_field(block, FIELD_LABELS["chart_type"]) or "none").lower(),
+            "chart_data": extract_field(block, FIELD_LABELS["chart_data"]),
             "not_this_slide": extract_field(block, FIELD_LABELS["not_this_slide"]),
+            "visual_rhythm": extract_field(block, FIELD_LABELS["visual_rhythm"]),
+            "mandatory_shape": extract_field(block, FIELD_LABELS["mandatory_shape"]),
+            "forbidden_patterns": extract_field(block, FIELD_LABELS["forbidden_patterns"]),
+            "accent_placement": extract_field(block, FIELD_LABELS["accent_placement"]),
         }
         slides.append(slide)
+
+    # Deck-level governing thought + audience: storyline-helper writes these
+    # as `## Governing thought (the whole deck)` / `## Audience` body
+    # headings, not front-matter keys. Capture both here so write_meta_json
+    # can populate deck_meta from the body when front-matter is empty.
+    deck_governing_thought = extract_deck_section(
+        body, "Governing thought (the whole deck)", "Governing thought",
+    )
+    deck_audience = extract_deck_section(body, "Audience")
 
     return {
         "front_matter": front_matter,
         "deck_notes": deck_notes,
+        "deck_governing_thought": deck_governing_thought,
+        "deck_audience": deck_audience,
         "slides": slides,
         "slide_total": len(slides),
     }
@@ -1071,7 +1116,12 @@ def build_placeholders(
         "EDITORIAL_EMPHASIS":      slide.get("editorial_emphasis", "") or "(none specified)",
         "EVIDENCE_CONTENT":        slide.get("evidence_content", "") or "(no evidence specified)",
         "CHART_TYPE":              slide.get("chart_type", "none"),
+        "CHART_DATA":              slide.get("chart_data", "") or "(no chart data provided)",
         "NOT_THIS_SLIDE":          slide.get("not_this_slide", "") or "(none)",
+        "VISUAL_RHYTHM":           slide.get("visual_rhythm", "") or "(worker's judgment)",
+        "MANDATORY_SHAPE":         slide.get("mandatory_shape", "") or "(none — worker's judgment)",
+        "FORBIDDEN_PATTERNS":      slide.get("forbidden_patterns", "") or "(none)",
+        "ACCENT_PLACEMENT":        slide.get("accent_placement", "") or "(worker's judgment)",
         "DECK_LEVEL_DESIGN_NOTES": deck_notes or "(no deck-level design notes)",
         "CLIENT_TEMPLATE_PATH":    str(client_template_path),
         "OUTPUT_DIR":              str(output_dir),
@@ -1280,8 +1330,13 @@ def write_meta_json(
         "slides":          slides_meta,
         "deck_meta": {
             "deck_type":          front_matter.get("deck_type", "") or "",
-            "governing_thought":  front_matter.get("governing_thought", "") or "",
-            "audience":           front_matter.get("audience", "") or "",
+            # Front-matter first, then the `## Governing thought` / `## Audience`
+            # body headings storyline-helper actually writes. Without the body
+            # fallback these ship empty (the front-matter keys are never set).
+            "governing_thought":  (front_matter.get("governing_thought", "") or "")
+                                   or brief.get("deck_governing_thought", "") or "",
+            "audience":           (front_matter.get("audience", "") or "")
+                                   or brief.get("deck_audience", "") or "",
         },
     }
     # M1: Pattern B optional top-level fields. Only added when effective

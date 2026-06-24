@@ -14,7 +14,12 @@ Placeholders rendered by `build_deck.py`:
 | `{{EDITORIAL_EMPHASIS}}` | Editorial direction from the brief |
 | `{{EVIDENCE_CONTENT}}` | Supporting content / evidence block |
 | `{{CHART_TYPE}}` | Chart type from brief (`none` or scatter/line/bar/waterfall/donut/quadrant) |
+| `{{CHART_DATA}}` | Chart data block from brief (inline table, CSV/Excel path, or `TBD — placeholder`). Build the chart from this when `{{CHART_TYPE}}` is not `none`. |
 | `{{NOT_THIS_SLIDE}}` | "What this slide is NOT" block (may be empty) |
+| `{{VISUAL_RHYTHM}}` | Optional steering: the dominance pattern the brief wants (e.g. `conclusion-dominant`, `contrast-dominant`). Honor it when set; else use your judgment. |
+| `{{MANDATORY_SHAPE}}` | Optional steering: a layout shape the brief requires (e.g. `two-column`, `three-column`). When set, the picked pattern MUST satisfy it. |
+| `{{FORBIDDEN_PATTERNS}}` | Optional steering: pattern stems the brief excludes. Do NOT pick any pattern named here. |
+| `{{ACCENT_PLACEMENT}}` | Optional steering: where the accent color should land on this slide. Honor it when set. |
 | `{{DECK_LEVEL_DESIGN_NOTES}}` | Deck-level constraints from the brief (binding on every slide) |
 | `{{CLIENT_TEMPLATE_PATH}}` | Absolute path to client PPTX template |
 | `{{OUTPUT_DIR}}` | Absolute path where option scripts must be written |
@@ -61,6 +66,18 @@ You are one of {{SLIDE_TOTAL}} parallel agents dispatched from the same parent s
 {{NOT_THIS_SLIDE}}
 
 **Chart type:** {{CHART_TYPE}}
+
+**Chart data:**
+{{CHART_DATA}}
+
+### Per-slide steering (honor when set; otherwise use your own judgment)
+
+- **Visual rhythm:** {{VISUAL_RHYTHM}}
+- **Mandatory shape:** {{MANDATORY_SHAPE}} — when this names a shape, the pattern you pick MUST satisfy it.
+- **Forbidden patterns:** {{FORBIDDEN_PATTERNS}} — never pick a pattern named here.
+- **Accent placement:** {{ACCENT_PLACEMENT}}
+
+These steering fields come from the brief author. A set value is a constraint, not a suggestion; an unset value (shown as a `(...)` placeholder) leaves the choice to you.
 
 ---
 
