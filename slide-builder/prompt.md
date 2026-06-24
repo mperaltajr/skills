@@ -31,10 +31,10 @@ Placeholders rendered by `build_deck.py`:
 | `{{LIKELY_PRIOR_PATTERNS}}` | Forecasted patterns for slides N-1 and N-2 from the prep-time pattern-hint pass — **context, not constraint**. The agent can override if its brief read differs from the forecast. |
 | `{{LAYOUTS_MD_PATH}}` | Absolute path to `reference/layouts.md` |
 | `{{ANTI_PATTERNS_MD_PATH}}` | Absolute path to `reference/anti-patterns.md` |
-| _( `{{FALLBACK_MD_PATH}}` and `{{FALLBACK_EXAMPLES_DIR}}` were retired with the Mermaid fallback. Pattern B HTML→PNG replaces them.)_ | |
+| _( `{{FALLBACK_MD_PATH}}` and `{{FALLBACK_EXAMPLES_DIR}}` were retired with the Mermaid fallback. the HTML-first path replaces them.)_ | |
 | `{{SKILL_MD_PATH}}` | Absolute path to `SKILL.md` |
 | `{{HELPERS_MODULE_PATH}}` | Absolute path to `slide-builder/` — the parent directory of `twins/helpers.py`. Goes on `sys.path` so `from twins.helpers import ...` resolves. |
-| `{{PATTERN}}` | Pattern routing for this slide: `B` = HTML output (worker writes `option_X.html`; translator converts to native python-pptx at Stage 3.5), `C` = python-pptx direct (legacy). Defaults to `C` for legacy / unrouted builds so the default path matches previous behavior. |
+| `{{PATTERN}}` | Build-path routing for this slide: `sketch` = HTML output (worker writes `option_X.html`; translator converts to native python-pptx at Stage 3.5), `direct` = python-pptx direct. Defaults to `direct` for unrouted builds. |
 
 ---
 
@@ -153,9 +153,9 @@ There is no pre-classifier. You pick the pattern from the 14 in `layouts.md` bas
 
 4. **Check the curved-container trigger.** If the slide concept implies a curved-container diagram (hub-spoke, Porter's Five Forces, ecosystem map, fishbone, concentric rings, free-form network), the routing depends on `{{PATTERN}}` from the dispatch:
 
-   **Pattern C (legacy python-pptx, no native curve primitives):** For each of the three options write `option_X.py` with line 1 = `# SKELETON_REJECTED: curved-container diagram — not supported in Pattern C; re-route through Pattern B for HTML+SVG`. The script body has `import sys; sys.exit(0)`. The rejection surfaces in REVIEW.html and the user re-routes the slide through Pattern B.
+   **Direct path (python-pptx, no native curve primitives):** For each of the three options write `option_X.py` with line 1 = `# SKELETON_REJECTED: curved-container diagram — not supported in the direct path; re-route through the sketch path for HTML+SVG`. The script body has `import sys; sys.exit(0)`. The rejection surfaces in REVIEW.html and the user re-routes the slide through the sketch path.
 
-   **Pattern B (HTML-first):** Author the curved diagram natively in HTML/SVG within the body zone. Use `data-shape-id` to mark elements the translator should convert to native shapes; use `<img>` or inline `<svg>` for genuinely curve-shaped paths. The Pattern B path is the modern replacement for the legacy Mermaid fallback retired  (Decision 6, 2026-06-17).
+   **Sketch path (HTML-first):** Author the curved diagram natively in HTML/SVG within the body zone. Use `data-shape-id` to mark elements the translator should convert to native shapes; use `<img>` or inline `<svg>` for genuinely curve-shaped paths. The sketch path is the modern replacement for the retired Mermaid fallback.
 
    Do **not** substitute a different pattern just to avoid the trigger. Silent substitution is the failure mode this protocol exists to prevent.
 
@@ -240,10 +240,10 @@ This list is a heuristic for which entries are most load-bearing per pattern. Th
 
 **Pattern routing for this slide:** `{{PATTERN}}`
 
-- **Pattern C** (default; python-pptx direct): write the three files listed below as `.py` scripts. This is the legacy contract and the only path .
-- **Pattern B** (HTML-first; M5, 2026-06-17): write `option_A.html`, `option_B.html`, `option_C.html` instead of `.py` files. Conventions in `slide-builder/_decisions/pattern-b/SPEC.md`. Chrome text on elements with `data-template-field`; body shapes on elements with `data-shape-id`. Self-check by rendering each HTML via `scripts/render_html.py` and reading the resulting 1280×720 PNG before declaring done. Do NOT also write `.py` files — Pattern B's downstream translator agent converts the picked HTML to native python-pptx at Stage 3.5.
+- **Direct path** (default; python-pptx direct): write the three files listed below as `.py` scripts.
+- **Sketch path** (HTML-first): write `option_A.html`, `option_B.html`, `option_C.html` instead of `.py` files. Conventions in `slide-builder/_decisions/pattern-b/SPEC.md`. Chrome text on elements with `data-template-field`; body shapes on elements with `data-shape-id`. Self-check by rendering each HTML via `scripts/render_html.py` and reading the resulting 1280×720 PNG before declaring done. Do NOT also write `.py` files — the sketch path's downstream translator agent converts the picked HTML to native python-pptx at Stage 3.5.
 
-For Pattern C, write three files to `{{OUTPUT_DIR}}`:
+For the direct path, write three files to `{{OUTPUT_DIR}}`:
 
 ```
 {{OUTPUT_DIR}}\option_A.py
@@ -300,19 +300,19 @@ import sys
 sys.exit(0)
 ```
 
-If the option must be rejected for **curved-container diagram under Pattern C** (per § 4 step 4), write **only** the `.py`:
+If the option must be rejected for **curved-container diagram under the direct path** (per § 4 step 4), write **only** the `.py`:
 
 ```python
-# SKELETON_REJECTED: curved-container diagram — not supported in Pattern C; re-route through Pattern B for HTML+SVG
+# SKELETON_REJECTED: curved-container diagram — not supported in the direct path; re-route through the sketch path for HTML+SVG
 # Slide {{SLIDE_N}} option <A|B|C> — pattern attempted: <pattern name>
 import sys
 sys.exit(0)
 ```
 
-(For Pattern B the worker authors the curved diagram natively in HTML/SVG inside the body zone; no SKELETON_REJECTED is needed.)
+(For the sketch path the worker authors the curved diagram natively in HTML/SVG inside the body zone; no SKELETON_REJECTED is needed.)
 
 finalize_deck.py reads line 1. Token prefix decides routing:
-- `# SKELETON_REJECTED:` → rejection surfaces in REVIEW.html for user resolution (brief/pattern disagreement OR unsupported curved-container under Pattern C).
+- `# SKELETON_REJECTED:` → rejection surfaces in REVIEW.html for user resolution (brief/pattern disagreement OR unsupported curved-container under the direct path).
 
 The legacy `# FALLBACK_MERMAID:` token was retired  (Decision 6, 2026-06-17). Stale scripts carrying it fall through to the `native` classifier and fail loudly at execution time.
 
@@ -320,11 +320,11 @@ The legacy `# FALLBACK_MERMAID:` token was retired  (Decision 6, 2026-06-17). St
 
 ## 9. Constraints
 
-- **Touch only files in `{{OUTPUT_DIR}}`.** The expected files are `option_A.py`, `option_B.py`, `option_C.py` (Pattern C — always) OR `option_A.html`, `option_B.html`, `option_C.html` (Pattern B — when the dispatch's `{{PATTERN}}` field is `B`), plus the generated `.pptx` / `.png` siblings (when the script or renderer runs). Do not write to any other path. Do not modify `_prompt.md` or any file outside this directory.
+- **Touch only files in `{{OUTPUT_DIR}}`.** The expected files are `option_A.py`, `option_B.py`, `option_C.py` (direct path) OR `option_A.html`, `option_B.html`, `option_C.html` (sketch path — when the dispatch's `{{PATTERN}}` field is `sketch`), plus the generated `.pptx` / `.png` siblings (when the script or renderer runs). Do not write to any other path. Do not modify `_prompt.md` or any file outside this directory.
 - **Do not modify `slide-builder\twins\helpers.py`.** It is shared with v1; structural changes break both versions.
 - **Do not read or modify other slides' brief content.** You see only this slide's brief.
 - **Do not write summaries, plans, or design docs to disk.** Inline reasoning goes in your response, not in side-files.
-- **No external assets.** No PIL, no PNG embedding for native patterns, no chart image generation. Bars, waterfalls, KPI tiles — all drawn with `add_rect` + `add_text`. (Curved diagrams that historically used the Mermaid fallback now route to Pattern B HTML+SVG; see § 4 step 4.)
+- **No external assets.** No PIL, no PNG embedding for native patterns, no chart image generation. Bars, waterfalls, KPI tiles — all drawn with `add_rect` + `add_text`. (Curved diagrams that historically used the Mermaid fallback now route to the sketch path's HTML+SVG; see § 4 step 4.)
 - **Use the brand palette constants only.** Never raw `RGBColor(...)` literals. The named constants from `twins.helpers` are: `BRAND_PRIMARY`, `BRAND_PRIMARY_MID`, `BRAND_ACCENT`, `BRAND_ACCENT_SOFT`, `TEXT_DARK`, `TEXT_MID`, `TEXT_FAINT`, `CARD_BG`, `CARD_BORDER`, `WHITE`.
 - **Body font floor: 14px (≈10.5pt PPTX).** Eyebrows can be 11px; meta italic lines 12px; body claims and bullets ≥14px. No exceptions.
 - **Insertion order = paint order.** Background fills first, foreground/text last.
