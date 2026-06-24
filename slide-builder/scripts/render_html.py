@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Render an HTML file to a 1280×720 PNG via headless Chromium.
 
-Pattern B foundation. The Pattern B HTML build path uses
+The sketch-path HTML build path uses
 this to turn worker-authored HTML into the reviewable PNG the operator
-picks from. The locked canvas size is 1280×720 (Decision 1) so the
+picks from. The canvas size is locked at 1280×720 so the
 1 px ↔ 9525 EMU mapping (per `_chrome_schema.EMU_PER_PX_AT_1280`) is
 exact when the translator later converts coordinates back to native
 python-pptx shapes.
@@ -25,11 +25,10 @@ Install
     pip install playwright>=1.40
     playwright install chromium
 
-See also
---------
-- `_decisions/pattern-b/SPEC.md` (canvas + CSS conventions)
-- `_decisions/pattern-b/spec-5-fidelity-measurement.md` (the PNG this
-  produces is what gets compared via SSIM)
+Notes
+-----
+- Canvas and CSS conventions are fixed at 1280×720.
+- The PNG this produces is what gets compared via SSIM.
 """
 from __future__ import annotations
 
