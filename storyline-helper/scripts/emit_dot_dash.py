@@ -110,31 +110,54 @@ def _is_kv_bullet(text: str) -> bool:
     return bool(_KV_BULLET_RE.match(text))
 
 
-def _extract_evidence_bullets(block: str) -> list[str]:
+# An indented `evidence_type:` / `source:` sub-line beneath a bullet.
+# These are per-bullet metadata, not narrative prose — captured onto the
+# bullet, never rendered as a dash.
+_EVIDENCE_TYPE_RE = re.compile(r"^evidence_type\s*:\s*(.+)$", re.IGNORECASE)
+_SOURCE_RE = re.compile(r"^source\s*:\s*(.+)$", re.IGNORECASE)
+
+
+def _new_bullet(text: str) -> dict:
+    """A bullet record: prose text plus optional evidence metadata."""
+    return {"text": text, "evidence_type": "", "source": ""}
+
+
+def bullet_text(b) -> str:
+    """Accessor tolerant of both the structured bullet dict and a bare str
+    (legacy / defensive). Always returns the prose text."""
+    if isinstance(b, dict):
+        return b.get("text", "")
+    return b or ""
+
+
+def bullet_is_qualitative(b) -> bool:
+    """True when a bullet is explicitly marked `evidence_type: qualitative`."""
+    return isinstance(b, dict) and b.get("evidence_type", "").strip().lower() == "qualitative"
+
+
+def _extract_evidence_bullets(block: str) -> list[dict]:
     """Pull evidence bullets out of the `**Evidence / content:**` field.
 
-    Recognises three line shapes:
+    Returns a list of bullet records: ``{"text", "evidence_type", "source"}``.
+
+    Recognises these line shapes:
       - Top-level bullets (`- ` / `* `)            → kept as dashes (label-stripped)
-      - Indented continuation bullets               → merged into previous dash
+      - Indented `evidence_type:` / `source:`       → captured as metadata on the
+                                                     current bullet (NOT prose)
+      - Other indented continuation bullets         → merged into previous dash
       - Non-bullet label lines ending with `:`     → buffered, used to label
                                                      any table that follows
-      - Table rows (`|...|`)                        → collapsed into one dash,
-                                                     anchored to the buffered
-                                                     label OR (if absent) to
-                                                     the prior bullet
+      - Table rows (`|...|`)                        → collapsed into one dash
 
-    Bullets that are key-value pairs (`**Title:** ...`) are returned as-is —
-    callers (cover/transition slides) decide whether to render them. All
-    other bullets have their `**HEADING** — ` prefix stripped so the dot-
-    dash reads as prose (not labeled callouts).
-
-    Stray prose lines that are neither bullets nor labels are ignored.
+    Bullets that are key-value pairs (`**Title:** ...`) are dropped — they are
+    slide-construction data, not narrative. All other bullets have their
+    `**HEADING** — ` prefix stripped so the dot-dash reads as prose.
     """
     evidence = _extract_field(block, "Evidence / content")
     if not evidence:
         return []
 
-    bullets: list[str] = []
+    bullets: list[dict] = []
     pending_label: str | None = None  # non-bullet "X:" line awaiting context
     in_table = False
 
@@ -145,21 +168,32 @@ def _extract_evidence_bullets(block: str) -> list[str]:
         if not stripped:
             continue
 
+        # Indented evidence metadata — attach to the current bullet, never render.
+        if raw_line[:1] in (" ", "\t"):
+            m_et = _EVIDENCE_TYPE_RE.match(stripped)
+            if m_et and bullets:
+                bullets[-1]["evidence_type"] = m_et.group(1).strip()
+                continue
+            m_src = _SOURCE_RE.match(stripped)
+            if m_src and bullets:
+                bullets[-1]["source"] = m_src.group(1).strip()
+                continue
+
         # Table row — emit one summary dash per table, then skip subsequent rows
         if stripped.startswith("|"):
             if not in_table:
                 in_table = True
                 if pending_label:
-                    bullets.append(f"{pending_label.rstrip(':')} table (see brief)")
+                    bullets.append(_new_bullet(f"{pending_label.rstrip(':')} table (see brief)"))
                     pending_label = None
                 elif bullets:
-                    last = bullets[-1].rstrip(":. ")
+                    last = bullets[-1]["text"].rstrip(":. ")
                     if "table" in last.lower():
-                        bullets[-1] = last  # strip dangling punctuation only
+                        bullets[-1]["text"] = last  # strip dangling punctuation only
                     else:
-                        bullets[-1] = last + " (see table in brief)"
+                        bullets[-1]["text"] = last + " (see table in brief)"
                 else:
-                    bullets.append("(table in brief)")
+                    bullets.append(_new_bullet("(table in brief)"))
             continue
         else:
             in_table = False
@@ -169,19 +203,18 @@ def _extract_evidence_bullets(block: str) -> list[str]:
             raw = line[2:].strip()
             # Key-value bullets (`**Title:** ...`, `**Primary ask:** ...`)
             # are slide-construction data — title, presenter, ask labels.
-            # They never carry narrative content, so drop them entirely
-            # from the dot-dash. The dot + Takeaway carry the story.
+            # They never carry narrative content, so drop them entirely.
             if _is_kv_bullet(raw):
                 pending_label = None
                 continue
-            bullets.append(_strip_bullet_label(raw))
+            bullets.append(_new_bullet(_strip_bullet_label(raw)))
             pending_label = None  # bullets supersede any pending label
             continue
 
-        # Indented continuation
+        # Indented continuation (non-metadata)
         if line.startswith(("  - ", "  * ")):
             if bullets:
-                bullets[-1] = bullets[-1] + " — " + line.lstrip()[2:].strip()
+                bullets[-1]["text"] = bullets[-1]["text"] + " — " + line.lstrip()[2:].strip()
             continue
 
         # Non-bullet line — track as potential label if it ends with ":"
@@ -283,7 +316,7 @@ _NO_NARRATIVE_ARCHETYPES = {
 }
 
 
-def _is_no_narrative_slide(archetype: str, governing: str, bullets: list[str]) -> bool:
+def _is_no_narrative_slide(archetype: str, governing: str, bullets: list) -> bool:
     """True when a slide carries no narrative dashes — typically a cover,
     transition, or closing-CTA slide whose bullets are key-value pairs.
 
@@ -302,10 +335,39 @@ def _is_no_narrative_slide(archetype: str, governing: str, bullets: list[str]) -
         or "transition card" in governing.lower()
     )
     if governing_missing and bullets:
-        kv_count = sum(1 for b in bullets if _is_kv_bullet(b))
+        kv_count = sum(1 for b in bullets if _is_kv_bullet(bullet_text(b)))
         if kv_count / len(bullets) > 0.5:
             return True
     return False
+
+
+def _chart_data_is_tbd(block: str) -> bool:
+    """True when the slide declares a chart but its data is a placeholder."""
+    chart_type = _extract_field(block, "Chart type")
+    if not chart_type or chart_type.lower().strip() in {"none", "n/a", ""}:
+        return False
+    chart_data = _extract_field(block, "Chart data")
+    if not chart_data:
+        return True
+    first = chart_data.splitlines()[0].strip().lower()
+    return first.startswith(("tbd", "placeholder")) or "tbd" in first
+
+
+def _collect_open_gaps(slides: List[Dict[str, Any]]) -> list[str]:
+    """Build the open-gaps punch list: qualitative claims + TBD chart data.
+
+    Each entry names the slide and what's open so a reviewer sees what was
+    traded off before sitting through the build.
+    """
+    gaps: list[str] = []
+    for s in slides:
+        title = s.get("title", "(untitled)")
+        for b in s.get("bullets", []):
+            if bullet_is_qualitative(b):
+                gaps.append(f"{title}: qualitative claim (no data anchor) — \"{bullet_text(b)}\"")
+        if s.get("chart_tbd"):
+            gaps.append(f"{title}: chart data is TBD / placeholder")
+    return gaps
 
 
 def parse_brief_for_dot_dash(brief_text: str) -> Dict[str, Any]:
@@ -357,6 +419,7 @@ def parse_brief_for_dot_dash(brief_text: str) -> Dict[str, Any]:
             "so_what": so_what,
             "bullets": bullets,
             "exhibit": _exhibit_line(block),
+            "chart_tbd": _chart_data_is_tbd(block),
             "no_narrative": _is_no_narrative_slide(archetype, governing, bullets),
         })
     return {"header": header, "slides": slides}
@@ -412,7 +475,12 @@ def render_dot_dash_md(data: Dict[str, Any]) -> str:
         # any key-value metadata live on the slide itself.
         if not s.get("no_narrative"):
             for b in s["bullets"]:
-                lines.append(f"  – {b}")
+                txt = bullet_text(b)
+                # Qualitative claims get a quiet marker so the reader can
+                # see which dashes aren't fact-anchored.
+                if bullet_is_qualitative(b):
+                    txt = f"{txt} _(qualitative)_"
+                lines.append(f"  – {txt}")
             if s["exhibit"]:
                 lines.append(f"  – {s['exhibit']}")
             if s.get("so_what"):
@@ -420,6 +488,19 @@ def render_dot_dash_md(data: Dict[str, Any]) -> str:
                 # into the slide's so-what. En-dash separator matches the
                 # hand-written house-style example.
                 lines.append(f"  – **Takeaway –** {s['so_what']}")
+        lines.append("")
+
+    # Open-gaps punch list — what's incomplete going into the build.
+    gaps = _collect_open_gaps(slides)
+    if gaps:
+        lines.append("---")
+        lines.append("")
+        lines.append("## Open gaps before build")
+        lines.append("")
+        lines.append("_What's not yet fact-anchored or fully specified. A reviewer should see these before the build._")
+        lines.append("")
+        for g in gaps:
+            lines.append(f"- {g}")
         lines.append("")
 
     return "\n".join(lines) + "\n"
@@ -459,7 +540,14 @@ _DOT_DASH_CSS = """
 .dd-bullets li.exhibit { color: var(--accent-soft); font-style: italic; }
 .dd-bullets li.takeaway { color: var(--text); padding-top: 6px; }
 .dd-bullets li.takeaway strong { color: var(--accent-soft); margin-right: 4px; }
+.dd-bullets li.qualitative .qual-tag { color: var(--text-dim); font-size: 10px; text-transform: uppercase; letter-spacing: 1px; margin-left: 8px; opacity: 0.7; }
 .dd-empty { color: var(--text-dim); font-style: italic; }
+.dd-gaps { margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--border); }
+.dd-gaps-title { font-size: 13px; font-weight: 700; color: var(--accent-soft); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+.dd-gaps-sub { font-size: 12px; color: var(--text-dim); font-style: italic; margin-bottom: 8px; }
+.dd-gaps-list { list-style: none; margin: 0; padding-left: 18px; }
+.dd-gaps-list li { font-size: 12px; color: var(--text-dim); padding: 2px 0; position: relative; }
+.dd-gaps-list li::before { content: "▹ "; color: var(--accent-soft); position: absolute; left: -16px; }
 """
 
 
@@ -521,7 +609,13 @@ def render_dot_dash_html(data: Dict[str, Any], *, standalone: bool = True) -> st
             if not s.get("no_narrative"):
                 items: list[str] = []
                 for b in s["bullets"]:
-                    items.append(f'<li>{_h(b)}</li>')
+                    if bullet_is_qualitative(b):
+                        items.append(
+                            f'<li class="qualitative">{_h(bullet_text(b))}'
+                            f'<span class="qual-tag">qualitative</span></li>'
+                        )
+                    else:
+                        items.append(f'<li>{_h(bullet_text(b))}</li>')
                 if s["exhibit"]:
                     items.append(f'<li class="exhibit">{_h(s["exhibit"])}</li>')
                 if s.get("so_what"):
@@ -534,6 +628,21 @@ def render_dot_dash_html(data: Dict[str, Any], *, standalone: bool = True) -> st
                     parts.extend(items)
                     parts.append('</ul>')
             parts.append('</div>')
+
+    # Open-gaps punch list.
+    gaps = _collect_open_gaps(slides)
+    if gaps:
+        parts.append('<div class="dd-gaps">')
+        parts.append('<div class="dd-gaps-title">Open gaps before build</div>')
+        parts.append(
+            '<div class="dd-gaps-sub">What\'s not yet fact-anchored or fully '
+            'specified — review before the build.</div>'
+        )
+        parts.append('<ul class="dd-gaps-list">')
+        for g in gaps:
+            parts.append(f'<li>{_h(g)}</li>')
+        parts.append('</ul>')
+        parts.append('</div>')
 
     parts.append('</div>')
     body = "\n".join(parts)
@@ -648,7 +757,11 @@ def render_dot_dash_docx(data: Dict[str, Any], output_path: pathlib.Path) -> Non
         for b in s["bullets"]:
             p_dash = doc.add_paragraph(style="List Bullet 2")
             p_dash.paragraph_format.space_after = Pt(2)
-            p_dash.add_run(b)
+            p_dash.add_run(bullet_text(b))
+            if bullet_is_qualitative(b):
+                tag = p_dash.add_run("  (qualitative)")
+                tag.italic = True
+                tag.font.color.rgb = RGBColor(0x80, 0x80, 0x80)
 
         if s.get("exhibit"):
             p_ex = doc.add_paragraph(style="List Bullet 2")
@@ -662,6 +775,22 @@ def render_dot_dash_docx(data: Dict[str, Any], output_path: pathlib.Path) -> Non
             tr_label = p_take.add_run("Takeaway – ")
             tr_label.bold = True
             p_take.add_run(s["so_what"])
+
+    # Open-gaps punch list.
+    gaps = _collect_open_gaps(slides)
+    if gaps:
+        h = doc.add_paragraph()
+        h.paragraph_format.space_before = Pt(16)
+        hr = h.add_run("Open gaps before build")
+        hr.bold = True
+        sub = doc.add_paragraph()
+        subr = sub.add_run(
+            "What's not yet fact-anchored or fully specified — review before the build."
+        )
+        subr.italic = True
+        subr.font.color.rgb = RGBColor(0x60, 0x60, 0x60)
+        for g in gaps:
+            doc.add_paragraph(g, style="List Bullet")
 
     output_path.parent.mkdir(parents=True, exist_ok=True)
     doc.save(str(output_path))
