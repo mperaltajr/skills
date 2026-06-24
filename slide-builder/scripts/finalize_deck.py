@@ -20,7 +20,7 @@ Pipeline (unchanged from v1 except step 2's per-option branching):
   1. Discover every <out>/slide_NN/option_X.py and option_X_native.py
      (the Pattern B translator output added ).
   2. For each option:
-       2a. Classify by line-1 / header token.
+       2a. Classify by filename suffix + sibling-file structure.
        2b. NATIVE                 -> run via subprocess to produce
                                      option_X.pptx (raw, pre-theme).
        2c. PATTERN_B_TRANSLATED   -> run via subprocess; finalize merges
@@ -98,11 +98,14 @@ import twins.helpers as _twins_helpers  # noqa: E402
 # v2 ADDITION — option-classification tokens
 # ---------------------------------------------------------------------------
 SKELETON_REJECTED_TOKEN = "# SKELETON_REJECTED:"
-# M5 (Pattern B production wiring, 2026-06-17): the Pattern B translator agent
-# emits scripts whose header begins with `# CONTEXT_READ:` followed by
-# `# BRIEF_IS_AUTHORITATIVE: True` and `# PATTERN: B-translated`. We detect by
-# looking for the PATTERN: B-translated line in the first ~10 lines (Spec 4 §4).
-PATTERN_B_TRANSLATED_TOKEN = "# PATTERN: B-translated"
+
+# Translator output is identified structurally — never by a comment marker:
+#   1. Filename suffix: translator writes `option_X_native.py`; the worker writes
+#      `option_X.py` or `option_X.html`.
+#   2. Sibling artifact: translator writes `option_X_translation_report.json`
+#      next to the script. The worker never produces this file.
+# Both signals must be present. A `_native.py` without a sibling report is
+# malformed translator output and surfaces as a classification error.
 
 
 def _parse_template_fields(py_path: Path) -> dict[str, str]:
@@ -152,23 +155,23 @@ def _parse_template_fields(py_path: Path) -> dict[str, str]:
 
 
 def _classify_option(py_path: Path) -> tuple[str, str]:
-    """Read the header of option_X.py and classify the option.
+    """Read the option script and classify it for downstream routing.
 
     Returns (status, reason) where status is one of:
-        'native'              -> normal python-pptx execution path (Pattern C / legacy)
-        'pattern_b_translated' -> Pattern B translator output;
-                                   executes like native but the parent flow extracts
+        'native'              -> normal python-pptx execution path (worker output)
+        'pattern_b_translated' -> Pattern B translator output; executes like
+                                   native but the parent flow extracts
                                    __template_fields__ for placeholder population.
         'skeleton_rejected'   -> skip; surface in REVIEW.html
+        'missing'             -> file absent or unreadable
 
-    Discriminator is the line-1 token for legacy classifications; Pattern B
-    translator output is detected by a `# PATTERN: B-translated` line in the
-    first ~10 lines (Spec 4 §4 prescribes the header format).
+    Pattern B translator output is identified structurally: the filename ends
+    in `_native.py` AND a sibling `option_<letter>_translation_report.json`
+    exists alongside it. A `_native.py` script without its sibling report is
+    malformed translator output and surfaces as a classification error.
 
-    Mermaid fallback was retired  (Decision 6, 2026-06-17) — Pattern B
-    HTML→PNG supersedes it. Stale scripts carrying the old
-    `# FALLBACK_MERMAID:` marker now fall through to the native classifier
-    and fail loudly at execution time so the operator re-builds.
+    Skeleton-rejected scripts are still detected by the first-line marker
+    (the worker emits them when the brief is insufficient to produce options).
     """
     if not py_path.exists():
         return "missing", f"option script not found at {py_path}"
@@ -182,11 +185,23 @@ def _classify_option(py_path: Path) -> tuple[str, str]:
     if line1.startswith(SKELETON_REJECTED_TOKEN):
         reason = line1[len(SKELETON_REJECTED_TOKEN):].strip()
         return "skeleton_rejected", reason or "SKELETON_REJECTED (no reason given)"
-    # M5: detect Pattern B translator output via the PATTERN: B-translated token
-    # in the script header (Spec 4 §4 mandates this format).
-    head = "\n".join(text.splitlines()[:10])
-    if PATTERN_B_TRANSLATED_TOKEN in head:
-        return "pattern_b_translated", "Pattern B translator output"
+
+    # Translator output: filename suffix + sibling report file.
+    if py_path.stem.endswith("_native"):
+        # Filename pattern: option_<letter>_native.py — derive letter and look
+        # for the sibling translation report.
+        # stem like "option_A_native" -> letter "A"
+        parts = py_path.stem.split("_")
+        if len(parts) >= 3:
+            letter = parts[1]
+            report = py_path.parent / f"option_{letter}_translation_report.json"
+            if report.exists():
+                return "pattern_b_translated", "translator output (sibling report present)"
+            return "missing", (
+                f"{py_path.name} has translator filename suffix but no sibling "
+                f"translation report ({report.name}); skipping classification"
+            )
+
     return "native", ""
 
 
