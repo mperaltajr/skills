@@ -1,5 +1,5 @@
 """
-patches.py — Named, reusable python-pptx operations for Slide Lab v2.
+patches.py — Named, reusable python-pptx operations for Slide Lab.
 
 The skill calls these by name rather than writing ad-hoc python-pptx code.
 Every patch is tested and predictable. Patches are applied AFTER token fill.

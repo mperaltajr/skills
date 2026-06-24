@@ -1,4 +1,4 @@
-# Patch Catalogue — Slide Lab v2
+# Patch Catalogue — Slide Lab
 
 Patches are named python-pptx operations applied after token fill.
 The skill calls them by name. Each patch has a defined trigger condition.

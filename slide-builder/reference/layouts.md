@@ -42,7 +42,7 @@ If brief and pattern fundamentally disagree (brief enumerates 2 items, slot call
 
 A pattern doesn't fully specify a slide. The same pattern can ship two different decks — one that argues a position, one that reads neutral. The agent must identify the **editorial intent** of the slide from the brief, mapped to a **closed 7-verb vocabulary**, and tilt at least one of the three option variants to honor it.
 
-The vocabulary is intentionally bounded. the chassis-vocab regrew uncontrollably when it added "named intents" alongside named chassis; v2 caps the list at 7 verbs and forbids invention. A brief that doesn't map to one of the 7 → `SKELETON_REJECTED: ambiguous editorial intent`. Defaulting to neutral is the failure mode this list exists to prevent.
+The vocabulary is intentionally bounded: the list is capped at 7 verbs and invention is forbidden, so it never regrows into an open-ended, hard-to-maintain set of named intents. A brief that doesn't map to one of the 7 → `SKELETON_REJECTED: ambiguous editorial intent`. Defaulting to neutral is the failure mode this list exists to prevent.
 
 | Directive verb | Brief signals | Variant tilt direction |
 |---|---|---|
@@ -56,7 +56,7 @@ The vocabulary is intentionally bounded. the chassis-vocab regrew uncontrollably
 
 **Rule of one.** Exactly one verb per slide. If two seem to apply (e.g., "recommend" + "show urgency"), pick the dominant one — the one the brief leads with. If you cannot decide between two verbs, that's a brief problem; surface it as a clarification rather than picking both.
 
-**No invention.** If the brief signal doesn't clearly map to one of the 7, do not invent an 8th. Emit `SKELETON_REJECTED: ambiguous editorial intent — brief does not map to {recommend, warn, diagnose, show urgency, show progress, compare neutrally, summarize}`. The closed vocabulary is what prevents v1's chassis-vocab regrowth pattern from coming back here.
+**No invention.** If the brief signal doesn't clearly map to one of the 7, do not invent an 8th. Emit `SKELETON_REJECTED: ambiguous editorial intent — brief does not map to {recommend, warn, diagnose, show urgency, show progress, compare neutrally, summarize}`. The closed vocabulary is what keeps the intent list from regrowing into something unbounded.
 
 **The directive verb shapes the variant tilt, not the pattern.** "Recommend" can ship via 50/50 or 75/25 or Table — what makes it a "recommend" slide is asymmetric weight + accent on the recommended side, regardless of the pattern. The verb is a separate axis from pattern picking. Pick the pattern first (per the signals table above); then identify the verb; then tilt at least one of your three variants to honor the verb.
 
@@ -313,14 +313,5 @@ For the recommended-row indicator, use an accent stripe — not a stacked badge.
 
 ---
 
-# Source
-
-This catalog is the locked output of the v2 architecture session. The empirical validation (11 of 11 gallery PNGs shippable, 3 of 4 diagrams shippable natively, 1 fallback case identified) lives at:
-
-```
-C:\Users\m.a.peralta\.claude\skills\slide-builder\_decisions\DECISIONS.md
-C:\Users\m.a.peralta\.claude\skills\slide-builder\_decisions\GALLERY.html
-C:\Users\m.a.peralta\.claude\skills\slide-builder\_decisions\gallery\GALLERY-NOTES.md
-```
 
 The PNGs in this file are the gallery PNGs from those sessions. They are referenced relative-path so the file is portable.

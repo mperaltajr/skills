@@ -2,9 +2,9 @@
 
 The aesthetics and discipline layer of `slide-builder`. Where `layouts.md` says **how** to render each pattern, this file catalogs **what looks bad even when allowed by the pattern**.
 
-Seeded with 26 entries from the the architecture session. The library grows from every curator-flagged failure on real A/B builds.
+The library grows from every curator-flagged failure on real builds.
 
-**Wired in v0 at prompt time only** (preventive). The per-slide agent reads this file before finalizing the option script. Slide-qc vision-check wiring is open once we have real failure data from A/B builds — see SKILL.md § "Open questions open."
+**Wired in at prompt time** (preventive). The per-slide agent reads this file before finalizing the option script.
 
 ---
 
@@ -53,9 +53,9 @@ Entry format:
 
 3. **DON'T auto-shape-fit text to non-rectangular containers.** — *Why:* python-pptx silently breaks word boundaries to fit; the rendered output looks chopped. *Do instead:* size the container to the text, not the text to the container. Measure the rendered string and set container dimensions to match.
 
-4. **DON'T let text boxes overlap each other or extend beyond their containing shape.** — *Why:* overlap is the most common visual defect in earlier builds; bounding-box collisions render as garbled stacked text. *Do instead:* compute each text box's bounding box from font metrics before placing; if two boxes would collide, fail the option script with a SKELETON_REJECTED rather than render it. Slide-qc vision-check covers this at QC time in v0.1.
+4. **DON'T let text boxes overlap each other or extend beyond their containing shape.** — *Why:* overlap is the most common visual defect in earlier builds; bounding-box collisions render as garbled stacked text. *Do instead:* compute each text box's bounding box from font metrics before placing; if two boxes would collide, fail the option script with a SKELETON_REJECTED rather than render it. The slide-qc vision check also covers this at QC time.
 
-5. **DON'T use Unicode glyphs that LibreOffice may not render reliably.** — *Why:* glyphs like ▲ ▼ ✓ ★ render as tofu boxes on some LibreOffice + font combinations; the failure is silent. *Do instead:* default to ASCII fallback (`UP`, `DN`, `[x]`, `*`) and only use Unicode glyphs from a verified safe set. The v2 gallery PNGs swapped ▲/▼/✓ for `UP/DN/v/*` — same convention applies here.
+5. **DON'T use Unicode glyphs that LibreOffice may not render reliably.** — *Why:* glyphs like ▲ ▼ ✓ ★ render as tofu boxes on some LibreOffice + font combinations; the failure is silent. *Do instead:* default to ASCII fallback (`UP`, `DN`, `[x]`, `*`) and only use Unicode glyphs from a verified safe set (e.g. swap ▲/▼/✓ for `UP/DN/v/*`).
 
 6. **DON'T overflow panel widths with large type.** — *Why:* hero metrics at 40pt+ in narrow panels wrap to a second line that hangs off the panel; the slide reads broken. *Do instead:* measure the text bounding box at the chosen point size against the container width before rendering. If overflow is possible, drop the point size by 4–6pt or widen the panel.
 
@@ -63,7 +63,7 @@ Entry format:
 
 ## Content / fabrication
 
-1. **DON'T show invented content the brief didn't enumerate.** — *Why:* fabrication is the single most damaging failure mode in v1; agents invent a third path or fourth pillar to fill a pattern slot. *Do instead:* honor Hardline Rule #2 (no fabrication beyond brief enumeration). If the brief says 2 paths, the slide has 2 items. If the assigned split needs 4 and the brief has 2, emit SKELETON_REJECTED.
+1. **DON'T show invented content the brief didn't enumerate.** — *Why:* fabrication is the single most damaging failure mode; agents invent a third path or fourth pillar to fill a pattern slot. *Do instead:* honor Hardline Rule #2 (no fabrication beyond brief enumeration). If the brief says 2 paths, the slide has 2 items. If the assigned split needs 4 and the brief has 2, emit SKELETON_REJECTED.
 
 2. **DON'T invent `PART 1 OF 4` or similar enumerations the brief didn't specify.** — *Why:* invented enumerations imply structure that doesn't exist; the reader expects parts 2–4 elsewhere in the deck. *Do instead:* enumerations only when the brief explicitly declares the sequence (and only when the deck actually has all N parts).
 
@@ -99,7 +99,7 @@ Entry format:
 
 ## Ported anti-exemplars (visual reference library)
 
-Nine Tier-1 failure modes ported from the legacy v1 exemplar corpus into `reference/anti-patterns/<slug>/`. Each entry includes `exemplar.png` (rendered failure case) and `WHY.md` (full diagnosis). Read these when authoring a new option script — they make the prose rules above concrete with a picture you can pattern-match against.
+Nine Tier-1 failure modes live in `reference/anti-patterns/<slug>/`. Each entry includes `exemplar.png` (rendered failure case) and `WHY.md` (full diagnosis). Read these when authoring a new option script — they make the prose rules above concrete with a picture you can pattern-match against.
 
 | Slug | Failure in one line | Category |
 |---|---|---|
@@ -148,18 +148,8 @@ The library is self-improving. Every curator-flagged aesthetic failure on a real
 - Old entries that are subsumed by a clearer new entry: deprecate, don't delete.
 - Old entries that the curator pushes back on: keep them, add the curator's note as a sub-bullet.
 
-**Categorization rule (open question, open):**
+**Categorization rule:**
 
-Past ~100 entries, the library probably needs a more granular categorization scheme and a deprecation rule. Defer until the library actually reaches that size. See SKILL.md § "Open questions open."
-
----
-
-## Source
-
-The 26 seed entries are the locked output of the architecture session. The 9 visual exemplars under `reference/anti-patterns/` were ported from the legacy chassis-vocabulary skill's exemplar corpus during the consolidation pass (Tier-1 list per `_decisions/cleanup-plan-master-2026-05-26.md` Phase 0); the source corpus has since been archived and removed from disk. Documented at:
-
-```
-C:\Users\m.a.peralta\.claude\skills\slide-builder\_decisions\DECISIONS.md
-```
+Past ~100 entries, the library will want a more granular categorization scheme and a deprecation rule. Add them when the library reaches that size.
 
 § "Starting entries for the don't library (from this session)."

@@ -110,7 +110,7 @@ These constraints override your variant choices wherever they conflict. If the d
    ```
    Scan all five categories (Aesthetics, Structural, Content, Chrome, Encoding) before writing any code. Re-read the entries relevant to your picked pattern before finalizing each option script (see § 7 below).
 
-Do not skip either file. The patterns in `layouts.md` and the rules in `anti-patterns.md` are the v2 architecture — every prior failure mode in v1 traces to one of them.
+Do not skip either file. The patterns in `layouts.md` and the rules in `anti-patterns.md` are the architecture — most failure modes trace to one of them.
 
 ---
 
@@ -134,7 +134,7 @@ There is no pre-classifier. You pick the pattern from the 14 in `layouts.md` bas
    # SKELETON_REJECTED: ambiguous editorial intent — brief does not map to {recommend, warn, diagnose, show urgency, show progress, compare neutrally, summarize}
    ```
 
-   Do **not** invent an 8th verb. Do **not** default to "compare neutrally" when the brief is actually arguing a position — that's the failure mode this step exists to prevent. The closed vocabulary is what keeps v2 from regrowing v1's chassis-vocabulary maintenance problem.
+   Do **not** invent an 8th verb. Do **not** default to "compare neutrally" when the brief is actually arguing a position — that's the failure mode this step exists to prevent. The closed vocabulary is deliberately small so it never regrows into an open-ended, hard-to-maintain set of named intents.
 
    **Rule of one.** Exactly one verb per slide. If two seem to apply, pick the one the brief leads with. If you cannot decide between two, that's a brief problem — emit SKELETON_REJECTED rather than picking both.
 
@@ -201,7 +201,7 @@ You produce **three structurally distinct options** for the same picked pattern.
 - One option SHOULD push the pattern further than the safe-default version (e.g., dark canvas instead of light, hero metric instead of bullets, oversized typography instead of standard). The user picks among the three; offering one safer + two bolder is good.
 - **All three variants MUST use at least one brand token on a load-bearing element** (hero text, accent rule, divider, anchor, fill — NOT placeholders like `[Date]` or `[Presenter]`). A "safe default" is *quieter typography or composition* — not the absence of brand identity. Every option must include `BRAND_PRIMARY`, `BRAND_ACCENT`, `BRAND_PRIMARY_MID`, or `BRAND_ACCENT_SOFT` somewhere visible. A variant rendering only in TEXT_DARK / TEXT_MID / TEXT_FAINT is a brand-fidelity failure. **Vary the brand application across the three variants** — don't converge on the same element (e.g., A on accent rule, B on hero fill, C on anchor circle).
 
-**Do not produce three options on three different patterns.** That defeats the point of pattern-picking and reintroduces v1's chassis-shuffling problem. All three options use the same pattern; only the variants differ.
+**Do not produce three options on three different patterns.** That defeats the point of pattern-picking. All three options use the same pattern; only the variants differ.
 
 **At least one of the three variants MUST explicitly honor the directive verb you identified in § 4 step 1.5.** Variant tilt translation lives at `layouts.md § "Directive verb vocabulary"`. For "recommend": asymmetric weight toward the recommended item. For "warn": high-contrast accent on the threat. For "compare neutrally": equal weight, no accent winner. The honoring variant is not necessarily the safest of the three — bolder tilt is fine. What matters is that the three options are not all cosmetic variations of a neutral default; at least one carries the directive verb visibly. State which variant honors the directive in the PATTERN PICK output block.
 
@@ -324,7 +324,7 @@ finalize_deck.py reads line 1. Token prefix decides routing:
 ## 9. Constraints
 
 - **Touch only files in `{{OUTPUT_DIR}}`.** The expected files are `option_A.py`, `option_B.py`, `option_C.py` (direct path) OR `option_A.html`, `option_B.html`, `option_C.html` (sketch path — when the dispatch's `PATTERN` field is `sketch`), plus the generated `.pptx` / `.png` siblings (when the script or renderer runs). Do not write to any other path. Do not modify `_prompt.md` or any file outside this directory.
-- **Do not modify `slide-builder\twins\helpers.py`.** It is shared with v1; structural changes break both versions.
+- **Do not modify `slide-builder\twins\helpers.py`.** It is shared geometry infrastructure; structural changes break every script that depends on it.
 - **Do not read or modify other slides' brief content.** You see only this slide's brief.
 - **Do not write summaries, plans, or design docs to disk.** Inline reasoning goes in your response, not in side-files.
 - **No external assets.** No PIL, no PNG embedding for native patterns, no chart image generation. Bars, waterfalls, KPI tiles — all drawn with `add_rect` + `add_text`. (Curved diagrams that historically used the Mermaid fallback now route to the sketch path's HTML+SVG; see § 4 step 4.)
