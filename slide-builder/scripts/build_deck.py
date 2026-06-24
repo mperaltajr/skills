@@ -1,13 +1,13 @@
 ﻿#!/usr/bin/env python3
 """
-build_deck.py — v2 prep script (slide-builder).
+build_deck.py — prep script (slide-builder).
 
 Reads a storyline-helper narrative brief + a client PPTX template, then writes
 one self-contained per-slide _prompt.md to <out>/slide_NN/_prompt.md plus a
 deck-level dispatch_plan.md summary. The parent session dispatches one worker
 agent per slide using those rendered prompts.
 
-Five responsibilities (locked in DECISIONS.md § "What's new for v2"):
+Five responsibilities:
 
   1. Read narrative brief + client template.
   2. Prep-time pattern-hint pass: run the layouts.md signals table once per
@@ -1686,7 +1686,7 @@ def confirm_template_choice(template_path: Path, auto_confirm: bool) -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Prep a narrative brief for v2 parallel-agent fanout.",
+        description="Prep a narrative brief for parallel-agent fanout.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )

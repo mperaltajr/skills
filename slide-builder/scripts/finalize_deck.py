@@ -1,31 +1,28 @@
-﻿"""Slide Lab deck orchestrator — Part B: execute agent .py, graft, theme remap, render.
+﻿"""Slide Lab deck orchestrator — Part B: execute agent output, graft, theme remap, render.
 
-Originally forked from the legacy chassis-vocabulary skill; current behaviors:
+Behaviors:
   - sys.path includes <skill>/ (for local twins/) + slide-qc/scripts/ (for render_slides).
-  - build_pptx() classifies each option_X.py by line-1 token before executing:
-      * `# FALLBACK_MERMAID: ...`     -> render .mmd to PNG, assemble fallback PPTX
+  - build_pptx() classifies each option before executing:
       * `# SKELETON_REJECTED: ...`    -> skip; rejection surfaces in REVIEW.html
-      * normal native python-pptx     -> subprocess/runpy execution
-  - _build_mermaid_fallback() invokes render_mermaid.py and assembles a PPTX
-    with chrome from twins.helpers + the rendered PNG embedded at body-zone
-    coordinates.
+      * sketch-path translator output (`option_X_native.py`) -> run; finalize merges
+        `__template_fields__` into placeholders.
+      * direct-path python-pptx (`option_X.py`) -> subprocess/runpy execution.
 
 Inputs:
   --out PATH       output dir from build_deck.py
   --template PATH  client PPTX template (same one used in Part A)
-  --skip-build     skip executing option_X.py (use existing option_X.pptx)
+  --skip-build     skip executing option scripts (use existing option_X.pptx)
   --skip-render    skip rendering PNGs
 
-Pipeline (unchanged from v1 except step 2's per-option branching):
-  1. Discover every <out>/slide_NN/option_X.py and option_X_native.py
-     (the sketch-path translator output added ).
+Pipeline:
+  1. Discover every <out>/slide_NN/option_X.py and option_X_native.py.
   2. For each option:
        2a. Classify by filename suffix + sibling-file structure.
-       2b. NATIVE                 -> run via subprocess to produce
-                                     option_X.pptx (raw, pre-theme).
-       2c. PATTERN_B_TRANSLATED   -> run via subprocess; finalize merges
-                                     __template_fields__ into placeholders.
-       2d. REJECTED               -> skip; logged for the report.
+       2b. direct             -> run via subprocess to produce option_X.pptx
+                                 (raw, pre-theme).
+       2c. sketch_translated  -> run via subprocess; finalize merges
+                                 __template_fields__ into placeholders.
+       2d. rejected           -> skip; logged for the report.
   3. Stash raw output to <out>/slide_NN/_raw/option_X.pptx.
   4. Graft + theme-remap each raw pptx onto the client template; write themed
      to <out>/slide_NN/option_X.pptx.
@@ -33,10 +30,9 @@ Pipeline (unchanged from v1 except step 2's per-option branching):
   6. Run a deterministic per-option QC self-check.
   7. Write <out>/RESULT.md with per-slide status table.
 
-Path convention after finalize, per slide_NN/ folder (unchanged from v1):
-  option_X.py             — source (input)
-  option_X.mmd            — Mermaid spec (FALLBACK_MERMAID only)
-  option_X-mermaid.png    — rendered Mermaid PNG (FALLBACK_MERMAID only)
+Path convention after finalize, per slide_NN/ folder:
+  option_X.py             — direct-path source (input)
+  option_X_native.py      — sketch-path translator output (input)
   option_X.pptx           — THEMED deliverable
   option_X.png            — PNG of themed
   option_X.qc.json        — per-option QC self-check report
@@ -1964,7 +1960,7 @@ def render_one(st: OptionStatus) -> OptionStatus:
 # ---------------------------------------------------------------------------
 # Step 4: RESULT.md — v1 base + v2 classification column
 # ---------------------------------------------------------------------------
-RESULT_TEMPLATE = """# Slide Lab v2 deck — finalize result
+RESULT_TEMPLATE = """# Slide Lab deck — finalize result
 
 Generated: {ts}
 
@@ -2063,7 +2059,7 @@ def write_result(out_dir: Path, template_path: Path, statuses: list) -> Path:
 # Main — v1 base + v2 Mermaid theme resolution + classification counters
 # ---------------------------------------------------------------------------
 def main() -> int:
-    ap = argparse.ArgumentParser(description="Slide Lab v2 deck orchestrator — Part B (finalize)")
+    ap = argparse.ArgumentParser(description="Slide Lab deck orchestrator — Part B (finalize)")
     ap.add_argument("--out", required=True, type=Path, help="Output dir from Part A")
     ap.add_argument("--template", required=True, type=Path, help="Client PPTX template")
     ap.add_argument("--skip-build", action="store_true", help="Skip executing option_X.py")
@@ -2148,7 +2144,7 @@ def main() -> int:
     default_layout_name = _pick_default_layout_name(chrome_spec)
 
     print("=" * 72)
-    print("Slide Lab v2 deck orchestrator — Part B (finalize)")
+    print("Slide Lab deck orchestrator — Part B (finalize)")
     print(f"  out           : {args.out}")
     print(f"  template      : {args.template}")
     print(f"  chrome.yml    : {chrome_yml_path}")
