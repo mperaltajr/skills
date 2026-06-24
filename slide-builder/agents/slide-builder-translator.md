@@ -203,7 +203,6 @@ After Task 1-4 produce a valid `option_A_native.py`:
 ```python
 # CONTEXT_READ: <one-sentence citation from _context.md showing you read it>
 # BRIEF_IS_AUTHORITATIVE: True
-# PATTERN: B-translated
 # HTML_SOURCE: option_A.html (sha256: <16-char-prefix>)
 # PNG_TARGET: option_A.png (sha256: <16-char-prefix>)
 # __template_fields__ = {

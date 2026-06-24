@@ -140,7 +140,6 @@ def phase_2_render_html(tmp: Path) -> Path:
 TRANSLATOR_SCRIPT = textwrap.dedent("""\
     # CONTEXT_READ: smoke test fixture
     # BRIEF_IS_AUTHORITATIVE: True
-    # PATTERN: B-translated
     # HTML_SOURCE: option_A.html (sha256: deadbeefdeadbeef)
     # PNG_TARGET: option_A.png (sha256: cafebabecafebabe)
     # __template_fields__ = {
