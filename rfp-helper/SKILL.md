@@ -121,7 +121,7 @@ Before producing the proposal brief, run these checks:
 
 ### Step 5 — Produce the proposal brief
 
-When the gate passes, produce the proposal brief and save it to the session folder.
+When the gate passes, produce the proposal brief and save it to the session folder. **The brief MUST be slide-builder-compatible** — see "Proposal brief format" below. It carries YAML front-matter with `mode: rfp` (which bypasses slide-builder's narrative gate, since RFP quality is enforced by the Step-4 checks above, not by a narrative argument), `### Slide N — <section>` headers, and the standard slide-builder field labels. Without this exact shape, `build_deck.py` exits before building.
 
 ```
 Proposal brief saved:
@@ -150,42 +150,70 @@ Proposal brief saved:
 
 ## Proposal brief format
 
+The proposal brief is consumed by `slide-builder/scripts/build_deck.py`, so it must
+match slide-builder's brief contract exactly: YAML front-matter, `### Slide N —`
+headers, and the standard field labels. RFP-specific concepts map onto those labels;
+RFP-only metadata (criterion, weight) is kept as bold fields the parser ignores, so it
+stays visible for the human and QC without polluting the slide.
+
+**Field mapping (RFP concept → slide-builder field):**
+
+| RFP concept | slide-builder field |
+|---|---|
+| Section name | `### Slide N — <section name>` header |
+| Opening claim | `**Governing thought (the claim):**` |
+| Win theme echo | `**So-what (the takeaway):**` |
+| Proof points | `**Evidence / content:**` bullets, each as `**HEADING** — body.` |
+| "Why us" / Full marks | folded into Evidence as labeled bullets (so they render on the slide) |
+| Evaluation criterion / Weight | kept as bold fields (parser ignores; visible for scoring) |
+| Page / slide limit | `## Deck-level design notes` |
+
+Why `**HEADING** — body` on the evidence bullets: slide-builder's translator parses that
+shape into structured slide content; loose prose bullets render as placeholder text.
+
 ```markdown
+---
+client_template: [absolute path to the registered .pptx template]
+deck_type: Capability Pitch
+default_layout: [layout name from the template's theme.json::default_content_layout]
+session_folder: [absolute path to the session folder]
+mode: rfp
+win_theme: [1–2 word differentiator]
+---
+
 # Proposal brief: [RFP name / client]
 
-## Win theme
-[1–2 words + one sentence explaining the strategic claim]
-
-## RFP sections (in required order)
-[List of required sections, page/slide limits, and the evaluation criterion each serves]
+## Deck-level design notes
+- Win theme: [1–2 words + one sentence]. Thread it on the cover, section dividers, and where appropriate in body slides.
+- Page / slide limits: [per-section limits from the RFP — hard constraints].
+- One clean layout per section (no three design variants — evaluators score content, not design).
+- Structure is prescribed by the RFP; section order is fixed.
 
 ## Evaluation criteria
-[List with weights if stated]
+[List with weights if stated — deck-level reference for the human and QC.]
 
 ---
 
-### Section: [Section name as stated in RFP]
+### Slide 1 — [Section name as stated in the RFP]
 
 **Evaluation criterion:** [criterion this section scores against]
 **Weight:** [% or relative weight]
-**Full marks looks like:** [what the evaluator wants to see]
 
-**Opening claim:** [the section's governing statement]
+**Governing thought (the claim):** [the section's opening claim — the single governing statement]
 
-**Proof points:**
-- [Specific engagement / number / tool / person]
-- [Specific engagement / number / tool / person]
-- [Specific engagement / number / tool / person]
+**So-what (the takeaway):** [how this section reinforces the win theme — the belief it drives]
 
-**Win theme echo:** [one sentence: how this section reinforces the win theme]
+**Evidence / content:**
+- **[PROOF POINT LABEL]** — [specific engagement / number / tool / person].
+- **[PROOF POINT LABEL]** — [specific engagement / number / tool / person].
+- **WHY US** — [explicit, specific differentiator a competitor could not claim verbatim].
+- **FULL MARKS** — [what the evaluator wants to see, stated as the slide proves it].
 
-**"Why us" statement:** [explicit, specific differentiator for this section]
-
-**Page / slide limit:** [N pages or N slides]
+**What this slide is NOT:** [scope exclusion — what would dilute the section's score]
 
 ---
 
-[Repeat for each required section]
+[Repeat — `### Slide 2 — …`, `### Slide 3 — …` — one slide per required section, in RFP order]
 
 ## Flags
 [Weak proof points, uncovered criteria, or sections where differentiation is thin]

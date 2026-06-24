@@ -331,16 +331,23 @@ def _classify_all_slides(slides: list[dict[str, Any]],
 # brief's YAML front-matter on a successful gate pass, along with a SHA
 # of the brief body. build_deck refuses to run without that marker.
 #
-# Carve-out: `mode: template-fill` or `mode: rebuild-slice` in front-matter
-# explicitly opts out of the gate (PMO recurring reports, single-slide
-# rebuilds — both legitimate flows that don't have a narrative to gate).
+# Carve-out: `mode: template-fill`, `mode: rebuild-slice`, or `mode: rfp` in
+# front-matter explicitly opts out of the gate. All three are legitimate flows
+# that don't have a narrative argument to gate:
+#   template-fill  — PMO recurring reports
+#   rebuild-slice  — single-slide rebuild
+#   rfp            — RFP / proposal response from rfp-helper. RFP quality is
+#                    enforced by rfp-helper's own pre-brief checks (win-theme
+#                    threading, criteria coverage, specificity, explicit
+#                    "why us") — the narrative gate doesn't apply to a
+#                    prescribed-structure scoring document.
 #
 # SHA check: hashing the brief body (everything below the front-matter)
 # means edits after the gate pass invalidate the marker; the operator must
 # re-gate via storyline-helper. Prevents "gated once, edited freely after."
 # ----------------------------------------------------------------------
 
-GATE_BYPASS_MODES = {"template-fill", "rebuild-slice"}
+GATE_BYPASS_MODES = {"template-fill", "rebuild-slice", "rfp"}
 
 
 def _brief_body_sha256(body: str) -> str:
@@ -367,9 +374,11 @@ def _enforce_storyline_gate(front_matter: dict[str, str], body: str,
             "        storyline_gate_at: <ISO timestamp>\n"
             "        storyline_gate_sha256: <hash of brief body>\n\n"
             "  (2) If this is a legitimate non-narrative flow (PMO recurring\n"
-            "      report or single-slide rebuild), add to the front-matter:\n"
+            "      report, single-slide rebuild, or RFP response), add to the\n"
+            "      front-matter:\n"
             "        mode: template-fill      # for PMO / template fill mode\n"
             "        mode: rebuild-slice      # for single-slide rebuild\n"
+            "        mode: rfp                # for rfp-helper proposal briefs\n"
         )
         sys.exit(10)
 
