@@ -298,7 +298,7 @@ def phase_6_execute_and_assert_editable(tmp: Path, py_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
-# P7 — schema compat for the M7 mermaid_theme optional default
+# P7 — schema compat for the optional legacy mermaid_theme field
 # ---------------------------------------------------------------------------
 def phase_7_schema_compat() -> None:
     print("\n[P7] MetaJson accepts legacy v3 (with mermaid_theme) AND new v3 (without)")
@@ -319,7 +319,7 @@ def phase_7_schema_compat() -> None:
 
     new = dict(base)  # no mermaid_theme key
     new_meta = validate_meta_dict(new)
-    _check("new v3 meta WITHOUT mermaid_theme validates (M7 optional default)",
+    _check("new v3 meta WITHOUT mermaid_theme validates (optional legacy field)",
            new_meta.mermaid_theme == "")
 
 
