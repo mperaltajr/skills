@@ -1492,6 +1492,9 @@ def emit_layout_resolution_error(
             f"No layouts found in {chrome_yml_path} (file missing or empty). "
             f"Re-register the template via register_template.py propose -> commit.\n"
         )
+    # Use a real registered layout in the example so the operator can copy it
+    # verbatim; fall back to a placeholder only when no layouts are available.
+    example_layout = available[0] if available else "<name>"
     sys.stderr.write(
         "\nTwo ways to fix:\n\n"
         "   (A) Add `default_layout: <name>` to the brief's YAML front-matter to apply\n"
@@ -1499,7 +1502,7 @@ def emit_layout_resolution_error(
         "       ---\n"
         f"       client_template: {front_matter.get('client_template', '<path>')}\n"
         f"       deck_type: {front_matter.get('deck_type', '<type>')}\n"
-        "       default_layout: body_canonical_light    <-- ADD THIS LINE\n"
+        f"       default_layout: {example_layout}    <-- ADD THIS LINE\n"
         "       ---\n\n"
         "   (B) Add `**Layout:** <name>` to each slide block listed above.\n\n"
         "Exit code: 9 (brief-missing-required-layout)\n"

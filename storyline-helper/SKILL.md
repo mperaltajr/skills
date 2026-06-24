@@ -464,8 +464,8 @@ The named sub-passes below — quality gate, language pass, pushback, save, hand
 
 1. **Session folder root** — the parent directory where the dated session folder will be created. Convention: `<Client>/sessions/YYYY-MM-DD Topic Name/`.
 2. **Client name and topic** — drives the dated subfolder name and the brief filename (e.g., `FedEx / Vendor Gap Analysis` → `FedEx/sessions/2026-05-06 Vendor Gap Analysis/`).
-3. **Client template** — the `.pptx` that carries the client's brand. Must be **registered** (have `<stem>.brand.yml` + `<stem>.theme.json` + `<stem>.chrome.yml` sidecars). If not registered, register via `register_template.py propose` → `commit` before handoff.
-4. **Default content layout** — read `<stem>.theme.json::default_content_layout` from the registered template and surface it. If empty or template unregistered, the user picks at registration time. Never let `build_deck.py` run with an empty default layout — that's a hard mid-build failure.
+3. **Client template** — the `.pptx` that carries the client's brand. Must be **registered** (have a `<stem>/` sidecar subfolder with `brand.yml` + `theme.json` + `chrome.yml`). If not registered, register via `register_template.py propose` → `commit` before handoff.
+4. **Default content layout** — read `<stem>/theme.json::default_content_layout` from the registered template and surface it. If empty or template unregistered, the user picks at registration time. Never let `build_deck.py` run with an empty default layout — that's a hard mid-build failure.
 
 **Combine the asks** — one message, four lines:
 
@@ -825,19 +825,19 @@ Then **hand off immediately to slide-builder** without waiting for a confirmatio
 
 ### the handoff section — Hand off to Slide Builder
 
-Before handing off, verify the client template is **registered** (has `<stem>.brand.yml` + `<stem>.theme.json` sidecars next to the PPTX). If sidecars are missing, register it first via the chat-driven flow:
+Before handing off, verify the client template is **registered** (has a `<stem>/` sidecar subfolder next to the PPTX containing `brand.yml` + `theme.json`). If the sidecar subfolder is missing, register it first via the chat-driven flow:
 
 ```bash
 py -3 skills/slide-builder/scripts/register_template.py propose <client-template.pptx>
 ```
 
-This produces a `<stem>.register.proposal.json` and a smoke PNG. Show the smoke to the user, take picks in chat (or `{"accept": true}` if the proposal looks right), then:
+This produces `<stem>/register.proposal.json` and a smoke PNG in the sidecar subfolder. Show the smoke to the user, take picks in chat (or `{"accept": true}` if the proposal looks right), then:
 
 ```bash
 py -3 skills/slide-builder/scripts/register_template.py commit <client-template.pptx> --picks <picks.json>
 ```
 
-Once `<stem>.brand.yml` exists, slide-builder's Stage-1 sanity check passes and the build can proceed.
+Once `<stem>/brand.yml` exists, slide-builder's Stage-1 sanity check passes and the build can proceed.
 
 When the user confirms the brief, **first verify the brief starts with the YAML front-matter block** (see "Narrative brief format" below). The front-matter MUST include `client_template:` and `deck_type:` keys with the values captured in the Commit & emit stage. If you wrote the brief without front-matter, prepend it now before handoff — slide-builder reads this to skip its own template prompt.
 
@@ -1103,6 +1103,8 @@ If the user picks Edit, ask what they want to change. If the user picks Review, 
 **User has no argument yet, just findings.** Pyramid walkthrough. Start from a provisional recommendation, work backward to what's load-bearing. This is valuable coaching work — take the time.
 
 **User refuses pushback.** Do not just acquiesce — that lets weak arguments through. Use the constructive-pushback protocol from the pushback protocol: (1) name the weakness and the reason it doesn't hold, (2) offer two concrete alternative framings — *"a stronger version would be X or Y"* — so the criticism is constructive, not just a no, (3) offer the placeholder path if the gap is missing data rather than flawed thinking, (4) ask explicitly which they want. Only accept the override after the user has chosen with awareness of the trade-off, and record their reason verbatim in **Flags**. If the user refuses to engage at all, the quality gate fails — soft "just ship it" is not sufficient.
+
+**Something went wrong mid-session.** If the coaching flow breaks, `emit_dot_dash.py` errors, or the output isn't right, tell the user they can type `/feedback` to capture a structured session report (the `slidelab-log` skill writes the technical detail; the user just submits the GitHub link).
 
 ---
 

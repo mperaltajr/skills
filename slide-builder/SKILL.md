@@ -273,7 +273,9 @@ Adjacency (Hardline #3 — no 3+ consecutive same-split) is **soft-enforced at p
 10. **QC.** Run slide-qc against the compiled deck.
 11. **Deliver.** PPTX. Output full absolute Windows path. No preview links.
 
-Rebuild individual slides with "rebuild slide N with v2" — re-prep the prompt for slide N, dispatch a single agent, finalize, replace the picked option.
+Rebuild individual slides with "rebuild slide N" — re-prep the prompt for slide N, dispatch a single agent, finalize, replace the picked option.
+
+**If a build fails or the output is wrong:** tell the user they can type `/feedback` to capture a structured session report (the `slidelab-log` skill writes the technical detail; the user just submits the GitHub link). Offer this whenever a stage exits non-zero or the user says something looks broken.
 
 ### Pattern routing flag — opt-in until validated
 

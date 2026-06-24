@@ -4,7 +4,7 @@ This example uses `quickstart-brief.md` (4 slides) and any registered client PPT
 
 ## What you need
 
-- A registered client template — a `.pptx` file with `<stem>.brand.yml` and `<stem>.theme.json` sidecars next to it.
+- A registered client template — a `.pptx` file with a `<stem>/` sidecar subfolder next to it (containing `brand.yml` and `theme.json`).
 - The verification step from INSTALL.md passing.
 
 ## If you don't have a registered template yet (do this first)
@@ -34,7 +34,7 @@ py -3 "$env:USERPROFILE\.claude\skills\slide-builder\scripts\register_template.p
     --picks "<path to picks.json>"
 ```
 
-That's it — your template is now registered. The sidecar files (`<stem>.brand.yml`, `<stem>.theme.json`, `<stem>.chrome.yml`) sit next to the `.pptx`. You only need to repeat this if the template's master/layouts change.
+That's it — your template is now registered. The sidecar files (`brand.yml`, `theme.json`, `chrome.yml`) sit in a `<stem>/` subfolder next to the `.pptx`. You only need to repeat this if the template's master/layouts change.
 
 For the full registration flow with diagrams, see SKILL.md § "Register a new client template."
 
