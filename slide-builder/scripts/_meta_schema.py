@@ -94,17 +94,14 @@ class MetaJson(BaseModel):
     template:       str
     brief:          str
     out:            str
-    # M7 (Mermaid retirement, 2026-06-17): Mermaid was retired per Decision 6;
-    # Pattern B HTML→PNG supersedes Mermaid for curved-container diagrams.
-    # Field is kept optional with an empty default so existing v3 _meta.json
-    # files (which carry mermaid_theme) still validate without surgery; new
-    # writes omit it. Both shapes are interchangeable on this same schema
-    # version — no v4 bump needed.
+    # Optional legacy field — older _meta.json files carry a path here, new
+    # writes omit it. Kept as an ignored optional so historical files still
+    # validate without re-writing them.
     mermaid_theme:  str = ""
     client_slug:    str
     slide_count:    int
     generated_at:   str  # Top-level; build_review reads from here
-    brand_primary:  str = ""  # Added v2 (P1.3). Empty string allowed for legacy v1 files.
+    brand_primary:  str = ""  # Empty string allowed for legacy files.
     brand_accent:   str = ""  # Same.
     slides:         list[SlideMeta]
     deck_meta:      DeckMeta
