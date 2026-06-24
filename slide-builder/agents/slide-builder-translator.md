@@ -69,7 +69,7 @@ If a chrome zone has text in the HTML but no `data-template-field` attribute, th
 For every HTML element with attribute `data-shape-id` that sits in the body zone (between `body_top_y_px` and `body_bottom_y_px` from chrome.yml), generate a native python-pptx shape.
 
 **Graceful fallback for under-tagged HTML:**
-The original contract required workers to put `data-shape-id` on every body element they wanted translated. Real-world OTC validation surfaced ~30% under-tagging rate even on workers that produced visually-clean HTML. To avoid hard-blocking a deck on worker compliance, fall back as follows when fewer than 3 elements carry `data-shape-id` in the body zone (or none at all):
+Workers are asked to put `data-shape-id` on every body element they want translated, but in practice they under-tag a meaningful share of elements even when the HTML renders cleanly. To avoid hard-blocking a deck on worker compliance, fall back as follows when fewer than 3 elements carry `data-shape-id` in the body zone (or none at all):
 
 1. Walk every DOM element in the body zone (`getBoundingClientRect().top >= body_top_y_px AND .bottom <= body_bottom_y_px`).
 2. Filter to elements with **meaningful visual presence** — at least one of:
@@ -154,7 +154,7 @@ The following CSS features are FORBIDDEN in body-zone elements. If you encounter
 - **Linear/radial gradients** → use the middle color stop as solid; warn `R4.4 gradient flattened to solid`
 - **Box-shadow / drop-shadow / filter** → no shadow; warn `R4.5 CSS filter dropped`
 - **opacity < 1** on text → set alpha to 1.0; warn `R4.2 opacity stripped from text` (R4.2 Major)
-- **text-decoration: line-through OR underline** on body text → REMOVE the decoration in the python-pptx output unless the brief explicitly authorizes it; warn `R4.1 text-decoration stripped` (R4.1 Critical — this is the OTC slide 16 failure mode)
+- **text-decoration: line-through OR underline** on body text → REMOVE the decoration in the python-pptx output unless the brief explicitly authorizes it; warn `R4.1 text-decoration stripped` (R4.1 Critical)
 
 **Strikethrough defense (high-risk):** Before emitting the script, scan your generated code for any `run.font.strikethrough = True` or `run.font.underline = True`. If found AND the brief does NOT contain a directive authorizing underline/strikethrough as load-bearing emphasis, REMOVE those lines. Also scan the source HTML's computed styles for `textDecorationLine` containing `line-through` or `underline` — those MUST be stripped at translation time, not carried through.
 
