@@ -62,5 +62,5 @@ exists to defend a claim the reader has already absorbed.
 The inverted (correct) reading-order pattern is claim or KPI on top,
 evidence under it, optional one-line so-what strip at the bottom
 restating the claim — never introducing it. See `reference/layouts.md`
-§ "Full canvas" and § "Top band + body" for the canonical v0.1 patterns
+§ "Full canvas" and § "Top band + body" for the canonical patterns
 that implement this reading order.

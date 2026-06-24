@@ -45,7 +45,7 @@ Expected: `playwright + chromium OK`. If you see `BrowserType.launch: Executable
 
 ## Step 2 — _(retired)_ Mermaid CLI
 
-Removed in M7 (Decision 6, 2026-06-17). The Mermaid fallback path was retired entirely — Pattern B HTML→PNG via Playwright (Step 1.5 above) supersedes Mermaid for curved-container diagrams. If you have a previously-installed `mermaid-cli`, leaving it installed is harmless but no longer required for any Slide Lab path.
+Removed (Decision 6, 2026-06-17). The Mermaid fallback path was retired entirely — Pattern B HTML→PNG via Playwright (Step 1.5 above) supersedes Mermaid for curved-container diagrams. If you have a previously-installed `mermaid-cli`, leaving it installed is harmless but no longer required for any Slide Lab path.
 
 ## Step 3 — LibreOffice headless
 
@@ -120,8 +120,8 @@ $wp = "$env:USERPROFILE\.claude\agents\slide-builder-worker.md"
 
 Expected: `True`. The four greps prove the installed file is the current worker contract:
   - `option_A.py` — writes `option_A.py` / `option_B.py` / `option_C.py` (rules out v1-era workers that wrote 4 options or used `sys.argv` paths)
-  - `_context.md` — knows to read the per-slide context bundle BEFORE the prompt (Gate C.1, added 2026-06-08)
-  - `_context_ack.txt` — knows to write the soft-enforcement acknowledgment (Gap 3, added 2026-06-08)
+  - `_context.md` — knows to read the per-slide context bundle BEFORE the prompt (Gate C.1, added)
+  - `_context_ack.txt` — knows to write the soft-enforcement acknowledgment (Gap 3, added)
   - `PATTERN: B` — knows the Pattern B branch (HTML output when dispatched with `PATTERN: B`; added M4 2026-06-17). A worker pre-dating this branch silently falls back to python-pptx output even when Pattern B is enabled
 
 **Without this file (or with the wrong content), Stage 2 dispatch silently does nothing** — your build will reach `finalize_deck.py` with zero option scripts and produce nothing useful. A stale worker that passes only the first grep will silently produce builds without context awareness, with yellow ⚠ chips on every slide in REVIEW.html.

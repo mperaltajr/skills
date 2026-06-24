@@ -2,7 +2,7 @@ __pycache__/
 *.pyc
 theme/_generated/
 
-# Pattern B regression-test baseline PNGs (M2). Captured locally by
+# Pattern B regression-test baseline PNGs. Captured locally by
 # tests/capture_baseline.py — may contain client-confidential renders, so
 # the binaries stay out of the repo. The capture/check scripts themselves
 # ARE tracked.

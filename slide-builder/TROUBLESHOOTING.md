@@ -10,7 +10,7 @@ If a pipeline script exits non-zero, find the exit code below. Each section also
 
 ## Exit-code reference
 
-Tables below were re-derived from each script's actual `sys.exit()` / `return` calls on 2026-05-26 per audit finding T2.9. If you see a code listed in a script's `--help` output that isn't on this table, treat the table as wrong and update it.
+Tables below were re-derived from each script's actual `sys.exit()` / `return` calls on 2026-05-26 per an earlier audit finding. If you see a code listed in a script's `--help` output that isn't on this table, treat the table as wrong and update it.
 
 ### `build_deck.py`
 
@@ -40,7 +40,7 @@ Tables below were re-derived from each script's actual `sys.exit()` / `return` c
 | Code | Meaning | Fix |
 |---|---|---|
 | 2  | `--out` invalid, `_meta.json` missing, OR `--template` from `_meta.json` doesn't exist | Pass the build's output dir. Verify the template path stored in `_meta.json`. |
-| 3  | Could not write `final_deck.pptx` — destination locked (PowerPoint has it open, or antivirus mid-scan) | Close PowerPoint, pause AV on the build dir if needed, and re-run `compile_picks.py`. The prior deck was preserved via the T2.6 timestamped backup. |
+| 3  | Could not write `final_deck.pptx` — destination locked (PowerPoint has it open, or antivirus mid-scan) | Close PowerPoint, pause AV on the build dir if needed, and re-run `compile_picks.py`. The prior deck was preserved via the timestamped backup. |
 | 1  | Compile finished but final deck doesn't open cleanly, OR per-option copy failures occurred | Check `COMPILED.md` for per-option failure rows. Open the produced final deck in PowerPoint to confirm. |
 
 ### `build_review.py`
@@ -87,7 +87,7 @@ The client template at `<path>.pptx` lacks `<stem>/brand.yml` in the per-templat
 The `<stem>/brand.yml` exists but its SHA stamp doesn't match the template's current SHA (the template was edited). Re-register the template — run `register_template.py propose` and `commit` again.
 
 ### "LegacyTemplateLayoutError"
-The template was registered with the pre-v0.4 flat sidecar layout (sidecars sit next to the .pptx instead of inside a `<stem>/` subfolder). Run the one-shot migration:
+The template was registered with the older flat sidecar layout (sidecars sit next to the .pptx instead of inside a `<stem>/` subfolder). Run the one-shot migration:
 
 ```powershell
 py -3 slide-builder/scripts/migrate_template_layout.py "<directory containing the .pptx>"
@@ -117,7 +117,7 @@ A reader (`finalize_deck`, `compile_picks`, `build_review`, `build_gate_preview`
 A `# FALLBACK_MERMAID:` option script declared a fallback, but the sibling `.mmd` is missing or syntactically broken. Check the per-slide agent's Mermaid spec at `<out>/slide_NN/option_X.mmd`.
 
 ### "PNG too small (XXX bytes; floor 12KB)"
-A rendered option thumbnail is smaller than expected — usually means the LibreOffice render produced a near-blank canvas. Open the corresponding `option_X.pptx` directly in PowerPoint to confirm whether the slide is actually empty. If the slide is intentionally minimal (cover with one line), the floor was lowered to 12KB in v0.1 — but a sub-12KB PNG is almost always a render failure.
+A rendered option thumbnail is smaller than expected — usually means the LibreOffice render produced a near-blank canvas. Open the corresponding `option_X.pptx` directly in PowerPoint to confirm whether the slide is actually empty. If the slide is intentionally minimal (cover with one line), the floor was lowered to 12KB — but a sub-12KB PNG is almost always a render failure.
 
 ### "SKELETON_REJECTED: ..."
 A per-slide agent rejected the slide because the brief and the assigned pattern fundamentally disagree (e.g., brief enumerates 2 items, pattern expects 4 cells). This is **correct behavior** — see SKILL.md § "Hardline rules" #5. Either pick a different pattern for that slide or revise the brief.

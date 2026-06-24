@@ -46,7 +46,7 @@ from pydantic import BaseModel, ValidationError
 # Bumped when the schema shape changes. Stay in lockstep with register_template
 # (writer) and finalize_deck (reader).
 #
-# v2 (2026-05-28) adds the body-canonical layout-inheritance fields:
+# v2 adds the body-canonical layout-inheritance fields:
 #   title_placeholder_idx, body_top_y_px, body_bottom_y_px, body_overlay_hex.
 # v1 chrome.yml is still readable — validate_chrome_dict defaults the new
 # fields to None so pre-v2 sidecars load without re-registration. Templates
@@ -318,8 +318,8 @@ class LayoutChrome(BaseModel):
     footnote: BoxPx | None = None
     source: BoxPx | None = None
     page_number: BoxPx | None = None
-    # v2 (2026-05-28) — body-canonical layout-inheritance fields.
-    # v2.1 (2026-06-02) — subtitle_placeholder_idx added.
+    # v2 — body-canonical layout-inheritance fields.
+    # v2.1 — subtitle_placeholder_idx added.
     # For body-canonical layouts ONLY:
     #   title_placeholder_idx: which inherited placeholder holds the title
     #     (so finalize_deck writes the slide title text into the layout's
@@ -378,7 +378,7 @@ class ChromeLayoutMissingError(RuntimeError):
     the loaded chrome.yml.
 
     Silent fallback to a default layout was the bug that hid the OTC Sizing
-    chrome regression (2026-06-01) — slides resolved to a stand-in layout
+    chrome regression — slides resolved to a stand-in layout
     whose geometry didn't match the actual template. Helpers MUST raise this
     instead of substituting a default.
 

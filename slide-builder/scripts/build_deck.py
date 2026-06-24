@@ -148,8 +148,8 @@ DECK_NOTES_RE = re.compile(
 FIELD_LABELS = {
     "title":               ("slide title",),
     "archetype":           ("archetype",),
-    "layout":              ("layout",),  # v0.2 P1.4
-    "variant":             ("variant",),  # v0.3: "dark" triggers dark-background variant
+    "layout":              ("layout",),  #
+    "variant":             ("variant",),  # "dark" triggers dark-background variant
     "governing_thought":   ("governing thought", "governing thought (the claim)"),
     "so_what":             ("so-what", "so what", "so-what (the takeaway)"),
     "editorial_emphasis":  ("editorial emphasis",),
@@ -190,7 +190,7 @@ def _normalize_archetype_to_page_type(archetype: str) -> str:
 
 
 # ----------------------------------------------------------------------
-# M1 — Pattern B routing helpers (2026-06-16)
+# M1 — Pattern B routing helpers
 #
 # Spec references:
 #   _decisions/pattern-b/spec-7-schema-version-migration.md (extends v3)
@@ -509,7 +509,7 @@ def parse_brief(brief_path: Path) -> dict[str, Any]:
             "title": (title or extract_field(block, FIELD_LABELS["title"])
                       or f"Slide {slide_n}"),
             "archetype": extract_field(block, FIELD_LABELS["archetype"]),
-            "layout": extract_field(block, FIELD_LABELS["layout"]),  # v0.2 P1.4
+            "layout": extract_field(block, FIELD_LABELS["layout"]),  #
             "variant": (extract_field(block, FIELD_LABELS["variant"]) or "").strip().lower(),  # v0.3
             "governing_thought": extract_field(block, FIELD_LABELS["governing_thought"]),
             "so_what": extract_field(block, FIELD_LABELS["so_what"]),
@@ -725,7 +725,7 @@ def detect_client_slug(template_path: Path, override: str | None) -> str:
     return slugify(template_path.stem)
 
 
-# M7 (Mermaid retirement, Decision 6, 2026-06-17): `_compute_theme_variables`
+# `_compute_theme_variables`
 # and `generate_mermaid_theme` were removed here. Pattern B HTML→PNG
 # supersedes Mermaid for curved-container diagrams; per-client Mermaid theme
 # generation is no longer needed.
@@ -789,7 +789,7 @@ def validate_theme(
         errors:   hard-halt conditions. Build refuses to proceed.
         warnings: soft conditions surfaced in dispatch_plan.md.
 
-    Brand source is `<template-stem>/brand.yml` (subfolder layout, v0.4+;
+    Brand source is `<template-stem>/brand.yml` (subfolder layout;
     human-authored via slide-builder/scripts/register_template.py, Phase 3
     interactive color confirmation). The slot-position-guessing class of
     bugs is gone by construction; these checks defend against human
@@ -845,7 +845,7 @@ def validate_theme(
             errors.append(
                 f"{label} = {hex_value} is near-grey (saturation {sat:.2f}). "
                 f"Source: {brand_yml} — brand colors should be chromatic. "
-                f"If this is a legitimately monochrome brand, override via --allow-neutral-brand (v0.1)."
+                f"If this is a legitimately monochrome brand, override via --allow-neutral-brand."
             )
 
     return errors, warnings
@@ -1209,13 +1209,13 @@ def write_meta_json(
 ) -> Path:
     """Write <out>/_meta.json, the canonical deck manifest.
 
-    M1 extension (2026-06-16): when effective_pattern != "legacy", Pattern B
+    M1 extension: when effective_pattern != "legacy", Pattern B
     optional fields are populated (pattern_default, pattern_per_slide,
     html_render_canvas, translator_dispatched, translation_reports, and
     per-slide pattern/artifacts). When "legacy" (or pattern_per_slide is
     None/empty), the optional fields are omitted entirely so the on-disk
     JSON is byte-identical to pre-M1 output. This preserves the M1 DoD
-    guarantee: "OTC build with no flag is byte-identical to pre-M1."
+    guarantee: "OTC build with no flag is byte-identical to the current default."
     """
     pattern_per_slide = pattern_per_slide or {}
     front_matter = brief.get("front_matter", {}) or {}
@@ -1234,10 +1234,10 @@ def write_meta_json(
                                    or _normalize_archetype_to_page_type(
                                        slide.get("archetype", "") or ""
                                    ),
-            # v0.2 P1.4: chrome.yml layout name for this slide. Required at
+            #: chrome.yml layout name for this slide. Required at
             # v3; resolve_slide_layouts already gates this is non-empty.
             "layout":             slide.get("layout", "") or "",
-            # v0.3: per-slide variant flag. "dark" triggers full-bleed
+            # per-slide variant flag. "dark" triggers full-bleed
             # brand.dark_bg_hex overlay + white title at finalize-time.
             # Empty / "light" / anything else = light variant (default).
             "variant":            (slide.get("variant", "") or "").strip().lower(),
@@ -1259,7 +1259,7 @@ def write_meta_json(
         "template":        str(template_path.resolve()),
         "brief":           str(brief_path.resolve()),
         "out":             str(out_dir.resolve()),
-        # M7 (Mermaid retirement, 2026-06-17): mermaid_theme field is no
+        # mermaid_theme field is no
         # longer written. _meta_schema.py keeps it as an optional empty-
         # default str so existing v3 readers continue to work without
         # surgery; new writes simply omit it.
@@ -1281,7 +1281,7 @@ def write_meta_json(
     if effective_pattern != "legacy" and pattern_per_slide:
         meta["pattern_default"] = effective_pattern
         meta["pattern_per_slide"] = pattern_per_slide
-        meta["html_render_canvas"] = "1280x720"  # locked Decision 1
+        meta["html_render_canvas"] = "1280x720"  # locked
         meta["translator_dispatched"] = False
         meta["translation_reports"] = {}
     # Validate against the pydantic schema before writing so a malformed
@@ -1335,7 +1335,7 @@ def _check_mmdc_installed() -> tuple[bool, str]:
 
 
 # ----------------------------------------------------------------------
-# v0.2 P1.4 — per-slide layout resolution + fail-loud gate
+# — per-slide layout resolution + fail-loud gate
 # ----------------------------------------------------------------------
 
 def resolve_slide_layouts(
@@ -1673,7 +1673,7 @@ def main() -> int:
              "When omitted, build_deck halts and asks for Y/N confirmation showing the resolved template name, "
              "brand colors, layout count, and registration timestamp.",
     )
-    # M1 — Pattern B rollback flag (2026-06-16). Per-build override of
+    # M1 — Pattern B rollback flag. Per-build override of
     # settings.json::default_pattern. Default None = use settings.json (which
     # ships at "legacy"). See _decisions/pattern-b/spec-8-rollback-flag.md.
     parser.add_argument(

@@ -101,7 +101,7 @@ def _mix_hex(hex_a: str, hex_b: str, ratio: float) -> str:
     """Blend two RGB hex strings. ratio=0 -> hex_a, ratio=1 -> hex_b.
 
     Internal name kept for the many existing call sites in this module.
-    Pattern B (M3) added the public alias `mix_hex` below; new code should
+    The public alias `mix_hex` below; new code should
     use the public name.
     """
     a_s = (hex_a or "").lstrip("#")
@@ -111,7 +111,7 @@ def _mix_hex(hex_a: str, hex_b: str, ratio: float) -> str:
     return "".join(f"{int(a[i] + (b[i] - a[i]) * ratio):02X}" for i in range(3))
 
 
-# Public alias (Pattern B M3, 2026-06-16). Promoted from `_mix_hex` so
+# Public alias (Pattern B M3, 2026-06-16). Public alias of `_mix_hex` so
 # register_template.py::write_brand_css and the Pattern B translator can
 # import without reaching into a private name. Same semantics; same return.
 mix_hex = _mix_hex
@@ -120,7 +120,7 @@ mix_hex = _mix_hex
 def hex_to_rgbcolor(hex_str: str):
     """Convert '#4D148C' or '4D148C' to python-pptx RGBColor.
 
-    Pattern B helper (Spec 2 §2). Used by the translator agent (M4+) when
+    Pattern B helper. Used by the translator agent (M4+) when
     converting CSS hex colors back to native python-pptx fills. Raises
     ValueError on malformed input — translator surfaces the slide with QC
     rule R4 (the translator-blocked severity).
@@ -426,11 +426,11 @@ class ClientTheme:
     dark_bg_slot: str = ""               # informational
     strip_master_backgrounds: bool = False
     template_sha: str = ""
-    # Gate A.3 (2026-06-08): on-disk path to the heading font's TTF, resolved
+    # Gate A.3: on-disk path to the heading font's TTF, resolved
     # at registration time. Empty string when the registering machine did not
     # have the font installed; finalize_deck falls back to a runtime disk scan.
     title_font_ttf_path: str = ""
-    # Gate A.1 (2026-06-08): canonical reference-slide spec from brand.yml.
+    # Gate A.1: canonical reference-slide spec from brand.yml.
     # None when the user did not designate a reference slide at registration.
     # Schema: {slide_n, layout_name, title_box_px, subtitle_box_px,
     #          observed_colors}.
