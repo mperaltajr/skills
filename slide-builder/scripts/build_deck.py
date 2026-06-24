@@ -733,30 +733,16 @@ def detect_client_slug(template_path: Path, override: str | None) -> str:
 
 # ----------------------------------------------------------------------
 # Theme sanity-check — structural belt-and-braces on the brand.yml-derived
-# theme. Brand source is human-authored via slide-builder/scripts/register_template.py
-# (Phase 3 interactive color confirmation), so the slot-position-guessing
-# class of failures is gone by construction. These checks defend against
-# brand.yml authoring errors (typo'd hexes, same color in both slots).
+# theme. Brand colors are human-confirmed at registration time, so the
+# slot-position-guessing class of failures is gone by construction. These
+# checks defend against brand.yml authoring errors (typo'd hexes, same
+# color in both slots).
 #
-# Three checks:
-#   1. primary and accent both loaded.
-#   1b. primary != accent.
+# Two checks:
+#   1. primary and accent both loaded; primary != accent.
 #   2. Plausible saturation / luminance for each (not pure black/white,
 #      not near-grey).
-#   3. Template path → expected color family for known clients (optional;
-#      warning-only when client unknown).
 # ----------------------------------------------------------------------
-
-# Hue ranges (degrees, 0-360) for known clients' brand primaries.
-# Extend as new clients are validated against real templates.
-# Hue conventions: red ~0, yellow ~60, green ~120, cyan ~180, blue ~240,
-#                  magenta ~300, red again ~360.
-KNOWN_CLIENT_HUE_RANGES: dict[str, tuple[float, float, str]] = {
-    "fedex": (260.0, 310.0, "purple"),
-    # Add others as we validate them against real templates.
-    # Note: don't add Accenture here — Accenture is also purple and would
-    # alias with FedEx, defeating the cross-client guard.
-}
 
 
 def _hex_to_rgb(hex_str: str) -> tuple[float, float, float]:
@@ -861,48 +847,6 @@ def validate_theme(
                 f"Source: {brand_yml} — brand colors should be chromatic. "
                 f"If this is a legitimately monochrome brand, override via --allow-neutral-brand (v0.1)."
             )
-
-    # Check 3: template path -> expected color family
-    path_lower = str(template_path).lower()
-    matched_client: str | None = None
-    for client_name, (hue_low, hue_high, family_label) in KNOWN_CLIENT_HUE_RANGES.items():
-        if client_name not in path_lower:
-            continue
-        matched_client = client_name
-        try:
-            primary_rgb = _hex_to_rgb(primary)
-        except ValueError:
-            break  # already reported in Check 2
-        hue, _, _ = _rgb_to_hsl(primary_rgb)
-        if not (hue_low <= hue <= hue_high):
-            errors.append(
-                f"Template path contains {client_name!r} (expected {family_label} "
-                f"primary, hue {hue_low:.0f}-{hue_high:.0f} deg), but primary={primary} "
-                f"has hue {hue:.0f} deg. "
-                f"Source: {brand_yml} — primary_hex doesn't match the expected color family "
-                f"for this client. Either brand.yml has a typo'd hex, or the template path "
-                f"matches the wrong KNOWN_CLIENT_HUE_RANGES entry (e.g., 'fedex' substring "
-                f"in path that's actually a different client). Re-register or pass --client-name."
-            )
-        break  # only run for the first matching client
-
-    # When no known client name appears in the template path, the hue-range check
-    # can't run — surface as a warning so the operator knows the validator is
-    # operating on structural checks only (primary != accent, saturation, luminance).
-    # With brand.yml as source-of-truth, the historical concern (loader-bug ships
-    # wrong-color slides for non-FedEx clients) is gone by construction — brand.yml
-    # was human-confirmed at registration time. This warning is mostly informational.
-    if matched_client is None:
-        known_clients = sorted(KNOWN_CLIENT_HUE_RANGES.keys()) or ["(none registered)"]
-        warnings.append(
-            f"client '{template_path.name}' (path: {template_path}) not in "
-            f"KNOWN_CLIENT_HUE_RANGES (currently: {known_clients}). "
-            f"Check 3 (brand-specific hue range) skipped — structural validation "
-            f"(primary != accent, plausible saturation/luminance) applied only. "
-            f"Brand source is {brand_yml} (human-confirmed at registration). "
-            f"To add this client to the hue-range guard, append an entry to "
-            f"KNOWN_CLIENT_HUE_RANGES in scripts/build_deck.py."
-        )
 
     return errors, warnings
 
