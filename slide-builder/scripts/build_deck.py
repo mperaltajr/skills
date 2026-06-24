@@ -717,7 +717,11 @@ def slugify(name: str) -> str:
 
 
 def detect_client_slug(template_path: Path, override: str | None) -> str:
-    """Derive a client slug from CLI override or the template filename.
+    """Derive a client slug from an override or the template path.
+
+    `override` is the CLI --client-name when given, otherwise the brief's
+    `client_name` front-matter; when both are absent the slug is derived from
+    the template's parent directory.
 
     Examples:
         template = .../Acme/_templates/Template2.pptx    →  "acme"
@@ -1743,7 +1747,11 @@ def main() -> int:
     # path (HTML) supersedes it. Brand-color validation happens at template
     # registration time (Phase 3 interactive color confirmation +
     # register_template.py's WCAG warning).
-    client_slug = detect_client_slug(args.template, args.client_name)
+    # Client slug precedence: CLI --client-name, then the brief's `client_name`
+    # front-matter, then derivation from the template's parent directory.
+    _fm = brief.get("front_matter", {}) or {}
+    _brief_client = (_fm.get("client_name") or _fm.get("client") or "").strip() or None
+    client_slug = detect_client_slug(args.template, args.client_name or _brief_client)
     brand = load_brand_sidecar(args.template)
 
     # No inline theme sanity-check runs here. Validation lives at template

@@ -1981,11 +1981,8 @@ def _resolve_brand_ttf_path(font_name: str) -> str:
         found = _find_brand_ttf(cand)
         if found:
             return found
-    # Last resort: the default Acme Sans list inside _find_brand_ttf — only
-    # if the font name looks like a Acme font (otherwise we'd write a
-    # Acme Sans path for a non-Acme template).
-    if "acme" in clean.lower():
-        return _find_brand_ttf() or ""
+    # No TTF matched any name variation; the caller falls back gracefully and
+    # warns the operator to record the font path at registration.
     return ""
 
 
