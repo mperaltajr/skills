@@ -2,27 +2,33 @@
 emit_dot_dash.py — Project a narrative brief into a dot-dash storyline file
 ==========================================================================
 
-Reads a `narrative-brief-<topic>.md` and writes a companion
-`dot-dash-<topic>.md` AND `dot-dash-<topic>.html` that lay out the deck's
-argument in McKinsey-style dot-dash format:
+Reads a `narrative-brief-<topic>.md` and writes companion
+`dot-dash-<topic>.docx`, `dot-dash-<topic>.md`, and `dot-dash-<topic>.html`
+files that lay out the deck's argument in McKinsey-style dot-dash format:
 
     • Slide governing thought (the action title)
-      – Evidence bullet 1
-      – Evidence bullet 2
-      – Exhibit: chart description (if the slide has a chart)
+      – Evidence sentence as prose (no labels, no ALL-CAPS prefixes)
+      – Evidence sentence as prose
+      – Takeaway – the so-what synthesizing the dashes above
 
-Read the dots top-to-bottom and you should get the deck's argument in N
-sentences. If the dots-alone don't form a coherent story, the storyline
-is broken — that's the value of generating this file before any slide is
-built.
+Read the dot headlines + Takeaway lines top-to-bottom and you should get
+the deck's argument as a coherent story. If they don't, the storyline is
+broken — that's the value of generating this file before any slide is
+built (the read-down test, Minto Pyramid Principle).
+
+The dot-dash is the human-facing artifact. Its job is to read like a
+consultant wrote it, not to carry the structured `**HEADING** — body`
+shape the slide-builder translator needs. Bullets in the brief that use
+that shape are stripped to prose here. The brief retains the structure
+for slide-builder downstream — two views of the same content.
 
 Usage:
     py -3 emit_dot_dash.py "<path to narrative-brief-*.md>"
 
 Output:
 - If the brief lives in `<root>/_session/narrative-brief-<topic>.md`
-  → writes `<root>/dot-dash-<topic>.md` and `<root>/dot-dash-<topic>.html`
-- Otherwise → writes both next to the brief
+  → writes `<root>/dot-dash-<topic>.docx` + .md + .html
+- Otherwise → writes all three next to the brief
 
 The script never modifies the brief.
 
@@ -36,6 +42,9 @@ Public API (callable from review_html.py):
   render_dot_dash_html(data, *, standalone=True) -> str
     HTML render. standalone=True returns a full <html> page; False returns
     an inner fragment suitable for embedding in another HTML page.
+  render_dot_dash_docx(data, output_path) -> None
+    Word document render — Heading 1 deck title, prose dashes, bold
+    Takeaway label. Matches the hand-written house-style example.
 """
 
 from __future__ import annotations
@@ -63,11 +72,49 @@ def _extract_field(block: str, label: str) -> str:
     return m.group(1).strip() if m else ""
 
 
+# Brief-format prefix that needs stripping when projected into the dot-dash.
+# The brief carries `- **HEADING** — body sentence` because slide-builder's
+# translator parses that shape into structured card/pillar overrides. For
+# the dot-dash artifact (human-facing) we want prose, so we drop the bold
+# heading and its trailing separator. Handles both em-dash (—) and en-dash
+# (–) and plain hyphen, with optional whitespace.
+_LABEL_PREFIX_RE = re.compile(
+    r"^\*\*[^*]+\*\*\s*[—–\-]\s*"
+)
+
+# Key-value structured bullets (`**Title:** Slide Labs`, `**Tagline:** ...`)
+# show up on cover/transition/closing slides. They are slide-construction
+# data, not story content. Detect so the renderer can elide them from the
+# dot-dash narrative.
+_KV_BULLET_RE = re.compile(r"^\*\*[^*]+:\*\*\s*")
+
+
+def _strip_bullet_label(text: str) -> str:
+    """Strip a `**HEADING** — ` prefix from a bullet so it reads as prose.
+
+    Returns the bullet unchanged when no recognized prefix is present.
+    Capitalizes the first letter of the resulting prose (sentence case)
+    when the strip leaves a lowercase opener — labels in the brief are
+    often followed by a sentence fragment that, freed of the label, no
+    longer starts cleanly.
+    """
+    stripped = _LABEL_PREFIX_RE.sub("", text, count=1)
+    if stripped != text and stripped and stripped[0].islower():
+        stripped = stripped[0].upper() + stripped[1:]
+    return stripped
+
+
+def _is_kv_bullet(text: str) -> bool:
+    """True when the bullet is a `**Field:** value` structured pair — these
+    appear on cover/transition/closing slides and are not prose content."""
+    return bool(_KV_BULLET_RE.match(text))
+
+
 def _extract_evidence_bullets(block: str) -> list[str]:
     """Pull evidence bullets out of the `**Evidence / content:**` field.
 
     Recognises three line shapes:
-      - Top-level bullets (`- ` / `* `)            → kept as dashes
+      - Top-level bullets (`- ` / `* `)            → kept as dashes (label-stripped)
       - Indented continuation bullets               → merged into previous dash
       - Non-bullet label lines ending with `:`     → buffered, used to label
                                                      any table that follows
@@ -75,6 +122,11 @@ def _extract_evidence_bullets(block: str) -> list[str]:
                                                      anchored to the buffered
                                                      label OR (if absent) to
                                                      the prior bullet
+
+    Bullets that are key-value pairs (`**Title:** ...`) are returned as-is —
+    callers (cover/transition slides) decide whether to render them. All
+    other bullets have their `**HEADING** — ` prefix stripped so the dot-
+    dash reads as prose (not labeled callouts).
 
     Stray prose lines that are neither bullets nor labels are ignored.
     """
@@ -114,7 +166,15 @@ def _extract_evidence_bullets(block: str) -> list[str]:
 
         # Top-level bullets
         if line.startswith(("- ", "* ")):
-            bullets.append(line[2:].strip())
+            raw = line[2:].strip()
+            # Key-value bullets (`**Title:** ...`, `**Primary ask:** ...`)
+            # are slide-construction data — title, presenter, ask labels.
+            # They never carry narrative content, so drop them entirely
+            # from the dot-dash. The dot + Takeaway carry the story.
+            if _is_kv_bullet(raw):
+                pending_label = None
+                continue
+            bullets.append(_strip_bullet_label(raw))
             pending_label = None  # bullets supersede any pending label
             continue
 
@@ -216,6 +276,38 @@ def _grab_inline(text: str, label: str) -> str:
 # Parse — structured intermediate form (used by both md and html renderers)
 # ---------------------------------------------------------------------------
 
+_NO_NARRATIVE_ARCHETYPES = {
+    "cover / title", "cover", "title",
+    # Transition cards that introduce a section also carry no story content.
+    "transition", "section divider", "section / divider",
+}
+
+
+def _is_no_narrative_slide(archetype: str, governing: str, bullets: list[str]) -> bool:
+    """True when a slide carries no narrative dashes — typically a cover,
+    transition, or closing-CTA slide whose bullets are key-value pairs.
+
+    These slides get their dashes elided from the dot-dash so the artifact
+    reads as a continuous argument rather than tripping over title/tagline
+    metadata that belongs on a slide, not in a story.
+    """
+    archetype_n = (archetype or "").strip().lower()
+    if archetype_n in _NO_NARRATIVE_ARCHETYPES:
+        return True
+    # Heuristic fallback: governing thought missing AND bullets are
+    # predominantly structured key-value pairs.
+    governing_missing = (
+        not governing
+        or "no governing thought" in governing.lower()
+        or "transition card" in governing.lower()
+    )
+    if governing_missing and bullets:
+        kv_count = sum(1 for b in bullets if _is_kv_bullet(b))
+        if kv_count / len(bullets) > 0.5:
+            return True
+    return False
+
+
 def parse_brief_for_dot_dash(brief_text: str) -> Dict[str, Any]:
     """Parse a narrative brief into structured dot-dash data.
 
@@ -225,9 +317,12 @@ def parse_brief_for_dot_dash(brief_text: str) -> Dict[str, Any]:
                    belief_leave, say_back},
         "slides": [
           {"title": "Slide 2 — The Problem",
+           "archetype": "Context / Situation",
            "governing": "...",
-           "bullets": ["...", "..."],
-           "exhibit": "Exhibit: bar chart — ..."},
+           "so_what": "...",         # used as the Takeaway dash
+           "bullets": ["...", "..."],  # prose, labels stripped
+           "exhibit": "Exhibit: bar chart — ...",
+           "no_narrative": False},    # True for covers / transitions
           ...
         ]
       }
@@ -236,11 +331,33 @@ def parse_brief_for_dot_dash(brief_text: str) -> Dict[str, Any]:
     blocks = _split_slides(brief_text)
     slides: List[Dict[str, Any]] = []
     for block in blocks:
+        archetype = _extract_field(block, "Archetype")
+        # The brief stores so-what under either header form depending on
+        # the slide kind. Try the canonical first, then the cover-shortened.
+        so_what = (
+            _extract_field(block, "So-what (the takeaway)")
+            or _extract_field(block, "So-what")
+        )
+        # Cover/transition placeholder text ("[Cover slide — no so-what required]")
+        # shouldn't surface as a Takeaway.
+        if so_what.startswith("[") and so_what.endswith("]"):
+            so_what = ""
+        # Governing thought has the same conditional shape.
+        governing = (
+            _extract_field(block, "Governing thought (the claim)")
+            or _extract_field(block, "Governing thought")
+        )
+        if governing.startswith("[") and governing.endswith("]"):
+            governing = ""
+        bullets = _extract_evidence_bullets(block)
         slides.append({
             "title": _slide_title(block),
-            "governing": _extract_field(block, "Governing thought (the claim)"),
-            "bullets": _extract_evidence_bullets(block),
+            "archetype": archetype,
+            "governing": governing,
+            "so_what": so_what,
+            "bullets": bullets,
             "exhibit": _exhibit_line(block),
+            "no_narrative": _is_no_narrative_slide(archetype, governing, bullets),
         })
     return {"header": header, "slides": slides}
 
@@ -288,11 +405,21 @@ def render_dot_dash_md(data: Dict[str, Any]) -> str:
         if s["governing"]:
             lines.append(f"**• {s['governing']}**")
         else:
-            lines.append(f"**• _(no governing thought in brief)_**")
-        for b in s["bullets"]:
-            lines.append(f"  – {b}")
-        if s["exhibit"]:
-            lines.append(f"  – {s['exhibit']}")
+            # Cover / transition placeholder text — no governing thought
+            # by design. Mark explicitly so the read-down test ignores it.
+            lines.append(f"**• _(cover / transition — no governing thought)_**")
+        # Covers and transitions ship no narrative dashes — the title and
+        # any key-value metadata live on the slide itself.
+        if not s.get("no_narrative"):
+            for b in s["bullets"]:
+                lines.append(f"  – {b}")
+            if s["exhibit"]:
+                lines.append(f"  – {s['exhibit']}")
+            if s.get("so_what"):
+                # Takeaway is the final dash — synthesizes the dashes above
+                # into the slide's so-what. En-dash separator matches the
+                # hand-written house-style example.
+                lines.append(f"  – **Takeaway –** {s['so_what']}")
         lines.append("")
 
     return "\n".join(lines) + "\n"
@@ -330,6 +457,8 @@ _DOT_DASH_CSS = """
 .dd-bullets li { font-size: 13px; color: var(--text-dim); padding: 2px 0; position: relative; }
 .dd-bullets li::before { content: "– "; color: var(--accent-soft); position: absolute; left: -16px; }
 .dd-bullets li.exhibit { color: var(--accent-soft); font-style: italic; }
+.dd-bullets li.takeaway { color: var(--text); padding-top: 6px; }
+.dd-bullets li.takeaway strong { color: var(--accent-soft); margin-right: 4px; }
 .dd-empty { color: var(--text-dim); font-style: italic; }
 """
 
@@ -388,16 +517,22 @@ def render_dot_dash_html(data: Dict[str, Any], *, standalone: bool = True) -> st
             if s["governing"]:
                 parts.append(f'<div class="dd-gov">{_h(s["governing"])}</div>')
             else:
-                parts.append('<div class="dd-gov missing">(no governing thought in brief)</div>')
-            items: list[str] = []
-            for b in s["bullets"]:
-                items.append(f'<li>{_h(b)}</li>')
-            if s["exhibit"]:
-                items.append(f'<li class="exhibit">{_h(s["exhibit"])}</li>')
-            if items:
-                parts.append('<ul class="dd-bullets">')
-                parts.extend(items)
-                parts.append('</ul>')
+                parts.append('<div class="dd-gov missing">(cover / transition — no governing thought)</div>')
+            if not s.get("no_narrative"):
+                items: list[str] = []
+                for b in s["bullets"]:
+                    items.append(f'<li>{_h(b)}</li>')
+                if s["exhibit"]:
+                    items.append(f'<li class="exhibit">{_h(s["exhibit"])}</li>')
+                if s.get("so_what"):
+                    items.append(
+                        f'<li class="takeaway"><strong>Takeaway –</strong> '
+                        f'{_h(s["so_what"])}</li>'
+                    )
+                if items:
+                    parts.append('<ul class="dd-bullets">')
+                    parts.extend(items)
+                    parts.append('</ul>')
             parts.append('</div>')
 
     parts.append('</div>')
@@ -418,6 +553,118 @@ def render_dot_dash_html(data: Dict[str, Any], *, standalone: bool = True) -> st
         f"{_DOT_DASH_CSS}</style>"
         f"</head><body>{body}</body></html>"
     )
+
+
+# ---------------------------------------------------------------------------
+# Render — Word document (the canonical human-facing artifact)
+# ---------------------------------------------------------------------------
+
+def render_dot_dash_docx(data: Dict[str, Any], output_path: pathlib.Path) -> None:
+    """Write the dot-dash data as a .docx file readable in Word.
+
+    Layout matches the hand-written house-style reference:
+      - Heading 1 deck title
+      - Deck-level metadata as a key:value block (bold labels)
+      - Per-slide block: bold dot headline (the governing thought) as a
+        bulleted item, then indented dashes for evidence, then a bold
+        "Takeaway –" dash synthesizing the so-what.
+
+    Word is the canonical artifact because consultants edit, comment, and
+    track-change in Word — markdown gets mangled in real review workflows.
+    """
+    from docx import Document
+    from docx.shared import Pt, RGBColor, Inches
+
+    header = data["header"]
+    slides = data["slides"]
+
+    doc = Document()
+
+    # Default style — Arial 11pt, the consulting-deliverable baseline.
+    normal = doc.styles["Normal"]
+    normal.font.name = "Arial"
+    normal.font.size = Pt(11)
+
+    # Title.
+    topic = header.get("topic") or "Dot-dash storyline"
+    doc.add_heading(f"Dot-dash storyline: {topic}", level=1)
+
+    # Deck metadata block — bold label, value on the same line.
+    def _meta(label: str, value: str) -> None:
+        if not value:
+            return
+        p = doc.add_paragraph()
+        run_l = p.add_run(f"{label}: ")
+        run_l.bold = True
+        p.add_run(value)
+
+    _meta("Deck type", header.get("deck_type", ""))
+    _meta("Governing thought (whole deck)", header.get("governing", ""))
+    if header.get("audience"):
+        _meta("Audience", header["audience"].splitlines()[0])
+    _meta("Belief to break", header.get("belief_break", ""))
+    _meta("Belief to leave with", header.get("belief_leave", ""))
+    _meta("The room should say back", header.get("say_back", ""))
+
+    # Read-down callout — italic, lighter to set it apart from content.
+    callout = doc.add_paragraph()
+    r = callout.add_run(
+        "Read the dot headlines top-to-bottom — together they should form "
+        "the deck's argument as a coherent story. If they don't, the "
+        "storyline is broken."
+    )
+    r.italic = True
+    r.font.color.rgb = RGBColor(0x60, 0x60, 0x60)
+
+    if not slides:
+        doc.add_paragraph("No slides found in the brief.")
+        doc.save(str(output_path))
+        return
+
+    for s in slides:
+        # Slide-title subtitle (e.g., "Slide 2 — The Problem").
+        sub = doc.add_paragraph()
+        sub.paragraph_format.space_before = Pt(14)
+        sr = sub.add_run(s["title"])
+        sr.italic = True
+        sr.font.color.rgb = RGBColor(0x60, 0x60, 0x60)
+
+        # The dot — bold governing thought, bulleted at level 0.
+        dot_text = (
+            s["governing"] if s["governing"]
+            else "(cover / transition — no governing thought)"
+        )
+        p_dot = doc.add_paragraph(style="List Bullet")
+        rd = p_dot.add_run(dot_text)
+        rd.bold = True
+        if not s["governing"]:
+            rd.italic = True
+            rd.font.color.rgb = RGBColor(0x80, 0x80, 0x80)
+
+        # Dashes — covers/transitions get none.
+        if s.get("no_narrative"):
+            continue
+
+        for b in s["bullets"]:
+            p_dash = doc.add_paragraph(style="List Bullet 2")
+            p_dash.paragraph_format.space_after = Pt(2)
+            p_dash.add_run(b)
+
+        if s.get("exhibit"):
+            p_ex = doc.add_paragraph(style="List Bullet 2")
+            p_ex.paragraph_format.space_after = Pt(2)
+            er = p_ex.add_run(s["exhibit"])
+            er.italic = True
+
+        if s.get("so_what"):
+            p_take = doc.add_paragraph(style="List Bullet 2")
+            p_take.paragraph_format.space_before = Pt(4)
+            tr_label = p_take.add_run("Takeaway – ")
+            tr_label.bold = True
+            p_take.add_run(s["so_what"])
+
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    doc.save(str(output_path))
 
 
 # Back-compat alias — legacy callers use render_dot_dash(brief_text) -> markdown.
@@ -483,11 +730,24 @@ def main() -> int:
 
     md_path = _output_path(brief_path)
     html_path = md_path.with_suffix(".html")
+    docx_path = md_path.with_suffix(".docx")
 
     md_path.write_text(render_dot_dash_md(data), encoding="utf-8")
     html_path.write_text(render_dot_dash_html(data, standalone=True), encoding="utf-8")
+    try:
+        render_dot_dash_docx(data, docx_path)
+        docx_status = str(docx_path)
+    except ImportError as exc:
+        # python-docx not installed — emit a clear pointer rather than
+        # crashing. .docx is the canonical artifact, but the .md companion
+        # still ships.
+        docx_status = (
+            f"SKIPPED ({exc.__class__.__name__}: {exc}). "
+            "Install python-docx: `py -3 -m pip install python-docx`"
+        )
 
     print(f"Dot-dash written:")
+    print(f"  {docx_path if 'SKIPPED' not in docx_status else docx_status}")
     print(f"  {md_path}")
     print(f"  {html_path}")
     return 0
