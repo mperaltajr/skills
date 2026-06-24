@@ -39,7 +39,7 @@ Before installing, make sure you have:
 - **Claude Code** — [claude.ai/code](https://claude.ai/code)
 - **Git** — [git-scm.com](https://git-scm.com) *(download and install, keep all defaults)*
 - **Python 3** — [python.org](https://python.org) *(needed for slide-builder)*
-- **LibreOffice** — [libreoffice.org](https://www.libreoffice.org) *(needed for the silent PPTX→PNG render path; defaults to `C:\Program Files\LibreOffice\`)*
+- **LibreOffice** — [libreoffice.org](https://www.libreoffice.org) *(needed for slide-qc review and visual previews; the deck build itself runs without it. Defaults to `C:\Program Files\LibreOffice\`)*
 
 ---
 
@@ -130,6 +130,16 @@ YourClient/
 - The `_templates/` folder holds your client's PowerPoint template. Claude extracts colors and fonts from it automatically.
 - Each session gets its own dated folder. Claude saves the deck, mockups, and working files there.
 - You only need to add the template once per client.
+
+### Register the template (one-time, per client)
+
+Before the first build on a new template, register it so Claude learns its brand colors, fonts, and layouts. In Claude Code, just say:
+
+```
+Register my template at _templates/client-template.pptx
+```
+
+Claude walks you through confirming the brand colors (it proposes them from the template; you correct anything wrong), then writes a small set of sidecar files next to the template. **This is required once per template** — if you skip it and start a build, Claude will stop and ask you to register first. Re-registering is only needed if the template itself changes.
 
 ---
 
