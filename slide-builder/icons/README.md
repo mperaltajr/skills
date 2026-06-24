@@ -6,9 +6,9 @@ This preserves perfect vector quality at any size and removes any rasterization 
 
 ---
 
-## What ships in v0.1
+## What ships
 
-`slide-builder/icons/` contains the pre-extracted XML files plus `icon-index.json` which maps each icon name → source-slide metadata (kept for provenance). There is **no live extraction step in the v0.1 pipeline** — the previous `extract_icons.py` was a v1 one-shot utility and is not maintained.
+`slide-builder/icons/` contains the pre-extracted XML files plus `icon-index.json` which maps each icon name → source-slide metadata (kept for provenance). There is **no live extraction step in the pipeline** — icons are added by hand (see below).
 
 **Missing-icon behavior.** If a pattern asks for an icon name that has no XML file in `icons/`, `icon_helper.insert_icon()` falls back to a labeled dashed-border placeholder. The build never errors on a missing icon. The placeholder includes the requested name so the user can see what was wanted on the rendered slide.
 
@@ -89,9 +89,9 @@ This prevents build failures and surfaces the missing-icon condition visually fo
 
 ## Adding new icons (out of band)
 
-v0.1 has no in-skill extraction script. If you need to add an icon:
+There is no in-skill extraction script. If you need to add an icon:
 
 1. Hand-author a new `icons/<name>.xml` file matching the structure of an existing one (a single `p:sp` group, with `solidFill/srgbClr` values where you want the accent to apply).
 2. Optionally append a metadata entry to `icon-index.json` for provenance.
 
-This is intentionally an explicit, low-frequency operation. The v0 vocabulary has been sufficient for the patterns shipped to date; a v0.2 extraction utility may revisit this.
+This is intentionally an explicit, low-frequency operation. The current icon vocabulary covers the patterns the skill ships.
