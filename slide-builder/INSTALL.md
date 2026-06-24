@@ -22,7 +22,7 @@ Verify:
 py -3 -c "import pptx, PIL, yaml, lxml, pydantic, pypdfium2, skimage; print('python deps OK')"
 ```
 
-Expected: `python deps OK`. If `import` fails, re-run the pip install. `pypdfium2` is used by the slide-qc render path; if it's missing here, slide-qc would auto-install it mid-build (which works but surprises the user with a pip log during finalize) — pin it at install time instead. `skimage` (scikit-image) is used by the Pattern B regression-check harness (`tests/capture_baseline.py` + `tests/regression_check.py`); it adds ~30 MB to the install but is the load-bearing dep for the "no silent regressions" quality guarantee.
+Expected: `python deps OK`. If `import` fails, re-run the pip install. `pypdfium2` is used by the slide-qc render path; if it's missing here, slide-qc would auto-install it mid-build (which works but surprises the user with a pip log during finalize) — pin it at install time instead. `skimage` (scikit-image) is used by the sketch-path regression-check harness (`tests/capture_baseline.py` + `tests/regression_check.py`); it adds ~30 MB to the install but is the load-bearing dep for the "no silent regressions" quality guarantee.
 
 ## Step 1.5 — Playwright Chromium binary
 
@@ -32,7 +32,7 @@ Expected: `python deps OK`. If `import` fails, re-run the pip install. `pypdfium
 py -3 -m playwright install chromium
 ```
 
-Downloads ~170 MB. Required for `scripts/render_html.py` (the Pattern B render path that turns worker-authored HTML into the 1280×720 PNG the operator picks from). Skip only if you have no plans to use Pattern B; the legacy python-pptx pipeline does not depend on it.
+Downloads ~170 MB. Required for `scripts/render_html.py` (the sketch-path render path that turns worker-authored HTML into the 1280×720 PNG the operator picks from). Skip only if you have no plans to use the sketch path; the legacy python-pptx pipeline does not depend on it.
 
 Verify:
 
@@ -110,20 +110,20 @@ $wp = "$env:USERPROFILE\.claude\agents\slide-builder-worker.md"
   -and (Select-String -Path $wp -Pattern "option_A\.py" -Quiet) `
   -and (Select-String -Path $wp -Pattern "_context\.md" -Quiet) `
   -and (Select-String -Path $wp -Pattern "_context_ack\.txt" -Quiet) `
-  -and (Select-String -Path $wp -Pattern "PATTERN: B" -Quiet)
+  -and (Select-String -Path $wp -Pattern "PATTERN: sketch" -Quiet)
 ```
 
 Expected: `True`. The four greps prove the installed file is the current worker contract:
   - `option_A.py` — writes `option_A.py` / `option_B.py` / `option_C.py` (rules out v1-era workers that wrote 4 options or used `sys.argv` paths)
   - `_context.md` — knows to read the per-slide context bundle BEFORE the prompt (Gate C.1, added)
   - `_context_ack.txt` — knows to write the soft-enforcement acknowledgment (Gap 3, added)
-  - `PATTERN: B` — knows the Pattern B branch (HTML output when dispatched with `PATTERN: B`; added). A worker pre-dating this branch silently falls back to python-pptx output even when Pattern B is enabled
+  - `PATTERN: sketch` — knows the sketch-path branch (HTML output when dispatched with `PATTERN: sketch`). A worker pre-dating this branch silently falls back to python-pptx output even when the sketch path is enabled
 
 **Without this file (or with the wrong content), Stage 2 dispatch silently does nothing** — your build will reach `finalize_deck.py` with zero option scripts and produce nothing useful. A stale worker that passes only the first grep will silently produce builds without context awareness, with yellow ⚠ chips on every slide in REVIEW.html.
 
-## Step 7 — Translator agent (Pattern B Stage-3.5 dispatch)
+## Step 7 — Translator agent (the sketch path Stage-3.5 dispatch)
 
-When Pattern B is enabled (`--pattern B` or `settings.json::default_pattern: "auto"|"B"`), Stage 3.5 dispatches **one `slide-builder-translator` agent per picked Pattern B slide**. That subagent converts the picked `option_X.html` to a native `option_X_native.py` with editable text frames. Its definition must exist at:
+When the sketch path is enabled (`--pattern sketch` or `settings.json::default_pattern: "auto"|"sketch"`), Stage 3.5 dispatches **one `slide-builder-translator` agent per picked sketch-path slide**. That subagent converts the picked `option_X.html` to a native `option_X_native.py` with editable text frames. Its definition must exist at:
 
 ```
 %USERPROFILE%\.claude\agents\slide-builder-translator.md
@@ -136,7 +136,7 @@ Copy-Item "$env:USERPROFILE\.claude\skills\slide-builder\agents\slide-builder-tr
           "$env:USERPROFILE\.claude\agents\slide-builder-translator.md" -Force
 ```
 
-Verify (existence AND content — a stale copy will silently produce non-editable or visually-broken Pattern B output):
+Verify (existence AND content — a stale copy will silently produce non-editable or visually-broken sketch-path output):
 
 ```powershell
 $tp = "$env:USERPROFILE\.claude\agents\slide-builder-translator.md"
@@ -147,13 +147,13 @@ $tp = "$env:USERPROFILE\.claude\agents\slide-builder-translator.md"
   -and (Select-String -Path $tp -Pattern "EDITABILITY_VIOLATION" -Quiet)
 ```
 
-Expected: `True`. The four greps prove the installed translator understands the Pattern B contract:
+Expected: `True`. The four greps prove the installed translator understands the sketch-path contract:
   - `data-template-field` — extracts chrome (title/subtitle/footer/page_number) from HTML attributes per Spec 4 §5
   - `data-shape-id` — translates body-zone elements to native python-pptx shapes per Spec 4 §6
   - `__template_fields__` — emits the structured comment header `finalize_deck.py` reads for placeholder population
   - `EDITABILITY_VIOLATION` — implements the R4.7 Critical editability self-check
 
-**Without this file**, Pattern B dispatch (Stage 3.5) emits `TRANSLATOR_BLOCKED` on every picked slide and finalize halts. Legacy / Pattern C builds (the shipped default) are unaffected and continue working without this file.
+**Without this file**, sketch-path dispatch (Stage 3.5) emits `TRANSLATOR_BLOCKED` on every picked slide and finalize halts. Legacy / direct-path builds (the shipped default) are unaffected and continue working without this file.
 
 ## Verification step
 
@@ -168,7 +168,7 @@ $worker_ok    = (Test-Path $worker_path) `
   -and (Select-String -Path $worker_path -Pattern "option_A\.py" -Quiet) `
   -and (Select-String -Path $worker_path -Pattern "_context\.md" -Quiet) `
   -and (Select-String -Path $worker_path -Pattern "_context_ack\.txt" -Quiet) `
-  -and (Select-String -Path $worker_path -Pattern "PATTERN: B" -Quiet)
+  -and (Select-String -Path $worker_path -Pattern "PATTERN: sketch" -Quiet)
 $translator_path = "$env:USERPROFILE\.claude\agents\slide-builder-translator.md"
 $translator_ok   = (Test-Path $translator_path) `
   -and (Select-String -Path $translator_path -Pattern "data-template-field" -Quiet) `

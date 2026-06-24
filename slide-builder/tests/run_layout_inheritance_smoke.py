@@ -372,8 +372,9 @@ def assert_v1_chrome_yml_still_loadable() -> list[str]:
 
 SMOKE_BRIEF_TEMPLATE = """---
 client_template: {tpl}
-deck_type: Smoke test (v0.2 P1.9)
+deck_type: Smoke test
 default_layout: body_canonical_light
+mode: template-fill
 ---
 
 ## Deck-level design notes
