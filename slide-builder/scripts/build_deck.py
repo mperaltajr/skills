@@ -77,7 +77,7 @@ ANTI_PATTERNS_MD = SKILL_ROOT / "reference" / "anti-patterns.md"
 # M7 (Mermaid retirement, 2026-06-17): the FALLBACK_MD / FALLBACK_EXAMPLES_DIR
 # constants pointed at the legacy Mermaid fallback docs at
 # reference/fallback.md + reference/fallback-examples/. Both were deleted per
-# Decision 6. The constants are retained as no-op references for any external
+# the Mermaid retirement. The constants are retained as no-op references for any external
 # code that still imports them — they point at paths that no longer exist on
 # disk, but no production code path reads them.
 FALLBACK_MD = SKILL_ROOT / "reference" / "fallback.md"           # path no longer exists
@@ -199,7 +199,7 @@ def _normalize_archetype_to_page_type(archetype: str) -> str:
 
 
 # ----------------------------------------------------------------------
-# M1 — Pattern B routing helpers
+# Build-path routing helpers
 #
 # Spec references:
 #   _decisions/pattern-b/spec-7-schema-version-migration.md (extends v3)
@@ -207,9 +207,9 @@ def _normalize_archetype_to_page_type(archetype: str) -> str:
 #
 # Default behavior: when --pattern is omitted and settings.json::enable_sketch
 # is False (the shipped default), effective_pattern resolves to "legacy" and
-# write_meta_json omits all Pattern B optional fields entirely. _meta.json
-# is byte-identical to pre-M1 output. Only when the user opts in does any
-# Pattern B field appear in _meta.json.
+# write_meta_json omits all build-path optional fields entirely. _meta.json
+# is byte-identical to the legacy output. Only when the user opts in does any
+# build-path field appear in _meta.json.
 # ----------------------------------------------------------------------
 
 _SETTINGS_JSON_PATH = SKILL_ROOT / "settings.json"
@@ -230,7 +230,7 @@ def _load_skill_settings() -> dict[str, Any]:
         # Don't crash on a malformed settings.json; warn and fall back.
         sys.stderr.write(
             f"  WARN: failed to parse {_SETTINGS_JSON_PATH}; falling back to "
-            f"hard-coded defaults (legacy pattern, Pattern B disabled).\n"
+            f"hard-coded defaults (legacy pattern, sketch path disabled).\n"
         )
         return {}
 
@@ -781,7 +781,7 @@ def detect_client_slug(template_path: Path, override: str | None) -> str:
 
 
 # `_compute_theme_variables`
-# and `generate_mermaid_theme` were removed here. Pattern B HTML→PNG
+# and `generate_mermaid_theme` were removed here. The sketch path HTML→PNG
 # supersedes Mermaid for curved-container diagrams; per-client Mermaid theme
 # generation is no longer needed.
 
@@ -1178,7 +1178,7 @@ def write_dispatch_plan(
     one-stop summary of what was prepped.
 
     M7 (Mermaid retirement, 2026-06-17): the Mermaid-theme reference + the
-    theme fallbacks section were removed — Pattern B HTML→PNG supersedes
+    theme fallbacks section were removed — the sketch path HTML→PNG supersedes
     Mermaid; brand validation now happens at template registration time.
     """
     plan_path = _p.dispatch_plan_md(out_dir)
@@ -1269,12 +1269,12 @@ def write_meta_json(
 ) -> Path:
     """Write <out>/_meta.json, the canonical deck manifest.
 
-    M1 extension: when effective_pattern != "legacy", Pattern B
+    When effective_pattern != "legacy", build-path
     optional fields are populated (pattern_default, pattern_per_slide,
     html_render_canvas, translator_dispatched, translation_reports, and
     per-slide pattern/artifacts). When "legacy" (or pattern_per_slide is
     None/empty), the optional fields are omitted entirely so the on-disk
-    JSON is byte-identical to pre-M1 output. This preserves the M1 DoD
+    JSON is byte-identical to the legacy output. This preserves the
     guarantee: "OTC build with no flag is byte-identical to the current default."
     """
     pattern_per_slide = pattern_per_slide or {}
@@ -1302,7 +1302,7 @@ def write_meta_json(
             # Empty / "light" / anything else = light variant (default).
             "variant":            (slide.get("variant", "") or "").strip().lower(),
         }
-        # M1: only populate Pattern B fields when classifier produced
+        # Only populate build-path fields when the classifier produced
         # routing for this slide. Empty pattern_per_slide (legacy mode)
         # leaves the per-slide entry shape unchanged.
         if str(slide_n) in pattern_per_slide:
@@ -1340,7 +1340,7 @@ def write_meta_json(
                                    or brief.get("deck_audience", "") or "",
         },
     }
-    # M1: Pattern B optional top-level fields. Only added when effective
+    # Build-path optional top-level fields. Only added when effective
     # pattern is non-legacy AND classifier produced routing. Preserves
     # byte-identical output for legacy builds (no flag, default settings).
     if effective_pattern != "legacy" and pattern_per_slide:
@@ -1628,7 +1628,7 @@ def stage1_sanity_check(template_path: Path) -> int:
         return 7
 
     # M7 (Mermaid retirement, 2026-06-17): the mmdc CLI installation check
-    # used to live here. Mermaid was retired per Decision 6; Pattern B
+    # used to live here. Mermaid was retired; the sketch path
     # HTML→PNG via Playwright (verified at install via INSTALL.md Step 1.5)
     # supersedes it.
 
@@ -1758,7 +1758,7 @@ def main() -> int:
     )
     args = parser.parse_args()
 
-    # M1 — Resolve effective pattern from CLI flag + settings.json + ship default.
+    # Resolve effective pattern from CLI flag + settings.json + ship default.
     # Resolution order:
     #   1. --pattern flag wins outright (if provided)
     #   2. settings.json::default_pattern (read if file exists at skill root)
@@ -1832,7 +1832,7 @@ def main() -> int:
 
     # 4. Load brand sidecar (still needed for write_meta_json + per-slide
     # context). M7 (Mermaid retirement, 2026-06-17): the per-client Mermaid
-    # theme generation that used to live here was removed — Pattern B HTML
+    # theme generation that used to live here was removed — the sketch path HTML
     # path supersedes Mermaid. Brand-color validation now happens at template
     # registration time (Phase 3 interactive color confirmation +
     # register_template.py's WCAG warning emitted at M3).
@@ -1848,14 +1848,14 @@ def main() -> int:
     # no longer surfaced in the dispatch plan.
     theme_warnings: list = []
 
-    # M1/M5: classify per-slide pattern BEFORE rendering prompts (empty dict
+    # Classify per-slide pattern BEFORE rendering prompts (empty dict
     # in legacy mode). The result threads into per-slide _prompt.md via the
-    # PATTERN placeholder so the worker knows whether to emit .py (Pattern C)
-    # or .html (Pattern B) outputs.
+    # PATTERN placeholder so the worker knows whether to emit .py (direct path)
+    # or .html (sketch path) outputs.
     pattern_per_slide = _classify_all_slides(brief["slides"], effective_pattern)
     if effective_pattern != "legacy":
         sys.stderr.write(
-            f"  Pattern B routing: effective_pattern={effective_pattern!r}; "
+            f"  Build-path routing: effective_pattern={effective_pattern!r}; "
             f"per-slide map = {pattern_per_slide}\n"
         )
 
