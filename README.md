@@ -80,21 +80,22 @@ $settings = '{"permissions":{"defaultMode":"bypassPermissions","allow":["Bash","
 if (!(Test-Path $s)) { Set-Content $s $settings -Encoding utf8 } else { Write-Host "Global settings already exist — see Troubleshooting below." }
 ```
 
-**4. Install the Slide Lab agents** — Claude Code reads agent definitions from `~/.claude/agents/`, a separate folder from skills. Copy the four agent files there:
+**4. Install the Slide Lab agents** — Claude Code reads agent definitions from `~/.claude/agents/`, a separate folder from skills. The deck pipeline uses two subagents, both shipped in `slide-builder/agents/`:
 ```powershell
 if (!(Test-Path "$env:USERPROFILE\.claude\agents")) { New-Item -ItemType Directory -Path "$env:USERPROFILE\.claude\agents" | Out-Null }
-Copy-Item -Path "$env:USERPROFILE\.claude\skills\agents\*.md" -Destination "$env:USERPROFILE\.claude\agents\" -Force
+Copy-Item -Path "$env:USERPROFILE\.claude\skills\slide-builder\agents\*.md" -Destination "$env:USERPROFILE\.claude\agents\" -Force
 ```
-This installs `deck-builder`, `slide-designer`, `slide-builder`, and `slide-builder-worker` — the four subagents the deck pipeline uses for parallel work. See `agents/README.md` for what each one does and how to symlink instead of copy if you want auto-sync on `git pull`.
+This installs `slide-builder-worker` (the Stage-2 per-slide fanout agent) and `slide-builder-translator` (the Stage-3.5 agent that converts a picked sketch-path HTML option to editable native python-pptx). These are the source-of-truth copies; `slide-builder/INSTALL.md` Steps 6–7 document the per-agent verification greps.
 
 **5. Restart Claude Code.** The skills and agents are now active.
 
-**6. *(Optional)* Verify the install with the end-to-end smoke test:**
+**6. *(Optional)* Verify the install with the Python-side smoke tests:**
 ```powershell
 cd "$env:USERPROFILE\.claude\skills"
-py -3 smoke_test.py
+py -3 slide-builder/tests/run_sketch_smoke.py
+py -3 slide-builder/tests/run_layout_inheritance_smoke.py
 ```
-The script builds a 3-slide test deck on a generic template, runs brief-time + render-time QC, and renders PNGs via LibreOffice. Should print `RESULT: PASS` and produce files under `_smoke_out/`. If any step fails, the traceback points at the broken piece.
+The first exercises the sketch (HTML-first) build path end-to-end on the Python side (prompt rendering, HTML→PNG render, classifier, R4 QC, native execution). The second builds a 4-slide deck against a layout-diverse fixture template. Both print `All phases passed.` / `SMOKE PASSED.` on success; any failure points at the broken piece.
 
 ---
 

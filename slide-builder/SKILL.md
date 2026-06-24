@@ -13,7 +13,7 @@ The build layer of Slide Lab. The split is the spec.
 
 If you have never run this skill before, read these in order before anything else:
 
-1. **[INSTALL.md](INSTALL.md)** — pinned Python deps, Playwright + headless Chromium (Pattern B render), LibreOffice, sibling `slide-qc` skill, worker + translator agent install. End with the verification step printing `install OK`. (Mermaid CLI was retired , Decision 6 — Pattern B supersedes it.)
+1. **[INSTALL.md](INSTALL.md)** — pinned Python deps, Playwright + headless Chromium (sketch-path render), LibreOffice, sibling `slide-qc` skill, worker + translator agent install. End with the verification step printing `install OK`. (Mermaid CLI was retired; the sketch path supersedes it.)
 2. **[examples/RUN.md](examples/RUN.md)** — the canonical end-to-end walkthrough (prep → agent dispatch → finalize → gate → compile → review) against the bundled example brief + your registered template. Ends with a `REVIEW.html` you can open in a browser.
 
 After that, the input contract for real briefs is documented below in § "Input contract — narrative brief", and registering a new client template is below in § "Register a new client template."
@@ -111,7 +111,7 @@ The chat-driven flow replaces the legacy PowerShell TTY flow (still available as
    ```powershell
    py -3 scripts/register_template.py commit <path-to-template.pptx> --picks <picks.json>
    ```
-   This writes `<stem>/brand.yml` + `<stem>/theme.json` (subfolder layout, v0.4+). Template is now registered.
+   This writes `<stem>/brand.yml` + `<stem>/theme.json`. Template is now registered.
 
 The picks JSON shape and full subcommand documentation lives at the top of `scripts/register_template.py` (run with `--help`).
 
@@ -188,15 +188,15 @@ STAGE 2 · PARALLEL FANOUT slide-builder-worker agents
                           PARALLEL (Task tool, single message with N calls).
                           Each agent reads its _prompt.md and branches on
                           the PATTERN field:
-                            PATTERN: C → option_A.py / B.py / C.py
+                            PATTERN: direct → option_A.py / B.py / C.py
                                         (legacy python-pptx direct)
-                            PATTERN: B → option_A.html / B.html / C.html
+                            PATTERN: sketch → option_A.html / B.html / C.html
                                         (HTML-first; translator converts
                                          to native at Stage 3.5)
                           NOTE: dispatched from the parent session, not from
                           inside the agent itself.
 
-STAGE 2.5 · HTML RENDER   (Pattern B only) For each option_X.html, parent
+STAGE 2.5 · HTML RENDER   (sketch-path only) For each option_X.html, parent
                           session renders to option_X.png via
                           scripts/render_html.py (1280×720 headless
                           Chromium). Workers self-check via the same path
@@ -204,10 +204,10 @@ STAGE 2.5 · HTML RENDER   (Pattern B only) For each option_X.html, parent
 
 STAGE 3 · REVIEW          build_review.py + REVIEW.html
                           Builds REVIEW.html with all 3N options (PNG
-                          thumbnails for both Pattern C and Pattern B).
+                          thumbnails for both the direct and sketch paths).
                           User picks per-slide; picks written to picks.json.
 
-STAGE 3.5 · TRANSLATE     (Pattern B only) For each picked Pattern B slide,
+STAGE 3.5 · TRANSLATE     (sketch-path only) For each picked sketch-path slide,
                           parent session dispatches one slide-builder-
                           translator agent per pick. Translator reads the
                           picked option_X.html + its rendered PNG + brief
@@ -216,10 +216,10 @@ STAGE 3.5 · TRANSLATE     (Pattern B only) For each picked Pattern B slide,
                           + option_X_translation_report.json (SSIM + QC).
 
 STAGE 4 · FINALIZE        finalize_deck.py
-                          Pattern C picks: execute option_X.py as before,
+                          direct-path picks: execute option_X.py as before,
                             graft body, populate placeholders from brief
                             title/subtitle (legacy behavior).
-                          Pattern B picks: execute option_X_native.py
+                          sketch-path picks: execute option_X_native.py
                             (translator output), graft body, parse the
                             script's __template_fields__ header, populate
                             placeholders from THOSE values (extracted from
@@ -259,16 +259,16 @@ Adjacency (Hardline #3 — no 3+ consecutive same-split) is **soft-enforced at p
 
 1. **Setup.** Confirm the client template path with the user. Read the brief and explicitly read the `## Deck-level design notes` section before proceeding; those constraints are binding.
 2. **Narrative + content gates.** Verify governing thoughts are specific and assertive; verify enough raw content per slide. Skip if storyline-helper already gated this session.
-3. **Stage 1 — Prep.** Run `build_deck.py` to render one self-contained `_prompt.md` per slide. Each prompt is `prompt.md` (the current template) with brief content interpolated, layouts/anti-patterns reference paths injected, the rotation seed computed, and the per-slide pattern routing (`PATTERN: B|C`) from M1's classifier.
+3. **Stage 1 — Prep.** Run `build_deck.py` to render one self-contained `_prompt.md` per slide. Each prompt is `prompt.md` (the current template) with brief content interpolated, layouts/anti-patterns reference paths injected, the rotation seed computed, and the per-slide pattern routing (`PATTERN: sketch|C`) from M1's classifier.
 4. **Stage 2 — Parallel fanout.** Dispatch one `slide-builder-worker` agent per slide IN PARALLEL from the parent session. Each agent reads the rendered `_prompt.md` and branches on the PATTERN field:
-   - **Pattern C** (default, legacy): worker produces three standalone python-pptx option scripts `option_A.py / B / C`.
-   - **Pattern B** (M5+, opt-in): worker produces three HTML files `option_A.html / B / C`, then self-checks by rendering each via `scripts/render_html.py` and reading the resulting 1280×720 PNG before declaring done.
-5. **Stage 2.5 — HTML render (Pattern B only).** For each Pattern B slide's HTML options, the parent session renders to PNG via `py -3 scripts/render_html.py <html> <png>` so REVIEW.html has visual previews. Workers may also do this as part of their self-check; the parent renders any not-yet-rendered as a safety net.
-6. **Stage 3 — Review + compile.** Run `build_review.py` to build REVIEW.html (shows PNGs for both Pattern C and Pattern B options); user picks per-slide; picks written to `picks.json`.
-7. **Stage 3.5 — Translate (Pattern B only).** For each picked Pattern B slide, the parent session dispatches a `slide-builder-translator` agent. The translator reads the picked `option_X.html` + its rendered PNG + brief + brand context, produces `option_X_native.py` (native python-pptx script with editable text frames) + `option_X_translation_report.json` (SSIM zone scores + R4 QC findings).
+   - **the direct path** (default, legacy): worker produces three standalone python-pptx option scripts `option_A.py / B / C`.
+   - **the sketch path** (opt-in): worker produces three HTML files `option_A.html / B / C`, then self-checks by rendering each via `scripts/render_html.py` and reading the resulting 1280×720 PNG before declaring done.
+5. **Stage 2.5 — HTML render (sketch-path only).** For each the sketch-path slide's HTML options, the parent session renders to PNG via `py -3 scripts/render_html.py <html> <png>` so REVIEW.html has visual previews. Workers may also do this as part of their self-check; the parent renders any not-yet-rendered as a safety net.
+6. **Stage 3 — Review + compile.** Run `build_review.py` to build REVIEW.html (shows PNGs for both the direct and sketch paths options); user picks per-slide; picks written to `picks.json`.
+7. **Stage 3.5 — Translate (sketch-path only).** For each picked sketch-path slide, the parent session dispatches a `slide-builder-translator` agent. The translator reads the picked `option_X.html` + its rendered PNG + brief + brand context, produces `option_X_native.py` (native python-pptx script with editable text frames) + `option_X_translation_report.json` (SSIM zone scores + R4 QC findings).
 8. **Stage 4 — Finalize.** Run `finalize_deck.py`:
-   - For Pattern C picks: execute `option_X.py` as before, graft body onto template, populate placeholders from brief title/subtitle.
-   - For Pattern B picks: execute `option_X_native.py`, graft body, parse the script's `__template_fields__` header, populate placeholders from THOSE values (translator-extracted from the HTML's `data-template-field` attributes, takes priority over brief fallback).
+   - For direct-path picks: execute `option_X.py` as before, graft body onto template, populate placeholders from brief title/subtitle.
+   - For sketch-path picks: execute `option_X_native.py`, graft body, parse the script's `__template_fields__` header, populate placeholders from THOSE values (translator-extracted from the HTML's `data-template-field` attributes, takes priority over brief fallback).
 9. **Stage 5 — Compile.** `compile_picks.py` stitches the final deck.
 10. **QC.** Run slide-qc against the compiled deck.
 11. **Deliver.** PPTX. Output full absolute Windows path. No preview links.
@@ -277,7 +277,7 @@ Rebuild individual slides with "rebuild slide N with v2" — re-prep the prompt 
 
 ### Pattern routing flag — opt-in until validated
 
-`build_deck.py` accepts a `--pattern` flag that controls which slide-build path the deck uses. The shipped default is `legacy` — the pipeline behaves exactly as before. Pattern B (HTML-spec → translator → native python-pptx) is opt-in until the current pipeline validation completes.
+`build_deck.py` accepts a `--pattern` flag that controls which slide-build path the deck uses. The shipped default is `legacy` — the pipeline behaves exactly as before. the sketch path (HTML-spec → translator → native python-pptx) is opt-in.
 
 ```powershell
 py -3 scripts/build_deck.py --brief <brief.md> --template <template.pptx> --out <out>
@@ -288,18 +288,18 @@ py -3 scripts/build_deck.py --brief ... --template ... --out ... --pattern legac
 
 py -3 scripts/build_deck.py --brief ... --template ... --out ... --pattern auto
 #   ↑ per-slide routing via the Decision-2 classifier (bullets/dividers → C;
-#     visual structure → B). Requires settings.json::enable_pattern_b: true.
+#     visual structure → B). Requires settings.json::enable_sketch: true.
 
-py -3 scripts/build_deck.py --brief ... --template ... --out ... --pattern B
-#   ↑ force all slides through Pattern B (HTML stage + translator)
+py -3 scripts/build_deck.py --brief ... --template ... --out ... --pattern sketch
+#   ↑ force all slides through the sketch path (HTML stage + translator)
 
-py -3 scripts/build_deck.py --brief ... --template ... --out ... --pattern C
-#   ↑ force all slides through Pattern C (native python-pptx direct)
+py -3 scripts/build_deck.py --brief ... --template ... --out ... --pattern direct
+#   ↑ force all slides through the direct path (native python-pptx direct)
 ```
 
-Master switch is `settings.json::enable_pattern_b` (shipped `false`). When `false`, any non-legacy value is downgraded to `legacy` with a stderr warning — flipping `enable_pattern_b: false` is the skill-wide rollback if Pattern B underperforms.
+Master switch is `settings.json::enable_sketch` (shipped `false`). When `false`, any non-legacy value is downgraded to `legacy` with a stderr warning — flipping `enable_sketch: false` is the skill-wide rollback if the sketch path underperforms.
 
-Full Pattern B spec + locked decisions live in `_decisions/pattern-b/`. Build plan lives in `_decisions/pattern-b/build-plan/` (after M0 lands). The four quality guarantees that must hold across the refactor are documented in `_decisions/pattern-b/README.md`.
+Full the sketch path spec + locked decisions live in `_decisions/pattern-b/`. Build plan lives in `_decisions/pattern-b/build-plan/` (after M0 lands). The four quality guarantees that must hold across the refactor are documented in `_decisions/pattern-b/README.md`.
 
 ---
 
@@ -325,9 +325,9 @@ The aesthetics layer (don't-library) starts with 26 entries from the v2 design s
 
 Triggers when a brief implies a hub-and-spoke, Porter's Five Forces, fishbone, ecosystem map, or free-form network. python-pptx cannot shape-fit text to ovals, so native rendering produces text that wraps badly across the curve.
 
-**Stack (M7+, 2026-06-17):** **Pattern B HTML+SVG rendered via Playwright.** Per Decision 6 the legacy Mermaid fallback was retired entirely — Pattern B HTML→PNG via headless Chromium supersedes Mermaid for every curved-container archetype. The worker authors the diagram natively in HTML/SVG within the body zone (using `data-shape-id` to mark elements the translator should convert to native shapes); Playwright renders the page to a 1280×720 PNG; the translator (`agents/slide-builder-translator.md`) converts the picked HTML to editable native python-pptx at Stage 3.5.
+**Stack: sketch-path HTML+SVG rendered via Playwright.** The Mermaid fallback was retired entirely — sketch-path HTML→PNG via headless Chromium supersedes Mermaid for every curved-container archetype. The worker authors the diagram natively in HTML/SVG within the body zone (using `data-shape-id` to mark elements the translator should convert to native shapes); Playwright renders the page to a 1280×720 PNG; the translator (`agents/slide-builder-translator.md`) converts the picked HTML to editable native python-pptx at Stage 3.5.
 
-Under **Pattern C** (legacy python-pptx direct), curved containers route to `# SKELETON_REJECTED:` — the user re-routes the slide through Pattern B for the visual treatment.
+Under **the direct path** (legacy python-pptx direct), curved containers route to `# SKELETON_REJECTED:` — the user re-routes the slide through the sketch path for the visual treatment.
 
 ---
 
