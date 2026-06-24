@@ -426,8 +426,8 @@ def run_build_deck_against_fixture(fixture_pptx: Path) -> tuple[int, list[str]]:
             "--brief", str(brief),
             "--template", str(fixture_pptx),
             "--out", str(out_dir),
+            "--confirm-template",  # smoke runs non-interactively
         ]
-        # build_deck.py also requires mmdc via stage1; we may not have it.
         # Capture stdout/stderr; gate failure handling on the actual exit code.
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
         if result.returncode != 0:
