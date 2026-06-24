@@ -28,6 +28,7 @@ Claude Slide Lab is a collection of Claude Code skills that turn a narrative bri
 | `docx` | Word document generation — reports, memos, letters with proper formatting |
 | `xlsx` | Spreadsheet creation, editing, and cleaning for any `.xlsx` / `.csv` task |
 | `slidelab-log` | Generates a structured session report when something goes wrong — Claude writes the technical details, you submit it as a GitHub issue |
+| `rfp-helper` | RFP / proposal response coaching — win themes, scoring criteria, section-by-section structure; produces a proposal brief that slide-builder can build from |
 
 ---
 
@@ -55,7 +56,7 @@ git clone https://github.com/mperaltajr/skills "$env:USERPROFILE\.claude\skills"
 ```powershell
 pip install -r "$env:USERPROFILE\.claude\skills\requirements.txt"
 ```
-*(Optional — only required if you use a separate HTML-mockup preview workflow outside slide-builder. The v0.1 slide-builder pipeline does not need Chromium; it renders via LibreOffice + python-pptx.)*
+*(Optional — only required if you use a separate HTML-mockup preview workflow outside slide-builder. The standard slide-builder pipeline does not need Chromium; it renders via LibreOffice + python-pptx.)*
 ```powershell
 py -3 -m playwright install chromium
 ```
