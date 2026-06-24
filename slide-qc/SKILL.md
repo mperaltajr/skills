@@ -96,7 +96,7 @@ py -3 <SKILL_DIR>/scripts/render_slides.py "<pptx_path>" "<session_folder>/_qc_p
 
 This script **refuses to run if PowerPoint is already open** (checks `tasklist` for `POWERPNT.EXE`). If refused, tell the user to close PowerPoint and rerun — never kill `POWERPNT.EXE`, never use `Stop-Process`. The user's open decks are not yours to close.
 
-The legacy `scripts/export_slides.py` (COM-only, uses `DispatchEx` to spawn its own PowerPoint process) is still on disk and still works the same way. It does not check for a running instance, so prefer `render_slides.py --engine ppt` going forward.
+An older `scripts/export_slides.py` (COM-only, uses `DispatchEx` to spawn its own PowerPoint process) is also on disk. It does not check for a running instance, so prefer `render_slides.py --engine ppt`.
 
 ### Rendering rules
 - Width 1920px (COM) or DPI 150 (LibreOffice ≈ 1700px wide) is the minimum. Do not lower — at 1280px small text (footnotes, chart annotations, numerals) is unreadable and small-text bugs slip past QC.

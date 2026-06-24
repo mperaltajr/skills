@@ -1,8 +1,8 @@
-# Vision QC Protocol — Slide Lab v2
+# Vision QC Protocol
 
 > Single source of truth for the QC rule families surfaced in REVIEW.html and enforced by `slide-builder/scripts/finalize_deck.py`. Rules are grouped by family (R1 chrome zones, R2 typography, R3 layout/geometry, R4 Pattern B translation) and tagged by severity.
 
-**Status:** R4 family locked 2026-06-16 (per `slide-builder/_decisions/pattern-b/spec-6-qc-rules-R4.md`). R1–R3 are implemented inline in `finalize_deck.py::run_option_qc()`; the canonical authoring intent is the anti-pattern library at `slide-builder/reference/anti-patterns.md` plus the layout catalog at `slide-builder/reference/layouts.md`.
+**Status:** R4 family specified in `slide-builder/_decisions/pattern-b/spec-6-qc-rules-R4.md`. R1–R3 are implemented inline in `finalize_deck.py::run_option_qc()`; the canonical authoring intent is the anti-pattern library at `slide-builder/reference/anti-patterns.md` plus the layout catalog at `slide-builder/reference/layouts.md`.
 
 ---
 
@@ -28,7 +28,7 @@ Implemented in `slide-builder/scripts/finalize_deck.py::run_option_qc()`. Fires 
 - `placeholder_leak` — no Microsoft placeholder strings ("Click to add", "Lorem ipsum") survived into the rendered output (Critical / block).
 - `shape_count_sanity` — slide has at least 2 shapes and fewer than the brand-defined max (Advisory / info).
 - `zero_fill_card_bg` — card-like shapes have a non-empty fill (Major / warn).
-- `text_clip_risk` — text-bearing shapes whose calculated rendered height exceeds the shape's vertical extent (Major / warn — text-clip is the failure mode behind the 2026-06-11 slide-16 strikethrough artifact).
+- `text_clip_risk` — text-bearing shapes whose calculated rendered height exceeds the shape's vertical extent (Major / warn — text-clip is a recurrent visual failure mode).
 - `chrome_zone_overlap` — body-zone shapes that intrude into the title/subtitle/footer y-range (Major / warn).
 
 These rules apply to BOTH pattern paths — Pattern B inherits the same R1–R3 set, plus R4 below.
@@ -39,7 +39,7 @@ These rules apply to BOTH pattern paths — Pattern B inherits the same R1–R3 
 
 R4 fires only on Pattern B picks (slides where `_meta.json::pattern_per_slide[slide_n] == "B"`). Implemented in `finalize_deck.py::_check_r4_rules_for_pattern_b()`; results merge into the same `option_X.qc.json` artifact that build_review.py renders.
 
-Authoritative reference: `slide-builder/_decisions/pattern-b/spec-6-qc-rules-R4.md` (locked 2026-06-16).
+Authoritative reference: `slide-builder/_decisions/pattern-b/spec-6-qc-rules-R4.md`.
 
 ---
 
@@ -47,7 +47,7 @@ Authoritative reference: `slide-builder/_decisions/pattern-b/spec-6-qc-rules-R4.
 
 **Severity:** **Critical**
 
-**What it catches:** CSS `text-decoration: line-through`, `text-decoration: underline`, or `text-decoration: overline` surviving the HTML → native translation. Specific to the slide 16 failure case (2026-06-11) where strikethrough lines appeared across the "Why Hybrid" bullets.
+**What it catches:** CSS `text-decoration: line-through`, `text-decoration: underline`, or `text-decoration: overline` surviving the HTML → native translation.
 
 **How to check:**
 1. Scan generated python-pptx code for any of: `run.font.underline = True`, `run.font.strikethrough = True` (the python-pptx XML attribute name may vary — also check `_r.set("u", ...)`, `_r.set("strike", ...)`).
@@ -126,7 +126,7 @@ Authoritative reference: `slide-builder/_decisions/pattern-b/spec-6-qc-rules-R4.
 
 ### R4.7 — Editability verified at build time
 
-**Severity:** **Critical** (load-bearing — entire reason for Pattern B refactor)
+**Severity:** **Critical** (load-bearing)
 
 **What it catches:** Any text element in the final PPTX that is NOT inside a recognizable text frame. Failure modes:
 - Text rendered into a picture shape (text-as-image)
@@ -186,7 +186,7 @@ Advisory = logged; not user-facing.
 
 | Family | Implemented in | Surfaced in REVIEW.html via |
 |---|---|---|
-| R1 – R3 (legacy native QC) | `slide-builder/scripts/finalize_deck.py::run_option_qc()` | Existing per-option QC chip + chip-list (qc_failed_checks) |
+| R1 – R3 (native QC) | `slide-builder/scripts/finalize_deck.py::run_option_qc()` | Per-option QC chip + chip-list (qc_failed_checks) |
 | R4 (Pattern B translation) | `slide-builder/scripts/finalize_deck.py::_check_r4_rules_for_pattern_b()` | `build_review.py::render_pattern_b_qc_section()` — per-slide block with per-zone SSIM + R4 severity chips |
 
 The translator agent (`slide-builder/agents/slide-builder-translator.md`) is the primary enforcer of R4.1, R4.4, R4.7, R4.8 — it self-checks before emitting and refuses to ship the script on R4.7 violations (`# EDITABILITY_VIOLATION` sentinel). `finalize_deck.py`'s R4 check is a defense-in-depth second pass.

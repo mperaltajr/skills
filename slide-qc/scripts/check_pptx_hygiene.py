@@ -59,7 +59,7 @@ from pptx import Presentation
 # Detection patterns
 # ---------------------------------------------------------------------------
 
-# Cross-skill placeholder contract (F1-A, 2026-05-26).
+# Cross-skill placeholder contract.
 #
 # slide-builder/twins/helpers.py add_footer() emits these EXACT strings as
 # INTENTIONAL presenter prompts when the caller passes footnote=None or
@@ -86,12 +86,12 @@ LOREM_PATTERNS: list[tuple[str, str]] = [
     (r"\bTODO\b",                  "TODO marker"),
     (r"\bFIXME\b",                 "FIXME marker"),
     (r"\bXXX\b",                   "XXX marker"),
-    # F5 (2026-05-26) — sweep gap from Pre-Workshop Scope Alignment build:
+    # Sweep gap from Pre-Workshop Scope Alignment build:
     # Hardline #2 placeholders (worker emits these when the brief doesn't
     # enumerate cell/list content, with a named source the user should
     # consult). These are NOT the intentional-presenter-prompt convention
     # (slide-builder/twins/helpers.py constants) — they mean unfinished
-    # work and stay Critical. Visual disambiguation is a v0.2 item (F2).
+    # work and stay Critical. Visual disambiguation remains an open item.
     (r"\[[^\]]{1,60}\s+—\s+fill\s+from\b[^\]]{0,60}\]", "Hardline #2 '[X — fill from ...]' placeholder"),
     (r"\[[^\]]{1,30}\s+goes\s+here\]", "'[X goes here]' template prompt"),
     (r"\[\s*(TBD|TK|TKTK)\s*\]",        "[TBD] / [TK] marker"),
@@ -198,7 +198,7 @@ def check_placeholders_in_text(slide, slide_num: int) -> list[dict]:
     if not text:
         return violations
 
-    # F1-A (2026-05-26): intentional presenter prompts emitted by
+    # Intentional presenter prompts emitted by
     # slide-builder/twins/helpers.py add_footer() get an Advisory note,
     # not a Critical. They're the cross-skill convention: presenter is
     # expected to fill or delete in PowerPoint before showing the deck.
