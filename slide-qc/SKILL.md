@@ -84,7 +84,7 @@ py -3 <SKILL_DIR>/scripts/render_slides.py "<pptx_path>" "<session_folder>/_qc/"
 By default this uses **LibreOffice headless in an isolated process** — it never touches the user's running PowerPoint, never opens visible windows, never asks for permission, and works whether or not PowerPoint is open. Output lands in `_session/_qc/slide_01.png`, `slide_02.png`, etc.
 
 - LibreOffice opens the actual PPTX (same XML, same master inheritance, same layout resolution). It is a **real renderer**, not an HTML approximation. Layout overflow, master inheritance, text overlap, color, and structural issues all render faithfully.
-- The font fidelity gap: if a slide uses a font that LibreOffice doesn't have installed (e.g. Graphik on Accenture, FedEx Sans on FedEx decks), LibreOffice substitutes a similar sans-serif. Letter shapes differ; **letter widths are close but not identical**, which can mask 2-3 character title-overflow cases.
+- The font fidelity gap: if a slide uses a font that LibreOffice doesn't have installed (e.g. a proprietary brand typeface), LibreOffice substitutes a similar sans-serif. Letter shapes differ; **letter widths are close but not identical**, which can mask 2-3 character title-overflow cases.
 
 ### When to ALSO run a PowerPoint COM pass
 
@@ -134,7 +134,7 @@ SLIDE 5 — PER-ZONE INSPECTION
 - Chart: bar chart, axis "% of drift" labeled, 3 bars labeled "Pattern A/B/C," value labels present. OK.
 - Annotation: "Source: Q1 FY26 survey, n=1,200" — 8pt italic gray, bottom-left of chart, legible. OK.
 - Icons: none on this slide. n/a.
-- Footer row: "Accenture · 2026 · Confidential" — 9pt, bottom-center, present. Page "5" bottom-right. OK.
+- Footer row: "Client · 2026 · Confidential" — 9pt, bottom-center, present. Page "5" bottom-right. OK.
 - Overall composition: balanced, single focal point on hero stat. OK.
 ```
 

@@ -116,7 +116,7 @@ Once you've read the input, reflect it back. Concrete details, not abstractions.
 
 Good mirror:
 
-> *"Read it. 130 slides — the full OTC 30-day kickstart deliverable. Covers the operating model, the five customer missions, your value-sizing methodology, the intake framework with Account Creation as a worked example, the roadmap, and the 90-day plan. Roughly half is appendix material."*
+> *"Read it. 130 slides — the full 30-day kickstart deliverable. Covers the operating model, the five customer missions, your value-sizing methodology, the intake framework with one process as a worked example, the roadmap, and the 90-day plan. Roughly half is appendix material."*
 
 Bad mirror:
 
@@ -308,7 +308,7 @@ The governing thought  becomes the slide headline AND the dot in the dot-dash. B
 
 - **Hard ceiling:** ≤ 100 characters / ~15 words.
 - **Soft target:** 10–15 words.
-- **What to do if a candidate dot is too long:** before locking, push back with a specific compression option. *"This dot has 27 words: 'Customer experience, revenue capture, and cost-to-serve all break in the same place — across the seams between functions — which is exactly where no single P&L can fix them.' That won't fit on a slide. Two options: (a) compress to 'OTC's biggest problems sit between functions, where no single P&L can reach them' — 13 words, same meaning, with the nuance moving to the dashes and Takeaway. (b) split into two slides if you want both halves to land separately. (a) or (b)?"*
+- **What to do if a candidate dot is too long:** before locking, push back with a specific compression option. *"This dot has 27 words: 'Customer experience, revenue capture, and cost-to-serve all break in the same place — across the seams between functions — which is exactly where no single P&L can fix them.' That won't fit on a slide. Two options: (a) compress to 'The biggest problems sit between functions, where no single P&L can reach them' — 13 words, same meaning, with the nuance moving to the dashes and Takeaway. (b) split into two slides if you want both halves to land separately. (a) or (b)?"*
 - **Where the nuance goes when you compress:** the dashes (supporting facts) and the Takeaway (the belief shift). Both already exist for the slide — they absorb the lost detail naturally.
 
 #### When to suggest cutting a slide
@@ -458,12 +458,12 @@ The named sub-passes below — quality gate, language pass, pushback, save, hand
 >
 > Even when project memory contains a plausible template path, a recent session folder, or any other defensible-default values, **the orchestrator MUST ask the user and wait for explicit confirmation on all four items below**. Inferring from memory has historically picked the wrong session folder (Library tree instead of Claude Projects tree), the wrong template (a stale one from a prior session), and the wrong default layout (auto-falling to whatever build_deck.py guesses mid-build). The user's tacit input on "is this the right setup for THIS deck?" is load-bearing.
 >
-> The orchestrator MAY propose values from project memory ("I see in memory that recent FedEx sessions live at `…/Claude Projects/FedEx/sessions/`; should this one go there too?") — but the user must explicitly say yes / change-to / use this instead before the values are locked.
+> The orchestrator MAY propose values from project memory ("I see in memory that recent Acme sessions live at `…/Claude Projects/Acme/sessions/`; should this one go there too?") — but the user must explicitly say yes / change-to / use this instead before the values are locked.
 
 **Four things to confirm at the Commit & emit stage** (combine into one message; get explicit confirmation on each):
 
 1. **Session folder root** — the parent directory where the dated session folder will be created. Convention: `<Client>/sessions/YYYY-MM-DD Topic Name/`.
-2. **Client name and topic** — drives the dated subfolder name and the brief filename (e.g., `FedEx / Vendor Gap Analysis` → `FedEx/sessions/2026-05-06 Vendor Gap Analysis/`).
+2. **Client name and topic** — drives the dated subfolder name and the brief filename (e.g., `Acme / Cost Baseline` → `Acme/sessions/2026-05-06 Cost Baseline/`).
 3. **Client template** — the `.pptx` that carries the client's brand. Must be **registered** (have a `<stem>/` sidecar subfolder with `brand.yml` + `theme.json` + `chrome.yml`). If not registered, register via `register_template.py propose` → `commit` before handoff.
 4. **Default content layout** — read `<stem>/theme.json::default_content_layout` from the registered template and surface it. If empty or template unregistered, the user picks at registration time. Never let `build_deck.py` run with an empty default layout — that's a hard mid-build failure.
 
@@ -483,13 +483,13 @@ Wait for explicit confirmation. `looks good` / `yes` without naming the values i
 Once confirmed, state all four resolved values:
 
 ```
-Session folder:  C:\…\Claude Projects\FedEx\sessions\2026-05-06 Vendor Gap Analysis\
+Session folder:  C:\…\Claude Projects\Acme\sessions\2026-05-06 Cost Baseline\
 Dot-dash will save:
-                 …\2026-05-06 Vendor Gap Analysis\dot-dash-vendor-gap.docx
-                 …\2026-05-06 Vendor Gap Analysis\dot-dash-vendor-gap.md
-                 …\2026-05-06 Vendor Gap Analysis\dot-dash-vendor-gap.html
-Brief will save: …\2026-05-06 Vendor Gap Analysis\_session\narrative-brief-vendor-gap.md
-Template:        C:\…\FedEx\_templates\Template2.pptx (registered)
+                 …\2026-05-06 Cost Baseline\dot-dash-cost-baseline.docx
+                 …\2026-05-06 Cost Baseline\dot-dash-cost-baseline.md
+                 …\2026-05-06 Cost Baseline\dot-dash-cost-baseline.html
+Brief will save: …\2026-05-06 Cost Baseline\_session\narrative-brief-cost-baseline.md
+Template:        C:\…\Acme\_templates\Template2.pptx (registered)
 Default layout:  "Use as default slide template" (from theme.json)
 ```
 
@@ -540,7 +540,7 @@ For each slide, the so-what must be *different from* the governing thought and m
 
 - Fail: so-what is a restatement ("Three patterns explain the drift" → so-what: "There are three patterns that explain the drift"). That's the claim again, not a takeaway.
 - Fail: so-what is a generic motherhood statement ("we need to take action," "this is important"). Not actionable, not specific.
-- Pass: so-what names a specific belief the audience should now hold that they didn't before. For slide 2 in the FedEx example: "This is not a compliance problem, it's an information problem — don't fire managers, give them data."
+- Pass: so-what names a specific belief the audience should now hold that they didn't before. For example: "This is not a compliance problem, it's an information problem — don't fire managers, give them data."
 
 If a so-what fails, push back: *"That's the claim again. What belief should the audience now hold that they didn't before reading this slide?"*
 
