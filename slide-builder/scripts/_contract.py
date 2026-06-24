@@ -18,8 +18,7 @@ Run directly:
     py -3 scripts/_contract.py
 Exit code 0 = all green. Non-zero = at least one drift detected.
 
-Wire into CI before any v0.1 release tag per DECISIONS.md § "Hardening
-triple — items 2 + 3 acceptance gate."
+Wire into CI as a hardening acceptance gate.
 """
 from __future__ import annotations
 
@@ -182,7 +181,7 @@ def check_pipeline_imports() -> list[str]:
     references to imports that don't land until later in the file, missing
     submodule deps, broken `from X import Y` lines) slip through that grep.
     This check imports each script so module-level errors surface here, not
-    at the operator's first `--help`. Audit finding T2.7.
+    at the operator's first `--help`.
     """
     import importlib
     errors: list[str] = []
@@ -194,9 +193,8 @@ def check_pipeline_imports() -> list[str]:
         "build_deck", "finalize_deck", "compile_picks",
         "build_review", "build_gate_preview",
         "register_template", "clean", "diagnostic",
-        # M7 (Mermaid retirement, 2026-06-17): "render_mermaid" was removed
-        # from this list along with scripts/render_mermaid.py. Pattern B
-        # supersedes Mermaid per Decision 6.
+        # "render_mermaid" was removed from this list along with
+        # scripts/render_mermaid.py; the sketch path supersedes it.
         "icon_helper", "migrate_brief_to_v3",
     ]
     imported = 0
@@ -223,8 +221,8 @@ def check_pipeline_imports() -> list[str]:
 #
 # Drift class this prevents: a file installed at the right path with the
 # wrong content. Existence checks (`Test-Path`) pass; user-facing behavior
-# silently breaks. Worker-agent T1-R1 (v1 content at v0.1 path) and the
-# T1-NEW-A `sys.argv[1]` regression both belong to this class.
+# silently breaks. A worker-agent stale-content case and a
+# `sys.argv[1]` regression both belong to this class.
 #
 # Each entry declares:
 #   source            — absolute path to the canonical source artifact
@@ -254,7 +252,7 @@ INSTALL_SENTINELS = [
         "installed": Path(os.path.expanduser("~/.claude/agents/slide-builder-worker.md")),
         # "option_A.pptx" encodes the OUTPUT-filename contract from
         # prompt.md:252-260. The string "option_A.py" (the SCRIPT name)
-        # is not sufficient because v1 worker content also contains it.
+        # is not sufficient because older worker content also contains it.
         # The OUTPUT contract is what tells the worker to save to a
         # literal filename rather than sys.argv[1].
         "sentinels": ["option_A.pptx"],
@@ -313,7 +311,7 @@ def check_install_sentinels() -> list[str]:
 # Drift class this prevents: docs that name files which no longer exist
 # (CHANGELOG listing QUICKSTART.md after it was deleted; SKILL.md naming
 # `slide-builder_archived_2026-05-26/` when that path doesn't exist;
-# cross-skill references to deleted v1 scripts).
+# cross-skill references to deleted scripts).
 #
 # Scope: every .md under the skill EXCEPT under _decisions/. The decisions
 # dir is forensic — historical records intentionally cite paths that may
@@ -363,10 +361,10 @@ _DIR_DELETED_BY_DESIGN = {
     "slide-builder/icons/_audit/",
     "slide-builder/icons/_backup/",
     "icons/_audit/", "icons/_backup/",
-    # M7 (Mermaid retirement, 2026-06-17): worked-example .mmd corpus retired
-    # alongside scripts/render_mermaid.py and reference/fallback.md.
+    # Worked-example .mmd corpus retired alongside scripts/render_mermaid.py
+    # and reference/fallback.md.
     "fallback-examples/", "reference/fallback-examples/",
-    # v1 do/ positive-exemplar corpus never ported
+    # An earlier do/ positive-exemplar corpus never ported
     "do/", "do/single-finding/", "do/chart-bottom-takeaway/",
     "do/hero-kpi-tile/", "do/2panel-delta-spine/",
     "do/chart-right-takeaway/",
@@ -379,7 +377,7 @@ _RUNTIME_ARTIFACTS = {
     "_meta.json", "_prompt.md", "_finalize_meta.json",
     "picks.json", "brand.yml", "theme.json", "chrome.yml",
     "register.picks.json", "chrome.commit_method.txt",
-    "final_deck.pptx", "final.pptx",  # legacy/example name
+    "final_deck.pptx", "final.pptx",  # example name
     "REVIEW.html", "GATE3-PREVIEW.html",
     "register.html", "register.proposal.json",
     "preview.pptx", "preview.png", "palette.png",
@@ -414,14 +412,14 @@ _DELETED_BY_DESIGN = {
     "stage-a-precommit.md", "slide-builder-simple-worker.md",
     "slide-builder.md", "slide-designer.md", "deck-builder.md",
     "smoke_test.py",
-    # M7 (Mermaid retirement, Decision 6, 2026-06-17): the Mermaid fallback
-    # path was retired entirely; Pattern B HTML→PNG supersedes it.
+    # The Mermaid fallback path was retired entirely; the sketch-path
+    # HTML→PNG render supersedes it.
     "render_mermaid.py", "fallback.md",
     "hub-spoke.mmd", "porters-five-forces.mmd", "fishbone.mmd",
     # Path-class deletions
     "theme/mermaid-brand.json", "scripts/_verify_critical_fixes.py",
     "scripts/render_mermaid.py", "reference/fallback.md",
-    # v0.2 candidate work — documented as future-pending, not present
+    # Candidate work — documented as future-pending, not present
     "check_brief_fidelity.py", "extract_lucide.py",
 }
 
@@ -580,9 +578,8 @@ def check_type_hints_resolve() -> list[str]:
         "build_deck", "finalize_deck", "compile_picks",
         "build_review", "build_gate_preview",
         "register_template", "clean", "diagnostic",
-        # M7 (Mermaid retirement, 2026-06-17): "render_mermaid" was removed
-        # from this list along with scripts/render_mermaid.py. Pattern B
-        # supersedes Mermaid per Decision 6.
+        # "render_mermaid" was removed from this list along with
+        # scripts/render_mermaid.py; the sketch path supersedes it.
         "icon_helper", "migrate_brief_to_v3",
     ]
     callables_checked = 0
@@ -623,8 +620,7 @@ def check_type_hints_resolve() -> list[str]:
 
 
 # ---------------------------------------------------------------------------
-# Checks 8-12 — v0.2 chrome inheritance (P1.5 in design lock; lands with the
-# P1.3 / P1.4 code it protects, per design)
+# Checks 8-12 — chrome inheritance (protects the chrome-inheritance code)
 # ---------------------------------------------------------------------------
 
 # Check 8 — chrome schema roundtrip
@@ -682,7 +678,7 @@ def check_chrome_schema_roundtrip() -> list[str]:
 # Check 9 — chrome sidecar no silent fallback
 #
 # Mock-patches every chrome source away and calls add_title_block(chrome=None).
-# Asserts ChromeSidecarMissingError fires. Catches the v1 slot-mapping
+# Asserts ChromeSidecarMissingError fires. Catches the slot-mapping
 # silent-fallback bug class — if a future refactor reintroduces a default,
 # this check is the trip wire.
 
@@ -921,10 +917,10 @@ def check_chrome_field_single_source() -> list[str]:
 
 _REGISTERED_TEMPLATE_SEARCH_ROOTS: tuple[Path, ...] = (
     # Common locations where a coworker keeps client templates.
-    # Audit punch list P1.7: D's-bet catcher had zero coverage
-    # against Mario's real templates until OneDrive paths were added — the
-    # FDX Template lives under "OneDrive - Accenture/Claude Projects/_templates/"
-    # and was invisible to the contract test prior to this extension.
+    # This catcher had zero coverage
+    # against real templates until OneDrive paths were added — templates that
+    # live under "OneDrive - Accenture/Claude Projects/_templates/"
+    # were invisible to the contract test prior to this extension.
     Path.home() / "Documents",
     Path.home() / "OneDrive - Accenture" / "Claude Projects" / "_templates",
     # Per-client library subdirs (each <client>/_templates/ holds registered
@@ -941,10 +937,10 @@ def _opportunistic_chrome_yml_pairs() -> list[tuple[Path, Path]]:
     Returns []; the disk scan is best-effort + bounded — we don't want the
     contract test to take minutes scanning a large file tree.
 
-    v0.4 layout: chrome.yml lives at `<template-parent>/<stem>/chrome.yml`,
-    sibling .pptx is at `<template-parent>/<stem>.pptx`. Pre-v0.4 flat
+    Subfolder layout: chrome.yml lives at `<template-parent>/<stem>/chrome.yml`,
+    sibling .pptx is at `<template-parent>/<stem>.pptx`. The older flat
     layout (`<stem>.chrome.yml` next to `<stem>.pptx`) is no longer
-    supported in production but the scan handles both for legacy diagnostic
+    supported in production but the scan handles both for diagnostic
     runs.
     """
     pairs: list[tuple[Path, Path]] = []
@@ -952,7 +948,7 @@ def _opportunistic_chrome_yml_pairs() -> list[tuple[Path, Path]]:
         if not root.exists():
             continue
         try:
-            # v0.4 subfolder layout: <stem>/chrome.yml
+            # Subfolder layout: <stem>/chrome.yml
             for chrome_yml in root.rglob("chrome.yml"):
                 depth = len(chrome_yml.relative_to(root).parts)
                 if depth > 5:
@@ -1003,12 +999,12 @@ def check_layout_inheritance_roundtrip_per_layout() -> list[str]:
     except Exception:
         return errors
 
-    # Synthetic always-runs case (P1.5 hardening): even with no disk fixtures
+    # Synthetic always-runs case: even with no disk fixtures
     # available, exercise the extractor + roundtrip path so a refactor that
     # breaks classification or BoxPx round-trips trips this check.
     import tempfile as _tf
 
-    # ---- P1.8 (audit punch list): synthetic BESPOKE BoxPx roundtrip. -----
+    # ---- Synthetic BESPOKE BoxPx roundtrip. -----
     # The default pptx has zero bespoke layouts under the current classifier,
     # so the extraction path never exercises position-field serialization.
     # Hand-craft a ChromeSpec with non-None title/subtitle/footnote/source/
@@ -1238,12 +1234,12 @@ def check_layout_inheritance_roundtrip_per_layout() -> list[str]:
 
 
 # ---------------------------------------------------------------------------
-# Check 13 — layout resolution fail-loud (P1.5 hardening)
+# Check 13 — layout resolution fail-loud
 #
 # Exercises build_deck.resolve_slide_layouts with a brief lacking both per-
 # slide Layout and front-matter default_layout. Asserts errors list is
 # non-empty AND that emit_layout_resolution_error formats correctly. Protects
-# the P1.4 exit-9 fail-loud gate against future regressions where someone
+# the exit-9 fail-loud gate against future regressions where someone
 # adds a silent default.
 # ---------------------------------------------------------------------------
 
@@ -1319,7 +1315,7 @@ def check_layout_resolution_fails_loud() -> list[str]:
 
 
 # ---------------------------------------------------------------------------
-# Check 14 — layout-inheritance integration smoke (P1.9 audit punch list)
+# Check 14 — layout-inheritance integration smoke
 #
 # Wraps tests/run_layout_inheritance_smoke.py. Gated on the fixture pptx
 # existing: a brand-new clone without the fixture skips the check rather

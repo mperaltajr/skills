@@ -34,7 +34,7 @@ Four CLI subcommands:
       Use this when register.html is openable in a real browser and the
       chat can receive the live-edited picks JSON back.
 
-  commit-cli   (chat-driven flow, picks via CLI flags — RC-2 fallback)
+  commit-cli   (chat-driven flow, picks via CLI flags — CLI fallback)
   -----------------------------------------------------------------------
   py -3 scripts/register_template.py commit-cli <template.pptx> \\
       --primary-slot dk2 --primary-hex 4D148C \\
@@ -47,11 +47,11 @@ Four CLI subcommands:
       --dark-bg-slot/--dark-bg-hex, --strip-master-backgrounds,
       repeatable --layout-class "NAME=body-canonical|bespoke", --accept.
 
-  interactive  (legacy PowerShell flow, power users with a real TTY)
+  interactive  (PowerShell flow, power users with a real TTY)
   -----------------------------------------------------------------------
   py -3 scripts/register_template.py interactive <template.pptx>
   py -3 scripts/register_template.py interactive <template.pptx> --auto-accept-phase1
-      The original 4-phase interactive flow with input() prompts and the
+      The 4-phase interactive flow with input() prompts and the
       TTY confirmation gate. For batch registration / migration / power
       users running from a real terminal. NOT for coworkers — see `propose`
       / `commit` / `commit-cli` for the chat-driven paths.
@@ -445,8 +445,8 @@ def _pick_blank_layout(prs):
 
     The preview surfaces (color swatches, KPI tiles, bullet bars) need to
     land somewhere LEGIBLE. The cover / title layout typically ships with
-    art-direction baked into the master (FedEx's huge X graphic, NFL
-    stadium photos, Accenture branding) that swamps anything drawn on top.
+    art-direction baked into the master (a huge brand graphic, full-bleed
+    photos, or brand chrome) that swamps anything drawn on top.
     Picking a body-canonical-style layout puts the preview where the
     eventual deck body slides will live — which is also where master
     decoration is lightest.
@@ -455,7 +455,7 @@ def _pick_blank_layout(prs):
       1. A layout literally named "Blank" (case-insensitive, after
          stripping numeric prefixes like "1_" or "12__"), searched across
          EVERY master — `prs.slide_layouts` only returns master[0]'s
-         layouts, but FedEx-style templates put the Blank layout on a
+         layouts, but some templates put the Blank layout on a
          later master.
       2. Otherwise the layout with the FEWEST non-placeholder shapes —
          that's the closest analogue to a body-canonical layout when no
@@ -487,7 +487,7 @@ def _pick_blank_layout(prs):
                 best_layout = layout
     if best_layout is not None:
         return best_layout
-    # Pass 3: legacy fallback.
+    # Pass 3: last-resort fallback.
     if prs.slide_masters and list(prs.slide_masters[0].slide_layouts):
         return prs.slide_masters[0].slide_layouts[0]
     layouts = list(prs.slide_layouts)
@@ -679,7 +679,7 @@ def build_preview_pptx(template_path: Path, primary_hex: str, accent_hex: str,
       3. Dashboard — 2×2 KPI grid (widest brand coverage)
 
     The deck is built on top of the client template's master/layouts, so
-    photographic decoration baked into the master (NFL stadium photos, etc.)
+    photographic decoration baked into the master (full-bleed photos, etc.)
     bleeds through behind every preview slide. This is what makes
     strip_master_backgrounds=true visibly necessary at registration time.
 
@@ -722,8 +722,8 @@ def render_pptx_to_png(pptx_path: Path, png_path: Path) -> bool:
     """Render the multi-surface preview PPTX and composite into one tall PNG.
 
     Reuses render_libre from slide-qc. If the PPTX has >1 slide, the surfaces
-    are stacked vertically (gap of 20px) into a single PNG so Mario can review
-    title + content + dashboard in one image.
+    are stacked vertically (gap of 20px) into a single PNG so the user can
+    review title + content + dashboard in one image.
     """
     try:
         from render_slides import render_libre
@@ -776,7 +776,7 @@ def render_layout_thumbnails(template_path: Path, out_dir: Path,
 
     Used by the registration HTML so the user can SEE each layout when
     deciding which to pick. Empty placeholders show their hint text
-    ("Click to add title"), which is informative — Mario sees where the
+    ("Click to add title"), which is informative — the user sees where the
     title sits, where body content lands, what the chrome looks like.
     """
     try:
@@ -851,7 +851,7 @@ def render_slide_thumbnails(template_path: Path, out_dir: Path,
     Gap 1.a: Distinct from render_layout_thumbnails (which renders
     empty layouts so the user can see chrome), this renders the template's
     real slides as-is, so the user can point at "make every output look like
-    THIS one" — Mario's stated mental model.
+    THIS one" — the user's stated mental model.
 
     Returns a list of {slide_n (1-indexed), layout_name, thumbnail_path} dicts
     in slide order.
@@ -1309,7 +1309,7 @@ def render_register_html(proposal: dict, html_path: Path) -> bool:
       <strong>The dominant brand color.</strong> Used for title bars, headers, dark-canvas
       fills, anything that should read as "this is a &lt;client&gt; deck." For most clients
       this is the color in their logo and on their website headers
-      (e.g. FedEx purple, Accenture purple, IBM blue).
+      (e.g. the brand's signature primary color).
     </div>
     <div class="swatches" id="sw-primary"></div>
   </div>
@@ -1323,8 +1323,7 @@ def render_register_html(proposal: dict, html_path: Path) -> bool:
       <strong>The "look at this" color.</strong> Used sparingly &mdash; one accent moment
       per slide (a single hero KPI, a highlight stripe, a recommended row). Never for body
       text or background. Typically the brand's secondary
-      color (e.g. FedEx orange, Accenture violet/magenta). Should
-      contrast strongly with primary.
+      color. Should contrast strongly with primary.
     </div>
     <div class="swatches" id="sw-accent"></div>
   </div>
@@ -1391,8 +1390,8 @@ def render_register_html(proposal: dict, html_path: Path) -> bool:
 <section id="strip-section">
   <h2>5. Strip baked-in master backgrounds?</h2>
   <div class="help">
-    For most client templates the master <strong>is</strong> the brand chrome — FedEx purple bars,
-    Accenture branding, header rules, footer marks. Keeping it is the right default. Tick this box
+    For most client templates the master <strong>is</strong> the brand chrome — colored bars,
+    branding, header rules, footer marks. Keeping it is the right default. Tick this box
     <strong>only</strong> if the master ships with unwanted photographic decoration
     (stadium photos, building shots, watermarks you don't want behind every slide).
     Stripping is destructive — leave unchecked if in doubt.
@@ -1405,7 +1404,7 @@ def render_register_html(proposal: dict, html_path: Path) -> bool:
       <div class="note">
         Opt in only when the master has photographic decoration you do NOT want behind
         every built slide. Stripping the master removes the brand chrome along with the
-        decoration — for FedEx / Accenture / most consulting templates that's the wrong move.
+        decoration — for most consulting templates that's the wrong move.
       </div>
     </div>
   </label>
@@ -1520,7 +1519,7 @@ function refreshUI() {
   // Update strip toggle
   state.strip_master_backgrounds = document.getElementById("strip-bg").checked;
 
-  // Update picks JSON preview. v0.4.1: no longer emits
+  // Update picks JSON preview. The picks no longer emit
   // layout_classifications — that field is architectural metadata
   // (does Slide Lab strip placeholders or inherit them?) that the user
   // shouldn't have to think about. register_template.py commit recomputes
@@ -1553,11 +1552,11 @@ function refreshUI() {
 
 // Pick state: which named layout is the body. Covers stay on Slide Lab's
 // draw-everything path (no layout pick — Slide Lab builds them from scratch
-// on a blank layout the same way it did before v0.3).
+// on a blank layout, built from scratch).
 const layoutPicks = { body: null };
 
 function autoBodyGuess() {
-  // v2.2 (2026-06-05, SLIDE_LAB_FEEDBACK_LOG #1): exact-name match wins
+  // Exact-name match wins
   // over substring. Templates with a bespoke "1_Use as default slide
   // template" (TITLE-only) sitting before the body-canonical
   // "Use as default slide template" used to be picked by substring
@@ -1672,7 +1671,7 @@ function pickBody(name) {
   // Single-pick semantics: clicking a layout in the grid
   // selects it as THE default content layout. Reset every other layout
   // to its auto-detected classification first so prior clicks don't
-  // accumulate (the additive behavior was the 2026-06-02 register-html
+  // accumulate (the additive behavior was a register-html
   // bug — every click added another "body-canonical" without unsetting
   // the previous pick, ending up with 12+ body-canonicals).
   layoutPicks.body = name;
@@ -1928,7 +1927,7 @@ dark_bg_slot:    {dark_bg_slot}
 font_heading:    "{font_heading}"
 font_body:       "{font_body}"
 
-# Resolved on-disk TTF path for the heading font (Gate A.3, 2026-06-08).
+# Resolved on-disk TTF path for the heading font.
 # Recorded at registration so finalize_deck doesn't have to scan
 # Windows fonts on every build. Empty string = TTF not discovered on
 # this machine at registration time; finalize_deck falls back to a
@@ -1937,7 +1936,7 @@ title_font_ttf_path: '{title_font_ttf_path}'
 
 # Background handling
 # Default false — KEEP the master decoration. For most client templates
-# (FedEx, Accenture, etc.) the master IS the brand chrome and stripping
+# the master IS the brand chrome and stripping
 # makes every slide look off-spec. Set true ONLY when the master ships
 # unwanted photographic decoration (stadium photos, watermarks) that you
 # do NOT want behind every slide.
@@ -1954,7 +1953,7 @@ def _resolve_brand_ttf_path(font_name: str) -> str:
     when the font is not installed locally — registration still succeeds;
     finalize_deck falls back to a disk scan + warning.
 
-    Gate A.3: persists the TTF path into brand.yml so the
+    Persists the TTF path into brand.yml so the
     per-build _find_brand_ttf() scan can be skipped.
     """
     if not font_name:
@@ -2022,18 +2021,17 @@ def write_brand_css(path: Path, *,
                     cover_bg_hex: str, dark_bg_hex: str,
                     font_heading: str, font_body: str,
                     sha8: str) -> None:
-    """Write a brand.css sidecar for the Pattern B HTML render path.
+    """Write a brand.css sidecar for the sketch-path HTML render path.
 
     Emits a `:root` CSS variables block that the worker's HTML
     `<link rel="stylesheet" href="brand.css">` consumes. The same file is
-    later read by the Pattern B translator agent to resolve
+    later read by the sketch-path translator agent to resolve
     `var(--brand-*)` references back to their hex values (per Spec 2 §4
     "static resolution").
 
     Generated at register_template.py commit time alongside brand.yml +
-    theme.json + chrome.yml. Pure ADD — no existing reader depends on
-    this file (M3 foundation; first consumer ships  when workers
-    branch on Pattern B).
+    theme.json + chrome.yml. Pure ADD — consumed when workers
+    branch onto the sketch path.
     """
     fh = (font_heading or "Inter").strip()
     fb = (font_body or "Inter").strip()
@@ -2047,7 +2045,7 @@ def write_brand_css(path: Path, *,
     primary_soft = mix_hex(p, "FFFFFF", 0.30)
     accent_soft  = mix_hex(a, "FFFFFF", 0.60)
     content = (
-        f"/* brand.css — Pattern B HTML render variables\n"
+        f"/* brand.css — sketch-path HTML render variables\n"
         f" * Generated by register_template.py commit; sha8 {sha8}\n"
         f" * DO NOT EDIT BY HAND — re-run `register_template.py propose`\n"
         f" *                       then `commit` to regenerate.\n"
@@ -2075,7 +2073,7 @@ def write_brand_css(path: Path, *,
         f"  --font-sans:    \"{fb}\", \"Segoe UI\", -apple-system, sans-serif;\n"
         f"  --font-mono:    ui-monospace, \"Consolas\", monospace;\n"
         f"\n"
-        f"  /* Canvas (locked at 1280×720, Decision 1) */\n"
+        f"  /* Canvas (locked at 1280×720) */\n"
         f"  --slide-canvas-bg:      #FFFFFF;\n"
         f"  --slide-canvas-width:   1280px;\n"
         f"  --slide-canvas-height:  720px;\n"
@@ -2155,7 +2153,7 @@ def write_theme_json(path: Path, *, template_path: Path, sha: str,
     """Schema v3: adds ``theme_parts`` capturing the canonical
     theme part + any orphan theme parts in the .pptx. Diagnostic; the
     loader walks the OOXML rels graph to resolve canonical at load time, so
-    this is informational. ``default_content_layout`` (v2) preserved."""
+    this is informational. ``default_content_layout`` preserved."""
     obj = {
         "schema_version": 3,
         "template_path": str(template_path),
@@ -2291,11 +2289,11 @@ def _write_chrome_yml_for(tpl: Path, *, sha8: str,
           f"({n_canonical} body-canonical, {n_bespoke} bespoke); "
           f"sha8={sha8}")
 
-    # Defect 1 follow-on (2026-06-15 CDIO QBR feedback): if every layout
+    # If every layout
     # auto-classifies to the same text_role/background combo, the heuristic
     # almost certainly failed — emit a loud warning so the operator can
     # spot-check the chrome.yml against the actual template look. A
-    # well-designed FedEx/Accenture template has a MIX of light and dark
+    # well-designed client template has a MIX of light and dark
     # backgrounds (light workhorse layouts + dark covers/dividers); 100%
     # uniformity is a near-certain detector failure.
     text_roles = {v.text_role for v in spec.layouts.values()}
@@ -2352,7 +2350,7 @@ def _main_interactive(args) -> int:
     print(f"  best-guess cover-bg: #{cover_bg_hex} (slot: {cover_bg_slot})")
 
     # Default: KEEP master backgrounds. Stripping is destructive — for many
-    # client templates (FedEx purple chrome, Accenture branding, etc.) the
+    # client templates the
     # master IS the brand identity and stripping makes every built slide look
     # off-spec. Opt in to strip only when the master carries photographic
     # decoration the user explicitly does not want behind every slide.
@@ -2481,8 +2479,8 @@ def _main_interactive(args) -> int:
                     cover_bg_slot, cover_bg_hex = primary_slot, primary_hex
             ans3 = input(
                 "  Strip baked-in master backgrounds on content slides?\n"
-                "    Default NO — keeps the client's brand chrome (FedEx purple,\n"
-                "    Accenture branding, etc.) behind every slide. Answer yes ONLY\n"
+                "    Default NO — keeps the client's brand chrome\n"
+                "    behind every slide. Answer yes ONLY\n"
                 "    if the master ships unwanted photographic decoration.\n"
                 "  [y/N]: "
             ).strip().lower()
@@ -2534,7 +2532,7 @@ def _write_outputs(tpl: Path, sha: str, sha8: str,
     brand_yml = _p.brand_yml(tpl)
     theme_json = _p.theme_json(tpl)
 
-    # Gate A.3: resolve the heading font's on-disk TTF and persist into
+    # Resolve the heading font's on-disk TTF and persist into
     # brand.yml so finalize_deck doesn't scan Windows fonts each build.
     title_font_ttf_path = _resolve_brand_ttf_path(font_heading)
     if title_font_ttf_path:
@@ -2556,7 +2554,7 @@ def _write_outputs(tpl: Path, sha: str, sha8: str,
         title_font_ttf_path=title_font_ttf_path,
     )
 
-    # Gate A.1: append the reference_slide block (if any) to brand.yml.
+    # Append the reference_slide block (if any) to brand.yml.
     # Append-after-write keeps the BRAND_YML_TEMPLATE simple and avoids
     # threading a 4-field dict through the template format string.
     if reference_slide_spec:
@@ -2589,11 +2587,11 @@ def _write_outputs(tpl: Path, sha: str, sha8: str,
         theme_parts=theme_parts,
     )
 
-    # Pattern B foundation. Emit brand.css alongside
-    # brand.yml + theme.json. Consumed by the HTML render path that
-    # ships ; emitted unconditionally now because brand.css is pure
+    # Emit brand.css alongside
+    # brand.yml + theme.json. Consumed by the sketch-path HTML render path;
+    # emitted unconditionally because brand.css is pure
     # ADD (no existing reader depends on it and its presence does not
-    # affect the legacy python-pptx pipeline).
+    # affect the python-pptx pipeline).
     brand_css = _p.brand_css(tpl)
     write_brand_css(
         brand_css,
@@ -2625,7 +2623,7 @@ def _write_outputs(tpl: Path, sha: str, sha8: str,
 
 
 # ---------------------------------------------------------------------------
-# Chrome extraction (v0.2 P1.2) — body-canonical vs bespoke classifier
+# Chrome extraction — body-canonical vs bespoke classifier
 # ---------------------------------------------------------------------------
 #
 # For each slide_layout in the template:
@@ -2635,7 +2633,7 @@ def _write_outputs(tpl: Path, sha: str, sha8: str,
 #   2. For bespoke layouts: walk placeholders, extract bounds in EMU, convert
 #      to px (96 DPI), populate the title/subtitle/footnote/source/page_number
 #      fields. Missing placeholder -> field stays None (no silent canonical
-#      fallback — that's the v1 slot-mapping bug class).
+#      fallback — that's the slot-mapping bug class).
 #   3. For body-canonical layouts: leave position fields None. helpers.py
 #      reads canonical_*_box() constants from _chrome_schema.py at build time.
 #   4. Detect text_role from master+layout background luminance.
@@ -2644,8 +2642,8 @@ def _write_outputs(tpl: Path, sha: str, sha8: str,
 
 # Re-export the canonical helpers from _chrome_schema.py so this module's
 # private names continue to resolve for internal call sites. The single
-# source of truth is now `_chrome_schema.EMU_PER_PX_AT_1280` (Pattern B
-# foundation, M3, 2026-06-16); local aliases below preserve backward-compat
+# source of truth is now `_chrome_schema.EMU_PER_PX_AT_1280`;
+# local aliases below preserve backward-compat
 # for the many existing _emu_to_px / _EMU_PER_PX call sites in this file.
 from _chrome_schema import (
     EMU_PER_PX_AT_1280 as _EMU_PER_PX,
@@ -2715,12 +2713,12 @@ def _bg_is_dark(element) -> bool | None:
 
 def _scan_full_bleed_dark_shape(layout_or_master, slide_w_emu: int,
                                  slide_h_emu: int) -> bool | None:
-    """Defect 1 fix (CDIO QBR, 2026-06-15): walk shapes for a full-bleed
+    """Walk shapes for a full-bleed
     dark-fill that the <p:cSld><p:bg> srgb path misses.
 
-    FedEx/Accenture-style templates deliver "dark background" via a master-
+    Some templates deliver "dark background" via a master-
     or layout-level full-bleed shape with a solid or gradient fill, not via
-    `<p:cSld><p:bg>`. The original _bg_is_dark missed those, so every
+    `<p:cSld><p:bg>`. A plain _bg_is_dark check missed those, so every
     layout auto-classified as dark_on_light even when slides actually
     rendered dark. This walker:
 
@@ -2777,7 +2775,7 @@ def _detect_text_role_for_layout(layout) -> tuple[str, str]:
     Inspects, in order:
       1. The LAYOUT's <p:cSld><p:bg> srgb fill (cheapest, most explicit)
       2. The MASTER's <p:cSld><p:bg> srgb fill
-      3. Full-bleed dark shapes on the LAYOUT (Defect 1 — covers / dividers
+      3. Full-bleed dark shapes on the LAYOUT (covers / dividers
          often deliver their dark background via a layout-level rectangle
          with a brand-color fill rather than a <p:bg> element)
       4. Full-bleed dark shapes on the MASTER (same pattern at master level)
@@ -2787,7 +2785,7 @@ def _detect_text_role_for_layout(layout) -> tuple[str, str]:
     master_dark = _bg_is_dark(layout.slide_master.element)
     is_dark = layout_dark if layout_dark is not None else master_dark
     if is_dark is None:
-        # Fall back to full-bleed shape scan (Defect 1 fix).
+        # Fall back to full-bleed shape scan.
         try:
             prs_part = layout.slide_master.part.package
             slide_w = layout.slide_master.element.find(qn("p:cSld"))
@@ -2822,10 +2820,10 @@ def _detect_text_role_for_layout(layout) -> tuple[str, str]:
 def _extract_reference_slide_spec(tpl: Path, slide_n: int) -> dict | None:
     """Extract a 'reference slide' spec from the registering template.
 
-    Gate A.1: the user designates one slide in the template
+    The user designates one slide in the template
     that looks how output should look. We snapshot its layout name and
-    placeholder geometry so future builds can validate against it (Gate C
-    bundles this into per-slide worker context, slide-qc can diff against
+    placeholder geometry so future builds can validate against it (the
+    per-slide worker context bundles this, and slide-qc can diff against
     the rendered version).
 
     slide_n is 1-indexed (matches what the user types in chat / register.html).
@@ -2919,9 +2917,9 @@ def _format_reference_slide_block(ref: dict) -> str:
         return ""
     lines = [
         "",
-        "# Reference slide (Gate A.1, 2026-06-08).",
+        "# Reference slide.",
         "# The slide in the template that defines how every output slide should",
-        "# look. slide_n is 1-indexed. Used by Gate C to build per-slide worker",
+        "# look. slide_n is 1-indexed. Used to build per-slide worker",
         "# context bundles, and by slide-qc as a visual-diff anchor.",
         "reference_slide:",
         f"  slide_n: {ref['slide_n']}",
@@ -2954,7 +2952,7 @@ def _scan_canonical_inline_formatting(prs, layout_name: str) -> list[str]:
     looks correct on the chosen layout but drifts on any rebuild that
     changes the master theme.
 
-    Gate A.2: Mario's "no random text boxes; everything inherits
+    Enforces the "no random text boxes; everything inherits
     from the master" rule. If a layout's title placeholder ships with
     inline <a:solidFill> or <a:rPr sz="..." b="1"> overrides, every grafted
     slide picks up those overrides even if master theme says otherwise.
@@ -3024,16 +3022,16 @@ def _scan_canonical_inline_formatting(prs, layout_name: str) -> list[str]:
 def _classify_layout(layout) -> str:
     """Heuristic classifier: body-canonical vs bespoke.
 
-    v0.4.1 — wide-net rule. A layout is body-canonical if it
+    Wide-net rule. A layout is body-canonical if it
     has BOTH a top-anchored title placeholder AND at least one content
     placeholder (body / object / chart / table / picture). Decorative
-    shapes (FedEx chevron + footer band, Accenture brand rules, etc.)
-    don't trigger bespoke anymore — those are inherited chrome, not
+    shapes (a brand chevron + footer band, header rules, etc.)
+    don't trigger bespoke — those are inherited chrome, not
     content geometry, and they don't interfere with Slide Lab's
     title-plus-body content flow.
 
-    The old rule counted non-placeholder shapes (≤2 → body-canonical).
-    That misclassified every FedEx/OTC workhorse layout as bespoke
+    An earlier rule counted non-placeholder shapes (≤2 → body-canonical).
+    That misclassified many workhorse layouts as bespoke
     because the chevron + footer band each count as one non-placeholder
     shape. The resulting bespoke chrome.yml entries had null footnote /
     source / page-number positions (the layout has no such placeholders
@@ -3044,7 +3042,7 @@ def _classify_layout(layout) -> str:
     title only, no body), section dividers (large title or quote, no
     body), thank-you slides, and similar — layouts where the layout
     itself dictates content position rather than serving as a workhorse
-    title+body chassis.
+    title+body layout.
     """
     has_top_title = False
     has_body_content = False
@@ -3146,7 +3144,7 @@ def _extract_bespoke_boxes(layout) -> dict[str, BoxPx | None]:
 
 
 def _extract_body_zone_for_canonical(layout) -> dict:
-    """For a body-canonical layout, return v2 inheritance fields:
+    """For a body-canonical layout, return inheritance fields:
        title_placeholder_idx, subtitle_placeholder_idx, body_top_y_px,
        body_bottom_y_px.
 
@@ -3154,7 +3152,7 @@ def _extract_body_zone_for_canonical(layout) -> dict:
        type inherited placeholder (None if no title placeholder).
     subtitle_placeholder_idx: the .placeholder_format.idx of the FIRST
        subtitle-type inherited placeholder (None if no subtitle placeholder).
-       Added 2026-06-02 for Bug #2: subtitle was rendering at hardcoded
+       Without it, the subtitle rendered at a hardcoded
        canonical position because finalize_deck had no idx to write into.
     body_top_y_px: bottom of the title placeholder in px (or 110 fallback).
     body_bottom_y_px: top of the footer placeholder in px (or 660 fallback).
@@ -3212,7 +3210,7 @@ def _propose_layout_chromes(prs, classifications_override: dict[str, str] | None
             name = (layout.name or "").strip()
             if not name:
                 continue
-            # De-dup by name across masters (FedEx-style templates put each
+            # De-dup by name across masters (some templates put each
             # logical layout on one master only; if two masters share a layout
             # name, keep the first).
             if name in seen_names:
@@ -3238,7 +3236,7 @@ def _propose_layout_chromes(prs, classifications_override: dict[str, str] | None
             if final_class == "bespoke":
                 position_fields = _extract_bespoke_boxes(layout)
 
-            # v2 + v2.1 body-canonical inheritance fields
+            # body-canonical inheritance fields
             inherit_fields = {
                 "title_placeholder_idx": None,
                 "subtitle_placeholder_idx": None,
@@ -3364,9 +3362,9 @@ def _extract_theme_and_preview(tpl: Path) -> dict:
     ]
     palette_rendered = render_palette_swatches(palette, palette_png)
 
-    # v0.3: render one PNG per layout so the registration HTML
+    # Render one PNG per layout so the registration HTML
     # can show the user what each layout actually looks like before they
-    # pick. v0.4: stored in <sidecar-dir>/thumbnails/ (sibling of register.html).
+    # pick. Stored in <sidecar-dir>/thumbnails/ (sibling of register.html).
     thumbnails_dir = _p.thumbnails_dir(tpl)
     try:
         layout_thumbnails = render_layout_thumbnails(tpl, thumbnails_dir, dpi=96)
@@ -3389,7 +3387,7 @@ def _extract_theme_and_preview(tpl: Path) -> dict:
               f"{type(_exc).__name__}: {_exc}")
         slide_thumbnails = []
 
-    # v0.2 P1.2: per-layout chrome proposals for register.html UI. Auto-detected
+    # Per-layout chrome proposals for register.html UI. Auto-detected
     # classification + text_role per slide_layout. User reclassifies in the
     # picks JSON before commit.
     try:
@@ -3515,8 +3513,8 @@ def _main_propose(args) -> int:
     print(f"register_template propose - {tpl.name}")
     print(f"  extracting theme XML + colors + fonts...")
 
-    # Clean up legacy *.smoke.* artifacts from earlier register runs that
-    # used the v0 "smoke" naming. Avoids two parallel naming conventions
+    # Clean up *.smoke.* artifacts from earlier register runs that
+    # used the older "smoke" naming. Avoids two parallel naming conventions
     # on disk (.smoke.* + .preview.*). Skipped silently if nothing to clean.
     for legacy in (tpl.with_name(f"{tpl.stem}.smoke.pptx"),
                    tpl.with_name(f"{tpl.stem}.smoke.png")):
@@ -3566,8 +3564,8 @@ def _warn_on_picks_drift(tpl: Path) -> None:
     SHOULD be a single source of truth. Surface that loudly so the
     operator can resolve it before the next commit silently picks one.
 
-    The 2026-06-02 OTC rebuild surfaced this: `picks.json` (today) and
-    `register.picks.json` (May 29) co-existed with different layout
+    This has happened in practice: `picks.json` and
+    `register.picks.json` co-existed with different layout
     classifications, and the operator had to manually diff them to figure
     out which one was authoritative.
     """
@@ -3645,9 +3643,9 @@ def _commit_from_picks_dict(tpl: Path, picks: dict, *, source: str) -> int:
     # is empty in the explicit-picks path. The accept-mode shortcut handles
     # its own fallback via autoBodyGuess (caller surfaces the chosen layout
     # back to the user); explicit picks must always set this field. Silent
-    # commit-with-empty was the gap that surfaced as a hard error mid-build
-    # in the 2026-06-11 OTC Final Deliverable session — the user was forced
-    # to pick a layout under time pressure, between brief lock and build.
+    # commit-with-empty was the gap that surfaced as a hard error mid-build,
+    # forcing the user to pick a layout under time pressure, between brief
+    # lock and build.
     if not default_content_layout and not picks.get("accept", False):
         print(
             "ERROR: picks.json is missing `default_content_layout` (and not in "
@@ -3667,7 +3665,7 @@ def _commit_from_picks_dict(tpl: Path, picks: dict, *, source: str) -> int:
         )
         return 2
 
-    # Gate A.1: optional reference_slide_n in picks. When set,
+    # Optional reference_slide_n in picks. When set,
     # extract the spec from that slide and append to brand.yml as a
     # canonical "look like this" anchor.
     reference_slide_n = picks.get("reference_slide_n")
@@ -3732,7 +3730,7 @@ def _commit_from_picks_dict(tpl: Path, picks: dict, *, source: str) -> int:
                 return 2
             klass = getattr(chrome_spec.layouts[default_content_layout],
                             "layout_class", None)
-            # v2.2 (2026-06-05, SLIDE_LAB_FEEDBACK_LOG #1): backstop for
+            # Backstop for
             # autoBodyGuess. default_content_layout MUST be body-canonical
             # (has TITLE idx=0 + BODY/subtitle idx=10) — anything else
             # silently drops subtitles at populate time. Hard-fail
@@ -3760,7 +3758,7 @@ def _commit_from_picks_dict(tpl: Path, picks: dict, *, source: str) -> int:
                 return 2
             print(f"  default_content_layout: {default_content_layout!r} "
                   f"(class: {klass})")
-            # Gate A.2: inline-formatting scan on the canonical
+            # Inline-formatting scan on the canonical
             # layout's placeholders. Warn — do not fail — because some
             # client templates legitimately ship with curated typography
             # overrides we don't want to forbid outright.
@@ -3814,11 +3812,10 @@ def _post_commit_smoke(tpl: Path) -> bool:
     dispatch. Catches the structural failure modes registration used to
     ship silently:
       - theme1.xml's primary_slot/accent_slot values diverging from
-        brand.yml (the OTC theme4.xml orphan issue, now also guarded by
+        brand.yml (a theme-part orphan issue, now also guarded by
         the canonical-theme-part loader fix);
-      - brand.css missing or not referencing brand_primary (observed
-        2026-06-18: FDX Template + OTC slide deck shipped without
-        brand.css, blocking Pattern B HTML renders);
+      - brand.css missing or not referencing brand_primary (templates have
+        shipped without brand.css, blocking sketch-path HTML renders);
       - color_map not producing the brand primary remap;
       - theme1.xml missing major/minor font names.
 
@@ -3894,7 +3891,7 @@ def _post_commit_smoke(tpl: Path) -> bool:
     brand_css = _p.brand_css(tpl)
     if not brand_css.exists():
         fails.append(
-            f"brand.css missing at {brand_css} — Pattern B HTML renders "
+            f"brand.css missing at {brand_css} — sketch-path HTML renders "
             f"won't pick up brand variables."
         )
     else:
@@ -3912,7 +3909,7 @@ def _post_commit_smoke(tpl: Path) -> bool:
 
     # Orphan theme parts — diagnostic warning only. Inert at render time
     # (no master references them) so non-blocking, but flagged so operators
-    # can clean up the .pptx manually. Pre-2026-06-18 loader picked these
+    # can clean up the .pptx manually. An earlier loader picked these
     # up by zip-order luck; the canonical-theme-part fix removed that risk.
     tp = _enumerate_theme_parts(tpl)
     if tp.get("orphan"):
@@ -3967,7 +3964,7 @@ def _main_commit(args) -> int:
     # Normalize: ensure register.picks.json (the canonical filename) reflects
     # this commit's picks, regardless of which path --picks pointed at.
     # Prevents the drift class that produced two competing picks files on
-    # the OTC template (see _warn_on_picks_drift docstring).
+    # a client template (see _warn_on_picks_drift docstring).
     canonical = _p.register_picks_json(tpl)
     canonical.parent.mkdir(parents=True, exist_ok=True)
     canonical.write_text(json.dumps(picks, indent=2), encoding="utf-8")
@@ -3979,7 +3976,7 @@ def _main_commit(args) -> int:
 def _main_commit_cli(args) -> int:
     """Phase 4 variant: build picks from CLI flags. No picks JSON, no
     register.html required — for chat orchestrators that can't render local
-    HTML with live JS. RC-2 fix.
+    HTML with live JS.
 
     The orchestrator reads `palette.png` in chat, decides colors with the
     user, then invokes this subcommand with the slot + hex flags. Bypasses
@@ -4075,16 +4072,16 @@ def main() -> int:
     p_comm.add_argument("--picks", type=Path, required=True,
         help="Path to picks JSON (see module docstring for shape).")
 
-    # RC-2 fix: CLI-flag variant of commit for chat orchestrators
+    # CLI-flag variant of commit for chat orchestrators
     # that cannot render register.html. The orchestrator inspects palette.png
     # in chat, decides colors with the user, then invokes this subcommand
     # with the slot + hex flags directly. No picks.json round-trip needed.
     p_cli = sub.add_parser("commit-cli",
-        help="Phase 4 variant: take picks from CLI flags (no picks.json, no register.html). "
+        help="Take picks from CLI flags (no picks.json, no register.html). "
              "Use when the chat cannot open register.html with live JS.")
     p_cli.add_argument("template", type=Path, help="Path to .pptx/.potx")
     p_cli.add_argument("--accept", action="store_true",
-        help="Accept Phase-1 best-guess colors verbatim. When set, every other "
+        help="Accept Phase-1 best-guess colors unchanged. When set, every other "
              "color flag is ignored.")
     p_cli.add_argument("--primary-slot", type=str, default="",
         help="Theme slot name for the primary brand color (e.g. dk2, lt2, accent1).")

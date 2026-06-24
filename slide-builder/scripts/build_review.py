@@ -1,11 +1,11 @@
-﻿"""build_review.py — v2 fork
+﻿"""build_review.py
 
 ===============================
 
-Generate a self-contained REVIEW.html for a v2 slide-builder
+Generate a self-contained REVIEW.html for a slide-builder
 orchestrator output dir.
 
-Fork from slide-builder/scripts/build_review.py with surgical v2 additions:
+Notable behaviors:
   - sys.path tweak for twins/ from slide-builder/
   - extract_option_pattern() reads each option_X.py's line-1 / line-2 to
     capture the picked pattern + classification (native/fallback/rejected)
@@ -13,8 +13,6 @@ Fork from slide-builder/scripts/build_review.py with surgical v2 additions:
     3+ consecutive same-pattern run produces a per-slide advisory list
   - render_card() injects an adjacency banner when warnings exist
   - CSS adds a .adjacency-banner style
-
-Everything else is verbatim from v1.
 
 Usage
 -----
@@ -33,8 +31,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-# Path setup. twins/ is local to this skill (re-homed Phase 2 cleanup
-# 2026-05-26); render_slides lives in the sibling slide-qc skill. This
+# Path setup. twins/ is local to this skill; render_slides lives in the
+# sibling slide-qc skill. This
 # script does not actually import from either today; the paths are
 # kept on sys.path defensively in case future helpers are added.
 SKILL_ROOT = Path(__file__).resolve().parents[1]
@@ -46,7 +44,7 @@ import _paths as _p  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
-# IO helpers — verbatim from v1
+# IO helpers
 # ---------------------------------------------------------------------------
 
 def file_uri(p: Path) -> str:
@@ -75,7 +73,7 @@ def fmt_bytes(b: int) -> str:
 
 
 # ---------------------------------------------------------------------------
-# v2 ADDITION — pattern extraction + adjacency detection
+# Pattern extraction + adjacency detection
 # ---------------------------------------------------------------------------
 FALLBACK_MERMAID_TOKEN = "# FALLBACK_MERMAID:"
 SKELETON_REJECTED_TOKEN = "# SKELETON_REJECTED:"
@@ -178,7 +176,7 @@ def compute_adjacency_warnings(
 
 
 # ---------------------------------------------------------------------------
-# Brief parser — verbatim from v1
+# Brief parser
 # ---------------------------------------------------------------------------
 
 def parse_brief(brief_path: Path) -> dict:
@@ -256,12 +254,12 @@ def _md_inline_to_html(s: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Per-slide _prompt.md parser — verbatim from v1
+# Per-slide _prompt.md parser
 # ---------------------------------------------------------------------------
 
 # page_type was previously regexed out of _prompt.md via
-# `**Page type (heuristic):**` — that line was a v1 prep-pass echo and is
-# never written by v2's build_deck.py. The canonical source for page_type is
+# `**Page type (heuristic):**` — that line was an earlier prep-pass echo and
+# is never written by build_deck.py. The canonical source for page_type is
 # _meta.json (slides[].page_type). parse_prompt() no longer attempts to read
 # it; the lookup is on _meta.json only. See the resolution.
 PROMPT_FIELDS = {
@@ -293,7 +291,7 @@ def parse_prompt(prompt_path: Path) -> dict:
 
 
 # ---------------------------------------------------------------------------
-# Slide scan — v1 base + v2 pattern capture per option
+# Slide scan — pattern capture per option
 # ---------------------------------------------------------------------------
 
 OPTIONS = ("A", "B", "C")
@@ -341,7 +339,7 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
             except Exception:
                 qc_summary = None
 
-        # v2 addition: extract pattern + classification from the .py header
+        # extract pattern + classification from the .py header
         pattern, classification = extract_option_pattern(src_py)
 
         # when the translator wrote a
@@ -349,7 +347,7 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
         # REVIEW.html so the user sees the fidelity story alongside the option
         # PNG. Path convention is sibling to the .py file:
         #   slide_NN/option_X_translation_report.json
-        # Missing report is the common case for Pattern C slides — we just
+        # Missing report is the common case for direct-path slides — we just
         # carry empty data through; render_card decides what to show.
         translation_report_path = themed_dir / f"option_{letter}_translation_report.json"
         ssim_per_zone: dict = {}
@@ -388,10 +386,9 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
             "themed_size": themed_pptx.stat().st_size if themed_exists else 0,
             "qc_summary": qc_summary,
             "qc_failed_checks": qc_failed_checks,
-            # v2 fields
             "pattern": pattern,
             "classification": classification,
-            # M6 — Sketch-path translation QC fields
+            # Sketch-path translation QC fields
             "translation_report_path": translation_report_path if translation_report_path.exists() else None,
             "ssim_per_zone": ssim_per_zone,
             "translation_warnings": translation_warnings,
@@ -471,7 +468,7 @@ def discover_slide_count(out_dir: Path) -> int:
 
 
 # ---------------------------------------------------------------------------
-# Storyline rendering — verbatim from v1
+# Storyline rendering
 # ---------------------------------------------------------------------------
 
 def render_storyline_html(storyline: dict, slides: list) -> str:
@@ -497,7 +494,7 @@ def render_storyline_html(storyline: dict, slides: list) -> str:
         return f'<div class="dd-slide">{"".join(parts)}</div>'
 
     blocks = "".join(_slide_block(s) for s in slides)
-    topic = html.escape(storyline.get("topic") or "Slide Lab v2 deck")
+    topic = html.escape(storyline.get("topic") or "Slide Lab deck")
     deck_type = html.escape(storyline.get("deck_type") or "—")
     gov = html.escape(storyline.get("governing") or "—")
     audience = html.escape(storyline.get("audience") or "—")
@@ -527,7 +524,7 @@ def render_storyline_html(storyline: dict, slides: list) -> str:
 
 
 # ---------------------------------------------------------------------------
-# QC banner stub — verbatim from v1 (humanizer + render trimmed for v2)
+# QC banner stub (humanizer + render trimmed)
 # ---------------------------------------------------------------------------
 
 def _render_qc_info_stub() -> str:
@@ -537,7 +534,7 @@ def _render_qc_info_stub() -> str:
         '<details class="qc-brief-section qc-brief-info">'
         '<summary><span class="qc-brief-icon">i</span>INFO &middot; brief_qc.json not found</summary>'
         '<ul><li>No <code>brief_qc.json</code> in this output directory. '
-        'v2\'s build_deck.py does not yet produce one — wire later if needed.</li></ul>'
+        'build_deck.py does not yet produce one — wire later if needed.</li></ul>'
         '</details></div>'
     )
 
@@ -604,7 +601,7 @@ def render_font_banner(out_dir: Path) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Per-slide card — v1 base + v2 adjacency banner + classification badge
+# Per-slide card — adjacency banner + classification badge
 # ---------------------------------------------------------------------------
 
 FEEDBACK_FIELDS = [
@@ -644,7 +641,7 @@ def render_option_tile(slide: dict, opt: dict, themed_path_str: str) -> str:
     else:
         qc_badge = '<div class="qc-badge ok" title="all QC checks passed">OK QC</div>'
 
-    # v2 addition: classification badge — bottom-right of frame
+    # classification badge — bottom-right of frame
     classification = opt.get("classification", "native")
     class_badge_html = ""
     if classification == "fallback_mermaid":
@@ -660,7 +657,7 @@ def render_option_tile(slide: dict, opt: dict, themed_path_str: str) -> str:
         if themed_path_str else ''
     )
 
-    # v2 addition: pattern label under the option-meta line
+    # pattern label under the option-meta line
     pattern = opt.get("pattern")
     pattern_html = (
         f'<div class="option-pattern">{html.escape(pattern)}</div>'
@@ -681,7 +678,7 @@ def render_option_tile(slide: dict, opt: dict, themed_path_str: str) -> str:
 
 
 def render_adjacency_banner(slide_n: int, warnings: list[str]) -> str:
-    """v2 ADDITION: render the adjacency advisory banner on a slide's card."""
+    """Render the adjacency advisory banner on a slide's card."""
     if not warnings:
         return ""
     items = "".join(f"<li>{html.escape(w)}</li>" for w in warnings)
@@ -705,14 +702,13 @@ def render_context_ack_chip(slide: dict) -> str:
         registered, but the worker didn't write an ack file. Advisory.
       - hidden: no `_context.md` (older brief) OR `_context.md` exists but
         the template was registered without a reference slide — the chip
-        would be noise on every slide if shown here, so suppress (audit
-        blocker, 2026-06-08).
+        would be noise on every slide if shown here, so suppress.
     """
     if not slide.get("context_present"):
         return ""
     # Suppress the chip when no reference slide was registered — there's no
     # canonical constraint for the worker to have cited, so a yellow ⚠ on
-    # every slide of every build is pure noise that Mario asked us not to
+    # every slide of every build is pure noise we were asked not to
     # ship.
     if not slide.get("context_has_reference"):
         return ""
@@ -735,8 +731,8 @@ def render_context_ack_chip(slide: dict) -> str:
 
 
 def render_sketch_qc_section(slide: dict) -> str:
-    """M6 (Pattern B QC surfacing, 2026-06-17): per-slide block showing
-    translator self-check results for any Pattern B options on this slide.
+    """Per-slide block showing translator self-check results for any
+    sketch-path options on this slide.
 
     Rendered between the option-tile row and the decision buttons. Shows:
       - Per-zone SSIM scores (title / subtitle / body / footer) per option
@@ -744,7 +740,7 @@ def render_sketch_qc_section(slide: dict) -> str:
         for any warning the translator emitted.
 
     Empty string when no option on this slide carries a translation report
-    (Pattern C / legacy builds always hit this path).
+    (direct-path builds always hit this path).
     """
     pattern_b_opts = [
         o for o in slide.get("options", [])
@@ -914,7 +910,7 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
 
 
 # ---------------------------------------------------------------------------
-# CSS — v1 base + v2 adjacency-banner + classification-badge + pattern-label
+# CSS — adjacency-banner + classification-badge + pattern-label
 # ---------------------------------------------------------------------------
 
 CSS = """
@@ -984,14 +980,14 @@ code { font-family: Consolas, monospace; font-size: 12px; color: var(--text-dim)
 .context-chip-warn { background: rgba(202,138,4,0.14); border-left: 3px solid var(--tweak); color: #FDE68A; }
 .context-chip-warn strong { color: var(--tweak); }
 
-/* v2 addition: adjacency advisory banner */
+/* adjacency advisory banner */
 .adjacency-banner { margin: 0 20px 12px; padding: 10px 14px; background: rgba(202,138,4,0.14); border-left: 4px solid var(--tweak); border-radius: 4px; color: #FDE68A; font-size: 13px; line-height: 1.45; }
 .adjacency-banner-title { font-size: 11px; font-weight: 800; color: var(--tweak); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
 .adjacency-icon { color: var(--tweak); margin-right: 4px; }
 .adjacency-banner ul { margin: 4px 0 0; padding-left: 18px; }
 .adjacency-banner li { padding: 2px 0; }
 
-/* M6 (Sketch-path translation QC, 2026-06-17) */
+/* Sketch-path translation QC */
 .sketch-qc { margin: 0 20px 14px; padding: 10px 14px; background: rgba(99,102,241,0.10); border-left: 4px solid #6366F1; border-radius: 4px; color: #C7D2FE; font-size: 12.5px; line-height: 1.5; }
 .sketch-qc-title { font-size: 11px; font-weight: 800; color: #A5B4FC; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
 .sketch-qc-icon { color: #A5B4FC; margin-right: 4px; }
@@ -1011,12 +1007,12 @@ code { font-family: Consolas, monospace; font-size: 12px; color: var(--text-dim)
 .r4-chip-advisory { background: rgba(148,163,184,0.16); color: #CBD5E1; border: 1px solid rgba(148,163,184,0.30); }
 .r4-chip-pass     { background: rgba(16,185,129,0.14); color: #6EE7B7; border: 1px solid rgba(16,185,129,0.30); }
 
-/* v2 addition: classification badge on option frame */
+/* classification badge on option frame */
 .class-badge { position: absolute; bottom: 6px; right: 6px; padding: 3px 8px; border-radius: 10px; font-size: 9px; font-weight: 800; letter-spacing: 0.6px; line-height: 1.1; z-index: 2; box-shadow: 0 2px 5px rgba(0,0,0,0.25); cursor: help; }
 .class-badge.fallback { background: var(--info); color: #fff; }
 .class-badge.rejected { background: var(--reject); color: #fff; }
 
-/* v2 addition: pattern label under option meta */
+/* pattern label under option meta */
 .option-pattern { color: var(--accent-soft); margin-top: 2px; font-size: 11px; font-weight: 600; font-style: italic; }
 
 .font-banner { background: #FEF3C7; border-bottom: 2px solid #F59E0B; padding: 14px 24px; color: #78350F; }
@@ -1112,7 +1108,7 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
 
 
 # ---------------------------------------------------------------------------
-# JS — verbatim from v1 (picks + feedback + clipboard logic unchanged)
+# JS — picks + feedback + clipboard logic
 # ---------------------------------------------------------------------------
 
 JS = r"""
@@ -1275,7 +1271,7 @@ async function buildDeck() {
     });
     const regens = loadRegens();
     const regenSlides = Object.keys(regens).filter(s => regens[s]);
-    let cmd = "Compile my slide-lab v2 deck.\n";
+    let cmd = "Compile my slide-lab deck.\n";
     cmd += "Out dir: " + window.__OUT_DIR__ + "\n";
     cmd += "Picks: " + JSON.stringify(picks) + "\n";
     if (regenSlides.length) cmd += "Regen requested: " + regenSlides.join(", ") + "\n";
@@ -1341,7 +1337,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
 
 # ---------------------------------------------------------------------------
-# Build HTML — v1 base + v2 adjacency-warning computation
+# Build HTML — adjacency-warning computation
 # ---------------------------------------------------------------------------
 
 def build_html(out_dir: Path, meta: Optional[dict], slides: list, storyline: dict) -> str:
@@ -1357,20 +1353,20 @@ def build_html(out_dir: Path, meta: Optional[dict], slides: list, storyline: dic
             if o["themed_exists"]:
                 slide_map[sid][o["letter"]] = str(o["themed_pptx"].resolve())
 
-    # v2: compute adjacency warnings across option_A
+    # compute adjacency warnings across option_A
     adjacency_warnings = compute_adjacency_warnings(slides_by_n, option_letter="A")
 
     deck_meta = (meta or {}).get("deck_meta", {}) or {}
-    deck_type = deck_meta.get("deck_type") or storyline.get("deck_type") or "Slide Lab v2 deck"
-    deck_topic = storyline.get("topic") or "Untitled v2 deck"
+    deck_type = deck_meta.get("deck_type") or storyline.get("deck_type") or "Slide Lab deck"
+    deck_topic = storyline.get("topic") or "Untitled deck"
     governing = deck_meta.get("governing_thought") or storyline.get("governing") or ""
     generated = (meta or {}).get("generated_at") or datetime.now().isoformat(timespec="seconds")
     brief_path = (meta or {}).get("brief", "")
     template_path = (meta or {}).get("template", "")
     slide_count = (meta or {}).get("slide_count", len(slides))
-    # v2: client_slug surfaces in the topbar so reviewers can tell FedEx vs ACN
-    # REVIEW.html apart at a glance. Brand-specific overrides handle camel-case
-    # capitalizations that plain title() gets wrong ("Fedex" vs "FedEx").
+    # client_slug surfaces in the topbar so reviewers can tell different
+    # clients' REVIEW.html apart at a glance. Brand-specific overrides handle
+    # camel-case capitalizations that plain title() gets wrong.
     # Add new brands here as encountered; fall back to title-case for unknowns.
     _BRAND_DISPLAY = {
         "fedex":     "FedEx",
@@ -1393,7 +1389,7 @@ def build_html(out_dir: Path, meta: Optional[dict], slides: list, storyline: dic
     topbar_html = f"""
 <div class="topbar">
   <div>
-    <div class="title">{html.escape(deck_topic)} &middot; v2 OPTIONS REVIEW &middot; {slide_count} slides</div>
+    <div class="title">{html.escape(deck_topic)} &middot; OPTIONS REVIEW &middot; {slide_count} slides</div>
     <div class="title-sub">{html.escape(deck_type)} &middot; Pick A/B/C per slide or mark NONE.</div>
     <div class="topbar-meta">
       <div class="k">Generated</div><div class="v">{html.escape(generated)}</div>
@@ -1439,7 +1435,7 @@ def build_html(out_dir: Path, meta: Optional[dict], slides: list, storyline: dic
 
     return (
         "<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\">"
-        f"<title>{html.escape(deck_topic)} &mdash; v2 REVIEW</title>"
+        f"<title>{html.escape(deck_topic)} &mdash; REVIEW</title>"
         "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
         f"<style>{CSS}</style></head><body>"
         f"{topbar_html}"
@@ -1454,11 +1450,11 @@ def build_html(out_dir: Path, meta: Optional[dict], slides: list, storyline: dic
 
 
 # ---------------------------------------------------------------------------
-# Main — verbatim from v1
+# Main
 # ---------------------------------------------------------------------------
 
 def main(argv: list[str]) -> int:
-    ap = argparse.ArgumentParser(description="Build REVIEW.html for v2 slide-builder output.")
+    ap = argparse.ArgumentParser(description="Build REVIEW.html for slide-builder output.")
     ap.add_argument("--out", required=True, help="Orchestrator output directory.")
     args = ap.parse_args(argv)
 

@@ -11,7 +11,7 @@ Spec (from operator):
   - Under each tile: pattern + variant + directive verb + classification
   - Adjacency advisory at top if any pattern appears 3+ consecutive across option_A
   - NO picking interface, NO QC banner, NO override-with-reason flow
-  - Reuses styling conventions from _decisions/GALLERY.html
+  - Reuses the gallery styling conventions
 
 Sources of metadata:
   - Pattern, variant, classification: parsed from option_X.py header (lines 1-2):
@@ -249,9 +249,10 @@ def compute_adjacency_warnings(slides: list[dict], option_letter: str = "A") -> 
 
 
 # Neutral fallback colors — used when _meta.json predates schema_version 2 or
-# is missing brand_primary/brand_accent. NEVER FedEx purple/orange: a silent
-# FedEx default would render FedEx-themed previews for non-FedEx clients (the
-# false-positive class flagged in finalize_deck.py::_resolve_mermaid_theme).
+# is missing brand_primary/brand_accent. NEVER a hardcoded brand default: a
+# silent brand-colored default would render the wrong client's theme into
+# previews for other clients (the false-positive class flagged in
+# finalize_deck.py::_resolve_mermaid_theme).
 _FALLBACK_BRAND_PRIMARY = "#333333"
 _FALLBACK_BRAND_ACCENT  = "#888888"
 
@@ -567,14 +568,14 @@ def render_html(out_dir: Path, slides: list[dict], adjacency: list[str]) -> str:
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>v2 Gate 3 Preview — visual verification</title>
+<title>Gate 3 Preview — visual verification</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <style>{css}</style>
 </head>
 <body>
 
 <header>
-  <h1>v2 Gate 3 Preview — visual verification</h1>
+  <h1>Gate 3 Preview — visual verification</h1>
   <div class="subtitle">Light preview after Stage 3 (finalize). No picking, no QC banner — just visual sanity check before Stage 4 (REVIEW.html).</div>
   <div class="meta-line">Output dir: {html.escape(str(out_dir.resolve()))} &middot; {len(slides)} slides &middot; {sum(len(s["options"]) for s in slides)} option tiles</div>
 </header>

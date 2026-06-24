@@ -192,7 +192,7 @@ def render_tmp_dir(pptx: Path) -> Path:
 #       register.picks.json
 #       thumbnails/
 #
-# Pre-v0.4 templates used a FLAT layout (every sidecar as a sibling of the
+# Older templates used a FLAT layout (every sidecar as a sibling of the
 # .pptx, prefixed with the stem: `<stem>.brand.yml` etc.). The migration
 # script `scripts/migrate_template_layout.py` moves a flat template into the
 # new layout; readers raise `LegacyTemplateLayoutError` (defined in twins/client_theme.py)
@@ -227,12 +227,11 @@ def chrome_yml(template_pptx: Path) -> Path:
 
 
 def brand_css(template_pptx: Path) -> Path:
-    """<sidecar-dir>/brand.css — CSS-variables sidecar for Pattern B.
+    """<sidecar-dir>/brand.css — CSS-variables sidecar for the sketch path.
 
-    Writer: register_template.py commit (Pattern B foundation, M3,
-    2026-06-16). Consumed at render time by the worker HTML
-    (`<link rel="stylesheet" href="brand.css">`) and at translate time
-    by the Pattern B translator agent for `var(--brand-*)` resolution
+    Writer: register_template.py commit. Consumed at render time by the
+    worker HTML (`<link rel="stylesheet" href="brand.css">`) and at translate
+    time by the sketch-path translator agent for `var(--brand-*)` resolution
     (per Spec 2 §4 "static resolution").
     """
     return template_sidecar_dir(template_pptx) / "brand.css"
@@ -285,14 +284,14 @@ def thumbnails_dir(template_pptx: Path) -> Path:
 # ---------------------------------------------------------------------------
 
 def _legacy_flat_path(template_pptx: Path, suffix: str) -> Path:
-    """Return the pre-v0.4 flat-layout path for a sidecar suffix.
+    """Return the older flat-layout path for a sidecar suffix.
     Suffix is the part after the stem dot, e.g. 'brand.yml', 'chrome.yml'.
     """
     return template_pptx.with_name(f"{template_pptx.stem}.{suffix}")
 
 
 def detect_legacy_template_layout(template_pptx: Path) -> bool:
-    """Return True iff a template still uses the pre-v0.4 flat sidecar layout.
+    """Return True iff a template still uses the older flat sidecar layout.
 
     Heuristic: the legacy `<stem>.brand.yml` exists AND the new
     `<stem>/brand.yml` does not. Detects mid-migration state too.
@@ -322,7 +321,7 @@ ARTIFACT_MANIFEST: list[dict] = [
     {"name": "gate3_preview_html", "writer": "build_gate_preview.py", "readers": [], "accepted": True, "reason": "Terminal artifact — opened by user in browser"},
     {"name": "review_html",        "writer": "build_review.py",       "readers": [], "accepted": True, "reason": "Terminal artifact — opened by user in browser"},
     {"name": "picks_json",         "writer": "chat orchestrator",     "readers": ["compile_picks.py"], "accepted": True, "reason": "Written by chat session, not by a pipeline script"},
-    {"name": "brief_qc_json",      "writer": "(unbuilt)",             "readers": ["build_review.py"], "accepted": True, "reason": "Accepted orphan. build_review.py renders a graceful 'not found' banner when the file is absent. v2 prep does not yet emit brief_qc.json; resolved per Phase 4 P4.27 as 'keep reader, defer writer until brief-time QC becomes a feature.'"},
+    {"name": "brief_qc_json",      "writer": "(unbuilt)",             "readers": ["build_review.py"], "accepted": True, "reason": "Accepted orphan. build_review.py renders a graceful 'not found' banner when the file is absent. The build does not yet emit brief_qc.json; keep reader, defer writer until brief-time QC becomes a feature."},
 
     # Per-slide
     {"name": "prompt_md",          "writer": "build_deck.py",         "readers": ["build_gate_preview.py", "build_review.py", "finalize_deck.py"]},
@@ -332,17 +331,17 @@ ARTIFACT_MANIFEST: list[dict] = [
     {"name": "option_py",          "writer": "per-slide agent",       "readers": ["finalize_deck.py", "build_gate_preview.py", "build_review.py"], "accepted": True, "reason": "Written by per-slide worker agent"},
     {"name": "option_pptx",        "writer": "finalize_deck.py",      "readers": ["compile_picks.py", "build_review.py"]},
     {"name": "option_png",         "writer": "finalize_deck.py",      "readers": ["build_gate_preview.py", "build_review.py"]},
-    # M7 (Mermaid retirement, 2026-06-17): `option_mmd` and `option_mermaid_png`
+    # `option_mmd` and `option_mermaid_png`
     # are no longer produced by any code path. The path helpers
     # `option_mmd_name` / `option_mermaid_png_name` / `option_mmd` /
     # `option_mermaid_png` remain in _paths.py as no-op references for
     # backward compatibility with `clean.py` which uses them to sweep
-    # legacy build dirs. Manifest entries removed so the contract
+    # older build dirs. Manifest entries removed so the contract
     # handoff-coverage check stays clean.
     {"name": "option_qc_json",     "writer": "build_review.py",       "readers": ["build_review.py"]},
     {"name": "option_raw_pptx",    "writer": "finalize_deck.py",      "readers": [], "accepted": True, "reason": "Audit archive — not re-read"},
 
-    # Template-relative (v0.4 — subfolder layout)
+    # Template-relative (subfolder layout)
     # brand_yml + theme_json are resolved by twins/client_theme.py:sidecar_paths
     # and read by load_brand_sidecar(); pipeline scripts go through that helper
     # rather than the _paths helpers directly. build_deck.py also reads
@@ -355,7 +354,7 @@ ARTIFACT_MANIFEST: list[dict] = [
     # the contract tool's _p.<name> regex, so we mark this entry accepted.
     {"name": "theme_json",                "writer": "register_template.py",  "readers": ["build_deck.py"], "accepted": True, "reason": "twins/client_theme.py reads via sidecar_paths() with a lazy _paths import that the contract grep can't detect; build_deck.py reads directly via _p.theme_json"},
     {"name": "chrome_yml",                "writer": "register_template.py",  "readers": ["finalize_deck.py", "build_deck.py"]},
-    {"name": "brand_css",                 "writer": "register_template.py",  "readers": [], "accepted": True, "reason": "Pattern B foundation; no reader until M5 wires the HTML render path. Pure ADD — presence does not affect legacy python-pptx pipeline."},
+    {"name": "brand_css",                 "writer": "register_template.py",  "readers": [], "accepted": True, "reason": "Sketch-path foundation; no reader until the HTML render path is wired. Pure ADD — presence does not affect the python-pptx pipeline."},
     {"name": "chrome_commit_method_txt",  "writer": "register_template.py",  "readers": [], "accepted": True, "reason": "Operator audit only — no pipeline reader"},
     {"name": "preview_pptx",              "writer": "register_template.py",  "readers": [], "accepted": True, "reason": "Registration UI artifact — opened in chat preview"},
     {"name": "preview_png",               "writer": "register_template.py",  "readers": [], "accepted": True, "reason": "Registration UI artifact"},

@@ -31,18 +31,19 @@ from pydantic import BaseModel, Field, ValidationError
 # with build_deck.py::META_SCHEMA_VERSION.
 META_SCHEMA_VERSION_CURRENT: int = 3
 
-# Versions readers accept. v2 is a transition cushion for any _meta.json
-# written before P1.4 landed; the compat shim in validate_meta_dict() bumps
-# v2 dicts to v3 in-memory and injects layout="body_canonical_light".
-# Remove v2 once enough time has passed to be confident no v2 metas remain.
+# Versions readers accept. Schema version 2 is a transition cushion for any
+# _meta.json written before the per-slide layout field existed; the compat
+# shim in validate_meta_dict() bumps version-2 dicts to version 3 in-memory
+# and injects layout="body_canonical_light".
+# Remove version 2 once enough time has passed to be confident no
+# version-2 metas remain.
 SUPPORTED_SCHEMA_VERSIONS: tuple[int, ...] = (2, 3)
 
-# Default layout name used by the v2 -> v3 compat shim when a per-slide
-# layout field is missing. Chosen to match the most-common body slide in
-# consulting decks (FedEx, Accenture, NFL templates all expose a similarly-
-# named light body layout); if the template's chrome.yml doesn't have this
-# exact name, finalize_deck's _pick_default_layout_name takes over at build
-# time.
+# Default layout name used by the version-2 -> version-3 compat shim when a
+# per-slide layout field is missing. Chosen to match the most-common body
+# slide in consulting decks (most client templates expose a similarly-named
+# light body layout); if the template's chrome.yml doesn't have this exact
+# name, finalize_deck's _pick_default_layout_name takes over at build time.
 V2_COMPAT_DEFAULT_LAYOUT: str = "body_canonical_light"
 
 
@@ -51,13 +52,13 @@ class SlideMeta(BaseModel):
     title: str = ""
     forecasted_pattern: str = ""
     page_type: str = ""
-    # v0.2 P1.4: which chrome.yml layout each slide is built against. Writer
+    # Which chrome.yml layout each slide is built against. Writer
     # (build_deck.py) populates this from the brief's `**Layout:**` field or
     # the deck-level `default_layout:`; readers (finalize_deck.py) graft each
-    # slide onto the named layout. Empty string only legal during the v2
-    # compat shim transition window — see validate_meta_dict.
+    # slide onto the named layout. Empty string only legal during the
+    # schema version-2 compat shim transition window — see validate_meta_dict.
     layout: str = ""
-    # v2.2 (2026-06-05, SLIDE_LAB_FEEDBACK_LOG #3): so-what subtitle text to
+    # So-what subtitle text to
     # populate into the layout's SUBTITLE placeholder. Source: brief's
     # **So-what:** line per slide. Empty string is legitimate (cover slides,
     # divider slides, or any slide whose title is self-contained). Writer
@@ -66,7 +67,7 @@ class SlideMeta(BaseModel):
     subtitle: str = ""
     # Optional build-path fields. Default None preserves legacy semantics:
     # readers see slides with pattern=None and route through the pptx-direct
-    # path verbatim. Writers set these only when --pattern is not "legacy"
+    # path. Writers set these only when --pattern is not "legacy"
     # (or when settings.json::default_pattern enables routing).
     #
     #   pattern  ∈ {"sketch", "direct", None}
@@ -109,7 +110,7 @@ class MetaJson(BaseModel):
     # pptx-direct pipeline. Writers set these only when --pattern != "legacy".
     #
     #   pattern_default  ∈ {"legacy", "auto", "sketch", "direct", None}
-    #     "legacy" = use the pptx-direct-only pipeline verbatim (default)
+    #     "legacy" = use the pptx-direct-only pipeline (default)
     #     "auto"   = per-slide routing via _classify_all_slides
     #     "sketch" = force all slides through the HTML-first path
     #     "direct" = force all slides through the pptx-direct path (no HTML stage)
@@ -141,8 +142,9 @@ class MetaJsonSchemaError(RuntimeError):
 def validate_meta_dict(raw: dict[str, Any]) -> MetaJson:
     """Validate a parsed dict against MetaJson. Raises MetaJsonSchemaError on failure.
 
-    v2 compat shim: when raw['schema_version'] == 2, the dict is bumped
-    in-memory to v3 with `layout = V2_COMPAT_DEFAULT_LAYOUT` injected on each
+    Schema version-2 compat shim: when raw['schema_version'] == 2, the dict
+    is bumped in-memory to version 3 with `layout = V2_COMPAT_DEFAULT_LAYOUT`
+    injected on each
     slide that lacks one. A migration-required warning is written to stderr so
     finalize_deck surfaces it in RESULT.md downstream.
     """
@@ -156,7 +158,7 @@ def validate_meta_dict(raw: dict[str, Any]) -> MetaJson:
         )
     if version == 2:
         # In-memory bump. Don't write back to disk — the next build_deck.py
-        # run rewrites the meta with v3 properly.
+        # run rewrites the meta at schema version 3 properly.
         raw = {**raw, "schema_version": 3}
         slides = []
         for s in raw.get("slides", []) or []:
@@ -168,7 +170,7 @@ def validate_meta_dict(raw: dict[str, Any]) -> MetaJson:
             slides.append(s)
         raw["slides"] = slides
         sys.stderr.write(
-            f"WARN: _meta.json v2 loaded with v3 compat shim "
+            f"WARN: _meta.json schema version 2 loaded with version-3 compat shim "
             f"(layout={V2_COMPAT_DEFAULT_LAYOUT!r} injected on slides "
             f"without one). Re-run build_deck.py against a brief with "
             f"`default_layout:` or per-slide `**Layout:**` to upgrade.\n"

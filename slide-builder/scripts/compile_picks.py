@@ -1,8 +1,7 @@
-﻿"""Slide Lab v2 deck compiler — combine user-picked themed slides into one final deck.
+﻿"""Slide Lab deck compiler — combine user-picked themed slides into one final deck.
 
-True near-verbatim fork from slide-builder/scripts/compile_picks.py. The only
-v2-specific change is the sys.path setup: v2 doesn't carry its own twins/
-module, so we point at slide-builder/'s shared infrastructure explicitly.
+The sys.path setup points at slide-builder/'s shared infrastructure explicitly
+since this script does not carry its own twins/ module.
 
 Inputs:
   --out PATH    Orchestrator output dir (the one that has _meta.json, slide_NN/ dirs, etc.)
@@ -11,7 +10,7 @@ Inputs:
                 If omitted, reads <out>/picks.json if present.
   --final PATH  Final deck path (default: <out>/final_deck.pptx)
 
-What it does (unchanged from v1):
+What it does:
   1. Open the client template (path from <out>/_meta.json).
   2. _clear_existing_slides() — strip template stock slides + named sections.
   3. For each slide in numeric order, open <out>/slide_NN/option_<X>.pptx
@@ -24,7 +23,7 @@ What it does (unchanged from v1):
      render success/fail, opens-cleanly status.
 
 The themed PPTX is already client-branded by finalize_deck.py — we do
-NOT re-graft or re-theme here. Just combine. Mermaid-fallback options
+NOT re-graft or re-theme here. Just combine. Fallback options
 were already assembled into themed PPTX at finalize time and look identical
 to native options from this script's perspective.
 """
@@ -40,8 +39,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-# Path setup: twins/ is local to this skill (re-homed Phase 2 cleanup
-# 2026-05-26); render_slides lives in the sibling slide-qc skill.
+# Path setup: twins/ is local to this skill; render_slides lives in the
+# sibling slide-qc skill.
 SKILL_ROOT = Path(__file__).resolve().parents[1]              # slide-builder/
 QC_SCRIPTS = SKILL_ROOT.parent / "slide-qc" / "scripts"       # render_slides
 sys.path.insert(0, str(SKILL_ROOT))
@@ -59,7 +58,7 @@ from twins.composer import (  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
-# Pick parsing — unchanged from v1
+# Pick parsing
 # ---------------------------------------------------------------------------
 def parse_picks(arg: Optional[str], out_dir: Path) -> dict[str, str]:
     """Resolve --picks. Accepts:
@@ -102,7 +101,7 @@ def parse_picks(arg: Optional[str], out_dir: Path) -> dict[str, str]:
 
 
 # ---------------------------------------------------------------------------
-# Slide copying — unchanged from v1
+# Slide copying
 # ---------------------------------------------------------------------------
 def copy_picked_slide_into(dst_prs, src_pptx: Path,
                            layout_name: str = "",
@@ -111,11 +110,11 @@ def copy_picked_slide_into(dst_prs, src_pptx: Path,
     """Open `src_pptx`, append its first slide's shapes onto a new slide in
     `dst_prs`.
 
-    v0.3 body-canonical inheritance: when layout_chrome is a body-canonical v2
+    Body-canonical inheritance: when layout_chrome is a body-canonical
     chrome (with title_placeholder_idx set), the target layout's inherited
     placeholders + decorative shapes are KEPT (not stripped); the layout name
-    drives the layout pick. Otherwise this falls back to the v0.2 behavior
-    (blank layout, strip placeholders).
+    drives the layout pick. Otherwise this falls back to the blank-layout
+    behavior (blank layout, strip placeholders).
     """
     src_prs = Presentation(str(src_pptx))
     src_slide = src_prs.slides[0]
@@ -141,7 +140,7 @@ def copy_picked_slide_into(dst_prs, src_pptx: Path,
         sp_tree.append(deepcopy(shape.element))
         count += 1
 
-    # Defect 5 fix (2026-06-15 CDIO QBR feedback): for body-canonical
+    # For body-canonical
     # destinations, the new_slide already has layout-inherited placeholders
     # (empty Title 1, Text Placeholder 2, etc.). The source slide carries
     # its OWN populated copies of the same placeholders (finalize_deck wrote
@@ -164,9 +163,8 @@ def _dedupe_zip_entries(pptx_path: Path) -> int:
 
     LibreOffice rejects zips with duplicate entry names as corrupt; python-
     pptx occasionally produces them on multi-slide saves where shape
-    relationships overlap. The user wrote `_session/dedupe_pptx_zip.py` as
-    a workaround during the CDIO QBR build. Folded into compile_picks as
-    of 2026-06-15 (Defect 6 secondary).
+    relationships overlap. This dedupe pass is folded into compile_picks to
+    keep the saved deck loadable.
     """
     import zipfile
     import io
@@ -251,9 +249,9 @@ def _dedupe_placeholder_duplicates(slide) -> int:
 
 
 # ---------------------------------------------------------------------------
-# COMPILED.md — unchanged from v1
+# COMPILED.md
 # ---------------------------------------------------------------------------
-COMPILED_TEMPLATE = """# Slide Lab v2 compiled deck
+COMPILED_TEMPLATE = """# Slide Lab compiled deck
 
 Generated: {ts}
 
@@ -282,7 +280,7 @@ Final deck: `{final}`
 
 
 # ---------------------------------------------------------------------------
-# Main — unchanged from v1 (only the header message changed for v2)
+# Main
 # ---------------------------------------------------------------------------
 def main() -> int:
     ap = argparse.ArgumentParser(description="Compile picked themed slides into a final deck.")
@@ -291,7 +289,7 @@ def main() -> int:
     ap.add_argument("--final", default=None, type=Path,
                     help="Final deck path (default: <out>/final_deck.pptx)")
     ap.add_argument("--all-variations", action="store_true",
-                    help="Defect 6 fix (CDIO QBR, 2026-06-15): instead of "
+                    help="Instead of "
                          "selecting one pick per slide, iterate ALL options "
                          "(A/B/C) per slide and stack them into the final "
                          "deck. Useful for shipping a stakeholder-review "
@@ -329,7 +327,7 @@ def main() -> int:
         print(f"ERROR: template (from _meta.json) not found: {template_path}")
         return 2
 
-    # Defect 6 (CDIO QBR, 2026-06-15) — all-variations mode synthesizes a
+    # All-variations mode synthesizes a
     # picks-like structure that carries ALL options per slide instead of
     # one. Downstream rendering iterates the same loop; the only difference
     # is the picks dict value is a LIST of letters instead of a single str.
@@ -348,7 +346,7 @@ def main() -> int:
     final_path.parent.mkdir(parents=True, exist_ok=True)
 
     print("=" * 72)
-    print("Slide Lab v2 deck compiler")
+    print("Slide Lab deck compiler")
     print(f"  out      : {out_dir}")
     print(f"  template : {template_path}")
     print(f"  picks    : {len(picks)} entries")
@@ -359,18 +357,19 @@ def main() -> int:
     dst_prs = Presentation(str(template_path))
     _clear_existing_slides(dst_prs)
 
-    # Load brand.yml to honor strip_master_backgrounds. When false (FedEx /
-    # OTC default), the master IS the brand chrome — top/bottom bands must
-    # survive into the compiled deck. See feedback_sidecar_fallback_must_be_loud.
+    # Load brand.yml to honor strip_master_backgrounds. When false (the
+    # common client default), the master IS the brand chrome — top/bottom
+    # bands must survive into the compiled deck.
+    # See feedback_sidecar_fallback_must_be_loud.
     from twins.client_theme import load_client_theme  # noqa: E402
     _theme = load_client_theme(str(template_path))
     _keep_master = not bool(getattr(_theme, "strip_master_backgrounds", True))
 
-    # Bug #2 fix (2026-06-02): load chrome.yml so we can thread the per-slide
+    # Load chrome.yml so we can thread the per-slide
     # layout_chrome into copy_picked_slide_into. Without this, body-canonical
     # slides graft onto the blank layout and lose their decorative chrome
     # (top chevron / footer bar inherited from the named layout). See
-    # feedback-2026-06-02.md Bug #2.
+    # feedback_sidecar_fallback_must_be_loud.
     from _chrome_schema import load_chrome_yml  # noqa: E402
     _chrome_spec = None
     try:
@@ -430,8 +429,7 @@ def main() -> int:
 
     print(f"\n[3] Save final deck -> {final_path}")
     # Backup existing final deck before overwrite so re-runs don't silently
-    # destroy hand-edits the user may have made between compiles. Audit
-    # finding T2.6 (2026-05-26 v0.1 audit handover).
+    # destroy hand-edits the user may have made between compiles.
     if final_path.exists():
         try:
             from datetime import datetime as _dt
@@ -444,10 +442,10 @@ def main() -> int:
                 f"  WARN: could not back up prior {final_path.name}: {exc}\n"
                 f"  Proceeding will overwrite. If you have unsaved edits in the prior deck, abort now (Ctrl+C).\n"
             )
-    # T1-R2 (2026-05-26 regression audit): the save itself can fail with
+    # The save itself can fail with
     # PermissionError if the destination final_deck.pptx is open in
     # PowerPoint, or with OSError under antivirus/file-lock conditions.
-    # The T2.6 backup above protects the prior copy; this guard protects
+    # The backup above protects the prior copy; this guard protects
     # the user from a raw traceback on save.
     try:
         dst_prs.save(str(final_path))
@@ -461,12 +459,11 @@ def main() -> int:
         )
         sys.exit(3)
 
-    # Defect 6 secondary fix (CDIO QBR, 2026-06-15): python-pptx can write
+    # python-pptx can write
     # zips with duplicate entry names when many slides graft from
     # similarly-structured source decks. LibreOffice rejects such PPTX files
     # as corrupt. Run an unconditional zip rewrite that keeps the LAST
-    # occurrence of each name (matches the user's _session/dedupe_pptx_zip.py
-    # workaround). Cheap on size, unbreakable for downstream readers.
+    # occurrence of each name. Cheap on size, unbreakable for downstream readers.
     _dedupe_zip_entries(final_path)
     print(f"  saved ({final_path.stat().st_size:,} bytes)")
 

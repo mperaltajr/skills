@@ -4,8 +4,7 @@ Single source of truth for client-template layout chrome geometry. Written by
 register_template.py at registration time; consumed by finalize_deck.py +
 build_deck.py at build time.
 
-Two layout classes (locked v0.2 2026-05-28 in
-_decisions/v0.2-layout-inheritance-design-lock-2026-05-28.md):
+Two layout classes:
 
   body-canonical
     Blank-ish body + chrome frame. Master decorates; layout is mostly empty.
@@ -19,7 +18,7 @@ _decisions/v0.2-layout-inheritance-design-lock-2026-05-28.md):
     LayoutChrome's position fields. Helpers use those positions directly.
 
 The chrome.yml file is THE canonical home for client-template-specific
-geometry. Pattern helpers, QC rules, and twin builders read it via
+geometry. Layout helpers, QC rules, and twin builders read it via
 finalize_deck.py's _ACTIVE_CHROME injection; they never re-encode positions
 locally. Numeric coordinate literals outside this module + chrome.yml are
 a contract violation enforced by `_contract.py::check_chrome_field_single_source`.
@@ -29,7 +28,7 @@ Loud-failure contract
 Any sidecar/config file whose absence is recoverable must be recovered loudly.
 If chrome.yml is missing or any required position field is None for a bespoke
 layout, helpers raise ChromeSidecarMissingError. Silent fallback to hardcoded
-defaults is the v1 slot-mapping bug class — see feedback_sidecar_fallback_must_be_loud.
+defaults is the slot-mapping bug class — see feedback_sidecar_fallback_must_be_loud.
 
 Adding a new field
 ------------------
@@ -46,29 +45,29 @@ from pydantic import BaseModel, ValidationError
 # Bumped when the schema shape changes. Stay in lockstep with register_template
 # (writer) and finalize_deck (reader).
 #
-# v2 adds the body-canonical layout-inheritance fields:
+# Schema version 2 adds the body-canonical layout-inheritance fields:
 #   title_placeholder_idx, body_top_y_px, body_bottom_y_px, body_overlay_hex.
-# v1 chrome.yml is still readable — validate_chrome_dict defaults the new
-# fields to None so pre-v2 sidecars load without re-registration. Templates
-# already registered at v1 keep working in legacy "strip-and-redraw" mode
-# until they are re-registered.
+# Version-1 chrome.yml is still readable — validate_chrome_dict defaults the
+# new fields to None so version-1 sidecars load without re-registration.
+# Templates already registered at version 1 keep working in "strip-and-redraw"
+# mode until they are re-registered.
 CHROME_SCHEMA_VERSION_CURRENT: int = 2
 SUPPORTED_SCHEMA_VERSIONS: tuple[int, ...] = (1, 2)
 
 
 # ---------------------------------------------------------------------------
-# Canvas <-> EMU helpers (Pattern B foundation, M3, 2026-06-16)
+# Canvas <-> EMU helpers
 # ---------------------------------------------------------------------------
 #
 # python-pptx convention at 96 DPI is 1 px = 9525 EMU. Slide Lab locked the
-# Pattern B HTML render canvas at 1280×720 (Decision 1), which makes the
+# sketch-path HTML render canvas at 1280×720, which makes the
 # px↔EMU mapping exact: 12,192,000 EMU (the standard 16:9 slide width) ÷
 # 1280 px = 9525. There is no scaling factor — one HTML pixel is one OOXML
 # EMU step.
 #
 # These helpers are the canonical location for that conversion. Used by
 # register_template.py (which extracts placeholder geometry from PPTX
-# layout XML) and by the Pattern B translator agent (M4+) when it converts
+# layout XML) and by the sketch-path translator agent when it converts
 # HTML pixel coordinates from `getComputedStyle()` into `Emu(...)` kwargs
 # for `slide.shapes.add_shape(...)`. No magic 9525s elsewhere — see
 # `_contract.py::check_chrome_field_single_source` for the contract test.
@@ -188,14 +187,14 @@ def canonical_page_number_box() -> "BoxPx":
 
 
 # ---------------------------------------------------------------------------
-# Title-wrap line count (v2.2, SLIDE_LAB_FEEDBACK_LOG #4/#5)
+# Title-wrap line count
 # ---------------------------------------------------------------------------
 
 class TitleMetricsUnavailableError(RuntimeError):
     """Raised when title line-count cannot be measured because the configured
     TTF font cannot be loaded or Pillow is missing. Per
     feedback_sidecar_fallback_must_be_loud — silent char-count fallback was
-    the v1 bug class we're not repeating. Recovery: re-run register_template
+    the bug class we're not repeating. Recovery: re-run register_template
     so it records the brand TTF path in brand.yml.
     """
 
@@ -318,16 +317,15 @@ class LayoutChrome(BaseModel):
     footnote: BoxPx | None = None
     source: BoxPx | None = None
     page_number: BoxPx | None = None
-    # v2 — body-canonical layout-inheritance fields.
-    # v2.1 — subtitle_placeholder_idx added.
+    # Body-canonical layout-inheritance fields.
     # For body-canonical layouts ONLY:
     #   title_placeholder_idx: which inherited placeholder holds the title
     #     (so finalize_deck writes the slide title text into the layout's
     #      title placeholder rather than drawing a free-floating textbox).
     #   subtitle_placeholder_idx: same idea for the subtitle. When set, the
     #     worker skips drawing a free-floating subtitle textbox and finalize
-    #     populates the inherited subtitle placeholder instead. Bug #2
-    #     (feedback-2026-06-02.md) traced subtitle drift to the absence of
+    #     populates the inherited subtitle placeholder instead. Subtitle
+    #     drift was traced to the absence of
     #     this field — the worker drew subtitle at a hardcoded canonical
     #     position while the real subtitle placeholder sat empty.
     #   body_top_y_px / body_bottom_y_px: drawable zone between the inherited
@@ -341,8 +339,8 @@ class LayoutChrome(BaseModel):
     body_bottom_y_px: int | None = None
     # body_overlay_hex retained for backward-compat with existing chrome.yml
     # files; never populated by current register_template and unread by any
-    # downstream code as of 2026-06-02. See Round D cleanup task — slated
-    # for removal once existing templates are re-registered.
+    # downstream code. Slated for removal once existing templates are
+    # re-registered.
     body_overlay_hex: str | None = None
 
 
@@ -360,7 +358,7 @@ class ChromeSpec(BaseModel):
 class ChromeSidecarMissingError(RuntimeError):
     """Raised when chrome.yml is absent OR a required field is None.
 
-    Silent fallback to hardcoded defaults is the v1 slot-mapping bug class.
+    Silent fallback to hardcoded defaults is the slot-mapping bug class.
     Helpers MUST raise this rather than substitute a default — production-grade
     bar requires the operator to re-register the template instead of shipping
     a slide built against guessed geometry.
@@ -377,7 +375,7 @@ class ChromeLayoutMissingError(RuntimeError):
     """Raised when a slide references a layout name that does not exist in
     the loaded chrome.yml.
 
-    Silent fallback to a default layout was the bug that hid the OTC Sizing
+    Silent fallback to a default layout was the bug that hid a
     chrome regression — slides resolved to a stand-in layout
     whose geometry didn't match the actual template. Helpers MUST raise this
     instead of substituting a default.
@@ -386,9 +384,9 @@ class ChromeLayoutMissingError(RuntimeError):
     """
 
 
-# Note: LegacyTemplateLayoutError (raised when pre-v0.4 flat sidecar layout
+# Note: LegacyTemplateLayoutError (raised when an older flat sidecar layout
 # is detected) lives in twins/client_theme.py, where it's the only thing
-# that raises it. Removed the duplicate definition here on 2026-06-02 —
+# that raises it. The duplicate definition here was removed —
 # previously both files defined the same name with different parent classes
 # (RuntimeError vs FileNotFoundError), which would have caught operators by
 # surprise if anyone tried to except-block both.
