@@ -322,7 +322,7 @@ ARTIFACT_MANIFEST: list[dict] = [
     {"name": "gate3_preview_html", "writer": "build_gate_preview.py", "readers": [], "accepted": True, "reason": "Terminal artifact — opened by user in browser"},
     {"name": "review_html",        "writer": "build_review.py",       "readers": [], "accepted": True, "reason": "Terminal artifact — opened by user in browser"},
     {"name": "picks_json",         "writer": "chat orchestrator",     "readers": ["compile_picks.py"], "accepted": True, "reason": "Written by chat session, not by a pipeline script"},
-    {"name": "brief_qc_json",      "writer": "(unbuilt)",             "readers": ["build_review.py"], "accepted": True, "reason": "Accepted orphan. build_review.py renders a graceful 'not found' banner when the file is absent. v2 prep does not yet emit brief_qc.json; resolved per Phase 4 P4.27 (2026-05-26) as 'keep reader, defer writer until brief-time QC becomes a feature.'"},
+    {"name": "brief_qc_json",      "writer": "(unbuilt)",             "readers": ["build_review.py"], "accepted": True, "reason": "Accepted orphan. build_review.py renders a graceful 'not found' banner when the file is absent. v2 prep does not yet emit brief_qc.json; resolved per Phase 4 P4.27 as 'keep reader, defer writer until brief-time QC becomes a feature.'"},
 
     # Per-slide
     {"name": "prompt_md",          "writer": "build_deck.py",         "readers": ["build_gate_preview.py", "build_review.py", "finalize_deck.py"]},
@@ -355,7 +355,7 @@ ARTIFACT_MANIFEST: list[dict] = [
     # the contract tool's _p.<name> regex, so we mark this entry accepted.
     {"name": "theme_json",                "writer": "register_template.py",  "readers": ["build_deck.py"], "accepted": True, "reason": "twins/client_theme.py reads via sidecar_paths() with a lazy _paths import that the contract grep can't detect; build_deck.py reads directly via _p.theme_json"},
     {"name": "chrome_yml",                "writer": "register_template.py",  "readers": ["finalize_deck.py", "build_deck.py"]},
-    {"name": "brand_css",                 "writer": "register_template.py",  "readers": [], "accepted": True, "reason": "Pattern B foundation (M3, 2026-06-16); no reader until M5 wires the HTML render path. Pure ADD — presence does not affect legacy python-pptx pipeline."},
+    {"name": "brand_css",                 "writer": "register_template.py",  "readers": [], "accepted": True, "reason": "Pattern B foundation; no reader until M5 wires the HTML render path. Pure ADD — presence does not affect legacy python-pptx pipeline."},
     {"name": "chrome_commit_method_txt",  "writer": "register_template.py",  "readers": [], "accepted": True, "reason": "Operator audit only — no pipeline reader"},
     {"name": "preview_pptx",              "writer": "register_template.py",  "readers": [], "accepted": True, "reason": "Registration UI artifact — opened in chat preview"},
     {"name": "preview_png",               "writer": "register_template.py",  "readers": [], "accepted": True, "reason": "Registration UI artifact"},

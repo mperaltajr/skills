@@ -18,7 +18,7 @@ Inputs:
 
 Pipeline (unchanged from v1 except step 2's per-option branching):
   1. Discover every <out>/slide_NN/option_X.py and option_X_native.py
-     (the Pattern B translator output added in M5).
+     (the Pattern B translator output added ).
   2. For each option:
        2a. Classify by line-1 / header token.
        2b. NATIVE                 -> run via subprocess to produce
@@ -156,7 +156,7 @@ def _classify_option(py_path: Path) -> tuple[str, str]:
 
     Returns (status, reason) where status is one of:
         'native'              -> normal python-pptx execution path (Pattern C / legacy)
-        'pattern_b_translated' -> Pattern B translator output (M5, 2026-06-17);
+        'pattern_b_translated' -> Pattern B translator output;
                                    executes like native but the parent flow extracts
                                    __template_fields__ for placeholder population.
         'skeleton_rejected'   -> skip; surface in REVIEW.html
@@ -165,7 +165,7 @@ def _classify_option(py_path: Path) -> tuple[str, str]:
     translator output is detected by a `# PATTERN: B-translated` line in the
     first ~10 lines (Spec 4 §4 prescribes the header format).
 
-    Mermaid fallback was retired in M7 (Decision 6, 2026-06-17) — Pattern B
+    Mermaid fallback was retired  (Decision 6, 2026-06-17) — Pattern B
     HTML→PNG supersedes it. Stale scripts carrying the old
     `# FALLBACK_MERMAID:` marker now fall through to the native classifier
     and fail loudly at execution time so the operator re-builds.
@@ -200,7 +200,7 @@ _PLACEHOLDER_PATTERNS = (
     "Lorem ipsum",
     "Proceed with Option B",
 )
-# F1-B (2026-05-26): import the canonical cross-skill placeholder
+# F1-B: import the canonical cross-skill placeholder
 # constants from twins/helpers.py so finalize_deck doesn't drift from
 # slide-qc or slide-builder on the intentional-presenter-prompt contract.
 try:
@@ -375,7 +375,7 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
         png_detail = "PNG not found"
     else:
         # Floor was 50KB in v0; covers + sparse hero slides routinely render
-        # at 20-35KB even with correct content. P6.35 (2026-05-26) lowered
+        # at 20-35KB even with correct content. P6.35 lowered
         # to 12KB which is roughly the size of a near-blank PNG and lets
         # legitimate sparse slides through while still catching the "blank
         # canvas / render failed silently" failure mode.
@@ -944,7 +944,7 @@ def discover_options(out_dir: Path, expected: Optional[set] = None) -> list:
         corresponding option_X.py file on disk is synthesized as an
         OptionStatus with classification="missing" so finalize surfaces the
         gap in RESULT.md instead of silently skipping the slide. This is the
-        committee P4 fix (2026-05-26): treat a missing worker output the
+        committee P4 fix: treat a missing worker output the
         same as a SKELETON_REJECTED, ride the existing rejected-branch rails,
         no retries, no hard-fail. The operator sees the gap and re-dispatches
         the worker if they want a fuller deck.
@@ -1076,7 +1076,7 @@ def stash_raw(st: OptionStatus) -> None:
 
 
 # ---------------------------------------------------------------------------
-# v0.2 P1.3 — chrome.yml loader + sha8 freshness check
+# — chrome.yml loader + sha8 freshness check
 # ---------------------------------------------------------------------------
 
 def _sha256_of_file(path: Path) -> str:
@@ -1550,8 +1550,7 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
 class TitleDropError(RuntimeError):
     """Raised when title text was supplied but the slide's layout has no
     TITLE placeholder. Per feedback_sidecar_fallback_must_be_loud — silent
-    data loss is never a recoverable runtime state. The FedEx OTC bug
-    (2026-06-05) shipped a deck with every subtitle silently dropped
+    data loss is never a recoverable runtime state. The FedEx OTC bug shipped a deck with every subtitle silently dropped
     because this check did not exist for subtitle; add for both to prevent
     recurrence in either direction.
     """
@@ -1567,7 +1566,7 @@ class TemplateLayoutMissingError(RuntimeError):
     """Raised when a per-slide layout name is supplied but no layout in the
     registered template matches that name.
 
-    Killing Feedback Log Deferred #1 (2026-06-05): _find_named_layout returned
+    Killing Feedback Log Deferred #1: _find_named_layout returned
     None silently and the caller fell back to _find_blank_layout, hiding the
     fact that the slide is now on the wrong layout. The most common real-world
     cause: template was re-saved in PowerPoint and a layout got renamed (or
@@ -1726,7 +1725,7 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
 
         prs = Presentation(str(template_path))
         _clear_existing_slides(prs)
-        # v0.2 P1.3: graft onto the layout named in chrome.yml / meta when one
+        #: graft onto the layout named in chrome.yml / meta when one
         # is supplied; fall back to blank for body-canonical and for slides
         # that didn't carry a layout (P1.4 wires per-slide layout via meta).
         #
@@ -1763,7 +1762,7 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
             target_layout = _find_blank_layout(prs)
         new_slide = prs.slides.add_slide(target_layout)
 
-        # v0.3 (2026-05-28) body-canonical layout inheritance:
+        # v0.3 body-canonical layout inheritance:
         # When the chosen layout is body-canonical AND chrome.yml carries the
         # v2 layout-inheritance fields (title_placeholder_idx set), KEEP the
         # layout's inherited placeholders + decorative shapes. Slide Lab's
@@ -1884,7 +1883,7 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
                 # Re-raise so the graft fails loudly with the named exception
                 # and stops the build — invisible data loss is worse than
                 # a stopped build.
-                # Gate B.3 (2026-06-08): TemplatePlaceholderEmptyError is the
+                # Gate B.3: TemplatePlaceholderEmptyError is the
                 # same silent-drop bug class one layer deeper; same handling.
                 raise
             except Exception as _exc:
@@ -1910,7 +1909,7 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
         st.themed = True
     except (TitleDropError, SubtitleDropError,
             TemplateLayoutMissingError, TemplatePlaceholderEmptyError):
-        # Gate B fixes (2026-06-08): named silent-drop / layout-drift errors
+        # Gate B fixes: named silent-drop / layout-drift errors
         # must propagate out of graft_and_theme so main() halts the whole
         # build (not just records one option as failed). Per
         # feedback_sidecar_fallback_must_be_loud — invisible data loss is
@@ -2080,11 +2079,11 @@ def main() -> int:
     # are retired; Pattern B HTML→PNG (per Decision 6) supersedes Mermaid for
     # curved-container diagrams.
 
-    # M1 — Pattern B routing read (2026-06-16). Defensive only: log the
+    # M1 — Pattern B routing read. Defensive only: log the
     # effective pattern from _meta.json so operator output makes routing
     # visible. Legacy mode (pattern_default absent or "legacy") proceeds
     # with the existing code path verbatim. Translator dispatch (Stage 3.5)
-    # lands in M4; until then, even a non-legacy pattern_default takes the
+    # lands ; until then, even a non-legacy pattern_default takes the
     # current path. This keeps M1 byte-identical to pre-M1 for legacy builds.
     try:
         _meta_path = _p.meta_json(args.out)
@@ -2098,13 +2097,13 @@ def main() -> int:
             )
             print(
                 f"  [pattern routing] NOTE: Stage 3.5 (translator dispatch) "
-                f"lands in M4. Proceeding via legacy path for this build."
+                f"lands . Proceeding via legacy path for this build."
             )
     except (OSError, json.JSONDecodeError):
         # Defensive read; never block the build on a parse error here.
         pass
 
-    # v0.2 P1.3: load + verify chrome.yml. Hard-fail on sha mismatch — refuse
+    #: load + verify chrome.yml. Hard-fail on sha mismatch — refuse
     # to build slides against a chrome spec the template has drifted away from.
     try:
         chrome_spec = _load_and_verify_chrome(args.template)
@@ -2138,7 +2137,7 @@ def main() -> int:
     print("\n[1] Discover option_X.py files + classify by line-1 token")
     # Compute the expected (slide_n, letter) set from _meta.json so
     # discover_options can surface missing worker outputs as classification
-    # "missing" — committee P4 fix (2026-05-26). If _meta.json is missing
+    # "missing" — committee P4 fix. If _meta.json is missing
     # or unparseable, fall back to filesystem-only discovery (legacy
     # behavior).
     expected_pairs: set = set()
@@ -2154,7 +2153,7 @@ def main() -> int:
     except Exception:
         expected_pairs = set()
 
-    # v0.2 P1.3: slide_n -> layout name lookup. meta.slides[i].layout is
+    #: slide_n -> layout name lookup. meta.slides[i].layout is
     # added in P1.4; until then every slide gets default_layout_name.
     # v0.3: slide_n -> variant lookup ("dark" or "" / "light"). Read from
     # meta.slides[i].variant; defaults to light.
@@ -2294,7 +2293,7 @@ def main() -> int:
     print(f"  color_map entries: {len(color_map)}")
     print(f"  expected palette  : {len(expected_palette)} hex codes")
 
-    # Gate B.4 (2026-06-08): primary/accent RGB-distance backstop.
+    # Gate B.4: primary/accent RGB-distance backstop.
     # Catches the registration-best-guess-inverted class of failure where
     # _best_guess_primary_accent() picks the same slot for both (or two
     # slots whose colors are visually indistinguishable). The visual-
@@ -2373,7 +2372,7 @@ def main() -> int:
         except (TitleDropError, SubtitleDropError,
                 TemplateLayoutMissingError,
                 TemplatePlaceholderEmptyError) as _exc:
-            # Gate B fixes (2026-06-08): silent-drop / layout-drift errors
+            # Gate B fixes: silent-drop / layout-drift errors
             # halt the build cleanly with a recovery hint instead of a raw
             # stack trace. The named exception messages were written for the
             # operator; relay them verbatim and exit non-zero.

@@ -29,7 +29,7 @@ Placeholders rendered by `build_deck.py`:
 | _(M7, 2026-06-17: `{{FALLBACK_MD_PATH}}` and `{{FALLBACK_EXAMPLES_DIR}}` were retired with the Mermaid fallback. Pattern B HTML→PNG replaces them.)_ | |
 | `{{SKILL_MD_PATH}}` | Absolute path to `SKILL.md` |
 | `{{HELPERS_MODULE_PATH}}` | Absolute path to `slide-builder/` — the parent directory of `twins/helpers.py`. Goes on `sys.path` so `from twins.helpers import ...` resolves. |
-| `{{PATTERN}}` | Pattern routing for this slide (M5, 2026-06-17): `B` = HTML output (worker writes `option_X.html`; translator converts to native python-pptx at Stage 3.5), `C` = python-pptx direct (legacy). Defaults to `C` for legacy / unrouted builds so the default path matches pre-Pattern-B behavior. |
+| `{{PATTERN}}` | Pattern routing for this slide: `B` = HTML output (worker writes `option_X.html`; translator converts to native python-pptx at Stage 3.5), `C` = python-pptx direct (legacy). Defaults to `C` for legacy / unrouted builds so the default path matches previous behavior. |
 
 ---
 
@@ -138,7 +138,7 @@ There is no pre-classifier. You pick the pattern from the 14 in `layouts.md` bas
 
    **Pattern C (legacy python-pptx, no native curve primitives):** For each of the three options write `option_X.py` with line 1 = `# SKELETON_REJECTED: curved-container diagram — not supported in Pattern C; re-route through Pattern B for HTML+SVG`. The script body has `import sys; sys.exit(0)`. The rejection surfaces in REVIEW.html and the user re-routes the slide through Pattern B.
 
-   **Pattern B (HTML-first):** Author the curved diagram natively in HTML/SVG within the body zone. Use `data-shape-id` to mark elements the translator should convert to native shapes; use `<img>` or inline `<svg>` for genuinely curve-shaped paths. The Pattern B path is the modern replacement for the legacy Mermaid fallback retired in M7 (Decision 6, 2026-06-17).
+   **Pattern B (HTML-first):** Author the curved diagram natively in HTML/SVG within the body zone. Use `data-shape-id` to mark elements the translator should convert to native shapes; use `<img>` or inline `<svg>` for genuinely curve-shaped paths. The Pattern B path is the modern replacement for the legacy Mermaid fallback retired  (Decision 6, 2026-06-17).
 
    Do **not** substitute a different pattern just to avoid the trigger. Silent substitution is the failure mode this protocol exists to prevent.
 
@@ -223,7 +223,7 @@ This list is a heuristic for which entries are most load-bearing per pattern. Th
 
 **Pattern routing for this slide:** `{{PATTERN}}`
 
-- **Pattern C** (default; python-pptx direct): write the three files listed below as `.py` scripts. This is the legacy contract and the only path until Pattern B is enabled.
+- **Pattern C** (default; python-pptx direct): write the three files listed below as `.py` scripts. This is the legacy contract and the only path .
 - **Pattern B** (HTML-first; M5, 2026-06-17): write `option_A.html`, `option_B.html`, `option_C.html` instead of `.py` files. Conventions in `slide-builder/_decisions/pattern-b/SPEC.md`. Chrome text on elements with `data-template-field`; body shapes on elements with `data-shape-id`. Self-check by rendering each HTML via `scripts/render_html.py` and reading the resulting 1280×720 PNG before declaring done. Do NOT also write `.py` files — Pattern B's downstream translator agent converts the picked HTML to native python-pptx at Stage 3.5.
 
 For Pattern C, write three files to `{{OUTPUT_DIR}}`:
@@ -297,7 +297,7 @@ sys.exit(0)
 finalize_deck.py reads line 1. Token prefix decides routing:
 - `# SKELETON_REJECTED:` → rejection surfaces in REVIEW.html for user resolution (brief/pattern disagreement OR unsupported curved-container under Pattern C).
 
-The legacy `# FALLBACK_MERMAID:` token was retired in M7 (Decision 6, 2026-06-17). Stale scripts carrying it fall through to the `native` classifier and fail loudly at execution time.
+The legacy `# FALLBACK_MERMAID:` token was retired  (Decision 6, 2026-06-17). Stale scripts carrying it fall through to the `native` classifier and fail loudly at execution time.
 
 ---
 

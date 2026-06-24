@@ -182,7 +182,7 @@ def check_pipeline_imports() -> list[str]:
     references to imports that don't land until later in the file, missing
     submodule deps, broken `from X import Y` lines) slip through that grep.
     This check imports each script so module-level errors surface here, not
-    at the operator's first `--help`. Audit finding T2.7 (2026-05-26).
+    at the operator's first `--help`. Audit finding T2.7.
     """
     import importlib
     errors: list[str] = []
@@ -921,7 +921,7 @@ def check_chrome_field_single_source() -> list[str]:
 
 _REGISTERED_TEMPLATE_SEARCH_ROOTS: tuple[Path, ...] = (
     # Common locations where a coworker keeps client templates.
-    # Audit punch list P1.7 (2026-05-28): D's-bet catcher had zero coverage
+    # Audit punch list P1.7: D's-bet catcher had zero coverage
     # against Mario's real templates until OneDrive paths were added — the
     # FDX Template lives under "OneDrive - Accenture/Claude Projects/_templates/"
     # and was invisible to the contract test prior to this extension.

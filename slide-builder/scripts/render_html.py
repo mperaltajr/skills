@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Render an HTML file to a 1280×720 PNG via headless Chromium.
 
-Pattern B foundation (M3, 2026-06-16). The Pattern B HTML build path uses
+Pattern B foundation. The Pattern B HTML build path uses
 this to turn worker-authored HTML into the reviewable PNG the operator
 picks from. The locked canvas size is 1280×720 (Decision 1) so the
 1 px ↔ 9525 EMU mapping (per `_chrome_schema.EMU_PER_PX_AT_1280`) is

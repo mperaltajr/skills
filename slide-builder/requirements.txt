@@ -20,13 +20,13 @@ pypdfium2==4.30.0
 # environment marker. Safe to skip if you only use LibreOffice rendering.
 pywin32==308; sys_platform == "win32"
 
-# Pattern B refactor (M2, 2026-06-16). Used by tests/capture_baseline.py
+# Pattern B refactor. Used by tests/capture_baseline.py
 # and tests/regression_check.py for SSIM-based fidelity measurement (the
 # regression-no-silent-drift guarantee). ~30 MB install. Pinned per
 # Spec 5 §1 (`structural_similarity` from skimage.metrics).
 scikit-image>=0.21,<1.0
 
-# Pattern B refactor (M3, 2026-06-16). Used by scripts/render_html.py to
+# Pattern B refactor. Used by scripts/render_html.py to
 # convert worker-authored HTML into the 1280×720 PNG that gets reviewed
 # and (M4+) translated back to native python-pptx. After `pip install`,
 # also run `py -3 -m playwright install chromium` to download the headless

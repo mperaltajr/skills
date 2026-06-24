@@ -13,7 +13,7 @@ The build layer of Slide Lab. The split is the spec.
 
 If you have never run this skill before, read these in order before anything else:
 
-1. **[INSTALL.md](INSTALL.md)** — pinned Python deps, Playwright + headless Chromium (Pattern B render), LibreOffice, sibling `slide-qc` skill, worker + translator agent install. End with the verification step printing `install OK`. (Mermaid CLI was retired in M7, Decision 6 — Pattern B supersedes it.)
+1. **[INSTALL.md](INSTALL.md)** — pinned Python deps, Playwright + headless Chromium (Pattern B render), LibreOffice, sibling `slide-qc` skill, worker + translator agent install. End with the verification step printing `install OK`. (Mermaid CLI was retired , Decision 6 — Pattern B supersedes it.)
 2. **[examples/RUN.md](examples/RUN.md)** — the canonical end-to-end walkthrough (prep → agent dispatch → finalize → gate → compile → review) against the bundled example brief + your registered template. Ends with a `REVIEW.html` you can open in a browser.
 
 After that, the input contract for real briefs is documented below in § "Input contract — narrative brief", and registering a new client template is below in § "Register a new client template."
@@ -101,11 +101,11 @@ The chat-driven flow replaces the legacy PowerShell TTY flow (still available as
 
 2. **Show + take picks.** The orchestrator **MUST display the `<stem>/register.html` file path to the user and wait** for the user to respond before writing `picks.json`. That page embeds the preview composite PNG + clickable palette swatches + the strip-master-backgrounds checkbox + a live picks-JSON payload. The user clicks swatches to pick primary / accent / cover-bg by visible color (no hex typing), toggles strip-bg, copies the picks JSON to clipboard, and pastes back to the chat.
 
-   > **⛔ Hard rule — no auto-accept (added 2026-05-26 after OTC dry run failure).**
+   > **⛔ Hard rule — no auto-accept.**
    >
    > - Reading `<stem>/preview.png` or `<stem>/palette.png` does **not** substitute for the user opening `register.html`. Those artifacts confirm that colors EXIST, not that the role ASSIGNMENT (primary vs accent vs cover-bg) is correct. Auto-pick has historically inverted on most client templates — the chat-driven flow exists precisely to catch that.
    > - The `{"accept": true}` flag is a **user-issued shortcut**, not an orchestrator default. It may only be written when the user explicitly types "accept" or equivalent in chat. If the user has not responded to the register.html prompt, the picks JSON has not been written.
-   > - Halt and ask, even if the auto-best-guess in `register.proposal.json` looks plausible. Defensible-default bias caused the 2026-05-26 OTC dry run failure (orange/purple swap committed without user review). For design decisions like brand-slot assignment, the AI's "defensible default" is not a substitute for the user's tacit knowledge — halt and ask, every time.
+   > - Halt and ask, even if the auto-best-guess in `register.proposal.json` looks plausible. Defensible-default bias causes orange/purple swaps to be committed without user review. For design decisions like brand-slot assignment, the AI's "defensible default" is not a substitute for the user's tacit knowledge — halt and ask, every time.
 
 3. **Commit.** The orchestrator writes a `picks.json` capturing the user's choices and runs:
    ```powershell
@@ -187,7 +187,7 @@ STAGE 2 · PARALLEL FANOUT slide-builder-worker agents
                           Parent session dispatches one agent per slide IN
                           PARALLEL (Task tool, single message with N calls).
                           Each agent reads its _prompt.md and branches on
-                          the PATTERN field (M5, 2026-06-17):
+                          the PATTERN field:
                             PATTERN: C → option_A.py / B.py / C.py
                                         (legacy python-pptx direct)
                             PATTERN: B → option_A.html / B.html / C.html
@@ -259,7 +259,7 @@ Adjacency (Hardline #3 — no 3+ consecutive same-split) is **soft-enforced at p
 
 1. **Setup.** Confirm the client template path with the user. Read the brief and explicitly read the `## Deck-level design notes` section before proceeding; those constraints are binding.
 2. **Narrative + content gates.** Verify governing thoughts are specific and assertive; verify enough raw content per slide. Skip if storyline-helper already gated this session.
-3. **Stage 1 — Prep.** Run `build_deck.py` to render one self-contained `_prompt.md` per slide. Each prompt is `prompt.md` (the v2 template) with brief content interpolated, layouts/anti-patterns reference paths injected, the rotation seed computed, and (M5, 2026-06-17) the per-slide pattern routing (`PATTERN: B|C`) from M1's classifier.
+3. **Stage 1 — Prep.** Run `build_deck.py` to render one self-contained `_prompt.md` per slide. Each prompt is `prompt.md` (the v2 template) with brief content interpolated, layouts/anti-patterns reference paths injected, the rotation seed computed, and the per-slide pattern routing (`PATTERN: B|C`) from M1's classifier.
 4. **Stage 2 — Parallel fanout.** Dispatch one `slide-builder-worker` agent per slide IN PARALLEL from the parent session. Each agent reads the rendered `_prompt.md` and branches on the PATTERN field:
    - **Pattern C** (default, legacy): worker produces three standalone python-pptx option scripts `option_A.py / B / C`.
    - **Pattern B** (M5+, opt-in): worker produces three HTML files `option_A.html / B / C`, then self-checks by rendering each via `scripts/render_html.py` and reading the resulting 1280×720 PNG before declaring done.
@@ -275,9 +275,9 @@ Adjacency (Hardline #3 — no 3+ consecutive same-split) is **soft-enforced at p
 
 Rebuild individual slides with "rebuild slide N with v2" — re-prep the prompt for slide N, dispatch a single agent, finalize, replace the picked option.
 
-### Pattern routing flag (M1, 2026-06-16) — opt-in until M7
+### Pattern routing flag — opt-in until M7
 
-`build_deck.py` accepts a `--pattern` flag that controls which slide-build path the deck uses. The shipped default is `legacy` — the pipeline behaves exactly as before. Pattern B (HTML-spec → translator → native python-pptx) is opt-in until the M7 cutover validation completes.
+`build_deck.py` accepts a `--pattern` flag that controls which slide-build path the deck uses. The shipped default is `legacy` — the pipeline behaves exactly as before. Pattern B (HTML-spec → translator → native python-pptx) is opt-in until the current pipeline validation completes.
 
 ```powershell
 py -3 scripts/build_deck.py --brief <brief.md> --template <template.pptx> --out <out>
@@ -355,7 +355,7 @@ Worker agent:      %USERPROFILE%\.claude\agents\slide-builder-worker.md
 
 ## Scripts — historical fork note
 
-Historical (Path D, 2026-05-26). The build scripts (`build_deck.py`, `finalize_deck.py`, `build_review.py`, `compile_picks.py`) were originally forked from the legacy chassis-vocabulary skill, which has since been archived and is no longer on disk. Three were near-verbatim copies; `build_deck.py` was the real new build — the chassis/rulebook injection was replaced with 14-pattern + anti-pattern-library injection.
+Historical. The build scripts (`build_deck.py`, `finalize_deck.py`, `build_review.py`, `compile_picks.py`) were originally forked from the legacy chassis-vocabulary skill, which has since been archived and is no longer on disk. Three were near-verbatim copies; `build_deck.py` was the real new build — the chassis/rulebook injection was replaced with 14-pattern + anti-pattern-library injection.
 
 The agent definition for `slide-builder-worker` (the per-slide worker dispatched from the parent session) lives at `%USERPROFILE%\.claude\agents\slide-builder-worker.md`. Without it, the fanout step cannot execute.
 
@@ -406,6 +406,6 @@ Background only. Not required reading to build a deck.
 
 **Why the current architecture exists.** The predecessor (chassis-vocabulary) path hit 23% curator acceptance after four compensating layers — skeleton pre-assignment, SKELETON_REJECTED rule, cross-slide collision detection, deadlock audit. The abstraction was too granular for humans to validate by eye. The current architecture collapses the lever stack by changing the primitive: from named semantic chassis (`dark-canvas-hero`, `anchor-with-cards`) to **geometric splits** a human can identify from a thumbnail. Full diagnosis and four rounds of empirical testing live in `_decisions/DECISIONS.md` and `_decisions/GALLERY.html`.
 
-**Legacy retirement (Path D, 2026-05-26).** The legacy chassis-vocabulary skill is being retired per `_decisions/cleanup-plan-master-2026-05-26.md`. Shared modules — `twins/{client_theme,composer,helpers}.py`, `scripts/icon_helper.py`, and the `icons/` catalog — have been re-homed inside this skill. The build layer is now structurally independent of the legacy code.
+**Legacy retirement.** The legacy chassis-vocabulary skill is being retired per `_decisions/cleanup-plan-master-2026-05-26.md`. Shared modules — `twins/{client_theme,composer,helpers}.py`, `scripts/icon_helper.py`, and the `icons/` catalog — have been re-homed inside this skill. The build layer is now structurally independent of the legacy code.
 
 Artifacts archived with the legacy skill and not maintained: 19-chassis vocabulary + adjacency graph + content tags; `list[1..2]` composite schema; Layer 5 cross-slide collision detector; deadlock audit + chassis-#24 acceptance rule; 489-slug chassis TAGS backfill; family×variant×intent×relation TAGS schema; the 31-rule "Hard constraints" stack. The "pattern is the spec" architecture replaces them.

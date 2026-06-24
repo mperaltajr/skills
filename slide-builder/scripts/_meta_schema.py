@@ -27,7 +27,7 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, Field, ValidationError
 
-# Bumped in v0.2 P1.4 when the per-slide layout field landed. Stay in lockstep
+# Bumped in per-slide layout field. Stay in lockstep
 # with build_deck.py::META_SCHEMA_VERSION.
 META_SCHEMA_VERSION_CURRENT: int = 3
 
@@ -64,7 +64,7 @@ class SlideMeta(BaseModel):
     # (build_deck.py) populates from the brief; reader (finalize_deck.py)
     # passes through as fallback_subtitle to _apply_body_canonical_finishing.
     subtitle: str = ""
-    # M1 — Pattern B (2026-06-16) optional fields. Default None preserves
+    # M1 — Pattern B optional fields. Default None preserves
     # legacy semantics: readers that don't know about Pattern B see slides
     # with pattern=None and route through the existing python-pptx-direct
     # path verbatim. Writers set these only when --pattern is not "legacy"
@@ -105,7 +105,7 @@ class MetaJson(BaseModel):
     brand_accent:   str = ""  # Same.
     slides:         list[SlideMeta]
     deck_meta:      DeckMeta
-    # M1 — Pattern B (2026-06-16) optional top-level fields. Default None /
+    # M1 — Pattern B optional top-level fields. Default None /
     # empty preserves legacy semantics: readers that don't know about
     # Pattern B see these as absent and route through the existing pipeline.
     # Writers set these only when --pattern != "legacy".

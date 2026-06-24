@@ -42,7 +42,7 @@ If brief and pattern fundamentally disagree (brief enumerates 2 items, slot call
 
 A pattern doesn't fully specify a slide. The same pattern can ship two different decks — one that argues a position, one that reads neutral. The agent must identify the **editorial intent** of the slide from the brief, mapped to a **closed 7-verb vocabulary**, and tilt at least one of the three option variants to honor it.
 
-The vocabulary is intentionally bounded. v1's chassis-vocab regrew uncontrollably when it added "named intents" alongside named chassis; v2 caps the list at 7 verbs and forbids invention. A brief that doesn't map to one of the 7 → `SKELETON_REJECTED: ambiguous editorial intent`. Defaulting to neutral is the failure mode this list exists to prevent.
+The vocabulary is intentionally bounded. the chassis-vocab regrew uncontrollably when it added "named intents" alongside named chassis; v2 caps the list at 7 verbs and forbids invention. A brief that doesn't map to one of the 7 → `SKELETON_REJECTED: ambiguous editorial intent`. Defaulting to neutral is the failure mode this list exists to prevent.
 
 | Directive verb | Brief signals | Variant tilt direction |
 |---|---|---|
@@ -284,7 +284,7 @@ For the recommended-row indicator, use an accent stripe — not a stacked badge.
 
 **Stack (v0):** Mermaid with brand theme overrides. Mermaid covers the entire curved-container failure set with existing syntax and supports CSS-style brand color theming. The agent emits a Mermaid spec; the build script renders it to PNG via headless Mermaid CLI; the PNG is embedded as a full-bleed image on the slide.
 
-**Escalation (v0.1):** raw HTML + CSS rendered via Playwright, only if Mermaid's brand fidelity is visibly wrong on a real failing brief. Playwright is not on the day-1 ship list.
+**Escalation:** raw HTML + CSS rendered via Playwright, only if Mermaid's brand fidelity is visibly wrong on a real failing brief. Playwright is not on the day-1 ship list.
 
 **Do not use for:** any diagram that one of the three native primitives can carry cleanly (Org chart, Swimlane, Decision tree). The fallback is only for shapes the natives cannot represent.
 

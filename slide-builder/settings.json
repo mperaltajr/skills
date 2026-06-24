@@ -6,10 +6,10 @@
   "_doc_default_pattern": "One of: legacy | auto | B | C. 'legacy' = pre-Pattern-B pipeline verbatim (the safe shipped default). 'auto' = per-slide routing via _classify_all_slides. 'B' = force all slides Pattern B. 'C' = force all slides Pattern C (native, no HTML stage). Per-build override: build_deck.py --pattern <value>.",
 
   "enable_pattern_b": true,
-  "_doc_enable_pattern_b": "Master switch. When false, default_pattern is forced to 'legacy' regardless of its value, and --pattern auto|B is rejected. Flip to true after Pattern B validation lands (M7).",
+  "_doc_enable_pattern_b": "Master switch. When false, default_pattern is forced to 'legacy' regardless of its value, and --pattern auto|B is rejected. Flip to true after Pattern B validation lands.",
 
   "html_render_canvas": "1280x720",
-  "_doc_html_render_canvas": "Locked per Decision 1 (2026-06-16). Do not change without re-validating geometry across all locked specs.",
+  "_doc_html_render_canvas": "Locked per Decision 1. Do not change without re-validating geometry across all locked specs.",
 
   "ssim_thresholds": {
     "critical": 0.70,

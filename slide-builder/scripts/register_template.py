@@ -1,6 +1,6 @@
 ﻿"""Register a client PPTX template — one-time setup per template.
 
-Produces per-template sidecars in a subfolder NEXT TO the .pptx (v0.4+):
+Produces per-template sidecars in a subfolder NEXT TO the .pptx:
   <template-parent>/<stem>/
     brand.yml             : human-editable, ~15 lines
     theme.json            : machine-generated, SHA-stamped audit
@@ -848,7 +848,7 @@ def render_slide_thumbnails(template_path: Path, out_dir: Path,
                               dpi: int = 96) -> list[dict]:
     """Render one PNG thumbnail per ACTUAL slide in the client template.
 
-    Gap 1.a (2026-06-08): Distinct from render_layout_thumbnails (which renders
+    Gap 1.a: Distinct from render_layout_thumbnails (which renders
     empty layouts so the user can see chrome), this renders the template's
     real slides as-is, so the user can point at "make every output look like
     THIS one" — Mario's stated mental model.
@@ -1430,7 +1430,7 @@ def render_register_html(proposal: dict, html_path: Path) -> bool:
 const palette = PALETTE_JSON;
 const layouts = LAYOUTS_JSON;
 const slides = SLIDES_JSON;
-// Gap 1.b (2026-06-08): which slide is the canonical reference. null = none picked.
+// Gap 1.b: which slide is the canonical reference. null = none picked.
 const referenceSlide = { slide_n: null };
 const bestGuess = {
   primary_slot: "BG_PRIMARY",
@@ -1520,7 +1520,7 @@ function refreshUI() {
   // Update strip toggle
   state.strip_master_backgrounds = document.getElementById("strip-bg").checked;
 
-  // Update picks JSON preview. v0.4.1 (2026-06-02): no longer emits
+  // Update picks JSON preview. v0.4.1: no longer emits
   // layout_classifications — that field is architectural metadata
   // (does Slide Lab strip placeholders or inherit them?) that the user
   // shouldn't have to think about. register_template.py commit recomputes
@@ -1669,7 +1669,7 @@ function buildLayoutGrid() {
 }
 
 function pickBody(name) {
-  // Single-pick semantics (2026-06-02): clicking a layout in the grid
+  // Single-pick semantics: clicking a layout in the grid
   // selects it as THE default content layout. Reset every other layout
   // to its auto-detected classification first so prior clicks don't
   // accumulate (the additive behavior was the 2026-06-02 register-html
@@ -1692,7 +1692,7 @@ function pickBody(name) {
   refreshUI();
 }
 
-// Gap 1.b (2026-06-08): reference-slide picker — single-pick semantics.
+// Gap 1.b: reference-slide picker — single-pick semantics.
 function buildSlidesGrid() {
   const container = document.getElementById("slides-pick-cluster");
   if (!container) return;
@@ -1954,7 +1954,7 @@ def _resolve_brand_ttf_path(font_name: str) -> str:
     when the font is not installed locally — registration still succeeds;
     finalize_deck falls back to a disk scan + warning.
 
-    Gate A.3 (2026-06-08): persists the TTF path into brand.yml so the
+    Gate A.3: persists the TTF path into brand.yml so the
     per-build _find_brand_ttf() scan can be skipped.
     """
     if not font_name:
@@ -2032,7 +2032,7 @@ def write_brand_css(path: Path, *,
 
     Generated at register_template.py commit time alongside brand.yml +
     theme.json + chrome.yml. Pure ADD — no existing reader depends on
-    this file (M3 foundation; first consumer ships in M5 when workers
+    this file (M3 foundation; first consumer ships  when workers
     branch on Pattern B).
     """
     fh = (font_heading or "Inter").strip()
@@ -2152,7 +2152,7 @@ def write_theme_json(path: Path, *, template_path: Path, sha: str,
                      brand_yml_path: Path,
                      default_content_layout: str = "",
                      theme_parts: Optional[dict] = None) -> None:
-    """Schema v3 (2026-06-18): adds ``theme_parts`` capturing the canonical
+    """Schema v3: adds ``theme_parts`` capturing the canonical
     theme part + any orphan theme parts in the .pptx. Diagnostic; the
     loader walks the OOXML rels graph to resolve canonical at load time, so
     this is informational. ``default_content_layout`` (v2) preserved."""
@@ -2589,9 +2589,9 @@ def _write_outputs(tpl: Path, sha: str, sha8: str,
         theme_parts=theme_parts,
     )
 
-    # Pattern B foundation (M3, 2026-06-16). Emit brand.css alongside
+    # Pattern B foundation. Emit brand.css alongside
     # brand.yml + theme.json. Consumed by the HTML render path that
-    # ships in M5; emitted unconditionally now because brand.css is pure
+    # ships ; emitted unconditionally now because brand.css is pure
     # ADD (no existing reader depends on it and its presence does not
     # affect the legacy python-pptx pipeline).
     brand_css = _p.brand_css(tpl)
@@ -2822,7 +2822,7 @@ def _detect_text_role_for_layout(layout) -> tuple[str, str]:
 def _extract_reference_slide_spec(tpl: Path, slide_n: int) -> dict | None:
     """Extract a 'reference slide' spec from the registering template.
 
-    Gate A.1 (2026-06-08): the user designates one slide in the template
+    Gate A.1: the user designates one slide in the template
     that looks how output should look. We snapshot its layout name and
     placeholder geometry so future builds can validate against it (Gate C
     bundles this into per-slide worker context, slide-qc can diff against
@@ -2954,7 +2954,7 @@ def _scan_canonical_inline_formatting(prs, layout_name: str) -> list[str]:
     looks correct on the chosen layout but drifts on any rebuild that
     changes the master theme.
 
-    Gate A.2 (2026-06-08): Mario's "no random text boxes; everything inherits
+    Gate A.2: Mario's "no random text boxes; everything inherits
     from the master" rule. If a layout's title placeholder ships with
     inline <a:solidFill> or <a:rPr sz="..." b="1"> overrides, every grafted
     slide picks up those overrides even if master theme says otherwise.
@@ -3024,7 +3024,7 @@ def _scan_canonical_inline_formatting(prs, layout_name: str) -> list[str]:
 def _classify_layout(layout) -> str:
     """Heuristic classifier: body-canonical vs bespoke.
 
-    v0.4.1 (2026-06-02) — wide-net rule. A layout is body-canonical if it
+    v0.4.1 — wide-net rule. A layout is body-canonical if it
     has BOTH a top-anchored title placeholder AND at least one content
     placeholder (body / object / chart / table / picture). Decorative
     shapes (FedEx chevron + footer band, Accenture brand rules, etc.)
@@ -3238,7 +3238,7 @@ def _propose_layout_chromes(prs, classifications_override: dict[str, str] | None
             if final_class == "bespoke":
                 position_fields = _extract_bespoke_boxes(layout)
 
-            # v2 (2026-05-28) + v2.1 (2026-06-02) body-canonical inheritance fields
+            # v2 + v2.1 body-canonical inheritance fields
             inherit_fields = {
                 "title_placeholder_idx": None,
                 "subtitle_placeholder_idx": None,
@@ -3364,7 +3364,7 @@ def _extract_theme_and_preview(tpl: Path) -> dict:
     ]
     palette_rendered = render_palette_swatches(palette, palette_png)
 
-    # v0.3 (2026-05-28): render one PNG per layout so the registration HTML
+    # v0.3: render one PNG per layout so the registration HTML
     # can show the user what each layout actually looks like before they
     # pick. v0.4: stored in <sidecar-dir>/thumbnails/ (sibling of register.html).
     thumbnails_dir = _p.thumbnails_dir(tpl)
@@ -3377,7 +3377,7 @@ def _extract_theme_and_preview(tpl: Path) -> dict:
               f"{type(_exc).__name__}: {_exc}")
         layout_thumbnails = {}
 
-    # Gap 1.a (2026-06-08): render one PNG per ACTUAL slide in the template
+    # Gap 1.a: render one PNG per ACTUAL slide in the template
     # so register.html can show a reference-slide picker — the user points
     # at the slide that defines how every output should look.
     try:
@@ -3416,7 +3416,7 @@ def _extract_theme_and_preview(tpl: Path) -> dict:
         else:
             lp["thumbnail"] = None
 
-    # Gap 1.a (2026-06-08): attach slide-thumbnail relative paths for the
+    # Gap 1.a: attach slide-thumbnail relative paths for the
     # reference-slide picker in register.html. Mirrors the layout-thumbnail
     # path-relativization pattern above.
     slides_payload: list[dict] = []
@@ -3470,7 +3470,7 @@ def _extract_theme_and_preview(tpl: Path) -> dict:
 def _check_libreoffice_available() -> tuple[bool, str]:
     """Detect LibreOffice on PATH. Returns (ok, error_message).
 
-    Audit blocker (2026-06-08): without LibreOffice the propose flow silently
+    Audit blocker: without LibreOffice the propose flow silently
     produces empty thumbnail grids in register.html — the user sees blank
     sections and concludes Slide Lab is broken. Hard-fail early with a clear
     install hint so the failure mode is obvious, not silent.
@@ -3503,7 +3503,7 @@ def _main_propose(args) -> int:
         print(f"ERROR: template not found: {tpl}")
         return 2
 
-    # Audit blocker (2026-06-08): block propose when LibreOffice is missing.
+    # Audit blocker: block propose when LibreOffice is missing.
     # Without it, render_libre returns empty, thumbnail dicts are empty, and
     # register.html opens with blank sections. Better to hard-fail here with
     # an install hint than to ship a confusing UI.
@@ -3633,7 +3633,7 @@ def _commit_from_picks_dict(tpl: Path, picks: dict, *, source: str) -> int:
     print(f"  dark_bg:       #{dark_bg_hex} (slot {dark_bg_slot})")
     print(f"  strip masters: {strip_master_backgrounds}")
 
-    # default_content_layout (2026-06-02): the layout the user wants for
+    # default_content_layout: the layout the user wants for
     # content slides in briefs that don't override. Stored in theme.json
     # so build_deck.py can use it as the template-level fallback before
     # the sole-body-canonical auto-detect heuristic fires.
@@ -3641,7 +3641,7 @@ def _commit_from_picks_dict(tpl: Path, picks: dict, *, source: str) -> int:
     # chrome.yml lands) so we never persist a phantom name.
     default_content_layout = (picks.get("default_content_layout") or "").strip()
 
-    # Hard-fail (2026-06-11) — refuse to commit when default_content_layout
+    # Hard-fail — refuse to commit when default_content_layout
     # is empty in the explicit-picks path. The accept-mode shortcut handles
     # its own fallback via autoBodyGuess (caller surfaces the chosen layout
     # back to the user); explicit picks must always set this field. Silent
@@ -3667,7 +3667,7 @@ def _commit_from_picks_dict(tpl: Path, picks: dict, *, source: str) -> int:
         )
         return 2
 
-    # Gate A.1 (2026-06-08): optional reference_slide_n in picks. When set,
+    # Gate A.1: optional reference_slide_n in picks. When set,
     # extract the spec from that slide and append to brand.yml as a
     # canonical "look like this" anchor.
     reference_slide_n = picks.get("reference_slide_n")
@@ -3760,7 +3760,7 @@ def _commit_from_picks_dict(tpl: Path, picks: dict, *, source: str) -> int:
                 return 2
             print(f"  default_content_layout: {default_content_layout!r} "
                   f"(class: {klass})")
-            # Gate A.2 (2026-06-08): inline-formatting scan on the canonical
+            # Gate A.2: inline-formatting scan on the canonical
             # layout's placeholders. Warn — do not fail — because some
             # client templates legitimately ship with curated typography
             # overrides we don't want to forbid outright.
@@ -3979,7 +3979,7 @@ def _main_commit(args) -> int:
 def _main_commit_cli(args) -> int:
     """Phase 4 variant: build picks from CLI flags. No picks JSON, no
     register.html required — for chat orchestrators that can't render local
-    HTML with live JS. RC-2 fix (2026-06-02).
+    HTML with live JS. RC-2 fix.
 
     The orchestrator reads `palette.png` in chat, decides colors with the
     user, then invokes this subcommand with the slot + hex flags. Bypasses
@@ -4075,7 +4075,7 @@ def main() -> int:
     p_comm.add_argument("--picks", type=Path, required=True,
         help="Path to picks JSON (see module docstring for shape).")
 
-    # RC-2 fix (2026-06-02): CLI-flag variant of commit for chat orchestrators
+    # RC-2 fix: CLI-flag variant of commit for chat orchestrators
     # that cannot render register.html. The orchestrator inspects palette.png
     # in chat, decides colors with the user, then invokes this subcommand
     # with the slot + hex flags directly. No picks.json round-trip needed.

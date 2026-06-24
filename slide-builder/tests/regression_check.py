@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Compare a fresh build against captured baselines (Spec 5 §6).
 
-Run after every Pattern B refactor commit. Reports per-PNG SSIM scores
+Run after each Pattern B commit. Reports per-PNG SSIM scores
 and exits non-zero if any score drops below the Major threshold (0.85)
 — that is, when a previously-clean slide visibly diverges.
 

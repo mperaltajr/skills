@@ -263,7 +263,7 @@ def _md_inline_to_html(s: str) -> str:
 # `**Page type (heuristic):**` — that line was a v1 prep-pass echo and is
 # never written by v2's build_deck.py. The canonical source for page_type is
 # _meta.json (slides[].page_type). parse_prompt() no longer attempts to read
-# it; the lookup is on _meta.json only. See P4.28 resolution (2026-05-26).
+# it; the lookup is on _meta.json only. See the resolution.
 PROMPT_FIELDS = {
     "title": r"\*\*Slide title:\*\*\s*(.+?)(?:\n|$)",
     "governing": r"\*\*Governing thought \(the claim\):\*\*\s*\n([\s\S]+?)(?:\n\n|\n\*\*)",
@@ -316,7 +316,7 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
     if not title:
         title = f"Slide {slide_num}"
 
-    # page_type now comes only from _meta.json (canonical). See P4.28 resolution.
+    # page_type now comes only from _meta.json (canonical). See the resolution.
     page_type = (slide_meta or {}).get("page_type") or ""
     if page_type:
         page_type = page_type.split("\n")[0].strip()
@@ -344,7 +344,7 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
         # v2 addition: extract pattern + classification from the .py header
         pattern, classification = extract_option_pattern(src_py)
 
-        # M6 (Pattern B QC surfacing, 2026-06-17): when the translator wrote a
+        # when the translator wrote a
         # per-zone SSIM + warnings report (Spec 4 §8 + Spec 6), surface it in
         # REVIEW.html so the user sees the fidelity story alongside the option
         # PNG. Path convention is sibling to the .py file:
@@ -398,14 +398,14 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
             "translation_pass": translation_pass,
         })
 
-    # Gap 3 (2026-06-08): worker context-ack telemetry. When build_deck.py
+    # Gap 3: worker context-ack telemetry. When build_deck.py
     # has written `_context.md` and the worker has followed the soft-
     # enforcement protocol, it leaves `_context_ack.txt` next to it with a
     # one-line citation of the constraint that informed its pattern pick.
     # Surface absence as an advisory chip — non-blocking; the user decides
     # whether to re-dispatch.
     #
-    # Audit blocker (2026-06-08): when the template was registered WITHOUT
+    # Audit blocker: when the template was registered WITHOUT
     # a reference_slide_n, _context.md still gets written (it carries design
     # rules + brief metadata) but contains a sentinel string flagging the
     # absence of canonical anchor. In that case there's no meaningful
@@ -696,7 +696,7 @@ def render_adjacency_banner(slide_n: int, warnings: list[str]) -> str:
 
 
 def render_context_ack_chip(slide: dict) -> str:
-    """Gap 3 (2026-06-08): per-slide worker context-ack telemetry chip.
+    """Gap 3: per-slide worker context-ack telemetry chip.
 
     Shows one of three states next to the slide title:
       - green: worker wrote `_context_ack.txt` with a citation; show the
@@ -976,7 +976,7 @@ code { font-family: Consolas, monospace; font-size: 12px; color: var(--text-dim)
 .dd-bullets li { font-size: 13px; color: var(--text-dim); padding: 3px 0; position: relative; line-height: 1.5; }
 .dd-bullets li::before { content: "– "; color: var(--accent-soft); position: absolute; left: -16px; }
 
-/* Gap 3 (2026-06-08): worker context-ack chip */
+/* Gap 3: worker context-ack chip */
 .context-chip { margin: 0 20px 10px; padding: 8px 12px; border-radius: 4px; font-size: 12px; line-height: 1.4; }
 .context-chip-icon { margin-right: 6px; font-weight: 700; }
 .context-chip-ok { background: rgba(16,185,129,0.12); border-left: 3px solid #10B981; color: #6EE7B7; }
