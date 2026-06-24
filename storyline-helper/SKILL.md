@@ -778,23 +778,14 @@ If `theme.json` is missing OR `default_content_layout` is empty: HALT. Do not sa
 
 The brief save is the LAST possible moment to catch this gap cleanly. Catching it here means the user fixes the gap before any build_deck.py compute is sunk.
 
-**Gate marker (required).** Slide-builder hard-fails any brief without the storyline-helper quality-gate marker. After all Criticals are resolved and Majors are handled, write the quality-quality-gate marker into the YAML front-matter BEFORE saving:
+**Gate marker (required).** Slide-builder hard-fails any brief without the storyline-helper quality-gate marker. After all Criticals are resolved and Majors are handled, write the gate marker into the YAML front-matter before saving:
 
 ```yaml
 storyline_gate_passed: true
 storyline_gate_at: <ISO-8601 timestamp in UTC, e.g. 2026-06-02T14:00:00Z>
-storyline_gate_sha256: <sha256 of the brief body — everything below the closing --- fence>
 ```
 
-Compute the SHA in one step (PowerShell):
-
-```powershell
-$brief = "<absolute path to _session/narrative-brief-[topic].md>"
-$body = (Get-Content -Raw $brief) -replace '(?s)^---\r?\n.*?\r?\n---\r?\n', ''
-[System.BitConverter]::ToString([System.Security.Cryptography.SHA256]::Create().ComputeHash([System.Text.Encoding]::UTF8.GetBytes($body))).Replace('-','').ToLower()
-```
-
-The SHA pins the gate to this body. Any post-gate edit to the brief invalidates the marker — slide-builder will refuse the build and ask for a re-gate. This stops the "gated once, edited freely after" bypass.
+This marker certifies the brief came through the quality gate. Slide-builder reads it and proceeds; without it, the build is refused (unless a carve-out mode is set — see below).
 
 **Carve-out modes** that legitimately skip the gate (don't have a narrative to gate):
 - `mode: template-fill` — PMO recurring report / template fill flow
@@ -878,7 +869,6 @@ default_layout: <layout name from theme.json>  # required — storyline-helper t
 session_folder: <absolute path to _session>    # optional — helps slide-builder anchor outputs
 storyline_gate_passed: true                   # required — slide-builder hard-fails without this
 storyline_gate_at: 2026-06-02T14:00:00Z       # required — ISO-8601 UTC timestamp of the gate pass
-storyline_gate_sha256: <hex sha256 of body>   # required — body integrity check; edits invalidate
 # mode: template-fill                          # OR set mode: to skip the gate (PMO / rebuild flows)
 ---
 
