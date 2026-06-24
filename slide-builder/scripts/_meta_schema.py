@@ -64,21 +64,20 @@ class SlideMeta(BaseModel):
     # (build_deck.py) populates from the brief; reader (finalize_deck.py)
     # passes through as fallback_subtitle to _apply_body_canonical_finishing.
     subtitle: str = ""
-    # M1 — Pattern B optional fields. Default None preserves
-    # legacy semantics: readers that don't know about Pattern B see slides
-    # with pattern=None and route through the existing python-pptx-direct
+    # Optional build-path fields. Default None preserves legacy semantics:
+    # readers see slides with pattern=None and route through the pptx-direct
     # path verbatim. Writers set these only when --pattern is not "legacy"
-    # (or when settings.json::default_pattern enables Pattern B).
+    # (or when settings.json::default_pattern enables routing).
     #
-    #   pattern  ∈ {"B", "C", None}
-    #     B = HTML-spec → translator → native python-pptx (Pattern B routing)
-    #     C = native python-pptx direct (no HTML stage); identical to legacy
-    #     None = field absent (legacy behavior; finalize_deck routes through
-    #            existing graft/render path)
+    #   pattern  ∈ {"sketch", "direct", None}
+    #     sketch = HTML-spec → translator → native python-pptx (HTML-first)
+    #     direct = native python-pptx direct (no HTML stage)
+    #     None   = field absent (legacy behavior; finalize_deck routes through
+    #              the existing graft/render path)
     #   artifacts: per-slide artifact paths, schema-versioned. Empty dict
     #     for legacy slides; populated with {html, png_target,
     #     translated_py, translated_pptx, translation_report} keys for
-    #     Pattern B slides as the build progresses.
+    #     sketch slides as the build progresses.
     pattern: Optional[str] = None
     artifacts: Optional[dict[str, Any]] = None
 
@@ -105,22 +104,21 @@ class MetaJson(BaseModel):
     brand_accent:   str = ""  # Same.
     slides:         list[SlideMeta]
     deck_meta:      DeckMeta
-    # M1 — Pattern B optional top-level fields. Default None /
-    # empty preserves legacy semantics: readers that don't know about
-    # Pattern B see these as absent and route through the existing pipeline.
-    # Writers set these only when --pattern != "legacy".
+    # Optional build-path top-level fields. Default None / empty preserves
+    # legacy semantics: readers see these as absent and route through the
+    # pptx-direct pipeline. Writers set these only when --pattern != "legacy".
     #
-    #   pattern_default  ∈ {"legacy", "auto", "B", "C", None}
-    #     "legacy" = use pre-Pattern-B pipeline verbatim (default when no flag)
+    #   pattern_default  ∈ {"legacy", "auto", "sketch", "direct", None}
+    #     "legacy" = use the pptx-direct-only pipeline verbatim (default)
     #     "auto"   = per-slide routing via _classify_all_slides
-    #     "B"      = force all slides to Pattern B
-    #     "C"      = force all slides to Pattern C (native, no HTML stage)
+    #     "sketch" = force all slides through the HTML-first path
+    #     "direct" = force all slides through the pptx-direct path (no HTML stage)
     #     None     = field absent; readers treat as "legacy"
-    #   pattern_per_slide: optional {slide_n_str: "B"|"C"} dict produced by
-    #     the classifier when pattern_default is "auto". Absent / empty for
-    #     non-auto modes.
-    #   html_render_canvas: locked at "1280x720" per Decision 1; only set
-    #     when Pattern B is in play.
+    #   pattern_per_slide: optional {slide_n_str: "sketch"|"direct"} dict
+    #     produced by the classifier when pattern_default is "auto". Absent /
+    #     empty for non-auto modes.
+    #   html_render_canvas: locked at "1280x720"; only set when the sketch
+    #     path is in play.
     #   translator_dispatched: flipped True after Stage 3.5 completes.
     #   translation_reports: {slide_n_str: report_relative_path} populated
     #     by Stage 3.5 dispatcher; consumed by build_review.py for SSIM

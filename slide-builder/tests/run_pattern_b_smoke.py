@@ -82,20 +82,20 @@ def phase_1_build_placeholders() -> None:
         "content_hash": "h", "pattern_pick_seed": "p",
         "variant_seed_a": "a", "variant_seed_b": "b", "variant_seed_c": "c",
     }
-    ph_b = build_deck.build_placeholders(
+    ph_sketch = build_deck.build_placeholders(
         slide=slide, slide_total=8, deck_notes="",
         client_template_path=Path("."), output_dir=Path("."),
-        seeds=seeds, likely_prior_patterns="", slide_pattern="B",
+        seeds=seeds, likely_prior_patterns="", slide_pattern="sketch",
     )
-    _check("PATTERN=B when slide_pattern='B'", ph_b.get("PATTERN") == "B",
-           f"got {ph_b.get('PATTERN')!r}")
+    _check("PATTERN=sketch when slide_pattern='sketch'", ph_sketch.get("PATTERN") == "sketch",
+           f"got {ph_sketch.get('PATTERN')!r}")
     ph_default = build_deck.build_placeholders(
         slide=slide, slide_total=8, deck_notes="",
         client_template_path=Path("."), output_dir=Path("."),
         seeds=seeds, likely_prior_patterns="",
     )
-    _check("PATTERN=C when slide_pattern omitted (legacy default)",
-           ph_default.get("PATTERN") == "C",
+    _check("PATTERN=direct when slide_pattern omitted (default)",
+           ph_default.get("PATTERN") == "direct",
            f"got {ph_default.get('PATTERN')!r}")
 
 
