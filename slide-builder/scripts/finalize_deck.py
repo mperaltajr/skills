@@ -2104,15 +2104,22 @@ def main() -> int:
         _meta_path = _p.meta_json(args.out)
         _meta_dict = json.loads(_meta_path.read_text(encoding="utf-8"))
         _pattern_default = _meta_dict.get("pattern_default")
+        # Stale-token guard: a _meta.json written before the sketch/direct
+        # rename carries "B"/"C". These scratch files are regenerated on every
+        # build, so the safe response is to treat them as legacy and tell the
+        # operator to re-run build_deck rather than mis-route.
+        if _pattern_default in ("B", "C"):
+            print(
+                f"  [pattern routing] stale pre-rename _meta.json "
+                f"(pattern_default={_pattern_default!r}); re-run build_deck.py "
+                f"to refresh. Proceeding via legacy path for this build."
+            )
+            _pattern_default = "legacy"
         if _pattern_default and _pattern_default != "legacy":
             print(
                 f"  [pattern routing] _meta.json::pattern_default = "
                 f"{_pattern_default!r}; per-slide map = "
                 f"{_meta_dict.get('pattern_per_slide', {})}"
-            )
-            print(
-                f"  [pattern routing] NOTE: Stage 3.5 (translator dispatch) "
-                f"lands . Proceeding via legacy path for this build."
             )
     except (OSError, json.JSONDecodeError):
         # Defensive read; never block the build on a parse error here.

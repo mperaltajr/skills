@@ -1,15 +1,15 @@
 {
   "_schema_version": 1,
-  "_doc": "slide-builder skill settings. Read by build_deck.py at startup. Per-build CLI flags override these. Edit + save; takes effect on next invocation. Pattern B documented in _decisions/pattern-b/README.md.",
+  "_doc": "slide-builder skill settings. Read by build_deck.py at startup. Per-build CLI flags override these. Edit + save; takes effect on next invocation. The two build paths are documented in _decisions/pattern-b/README.md.",
 
   "default_pattern": "auto",
-  "_doc_default_pattern": "One of: legacy | auto | B | C. 'legacy' = pre-Pattern-B pipeline verbatim (the safe shipped default). 'auto' = per-slide routing via _classify_all_slides. 'B' = force all slides Pattern B. 'C' = force all slides Pattern C (native, no HTML stage). Per-build override: build_deck.py --pattern <value>.",
+  "_doc_default_pattern": "One of: legacy | auto | sketch | direct. 'legacy' = pptx-direct-only pipeline verbatim (the safe fallback). 'auto' = per-slide routing via _classify_all_slides. 'sketch' = force all slides through the HTML-first path. 'direct' = force all slides through the pptx-direct path (native, no HTML stage). Per-build override: build_deck.py --pattern <value>.",
 
-  "enable_pattern_b": true,
-  "_doc_enable_pattern_b": "Master switch. When false, default_pattern is forced to 'legacy' regardless of its value, and --pattern auto|B is rejected. Flip to true after Pattern B validation lands.",
+  "enable_sketch": true,
+  "_doc_enable_sketch": "Master switch for the sketch (HTML-first) path. When false, default_pattern is forced to 'legacy' regardless of its value, and --pattern auto|sketch is downgraded.",
 
   "html_render_canvas": "1280x720",
-  "_doc_html_render_canvas": "Locked per Decision 1. Do not change without re-validating geometry across all locked specs.",
+  "_doc_html_render_canvas": "Locked. Do not change without re-validating geometry across all locked specs.",
 
   "ssim_thresholds": {
     "critical": 0.70,

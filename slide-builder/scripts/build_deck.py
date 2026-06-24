@@ -243,53 +243,54 @@ def _resolve_effective_pattern(cli_value: Optional[str]) -> str:
       2. settings.json::default_pattern
       3. Hard default 'legacy' (preserve current behavior)
 
-    Master switch: settings.json::enable_pattern_b. When False, any non-legacy
+    Master switch: settings.json::enable_sketch. When False, any non-legacy
     resolved value is downgraded to 'legacy' with a stderr warning. This is
-    the rollback lever — flipping enable_pattern_b: false in settings.json
-    forces every build (including those passing --pattern B) back to the
-    pre-Pattern-B pipeline.
+    the rollback lever — flipping enable_sketch: false in settings.json
+    forces every build (including those passing --pattern sketch) back to the
+    pptx-direct-only pipeline.
 
-    Returns: "legacy" | "auto" | "B" | "C"
+    Returns: "legacy" | "auto" | "sketch" | "direct"
     """
     settings = _load_skill_settings()
     if cli_value is not None:
         resolved = cli_value
     else:
         resolved = settings.get("default_pattern", "legacy")
-    if resolved not in ("legacy", "auto", "B", "C"):
+    if resolved not in ("legacy", "auto", "sketch", "direct"):
         sys.stderr.write(
             f"  WARN: invalid pattern value {resolved!r}; falling back to "
-            f"'legacy'.\n"
+            f"'legacy'. (If this is a stale 'B'/'C' value, re-run with "
+            f"--pattern sketch / --pattern direct.)\n"
         )
         resolved = "legacy"
-    enable = settings.get("enable_pattern_b", False)
+    enable = settings.get("enable_sketch", False)
     if not enable and resolved != "legacy":
         sys.stderr.write(
             f"  WARN: pattern={resolved!r} requested but settings.json has "
-            f"enable_pattern_b: false. Downgrading to 'legacy'. To enable "
-            f"Pattern B, edit {_SETTINGS_JSON_PATH} and set "
-            f"enable_pattern_b: true.\n"
+            f"enable_sketch: false. Downgrading to 'legacy'. To enable the "
+            f"sketch (HTML-first) path, edit {_SETTINGS_JSON_PATH} and set "
+            f"enable_sketch: true.\n"
         )
         resolved = "legacy"
     return resolved
 
 
 def _classify_slide_pattern(brief_slide: dict[str, Any]) -> str:
-    """Classify a single slide as Pattern B or Pattern C.
+    """Classify a single slide as 'sketch' (HTML-first) or 'direct' (pptx-direct).
 
-    Per Decision 2 (Moderate routing, 2026-06-16):
-      - Pure-text archetypes (Cover/Title, Section Divider) -> C
+    Moderate routing:
+      - Pure-text archetypes (Cover/Title, Section Divider) -> direct
       - Visual archetypes (Analytical, Framework, Synthesis, Roadmap, Risk,
-        Financial) -> B
-      - Any slide referencing a chart / table / iconography -> B
-      - Default: B (when in doubt, route to higher quality path)
+        Financial) -> sketch
+      - Any slide referencing a chart / table / iconography -> sketch
+      - Default: sketch (when in doubt, route to the higher-quality path)
 
     See _decisions/pattern-b/spec-8-rollback-flag.md §5 for the locked logic.
     """
     archetype = (brief_slide.get("archetype") or "").strip().lower()
     # Normalize whitespace around the "/" so "cover / title" and "cover/title"
     # both match. Also include the standalone "cover" and "title" forms that
-    # ARCHETYPE_TO_PAGE_TYPE accepts (line 161-163).
+    # ARCHETYPE_TO_PAGE_TYPE accepts.
     archetype = archetype.replace(" / ", "/").replace(" /", "/").replace("/ ", "/")
     pure_text = {"cover/title", "cover", "title", "section divider"}
     visual = {
@@ -297,35 +298,35 @@ def _classify_slide_pattern(brief_slide: dict[str, Any]) -> str:
         "roadmap/implementation", "risk", "financial/business case",
     }
     if archetype in pure_text:
-        return "C"
+        return "direct"
     if archetype in visual:
-        return "B"
+        return "sketch"
     # Content signals
     if brief_slide.get("chart_type"):
-        return "B"
+        return "sketch"
     evidence_lc = (brief_slide.get("evidence", "") or "").lower()
     if "table" in evidence_lc or "icon" in evidence_lc:
-        return "B"
-    # Default: when in doubt, route to higher quality path (B)
-    return "B"
+        return "sketch"
+    # Default: when in doubt, route to the higher-quality path (sketch)
+    return "sketch"
 
 
 def _classify_all_slides(slides: list[dict[str, Any]],
                           effective_pattern: str) -> dict[str, str]:
-    """Return {slide_n_str: 'B'|'C'} for every slide given the effective pattern.
+    """Return {slide_n_str: 'sketch'|'direct'} for every slide given the effective pattern.
 
-    - effective_pattern == 'legacy': returns {} (Pattern B fields omitted from
-      _meta.json; readers route through legacy path).
+    - effective_pattern == 'legacy': returns {} (sketch fields omitted from
+      _meta.json; readers route through the legacy path).
     - 'auto': per-slide via _classify_slide_pattern.
-    - 'B': force all slides to B.
-    - 'C': force all slides to C.
+    - 'sketch': force all slides to sketch.
+    - 'direct': force all slides to direct.
     """
     if effective_pattern == "legacy":
         return {}
-    if effective_pattern == "B":
-        return {str(s["slide_n"]): "B" for s in slides}
-    if effective_pattern == "C":
-        return {str(s["slide_n"]): "C" for s in slides}
+    if effective_pattern == "sketch":
+        return {str(s["slide_n"]): "sketch" for s in slides}
+    if effective_pattern == "direct":
+        return {str(s["slide_n"]): "direct" for s in slides}
     # 'auto'
     return {str(s["slide_n"]): _classify_slide_pattern(s) for s in slides}
 
@@ -1098,13 +1099,13 @@ def build_placeholders(
     output_dir: Path,
     seeds: dict[str, str],
     likely_prior_patterns: str,
-    slide_pattern: str = "C",
+    slide_pattern: str = "direct",
 ) -> dict[str, str]:
     """Assemble the {{TOKEN}} → value dictionary for one slide.
 
-    `slide_pattern` is "B" (HTML output) or "C" (python-pptx output, default).
-    Defaults to "C" so legacy callers keep working without code changes; the
-    worker branches on the rendered PATTERN field per Pattern B M4/M5 spec.
+    `slide_pattern` is "sketch" (HTML output) or "direct" (python-pptx output,
+    default). Defaults to "direct" so legacy callers keep working without code
+    changes; the worker branches on the rendered PATTERN field.
     """
     return {
         "PATTERN":                 slide_pattern,
@@ -1737,21 +1738,22 @@ def main() -> int:
              "When omitted, build_deck halts and asks for Y/N confirmation showing the resolved template name, "
              "brand colors, layout count, and registration timestamp.",
     )
-    # M1 — Pattern B rollback flag. Per-build override of
+    # Build-path routing override. Per-build override of
     # settings.json::default_pattern. Default None = use settings.json (which
     # ships at "legacy"). See _decisions/pattern-b/spec-8-rollback-flag.md.
     parser.add_argument(
         "--pattern",
-        choices=["auto", "B", "C", "legacy"],
+        choices=["auto", "sketch", "direct", "legacy"],
         default=None,
         help=(
-            "Pattern B routing override. 'auto' routes per-slide via the "
-            "Decision-2 classifier (visual structure -> B; bullets/dividers "
-            "-> C). 'B' forces every slide through Pattern B (HTML-spec -> "
-            "native translation). 'C' forces every slide through Pattern C "
-            "(native python-pptx direct, no HTML stage). 'legacy' uses the "
-            "pre-Pattern-B pipeline verbatim. When omitted, defaults from "
-            "settings.json::default_pattern (shipped at 'legacy')."
+            "Build-path routing override. 'auto' routes per-slide via the "
+            "classifier (visual structure -> sketch; bullets/dividers -> "
+            "direct). 'sketch' forces every slide through the HTML-first path "
+            "(HTML-spec -> native translation). 'direct' forces every slide "
+            "through the pptx-direct path (native python-pptx, no HTML stage). "
+            "'legacy' uses the pptx-direct-only pipeline verbatim. When "
+            "omitted, defaults from settings.json::default_pattern (shipped "
+            "at 'legacy')."
         ),
     )
     args = parser.parse_args()
@@ -1864,9 +1866,9 @@ def main() -> int:
         slide_dir = _p.slide_dir(args.out, slide_n)
         slide_dir.mkdir(parents=True, exist_ok=True)
         likely_prior = format_prior_patterns(slide_n, forecasts)
-        # Pattern routing for this slide: B = HTML output, C = python-pptx.
-        # Legacy / unrouted slides default to C (worker's pre-Pattern-B path).
-        slide_pattern = pattern_per_slide.get(str(slide_n), "C")
+        # Build-path routing for this slide: sketch = HTML output,
+        # direct = python-pptx. Unrouted slides default to direct.
+        slide_pattern = pattern_per_slide.get(str(slide_n), "direct")
         placeholders = build_placeholders(
             slide=slide,
             slide_total=slide_total,
