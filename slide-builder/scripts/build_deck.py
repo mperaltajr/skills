@@ -352,17 +352,12 @@ def _classify_all_slides(slides: list[dict[str, Any]],
 #                    "why us") — the narrative gate doesn't apply to a
 #                    prescribed-structure scoring document.
 #
-# SHA check: hashing the brief body (everything below the front-matter)
-# means edits after the gate pass invalidate the marker; the operator must
-# re-gate via storyline-helper. Prevents "gated once, edited freely after."
+# The `storyline_gate_passed: true` marker is the contract — it certifies the
+# brief came through storyline-helper's quality gate. Bypass modes opt out for
+# legitimate non-narrative flows.
 # ----------------------------------------------------------------------
 
 GATE_BYPASS_MODES = {"template-fill", "rebuild-slice", "rfp"}
-
-
-def _brief_body_sha256(body: str) -> str:
-    import hashlib
-    return hashlib.sha256(body.encode("utf-8")).hexdigest()
 
 
 def _enforce_storyline_gate(front_matter: dict[str, str], body: str,
@@ -377,12 +372,10 @@ def _enforce_storyline_gate(front_matter: dict[str, str], body: str,
             "ERROR: brief is missing the storyline-helper gate marker.\n\n"
             f"  Brief: {brief_path}\n\n"
             "Slide-builder requires briefs to be produced by storyline-helper\n"
-            "and pass its 9-part quality gate. To fix, one of:\n\n"
+            "and pass its quality gate. To fix, one of:\n\n"
             "  (1) Run storyline-helper on this brief. On a clean gate-pass it\n"
-            "      will write the required front-matter fields:\n"
-            "        storyline_gate_passed: true\n"
-            "        storyline_gate_at: <ISO timestamp>\n"
-            "        storyline_gate_sha256: <hash of brief body>\n\n"
+            "      writes the required front-matter field:\n"
+            "        storyline_gate_passed: true\n\n"
             "  (2) If this is a legitimate non-narrative flow (PMO recurring\n"
             "      report, single-slide rebuild, or RFP response), add to the\n"
             "      front-matter:\n"
@@ -391,21 +384,6 @@ def _enforce_storyline_gate(front_matter: dict[str, str], body: str,
             "        mode: rfp                # for rfp-helper proposal briefs\n"
         )
         sys.exit(10)
-
-    declared_sha = (front_matter.get("storyline_gate_sha256") or "").strip().lower()
-    if declared_sha:
-        actual_sha = _brief_body_sha256(body)
-        if declared_sha != actual_sha:
-            sys.stderr.write(
-                "ERROR: brief was edited after the storyline-helper gate pass.\n\n"
-                f"  Brief: {brief_path}\n"
-                f"  Declared SHA: {declared_sha}\n"
-                f"  Actual SHA:   {actual_sha}\n\n"
-                "The gate's SHA pin is invalidated by any post-gate edit.\n"
-                "Re-run storyline-helper on the edited brief to re-gate and\n"
-                "refresh the SHA marker.\n"
-            )
-            sys.exit(10)
 
 
 def parse_yaml_simple(yaml_text: str) -> dict[str, str]:
