@@ -31,7 +31,6 @@ Placeholders rendered by `build_deck.py`:
 | `{{LIKELY_PRIOR_PATTERNS}}` | Forecasted patterns for slides N-1 and N-2 from the prep-time pattern-hint pass — **context, not constraint**. The agent can override if its brief read differs from the forecast. |
 | `{{LAYOUTS_MD_PATH}}` | Absolute path to `reference/layouts.md` |
 | `{{ANTI_PATTERNS_MD_PATH}}` | Absolute path to `reference/anti-patterns.md` |
-| _( `{{FALLBACK_MD_PATH}}` and `{{FALLBACK_EXAMPLES_DIR}}` were retired with the Mermaid fallback. the HTML-first path replaces them.)_ | |
 | `{{SKILL_MD_PATH}}` | Absolute path to `SKILL.md` |
 | `{{HELPERS_MODULE_PATH}}` | Absolute path to `slide-builder/` — the parent directory of `twins/helpers.py`. Goes on `sys.path` so `from twins.helpers import ...` resolves. |
 | `{{PATTERN}}` | Build-path routing for this slide: `sketch` = HTML output (worker writes `option_X.html`; translator converts to native python-pptx at Stage 3.5), `direct` = python-pptx direct. Defaults to `direct` for unrouted builds. |
@@ -40,7 +39,13 @@ Placeholders rendered by `build_deck.py`:
 
 # Slide {{SLIDE_N}} build prompt — `{{SLIDE_TITLE}}`
 
-You are building **slide {{SLIDE_N}} of {{SLIDE_TOTAL}}** of a deck using `slide-builder` (v2). Produce **three structurally distinct options** as standalone runnable Python scripts: `option_A.py`, `option_B.py`, `option_C.py`. Each script builds **this single slide** against the client template and is executed by `finalize_deck.py` at finalize time.
+You are building **slide {{SLIDE_N}} of {{SLIDE_TOTAL}}** of a deck using `slide-builder`. Produce **three structurally distinct options** for this single slide.
+
+**This slide's build path is `{{PATTERN}}`** — and that determines your output format:
+- **`direct`** → write three standalone python-pptx scripts: `option_A.py`, `option_B.py`, `option_C.py`. Each is executed by `finalize_deck.py` at finalize time.
+- **`sketch`** → write three HTML files instead: `option_A.html`, `option_B.html`, `option_C.html`. A translator converts the picked one to native python-pptx downstream. Do NOT write `.py` files on a `sketch` slide.
+
+The full output contract for each path is in §6 below. Read it before writing anything.
 
 You are one of {{SLIDE_TOTAL}} parallel agents dispatched from the same parent session. The other agents are building the other slides at the same time. You see only your slide's brief content. You do not see the other slides' content directly, but you do see the patterns picked for the previous two slides — those constrain you via the adjacency rule (Hardline #3).
 
@@ -314,13 +319,11 @@ sys.exit(0)
 finalize_deck.py reads line 1. Token prefix decides routing:
 - `# SKELETON_REJECTED:` → rejection surfaces in REVIEW.html for user resolution (brief/pattern disagreement OR unsupported curved-container under the direct path).
 
-The legacy `# FALLBACK_MERMAID:` token was retired  (Decision 6, 2026-06-17). Stale scripts carrying it fall through to the `native` classifier and fail loudly at execution time.
-
 ---
 
 ## 9. Constraints
 
-- **Touch only files in `{{OUTPUT_DIR}}`.** The expected files are `option_A.py`, `option_B.py`, `option_C.py` (direct path) OR `option_A.html`, `option_B.html`, `option_C.html` (sketch path — when the dispatch's `{{PATTERN}}` field is `sketch`), plus the generated `.pptx` / `.png` siblings (when the script or renderer runs). Do not write to any other path. Do not modify `_prompt.md` or any file outside this directory.
+- **Touch only files in `{{OUTPUT_DIR}}`.** The expected files are `option_A.py`, `option_B.py`, `option_C.py` (direct path) OR `option_A.html`, `option_B.html`, `option_C.html` (sketch path — when the dispatch's `PATTERN` field is `sketch`), plus the generated `.pptx` / `.png` siblings (when the script or renderer runs). Do not write to any other path. Do not modify `_prompt.md` or any file outside this directory.
 - **Do not modify `slide-builder\twins\helpers.py`.** It is shared with v1; structural changes break both versions.
 - **Do not read or modify other slides' brief content.** You see only this slide's brief.
 - **Do not write summaries, plans, or design docs to disk.** Inline reasoning goes in your response, not in side-files.
@@ -357,8 +360,6 @@ If any option is SKELETON_REJECTED, state the reason in the variant line. Do not
 ```
 Layout catalog          : {{LAYOUTS_MD_PATH}}
 Anti-pattern library    : {{ANTI_PATTERNS_MD_PATH}}
-Fallback contract       : {{FALLBACK_MD_PATH}}        (read only if fallback trigger fires)
-Fallback examples       : {{FALLBACK_EXAMPLES_DIR}}   (worked Mermaid specs)
 SKILL.md                : {{SKILL_MD_PATH}}
 Helpers module          : {{HELPERS_MODULE_PATH}}
 Client template         : {{CLIENT_TEMPLATE_PATH}}

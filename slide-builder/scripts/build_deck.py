@@ -74,21 +74,12 @@ SKILL_ROOT = SCRIPTS_DIR.parent
 PROMPT_TEMPLATE = SKILL_ROOT / "prompt.md"
 LAYOUTS_MD = SKILL_ROOT / "reference" / "layouts.md"
 ANTI_PATTERNS_MD = SKILL_ROOT / "reference" / "anti-patterns.md"
-# M7 (Mermaid retirement, 2026-06-17): the FALLBACK_MD / FALLBACK_EXAMPLES_DIR
-# constants pointed at the legacy Mermaid fallback docs at
-# reference/fallback.md + reference/fallback-examples/. Both were deleted per
-# the Mermaid retirement. The constants are retained as no-op references for any external
-# code that still imports them — they point at paths that no longer exist on
-# disk, but no production code path reads them.
-FALLBACK_MD = SKILL_ROOT / "reference" / "fallback.md"           # path no longer exists
-FALLBACK_EXAMPLES_DIR = SKILL_ROOT / "reference" / "fallback-examples"  # path no longer exists
 SKILL_MD = SKILL_ROOT / "SKILL.md"
 THEME_DIR = SKILL_ROOT / "theme"
 
-# twins/ lives inside this skill (re-homed in Phase 2 cleanup 2026-05-26).
-# HELPERS_MODULE_PATH retained as the historical name for the prompt-template
-# substitution token consumed by per-slide agent scripts, but the path now
-# points at SKILL_ROOT — twins/helpers.py is at <SKILL_ROOT>/twins/helpers.py.
+# HELPERS_MODULE_PATH is the prompt-template substitution token consumed by
+# per-slide agent scripts; it points at SKILL_ROOT, where twins/helpers.py lives
+# at <SKILL_ROOT>/twins/helpers.py.
 HELPERS_MODULE_PATH = SKILL_ROOT
 
 # Make twins.client_theme importable. load_brand_sidecar is the canonical
@@ -1112,12 +1103,6 @@ def build_placeholders(
         "LIKELY_PRIOR_PATTERNS":   likely_prior_patterns,
         "LAYOUTS_MD_PATH":         str(LAYOUTS_MD),
         "ANTI_PATTERNS_MD_PATH":   str(ANTI_PATTERNS_MD),
-        # M7 (Mermaid retirement, 2026-06-17): the FALLBACK_MD_PATH and
-        # FALLBACK_EXAMPLES_DIR placeholders were removed from prompt.md;
-        # render_prompt() will leave any residual `{{FALLBACK_*}}` token
-        # literally interpolated to empty if a stale template is loaded.
-        "FALLBACK_MD_PATH":        "",
-        "FALLBACK_EXAMPLES_DIR":   "",
         "SKILL_MD_PATH":           str(SKILL_MD),
         "HELPERS_MODULE_PATH":     str(HELPERS_MODULE_PATH),
     }
@@ -1208,10 +1193,11 @@ def write_dispatch_plan(
     lines.append(
         "Parent session dispatches one `slide-builder-worker` agent per slide "
         "IN PARALLEL. Each worker reads its `_context.md` first, then "
-        "`_prompt.md`, and writes `option_A.py`, `option_B.py`, `option_C.py` "
-        "(plus `option_X.mmd` for Mermaid-fallback slides) into its own "
-        "`slide_NN/` directory. Then run `finalize_deck.py` to graft, render, "
-        "and produce REVIEW.html."
+        "`_prompt.md`, and writes its three options into its own `slide_NN/` "
+        "directory — `option_A.py` / `B` / `C` for direct-path slides, or "
+        "`option_A.html` / `B` / `C` for sketch-path slides (per the slide's "
+        "PATTERN field). Then run `finalize_deck.py` to graft, render, and "
+        "produce REVIEW.html."
     )
     plan_path.write_text("\n".join(lines), encoding="utf-8")
     return plan_path
