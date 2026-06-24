@@ -2,7 +2,41 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
-## [Unreleased] — Pattern B refactor (M1 – M7, 2026-06-16 → 2026-06-17)
+## [Unreleased] — production naming + pipeline completion
+
+### Changed — build paths renamed to production names
+- The two build paths are now named for what they do: **sketch** (HTML-first:
+  worker writes HTML → translator converts to native python-pptx) and
+  **direct** (python-pptx direct, no HTML stage). These replace the internal
+  refactor codenames "Pattern B" / "Pattern C" across `settings.json`
+  (`default_pattern` values; `enable_pattern_b` → `enable_sketch`),
+  `build_deck.py` (`--pattern sketch|direct|auto|legacy`, the classifier, the
+  per-slide `pattern` token), `_meta.json` (`pattern` / `pattern_default` /
+  `pattern_per_slide` values), `finalize_deck.py` (classifier status
+  `pattern_b_translated` → `sketch_translated`; `_check_r4_rules_for_pattern_b`
+  → `_check_r4_rules_for_sketch`), `build_review.py` (`render_pattern_b_qc_section`
+  → `render_sketch_qc_section`; `.pattern-b-*` REVIEW.html CSS → `.sketch-*`),
+  the worker + translator agent prompts (`PATTERN: sketch|direct`), and the
+  smoke test (renamed `run_pattern_b_smoke.py` → `run_sketch_smoke.py`).
+- **Clean break**: a `_meta.json` written before this rename carries stale
+  `"B"`/`"C"` values. These are session-scratch (regenerated every build); the
+  validator + a finalize-time guard treat stale values as legacy and ask the
+  operator to re-run, rather than mis-routing.
+- The `option_A/B/C` per-slide variant filenames are unrelated and unchanged.
+
+### Other completions this cycle
+- RFP → slide-builder handoff wired (`mode: rfp` gate bypass + conformant
+  proposal-brief format).
+- `deck_meta.governing_thought` / `audience` now populate from the brief's
+  body headings (were shipping empty).
+- Chart data + per-slide steering fields (visual rhythm, mandatory shape,
+  forbidden patterns, accent placement) parsed and threaded to the worker prompt.
+- storyline-helper: `evidence_type` / `source` micro-fields implemented +
+  open-gaps punch list emitted in the dot-dash.
+- Mermaid fully retired; FedEx-specific brand guard removed; scar tissue
+  (milestone tags, version markers, dated parentheticals) stripped across all skills.
+
+## [Prior] — Pattern B refactor (M1 – M7, 2026-06-16 → 2026-06-17)
 
 ### Added — Pattern B HTML-first build path (M1 – M5)
 - **M1** (`9623efb`): `--pattern {auto,B,C,legacy}` CLI flag on `build_deck.py`; per-slide classifier `_classify_slide_pattern`; `_meta.json` schema-v3 extension with optional Pattern B fields (`pattern_default`, `pattern_per_slide`, `html_render_canvas`, `translator_dispatched`, `translation_reports`, per-slide `pattern` / `artifacts`); shipped `settings.json` with `default_pattern: legacy` + `enable_pattern_b: false` master switch.

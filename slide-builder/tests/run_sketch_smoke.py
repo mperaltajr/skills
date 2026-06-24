@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""End-to-end Pattern B Python-side smoke (M8 deliverable, 2026-06-17/18).
+"""End-to-end Python-side smoke for the sketch (HTML-first) build path.
 
 What this smoke covers
 ----------------------
-The Pattern B pipeline has two execution surfaces:
+The sketch pipeline has two execution surfaces:
 
   1. Chat-orchestrated steps  — agent dispatch (worker, translator).
   2. Python-side steps         — build_deck.py prompt rendering,
@@ -13,30 +13,29 @@ The Pattern B pipeline has two execution surfaces:
 
 Agent dispatch can't be exercised from a Python test (it's a chat-level
 operation). This smoke covers the *Python* surface end-to-end so any
-regression in the M1–M7 plumbing fails LOUDLY before it lands on Mario.
+regression in the plumbing fails LOUDLY before it ships.
 
 Specifically, the smoke:
 
-  P1  Verifies build_placeholders() emits PATTERN: B|C based on the slide
-      classifier output (M1 + M5).
+  P1  Verifies build_placeholders() emits PATTERN: sketch|direct based on
+      the slide classifier output.
   P2  Verifies scripts/render_html.py produces a 1280×720 PNG from a stub
-      Pattern B HTML file (M3).
-  P3  Verifies finalize_deck._classify_option() correctly recognizes a
-      translator-style script header as ``sketch_translated`` (M5).
+      HTML file.
+  P3  Verifies finalize_deck._classify_option() recognizes translator
+      output (filename + sibling report) as ``sketch_translated``.
   P4  Verifies finalize_deck._parse_template_fields() extracts the
-      __template_fields__ dict from a translator script header (M5).
+      __template_fields__ dict from a translator script header.
   P5  Verifies finalize_deck._check_r4_rules_for_sketch() emits the
       eight R4 rule entries from Spec 6 with the locked severities
-      (3 Critical / 4 Major / 1 Advisory) (M6).
+      (3 Critical / 4 Major / 1 Advisory).
   P6  Verifies the synthetic native script executes cleanly to produce a
-      .pptx whose body shapes are editable (R4.7) (M5).
+      .pptx whose body shapes are editable (R4.7).
   P7  Verifies _meta_schema.MetaJson accepts both legacy metas (with
-      mermaid_theme populated) and new metas (without), confirming the
-      M7 retirement preserves backward compatibility.
+      mermaid_theme populated) and new metas (without).
 
 Run
 ---
-    py -3 slide-builder/tests/run_pattern_b_smoke.py
+    py -3 slide-builder/tests/run_sketch_smoke.py
 
 Exit
 ----
