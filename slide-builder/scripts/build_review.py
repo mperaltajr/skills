@@ -391,7 +391,7 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
             # v2 fields
             "pattern": pattern,
             "classification": classification,
-            # M6 — Pattern B translation QC fields
+            # M6 — Sketch-path translation QC fields
             "translation_report_path": translation_report_path if translation_report_path.exists() else None,
             "ssim_per_zone": ssim_per_zone,
             "translation_warnings": translation_warnings,
@@ -734,7 +734,7 @@ def render_context_ack_chip(slide: dict) -> str:
     )
 
 
-def render_pattern_b_qc_section(slide: dict) -> str:
+def render_sketch_qc_section(slide: dict) -> str:
     """M6 (Pattern B QC surfacing, 2026-06-17): per-slide block showing
     translator self-check results for any Pattern B options on this slide.
 
@@ -799,18 +799,18 @@ def render_pattern_b_qc_section(slide: dict) -> str:
         else:
             chip_html = '<span class="r4-chip r4-chip-pass">no warnings</span>'
         rows.append(
-            f'<div class="pattern-b-row">'
-            f'<div class="pattern-b-letter">Option {letter}</div>'
-            f'<div class="pattern-b-ssim">{ssim_html}</div>'
-            f'<div class="pattern-b-chips">{chip_html}</div>'
+            f'<div class="sketch-row">'
+            f'<div class="sketch-letter">Option {letter}</div>'
+            f'<div class="sketch-ssim">{ssim_html}</div>'
+            f'<div class="sketch-chips">{chip_html}</div>'
             f'</div>'
         )
 
     return (
-        '<div class="pattern-b-qc">'
-        '<div class="pattern-b-qc-title">'
-        '<span class="pattern-b-qc-icon">&#9678;</span> Pattern B translation QC '
-        '<span class="pattern-b-qc-hint">(per-zone SSIM thresholds: pass &#8805; 0.90; '
+        '<div class="sketch-qc">'
+        '<div class="sketch-qc-title">'
+        '<span class="sketch-qc-icon">&#9678;</span> Sketch-path translation QC '
+        '<span class="sketch-qc-hint">(per-zone SSIM thresholds: pass &#8805; 0.90; '
         'major 0.85&#8211;0.90; critical &lt; 0.70 per Spec 5)</span>'
         '</div>'
         f'{"".join(rows)}'
@@ -880,7 +880,7 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
     {option_tiles}
   </div>
 
-  {render_pattern_b_qc_section(slide)}
+  {render_sketch_qc_section(slide)}
 
   <div class="card-controls">
     <div>
@@ -991,20 +991,20 @@ code { font-family: Consolas, monospace; font-size: 12px; color: var(--text-dim)
 .adjacency-banner ul { margin: 4px 0 0; padding-left: 18px; }
 .adjacency-banner li { padding: 2px 0; }
 
-/* M6 (Pattern B translation QC, 2026-06-17) */
-.pattern-b-qc { margin: 0 20px 14px; padding: 10px 14px; background: rgba(99,102,241,0.10); border-left: 4px solid #6366F1; border-radius: 4px; color: #C7D2FE; font-size: 12.5px; line-height: 1.5; }
-.pattern-b-qc-title { font-size: 11px; font-weight: 800; color: #A5B4FC; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
-.pattern-b-qc-icon { color: #A5B4FC; margin-right: 4px; }
-.pattern-b-qc-hint { font-weight: 500; text-transform: none; letter-spacing: 0; color: #94A3B8; font-size: 11px; margin-left: 6px; }
-.pattern-b-row { display: grid; grid-template-columns: 80px 1fr 1fr; gap: 14px; padding: 4px 0; align-items: center; }
-.pattern-b-letter { font-weight: 700; color: #C7D2FE; font-size: 12px; }
-.pattern-b-ssim { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11.5px; color: #94A3B8; }
-.pattern-b-ssim .ssim-zone { display: inline-flex; gap: 4px; align-items: center; }
-.pattern-b-ssim .ssim-pass     { color: #10B981; font-weight: 600; font-variant-numeric: tabular-nums; }
-.pattern-b-ssim .ssim-major    { color: #FBBF24; font-weight: 600; font-variant-numeric: tabular-nums; }
-.pattern-b-ssim .ssim-critical { color: #F87171; font-weight: 700; font-variant-numeric: tabular-nums; }
-.pattern-b-ssim .ssim-na       { color: #64748B; }
-.pattern-b-chips { display: flex; gap: 6px; flex-wrap: wrap; }
+/* M6 (Sketch-path translation QC, 2026-06-17) */
+.sketch-qc { margin: 0 20px 14px; padding: 10px 14px; background: rgba(99,102,241,0.10); border-left: 4px solid #6366F1; border-radius: 4px; color: #C7D2FE; font-size: 12.5px; line-height: 1.5; }
+.sketch-qc-title { font-size: 11px; font-weight: 800; color: #A5B4FC; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.sketch-qc-icon { color: #A5B4FC; margin-right: 4px; }
+.sketch-qc-hint { font-weight: 500; text-transform: none; letter-spacing: 0; color: #94A3B8; font-size: 11px; margin-left: 6px; }
+.sketch-row { display: grid; grid-template-columns: 80px 1fr 1fr; gap: 14px; padding: 4px 0; align-items: center; }
+.sketch-letter { font-weight: 700; color: #C7D2FE; font-size: 12px; }
+.sketch-ssim { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11.5px; color: #94A3B8; }
+.sketch-ssim .ssim-zone { display: inline-flex; gap: 4px; align-items: center; }
+.sketch-ssim .ssim-pass     { color: #10B981; font-weight: 600; font-variant-numeric: tabular-nums; }
+.sketch-ssim .ssim-major    { color: #FBBF24; font-weight: 600; font-variant-numeric: tabular-nums; }
+.sketch-ssim .ssim-critical { color: #F87171; font-weight: 700; font-variant-numeric: tabular-nums; }
+.sketch-ssim .ssim-na       { color: #64748B; }
+.sketch-chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .r4-chip { display: inline-block; padding: 2px 8px; border-radius: 11px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.25px; }
 .r4-chip-critical { background: rgba(248,113,113,0.16); color: #FCA5A5; border: 1px solid rgba(248,113,113,0.35); }
 .r4-chip-major    { background: rgba(251,191,36,0.16); color: #FDE68A; border: 1px solid rgba(251,191,36,0.35); }

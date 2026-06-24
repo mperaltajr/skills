@@ -205,7 +205,7 @@ def _normalize_archetype_to_page_type(archetype: str) -> str:
 #   _decisions/pattern-b/spec-7-schema-version-migration.md (extends v3)
 #   _decisions/pattern-b/spec-8-rollback-flag.md (--pattern flag + settings.json)
 #
-# Default behavior: when --pattern is omitted and settings.json::enable_pattern_b
+# Default behavior: when --pattern is omitted and settings.json::enable_sketch
 # is False (the shipped default), effective_pattern resolves to "legacy" and
 # write_meta_json omits all Pattern B optional fields entirely. _meta.json
 # is byte-identical to pre-M1 output. Only when the user opts in does any
@@ -1763,7 +1763,7 @@ def main() -> int:
     #   1. --pattern flag wins outright (if provided)
     #   2. settings.json::default_pattern (read if file exists at skill root)
     #   3. Hard default "legacy" (preserve current behavior)
-    # If enable_pattern_b is False in settings.json, any non-legacy value is
+    # If enable_sketch is False in settings.json, any non-legacy value is
     # downgraded to "legacy" with a stderr warning -- the master switch.
     effective_pattern = _resolve_effective_pattern(args.pattern)
 
