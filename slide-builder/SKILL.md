@@ -176,7 +176,7 @@ N parallel agents per deck, three options per slide. The per-slide prompt inject
 ```
 STAGE 1 · PREP            build_deck.py
                           Reads narrative brief + client template.
-                          For each slide, renders prompt.md (the v2 template)
+                          For each slide, renders prompt.md (the current template)
                           with brief content interpolated. Each per-slide
                           prompt loads reference/layouts.md +
                           reference/anti-patterns.md + the 5 hardline rules
@@ -259,7 +259,7 @@ Adjacency (Hardline #3 — no 3+ consecutive same-split) is **soft-enforced at p
 
 1. **Setup.** Confirm the client template path with the user. Read the brief and explicitly read the `## Deck-level design notes` section before proceeding; those constraints are binding.
 2. **Narrative + content gates.** Verify governing thoughts are specific and assertive; verify enough raw content per slide. Skip if storyline-helper already gated this session.
-3. **Stage 1 — Prep.** Run `build_deck.py` to render one self-contained `_prompt.md` per slide. Each prompt is `prompt.md` (the v2 template) with brief content interpolated, layouts/anti-patterns reference paths injected, the rotation seed computed, and the per-slide pattern routing (`PATTERN: B|C`) from M1's classifier.
+3. **Stage 1 — Prep.** Run `build_deck.py` to render one self-contained `_prompt.md` per slide. Each prompt is `prompt.md` (the current template) with brief content interpolated, layouts/anti-patterns reference paths injected, the rotation seed computed, and the per-slide pattern routing (`PATTERN: B|C`) from M1's classifier.
 4. **Stage 2 — Parallel fanout.** Dispatch one `slide-builder-worker` agent per slide IN PARALLEL from the parent session. Each agent reads the rendered `_prompt.md` and branches on the PATTERN field:
    - **Pattern C** (default, legacy): worker produces three standalone python-pptx option scripts `option_A.py / B / C`.
    - **Pattern B** (M5+, opt-in): worker produces three HTML files `option_A.html / B / C`, then self-checks by rendering each via `scripts/render_html.py` and reading the resulting 1280×720 PNG before declaring done.
@@ -275,7 +275,7 @@ Adjacency (Hardline #3 — no 3+ consecutive same-split) is **soft-enforced at p
 
 Rebuild individual slides with "rebuild slide N with v2" — re-prep the prompt for slide N, dispatch a single agent, finalize, replace the picked option.
 
-### Pattern routing flag — opt-in until M7
+### Pattern routing flag — opt-in until validated
 
 `build_deck.py` accepts a `--pattern` flag that controls which slide-build path the deck uses. The shipped default is `legacy` — the pipeline behaves exactly as before. Pattern B (HTML-spec → translator → native python-pptx) is opt-in until the current pipeline validation completes.
 
@@ -367,7 +367,7 @@ Every session must:
 
 - Use the `sessions/YYYY-MM-DD Topic/` folder structure under the client's project root.
 - Write to `_session/DECISIONS.md` for any session-level decision worth keeping (template choice, scope cut, brand override, etc.).
-- Ensure the client template is registered before any build — `<template-stem>/brand.yml` + `<template-stem>/theme.json` sidecars must exist in the per-template subfolder next to the PPTX (v0.4+ layout). See § "Register a new client template" above for the chat-driven flow.
+- Ensure the client template is registered before any build — `<template-stem>/brand.yml` + `<template-stem>/theme.json` sidecars must exist in the per-template subfolder next to the PPTX (subfolder layout). See § "Register a new client template" above for the chat-driven flow.
 - Output full absolute Windows paths for every artifact, never preview links (so the user can copy without parsing markdown).
 
 Deck artifacts (brief, PPTX outputs, REVIEW.html, picks.json, DECISIONS.md) live in the project / session folder. They never live inside the skill directory.
@@ -392,7 +392,7 @@ variant_seed      = md5(content_hash + slide_n + option_letter)       # picks va
 
 ---
 
-## Open questions deferred to v0.1
+## Open questions
 
 - **Anti-patterns at QC time.** Wire `anti-patterns.md` into slide-qc's vision check, or rely on prompt-time prevention only? v0 picks prompt-time only. Revisit after real builds produce failure data.
 - **Silent mis-pick risk (review-side fatigue).** SKELETON_REJECTED only catches enumeration mismatches and curved-container triggers. For a 20-slide deck with 3–4 silent mis-picks (agent picked a pattern the user wouldn't have), REVIEW.html fatigue ships wrong layouts. Candidate mitigations: surface the agent's top-2 pattern picks + the score gap in REVIEW.html; add a `# CONFIDENCE_LOW` marker when the score gap is narrow; build a regression harness that re-runs the picker against a held-out brief set after every `layouts.md` signals-table change. Decide before pattern #15 ships.

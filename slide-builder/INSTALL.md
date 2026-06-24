@@ -43,7 +43,7 @@ py -3 -c "from playwright.sync_api import sync_playwright; sync_playwright().__e
 
 Expected: `playwright + chromium OK`. If you see `BrowserType.launch: Executable doesn't exist`, re-run the `playwright install chromium` step.
 
-## Step 2 — _(retired)_ Mermaid CLI
+## Step 2 — _(retired)_
 
 Removed (Decision 6, 2026-06-17). The Mermaid fallback path was retired entirely — Pattern B HTML→PNG via Playwright (Step 1.5 above) supersedes Mermaid for curved-container diagrams. If you have a previously-installed `mermaid-cli`, leaving it installed is harmless but no longer required for any Slide Lab path.
 
@@ -122,11 +122,11 @@ Expected: `True`. The four greps prove the installed file is the current worker 
   - `option_A.py` — writes `option_A.py` / `option_B.py` / `option_C.py` (rules out v1-era workers that wrote 4 options or used `sys.argv` paths)
   - `_context.md` — knows to read the per-slide context bundle BEFORE the prompt (Gate C.1, added)
   - `_context_ack.txt` — knows to write the soft-enforcement acknowledgment (Gap 3, added)
-  - `PATTERN: B` — knows the Pattern B branch (HTML output when dispatched with `PATTERN: B`; added M4 2026-06-17). A worker pre-dating this branch silently falls back to python-pptx output even when Pattern B is enabled
+  - `PATTERN: B` — knows the Pattern B branch (HTML output when dispatched with `PATTERN: B`; added). A worker pre-dating this branch silently falls back to python-pptx output even when Pattern B is enabled
 
 **Without this file (or with the wrong content), Stage 2 dispatch silently does nothing** — your build will reach `finalize_deck.py` with zero option scripts and produce nothing useful. A stale worker that passes only the first grep will silently produce builds without context awareness, with yellow ⚠ chips on every slide in REVIEW.html.
 
-## Step 7 — Translator agent (Pattern B Stage-3.5 dispatch, 2026-06-17)
+## Step 7 — Translator agent (Pattern B Stage-3.5 dispatch)
 
 When Pattern B is enabled (`--pattern B` or `settings.json::default_pattern: "auto"|"B"`), Stage 3.5 dispatches **one `slide-builder-translator` agent per picked Pattern B slide**. That subagent converts the picked `option_X.html` to a native `option_X_native.py` with editable text frames. Its definition must exist at:
 

@@ -26,7 +26,7 @@ Placeholders rendered by `build_deck.py`:
 | `{{LIKELY_PRIOR_PATTERNS}}` | Forecasted patterns for slides N-1 and N-2 from the prep-time pattern-hint pass — **context, not constraint**. The agent can override if its brief read differs from the forecast. |
 | `{{LAYOUTS_MD_PATH}}` | Absolute path to `reference/layouts.md` |
 | `{{ANTI_PATTERNS_MD_PATH}}` | Absolute path to `reference/anti-patterns.md` |
-| _(M7, 2026-06-17: `{{FALLBACK_MD_PATH}}` and `{{FALLBACK_EXAMPLES_DIR}}` were retired with the Mermaid fallback. Pattern B HTML→PNG replaces them.)_ | |
+| _( `{{FALLBACK_MD_PATH}}` and `{{FALLBACK_EXAMPLES_DIR}}` were retired with the Mermaid fallback. Pattern B HTML→PNG replaces them.)_ | |
 | `{{SKILL_MD_PATH}}` | Absolute path to `SKILL.md` |
 | `{{HELPERS_MODULE_PATH}}` | Absolute path to `slide-builder/` — the parent directory of `twins/helpers.py`. Goes on `sys.path` so `from twins.helpers import ...` resolves. |
 | `{{PATTERN}}` | Pattern routing for this slide: `B` = HTML output (worker writes `option_X.html`; translator converts to native python-pptx at Stage 3.5), `C` = python-pptx direct (legacy). Defaults to `C` for legacy / unrouted builds so the default path matches previous behavior. |

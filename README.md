@@ -23,7 +23,7 @@ Claude Slide Lab is a collection of Claude Code skills that turn a narrative bri
 |---|---|
 | `storyline-helper` | Coaches your deck narrative — governing thought, audience, per-slide story — before any slides are built |
 | `slide-builder` | Builds a PowerPoint deck from a narrative brief via parallel agent fanout: prep → per-slide workers produce three python-pptx option scripts each → finalize → REVIEW.html → pick → compile. Brand colors + fonts come from your registered client template. |
-| `slide-qc` | Exports every slide to PNG via PowerPoint COM and reviews them with vision — produces a per-slide PASS/WARN/FAIL report before you open the deck |
+| `slide-qc` | Renders every slide to PNG (LibreOffice by default; opt-in PowerPoint COM) and reviews them with vision — produces a per-slide PASS/WARN/FAIL report before you open the deck |
 | `pptx` | General PowerPoint read / edit / create for any `.pptx` task |
 | `docx` | Word document generation — reports, memos, letters with proper formatting |
 | `xlsx` | Spreadsheet creation, editing, and cleaning for any `.xlsx` / `.csv` task |
@@ -155,7 +155,7 @@ After a build completes, run QC before opening the file:
 ```
 /slide-qc
 ```
-Claude exports every slide to PNG, reads them with vision, and gives you a per-slide PASS/WARN/FAIL report. Requires Microsoft PowerPoint to be installed.
+Claude renders every slide to PNG (LibreOffice by default; opt-in PowerPoint COM for pixel-perfect fidelity), reads them with vision, and gives you a per-slide PASS/WARN/FAIL report.
 
 ### Rebuilding a single slide
 ```
