@@ -130,7 +130,7 @@ Proposal brief saved:
 
 ### Step 6 — Hand off to Slide Builder
 
-**Before handing off, confirm the client template is registered.** Slide Builder requires a registered template (sidecar `<stem>.brand.yml` + `<stem>.theme.json` next to the `.pptx`). If the template hasn't been registered this engagement, run the chat-driven flow documented in `slide-builder/SKILL.md` § "Register a new client template" — `register_template.py propose` then `commit`. There is no `--print-theme` step in v0.1; the registration produces the canonical theme + brand sidecars.
+**Before handing off, confirm the client template is registered.** Slide Builder requires a registered template (sidecar `<stem>.brand.yml` + `<stem>.theme.json` next to the `.pptx`). If the template hasn't been registered this engagement, run the chat-driven flow documented in `slide-builder/SKILL.md` § "Register a new client template" — `register_template.py propose` then `commit`. The registration produces the canonical theme + brand sidecars.
 
 **When the user confirms the brief, invoke the `slide-builder` skill using the Skill tool:**
 
