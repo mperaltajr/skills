@@ -22,10 +22,10 @@ Specifically, the smoke:
   P2  Verifies scripts/render_html.py produces a 1280×720 PNG from a stub
       Pattern B HTML file (M3).
   P3  Verifies finalize_deck._classify_option() correctly recognizes a
-      translator-style script header as ``pattern_b_translated`` (M5).
+      translator-style script header as ``sketch_translated`` (M5).
   P4  Verifies finalize_deck._parse_template_fields() extracts the
       __template_fields__ dict from a translator script header (M5).
-  P5  Verifies finalize_deck._check_r4_rules_for_pattern_b() emits the
+  P5  Verifies finalize_deck._check_r4_rules_for_sketch() emits the
       eight R4 rule entries from Spec 6 with the locked severities
       (3 Critical / 4 Major / 1 Advisory) (M6).
   P6  Verifies the synthetic native script executes cleanly to produce a
@@ -210,8 +210,8 @@ def phase_3_classify_and_parse(tmp: Path) -> tuple[Path, Path]:
     report.write_text(json.dumps(TRANSLATION_REPORT), encoding="utf-8")
 
     status, reason = finalize_deck._classify_option(py)
-    _check("classifier returns 'pattern_b_translated' on translator output",
-           status == "pattern_b_translated", f"got {status!r} ({reason})")
+    _check("classifier returns 'sketch_translated' on translator output",
+           status == "sketch_translated", f"got {status!r} ({reason})")
 
     fields = finalize_deck._parse_template_fields(py)
     _check("__template_fields__ has all 4 keys",
@@ -244,9 +244,9 @@ def phase_5_r4_checks(tmp: Path, py_path: Path) -> None:
         raw_archive_path=tmp / "_raw" / "option_A.pptx",
         themed_pptx_path=py_path.with_suffix(".pptx"),
         themed_png_path=py_path.with_suffix(".png"),
-        classification="pattern_b_translated", classification_reason="",
+        classification="sketch_translated", classification_reason="",
     )
-    checks = finalize_deck._check_r4_rules_for_pattern_b(st)
+    checks = finalize_deck._check_r4_rules_for_sketch(st)
     _check("emits exactly 8 R4 checks", len(checks) == 8, f"got {len(checks)}")
 
     # Severity counts per Spec 6: 3 Critical / 4 Major / 1 Advisory
@@ -264,7 +264,7 @@ def phase_5_r4_checks(tmp: Path, py_path: Path) -> None:
 
     # Pattern C / legacy classification returns empty
     st.classification = "native"
-    legacy = finalize_deck._check_r4_rules_for_pattern_b(st)
+    legacy = finalize_deck._check_r4_rules_for_sketch(st)
     _check("Pattern C / legacy classification returns []",
            legacy == [], f"got {legacy!r}")
 

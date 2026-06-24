@@ -18,7 +18,7 @@ Inputs:
 
 Pipeline (unchanged from v1 except step 2's per-option branching):
   1. Discover every <out>/slide_NN/option_X.py and option_X_native.py
-     (the Pattern B translator output added ).
+     (the sketch-path translator output added ).
   2. For each option:
        2a. Classify by filename suffix + sibling-file structure.
        2b. NATIVE                 -> run via subprocess to produce
@@ -111,7 +111,7 @@ SKELETON_REJECTED_TOKEN = "# SKELETON_REJECTED:"
 def _parse_template_fields(py_path: Path) -> dict[str, str]:
     """Extract the ``__template_fields__`` dict from a translator script header.
 
-    Pattern B translator output (Spec 4 §4) carries the chrome text
+    sketch-path translator output (Spec 4 §4) carries the chrome text
     (title/subtitle/footer/page_number) in a structured comment block at the
     top of `option_X_native.py`:
 
@@ -159,13 +159,13 @@ def _classify_option(py_path: Path) -> tuple[str, str]:
 
     Returns (status, reason) where status is one of:
         'native'              -> normal python-pptx execution path (worker output)
-        'pattern_b_translated' -> Pattern B translator output; executes like
+        'sketch_translated' -> sketch-path translator output; executes like
                                    native but the parent flow extracts
                                    __template_fields__ for placeholder population.
         'skeleton_rejected'   -> skip; surface in REVIEW.html
         'missing'             -> file absent or unreadable
 
-    Pattern B translator output is identified structurally: the filename ends
+    sketch-path translator output is identified structurally: the filename ends
     in `_native.py` AND a sibling `option_<letter>_translation_report.json`
     exists alongside it. A `_native.py` script without its sibling report is
     malformed translator output and surfaces as a classification error.
@@ -196,7 +196,7 @@ def _classify_option(py_path: Path) -> tuple[str, str]:
             letter = parts[1]
             report = py_path.parent / f"option_{letter}_translation_report.json"
             if report.exists():
-                return "pattern_b_translated", "translator output (sibling report present)"
+                return "sketch_translated", "translator output (sibling report present)"
             return "missing", (
                 f"{py_path.name} has translator filename suffix but no sibling "
                 f"translation report ({report.name}); skipping classification"
@@ -738,8 +738,8 @@ def _check_editability_structural(pptx_path: Path) -> dict:
     return {"pass": passed, "detail": detail, "counts": counts}
 
 
-def _check_r4_rules_for_pattern_b(st: "OptionStatus") -> list[dict]:
-    """Run R4.1-R4.8 QC checks on a Pattern B translator output.
+def _check_r4_rules_for_sketch(st: "OptionStatus") -> list[dict]:
+    """Run R4.1-R4.8 QC checks on a sketch-path translator output.
 
     Per Spec 6 (_decisions/pattern-b/spec-6-qc-rules-R4.md), Pattern B
     introduces a parallel rule family R4 that operates on the
@@ -760,10 +760,10 @@ def _check_r4_rules_for_pattern_b(st: "OptionStatus") -> list[dict]:
     "warn" = Major surfaceable in REVIEW.html, "info" = Advisory.
 
     Returns an empty list when:
-      - st.classification != "pattern_b_translated" (Pattern C / legacy),
+      - st.classification != "sketch_translated" (direct / legacy),
       - the translator's translation_report.json is missing or malformed.
     """
-    if st.classification != "pattern_b_translated":
+    if st.classification != "sketch_translated":
         return []
 
     # Translation report lives next to the .py file; sibling convention.
@@ -927,7 +927,7 @@ class OptionStatus:
     # v2 additions
     # M7 (Mermaid retirement, 2026-06-17): `fallback_mermaid` is no longer
     # produced by the classifier. `mmd_path` / `mermaid_png_path` removed.
-    classification: str = "native"           # one of: native, pattern_b_translated, skeleton_rejected, missing
+    classification: str = "native"           # one of: native, sketch_translated, skeleton_rejected, missing
     classification_reason: str = ""
     # v1 fields
     built: Optional[bool] = None
@@ -942,7 +942,7 @@ class OptionStatus:
     # in main() after all options are processed.
     dark_collisions: list = field(default_factory=list)
     # M6 (Pattern B QC, 2026-06-17): R4.1-R4.8 check results from
-    # _check_r4_rules_for_pattern_b. Empty for legacy / Pattern C builds;
+    # _check_r4_rules_for_sketch. Empty for legacy / direct builds;
     # populated for Pattern B picks after graft+theme so QC surfaces in
     # REVIEW.html via the .qc.json file.
     r4_checks: list = field(default_factory=list)
@@ -966,7 +966,7 @@ def discover_options(out_dir: Path, expected: Optional[set] = None) -> list:
     """
     statuses: list = []
     found_pairs: set = set()
-    # M5: prefer Pattern B translator output (`option_X_native.py`) when both it
+    # M5: prefer sketch-path translator output (`option_X_native.py`) when both it
     # and a sibling `option_X.py` are present for the same slide+letter.
     # Build a map of which (slide_n, letter) pairs have a translator output so
     # we can skip the worker's `.py` if the translator already converted that
@@ -1009,7 +1009,7 @@ def discover_options(out_dir: Path, expected: Optional[set] = None) -> list:
         ))
         found_pairs.add((slide_n, letter))
 
-    # M5: second pass — Pattern B translator output. Each `option_X_native.py`
+    # M5: second pass — sketch-path translator output. Each `option_X_native.py`
     # gets an OptionStatus whose `py_path` is the translator script. The
     # downstream build_pptx + graft_and_theme paths execute it via the normal
     # native code path; the `__template_fields__` header is parsed for
@@ -1243,7 +1243,7 @@ def build_pptx(st: OptionStatus,
     """v2: branch on classification before invoking the native path.
 
     skeleton_rejected     -> mark not-built; rejection surfaces in REVIEW.html
-    pattern_b_translated  -> Pattern B translator output (M5); runs via the
+    sketch_translated  -> sketch-path translator output (M5); runs via the
                               native path; finalize merges __template_fields__
                               into the placeholder population step.
     native                -> v1's subprocess/runpy execution
@@ -1867,12 +1867,12 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
             try:
                 _is_dark = (slide_variant or "").strip().lower() == "dark"
                 _dark_bg = getattr(theme, "dark_bg_hex", "") or ""
-                # M5: for Pattern B translator output, parse the script's
+                # M5: for sketch-path translator output, parse the script's
                 # __template_fields__ header. Result is {} for Pattern C /
                 # legacy classifications (the parser exits early if the
                 # marker isn't found), so this is safe for every code path.
                 _tf_override = None
-                if st.classification == "pattern_b_translated":
+                if st.classification == "sketch_translated":
                     _tf_override = _parse_template_fields(st.py_path)
                 _apply_body_canonical_finishing(
                     new_slide, prs, layout_chrome, src_slide, st.slide_n,
@@ -1975,7 +1975,7 @@ Template: `{template}`
 
 - Total options: **{total}**
 - Native      : {native_count}
-- Pattern B   : {pattern_b_count}
+- Sketch     : {sketch_count}
 - Rejected    : {rejected_count}
 - Missing     : {missing_count}
 - Built       : **{built_ok} / {total}**
@@ -2012,7 +2012,7 @@ def _mark(ok):
 def _class_short(c: str) -> str:
     return {
         "native": "native",
-        "pattern_b_translated": "pattern_b",
+        "sketch_translated": "sketch",
         "skeleton_rejected": "rejected",
         "missing": "missing",
     }.get(c, c)
@@ -2045,7 +2045,7 @@ def write_result(out_dir: Path, template_path: Path, statuses: list) -> Path:
         template=template_path,
         total=total,
         native_count=sum(1 for s in statuses if s.classification == "native"),
-        pattern_b_count=sum(1 for s in statuses if s.classification == "pattern_b_translated"),
+        sketch_count=sum(1 for s in statuses if s.classification == "sketch_translated"),
         rejected_count=sum(1 for s in statuses if s.classification == "skeleton_rejected"),
         missing_count=sum(1 for s in statuses if s.classification == "missing"),
         built_ok=sum(1 for s in statuses if s.built),
@@ -2234,7 +2234,7 @@ def main() -> int:
 
     statuses = discover_options(args.out, expected=expected_pairs)
     n_native = sum(1 for s in statuses if s.classification == "native")
-    n_pattern_b = sum(1 for s in statuses if s.classification == "pattern_b_translated")
+    n_sketch = sum(1 for s in statuses if s.classification == "sketch_translated")
     n_rejected = sum(1 for s in statuses if s.classification == "skeleton_rejected")
     n_missing = sum(1 for s in statuses if s.classification == "missing")
     if n_missing:
@@ -2275,7 +2275,7 @@ def main() -> int:
               f"under --allow-missing (will be surfaced in RESULT.md / REVIEW.html)")
     print(f"  found {len(statuses)} option scripts across "
           f"{len({s.slide_n for s in statuses})} slides")
-    print(f"  classification: native={n_native}  pattern_b={n_pattern_b}  rejected={n_rejected}")
+    print(f"  classification: native={n_native}  sketch={n_sketch}  rejected={n_rejected}")
     if not statuses:
         print("  nothing to do.")
         write_result(args.out, args.template, statuses)
@@ -2369,7 +2369,7 @@ def main() -> int:
         "major_font": theme.major_font,
         "minor_font": theme.minor_font,
         "font_missing": font_missing,
-        "classification_counts": {"native": n_native, "pattern_b_translated": n_pattern_b, "skeleton_rejected": n_rejected},
+        "classification_counts": {"native": n_native, "sketch_translated": n_sketch, "skeleton_rejected": n_rejected},
     }
     try:
         _p.finalize_meta_json(args.out).write_text(json.dumps(finalize_meta, indent=2), encoding="utf-8")
@@ -2479,7 +2479,7 @@ def main() -> int:
             # checks against the translator's report + script. Merge into the
             # same QC JSON so build_review.py renders them uniformly with
             # R1-R3 results. Pattern C / legacy returns [] and is a no-op.
-            r4 = _check_r4_rules_for_pattern_b(st)
+            r4 = _check_r4_rules_for_sketch(st)
             if r4:
                 st.r4_checks = r4
                 result["checks"] = list(result.get("checks", [])) + r4
@@ -2537,7 +2537,7 @@ def main() -> int:
     print("\n" + "=" * 72)
     print("DONE — Part B complete.")
     print(f"  Native     : {n_native}")
-    print(f"  Pattern B  : {n_pattern_b}")
+    print(f"  Sketch     : {n_sketch}")
     print(f"  Rejected   : {n_rejected}")
     print(f"  Built    : {sum(1 for s in statuses if s.built)} / {len(statuses)}")
     print(f"  Themed   : {sum(1 for s in statuses if s.themed)} / {len(statuses)}")
