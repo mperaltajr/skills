@@ -10,7 +10,7 @@ If a pipeline script exits non-zero, find the exit code below. Each section also
 
 ## Exit-code reference
 
-Tables below were re-derived from each script's actual `sys.exit()` / `return` calls on 2026-05-26 per an earlier audit finding. If you see a code listed in a script's `--help` output that isn't on this table, treat the table as wrong and update it.
+The tables below list the exit codes each script returns. If you see a code in a script's `--help` output that isn't on this table, treat the table as wrong and update it.
 
 ### `build_deck.py`
 
@@ -22,17 +22,17 @@ Tables below were re-derived from each script's actual `sys.exit()` / `return` c
 | 4  | `prompt.md` template missing from the skill | The skill directory is incomplete. Re-clone or re-extract the skill. |
 | 5  | Brief load error (filesystem / encoding) | Check the brief file is readable + UTF-8 encoded. |
 | 6  | Theme generation or validation failed (brand.yml malformed, primary == accent, etc.) | Re-register the template via the chat-driven `propose` → `commit` flow. See SKILL.md § "Register a new client template." |
-| 7  | Stage-1 sanity check failed — `BrandSidecarMissing` / `BrandSidecarStale` / `mmdc` not installed / `mmdc` version mismatch | Re-register the template (BrandSidecar errors) or `npm install -g @mermaid-js/mermaid-cli@11.4.0` (mmdc errors). |
+| 7  | Stage-1 sanity check failed — brand sidecar missing/stale, malformed `brand.yml`, `chrome.yml` missing or unloadable, or the `slide-qc` sibling skill isn't installed | Re-register the template via the chat-driven `propose` → `commit` flow (sidecar/chrome errors), or install the `slide-qc` skill at the expected path (see INSTALL.md Step 5). The error message names which one fired. |
 | 8  | Template confirmation aborted — user answered "n" at the Y/N prompt, or stdin is not a TTY and `--confirm-template` was not passed | Re-run with the correct `--template`, or add `--confirm-template` for scripted/CI runs. |
 | 9  | Layout resolution failed — no per-slide `Layout:` AND no front-matter `default_layout:` AND chrome.yml has zero or multiple body-canonical layouts | Add `default_layout: <name>` to the brief's YAML front-matter (or `Layout:` per slide). See the error message for the list of available layouts. |
-| 10 | Storyline gate marker missing OR brief edited after gate pass | Re-run storyline-helper on the brief to emit `storyline_gate_passed: true` + a fresh `storyline_gate_sha256`. Or add `mode: template-fill` / `mode: rebuild-slice` to the front-matter for legitimate non-narrative flows. |
+| 10 | Storyline gate marker missing — the brief has no `storyline_gate_passed: true` | Re-run storyline-helper on the brief to emit `storyline_gate_passed: true`. Or add `mode: template-fill` / `mode: rebuild-slice` / `mode: rfp` to the front-matter for legitimate non-narrative flows. |
 
 ### `finalize_deck.py`
 
 | Code | Meaning | Fix |
 |---|---|---|
 | 2  | `--out` missing or not a directory, OR `_meta.json` missing under `--out` | Pass the same `--out` you gave `build_deck.py`. If `_meta.json` is missing, run `build_deck.py` first. |
-| 7  | Mermaid theme missing — `_meta.json::mermaid_theme` references a file that doesn't exist | Re-run `build_deck.py` to regenerate the theme. |
+| 7  | Chrome sidecar missing or stale — `chrome.yml` for the template is absent or no longer matches the registered template | Re-register the template via the chat-driven `propose` → `commit` flow to regenerate `chrome.yml`. |
 | 11 | Pre-flight gate — one or more expected `option_X.py` files are absent (interrupted worker) | The error message lists which slides need re-dispatch and prints the `_prompt.md` path for each. Re-dispatch the slide-builder-worker agent for those slides, then re-run `finalize_deck.py`. Override with `--allow-missing` to proceed with gaps (slides surface as `[MISSING]` in RESULT.md). |
 
 ### `compile_picks.py`
@@ -101,9 +101,6 @@ The template's `<stem>/chrome.yml` is missing or has a null required field. Re-r
 ### "ChromeLayoutMissingError"
 A slide in `_meta.json` references a layout name that doesn't exist in `chrome.yml`. Either fix the slide's `Layout:` field in the brief to match a registered layout, OR re-register the template (a recent template edit may have removed/renamed the layout). The error message lists the layout names available in chrome.yml.
 
-### "mmdc not on PATH" / "Mermaid CLI version mismatch"
-`npm install -g @mermaid-js/mermaid-cli@11.4.0`. The pinned version matters — fallback diagram rendering was tested against 11.4.0 specifically.
-
 ### "render_libre failed"
 LibreOffice isn't installed, or `soffice.exe` isn't at the expected Windows path. See INSTALL.md § Step 3.
 
@@ -112,9 +109,6 @@ Either you're running a newer `build_deck.py` against an older output dir, or vi
 
 ### "_meta.json schema validation: ..." (reader-side warning, not a hard error)
 A reader (`finalize_deck`, `compile_picks`, `build_review`, `build_gate_preview`) loaded a `_meta.json` that didn't fully match the pydantic schema. The reader continues with degraded behavior. If the warning persists across re-runs, re-generate `_meta.json` via `build_deck.py`.
-
-### "FALLBACK FAILED: ..."
-A `# FALLBACK_MERMAID:` option script declared a fallback, but the sibling `.mmd` is missing or syntactically broken. Check the per-slide agent's Mermaid spec at `<out>/slide_NN/option_X.mmd`.
 
 ### "PNG too small (XXX bytes; floor 12KB)"
 A rendered option thumbnail is smaller than expected — usually means the LibreOffice render produced a near-blank canvas. Open the corresponding `option_X.pptx` directly in PowerPoint to confirm whether the slide is actually empty. If the slide is intentionally minimal (cover with one line), the floor was lowered to 12KB — but a sub-12KB PNG is almost always a render failure.

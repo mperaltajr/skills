@@ -1526,8 +1526,8 @@ def stage1_sanity_check(template_path: Path) -> int:
             f"  py -3 scripts/register_template.py propose \"{template_path}\"\n"
             "  # parent chat shows the preview PNG, takes picks, writes picks.json\n"
             f"  py -3 scripts/register_template.py commit \"{template_path}\" --picks <picks.json>\n\n"
-            "Auto-picked primary/accent has inverted on every FedEx template historically;\n"
-            "use the chat-driven path so a human can confirm the preview PNG before commit.\n"
+            "Auto-picked primary/accent can invert on some templates; use the chat-driven\n"
+            "path so a human can confirm the preview PNG before commit.\n"
         )
         return 7
     except BrandSidecarStale as exc:

@@ -56,7 +56,8 @@ git clone https://github.com/mperaltajr/skills "$env:USERPROFILE\.claude\skills"
 ```powershell
 pip install -r "$env:USERPROFILE\.claude\skills\requirements.txt"
 ```
-*(Optional — only required if you use a separate HTML-mockup preview workflow outside slide-builder. The standard slide-builder pipeline does not need Chromium; it renders via LibreOffice + python-pptx.)*
+
+**Then install the Chromium browser that slide-builder renders with** — the default build path authors each slide as HTML and renders it to an image via headless Chromium, so this is required:
 ```powershell
 py -3 -m playwright install chromium
 ```
