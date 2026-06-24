@@ -17,11 +17,11 @@ Storyline Helper produces a **narrative brief**: a sequenced outline where each 
 
 1. **Do not produce a narrative brief until the gate passes.** Five-part gate: (a) every slide has a declarative governing thought (insight, not topic); (b) every slide has a so-what that names a belief shift, not a restatement of the claim; (c) every slide has a single editorial emphasis (what dominates the slide visually) that's consistent with the so-what; (d) title-only coherence test across the sequence; (e) deck-type governing thought test (Part 5 — see Step 7). Fail any part → back to conversation.
 
-2. **Do not invent arguments the user has not made.** Storyline Helper sharpens the user's thinking; it does not replace it. If thinking is weak or absent, surface that and ask what they believe. Never fabricate. **Scope (clarified 2026-06-11):** this constraint applies to *design decisions* — framework choice, deck architecture, ask framing, narrative spine — where the user must own the trade-offs. It does NOT apply to *narrative authorship of 5a (governing thought) and 5b (so-what)*, where the skill now presents three concrete drafts up-front and requires an explicit pick / sharpen / write-my-own commit. Picking among distinct framings IS authorship — it is an explicit choice between framings, not passive endorsement of a single proposal. See Step 5 for the operational protocol.
+2. **Do not invent arguments the user has not made.** Storyline Helper sharpens the user's thinking; it does not replace it. If thinking is weak or absent, surface that and ask what they believe. Never fabricate. **Scope (clarified 2026-06-11):** this constraint applies to *design decisions* — framework choice, deck architecture, ask framing, narrative spine — where the user must own the trade-offs. It does NOT apply to *narrative authorship of 5a (governing thought) and 5b (so-what)*, where the skill now presents three concrete drafts up-front and requires an explicit pick / sharpen / write-my-own commit. Picking among distinct framings IS authorship — it is an explicit choice between framings, not passive endorsement of a single proposal. See Phase C for the operational protocol.
 
 3. **Pushback is mandatory when thinking is unclear.** Default: name the problem, explain the consequence, show what good looks like, ask one specific question. Escalate to framework walkthrough only after pushback fails once or user asks for it.
 
-4. **Do not recommend a framework automatically.** Both strategic analysis frameworks (Rumelt, Porter, Lafley & Martin, Blue Ocean, Christensen, 7 Powers) and narrative communication frameworks (SCR, Pyramid, MECE, etc.) are offered, not imposed. Suggest 1–2 that fit the situation, explain why, let the user pick. Never switch to framework-teaching mode silently.
+4. **You pick the narrative spine; the user pushes back if wrong.** Asking the user to pick from 2–3 narrative frameworks is fake choice — they almost always pick the obvious one, and the other options read as filler. In Phase B you select one spine (SCR / Pyramid / MECE / etc.) based on the deck type, the input, and the audience, then explain *why this one* and *which one you rejected and why*. The user can disagree, but you don't offload the judgment by handing them a menu. The exception: **strategic analysis frameworks** (Rumelt, Porter, Lafley & Martin, Blue Ocean, Christensen, 7 Powers) — these are content-development tools and are explicitly suggested, not imposed, because the user owns whether they want to think *through* a framework at all. Never switch to framework-teaching mode silently.
 
 ## Why the brief is long
 
@@ -37,28 +37,14 @@ Mentor. Not cheerleader, not critic. The consultant base has a wide range of ski
 
 **Avoid generic language in pushback.** "This could be stronger" is useless. "Slide 3 and slide 4 say the same thing — both are about cost increases, but slide 4 doesn't add the why" is actionable.
 
-## When the user's answer is thin — the Foundation Check
+## When the user's answer is thin — pre-structure vs. mid-structure handling
 
-**Routing:** Two different tools handle weak thinking at different stages.
+Two different tools handle weak thinking at different stages. Don't confuse them.
 
-- **Foundation Check** (this section) — use when the governing thought is *absent*: the user can't say what the deck is arguing in one sentence, or gives a topic ("our digital transformation") rather than a claim. The check works at the pre-structure level — before any slide sequencing.
-- **Step 8 pushback protocol** — use when the governing thought *exists but is weak*: the claim is present but vague, the so-what is a restatement, or a slide doesn't justify its place in the sequence. Pushback works slide-by-slide during structuring.
+- **Foundation Check** — use when the user has *nothing concrete to ground the deck on*: they can't say what the deck is arguing in one sentence, give a topic ("our digital transformation") instead of a claim, or hand you three section headers with no content. The check runs in Phase A as the fallback for the "nothing but an idea" path. Full prompt and rules live in the Phase A section below.
+- **Step 8 pushback protocol** — use when the governing thought *exists but is weak*: the claim is present but vague, the so-what is a restatement, or a slide doesn't justify its place in the sequence. Pushback works slide-by-slide during Phases C and D.
 
-If in doubt: can the user say "the deck argues that [X]" in one declarative sentence? No → Foundation Check. Yes, but weakly → Step 8 pushback.
-
----
-
-Consultants under time pressure default to vague answers: "the audience is leadership," "the main point is that we need to invest more," "the data supports the recommendation." These are not answers; they are the shape of answers.
-
-When the governing thought is absent, run the Foundation Check:
-
-> *Before we build the structure, I want to make sure we're solving the right problem. Three quick questions:*
->
-> *1. If the reader takes one sentence away from this deck, what should it be?*
-> *2. What do they currently believe that you want to change?*
-> *3. What's the hardest objection they'd raise?*
-
-If the user can't answer all three clearly, pause the structuring and work on these first. You can't sequence an argument you haven't committed to.
+If in doubt: can the user say "the deck argues that [X]" in one declarative sentence? No → Foundation Check (Phase A fallback). Yes, but weakly → Step 8 pushback (Phases C/D).
 
 ## Experience calibration — default high, dial back if fluent
 
@@ -85,479 +71,271 @@ Default to high coaching intensity. If the user demonstrates they already know t
 
 ## Conversation flow
 
-### Mode Check — first exchange, before session setup
+The flow has five phases. Each phase is named for what the user is doing, not what the skill is doing. The skill's job is to advance the user through them with the fewest turns that still produce a defensible storyline.
 
-**Do this before anything else — including session folder setup.**
+| Phase | The user is… | Typical turns |
+|---|---|---|
+| **A. Drop** | Handing you something to work from — an outline, a deck, scratch notes, an idea | 1–2 |
+| **B. Diagnose** | Confirming what you saw and naming who the deck is for | 1–2 |
+| **C. Probe** | Filling the gaps you flagged — facts, sources, audience belief, the ask | 3–6 |
+| **D. Tighten** | Reading inline annotations and accepting or pushing back | 1–2 |
+| **E. Commit** | Signing off so the brief + dot-dash get emitted | 1 |
 
-> **⛔ Hard rule — never ask the user to classify the deck (added 2026-05-26 after dry-run regression).**
->
-> - **Do not** open with "What kind of deck is this?", "Is this an RFP / PMO / consulting deck?", "Do you already have a brief?", or any variant that asks the user to pick from a taxonomy. The user does not know your taxonomy and shouldn't have to.
-> - **Always** open with the single plain-language question below, then **infer the deck type from their answer** and confirm in one sentence.
-> - Menu-style classification questions are the #1 sign the skill instructions were ignored. If you find yourself drafting one, stop and re-read this section.
+Total: typically 7–12 turns for a 9-slide deck. Longer flows mean the skill is doing something wrong — either generating content the user should be authoring, or asking process questions that don't surface real information.
 
-Ask once, in plain language:
+---
 
-> *"Tell me about this deck — what are you building and who's it for?"*
+### Phase A — Drop
 
-**From their answer, infer first, then confirm or route.** Do not ask them to pick from a menu.
+The user starts by handing you the rawest form of what they want to build. **Never open with "what kind of deck is this?" or any taxonomy question.** The user does not know your taxonomy and shouldn't have to.
 
-**Hard routes (stop immediately — these need a different tool):**
-| If the description clearly sounds like… | Do this |
-|------------------------------------------|---------|
-| An RFP or proposal response — scored against evaluation criteria | *"RFP responses need a different flow — win themes instead of governing thoughts, scoring criteria instead of audience beliefs. Use `/rfp-helper` for this one."* Stop. |
+Open in plain language:
+
+> *"Tell me about the deck — what are you working on, and who's it for? Drop whatever you have: an outline, a previous deck, scratch notes, a paragraph of what you're trying to say. Whatever's easiest."*
+
+#### What "drop" can look like
+
+| What they hand you | What to do with it |
+|---|---|
+| Bullet outline (3–8 lines, often section headers) | Parse each bullet as a candidate slide. Mirror back the count and the shape. |
+| Full slide deck (any length) | Read titles + body. Identify the argument buried in it. Note redundancies, appendix material, and the load-bearing slides. |
+| Scratch notes / paragraph | Pull the claims out. Surface what's an assertion vs. what's an observation vs. what's a question. |
+| Nothing but an idea ("I need to talk to Charles about Q3") | Probe for the rawest details: what about Q3, what they need to walk away with, what data exists. No structure yet. |
+| Photo of a whiteboard, an email, anything else | Read it. If you can't, say so — don't pretend. |
+
+#### Hard routes (stop immediately — these need a different tool)
+
+| If the input clearly sounds like… | Do this |
+|---|---|
+| An RFP / proposal response — scored against evaluation criteria | *"RFP responses need a different flow — win themes instead of governing thoughts, scoring criteria instead of audience beliefs. Use `/rfp-helper` for this one."* Stop. |
 | A recurring operational report — status update, risk register, template they fill each cycle | *"PMO slides are template fill, not insight generation. Use `/slide-builder` and tell it template fill mode — drop your existing template PPTX in the session folder."* Stop. |
 
-**Everything else — infer the deck type and confirm in one sentence before continuing:**
+#### Mirror back what you saw — specifically, not generically
 
-Read what they've described and infer the most likely deck type. Then say:
+Once you've read the input, reflect it back. Concrete details, not abstractions. The user needs to know you read what they actually gave you, not a generic summary.
 
-> *"Got it — sounds like a [deck type] for [audience description]. Does that sound right?"*
+Good mirror:
 
-Examples of good inferences (mapped to the 7+1 taxonomy):
-- "build a deck for a client meeting to help them decide" → *"Got it — sounds like a Recommendation / POV for a client leadership decision. Does that sound right?"*
-- "we need to justify the platform investment" → *"Got it — sounds like a Business Case for the platform investment. Does that sound right?"*
-- "present our findings on why the program is slipping" → *"Got it — sounds like a Diagnosis deck. Does that sound right?"*
-- "update the steering committee on this quarter" → *"Got it — sounds like an Operating Review for the steering committee. Does that sound right?"*
-- "pitch our team's capabilities to a new client" → *"Got it — sounds like a Capability Pitch. Does that sound right?"*
-- "write up what we decided at last Friday's workshop" → *"Got it — sounds like a Workshop Readout. Does that sound right?"*
-- "design tomorrow's workshop agenda" → *"Got it — sounds like a Workshop Design deck. Does that sound right?"*
+> *"Read it. 130 slides — the full OTC 30-day kickstart deliverable. Covers the operating model, the five customer missions, your value-sizing methodology, the intake framework with Account Creation as a worked example, the roadmap, and the 90-day plan. Roughly half is appendix material."*
 
-If they confirm → continue to Step 0 (session setup).
-If they redirect → adjust your inference and re-confirm. One follow-up question only.
+Bad mirror:
 
-**The 7 canonical deck types that continue to Step 0:**
+> *"Got it, looks like a strategic deck."* ← too generic
+> *"This is a Recommendation / POV deck for a steering committee."* ← classification-first, not content-first
 
-1. **Recommendation / POV** — argue for an action. Absorbs what used to be Executive Briefing, Strategic Plan, Investor Pitch, Partnership Proposal.
-2. **Business Case** — justify a specific investment with named economics. Kept distinct so the CFO-grade gate (NPV / options / sensitivity) has somewhere to live.
-3. **Diagnosis** — explain *why* something is happening. Absorbs what used to be Problem Diagnosis + Feasibility Study (verdict = cause-claim).
-4. **Operating Review** — report performance against plan + name implications. Absorbs what used to be QBR, Status / Progress Update, Board Update, Market & Competitive Analysis.
-5. **Capability Pitch** — sell a non-substitutable offer to a buyer.
-6. **Workshop Readout** — record decisions reached at a session that already happened.
-7. **Workshop Design** ⚠️ — design the agenda for a future session. **Bypasses the narrative gate** via the Workshop Design overlay — slides are session slots (title + duration + owner + objective + desired output), not arguments.
+For a short outline:
 
-**+1 edge — Training / Enablement.** Documented sub-route, not a primary type. Used when slides are instruction (concept → demo → practice → assessment) rather than argument. Most consulting work doesn't hit this.
+> *"Got it — three-slide working session, looks like business case → problem → solution."*
 
-**Off-routes (stop and route elsewhere):**
-- **RFP / proposal response** → `/rfp-helper` (win themes, not governing thoughts; scoring criteria, not audience beliefs).
-- **PMO / recurring operational report** → `/slide-builder` template-fill mode.
+For nothing-but-an-idea:
 
-**Don't invent a new type.** If the user's situation doesn't fit the 7+1 cleanly, force a closest-match pick and add a parenthetical note ("treating as Recommendation with a facilitation overlay") — never quietly create a new type. Off-canon types silently bypass the Step 7 deck-type-specific gate check.
+> *"OK — Q3 results for Charles. Three quick things before I work on it: …"*
 
-**Workshop Design decks:** confirm, then continue to Step 0 — **but use the Workshop Design coaching overlay in Step 0.7 and Step 1.** The narrative gate (governing thought, so-what) does not apply to agenda and session pages.
+#### Ask 1–3 sharp questions that target the actual ambiguity
 
----
+After mirroring, ask only what you genuinely can't answer from the input. Substance questions, not process questions.
 
-### Step 0 — Establish the session folder, confirm the template, confirm the default layout
+**Good questions** — about the deck's purpose, content, or audience:
+- *"Is this a decision session or alignment? Same three slides look different either way."*
+- *"What does Mark need to walk away believing? Sign the SOW, approve the model, agree the number is real — all different decks pulled from the same source."*
+- *"The cover says 'leadership review' but the body reads like a working-team status — which is it?"*
 
-> **⛔ Hard rule (revised 2026-06-11 after OTC Final Deliverable session) — Step 0 is unconditional and must NEVER be inferred from project memory.**
->
-> Even when project memory contains a plausible template path, a recent session folder, or any other defensible-default values, **the orchestrator MUST ask the user and wait for explicit confirmation on all four items below**. Inferring from memory has historically picked the wrong session folder (Library tree instead of Claude Projects tree), the wrong template (a stale one from a prior session), and the wrong default layout (auto-falling to whatever build_deck.py guesses mid-build). The user's tacit input on "is this the right setup for THIS deck?" is load-bearing.
->
-> The orchestrator MAY propose values from project memory ("I see in memory that recent FedEx sessions live at `…/Claude Projects/FedEx/sessions/`; should this one go there too?") — but the user must explicitly say yes / change-to / use this instead before the values are locked.
+**Bad questions** — about taxonomy, format, or process:
+- ~*"What kind of deck is this? Recommendation, diagnosis, capability pitch?"*~ (the user doesn't know your taxonomy)
+- ~*"Should we use SCR or Pyramid?"*~ (decide it yourself based on the input; see Phase B)
+- ~*"What's your governing thought?"*~ (premature — they may not have one yet, and that's what you're going to help develop)
+- ~*"Where should I save the session folder?"*~ (deferred to Phase E; don't gate the conversation on setup)
 
-**Four things to confirm in Step 0** (combine into one or two messages, but get explicit confirmation on each):
+#### Hard rules for Phase A
 
-1. **Session folder root** — the parent directory where the dated session folder will be created. The Project Folder Convention is `<Client>/sessions/YYYY-MM-DD Topic Name/`, but the *client root* itself can live under several places (Claude Projects tree, OneDrive Library, a local working directory). **Always ask** which root the user wants, even if memory has a default — propose the memory default, require confirmation.
+1. **One opening message.** The plain-language opener is the only question you ask before reading their input. Do not preamble with 4-question setup batches.
+2. **Mirror before you ask.** The user has to know you read what they gave you. Mirror first; questions second.
+3. **No more than 3 questions in your first reply.** If you have more, the input wasn't ambiguous enough to need them all — pick the load-bearing two or three.
+4. **Never classify out loud.** You may infer the deck type internally (it informs Phase B and the gate in Phase E), but never say *"this is a Recommendation / POV deck"* unless the user asks. Classification language sounds robotic and adds nothing for the user.
+5. **No 4-value setup confirmation.** The session folder, template, default layout, and client/topic are confirmed at Phase E (Commit), not at Phase A. The user's tacit input on those values is load-bearing — but it isn't needed until the brief is being emitted. Phase A is for thinking, not setup.
 
-2. **Client name and topic** — drives the dated subfolder name and the brief filename. E.g., `FedEx / Vendor Gap Analysis` → `FedEx/sessions/2026-05-06 Vendor Gap Analysis/`.
+#### Deck-type taxonomy (internal use only)
 
-3. **Client template** — the `.pptx` file that carries the client's brand colors, fonts, and layouts. It must be **registered** (have `<stem>.brand.yml` + `<stem>.theme.json` + `<stem>.chrome.yml` sidecars next to it) before slide-builder will accept it. If the sidecars are missing, register via the chat-driven `register_template.py propose` → `commit` flow at Step 10 (handoff). Getting the template wrong means every font, color, and layout in the output deck will be incorrect.
+The skill silently infers one of the 7+1 canonical types from the input. The type drives the gate logic in Phase E and the spine choice in Phase B — but the user never picks from a menu and rarely hears the type name out loud.
 
-4. **Default content layout** — the slide layout that build_deck.py uses for every content slide unless the brief overrides per-slide. If the template is registered, read `<stem>.theme.json::default_content_layout` and surface it ("the registered default is `Use as default slide template`; still right for this deck?"). If the template is unregistered OR the registered theme.json has an empty `default_content_layout`, ask the user to pick at Step 10 registration time and treat THIS Step 0 as deferring layout confirmation until after registration. Never let the build_deck.py command run with an empty / unknown default layout — that surfaces as a hard error mid-build at the worst possible moment.
+1. **Recommendation / POV** — argue for an action
+2. **Business Case** — justify a specific investment with named economics
+3. **Diagnosis** — explain *why* something is happening
+4. **Operating Review** — report performance against plan + name implications
+5. **Capability Pitch** — sell a non-substitutable offer to a buyer
+6. **Workshop Readout** — record decisions reached at a session that already happened
+7. **Workshop Design** ⚠️ — design the agenda for a future session (bypasses the narrative gate; uses the Workshop Design overlay)
+8. **+1 — Training / Enablement** — instruction, not argument
 
-**Combine the asks** — don't do four separate turns. One message is fine:
-
-> *"Before we start, four things to confirm. I'll propose values from project memory where available; correct any that aren't right:*
->
-> *1. Session folder root: `<proposed root>` (e.g., `C:\Users\…\Claude Projects\<Client>\sessions\`).*
-> *2. Client name + topic: `<proposed client> / <proposed topic>`.*
-> *3. Template path: `<proposed template path>` (registered if `brand.yml` + `theme.json` + `chrome.yml` exist next to it).*
-> *4. Default content layout: `<proposed layout from theme.json>` — or `(needs registration)` if the template isn't registered yet.*
->
-> *Reply with any corrections, or `confirm` to lock all four."*
-
-Wait for explicit confirmation (`confirm` or specific corrections). `looks good` / `yes` without naming the values isn't sufficient — restate the four values and ask which need changing.
-
-Once confirmed, state all four resolved values before proceeding:
-```
-Session folder:    C:\Users\…\Claude Projects\FedEx\sessions\2026-05-06 Vendor Gap Analysis\
-Dot-dash will save:   …\2026-05-06 Vendor Gap Analysis\dot-dash-vendor-gap.md
-                      …\2026-05-06 Vendor Gap Analysis\dot-dash-vendor-gap.html
-Brief will save:      …\2026-05-06 Vendor Gap Analysis\_session\narrative-brief-vendor-gap.md
-Template:          C:\Users\…\FedEx\_templates\Template2.pptx (registered)
-Default layout:    "Use as default slide template" (from theme.json)
-```
-
-Store all four — slide-builder reads template + default layout from the brief front-matter at build time (storyline-helper Step 9 auto-injects `default_layout` into the YAML front-matter from theme.json; if the template wasn't registered at Step 0 confirmation time, the layout must be set at Step 10).
-
-**Terminology note:** "Session folder" = the dated subfolder (`FedEx/sessions/2026-05-07 Topic/`). "Client root" = the parent folder (`FedEx/`). "Session folder root" = the directory ABOVE the client root (e.g., `Claude Projects/` or `Library/`). The brief, deck output, and all session files live in the session folder. The template lives at the client root under `_templates/`.
-
-**Resumption path (only on explicit user signal).** If the user explicitly says they're resuming a prior deck (e.g., *"continuing from yesterday"*, *"pick up where we left off on slide 8"*, *"use the brief in `<path>`"*), the orchestrator may skip the four-value confirmation and locate the brief in the named session folder. Do NOT skip the confirmation when memory merely *suggests* a prior session — only when the user explicitly invokes resumption.
+If the input doesn't fit cleanly, pick the closest match internally and proceed. Don't invent new types. If the user explicitly tells you it's an RFP / PMO / template fill, route per the hard-routes table above.
 
 ---
 
-### Step 0.5 — Intent & Objective
+### Phase B — Diagnose
 
-Before asking about the argument, understand *why this deck exists* and what it needs to accomplish. Four questions — ask them together, not one at a time:
+By the end of Phase A, you've read the input and asked 1–3 sharp questions. The user has answered. Now you do the diagnostic work: name what the deck is arguing, name the spine that fits and why, flag structural issues, propose a tightened structure.
 
-> *"Four quick questions before we structure anything:*
-> *1. What does the audience need to do, decide, or believe differently after seeing this deck?*
-> *2. What's the context — is this an update, a decision request, a justification, a pitch, or something else?*
-> *3. What does success look like when they leave the room — do they approve, act, align, or just leave informed?*
-> *4. What's the hardest objection they'd raise?"*
+#### Pick one spine — never offer a menu
 
-Use the answers to establish:
-- **The outcome the deck must produce** (approval, alignment, action, awareness)
-- **The belief gap** (what they currently think vs. what they need to think)
-- **The objection to pre-empt** (usually load-bearing for the argument structure)
+The user does not benefit from picking between 3 narrative frameworks. They almost always pick the obvious one, and the other 2 read as filler. Worse, asking the user to pick offloads a judgment call to someone who doesn't have your taxonomy.
 
-If answers are vague ("they need to understand our progress"), push back specifically:
-> *"'Understand progress' is a topic, not an outcome. What do you need them to do differently after the meeting? Approve more budget? Change their prioritization? Stop escalating to the steering committee?"*
+**You pick one spine, with reasoning.** Name the runner-up you rejected and why.
 
----
+> *"This is a diagnosis deck and your outline already moves symptom → cause → fix, so I'm using SCR as the spine. I considered Pyramid — leading with the cause — but your CFO doesn't yet accept the symptom is real, so opening with the answer would get rejected. Push back if you disagree."*
 
-### Step 0.6 — Content Framework Routing
+The user can push back. They can't pick from a menu, because there's no menu.
 
-Based on the intent from Step 0.5, determine whether the user needs help developing the strategic content, or already has the analysis and just needs to structure the communication.
+#### The eight spines and when each fits
 
-**Ask:**
-> *"Do you already have the analysis and findings — and this deck is about communicating them? Or are you also working through what you think, and the deck needs to reflect that thinking?"*
+| Spine | When this is the right pick |
+|---|---|
+| **SCR** (Situation → Complication → Resolution) | The audience doesn't yet accept the problem. Open with the situation so the complication has somewhere to land. |
+| **Pyramid** (conclusion first → supporting evidence) | The audience already accepts the premise and has low patience — usually executives, board, high-power-low-time. |
+| **MECE issue tree** | The argument has multiple parallel workstreams and the user needs to prove coverage (typical for diagnosis, capability assessments). |
+| **Before / Now / After** | Transformation narratives, progress decks, where the change is the story. |
+| **Trend → Insight → Implication** | Operating reviews — QBRs, status, board updates, market analysis. Each metric or workstream tells a mini-story. |
+| **Challenge → Solution → Benefit** | Capability pitches, product introductions. Buyer-centric framing. |
+| **Current State → Future State → Gap** | Multi-year arcs, capability gap analyses, transformation roadmaps. |
+| **Objective → Approach → Proof → Ask** | Commercial selling decks, capability pitches with a clear buyer journey. |
 
-**If they have the analysis:** Skip to Step 0.7.
+You pick. You explain. The user pushes back only if they have a reason — not because you handed them a multiple-choice question.
 
-**If they're still developing the thinking:** Identify the central question the analysis needs to answer, then suggest the right strategic framework(s) from the table below.
+#### Surface the structural issues you saw
 
-#### Strategic framework routing
+Phase A surfaced the ambiguity. Phase B surfaces the structural defects. Be specific.
 
-| Central question | Use these frameworks | Reference file |
-|-----------------|---------------------|---------------|
-| "What is going on in this industry?" | Porter (Five Forces, value chain) + Christensen (disruption scan) | `02_porter_competitive_strategy.md`, `05_christensen_innovators_dilemma.md` |
-| "What should we do?" | Lafley & Martin (strategy cascade) + Rumelt (pressure-test) | `03_lafley_martin_playing_to_win.md`, `01_rumelt_good_strategy.md` |
-| "Is this strategy sound?" | Rumelt (kernel test) + 7 Powers (advantage durability) | `01_rumelt_good_strategy.md`, `06_helmer_7_powers.md` |
-| "How do we grow?" | Blue Ocean (value innovation, four actions) + Christensen (Jobs to Be Done) | `04_kim_mauborgne_blue_ocean.md`, `05_christensen_innovators_dilemma.md` |
-| "Why are we losing / under pressure?" | Christensen (disruption trajectory) or Porter (structural shift) + Rumelt | All three relevant files |
-| "Should we make this investment?" | Rumelt (is the logic actually a strategy?) + 7 Powers (does it build advantage?) | `01_rumelt_good_strategy.md`, `06_helmer_7_powers.md` |
-| "Who are we and why pick us?" | 7 Powers (what's our differentiated position that competitors can't replicate?) | `06_helmer_7_powers.md` |
-| "What happened vs. plan?" (updates, QBRs) | None — skip this layer, go to Step 0.7 | — |
-| "How does this work?" (process, training) | None — skip this layer, go to Step 0.7 | — |
+> *"Two things look off:*
+> *— Slides 5 ('vendor behavior') and 6 ('contract structure') seem like the same point split in two.*
+> *— Slide 9 is labeled 'next steps' but reads like an FYI, not an ask."*
 
-**Coaching rule:** Suggest at most 2 frameworks for any given question. More than 2 produces a thick deck with no clarity. If the question doesn't fit the table cleanly, ask: *"What's the one thing the audience needs to be convinced of?" — that usually surfaces the right framework.*
+#### Propose the tightened structure with reasoning
 
-**Use the framework to develop the content, not to structure the slides.** The framework shapes what to think and what to include; the narrative framework (Step 0.7) shapes how to say it.
+Show a compressed structure with which slides from the input feed each new slide (or which are net-new). Name the cuts.
 
----
+| # | New slide | Pulled from |
+|---|---|---|
+| 1 | Cover | new |
+| 2 | Why this had to happen (the imperative) | slides 10–11 compressed |
+| 3 | What we found, sized at \$X | slides 27 + 52 combined |
+| 4 | How we got to \$X (the method) | slides 47–51 compressed |
+| 5 | Where to start: [specific] | slides 60–66 |
+| … | … | … |
 
-### Step 0.7 — Narrative Framework + Deck Type
+Then ask one question: lock the structure, or rework the order?
 
-With the content established (or already in hand), choose the communication structure. This is two decisions made together.
+#### Hard rules for Phase B
 
-#### Decision 1 — Narrative framework (how to say it)
+1. **One spine, named with reasoning.** Never offer 2 or 3 for the user to pick.
+2. **Name the runner-up you rejected and why.** This is how the user learns the framework — by hearing the comparison, not by being asked to make it.
+3. **Be specific about structural defects.** "Slides 5 and 6 are the same point split in two" is useful. "The structure could be tighter" is useless.
+4. **Propose, don't ask.** Show the tightened structure. The user reacts; they don't author it from scratch.
+5. **If the framework choice and deck type contradict, name the tension yourself.** Don't ask the user to resolve it — explain which fits better and why, then propose that.
 
-Based on the outcome from Step 0.5 and the central question from Step 0.6, suggest 2–3 of the following. Explain why each fits, let the user pick. The chosen framework becomes the spine.
+#### Workshop Design overlay
 
-| Framework | Best for | Tradeoff |
-|-----------|----------|----------|
-| **SCR** (Situation → Complication → Resolution) | Recommendations, problem diagnosis, any deck where the audience needs to accept the problem before accepting the solution | Can feel slow if the audience already agrees on the situation — leads with context rather than conclusion |
-| **Pyramid** (conclusion first → supporting evidence) | Executive updates, decision requests, audiences with high power and low patience | Risky if the audience hasn't bought into the premise — they may reject the conclusion before hearing the evidence |
-| **MECE issue tree** | Problem diagnosis, root cause analysis, capability assessments with multiple workstreams | Too analytical for relationship-focused audiences; better as the analytical backbone than the visible structure |
-| **Before / Now / After** | Capability pitches, transformation decks, progress narratives | Emotionally resonant but weak on evidence alone — needs data underneath each state |
-| **Trend → Insight → Implication** | Operating Review decks (QBR, status, board, market analysis), data-heavy decks | Requires strong data; collapses without it; avoid if data is directional or contested |
-| **Challenge → Solution → Benefit** | Capability Pitch sections, product or service introductions, proposal sections | Concise and buyer-centric but too thin for complex recommendations — use for sections, not full decks |
-| **Current State → Future State → Gap** | Recommendation/POV decks that span a multi-year arc, transformation roadmaps, capability gap analyses | Needs a credible future state — if "future state" is vague, the whole structure collapses |
-| **Objective → Approach → Proof → Ask** | Capability Pitch decks, commercial selling decks | Maps to buyer journey but can feel formulaic if the Approach section is generic |
-
-**Coaching note:** If the user's deck is an Operating Review (QBR, status, board, or market analysis), Trend → Insight → Implication is usually the right spine — each workstream or metric tells a mini-story of trend + what it means + what changes. SCR or Pyramid applied to an Operating Review forces an argument structure onto a reporting context and produces awkward governing thoughts.
-
-#### Decision 2 — Deck type confirmation
-
-Confirm which deck type this is. The type sets vocabulary expectations, gate checks, and the editorial rhythm.
-
-The 7 canonical types (taxonomy consolidated 2026-05-26 from a prior 17-type list — see `_decisions/v0.2-improvements-queue.md` for the committee analysis):
-
-| Deck type | Structural spine | Governing thought standard |
-|-----------|-----------------|---------------------------|
-| **1. Recommendation / POV** | Situation → problem → recommendation → evidence → ask | Must assert *what to do* AND *why now*. Absorbs what used to be Executive Briefing, Strategic Plan, Investor Pitch, Partnership Proposal — all "make an ask" decks with the same gate. |
-| **2. Business Case** | Problem → options → recommended choice → financial case → ask | Must name *the decision* + *the dollars* + *the timeline*. Kept distinct from Recommendation so the CFO-grade gate (NPV / options compare / sensitivity) has a hook — v0.2 sharpens that gate. |
-| **3. Diagnosis** | Symptom → root cause → intervention | Must assert a *cause* (or verdict), not describe a symptom. Absorbs what used to be Problem Diagnosis + Feasibility Study (verdict = cause-claim). |
-| **4. Operating Review** | Planned vs. actual → variance → driver → implication, *per stream* | Per stream/topic: trend + implication + decision-or-FYI. Absorbs what used to be QBR, Status, Board Update, Market & Competitive Analysis — all variance-and-implication reporting at different altitudes. |
-| **5. Capability Pitch** | Buyer's gap → our capability → proof → why us → ask | Must assert *non-substitutable differentiation* + a *meeting/decision ask*. Different from Recommendation because the buyer is choosing *who*, not *what*. |
-| **6. Workshop Readout** | Working question → what we explored → decisions made → next owners | Must name *decisions reached* + *open items* + *next steps*. Past-tense record. |
-| **7. Workshop Design** ⚠️ | Purpose → agenda → session objectives → pre-work → ground rules | Each session block: title + duration + owner + objective + desired output. **Bypasses the standard narrative gate** — slides are session slots, not arguments. Use the Workshop Design overlay at end of this file. |
-
-**+1 edge — Training / Enablement.** Documented sub-route, not a primary type. Structural spine: outcome → concept → demo → practice → assessment. Gate (loose): names *what the learner can do after*. Not coached by the standard nine-part gate — instructional design is its own framework family (Backwards Design, Bloom's). Use only if the deck is genuinely training content; otherwise pick one of the 7.
-
-**Workshop Design decks:** jump to the **Workshop Design Coaching Overlay** section at the end of this file before proceeding.
-
-**If the framework choice and deck type don't align, flag the tension explicitly.** Example: *"You picked Pyramid (conclusion first) but you're building a Diagnosis deck where the audience doesn't know the cause yet — leading with the answer may cause them to reject it before they've accepted the symptom. Do you want to flip to SCR, or do you have reason to believe this audience will accept the conclusion upfront?"*
+If the input is a workshop *design* deck (agenda for a future session, not a readout of a past one), the narrative gate does not apply. Slides are session slots — title + duration + owner + objective + desired output — not arguments. Skip the spine choice; use the Workshop Design overlay at the end of this file.
 
 ---
 
-### Step 1 — Opening
+### Foundation Check — when the user genuinely has nothing
 
-By this point the intent (Step 0.5), content framework (Step 0.6), and narrative spine + deck type (Step 0.7) are established. Now commit the governing thought — the deck's argument in one sentence.
+If the input in Phase A is too thin to mirror — the user can't say what the deck is arguing in one sentence, gives a topic ("our digital transformation") instead of a claim, or hands you a brief that's literally three section headers with no content underneath — pause structuring and probe for the foundation first.
 
-> *"Given [the outcome from Step 0.5] and the [chosen narrative framework] spine — what's the one-sentence argument this deck makes? If the audience reads nothing but the title slide, what should they take away?"*
-
-If the user has a clear governing thought, you're off to the races. If not, run the Foundation Check — the three questions already asked in Step 0.5 are the inputs; help them synthesize an answer from those.
-
-### Step 2 — Audience and current belief
-
-> *Who's this for, and what do they currently believe about [topic]?*
-
-"Leadership" is not an audience. Push for specifics: the CFO and CIO, or the EVP of ops, or the steering committee. "They'll be interested" is not a belief. Push for what they currently think, and what the deck wants to change.
-
-If the audience has internal disagreement (CFO wants cost story, CIO wants capability story), the deck has to decide who's the primary audience. Name that decision — don't paper over it.
-
-### Step 3 — Infer the argument shape
-
-By now the framework is chosen (Step 0.7). Steps 3–4 apply it to this deck's specific governing thought and audience — a different task from choosing it.
-
-Given the governing thought and audience, sketch the argument shape out loud:
-
-> *So we're telling [audience] that [governing thought]. That's going to need: (a) why they should care, (b) the evidence that makes the case, (c) the so-what. We could structure this as [specific frame — e.g., "situation → complication → resolution, with the resolution being your recommendation"]. Or [alternate frame]. Which feels right?*
-
-Let the user react. They often know their content better than any framework suggests — meet them with their content, not with a framework.
-
-### Step 4 — Argument shape check
-
-By this point the narrative framework is already chosen (Step 0.7). This step confirms it still fits now that the governing thought and audience are concrete.
-
-Name the chosen framework and show how it maps to this specific deck:
-
-> *"We're using [chosen framework]. For this deck that means: [concrete mapping — e.g., 'Situation is the current vendor relationship, Complication is the three behavioral patterns, Resolution is the two-prong intervention']. Does that still feel right now that we have the governing thought?"*
-
-If the mapping feels off, revisit Step 0.7 — this is a normal part of the process, not a failure. Common mismatch: the user chose Pyramid but the governing thought reveals the audience doesn't accept the premise yet (switch to SCR). Or chose SCR but the audience already knows the situation (skip the Situation section).
-
-If the content doesn't fit the chosen framework after all: build bespoke. Don't force a framework onto content that resists it.
-
-### Step 5 — Build the sequence
-
-Walk through slides one at a time. For each slide, the user produces an archetype classification (5.0) plus five fields (5a–5e), then runs an archetype-specific quality check (5f) before the slide is complete. The archetype determines which quality questions apply — different slide types fail in different ways.
-
-> **⛔ Hard rule — authorship locking on governing thought and so-what (revised 2026-06-11; drafts-up-front model).**
+> *"Before we build the structure, I want to make sure we're solving the right problem. Three quick questions:*
 >
-> **5a (governing thought) and 5b (so-what) MUST be asked per-question, each with three concrete drafts presented before user input.** The user does not author from scratch (blind asks force users to compress what's in their head into a 12-word claim without reference points — most produce weak negations, topic restatements, or vague language, and the skill then pushes back repeatedly, which feels like the AI making the user do all the work then critiquing it).
->
-> Instead, the user explicitly commits to one draft via a specific action verb: **`lock A`** / **`sharpen B to say [X]`** / **`my own: [text]`**. Passive approval (`looks good`) is rejected — ask which option they're picking. This is the authorship lock: the user makes an explicit choice between distinct framings or supplies their own.
->
-> If you have not received an explicit commit for slide N's 5a AND a separate explicit commit for slide N's 5b, you may not begin slide N+1's per-slide loop. If the user gave rich input documents (POV, framework, notes, prior decks), use them to *inform the draft set* (ensure the drafts reflect their available thinking) and to *push back* if the user's pick contradicts them. Never substitute the documents for the user's commit.
->
-> **The remaining per-slide fields (archetype 5.0, editorial emphasis 5c, what-this-is-NOT 5d, chart info 5e, quality check 5f) ARE batched into a single proposal per slide.** These are execution decisions that derive mechanically from the governing thought + so-what the user just committed to. Batching them preserves the authorship moments where coaching value lives while cutting turn count per slide.
->
-> **What's universal vs. what varies.** The **authorship lock on 5a/5b** is universal — every user, every deck, every slide gets drafts + an explicit pick/sharpen/own commit. No "coached mode" toggle to turn this off. The **pacing** (how the rest of the per-slide fields are presented) is conditional — see the three pacing levels in the paragraph below. Scoped per-slide fallbacks to full per-question (see § "When to suppress batch mode for one slide") apply only to the execution-field batch — 5a/5b drafts-up-front always run.
->
-> **Three pacing levels across the deck.** The same underlying authorship lock runs at three different ceremony levels depending on where you are in the deck and how cleanly the user has been committing:
->
-> 1. **Slide 1 — full per-question (calibration anchor).** Drafts-up-front for 5a/5b in one paired message, then per-question through 5.0 → 5c → 5d → 5e → 5f one field per turn. No batch on slide 1.
-> 2. **Slides 2–3 — standard mode (calibration ramp).** Drafts-up-front for 5a/5b in one paired message (`5a lock A, 5b lock B`), then a single batched execution-field proposal (5.0/5c/5d/5e/5f) approved or edited in one reply.
-> 3. **Slides 4+ — compressed mode IF slides 1–3 were clean** (no walk-throughs, ≤1 execution-batch edit, no 5f Major/Critical). See § "Compressed mode" below. Compressed mode bundles paired 5a/5b drafts AND the execution proposal into ONE message; the user commits to everything in ONE reply. If slides 1–3 had any of those triggers, slides 4+ continue in standard mode.
->
-> **Slide 1 sets the quality bar by showing the user three concrete drafts** for both 5a and 5b — examples of what a strong claim and a strong belief-shift look like for *this* brief and *this* audience — then walking field-by-field through the rest. Slides 2–3 are the calibration ramp: still paired drafts + batched execution, but the user demonstrates whether they've internalized the bar. The slide 3 → slide 4 transition is the moment the skill decides whether to keep coaching at full ceremony or trust the user to compress.
->
-> **Early-compression opt-in after slide 1.** Some users know the pattern after slide 1 and don't need the slides 2–3 calibration ramp. Immediately after slide 1 locks (and BEFORE asking 5a for slide 2), the skill MUST offer the user the choice:
->
-> > *"Slide 1 is locked. Do you want me to compress the remaining slides now — bundle the 5a drafts, 5b drafts, and execution proposal into ONE message per slide, with one reply locking everything? Or keep the standard pace (paired 5a/5b drafts, then a separate execution proposal) for slides 2–3 and re-evaluate after that?"*
-> >
-> > *Reply `compress now` or `standard pace`.*
->
-> - **`compress now`** (or any synonym: `compress`, `speed up`, `compressed mode`, `bundle it`, `fast mode`, `skip calibration`) → switch to compressed mode for slides 2+. The slide 3 conditional check is bypassed; compressed mode is locked in. Drop-back triggers (walk-through request, 5f Critical/Major, 2nd post-commit 5a/5b edit) still apply per-slide.
-> - **`standard pace`** (or any synonym: `standard`, `keep pace`, `take it slow`, `coach me`, `regular`, `slow mode`) → slides 2–3 run standard mode as the calibration ramp; the standard slide-3 conditional check then runs as documented (compressed for slides 4+ IF clean, else continued standard).
-> - **Ambiguous reply** → ask exactly one clarifying question, then default to `standard pace` if the user doesn't pick.
->
-> This opt-in costs one turn at slide 1 → slide 2 but saves ~5–10 turns across the rest of the deck for fluent users. Do NOT skip the opt-in even if the user seems experienced — the explicit user choice is the contract.
->
-> **Defensible-default trap — narrowed scope.** This trap applies to *design decisions* (deck architecture, framework choice, narrative spine, ask framing) — resist proposing these, because the user needs to think through the trade-offs themselves. It does NOT apply to *narrative authorship* (5a/5b): providing three concrete draft claims up-front and requiring `lock` / `sharpen` / `my own` IS coaching, not substitution. The user's explicit commit to a framing is authentic authorship; blind asks without drafts are the actual failure mode (frustration without coaching value).
+> *1. If the reader takes one sentence away from this deck, what should it be?*
+> *2. What do they currently believe that you want to change?*
+> *3. What's the hardest objection they'd raise?"*
 
-#### Draft-set format specification (5a and 5b)
+If the user can't answer all three clearly, the deck isn't ready for structuring. Don't generate plausible content to fill the gap — say plainly: *"We're solving the wrong problem first. Let's lock the one-sentence claim before sequencing any slides."*
 
-Each 5a and 5b ask presents three concrete drafts. The drafts must be:
-
-1. **Distinct in framing.** Each draft approaches the claim or belief shift from a different angle — different framings, not three rewordings of the same sentence. Example for a Q3 customer-churn slide:
-   - **A) Product-fit framing:** "Q3 churn is the activation flow failing — 72% cancel within 14 days." — *emphasizes onboarding as the failure point*
-   - **B) Spend-reallocation framing:** "Q3 churn breaks the marketing-spend assumption — the leak is post-signup, not pre." — *emphasizes the budget pivot required*
-   - **C) Cohort framing:** "Q3 cohorts cancel within 14 days; older cohorts stay sticky." — *emphasizes the time-window pattern*
-
-2. **Concise.** Each draft claim or belief shift is ≤ 15 words. Specificity over length. Avoid hedging, motherhood, or run-on clauses.
-
-3. **Accompanied by a one-line emphasis note.** Format for 5a: `emphasizes [what this framing highlights]`. Format for 5b: `shifts thinking from [prior assumption] to [new frame]`. One line only.
-
-4. **Informed by available context.** The drafts are derived from the user's brief, POV, prior session notes, and the deck's argument shape — not generic. If the user gave input documents, the drafts must reflect what's available there.
-
-5. **Quality-checked before showing the user.** Before asking the user to pick, verify: at least 2 of 3 are genuinely distinct framings (not synonyms); none reads as a topic or restatement (each asserts a direction); each emphasis note is clear enough that an observer could guess which frame it represents; at least one is a realistic fit for the deck's intent and audience. If the draft set is weak, regenerate before showing — do not ask the user to pick from mediocre options.
-
-#### Per-slide loop — batched execution-field flow (slides 2+)
-
-For every slide from slide 2 onward, the per-slide loop is:
-
-1. **Ask 5a + 5b together with paired drafts-up-front.** Generate three distinct governing-thought drafts AND three distinct so-what drafts per the draft-set spec above, then present BOTH sets in a single message. The pairing makes the relationship between the claim and the belief shift visible side-by-side — easier to verify that the so-what shifts a belief rather than restating the claim. Template:
-
-   > **Slide N — pick a governing thought AND a so-what** (both required to lock the slide)
-   >
-   > **Governing thought (5a):** *the declarative claim the slide proves*
-   > - **A) [Framing 1 claim, ≤15 words]** — *emphasizes [what this framing highlights]*
-   > - **B) [Framing 2 claim, ≤15 words]** — *emphasizes [what this framing highlights]*
-   > - **C) [Framing 3 claim, ≤15 words]** — *emphasizes [what this framing highlights]*
-   >
-   > **So-what (5b):** *the belief shift the audience should leave with — NOT a restatement of the claim*
-   > - **A) [Belief shift 1, ≤15 words]** — *shifts thinking from [prior assumption] to [new frame]*
-   > - **B) [Belief shift 2, ≤15 words]** — *shifts thinking from [prior assumption] to [new frame]*
-   > - **C) [Belief shift 3, ≤15 words]** — *shifts thinking from [prior assumption] to [new frame]*
-   >
-   > *Reply with one commit per field. Examples:*
-   > *`5a lock A, 5b lock B`*
-   > *`5a sharpen C to say [your wording], 5b lock A`*
-   > *`5a my own: [your claim], 5b sharpen B to say [your wording]`*
-
-   Wait for an explicit commit on BOTH 5a AND 5b. If the user replies with a commit on only one (e.g. `5a lock A` with no 5b decision), ask for the missing one before proceeding. `looks good` / `yes` without naming options for both is not a commit. Push back per Step 8 if either locked or sharpened text reads weak: governing thought that's a topic, restatement, or generic claim; so-what that restates 5a instead of shifting a belief. A `my own:` reply on either field is subject to the same Step 8 quality check as the original blind-ask flow — drafts are a shortcut to good framings, not an exemption from the gate.
-
-2. **Emit ONE batched proposal message containing the remaining fields.** The template:
-
-   > **Slide N — execution starting points** (your governing thought + so-what are locked above)
-   >
-   > These are starting points derived from what you just told me — not finished answers. Review and edit anything that's not right.
-   >
-   > - **Archetype (5.0):** `<proposed archetype>` — *why this one fits this slide*
-   > - **Editorial emphasis (5c):** `<proposed emphasis>` — *one of: the conclusion / the evidence / the contrast / the data / the ask / the numbers*
-   > - **What this slide is NOT (5d):** `<proposed scope exclusion>`
-   > - **Chart needed (5e):** `<yes/no>` — if yes: `<proposed chart type>`. *If you need a chart, paste the data or a file path in your reply.*
-   > - **Quality check (5f):** `<any failures of the archetype-specific check, or "all checks pass">`
-   >
-   > **Three ways to reply:**
-   > - **Approve** — lock the slide and move to slide N+1
-   > - **Approve with edits** — tell me what to change in plain English; I apply and lock
-   > - **Walk me through this slide** — drop into per-question coaching for the execution fields
-
-3. **Parse the user's reply** with the table below. The reply types accept synonyms — match by intent, not exact string.
-
-   | Reply intent | Triggering phrases (case-insensitive substring match) | Action |
-   |---|---|---|
-   | **Approve as-is** | `approved`, `approve`, `approve it`, `lock it`, `looks good`, `looks fine`, `fine`, `lgtm`, `all good`, `ok`, `okay`, `yes`, `yep`, `yup`, `sure`, `confirmed`, `ship it`, `ship`, `go`, `go for it`, `move on`, `next slide`, `next` | Lock all fields. Increment to slide N+1. |
-   | **Approve with edits** | message starts with `approve` AND contains any of: `with edits`, `but`, `except`, `change`, `swap`, `remove`, `add`, `make`, OR contains a colon followed by edit description (e.g. `approved with edits: ...`) | Parse deltas in natural language. See "Edit parsing" below. |
-   | **Walk through** | `walk me through`, `walk through`, `coach me`, `step me through`, `go question by question`, `question by question`, `let's go slow`, `i want more coaching` | Drop into per-question for the execution fields only (see "Walk-through semantics" below). |
-
-   **Edit parsing.** The user's edits are in natural language. Extract field-level deltas by intent — "the emphasis should be data" → 5c = "the data"; "we don't need a chart" → 5e = "no"; "make the governing thought punchier: <text>" → 5a = `<text>` (triggers cascade — see below). When the user mentions a field by name (archetype, emphasis, what-this-is-NOT, chart) OR by content (e.g., "the part about not including financials"), apply the delta. When the user's intent is unambiguous, apply silently. When two reasonable interpretations exist, pick the one that changes less and surface the other in the re-emitted proposal as: *"I read your edit as X. If you meant Y instead, tell me and I'll switch."*
-
-   **Ambiguous reply fallback.** If the reply doesn't match any of the three intents above (e.g., a question back at the AI, free-form prose with no clear action verb), ask exactly ONE clarifying question:
-
-   > *"I'm not sure if you want me to lock the slide as-is, edit it, or drop into coaching. Which is it?"*
-
-   If the user's response to the clarifying question is *still* ambiguous, auto-drop into walk-through for this slide and say:
-
-   > *"Let's just walk through it — I'll ask one question at a time so we can get this slide right."*
-
-   Never ask the same clarifying question twice on the same slide.
-
-#### Cascading-edit protocol (when 5a or 5b changes after the batch)
-
-If the user's `approved with edits` reply on the execution-field batch changes 5a (governing thought) or 5b (so-what) — the authorship fields — the downstream execution fields may now be incoherent because they were derived from the original 5a/5b. The skill must:
-
-1. Apply the user's edit to 5a and/or 5b.
-2. Regenerate the execution fields (5.0, 5c, 5d, 5e, 5f) from the updated 5a/5b.
-3. Re-emit the batched proposal, prefixed with this signal:
-
-   > *"You edited [the governing thought / the so-what / both]. I regenerated the archetype, emphasis, scope, and chart proposal so they match your updated claim. Here's the revised slide:"*
-
-4. Wait for a new approval before locking.
-
-**What about `sharpen B to say [X]` at the drafts-up-front step?** The `sharpen` action is the user's commit on the 5a or 5b ask — it produces the locked 5a/5b value before the execution-field batch has been generated. So `sharpen` is NOT a cascade trigger; the execution-field batch is built from the sharpened text in the normal flow. The cascade fires only when the user changes 5a/5b *in the execution-field batch reply*, after that batch has been emitted.
-
-**Cascade back-stop.** The cascade can repeat ONCE — i.e., the user can edit 5a/5b in the first batch reply, see the regenerated proposal, and edit 5a/5b again in that reply. On the THIRD pass (original batch + first regen + second regen — the user's second 5a/5b edit on the execution-field batch for this slide), do NOT regenerate again. **Counter rule:** the back-stop counts only *post-batch edits to 5a/5b*. Picks at the drafts-up-front step (`lock A`, `sharpen B to [X]`, `my own: [Y]`) do NOT increment the counter — those are the user's initial commit, not edits. When the back-stop fires, drop into per-question for the remaining execution fields and tell the user:
-
-> *"You've revised the core claim twice on this slide, and that's a signal your thinking is still settling. Rather than keep regenerating proposals, let me walk you through the remaining decisions one at a time — so we ground each choice in what you're actually trying to prove. That'll take a few more turns, but you'll land on something tighter."*
-
-#### When to suppress batch mode for one slide
-
-Batch mode is the universal default for slides 2+ but the skill drops into full per-question on a *single slide* when any of these fire. Each trigger has an explicit user-facing message so the mode switch is never silent:
-
-1. **The user explicitly requests it** (any walk-through synonym from the parse table above).
-   > *"Got it — let's coach through the execution fields for this slide one at a time."*
-
-2. **The cascade back-stop fires** (user edited 5a/5b twice on the same slide). Message specified in the cascade-back-stop section above.
-
-3. **The archetype-specific quality check (5f) flags a Critical or Major failure.** Surface the specific failure when announcing the switch:
-   > *"I found a structural issue: [verbatim 5f failure, e.g., 'the recommendation doesn't have a success metric — what will prove it worked?']. That's not something batch approval can fix; it needs us to work through it together. Let me drop into per-question for this slide so we can shore it up."*
-
-These three triggers apply per-slide only. The next slide (N+1) returns to the batched flow unless that slide independently fires a trigger.
-
-#### Walk-through semantics
-
-When walk-through fires (any of the three triggers above), the skill drops to per-question coaching for the EXECUTION fields only: 5.0 → 5c → 5d → 5e → 5f, one question per turn. **The user's 5a and 5b stay locked** — they were already committed via drafts-up-front and re-asking them would discard the authorship moment. Discard the batched proposal for this slide; the user is starting the execution-field coaching from scratch.
-
-**Walk-through asks do NOT use drafts-up-front for execution fields.** The 3-drafts pattern is reserved for 5a and 5b (narrative authorship). When the user invokes walk-through, they have explicitly asked for high-touch coaching — asking sequential open questions one at a time is the right shape there. Use the field definitions below (5.0, 5c, 5d, 5e, 5f) as the question prompts.
-
-After 5f passes, lock the slide and increment to slide N+1. Slide N+1 begins in batched mode again with drafts-up-front for its 5a and 5b.
-
-#### Compressed mode — two paths in, one mode
-
-Compressed mode can be entered via TWO paths. Both produce the same per-slide flow (described below); the difference is just when compressed mode activates.
-
-**Path 1 — User opt-in after slide 1 (early compression).** Per the "Early-compression opt-in" section in the hard rule above, after slide 1 locks the skill asks the user to choose `compress now` or `standard pace`. If the user picks `compress now`, slides 2+ use compressed mode immediately; the slide-3 conditional check below is bypassed. Announce the activation:
-
-> *"Got it — compressed mode active starting slide 2. I'll batch the 5a drafts, 5b drafts, and execution proposal into ONE message per slide. Reply with all commits in one go (`5a A, 5b A, exec approved`). Say `walk me through this slide` anytime to drop back to full coaching for that slide."*
-
-**Path 2 — Auto-evaluation after slide 3 (clean-approval gate).** If the user picked `standard pace` at the slide 1 opt-in, slides 2–3 run standard mode. After slide 3 locks, evaluate the user's approval pattern on slides 1–3. If ALL of the following are true, auto-shift to compressed mode starting at slide 4:
-
-- **No walk-through trigger fired** on slides 1–3 (no `walk me through this slide` requests, no 5f Critical/Major failures, no cascade back-stops).
-- **At most one execution-field edit** across all three slides (a `5a sharpen` or `5b sharpen` at the drafts step does NOT count — those are initial commits; only `approve with edits` on the execution batch counts).
-- **All three 5f quality checks passed** with no Major or Critical flags.
-
-If any one of these is false, stay in standard mode for the rest of the deck. The Path-2 check runs once after slide 3 and does not re-evaluate later — the user has demonstrated either calibration competence or coaching need; commit to one path for the rest of the deck.
-
-When the Path-2 criteria are met, announce the mode shift explicitly (never silent):
-
-> *"You've approved slides 1–3 cleanly — you've got the deck's quality bar. I'm switching to compressed mode for slides 4–N: I'll batch the 5a drafts, 5b drafts, and execution proposal into ONE message per slide, and you reply with all commits in one go. Say `walk me through this slide` anytime to drop back to full coaching for that slide."*
-
-**Compressed-mode per-slide flow (slides 4+ when triggered).** Emit ONE message containing the paired 5a/5b drafts AND the execution proposal:
-
-> **Slide N — compressed proposal** (one message; one reply locks everything)
->
-> **Governing thought (5a):**
-> - **A) [Framing 1 claim, ≤15 words]** — *emphasizes [X]*
-> - **B) [Framing 2 claim, ≤15 words]** — *emphasizes [Y]*
-> - **C) [Framing 3 claim, ≤15 words]** — *emphasizes [Z]*
->
-> **So-what (5b):**
-> - **A) [Belief shift 1, ≤15 words]** — *shifts thinking from [prior] to [new]*
-> - **B) [Belief shift 2, ≤15 words]** — *shifts thinking from [prior] to [new]*
-> - **C) [Belief shift 3, ≤15 words]** — *shifts thinking from [prior] to [new]*
->
-> **Execution starting points** (derived from the strongest pairing of 5a + 5b — review and edit anything that's not right):
-> - **Archetype (5.0):** `<proposed archetype>`
-> - **Editorial emphasis (5c):** `<proposed emphasis>`
-> - **What this slide is NOT (5d):** `<proposed scope exclusion>`
-> - **Chart needed (5e):** `<yes/no, type, data status>`
-> - **Quality check (5f):** `<failures or "all checks pass">`
->
-> *Reply with all three commits in one message. Examples:*
-> *`5a lock A, 5b lock B, exec approved`*
-> *`5a sharpen C to say [text], 5b lock A, exec change emphasis to data`*
-> *`5a my own: [text], 5b lock B, exec approved`*
-> *Or `walk me through this slide` for full coaching.*
-
-The execution-field proposal in compressed mode is generated **provisionally** from the AI's read of the strongest 5a/5b pairing (typically A+A). If the user picks a different 5a/5b combination, regenerate execution fields BEFORE locking and re-emit the proposal with the regenerated execution section prefixed by:
-
-> *"You picked [5a=X, 5b=Y]. I regenerated archetype/emphasis/scope/chart to match. Approve or edit?"*
-
-This is the cascade equivalent inside compressed mode. It costs one extra turn but preserves coherence between authorship picks and execution fields.
-
-**Drop-back from compressed mode to standard or per-question.** Three triggers force a single-slide fallback even when compressed mode is active:
-
-1. **User says `walk me through this slide`** → drop to per-question for that slide (5a/5b already locked from compressed reply if user committed; otherwise re-ask with drafts).
-2. **5f flags Critical or Major** → drop to per-question for that slide with the same surface-the-specific-failure message as the standard-mode trigger.
-3. **User edits 5a or 5b twice on the same slide** (cascade back-stop counter — counts post-commit edits only) → drop to per-question with the cascade back-stop message.
-
-After the fallback slide locks, return to compressed mode for slide N+1. Compressed mode is the default for the rest of the deck once enabled; only single-slide drop-backs occur.
-
-**Why this works.** Slides 1–3 establish the quality bar through full ceremony. By slide 4, if the user has been locking drafts cleanly, they've demonstrated they understand what "strong" looks like for this deck. The remaining work is execution at the pace of their judgment, not the pace of the coaching scaffolding. The fallback triggers ensure compressed mode never papers over a slide that actually needs coaching.
+The Foundation Check is rarely needed when the user drops something concrete (an outline, a deck, scratch notes). It's the fallback for the "nothing but an idea" path.
 
 ---
 
-The field definitions below (5.0, 5a–5e, 5f) apply in BOTH modes:
 
-- **In full per-question mode** (slide 1's execution fields, or any slide where a walk-through trigger fired): work the fields sequentially, one question per turn, as written. 5a and 5b still use drafts-up-front per the spec above; the other fields ask sequentially without drafts.
-- **In batched mode** (slides 2+ default for the execution fields): 5a and 5b are asked per-question with drafts-up-front per the spec above; THEN 5.0, 5c, 5d, 5e proposals are derived for the single batched message; 5f runs internally and any failures are surfaced in the batched proposal's quality-check line.
+### Phase C — Probe
 
-**5.0 — Classify the slide's archetype.** Before working 5a–5e, identify which archetype this slide is. The archetype determines the questions in 5f.
+Phase B locked the structure: a slide list with a candidate claim per slide, drawn from the user's input. Phase C walks each slide and fills the gaps. **You are not generating slides from scratch — you are probing for what the user knows but hasn't said yet, and marking what's qualitative when no fact exists.**
+
+#### How a slide gets locked
+
+For each slide in the structure agreed in Phase B:
+
+1. **State what's known.** Mirror back what Phase B carries for this slide — the candidate governing thought, the source (which input slides feed it), the apparent so-what. Be specific. Three bullets, max.
+2. **Identify the 1–3 gaps that matter.** Examples: the governing thought is weak (a topic, not a claim); the so-what restates the claim; the load-bearing number is missing; the slide doesn't have an explicit ask. Don't enumerate every possible gap — name the ones that block lock.
+3. **Probe for them in ONE message.** Ask all the gaps together, with specific framing. *"Where does the $200M come from — finance pull, model, or directional?"* beats *"Do you have data for this slide?"*
+4. **User answers; integrate; lock.** If the user supplies a fact or source, record it. If the user has no fact, mark the bullet `evidence_type: qualitative` and continue — never invent data. The slide locks once the gaps are filled or explicitly accepted as qualitative.
+
+#### What a per-slide turn actually looks like
+
+> **Slide 3 — Five Customer Missions, sized at ~$200M directional**
+>
+> What's locked from Phase B:
+> – Governing thought (draft): *"Five customer missions replace function-by-function thinking; ~$200M of opportunity sits across them."*
+> – Source: slides 27 + 52 from the input deck.
+>
+> Two gaps before this locks:
+> 1. **The $200M needs a basis.** Mark won't accept "~$200M" without knowing how it was derived — even directionally. What's the input that produced it: a top-down ratio, a bottom-up activity scoring, a benchmark? One line is fine.
+> 2. **So-what needs to do work.** Right now the slide says "here's the size." The Takeaway should shift what Mark believes about the number — "it's directional, firmed in the 90 days" vs. "it's the floor" vs. "it reconciles to the ExCom target." Which?
+
+User replies. Skill integrates. Slide locks.
+
+#### The probing rules — two probes max per gap
+
+When a bullet or so-what is soft and the user doesn't have a fact, follow this pattern:
+
+1. **First probe — ask for the fact directly.** *"How much time, measured how?"* or *"Where does the $40M come from — a finance pull, a model, or directional?"*
+2. If the user supplies a fact → record it, move on.
+3. **Second probe (only if needed) — name the forms the evidence could take.** *"Is there a survey, a time-tracking export, an interview count, or is this directional from your team's experience?"* This surfaces what the user has without you having to guess.
+4. If the user still has no fact → accept the qualitative version. Mark `evidence_type: qualitative` in the brief. Optionally suggest the easiest add (*"the easiest way to harden this is a 5-person quick poll — but it's also defensible as a qualitative observation"*). Move on.
+
+**Stop rule: never run more than two probes on the same gap.** Three probes on a single point is a signal you're trying to extract a fact the user genuinely doesn't have. Accept qualitative and proceed.
+
+**Never invent a number.** If a slide claims "~$200M" and the user has nothing behind it, the brief records the slide as qualitative — it does not auto-generate a derivation. The brief is the source of truth; the user is the source of facts.
+
+#### Hard rules for Phase C
+
+1. **No drafts-up-front for governing thoughts or so-whats.** You do not present "three framings to pick from." Phase B already proposed the claim for each slide; Phase C sharpens it through probing, not voting.
+2. **Probe for gaps, don't generate to fill them.** When the user can't supply a fact, the slide ships as qualitative — not as Claude-generated prose pretending to be a fact.
+3. **One message per slide ask.** Don't fragment the gaps across multiple turns. State what's known, name the gaps, ask once. The user's reply locks the slide.
+4. **Two probes max per gap.** Past two, accept qualitative and move on.
+5. **Governing thought ≤ 100 characters / ~15 words.** If the user (or your Phase B draft) produces one longer, push back inline — see the dot-length enforcement section below.
+
+#### Dot length — hard ceiling, enforced inline
+
+The governing thought (5a) becomes the slide headline AND the dot in the dot-dash. Both need to be short.
+
+- **Hard ceiling:** ≤ 100 characters / ~15 words.
+- **Soft target:** 10–15 words.
+- **What to do if a candidate dot is too long:** before locking, push back with a specific compression option. *"This dot has 27 words: 'Customer experience, revenue capture, and cost-to-serve all break in the same place — across the seams between functions — which is exactly where no single P&L can fix them.' That won't fit on a slide. Two options: (a) compress to 'OTC's biggest problems sit between functions, where no single P&L can reach them' — 13 words, same meaning, with the nuance moving to the dashes and Takeaway. (b) split into two slides if you want both halves to land separately. (a) or (b)?"*
+- **Where the nuance goes when you compress:** the dashes (supporting facts) and the Takeaway (the belief shift). Both already exist for the slide — they absorb the lost detail naturally.
+
+#### When to suggest cutting a slide
+
+If a slide can't pass these checks even after probing, it usually isn't load-bearing. Surface the cut explicitly:
+
+> *"Slide 6 doesn't earn its place — there's no claim that the deck loses if we cut it, and slide 5 already makes the same point. Cut, or keep with a reason?"*
+
+The user decides. If cut, remove from the structure and re-number. If kept, ask what the slide is actually proving that the deck needs.
+
+#### The slide schema (what every locked slide carries)
+
+Each slide locks with these fields. Slide-builder downstream reads them to construct the slide. The dot-dash emitter strips the schema and ships prose for the human-facing document — see Brief vs dot-dash later in this file.
+
+- **5.0 Archetype** — classifies what kind of work the slide does (catalog below). Drives the quality check (5f).
+- **5a Governing thought** — the slide's declarative claim. ≤ 100 chars. Becomes the slide headline and the dot-dash dot.
+- **5b So-what** — the belief shift the audience should leave with. Becomes the `Takeaway –` line in the dot-dash.
+- **5c Editorial emphasis** — what dominates the slide visually. One of: the conclusion / the evidence / the contrast / the data / the ask / the numbers.
+- **5d What this slide is NOT** — explicit scope exclusion. Prevents the builder from creeping into adjacent detail.
+- **5e Chart data** — only when the slide carries a chart. Type + data source.
+- **5f Quality check** — run internally per the archetype catalog below. Failures surface inline; pass silently.
+
+You fill the schema from the conversation; you do not show it to the user as a form.
+
+#### Archetype catalog (5.0)
+
+When you classify a slide, pick from this list. The archetype drives the quality check below.
 
 | Archetype | When it fits |
 |---|---|
@@ -575,72 +353,11 @@ The field definitions below (5.0, 5a–5e, 5f) apply in BOTH modes:
 | Decision / Ask | What the audience must decide, by when |
 | Appendix | Backup detail referenced from main pages |
 
-If two archetypes seem to fit (e.g., a chart-heavy financial slide), pick the one that names the slide's PRIMARY function — what kind of work does the slide do? If the user can't pick one, that's a signal the slide may be doing too much. Help them pick one function, then consider whether to split the slide.
+If two archetypes seem to fit (e.g., a chart-heavy financial slide), pick the one that names the slide's PRIMARY function. If you can't pick one cleanly, that's a signal the slide may be doing too much — suggest a split.
 
-**5a — Governing thought.** The declarative claim the slide makes.
+#### Archetype-specific quality questions (5f)
 
-> *What's the governing thought for slide N? What's the one declarative sentence that slide proves?*
-
-**5b — So-what.** The takeaway the audience should walk away with. This is different from the governing thought:
-- Governing thought = the *claim* ("Three patterns explain 80% of the drift — and none are policy violations")
-- So-what = the *takeaway* ("This is not a compliance problem, it's an information problem — don't fire managers, give them data")
-
-The so-what is often what reframes the audience's belief. The governing thought states what's true; the so-what states what the audience should now believe differently.
-
-> *If the exec remembers one thing from this slide after they leave the room, what should it be? Not what the slide claims — what the claim should change in their head.*
-
-If the user gives a so-what that's a restatement of the governing thought, push back: *"That's the claim. What does the claim imply — what belief does it shift?"* This distinction is often where consultants plateau; coaching the gap here is load-bearing.
-
-**5c — Editorial emphasis.** What should dominate the slide visually. One of:
-- **The conclusion** — the so-what is the main visual element; evidence is subordinate
-- **The evidence** — the data/chart is the main visual element; takeaway is a caption
-- **The contrast** — two states side-by-side with the change point as the anchor
-- **The data** — a chart carries the whole argument
-- **The ask** — a CTA or decision point is dominant; context supports it
-- **The numbers** — one or two headline stats carry the visual weight
-
-> *What should dominate the slide? What should the audience's eye land on first?*
-
-If the user says "all of it equally" — push back. An exec slide that doesn't have a dominant element reads as a worksheet, not an argument. Help them pick.
-
-**5d — What this slide is NOT.** Explicit scope exclusion. Prevents the builder from creeping into adjacent detail.
-
-> *What's NOT on this slide? What would an inexperienced consultant be tempted to add that would dilute the argument?*
-
-Examples:
-- Slide 2 (three patterns explain drift): NOT a root-cause deep-dive, NOT a manager performance review, NOT an exhaustive list of all drift causes
-- Slide 4 (implementation plan): NOT a detailed project plan, NOT a risk register, NOT a full RACI
-
-This field catches scope creep before it reaches the builder. One bullet per slide is enough.
-
-**5e — Chart data (when applicable).** After 5d, determine whether this slide needs a chart or data visualization.
-
-**Trigger this step when any of the following is true:**
-- The editorial emphasis (5c) is "the data" or "the evidence" AND the evidence references quantitative data (numbers, percentages, trends, comparisons)
-- The content describes a trend over time, a comparison between options, a breakdown of components, a ranking, or a variance analysis
-- The governing thought asserts something that a chart would prove (e.g., "costs grew faster than revenue," "three segments drive 80% of profit")
-
-**Skip 5e entirely** when the editorial emphasis is "the conclusion," "the ask," "the contrast," or "the numbers" and the content is a callout stat or text-driven argument with no underlying data series.
-
-If a chart is needed, ask two questions in sequence:
-
-> *"What type of chart does this slide need?"*
-> *(e.g., bar/column, horizontal bar, line, pie, donut, waterfall/bridge, clustered bar, stacked bar)*
-
-Then:
-
-> *"Please provide the data — paste a table below, or give me the path to a CSV or Excel file in your `_reference/` folder."*
-
-If the user doesn't have the data yet:
-
-> *"No problem — I'll build the slide with an amber placeholder labeled '[chart type] — data TBD.' You can provide the data in a follow-up session."*
-
-**Accepted data formats:**
-- Inline table (markdown or plain CSV pasted into the chat)
-- File path to a CSV or Excel file (e.g., `_reference/savings-by-quarter.xlsx`)
-- "TBD — placeholder" if data is not yet available
-
-**5f — Archetype-specific quality check.** After 5a–5e are filled, run the questions for this slide's archetype (from 5.0). These catch failures specific to the slide type — different archetypes fail in different ways.
+Run these silently during Phase C as the probe trigger. If any fail, surface the specific failure when probing — don't list every check the user passed. Failures are typically **Major** (surfaceable in the gate output); only structural breakage is **Critical**.
 
 | Archetype | Questions to ask |
 |---|---|
@@ -658,33 +375,151 @@ If the user doesn't have the data yet:
 | Decision / Ask | What exactly is the audience being asked to decide? Is each decision binary or selectable? What's needed, by when? **What happens if the answer is no?** |
 | Appendix | Is every page defensible if opened at random in front of the client? Is it indexed so the right backup is findable? Does the main deck point to specific appendix pages? |
 
-Failures here go into the gate's review output (Step 7) tagged to this slide. They are typically **Major** unless the slide is structurally broken (then **Critical**) or the failure is a judgment call (then **Advisory**).
+---
 
-**Write all six fields down as you go (5.0 + 5a–5e, plus 5f notes).** If the user is struggling on any field, that's a signal: struggling on governing thought means the slide isn't load-bearing (consider cutting); struggling on so-what means the user hasn't committed to what they want the audience to believe differently (coach toward it); struggling on editorial emphasis means the user hasn't decided what the slide's main move is (coach toward it); struggling on "what this is NOT" usually means the slide is overloaded (consider splitting); struggling on archetype classification usually means the slide is doing too many jobs.
+### Phase D — Tighten
 
-Ask:
+Once every slide has been probed and locked, run a deck-level pass before the gate. Phase D catches what only becomes visible across the whole deck — slides that don't earn their place, two slides making the same point, sequence breaks, missing pivots, the read-down test.
+
+#### Read the dot headlines top-to-bottom
+
+State the test plainly:
+
+> *Reading the headlines in order, here's what someone hears if they only read the slide titles:*
+> *1. [governing thought slide 1]*
+> *2. [governing thought slide 2]*
+> *…*
+>
+> *Stepping into [audience]'s shoes — do those headlines, in that order, tell the story you need them to leave with?*
+
+Common failures this catches:
+- **Sequence breaks** — slide 4 concludes something slides 1–3 don't build to.
+- **Missing pivot** — every slide is a finding; nothing turns.
+- **Buried recommendation** — appears at slide 10 but the first 9 don't build toward it.
+- **Two slides, one point** — slides 5 and 6 are the same claim split in two.
+
+If the read-down fails, name the specific defect and propose a fix. Don't ask the user to diagnose — they hired you to diagnose.
+
+> *Slides 5 and 6 both claim the same thing — vendor lock-in is structural. Merge into one slide and use the rescued slot for the cost-of-inaction data that's currently buried in the appendix. Want to make that move?*
+
+#### Editorial rhythm — one sentence
+
+Name the deck's visual rhythm by reading each slide's editorial emphasis (5c):
+
+> *Slide 1: data dominates. Slide 2: conclusion dominates. Slide 3: contrast dominates. Slide 4: numbers dominate. Four different dominance patterns across four slides — the deck has visual rhythm.*
+
+If three or more consecutive slides share the same emphasis, flag it:
+
+> *Slides 2, 3, and 4 all have "conclusion dominates" — the deck will read as one long sermon with no evidence or data in between. Usually an argument-heavy deck needs at least one slide where data or contrast carries the weight. Intentional, or should one of these be restructured?*
+
+The user decides. If intentional, log it in Flags. If not, revise one slide's emphasis.
+
+#### Accent discipline — one sentence
+
+Name the deck-level accent rule for slide-builder:
+
+> *Across the deck, the accent color anchors one element per slide: slide 1 the inflection callout, slide 2 the reframe line, slide 3 the changed step, slide 4 the headline numbers. Each slide gets one accent element, semantically consistent.*
+
+This gives slide-builder a deck-wide rule for the contrast accent instead of leaving it to per-slide judgment.
+
+#### The cut-the-slide check
+
+Before moving to the gate, for every slide ask one question internally — surface only the ones that fail:
 
 > *What breaks if we don't have this slide? If the audience skips it, does the argument still land?*
 
-Cut slides that don't justify themselves.
+Slides that don't justify themselves get cut. Slides that the user wants to keep despite the failure get a Flag entry explaining why.
 
-### Step 6 — Deck-level editorial rhythm
+#### Hard rules for Phase D
 
-Before the gate, name the deck's visual rhythm in one sentence. Read the editorial emphasis for each slide:
+1. **You diagnose the deck-level defects; the user doesn't.** Don't ask "do these titles tell the story?" — read them and tell the user what's working and what isn't.
+2. **Propose the fix, don't list options.** If two slides are the same point, propose the merge with a specific use for the rescued slot.
+3. **One pass through the deck.** Don't loop on Phase D — name the defects, accept the user's calls, move to the gate (run in Phase E).
+4. **Visual rhythm and accent discipline land in the brief.** Both surface as deck-level design notes that the gate carries through to slide-builder.
 
-> *Slide 1: data dominates. Slide 2: conclusion dominates. Slide 3: contrast dominates. Slide 4: numbers dominate. That's four different dominance patterns across four slides — the deck will have visual rhythm.*
+---
 
-If three or more consecutive slides have the same editorial emphasis, flag it:
+### Phase E — Commit
 
-> *Slides 2, 3, and 4 all have "conclusion dominates" — the deck is going to feel like one long sermon with no evidence or data in the middle. Usually an argument-heavy deck needs at least one slide where data or contrast carries the weight. Is that intentional, or should one of these be restructured?*
+By the end of Phase D, every slide has been probed and locked, the deck-level read-down passes, and the structural cuts/merges have been made. Phase E confirms where the brief goes, runs the gate, lets the user override anything non-Critical with a reason, and emits the artifacts.
 
-Let the user decide. If intentional, note it in Flags. If not, revise the editorial emphasis for one slide.
+Phase E orchestrates four sub-passes (each lives as its own section below):
 
-Also name the deck-level accent discipline — one sentence:
+1. **Setup confirmation** — the four-value lock (session folder, client/topic, template, default layout). This is the load-bearing setup that legacy Step 0 used to gate at the front of the conversation; in v2 it happens at commit time, when it's actually needed.
+2. **Run the gate** (Step 7) — nine-part test + cross-cutting rules + completeness check. Hard stops only on Criticals and the internal-consistency check; everything else uses override-with-reason.
+3. **Language quality pass** (Step 7.5) — headline and body language quality checks.
+4. **Save and hand off** (Step 9 + Step 10) — review output with override-with-reason, then write the brief + dot-dash + open-gaps punch list and route to slide-builder.
 
-> *Across the deck, the accent color (orange) should anchor one element per slide: slide 1 the inflection callout, slide 2 the reframe line, slide 3 the changed step, slide 4 the headline numbers. Each slide gets one orange element, semantically consistent.*
+Steps 7, 7.5, 8, 9, 10 below remain operational — they are the gate, pushback, save, and handoff machinery that Phase E calls. Read them as Phase E sub-sections; the legacy "Step N" numbering is retained because cross-references in the brief format still point to them by number.
 
-This gives the builder a deck-wide rule for the contrast accent instead of leaving it to per-slide judgment.
+#### Setup confirmation (the 4-value lock)
+
+> **⛔ Hard rule (carried over from legacy Step 0 — DO NOT skip).**
+>
+> Even when project memory contains a plausible template path, a recent session folder, or any other defensible-default values, **the orchestrator MUST ask the user and wait for explicit confirmation on all four items below**. Inferring from memory has historically picked the wrong session folder (Library tree instead of Claude Projects tree), the wrong template (a stale one from a prior session), and the wrong default layout (auto-falling to whatever build_deck.py guesses mid-build). The user's tacit input on "is this the right setup for THIS deck?" is load-bearing.
+>
+> The orchestrator MAY propose values from project memory ("I see in memory that recent FedEx sessions live at `…/Claude Projects/FedEx/sessions/`; should this one go there too?") — but the user must explicitly say yes / change-to / use this instead before the values are locked.
+
+**Four things to confirm at Phase E** (combine into one message; get explicit confirmation on each):
+
+1. **Session folder root** — the parent directory where the dated session folder will be created. Convention: `<Client>/sessions/YYYY-MM-DD Topic Name/`.
+2. **Client name and topic** — drives the dated subfolder name and the brief filename (e.g., `FedEx / Vendor Gap Analysis` → `FedEx/sessions/2026-05-06 Vendor Gap Analysis/`).
+3. **Client template** — the `.pptx` that carries the client's brand. Must be **registered** (have `<stem>.brand.yml` + `<stem>.theme.json` + `<stem>.chrome.yml` sidecars). If not registered, register via `register_template.py propose` → `commit` before handoff.
+4. **Default content layout** — read `<stem>.theme.json::default_content_layout` from the registered template and surface it. If empty or template unregistered, the user picks at registration time. Never let `build_deck.py` run with an empty default layout — that's a hard mid-build failure.
+
+**Combine the asks** — one message, four lines:
+
+> *"Before we save and hand off, four things to confirm. I'll propose values from memory where available; correct any that aren't right:*
+>
+> *1. Session folder root: `<proposed root>`*
+> *2. Client + topic: `<proposed client> / <proposed topic>`*
+> *3. Template path: `<proposed template path>` (registered if `brand.yml` + `theme.json` + `chrome.yml` exist next to it).*
+> *4. Default content layout: `<proposed layout from theme.json>` — or `(needs registration)` if the template isn't registered yet.*
+>
+> *Reply with any corrections, or `confirm` to lock all four."*
+
+Wait for explicit confirmation. `looks good` / `yes` without naming the values isn't sufficient — restate the four values and ask which need changing.
+
+Once confirmed, state all four resolved values:
+
+```
+Session folder:  C:\…\Claude Projects\FedEx\sessions\2026-05-06 Vendor Gap Analysis\
+Dot-dash will save:
+                 …\2026-05-06 Vendor Gap Analysis\dot-dash-vendor-gap.docx
+                 …\2026-05-06 Vendor Gap Analysis\dot-dash-vendor-gap.md
+                 …\2026-05-06 Vendor Gap Analysis\dot-dash-vendor-gap.html
+Brief will save: …\2026-05-06 Vendor Gap Analysis\_session\narrative-brief-vendor-gap.md
+Template:        C:\…\FedEx\_templates\Template2.pptx (registered)
+Default layout:  "Use as default slide template" (from theme.json)
+```
+
+**Resumption path (only on explicit user signal).** If the user explicitly says they're resuming a prior deck (*"continuing from yesterday"*, *"pick up where we left off on slide 8"*, *"use the brief in `<path>`"*), the orchestrator may skip the four-value confirmation and locate the brief in the named session folder. Do NOT skip when memory merely *suggests* a prior session — only when the user explicitly invokes resumption.
+
+#### Run the gate, language pass, and hand off
+
+Once setup is locked:
+
+1. **Run the gate** — Step 7's nine-part test + cross-cutting rules + completeness check (full machinery below). Hard stops only on Criticals and Part 6 (internal consistency); Major / Advisory issues route through Step 8 pushback + Step 9 review output.
+2. **Run the language pass** — Step 7.5's headline + body quality checks.
+3. **Surface the review output** (Step 9) — show the user every issue the gate flagged, with the override-with-reason protocol for non-Critical items. The user either fixes them (back to Phase C for the affected slide) or overrides with a reason that lands in the brief's Flags section.
+4. **Save artifacts and hand off** (Step 9 + Step 10) — write the narrative brief + dot-dash document (.docx + .md + .html) + open-gaps punch list, then route to `/slide-builder` with the resolved template + default layout.
+
+The legacy Steps 7, 7.5, 8, 9, 10 below carry the operational detail. Phase E is the orchestrator; do not duplicate their content here.
+
+#### What lands in the open-gaps punch list
+
+The punch list ships alongside the brief and the dot-dash. It's a deck-level summary of everything the user knows is incomplete going into the build:
+
+- Slides with `evidence_type: qualitative` on load-bearing claims (the user couldn't supply a fact when probed)
+- Open data requests (chart data marked `TBD — placeholder`)
+- Major or Advisory gate issues the user overrode with a reason
+- Any structural decisions made under time pressure that the user flagged for revisit
+
+This list is what a senior reviewer reads before sitting through the deck with the user. It surfaces what was traded off so it isn't discovered live.
+
+---
+
+---
 
 ### Step 7 — The gate: nine-part test + cross-cutting rules + completeness check
 
@@ -711,7 +546,7 @@ If a so-what fails, push back: *"That's the claim again. What belief should the 
 
 **Part 3: editorial emphasis test.**
 
-Each slide must have exactly ONE dominance call. "All elements equal" fails. Three consecutive slides with the same dominance call gets flagged for deck rhythm (see Step 6) but doesn't fail the gate if the user explicitly accepted it during Step 6.
+Each slide must have exactly ONE dominance call. "All elements equal" fails. Three consecutive slides with the same dominance call gets flagged for deck rhythm (see Phase D) but doesn't fail the gate if the user explicitly accepted it during Phase D.
 
 Also check: is the editorial emphasis *consistent* with the so-what? If the so-what is "this is not a compliance problem, it's an information problem" (a reframe), but the editorial emphasis is "the evidence dominates" — that's inconsistent. A reframe needs the conclusion to dominate, or the reframe gets buried under evidence. If inconsistent, push back: *"Your so-what is a reframe, but your editorial emphasis says the evidence should dominate. The reframe is the point — shouldn't it be what the audience sees first?"*
 
@@ -731,11 +566,11 @@ Common failure modes this catches:
 - Missing pivot (every slide is a finding, nothing turns)
 - Buried recommendation (appears at slide 10 but first 9 don't build toward it)
 
-Fail this part → return to Step 5 for the affected slides.
+Fail this part → return to Phase C for the affected slides.
 
 **Part 5: deck-type governing thought test (conditional).**
 
-Apply the check specific to the confirmed deck type from Step 0.7:
+Apply the check specific to the deck type inferred in Phase A (the 7+1 taxonomy):
 
 | Deck type | Check |
 |-----------|-------|
@@ -761,7 +596,7 @@ Examples of what to catch:
 - Slide 1's so-what is *"the program is on track"* → Slide 3's so-what is *"the program is at risk"* — these are not nuance, they are contradictions
 - Two slides cite different numbers for the same metric without explanation — pick one source
 
-If contradictions exist, the gate **fails**. This is a hard stop — **the constructive-pushback / override protocol in Step 8 does not apply here**. Diverging thoughts in the same deck are a structural failure, not a stylistic choice or a deliberate tension. They must be reconciled before the brief is produced. State the contradiction explicitly to the user — *"Slide 3 and Slide 5 say different things about the root cause. Which one is the deck arguing?"* — then re-enter Step 5 for the affected slides.
+If contradictions exist, the gate **fails**. This is a hard stop — **the constructive-pushback / override protocol in Step 8 does not apply here**. Diverging thoughts in the same deck are a structural failure, not a stylistic choice or a deliberate tension. They must be reconciled before the brief is produced. State the contradiction explicitly to the user — *"Slide 3 and Slide 5 say different things about the root cause. Which one is the deck arguing?"* — then re-enter Phase C for the affected slides.
 
 **Part 7: 30-second answer test (deck level).**
 
@@ -770,7 +605,7 @@ Can the deck's answer be stated in 30 seconds? Read the deck-level governing tho
 - Pass: governing thought is one or two sentences, lands the answer immediately.
 - Fail: governing thought needs preamble, lists three things before the verb, or hides the recommendation in subordinate clauses.
 
-If it fails, return to Step 1 — the governing thought needs to be re-compressed. Failure is **Major** in the review output. Override path applies: the user can ship a longer governing thought if they articulate why (e.g., "this audience needs the SCQA setup before the answer").
+If it fails, return to Phase C — the governing thought needs to be re-compressed. Failure is **Major** in the review output. Override path applies: the user can ship a longer governing thought if they articulate why (e.g., "this audience needs the SCQA setup before the answer").
 
 **Part 8: Decision required test (deck level).**
 
@@ -801,7 +636,7 @@ After Parts 1–9, run two universal checks across all slides:
 
 **All nine parts plus the cross-cutting rules sweep plus the brief completeness check must produce no Critical issues and must surface all Major/Advisory issues for the review output.** Downstream quality depends on this gate being strict.
 
-**Brief completeness check (runs alongside the nine parts):** After all nine parts and the cross-cutting rules sweep complete, verify that every slide has a non-empty "What this slide is NOT" field (5d). This field is mandatory — it is not optional detail. A slide brief without a scope exclusion gives Slide Builder no boundary and will produce slides that creep into adjacent content. If any slide is missing 5d, return to Step 5 for that slide and ask: *"What would an inexperienced consultant be tempted to add to this slide that would dilute the argument?"* Do not produce the brief until every slide's 5d is filled.
+**Brief completeness check (runs alongside the nine parts):** After all nine parts and the cross-cutting rules sweep complete, verify that every slide has a non-empty "What this slide is NOT" field (5d). This field is mandatory — it is not optional detail. A slide brief without a scope exclusion gives Slide Builder no boundary and will produce slides that creep into adjacent content. If any slide is missing 5d, return to Phase C for that slide and ask: *"What would an inexperienced consultant be tempted to add to this slide that would dilute the argument?"* Do not produce the brief until every slide's 5d is filled.
 
 Chart data (5e) is only checked when the editorial emphasis calls for a data visualization. If 5e is empty and no chart is needed, that is correct — skip it.
 
@@ -811,7 +646,7 @@ Chart data (5e) is only checked when the editorial emphasis calls for a data vis
 
 ### Step 7.5 — Language quality pass
 
-Run this after the nine-part gate completes and any Critical issues have been fixed, and before producing the brief. It is a separate pass — do not run it slide-by-slide during Step 5 or it will interrupt the structuring flow. Major and Advisory issues from the gate are surfaced via the Step 9 review output, not in this language pass.
+Run this after the nine-part gate completes and any Critical issues have been fixed, and before producing the brief. It is a separate pass — do not run it slide-by-slide during Phase C or it will interrupt the structuring flow. Major and Advisory issues from the gate are surfaced via the Step 9 review output, not in this language pass.
 
 #### Headline quality (governing thoughts)
 
@@ -933,7 +768,7 @@ When a reason is given, append to the brief's `## Flags` section in the format:
 
 #### Save the brief
 
-Once the user has resolved Criticals and handled (fix-or-override) all Majors, save the brief as `_session/narrative-brief-[deck-topic].md` inside the session folder established in Step 0. The brief lives inside `_session/` so the human-readable dot-dash storyline (next step) is the only file the user sees at the session root.
+Once the user has resolved Criticals and handled (fix-or-override) all Majors, save the brief as `_session/narrative-brief-[deck-topic].md` inside the session folder established in Phase E. The brief lives inside `_session/` so the human-readable dot-dash storyline (next step) is the only file the user sees at the session root.
 
 **Auto-inject `default_layout` into the front-matter (required, 2026-06-11).** Before saving the brief, read the registered template's `theme.json` (located next to the `.pptx` at `<template-stem>.theme.json` OR in the sidecar subfolder `<template-stem>/theme.json` depending on registration era). Extract the `default_content_layout` field and inject it into the brief's YAML front-matter as `default_layout: <value>`. This stops the build-time silent gap where build_deck.py couldn't find a default layout and fell into mid-build error.
 
@@ -1013,7 +848,7 @@ py -3 skills/slide-builder/scripts/register_template.py commit <client-template.
 
 Once `<stem>.brand.yml` exists, slide-builder's Stage-1 sanity check passes and the build can proceed.
 
-When the user confirms the brief, **first verify the brief starts with the YAML front-matter block** (see "Narrative brief format" below). The front-matter MUST include `client_template:` and `deck_type:` keys with the values captured in Step 0. If you wrote the brief without front-matter, prepend it now before handoff — slide-builder reads this to skip its own template prompt.
+When the user confirms the brief, **first verify the brief starts with the YAML front-matter block** (see "Narrative brief format" below). The front-matter MUST include `client_template:` and `deck_type:` keys with the values captured in Phase E. If you wrote the brief without front-matter, prepend it now before handoff — slide-builder reads this to skip its own template prompt.
 
 Then invoke the `slide-builder` skill using the Skill tool:
 Skill tool call: `skill="slide-builder"`, args=`"[absolute path to _session/narrative-brief-[topic].md file]"`
@@ -1031,7 +866,7 @@ Slide Builder reads the narrative brief from the session folder, builds each sli
 
 ## Narrative brief format
 
-Saved as `_session/narrative-brief-[topic].md` inside the session folder (established in Step 0). The companion `dot-dash-[topic].md` at the session root is generated from this file via `emit_dot_dash.py`:
+Saved as `_session/narrative-brief-[topic].md` inside the session folder (established in Phase E). The companion `dot-dash-[topic].md` at the session root is generated from this file via `emit_dot_dash.py`:
 
 **The brief MUST start with YAML front-matter** so slide-builder can read the client template path and deck type without re-asking the user. The front-matter is everything between the two `---` fences at the very top of the file.
 
@@ -1050,7 +885,7 @@ storyline_gate_sha256: <hex sha256 of body>   # required — body integrity chec
 # Narrative brief: [topic]
 
 ## Deck type
-[One of the 7 canonical types from Step 0.7 (Recommendation / POV, Business Case, Diagnosis, Operating Review, Capability Pitch, Workshop Readout, Workshop Design) — or "Training / Enablement" for the edge case. Use the EXACT label from Step 0.7.]
+[One of the 7 canonical types from Phase A's internal taxonomy (Recommendation / POV, Business Case, Diagnosis, Operating Review, Capability Pitch, Workshop Readout, Workshop Design) — or "Training / Enablement" for the edge case. Use the EXACT label from Phase A's taxonomy.]
 
 ## Narrative framework
 [The chosen communication spine — e.g., "SCR (Situation → Complication → Resolution)"]
@@ -1268,9 +1103,9 @@ If the user picks Edit, ask what they want to change. If the user picks Review, 
 
 ## Workshop Design Coaching Overlay
 
-When the deck type confirmed in Step 0.7 is **Workshop Design**, use this overlay instead of the standard Step 0.5 intent questions and Step 1 governing thought.
+When the deck type inferred in Phase A is **Workshop Design**, use this overlay instead of the standard Phase A intent questions and Phase B governing thought.
 
-When the deck type is **Workshop Design**, replace the standard Step 0.5 intent questions and the Step 1 governing thought with this coaching flow instead. The narrative gate (governing thought, so-what, editorial emphasis) does not apply to agenda and session objective pages — they are not arguments.
+When the deck type is **Workshop Design**, replace the standard Phase A intent questions and the Phase B governing thought with this coaching flow instead. The narrative gate (governing thought, so-what, editorial emphasis) does not apply to agenda and session objective pages — they are not arguments.
 
 **Four workshop-specific intent questions (ask together, not one at a time):**
 
@@ -1290,7 +1125,7 @@ When the deck type is **Workshop Design**, replace the standard Step 0.5 intent 
 | Pre-work ask | What participants need to prepare or bring | Must be specific — "read the attached 2-pager" not "come prepared" |
 | Ground rules | How the session will run | Optional; include when the client group is large, cross-functional, or has known dynamics |
 
-**Step 1 replacement for Workshop Design:** Instead of asking for a governing thought, ask:
+**Phase B replacement for Workshop Design:** Instead of asking for a governing thought, ask:
 
 > *"What's the one sentence that tells a participant why this workshop is worth their full day? Not the agenda — the reason."*
 
