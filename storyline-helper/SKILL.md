@@ -927,6 +927,21 @@ EVERY bullet under content MUST use the format `**HEADING** — body sentence(s)
 - **[Card heading 2]** — [body sentence]
 - **[Card heading 3]** — [body sentence]
 
+**Optional per-bullet evidence metadata.** A bullet may carry indented
+`evidence_type:` and `source:` sub-lines. These are captured as metadata —
+they never render as prose dashes in the dot-dash. `evidence_type: qualitative`
+flags a claim with no data anchor (it gets a quiet "(qualitative)" marker in the
+dot-dash and is listed in the Open-gaps section); `evidence_type: fact` with a
+`source:` records where the fact came from for audit.
+
+```
+- **SPEND UP** — Vendor spend rose 23% YoY to $14M.
+  evidence_type: fact
+  source: Finance pull, FY25
+- **TEAMS FRUSTRATED** — The ops team feels the multi-vendor overhead daily.
+  evidence_type: qualitative
+```
+
 For pillar / column / option structures, prefix the bold heading with a label segment in CAPS if the slide will show one:
 
 - **TRAINING GAP · The rigor was never taught** — Most consultants never learned it. McKinsey built it in. Most firms don't.
