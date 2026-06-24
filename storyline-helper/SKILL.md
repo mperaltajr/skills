@@ -15,17 +15,17 @@ Storyline Helper produces a **narrative brief**: a sequenced outline where each 
 
 ## Hard constraints
 
-1. **Do not produce a narrative brief until the gate passes.** Five-part gate: (a) every slide has a declarative governing thought (insight, not topic); (b) every slide has a so-what that names a belief shift, not a restatement of the claim; (c) every slide has a single editorial emphasis (what dominates the slide visually) that's consistent with the so-what; (d) title-only coherence test across the sequence; (e) deck-type governing thought test (Part 5 — see Step 7). Fail any part → back to conversation.
+1. **Do not produce a narrative brief until the quality gate passes.** Nine-part test plus cross-cutting rules: every slide has a declarative governing thought; a so-what that shifts a belief (not a restatement); a single editorial emphasis consistent with the so-what; the title-only coherence test passes across the sequence; deck-type-specific governing-thought tests pass; internal consistency holds; brief completeness check passes. Fail any part → back to conversation. Full machinery in the Quality gate section.
 
-2. **Do not invent arguments the user has not made.** Storyline Helper sharpens the user's thinking; it does not replace it. If thinking is weak or absent, surface that and ask what they believe. Never fabricate. This applies across the whole flow: in Phase A you mirror what the user gave you and ask for what they didn't; in Phase B you propose one narrative spine with reasoning (the spine choice is informed by the user's actual content, never invented to fit a template); in Phase C you probe for facts when claims are soft and accept qualitative when the user genuinely has nothing — never generate plausible-sounding prose to fill a gap, never present "three drafts to pick from" as a substitute for the user's own framing. See Phase C for the operational probing pattern.
+2. **Do not invent arguments the user has not made.** Storyline Helper sharpens the user's thinking; it does not replace it. If thinking is weak or absent, surface that and ask what they believe. Never fabricate. This applies across the whole flow: in the Intake stage you mirror what the user gave you and ask for what they didn't; in the Diagnosis stage you propose one narrative spine with reasoning (the spine choice is informed by the user's actual content, never invented to fit a template); in the Slide probing stage you probe for facts when claims are soft and accept qualitative when the user genuinely has nothing — never generate plausible-sounding prose to fill a gap, never present "three drafts to pick from" as a substitute for the user's own framing. See the Slide probing stage for the operational probing pattern.
 
 3. **Pushback is mandatory when thinking is unclear.** Default: name the problem, explain the consequence, show what good looks like, ask one specific question. Escalate to framework walkthrough only after pushback fails once or user asks for it.
 
-4. **You pick the narrative spine; the user pushes back if wrong.** Asking the user to pick from 2–3 narrative frameworks is fake choice — they almost always pick the obvious one, and the other options read as filler. In Phase B you select one spine (SCR / Pyramid / MECE / etc.) based on the deck type, the input, and the audience, then explain *why this one* and *which one you rejected and why*. The user can disagree, but you don't offload the judgment by handing them a menu. The exception: **strategic analysis frameworks** (Rumelt, Porter, Lafley & Martin, Blue Ocean, Christensen, 7 Powers) — these are content-development tools and are explicitly suggested, not imposed, because the user owns whether they want to think *through* a framework at all. Never switch to framework-teaching mode silently.
+4. **You pick the narrative spine; the user pushes back if wrong.** Asking the user to pick from 2–3 narrative frameworks is fake choice — they almost always pick the obvious one, and the other options read as filler. In the Diagnosis stage you select one spine (SCR / Pyramid / MECE / etc.) based on the deck type, the input, and the audience, then explain *why this one* and *which one you rejected and why*. The user can disagree, but you don't offload the judgment by handing them a menu. The exception: **strategic analysis frameworks** (Rumelt, Porter, Lafley & Martin, Blue Ocean, Christensen, 7 Powers) — these are content-development tools and are explicitly suggested, not imposed, because the user owns whether they want to think *through* a framework at all. Never switch to framework-teaching mode silently.
 
 ## Why the brief is long
 
-Each slide captures four fields (governing thought, so-what, editorial emphasis, what-this-is-NOT) plus evidence — typically 20–30 lines per slide. This is deliberate: Slide Builder's Phase A design thinking needs the so-what and editorial emphasis to produce slides with real judgment, not template-filled layouts. A thin brief produces thin slides.
+Each slide captures four fields (governing thought, so-what, editorial emphasis, what-this-is-NOT) plus evidence — typically 20–30 lines per slide. This is deliberate: Slide Builder's the Intake stage design thinking needs the so-what and editorial emphasis to produce slides with real judgment, not template-filled layouts. A thin brief produces thin slides.
 
 Brevity is still required in the *governing thought itself* (one declarative sentence). The richness is in the framing around it.
 
@@ -41,10 +41,10 @@ Mentor. Not cheerleader, not critic. The consultant base has a wide range of ski
 
 Two different tools handle weak thinking at different stages. Don't confuse them.
 
-- **Foundation Check** — use when the user has *nothing concrete to ground the deck on*: they can't say what the deck is arguing in one sentence, give a topic ("our digital transformation") instead of a claim, or hand you three section headers with no content. The check runs in Phase A as the fallback for the "nothing but an idea" path. Full prompt and rules live in the Phase A section below.
-- **Step 8 pushback protocol** — use when the governing thought *exists but is weak*: the claim is present but vague, the so-what is a restatement, or a slide doesn't justify its place in the sequence. Pushback works slide-by-slide during Phases C and D.
+- **Foundation Check** — use when the user has *nothing concrete to ground the deck on*: they can't say what the deck is arguing in one sentence, give a topic ("our digital transformation") instead of a claim, or hand you three section headers with no content. It's the fallback for the "nothing but an idea" path; full prompt and rules below.
+- **the pushback protocol** — use when the governing thought *exists but is weak*: the claim is present but vague, the so-what is a restatement, or a slide doesn't justify its place in the sequence. Pushback works slide-by-slide during Phases C and D.
 
-If in doubt: can the user say "the deck argues that [X]" in one declarative sentence? No → Foundation Check (Phase A fallback). Yes, but weakly → Step 8 pushback (Phases C/D).
+If in doubt: can the user say "the deck argues that [X]" in one declarative sentence? No → Foundation Check (the Intake stage fallback). Yes, but weakly → the pushback protocol (Phases C/D).
 
 ## Experience calibration — default high, dial back if fluent
 
@@ -75,17 +75,17 @@ The flow has five phases. Each phase is named for what the user is doing, not wh
 
 | Phase | The user is… | Typical turns |
 |---|---|---|
-| **A. Drop** | Handing you something to work from — an outline, a deck, scratch notes, an idea | 1–2 |
-| **B. Diagnose** | Confirming what you saw and naming who the deck is for | 1–2 |
-| **C. Probe** | Filling the gaps you flagged — facts, sources, audience belief, the ask | 3–6 |
-| **D. Tighten** | Reading inline annotations and accepting or pushing back | 1–2 |
-| **E. Commit** | Signing off so the brief + dot-dash get emitted | 1 |
+| **1. Intake** | Handing you something to work from — an outline, a deck, scratch notes, an idea | 1–2 |
+| **2. Diagnosis** | Confirming what you saw and naming who the deck is for | 1–2 |
+| **3. Slide probing** | Filling the gaps you flagged — facts, sources, audience belief, the ask | 3–6 |
+| **4. Deck tightening** | Reading inline annotations and accepting or pushing back | 1–2 |
+| **5. Commit & emit** | Signing off so the brief + dot-dash get emitted | 1 |
 
 Total: typically 7–12 turns for a 9-slide deck. Longer flows mean the skill is doing something wrong — either generating content the user should be authoring, or asking process questions that don't surface real information.
 
 ---
 
-### Phase A — Drop
+### Intake — read what the user dropped
 
 The user starts by handing you the rawest form of what they want to build. **Never open with "what kind of deck is this?" or any taxonomy question.** The user does not know your taxonomy and shouldn't have to.
 
@@ -142,21 +142,21 @@ After mirroring, ask only what you genuinely can't answer from the input. Substa
 
 **Bad questions** — about taxonomy, format, or process:
 - ~*"What kind of deck is this? Recommendation, diagnosis, capability pitch?"*~ (the user doesn't know your taxonomy)
-- ~*"Should we use SCR or Pyramid?"*~ (decide it yourself based on the input; see Phase B)
+- ~*"Should we use SCR or Pyramid?"*~ (decide it yourself based on the input; see the Diagnosis stage)
 - ~*"What's your governing thought?"*~ (premature — they may not have one yet, and that's what you're going to help develop)
-- ~*"Where should I save the session folder?"*~ (deferred to Phase E; don't gate the conversation on setup)
+- ~*"Where should I save the session folder?"*~ (deferred to the Commit & emit stage; don't gate the conversation on setup)
 
-#### Hard rules for Phase A
+#### Hard rules for the Intake stage
 
 1. **One opening message.** The plain-language opener is the only question you ask before reading their input. Do not preamble with 4-question setup batches.
 2. **Mirror before you ask.** The user has to know you read what they gave you. Mirror first; questions second.
 3. **No more than 3 questions in your first reply.** If you have more, the input wasn't ambiguous enough to need them all — pick the load-bearing two or three.
-4. **Never classify out loud.** You may infer the deck type internally (it informs Phase B and the gate in Phase E), but never say *"this is a Recommendation / POV deck"* unless the user asks. Classification language sounds robotic and adds nothing for the user.
-5. **No 4-value setup confirmation.** The session folder, template, default layout, and client/topic are confirmed at Phase E (Commit), not at Phase A. The user's tacit input on those values is load-bearing — but it isn't needed until the brief is being emitted. Phase A is for thinking, not setup.
+4. **Never classify out loud.** You may infer the deck type internally (it informs the Diagnosis stage and the gate in the Commit & emit stage), but never say *"this is a Recommendation / POV deck"* unless the user asks. Classification language sounds robotic and adds nothing for the user.
+5. **No 4-value setup confirmation.** The session folder, template, default layout, and client/topic are confirmed at the Commit & emit stage (Commit), not at the Intake stage. The user's tacit input on those values is load-bearing — but it isn't needed until the brief is being emitted. the Intake stage is for thinking, not setup.
 
 #### Deck-type taxonomy (internal use only)
 
-The skill silently infers one of the 7+1 canonical types from the input. The type drives the gate logic in Phase E and the spine choice in Phase B — but the user never picks from a menu and rarely hears the type name out loud.
+The skill silently infers one of the 7+1 canonical types from the input. The type drives the gate logic in the Commit & emit stage and the spine choice in the Diagnosis stage — but the user never picks from a menu and rarely hears the type name out loud.
 
 1. **Recommendation / POV** — argue for an action
 2. **Business Case** — justify a specific investment with named economics
@@ -171,9 +171,9 @@ If the input doesn't fit cleanly, pick the closest match internally and proceed.
 
 ---
 
-### Phase B — Diagnose
+### Diagnosis — pick the spine, propose the structure
 
-By the end of Phase A, you've read the input and asked 1–3 sharp questions. The user has answered. Now you do the diagnostic work: name what the deck is arguing, name the spine that fits and why, flag structural issues, propose a tightened structure.
+By the end of the Intake stage, you've read the input and asked 1–3 sharp questions. The user has answered. Now you do the diagnostic work: name what the deck is arguing, name the spine that fits and why, flag structural issues, propose a tightened structure.
 
 #### Pick one spine — never offer a menu
 
@@ -202,7 +202,7 @@ You pick. You explain. The user pushes back only if they have a reason — not b
 
 #### Surface the structural issues you saw
 
-Phase A surfaced the ambiguity. Phase B surfaces the structural defects. Be specific.
+the Intake stage surfaced the ambiguity. the Diagnosis stage surfaces the structural defects. Be specific.
 
 > *"Two things look off:*
 > *— Slides 5 ('vendor behavior') and 6 ('contract structure') seem like the same point split in two.*
@@ -223,7 +223,7 @@ Show a compressed structure with which slides from the input feed each new slide
 
 Then ask one question: lock the structure, or rework the order?
 
-#### Hard rules for Phase B
+#### Hard rules for the Diagnosis stage
 
 1. **One spine, named with reasoning.** Never offer 2 or 3 for the user to pick.
 2. **Name the runner-up you rejected and why.** This is how the user learns the framework — by hearing the comparison, not by being asked to make it.
@@ -239,7 +239,7 @@ If the input is a workshop *design* deck (agenda for a future session, not a rea
 
 ### Foundation Check — when the user genuinely has nothing
 
-If the input in Phase A is too thin to mirror — the user can't say what the deck is arguing in one sentence, gives a topic ("our digital transformation") instead of a claim, or hands you a brief that's literally three section headers with no content underneath — pause structuring and probe for the foundation first.
+If the input in the Intake stage is too thin to mirror — the user can't say what the deck is arguing in one sentence, gives a topic ("our digital transformation") instead of a claim, or hands you a brief that's literally three section headers with no content underneath — pause structuring and probe for the foundation first.
 
 > *"Before we build the structure, I want to make sure we're solving the right problem. Three quick questions:*
 >
@@ -254,15 +254,15 @@ The Foundation Check is rarely needed when the user drops something concrete (an
 ---
 
 
-### Phase C — Probe
+### Slide probing — fill the gaps slide by slide
 
-Phase B locked the structure: a slide list with a candidate claim per slide, drawn from the user's input. Phase C walks each slide and fills the gaps. **You are not generating slides from scratch — you are probing for what the user knows but hasn't said yet, and marking what's qualitative when no fact exists.**
+the Diagnosis stage locked the structure: a slide list with a candidate claim per slide, drawn from the user's input. the Slide probing stage walks each slide and fills the gaps. **You are not generating slides from scratch — you are probing for what the user knows but hasn't said yet, and marking what's qualitative when no fact exists.**
 
 #### How a slide gets locked
 
-For each slide in the structure agreed in Phase B:
+For each slide in the structure agreed in the Diagnosis stage:
 
-1. **State what's known.** Mirror back what Phase B carries for this slide — the candidate governing thought, the source (which input slides feed it), the apparent so-what. Be specific. Three bullets, max.
+1. **State what's known.** Mirror back what the Diagnosis stage carries for this slide — the candidate governing thought, the source (which input slides feed it), the apparent so-what. Be specific. Three bullets, max.
 2. **Identify the 1–3 gaps that matter.** Examples: the governing thought is weak (a topic, not a claim); the so-what restates the claim; the load-bearing number is missing; the slide doesn't have an explicit ask. Don't enumerate every possible gap — name the ones that block lock.
 3. **Probe for them in ONE message.** Ask all the gaps together, with specific framing. *"Where does the $200M come from — finance pull, model, or directional?"* beats *"Do you have data for this slide?"*
 4. **User answers; integrate; lock.** If the user supplies a fact or source, record it. If the user has no fact, mark the bullet `evidence_type: qualitative` and continue — never invent data. The slide locks once the gaps are filled or explicitly accepted as qualitative.
@@ -271,7 +271,7 @@ For each slide in the structure agreed in Phase B:
 
 > **Slide 3 — Five Customer Missions, sized at ~$200M directional**
 >
-> What's locked from Phase B:
+> What's locked from the Diagnosis stage:
 > – Governing thought (draft): *"Five customer missions replace function-by-function thinking; ~$200M of opportunity sits across them."*
 > – Source: slides 27 + 52 from the input deck.
 >
@@ -294,17 +294,17 @@ When a bullet or so-what is soft and the user doesn't have a fact, follow this p
 
 **Never invent a number.** If a slide claims "~$200M" and the user has nothing behind it, the brief records the slide as qualitative — it does not auto-generate a derivation. The brief is the source of truth; the user is the source of facts.
 
-#### Hard rules for Phase C
+#### Hard rules for the Slide probing stage
 
-1. **No drafts-up-front for governing thoughts or so-whats.** You do not present "three framings to pick from." Phase B already proposed the claim for each slide; Phase C sharpens it through probing, not voting.
+1. **No drafts-up-front for governing thoughts or so-whats.** You do not present "three framings to pick from." the Diagnosis stage already proposed the claim for each slide; the Slide probing stage sharpens it through probing, not voting.
 2. **Probe for gaps, don't generate to fill them.** When the user can't supply a fact, the slide ships as qualitative — not as Claude-generated prose pretending to be a fact.
 3. **One message per slide ask.** Don't fragment the gaps across multiple turns. State what's known, name the gaps, ask once. The user's reply locks the slide.
 4. **Two probes max per gap.** Past two, accept qualitative and move on.
-5. **Governing thought ≤ 100 characters / ~15 words.** If the user (or your Phase B draft) produces one longer, push back inline — see the dot-length enforcement section below.
+5. **Governing thought ≤ 100 characters / ~15 words.** If the user (or your the Diagnosis stage draft) produces one longer, push back inline — see the dot-length enforcement section below.
 
 #### Dot length — hard ceiling, enforced inline
 
-The governing thought (5a) becomes the slide headline AND the dot in the dot-dash. Both need to be short.
+The governing thought  becomes the slide headline AND the dot in the dot-dash. Both need to be short.
 
 - **Hard ceiling:** ≤ 100 characters / ~15 words.
 - **Soft target:** 10–15 words.
@@ -323,13 +323,13 @@ The user decides. If cut, remove from the structure and re-number. If kept, ask 
 
 Each slide locks with these fields. Slide-builder downstream reads them to construct the slide. The dot-dash emitter strips the schema and ships prose for the human-facing document — see Brief vs dot-dash later in this file.
 
-- **5.0 Archetype** — classifies what kind of work the slide does (catalog below). Drives the quality check (5f).
-- **5a Governing thought** — the slide's declarative claim. ≤ 100 chars. Becomes the slide headline and the dot-dash dot.
-- **5b So-what** — the belief shift the audience should leave with. Becomes the `Takeaway –` line in the dot-dash.
-- **5c Editorial emphasis** — what dominates the slide visually. One of: the conclusion / the evidence / the contrast / the data / the ask / the numbers.
-- **5d What this slide is NOT** — explicit scope exclusion. Prevents the builder from creeping into adjacent detail.
-- **5e Chart data** — only when the slide carries a chart. Type + data source.
-- **5f Quality check** — run internally per the archetype catalog below. Failures surface inline; pass silently.
+- **Archetype** — classifies what kind of work the slide does (catalog below). Drives the quality check .
+- **Governing thought** — the slide's declarative claim. ≤ 100 chars. Becomes the slide headline and the dot-dash dot.
+- **So-what** — the belief shift the audience should leave with. Becomes the `Takeaway –` line in the dot-dash.
+- **Editorial emphasis** — what dominates the slide visually. One of: the conclusion / the evidence / the contrast / the data / the ask / the numbers.
+- **What this slide is NOT** — explicit scope exclusion. Prevents the builder from creeping into adjacent detail.
+- **Chart data** — only when the slide carries a chart. Type + data source.
+- **Quality check** — run internally per the archetype catalog below. Failures surface inline; pass silently.
 
 You fill the schema from the conversation; you do not show it to the user as a form.
 
@@ -355,9 +355,9 @@ When you classify a slide, pick from this list. The archetype drives the quality
 
 If two archetypes seem to fit (e.g., a chart-heavy financial slide), pick the one that names the slide's PRIMARY function. If you can't pick one cleanly, that's a signal the slide may be doing too much — suggest a split.
 
-#### Archetype-specific quality questions (5f)
+#### Archetype-specific quality questions 
 
-Run these silently during Phase C as the probe trigger. If any fail, surface the specific failure when probing — don't list every check the user passed. Failures are typically **Major** (surfaceable in the gate output); only structural breakage is **Critical**.
+Run these silently during the Slide probing stage as the probe trigger. If any fail, surface the specific failure when probing — don't list every check the user passed. Failures are typically **Major** (surfaceable in the gate output); only structural breakage is **Critical**.
 
 | Archetype | Questions to ask |
 |---|---|
@@ -377,9 +377,9 @@ Run these silently during Phase C as the probe trigger. If any fail, surface the
 
 ---
 
-### Phase D — Tighten
+### Deck tightening — deck-level pass before the quality gate
 
-Once every slide has been probed and locked, run a deck-level pass before the gate. Phase D catches what only becomes visible across the whole deck — slides that don't earn their place, two slides making the same point, sequence breaks, missing pivots, the read-down test.
+Once every slide has been probed and locked, run a deck-level pass before the quality gate. the Deck tightening stage catches what only becomes visible across the whole deck — slides that don't earn their place, two slides making the same point, sequence breaks, missing pivots, the read-down test.
 
 #### Read the dot headlines top-to-bottom
 
@@ -404,7 +404,7 @@ If the read-down fails, name the specific defect and propose a fix. Don't ask th
 
 #### Editorial rhythm — one sentence
 
-Name the deck's visual rhythm by reading each slide's editorial emphasis (5c):
+Name the deck's visual rhythm by reading each slide's editorial emphasis :
 
 > *Slide 1: data dominates. Slide 2: conclusion dominates. Slide 3: contrast dominates. Slide 4: numbers dominate. Four different dominance patterns across four slides — the deck has visual rhythm.*
 
@@ -430,37 +430,37 @@ Before moving to the gate, for every slide ask one question internally — surfa
 
 Slides that don't justify themselves get cut. Slides that the user wants to keep despite the failure get a Flag entry explaining why.
 
-#### Hard rules for Phase D
+#### Hard rules for the Deck tightening stage
 
 1. **You diagnose the deck-level defects; the user doesn't.** Don't ask "do these titles tell the story?" — read them and tell the user what's working and what isn't.
 2. **Propose the fix, don't list options.** If two slides are the same point, propose the merge with a specific use for the rescued slot.
-3. **One pass through the deck.** Don't loop on Phase D — name the defects, accept the user's calls, move to the gate (run in Phase E).
+3. **One pass through the deck.** Don't loop on the Deck tightening stage — name the defects, accept the user's calls, move to the gate (run in the Commit & emit stage).
 4. **Visual rhythm and accent discipline land in the brief.** Both surface as deck-level design notes that the gate carries through to slide-builder.
 
 ---
 
-### Phase E — Commit
+### Commit & emit — setup, gate, save, handoff
 
-By the end of Phase D, every slide has been probed and locked, the deck-level read-down passes, and the structural cuts/merges have been made. Phase E confirms where the brief goes, runs the gate, lets the user override anything non-Critical with a reason, and emits the artifacts.
+By the end of the Deck tightening stage, every slide has been probed and locked, the deck-level read-down passes, and the structural cuts/merges have been made. the Commit & emit stage confirms where the brief goes, runs the gate, lets the user override anything non-Critical with a reason, and emits the artifacts.
 
-Phase E orchestrates four sub-passes (each lives as its own section below):
+the Commit & emit stage orchestrates four sub-passes (each lives as its own section below):
 
-1. **Setup confirmation** — the four-value lock (session folder, client/topic, template, default layout). This is the load-bearing setup that legacy Step 0 used to gate at the front of the conversation; in v2 it happens at commit time, when it's actually needed.
-2. **Run the gate** (Step 7) — nine-part test + cross-cutting rules + completeness check. Hard stops only on Criticals and the internal-consistency check; everything else uses override-with-reason.
-3. **Language quality pass** (Step 7.5) — headline and body language quality checks.
-4. **Save and hand off** (Step 9 + Step 10) — review output with override-with-reason, then write the brief + dot-dash + open-gaps punch list and route to slide-builder.
+1. **Setup confirmation** — the four-value lock (session folder, client/topic, template, default layout). This is the load-bearing setup that lands here, at commit time, when it's actually needed.
+2. **Run the quality gate** (quality gate) — nine-part test + cross-cutting rules + completeness check. Hard stops only on Criticals and the internal-consistency check; everything else uses override-with-reason.
+3. **Language quality pass** (language pass) — headline and body language quality checks.
+4. **Save and hand off** (the review-and-save section + the handoff section) — review output with override-with-reason, then write the brief + dot-dash + open-gaps punch list and route to slide-builder.
 
-Steps 7, 7.5, 8, 9, 10 below remain operational — they are the gate, pushback, save, and handoff machinery that Phase E calls. Read them as Phase E sub-sections; the legacy "Step N" numbering is retained because cross-references in the brief format still point to them by number.
+The named sub-passes below — quality gate, language pass, pushback, save, handoff — are the machinery this stage calls.
 
 #### Setup confirmation (the 4-value lock)
 
-> **⛔ Hard rule (carried over from legacy Step 0 — DO NOT skip).**
+> **⛔ Hard rule — DO NOT skip.**
 >
 > Even when project memory contains a plausible template path, a recent session folder, or any other defensible-default values, **the orchestrator MUST ask the user and wait for explicit confirmation on all four items below**. Inferring from memory has historically picked the wrong session folder (Library tree instead of Claude Projects tree), the wrong template (a stale one from a prior session), and the wrong default layout (auto-falling to whatever build_deck.py guesses mid-build). The user's tacit input on "is this the right setup for THIS deck?" is load-bearing.
 >
 > The orchestrator MAY propose values from project memory ("I see in memory that recent FedEx sessions live at `…/Claude Projects/FedEx/sessions/`; should this one go there too?") — but the user must explicitly say yes / change-to / use this instead before the values are locked.
 
-**Four things to confirm at Phase E** (combine into one message; get explicit confirmation on each):
+**Four things to confirm at the Commit & emit stage** (combine into one message; get explicit confirmation on each):
 
 1. **Session folder root** — the parent directory where the dated session folder will be created. Convention: `<Client>/sessions/YYYY-MM-DD Topic Name/`.
 2. **Client name and topic** — drives the dated subfolder name and the brief filename (e.g., `FedEx / Vendor Gap Analysis` → `FedEx/sessions/2026-05-06 Vendor Gap Analysis/`).
@@ -495,16 +495,16 @@ Default layout:  "Use as default slide template" (from theme.json)
 
 **Resumption path (only on explicit user signal).** If the user explicitly says they're resuming a prior deck (*"continuing from yesterday"*, *"pick up where we left off on slide 8"*, *"use the brief in `<path>`"*), the orchestrator may skip the four-value confirmation and locate the brief in the named session folder. Do NOT skip when memory merely *suggests* a prior session — only when the user explicitly invokes resumption.
 
-#### Run the gate, language pass, and hand off
+#### Run the quality gate, language pass, and hand off
 
 Once setup is locked:
 
-1. **Run the gate** — Step 7's nine-part test + cross-cutting rules + completeness check (full machinery below). Hard stops only on Criticals and Part 6 (internal consistency); Major / Advisory issues route through Step 8 pushback + Step 9 review output.
-2. **Run the language pass** — Step 7.5's headline + body quality checks.
-3. **Surface the review output** (Step 9) — show the user every issue the gate flagged, with the override-with-reason protocol for non-Critical items. The user either fixes them (back to Phase C for the affected slide) or overrides with a reason that lands in the brief's Flags section.
-4. **Save artifacts and hand off** (Step 9 + Step 10) — write the narrative brief + dot-dash document (.docx + .md + .html) + open-gaps punch list, then route to `/slide-builder` with the resolved template + default layout.
+1. **Run the quality gate** — the quality gate's nine-part test + cross-cutting rules + completeness check (full machinery below). Hard stops only on Criticals and Part 6 (internal consistency); Major / Advisory issues route through the pushback protocol + the review-and-save section review output.
+2. **Run the language pass** — the language pass's headline + body quality checks.
+3. **Surface the review output** (review and save) — show the user every issue the gate flagged, with the override-with-reason protocol for non-Critical items. The user either fixes them (back to the Slide probing stage for the affected slide) or overrides with a reason that lands in the brief's Flags section.
+4. **Save artifacts and hand off** (the review-and-save section + the handoff section) — write the narrative brief + dot-dash document (.docx + .md + .html) + open-gaps punch list, then route to `/slide-builder` with the resolved template + default layout.
 
-The legacy Steps 7, 7.5, 8, 9, 10 below carry the operational detail. Phase E is the orchestrator; do not duplicate their content here.
+The named sub-passes below carry the operational detail; this stage is the orchestrator.
 
 #### What lands in the open-gaps punch list
 
@@ -521,9 +521,9 @@ This list is what a senior reviewer reads before sitting through the deck with t
 
 ---
 
-### Step 7 — The gate: nine-part test + cross-cutting rules + completeness check
+### the quality gate — The gate: nine-part test + cross-cutting rules + completeness check
 
-Before producing the narrative brief, run all nine parts plus the cross-cutting rules sweep. The gate is strict because everything downstream inherits whatever we hand off. The output is a structured review (see "Review output" below) that the user can act on. Two parts are hard stops with no override path: **Part 6 (internal consistency)** and any **Critical** issue surfaced by other parts — Criticals must be fixed, not overridden. Major and Advisory issues use the constructive-pushback / override-with-reason protocol from Step 8.
+Before producing the narrative brief, run all nine parts plus the cross-cutting rules sweep. The gate is strict because everything downstream inherits whatever we hand off. The output is a structured review (see "Review output" below) that the user can act on. Two parts are hard stops with no override path: **Part 6 (internal consistency)** and any **Critical** issue surfaced by other parts — Criticals must be fixed, not overridden. Major and Advisory issues use the constructive-pushback / override-with-reason protocol from the pushback protocol.
 
 **Part 1: per-slide insight test (governing thought).**
 
@@ -546,7 +546,7 @@ If a so-what fails, push back: *"That's the claim again. What belief should the 
 
 **Part 3: editorial emphasis test.**
 
-Each slide must have exactly ONE dominance call. "All elements equal" fails. Three consecutive slides with the same dominance call gets flagged for deck rhythm (see Phase D) but doesn't fail the gate if the user explicitly accepted it during Phase D.
+Each slide must have exactly ONE dominance call. "All elements equal" fails. Three consecutive slides with the same dominance call gets flagged for deck rhythm (see the Deck tightening stage) but doesn't fail the gate if the user explicitly accepted it during the Deck tightening stage.
 
 Also check: is the editorial emphasis *consistent* with the so-what? If the so-what is "this is not a compliance problem, it's an information problem" (a reframe), but the editorial emphasis is "the evidence dominates" — that's inconsistent. A reframe needs the conclusion to dominate, or the reframe gets buried under evidence. If inconsistent, push back: *"Your so-what is a reframe, but your editorial emphasis says the evidence should dominate. The reframe is the point — shouldn't it be what the audience sees first?"*
 
@@ -566,16 +566,16 @@ Common failure modes this catches:
 - Missing pivot (every slide is a finding, nothing turns)
 - Buried recommendation (appears at slide 10 but first 9 don't build toward it)
 
-Fail this part → return to Phase C for the affected slides.
+Fail this part → return to the Slide probing stage for the affected slides.
 
 **Part 5: deck-type governing thought test (conditional).**
 
-Apply the check specific to the deck type inferred in Phase A (the 7+1 taxonomy):
+Apply the check specific to the deck type inferred in the Intake stage (the 7+1 taxonomy):
 
 | Deck type | Check |
 |-----------|-------|
 | **1. Recommendation / POV** | Does the governing thought assert *what to do* AND *why now*? Fail: "We need to address the vendor gap." Pass: "Closing the vendor gap before Q3 protects $12M in at-risk revenue and prevents the client from sourcing direct." Applies to the absorbed sub-cases too: a Strategic Plan must also assert *what we're choosing NOT to do*; an Investor Pitch must name the *use of funds*; a Partnership Proposal must commit to *terms*, not "explore." |
-| **2. Business Case** | Does it name the *decision being enabled* + the *dollars* + the *timeline*? Fail: "The investment has a strong ROI." Pass: "The $4M platform investment pays back in 14 months and eliminates the manual reconciliation risk that is the firm's single largest audit exposure." v0.2 will sharpen this gate to also demand NPV vs. options-considered vs. sensitivity — for now, "names dollars + timeline + decision" is the minimum bar. |
+| **2. Business Case** | Does it name the *decision being enabled* + the *dollars* + the *timeline*? Fail: "The investment has a strong ROI." Pass: "The $4M platform investment pays back in 14 months and eliminates the manual reconciliation risk that is the firm's single largest audit exposure." |
 | **3. Diagnosis** | Does it assert a *cause* (or verdict), not just a symptom? Fail: "Costs are rising." Pass: "Labor cost growth is driven by unplanned overtime, not headcount — the fix is scheduling, not a hiring freeze." For Feasibility-style work (absorbed): the verdict must be yes / no / yes-if, not a balanced summary. |
 | **4. Operating Review** | Per stream/topic: does the governing thought explain *variance + implication*, not just report? Fail: "Q3 revenue was $42M, 3% below plan." Pass: "Q3 revenue missed by 3% because APAC deal slippage offset EMEA outperformance — the risk is concentrated, not systemic." Decision-or-FYI must be named explicitly. "FYI" is a legitimate pass for true reporting decks (Status / Board reports); vague "align on next steps" is not. For Market & Competitive Analysis content (absorbed): the implication must be *for the client*, not just market description. |
 | **5. Capability Pitch** | Does it assert *what we can do that others can't* + a concrete ask? Fail: "We have deep experience in supply chain." Pass: "Our proprietary cost-benchmarking tool cuts diagnostic time from 12 weeks to 3 — no competitor has deployed it at scale outside North America. Proposed next step: 90-min working session week of [date]." |
@@ -596,7 +596,7 @@ Examples of what to catch:
 - Slide 1's so-what is *"the program is on track"* → Slide 3's so-what is *"the program is at risk"* — these are not nuance, they are contradictions
 - Two slides cite different numbers for the same metric without explanation — pick one source
 
-If contradictions exist, the gate **fails**. This is a hard stop — **the constructive-pushback / override protocol in Step 8 does not apply here**. Diverging thoughts in the same deck are a structural failure, not a stylistic choice or a deliberate tension. They must be reconciled before the brief is produced. State the contradiction explicitly to the user — *"Slide 3 and Slide 5 say different things about the root cause. Which one is the deck arguing?"* — then re-enter Phase C for the affected slides.
+If contradictions exist, the gate **fails**. This is a hard stop — **the constructive-pushback / override protocol in the pushback protocol does not apply here**. Diverging thoughts in the same deck are a structural failure, not a stylistic choice or a deliberate tension. They must be reconciled before the brief is produced. State the contradiction explicitly to the user — *"Slide 3 and Slide 5 say different things about the root cause. Which one is the deck arguing?"* — then re-enter the Slide probing stage for the affected slides.
 
 **Part 7: 30-second answer test (deck level).**
 
@@ -605,7 +605,7 @@ Can the deck's answer be stated in 30 seconds? Read the deck-level governing tho
 - Pass: governing thought is one or two sentences, lands the answer immediately.
 - Fail: governing thought needs preamble, lists three things before the verb, or hides the recommendation in subordinate clauses.
 
-If it fails, return to Phase C — the governing thought needs to be re-compressed. Failure is **Major** in the review output. Override path applies: the user can ship a longer governing thought if they articulate why (e.g., "this audience needs the SCQA setup before the answer").
+If it fails, return to the Slide probing stage — the governing thought needs to be re-compressed. Failure is **Major** in the review output. Override path applies: the user can ship a longer governing thought if they articulate why (e.g., "this audience needs the SCQA setup before the answer").
 
 **Part 8: Decision required test (deck level).**
 
@@ -632,21 +632,21 @@ After Parts 1–9, run two universal checks across all slides:
 
 1. **No page without a point.** If you can delete a slide and the deck's argument survives, the slide was decoration. Cut it or rework its governing thought. Violation tagged **Major** on the offending slide.
 
-2. **No claim without source.** Every external number, quote, market data point, or competitive benchmark must name a source (file, study, interview date, internal report). Sourcing the citation correctly is a downstream concern (slide-builder); the *presence* of a source is the gate's concern. Missing-source violations are **Major** on the slide that makes the unsourced claim.
+2. **No claim without source.** Every external number, quote, market data point, or competitive benchmark must name a source (file, study, interview date, internal report). Sourcing the citation correctly is a downstream concern (slide-builder); the *presence* of a source is the quality gate's concern. Missing-source violations are **Major** on the slide that makes the unsourced claim.
 
 **All nine parts plus the cross-cutting rules sweep plus the brief completeness check must produce no Critical issues and must surface all Major/Advisory issues for the review output.** Downstream quality depends on this gate being strict.
 
-**Brief completeness check (runs alongside the nine parts):** After all nine parts and the cross-cutting rules sweep complete, verify that every slide has a non-empty "What this slide is NOT" field (5d). This field is mandatory — it is not optional detail. A slide brief without a scope exclusion gives Slide Builder no boundary and will produce slides that creep into adjacent content. If any slide is missing 5d, return to Phase C for that slide and ask: *"What would an inexperienced consultant be tempted to add to this slide that would dilute the argument?"* Do not produce the brief until every slide's 5d is filled.
+**Brief completeness check (runs alongside the nine parts):** After all nine parts and the cross-cutting rules sweep complete, verify that every slide has a non-empty "What this slide is NOT" field. This field is mandatory — it is not optional detail. A slide brief without a scope exclusion gives Slide Builder no boundary and will produce slides that creep into adjacent content. If any slide is missing it, return to the Slide probing stage for that slide and ask: *"What would an inexperienced consultant be tempted to add to this slide that would dilute the argument?"* Do not produce the brief until every slide's scope exclusion is filled.
 
-Chart data (5e) is only checked when the editorial emphasis calls for a data visualization. If 5e is empty and no chart is needed, that is correct — skip it.
+Chart data is only checked when the editorial emphasis calls for a data visualization. If the chart data field is empty and no chart is needed, that is correct — skip it.
 
-**When all parts pass → do not produce the brief yet. Run Step 7.5 (Language quality pass) first. The brief is only produced after Step 7.5 completes.**
+**When all parts pass → do not produce the brief yet. Run the language pass (Language quality pass) first. The brief is only produced after the language pass completes.**
 
 ---
 
-### Step 7.5 — Language quality pass
+### the language pass — Language quality pass
 
-Run this after the nine-part gate completes and any Critical issues have been fixed, and before producing the brief. It is a separate pass — do not run it slide-by-slide during Phase C or it will interrupt the structuring flow. Major and Advisory issues from the gate are surfaced via the Step 9 review output, not in this language pass.
+Run this after the nine-part gate completes and any Critical issues have been fixed, and before producing the brief. It is a separate pass — do not run it slide-by-slide during the Slide probing stage or it will interrupt the structuring flow. Major and Advisory issues from the gate are surfaced via the the review-and-save section review output, not in this language pass.
 
 #### Headline quality (governing thoughts)
 
@@ -658,7 +658,7 @@ Test each slide's governing thought against three checks:
 
 3. **Concision test.** Is it under 12 words? If not, can it be tightened without losing the claim? Long governing thoughts usually contain two claims — split them if so.
 
-For each headline that fails: show a before/after rewrite. Ask the user to confirm or redirect. **Override is not offered here as a peer option** — keeping a failing headline requires going through the constructive-pushback protocol in Step 8 (name the weakness, offer concrete alternatives, ask explicitly). Do not proceed to the next slide's check until the user responds.
+For each headline that fails: show a before/after rewrite. Ask the user to confirm or redirect. **Override is not offered here as a peer option** — keeping a failing headline requires going through the constructive-pushback protocol in the pushback protocol (name the weakness, offer concrete alternatives, ask explicitly). Do not proceed to the next slide's check until the user responds.
 
 #### Body content quality (supporting bullets and evidence)
 
@@ -677,7 +677,7 @@ Test each slide's evidence bullets against four checks:
 - **Operational audiences (working teams, project leads):** Supporting detail in the body is appropriate — process steps, criteria, instructions.
 - **Mixed rooms:** Default to executive compression — operational detail goes in the appendix or speaker notes.
 
-### Step 8 — Pushback protocol
+### the pushback protocol — Pushback protocol
 
 When the user's thinking has a structural problem, use the four-beat pattern:
 
@@ -705,13 +705,13 @@ If the user insists on proceeding despite a flagged issue, do not just acquiesce
 
 5. **If the user still chooses to proceed as-is**, record their stated reason verbatim in the brief's **Flags** section. Format: *"User chose [their reason in their own words] over [the flaw, in your words]. Audience will likely see: [concrete consequence]."*
 
-6. **If the user refuses to engage** — "just keep it," "doesn't matter," "we're fine" — the gate fails. Soft override is not sufficient. Re-ask: *"I need one sentence from you on why this is the right call before we proceed. What's the trade-off you're making?"*
+6. **If the user refuses to engage** — "just keep it," "doesn't matter," "we're fine" — the quality gate fails. Soft override is not sufficient. Re-ask: *"I need one sentence from you on why this is the right call before we proceed. What's the trade-off you're making?"*
 
-### Step 9 — Review output, then produce the narrative brief and confirm
+### the review-and-save section — Review output, then produce the narrative brief and confirm
 
-After the nine-part gate, the cross-cutting rules sweep, the Step 7.5 language pass, and the brief completeness check have all run, produce the **Review output**. This is the structured report the user reads to decide what to fix and what to ship.
+After the nine-part gate, the cross-cutting rules sweep, the the language pass language pass, and the brief completeness check have all run, produce the **Review output**. This is the structured report the user reads to decide what to fix and what to ship.
 
-> **⛔ Hard rule — review must be acknowledged (added 2026-05-26 after OTC dry run failure).** The brief is NOT saved until the user has **explicitly acknowledged** the Review output table — including when the table contains only Advisories. **Self-passing the gate is not a pass.** The exact words "produce the brief," "ship it," "looks good — save," or equivalent must come from the user. If you ran the gate against your own brief and graded it yourself, surface the table and wait. Do not write the brief file before the user responds.
+> **⛔ Hard rule — review must be acknowledged.** The brief is NOT saved until the user has **explicitly acknowledged** the Review output table — including when the table contains only Advisories. **Self-passing the quality gate is not a pass.** The exact words "produce the brief," "ship it," "looks good — save," or equivalent must come from the user. If you ran the gate against your own brief and graded it yourself, surface the table and wait. Do not write the brief file before the user responds.
 >
 > **Defensible-default trap.** When the gate produces zero Criticals + zero Majors + N Advisories, the tempting move is to call it a pass and save the brief. Don't. Advisories are *advisory to the user*, not *clearance for Claude*. The user might look at advisory #3 and say "actually, that's a Critical for this audience — let me fix it." That option vanishes the moment the brief is on disk.
 
@@ -768,17 +768,17 @@ When a reason is given, append to the brief's `## Flags` section in the format:
 
 #### Save the brief
 
-Once the user has resolved Criticals and handled (fix-or-override) all Majors, save the brief as `_session/narrative-brief-[deck-topic].md` inside the session folder established in Phase E. The brief lives inside `_session/` so the human-readable dot-dash storyline (next step) is the only file the user sees at the session root.
+Once the user has resolved Criticals and handled (fix-or-override) all Majors, save the brief as `_session/narrative-brief-[deck-topic].md` inside the session folder established in the Commit & emit stage. The brief lives inside `_session/` so the human-readable dot-dash storyline (next step) is the only file the user sees at the session root.
 
-**Auto-inject `default_layout` into the front-matter (required, 2026-06-11).** Before saving the brief, read the registered template's `theme.json` (located next to the `.pptx` at `<template-stem>.theme.json` OR in the sidecar subfolder `<template-stem>/theme.json` depending on registration era). Extract the `default_content_layout` field and inject it into the brief's YAML front-matter as `default_layout: <value>`. This stops the build-time silent gap where build_deck.py couldn't find a default layout and fell into mid-build error.
+**Auto-inject `default_layout` into the front-matter.** Before saving the brief, read the registered template's `theme.json` (located next to the `.pptx` at `<template-stem>.theme.json` OR in the sidecar subfolder `<template-stem>/theme.json` depending on registration era). Extract the `default_content_layout` field and inject it into the brief's YAML front-matter as `default_layout: <value>`. This stops the build-time silent gap where build_deck.py couldn't find a default layout and fell into mid-build error.
 
-If `theme.json` is missing OR `default_content_layout` is empty: HALT. Do not save the brief. Tell the user the template isn't fully registered and re-route to Step 10's registration flow:
+If `theme.json` is missing OR `default_content_layout` is empty: HALT. Do not save the brief. Tell the user the template isn't fully registered and re-route to the handoff section's registration flow:
 
 > *"Your template doesn't have a default content layout set yet — I need this before I can hand off to slide-builder, or the build will fail mid-stream. Let me walk you through registering it now. Run `py -3 scripts/register_template.py propose '<template path>'`, then we'll pick a layout together at register.html section 3."*
 
 The brief save is the LAST possible moment to catch this gap cleanly. Catching it here means the user fixes the gap before any build_deck.py compute is sunk.
 
-**Gate marker (required).** Slide-builder hard-fails any brief without the storyline-helper gate marker. After all Criticals are resolved and Majors are handled, write the gate marker into the YAML front-matter BEFORE saving:
+**Gate marker (required).** Slide-builder hard-fails any brief without the storyline-helper quality-gate marker. After all Criticals are resolved and Majors are handled, write the quality-quality-gate marker into the YAML front-matter BEFORE saving:
 
 ```yaml
 storyline_gate_passed: true
@@ -832,7 +832,7 @@ Then **hand off immediately to slide-builder** without waiting for a confirmatio
 
 **Re-run only if the brief changes.** If the user later adjusts the brief during slide-build, update the brief, re-run the gate, and re-run `emit_dot_dash.py` to keep the .md / .html in sync. Otherwise the initial generation is enough.
 
-### Step 10 — Hand off to Slide Builder
+### the handoff section — Hand off to Slide Builder
 
 Before handing off, verify the client template is **registered** (has `<stem>.brand.yml` + `<stem>.theme.json` sidecars next to the PPTX). If sidecars are missing, register it first via the chat-driven flow:
 
@@ -848,7 +848,7 @@ py -3 skills/slide-builder/scripts/register_template.py commit <client-template.
 
 Once `<stem>.brand.yml` exists, slide-builder's Stage-1 sanity check passes and the build can proceed.
 
-When the user confirms the brief, **first verify the brief starts with the YAML front-matter block** (see "Narrative brief format" below). The front-matter MUST include `client_template:` and `deck_type:` keys with the values captured in Phase E. If you wrote the brief without front-matter, prepend it now before handoff — slide-builder reads this to skip its own template prompt.
+When the user confirms the brief, **first verify the brief starts with the YAML front-matter block** (see "Narrative brief format" below). The front-matter MUST include `client_template:` and `deck_type:` keys with the values captured in the Commit & emit stage. If you wrote the brief without front-matter, prepend it now before handoff — slide-builder reads this to skip its own template prompt.
 
 Then invoke the `slide-builder` skill using the Skill tool:
 Skill tool call: `skill="slide-builder"`, args=`"[absolute path to _session/narrative-brief-[topic].md file]"`
@@ -866,7 +866,7 @@ Slide Builder reads the narrative brief from the session folder, builds each sli
 
 ## Narrative brief format
 
-Saved as `_session/narrative-brief-[topic].md` inside the session folder (established in Phase E). The companion `dot-dash-[topic].md` at the session root is generated from this file via `emit_dot_dash.py`:
+Saved as `_session/narrative-brief-[topic].md` inside the session folder (established in the Commit & emit stage). The companion `dot-dash-[topic].md` at the session root is generated from this file via `emit_dot_dash.py`:
 
 **The brief MUST start with YAML front-matter** so slide-builder can read the client template path and deck type without re-asking the user. The front-matter is everything between the two `---` fences at the very top of the file.
 
@@ -874,7 +874,7 @@ Saved as `_session/narrative-brief-[topic].md` inside the session folder (establ
 ---
 client_template: <absolute path to .pptx>     # required — slide-builder errors if missing
 deck_type: <one of the 7 canonical types (or Training edge)>    # required — drives selector deck_types match
-default_layout: <layout name from theme.json>  # required — storyline-helper Step 9 auto-injects from theme.json::default_content_layout; build_deck.py errors mid-build if missing
+default_layout: <layout name from theme.json>  # required — storyline-helper the review-and-save section auto-injects from theme.json::default_content_layout; build_deck.py errors mid-build if missing
 session_folder: <absolute path to _session>    # optional — helps slide-builder anchor outputs
 storyline_gate_passed: true                   # required — slide-builder hard-fails without this
 storyline_gate_at: 2026-06-02T14:00:00Z       # required — ISO-8601 UTC timestamp of the gate pass
@@ -885,7 +885,7 @@ storyline_gate_sha256: <hex sha256 of body>   # required — body integrity chec
 # Narrative brief: [topic]
 
 ## Deck type
-[One of the 7 canonical types from Phase A's internal taxonomy (Recommendation / POV, Business Case, Diagnosis, Operating Review, Capability Pitch, Workshop Readout, Workshop Design) — or "Training / Enablement" for the edge case. Use the EXACT label from Phase A's taxonomy.]
+[One of the 7 canonical types from the Intake stage's internal taxonomy (Recommendation / POV, Business Case, Diagnosis, Operating Review, Capability Pitch, Workshop Readout, Workshop Design) — or "Training / Enablement" for the edge case. Use the EXACT label from the Intake stage's taxonomy.]
 
 ## Narrative framework
 [The chosen communication spine — e.g., "SCR (Situation → Complication → Resolution)"]
@@ -975,7 +975,7 @@ These are not historical risks. They are unresolved gaps the user chose to ship 
 - Any other deck-wide conventions the user wants enforced
 ```
 
-The expanded format makes the brief longer than v1's version — typically 20-30 lines per slide instead of 2-3. That is intentional. The extra content is what lets the slide-builder's Phase A (design thinking) do real work instead of template-filling. A thin brief produces thin slides; the gate enforces richness.
+The expanded format makes the brief longer than v1's version — typically 20-30 lines per slide instead of 2-3. That is intentional. The extra content is what lets the slide-builder's the Intake stage (design thinking) do real work instead of template-filling. A thin brief produces thin slides; the gate enforces richness.
 
 ### Brief-time quality gate (automated)
 
@@ -1017,7 +1017,7 @@ pure-Python module cannot do nuanced linguistic work alone.
 
 **When and how to call the language callback (orchestrator instructions):**
 
-When the user reaches Step 10 (handoff to slide-builder) and the brief
+When the user reaches the handoff section (handoff to slide-builder) and the brief
 passed the structural gate, optionally invoke the language callback as
 follows BEFORE writing the brief to disk:
 
@@ -1078,7 +1078,7 @@ Field placement: add these as `**Visual rhythm:**`, `**Mandatory shape:**`, etc.
 
 ## Handling edge cases
 
-### If the user says "just build it" before the gate passes
+### If the user says "just build it" before the quality gate passes
 
 Do not hand off. Say: "I need to finish the brief first — the slide builder needs a complete brief or the output will be empty. We're on slide [N]. Let me finish this and hand off immediately." Then complete the remaining slides at pace, running the gate quickly, and hand off.
 
@@ -1089,7 +1089,7 @@ Do not hand off. Say: "I need to finish the brief first — the slide builder ne
 > *1. **Edit** — change or add something, re-run the check, save.*
 > *2. **Review** — pressure-test the existing brief and report issues, no changes.*
 
-If the user picks Edit, ask what they want to change. If the user picks Review, run the full nine-part gate + cross-cutting rules sweep against the existing brief and produce the Step 9 Review output (table + conversational Major prompts). No new file is written until the user resolves Criticals and chooses fix-or-override on Majors. Once they do, save the brief and re-run `emit_dot_dash.py`.
+If the user picks Edit, ask what they want to change. If the user picks Review, run the full nine-part gate + cross-cutting rules sweep against the existing brief and produce the the review-and-save section Review output (table + conversational Major prompts). No new file is written until the user resolves Criticals and chooses fix-or-override on Majors. Once they do, save the brief and re-run `emit_dot_dash.py`.
 
 **User wants to add a slide to an existing deck.** Don't rebuild the whole narrative. Read the existing brief, insert the new slide's governing thought at the right position, re-run the gate, save the updated brief. Slide Builder then builds just the new slide and inserts it.
 
@@ -1097,15 +1097,15 @@ If the user picks Edit, ask what they want to change. If the user picks Review, 
 
 **User has no argument yet, just findings.** Pyramid walkthrough. Start from a provisional recommendation, work backward to what's load-bearing. This is valuable coaching work — take the time.
 
-**User refuses pushback.** Do not just acquiesce — that lets weak arguments through. Use the constructive-pushback protocol from Step 8: (1) name the weakness and the reason it doesn't hold, (2) offer two concrete alternative framings — *"a stronger version would be X or Y"* — so the criticism is constructive, not just a no, (3) offer the placeholder path if the gap is missing data rather than flawed thinking, (4) ask explicitly which they want. Only accept the override after the user has chosen with awareness of the trade-off, and record their reason verbatim in **Flags**. If the user refuses to engage at all, the gate fails — soft "just ship it" is not sufficient.
+**User refuses pushback.** Do not just acquiesce — that lets weak arguments through. Use the constructive-pushback protocol from the pushback protocol: (1) name the weakness and the reason it doesn't hold, (2) offer two concrete alternative framings — *"a stronger version would be X or Y"* — so the criticism is constructive, not just a no, (3) offer the placeholder path if the gap is missing data rather than flawed thinking, (4) ask explicitly which they want. Only accept the override after the user has chosen with awareness of the trade-off, and record their reason verbatim in **Flags**. If the user refuses to engage at all, the quality gate fails — soft "just ship it" is not sufficient.
 
 ---
 
 ## Workshop Design Coaching Overlay
 
-When the deck type inferred in Phase A is **Workshop Design**, use this overlay instead of the standard Phase A intent questions and Phase B governing thought.
+When the deck type inferred in the Intake stage is **Workshop Design**, use this overlay instead of the standard the Intake stage intent questions and the Diagnosis stage governing thought.
 
-When the deck type is **Workshop Design**, replace the standard Phase A intent questions and the Phase B governing thought with this coaching flow instead. The narrative gate (governing thought, so-what, editorial emphasis) does not apply to agenda and session objective pages — they are not arguments.
+When the deck type is **Workshop Design**, replace the standard the Intake stage intent questions and the the Diagnosis stage governing thought with this coaching flow instead. The narrative gate (governing thought, so-what, editorial emphasis) does not apply to agenda and session objective pages — they are not arguments.
 
 **Four workshop-specific intent questions (ask together, not one at a time):**
 
@@ -1125,7 +1125,7 @@ When the deck type is **Workshop Design**, replace the standard Phase A intent q
 | Pre-work ask | What participants need to prepare or bring | Must be specific — "read the attached 2-pager" not "come prepared" |
 | Ground rules | How the session will run | Optional; include when the client group is large, cross-functional, or has known dynamics |
 
-**Phase B replacement for Workshop Design:** Instead of asking for a governing thought, ask:
+**the Diagnosis stage replacement for Workshop Design:** Instead of asking for a governing thought, ask:
 
 > *"What's the one sentence that tells a participant why this workshop is worth their full day? Not the agenda — the reason."*
 
