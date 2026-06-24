@@ -7,7 +7,6 @@ Tested on Windows 11. Linux + macOS should work; the LibreOffice command differs
 | Component | Version | Why |
 |---|---|---|
 | Python | **3.10+** | Type hints and f-string features used throughout |
-| Node.js | 18+ | Required by Mermaid CLI |
 | LibreOffice | any recent | Headless PPTX → PNG render path (via slide-qc) |
 | PowerPoint | 2019+ (optional) | Pixel-perfect QC pass; LibreOffice render is the default |
 
@@ -43,11 +42,7 @@ py -3 -c "from playwright.sync_api import sync_playwright; sync_playwright().__e
 
 Expected: `playwright + chromium OK`. If you see `BrowserType.launch: Executable doesn't exist`, re-run the `playwright install chromium` step.
 
-## Step 2 — _(retired)_
-
-Removed (Decision 6, 2026-06-17). The Mermaid fallback path was retired entirely — Pattern B HTML→PNG via Playwright (Step 1.5 above) supersedes Mermaid for curved-container diagrams. If you have a previously-installed `mermaid-cli`, leaving it installed is harmless but no longer required for any Slide Lab path.
-
-## Step 3 — LibreOffice headless
+## Step 2 — LibreOffice headless
 
 Download from https://www.libreoffice.org/download and install. The default Windows install path is `C:\Program Files\LibreOffice\program\soffice.exe`.
 

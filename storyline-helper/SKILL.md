@@ -25,7 +25,7 @@ Storyline Helper produces a **narrative brief**: a sequenced outline where each 
 
 ## Why the brief is long
 
-Each slide captures four fields (governing thought, so-what, editorial emphasis, what-this-is-NOT) plus evidence — typically 20–30 lines per slide. This is deliberate: Slide Builder's the Intake stage design thinking needs the so-what and editorial emphasis to produce slides with real judgment, not template-filled layouts. A thin brief produces thin slides.
+Each slide captures four fields (governing thought, so-what, editorial emphasis, what-this-is-NOT) plus evidence — typically 20–30 lines per slide. This is deliberate: Slide Builder's intake stage design thinking needs the so-what and editorial emphasis to produce slides with real judgment, not template-filled layouts. A thin brief produces thin slides.
 
 Brevity is still required in the *governing thought itself* (one declarative sentence). The richness is in the framing around it.
 
@@ -44,7 +44,7 @@ Two different tools handle weak thinking at different stages. Don't confuse them
 - **Foundation Check** — use when the user has *nothing concrete to ground the deck on*: they can't say what the deck is arguing in one sentence, give a topic ("our digital transformation") instead of a claim, or hand you three section headers with no content. It's the fallback for the "nothing but an idea" path; full prompt and rules below.
 - **the pushback protocol** — use when the governing thought *exists but is weak*: the claim is present but vague, the so-what is a restatement, or a slide doesn't justify its place in the sequence. Pushback works slide-by-slide during the slide-probing and deck-tightening stages.
 
-If in doubt: can the user say "the deck argues that [X]" in one declarative sentence? No → Foundation Check (the Intake stage fallback). Yes, but weakly → the pushback protocol (the slide-probing and deck-tightening stages).
+If in doubt: can the user say "the deck argues that [X]" in one declarative sentence? No → Foundation Check (intake-stage fallback). Yes, but weakly → the pushback protocol (the slide-probing and deck-tightening stages).
 
 ## Experience calibration — default high, dial back if fluent
 
@@ -146,13 +146,13 @@ After mirroring, ask only what you genuinely can't answer from the input. Substa
 - ~*"What's your governing thought?"*~ (premature — they may not have one yet, and that's what you're going to help develop)
 - ~*"Where should I save the session folder?"*~ (deferred to the Commit & emit stage; don't gate the conversation on setup)
 
-#### Hard rules for the Intake stage
+#### Hard rules for the intake stage
 
 1. **One opening message.** The plain-language opener is the only question you ask before reading their input. Do not preamble with 4-question setup batches.
 2. **Mirror before you ask.** The user has to know you read what they gave you. Mirror first; questions second.
 3. **No more than 3 questions in your first reply.** If you have more, the input wasn't ambiguous enough to need them all — pick the load-bearing two or three.
 4. **Never classify out loud.** You may infer the deck type internally (it informs the Diagnosis stage and the gate in the Commit & emit stage), but never say *"this is a Recommendation / POV deck"* unless the user asks. Classification language sounds robotic and adds nothing for the user.
-5. **No 4-value setup confirmation.** The session folder, template, default layout, and client/topic are confirmed at the Commit & emit stage (Commit), not at the Intake stage. The user's tacit input on those values is load-bearing — but it isn't needed until the brief is being emitted. the Intake stage is for thinking, not setup.
+5. **No 4-value setup confirmation.** The session folder, template, default layout, and client/topic are confirmed at the Commit & emit stage (Commit), not at the Intake stage. The user's tacit input on those values is load-bearing — but it isn't needed until the brief is being emitted. the intake stage is for thinking, not setup.
 
 #### Deck-type taxonomy (internal use only)
 
@@ -173,7 +173,7 @@ If the input doesn't fit cleanly, pick the closest match internally and proceed.
 
 ### Diagnosis — pick the spine, propose the structure
 
-By the end of the Intake stage, you've read the input and asked 1–3 sharp questions. The user has answered. Now you do the diagnostic work: name what the deck is arguing, name the spine that fits and why, flag structural issues, propose a tightened structure.
+By the end of intake, you've read the input and asked 1–3 sharp questions. The user has answered. Now you do the diagnostic work: name what the deck is arguing, name the spine that fits and why, flag structural issues, propose a tightened structure.
 
 #### Pick one spine — never offer a menu
 
@@ -202,7 +202,7 @@ You pick. You explain. The user pushes back only if they have a reason — not b
 
 #### Surface the structural issues you saw
 
-the Intake stage surfaced the ambiguity. the Diagnosis stage surfaces the structural defects. Be specific.
+Intake surfaced the ambiguity. Diagnosis surfaces the structural defects. Be specific.
 
 > *"Two things look off:*
 > *— Slides 5 ('vendor behavior') and 6 ('contract structure') seem like the same point split in two.*
@@ -239,7 +239,7 @@ If the input is a workshop *design* deck (agenda for a future session, not a rea
 
 ### Foundation Check — when the user genuinely has nothing
 
-If the input in the Intake stage is too thin to mirror — the user can't say what the deck is arguing in one sentence, gives a topic ("our digital transformation") instead of a claim, or hands you a brief that's literally three section headers with no content underneath — pause structuring and probe for the foundation first.
+If the intake input is too thin to mirror — the user can't say what the deck is arguing in one sentence, gives a topic ("our digital transformation") instead of a claim, or hands you a brief that's literally three section headers with no content underneath — pause structuring and probe for the foundation first.
 
 > *"Before we build the structure, I want to make sure we're solving the right problem. Three quick questions:*
 >
@@ -646,7 +646,7 @@ Chart data is only checked when the editorial emphasis calls for a data visualiz
 
 ### the language pass — Language quality pass
 
-Run this after the nine-part gate completes and any Critical issues have been fixed, and before producing the brief. It is a separate pass — do not run it slide-by-slide during the Slide probing stage or it will interrupt the structuring flow. Major and Advisory issues from the gate are surfaced via the the review-and-save section review output, not in this language pass.
+Run this after the nine-part gate completes and any Critical issues have been fixed, and before producing the brief. It is a separate pass — do not run it slide-by-slide during the Slide probing stage or it will interrupt the structuring flow. Major and Advisory issues from the gate are surfaced via the review-and-save section review output, not in this language pass.
 
 #### Headline quality (governing thoughts)
 
@@ -709,7 +709,7 @@ If the user insists on proceeding despite a flagged issue, do not just acquiesce
 
 ### the review-and-save section — Review output, then produce the narrative brief and confirm
 
-After the nine-part gate, the cross-cutting rules sweep, the the language pass language pass, and the brief completeness check have all run, produce the **Review output**. This is the structured report the user reads to decide what to fix and what to ship.
+After the nine-part gate, the cross-cutting rules sweep, the language pass language pass, and the brief completeness check have all run, produce the **Review output**. This is the structured report the user reads to decide what to fix and what to ship.
 
 > **⛔ Hard rule — review must be acknowledged.** The brief is NOT saved until the user has **explicitly acknowledged** the Review output table — including when the table contains only Advisories. **Self-passing the quality gate is not a pass.** The exact words "produce the brief," "ship it," "looks good — save," or equivalent must come from the user. If you ran the gate against your own brief and graded it yourself, surface the table and wait. Do not write the brief file before the user responds.
 >
@@ -885,7 +885,7 @@ storyline_gate_sha256: <hex sha256 of body>   # required — body integrity chec
 # Narrative brief: [topic]
 
 ## Deck type
-[One of the 7 canonical types from the Intake stage's internal taxonomy (Recommendation / POV, Business Case, Diagnosis, Operating Review, Capability Pitch, Workshop Readout, Workshop Design) — or "Training / Enablement" for the edge case. Use the EXACT label from the Intake stage's taxonomy.]
+[One of the 7 canonical types from the intake-stage internal taxonomy (Recommendation / POV, Business Case, Diagnosis, Operating Review, Capability Pitch, Workshop Readout, Workshop Design) — or "Training / Enablement" for the edge case. Use the EXACT label from the intake-stage taxonomy.]
 
 ## Narrative framework
 [The chosen communication spine — e.g., "SCR (Situation → Complication → Resolution)"]
@@ -975,7 +975,7 @@ These are not historical risks. They are unresolved gaps the user chose to ship 
 - Any other deck-wide conventions the user wants enforced
 ```
 
-The expanded format makes the brief longer than v1's version — typically 20-30 lines per slide instead of 2-3. That is intentional. The extra content is what lets the slide-builder's the Intake stage (design thinking) do real work instead of template-filling. A thin brief produces thin slides; the gate enforces richness.
+The expanded format makes the brief longer than v1's version — typically 20-30 lines per slide instead of 2-3. That is intentional. The extra content is what lets the slide-builder's intake stage (design thinking) do real work instead of template-filling. A thin brief produces thin slides; the gate enforces richness.
 
 ### Brief-time quality gate (automated)
 
@@ -1089,7 +1089,7 @@ Do not hand off. Say: "I need to finish the brief first — the slide builder ne
 > *1. **Edit** — change or add something, re-run the check, save.*
 > *2. **Review** — pressure-test the existing brief and report issues, no changes.*
 
-If the user picks Edit, ask what they want to change. If the user picks Review, run the full nine-part gate + cross-cutting rules sweep against the existing brief and produce the the review-and-save section Review output (table + conversational Major prompts). No new file is written until the user resolves Criticals and chooses fix-or-override on Majors. Once they do, save the brief and re-run `emit_dot_dash.py`.
+If the user picks Edit, ask what they want to change. If the user picks Review, run the full nine-part gate + cross-cutting rules sweep against the existing brief and produce the review-and-save section Review output (table + conversational Major prompts). No new file is written until the user resolves Criticals and chooses fix-or-override on Majors. Once they do, save the brief and re-run `emit_dot_dash.py`.
 
 **User wants to add a slide to an existing deck.** Don't rebuild the whole narrative. Read the existing brief, insert the new slide's governing thought at the right position, re-run the gate, save the updated brief. Slide Builder then builds just the new slide and inserts it.
 
@@ -1103,9 +1103,9 @@ If the user picks Edit, ask what they want to change. If the user picks Review, 
 
 ## Workshop Design Coaching Overlay
 
-When the deck type inferred in the Intake stage is **Workshop Design**, use this overlay instead of the standard the Intake stage intent questions and the Diagnosis stage governing thought.
+When the deck type inferred in the Intake stage is **Workshop Design**, use this overlay instead of the standard intake-stage intent questions and the diagnosis-stage governing thought.
 
-When the deck type is **Workshop Design**, replace the standard the Intake stage intent questions and the the Diagnosis stage governing thought with this coaching flow instead. The narrative gate (governing thought, so-what, editorial emphasis) does not apply to agenda and session objective pages — they are not arguments.
+When the deck type is **Workshop Design**, replace the standard the Intake stage intent questions and the Diagnosis stage governing thought with this coaching flow instead. The narrative gate (governing thought, so-what, editorial emphasis) does not apply to agenda and session objective pages — they are not arguments.
 
 **Four workshop-specific intent questions (ask together, not one at a time):**
 
