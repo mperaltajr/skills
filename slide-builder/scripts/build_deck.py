@@ -7,7 +7,7 @@ one self-contained per-slide _prompt.md to <out>/slide_NN/_prompt.md plus a
 deck-level dispatch_plan.md summary. The parent session dispatches one worker
 agent per slide using those rendered prompts.
 
-Five responsibilities:
+Responsibilities:
 
   1. Read narrative brief + client template.
   2. Prep-time pattern-hint pass: run the layouts.md signals table once per
@@ -18,10 +18,7 @@ Five responsibilities:
      Compute 4 seeds per slide:
        pattern_pick_seed = md5(content_hash + slide_n)
        variant_seed_{A,B,C} = md5(content_hash + slide_n + option_letter)
-  4. Per-client Mermaid theme generation: read the client template.json,
-     apply the mapping in reference/fallback.md, write
-     theme/mermaid-<client_slug>.json. Log which slots used hardcoded fallbacks.
-  5. Render prompt.md with all placeholders interpolated.
+  4. Render prompt.md with all placeholders interpolated.
 
 Usage:
     py -3 build_deck.py \\
@@ -38,11 +35,10 @@ Exit codes:
     4  prompt.md template missing or malformed.
     5  Output directory cannot be created.
     6  Client theme validation failed — refusing to build slides with wrong colors.
-       See validate_theme() and the v1 client_theme loader-bug note in fallback.md.
+       See validate_theme().
     7  Stage-1 sanity check failed — prerequisite missing.
-       Either the client template is not registered (BrandSidecarMissing — run
-       slide-builder/scripts/register_template.py) OR mmdc is not installed
-       (npm install -g @mermaid-js/mermaid-cli@11.4.0). Halts at prep time
+       The client template is not registered (BrandSidecarMissing — run
+       slide-builder/scripts/register_template.py). Halts at prep time
        before agent dispatch costs are sunk.
 
 Cross-platform note: invoke this script with sys.executable from other scripts.
@@ -53,7 +49,6 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
-import os
 import re
 import sys
 from datetime import datetime, timezone
@@ -85,11 +80,9 @@ HELPERS_MODULE_PATH = SKILL_ROOT
 # Make twins.client_theme importable. load_brand_sidecar is the canonical
 # source of truth for client brand colors and fonts — it reads <stem>.brand.yml
 # (human-authored once via register_template.py) and verifies <stem>.theme.json
-# (SHA-stamped audit blob). v2 does NOT walk template.json slot positions any
-# more — that path was retired after the prior FedEx smoke surfaced a
-# false-positive in which hardcoded defaults coincidentally matched FedEx.
-# See _decisions/smoke-test-finding-2026-05-25.md § "Critical correction to
-# prior FedEx smoke reporting".
+# (SHA-stamped audit blob). It does NOT walk template.json slot positions —
+# slot-position guessing can surface false positives in which hardcoded
+# defaults coincidentally match the client brand.
 sys.path.insert(0, str(HELPERS_MODULE_PATH))
 try:
     from twins.client_theme import load_brand_sidecar, BrandSidecarMissing, BrandSidecarStale  # noqa: E402
@@ -101,8 +94,6 @@ except ImportError as _imp_exc:
     )
     raise
 
-import shutil  # noqa: E402
-import subprocess  # noqa: E402
 
 import _paths as _p  # noqa: E402
 from _meta_schema import MetaJson, META_SCHEMA_VERSION_CURRENT  # noqa: E402
@@ -121,13 +112,13 @@ META_SCHEMA_VERSION = META_SCHEMA_VERSION_CURRENT
 
 YAML_FENCE_RE = re.compile(r"^---\s*\n(.*?)\n---\s*\n", re.DOTALL)
 # Slide header regex. Accepts BOTH:
-#   `### Slide 1 — Title text`   (title-on-header — preferred, used by post-2026-05-26 briefs)
-#   `### Slide 1`                (title-less header — storyline-helper's older documented format)
+#   `### Slide 1 — Title text`   (title-on-header — preferred)
+#   `### Slide 1`                (title-less header — storyline-helper's alternate documented format)
 # When title is missing on the header line, parse_brief falls back to the
 # `**Slide title:**` body field, then to a synthetic "Slide N" placeholder.
 # H2 (##) and H3 (###) both supported. The (\d+) clause gates on the digit.
 SLIDE_HEADER_RE = re.compile(r"^#{2,3}\s+Slide\s+(\d+)\s*(?:[—\-:]\s*(.+?)\s*)?$", re.MULTILINE)
-# Critical fix #2: lookahead must terminate on any H1-H3 boundary, not only H2.
+# The lookahead must terminate on any H1-H3 boundary, not only H2.
 # Briefs with `### Appendix A — ...` after deck notes were silently swallowing
 # the appendix into the deck-notes capture. `^#{1,3}\s` covers H1/H2/H3.
 DECK_NOTES_RE = re.compile(
@@ -192,15 +183,11 @@ def _normalize_archetype_to_page_type(archetype: str) -> str:
 # ----------------------------------------------------------------------
 # Build-path routing helpers
 #
-# Spec references:
-#   _decisions/pattern-b/spec-7-schema-version-migration.md (extends v3)
-#   _decisions/pattern-b/spec-8-rollback-flag.md (--pattern flag + settings.json)
-#
 # Default behavior: when --pattern is omitted and settings.json::enable_sketch
 # is False (the shipped default), effective_pattern resolves to "legacy" and
 # write_meta_json omits all build-path optional fields entirely. _meta.json
-# is byte-identical to the legacy output. Only when the user opts in does any
-# build-path field appear in _meta.json.
+# is byte-identical to the pptx-direct-only output. Only when the user opts in
+# does any build-path field appear in _meta.json.
 # ----------------------------------------------------------------------
 
 _SETTINGS_JSON_PATH = SKILL_ROOT / "settings.json"
@@ -275,8 +262,6 @@ def _classify_slide_pattern(brief_slide: dict[str, Any]) -> str:
         Financial) -> sketch
       - Any slide referencing a chart / table / iconography -> sketch
       - Default: sketch (when in doubt, route to the higher-quality path)
-
-    See _decisions/pattern-b/spec-8-rollback-flag.md §5 for the locked logic.
     """
     archetype = (brief_slide.get("archetype") or "").strip().lower()
     # Normalize whitespace around the "/" so "cover / title" and "cover/title"
@@ -518,7 +503,7 @@ def parse_brief(brief_path: Path) -> dict[str, Any]:
                       or f"Slide {slide_n}"),
             "archetype": extract_field(block, FIELD_LABELS["archetype"]),
             "layout": extract_field(block, FIELD_LABELS["layout"]),  #
-            "variant": (extract_field(block, FIELD_LABELS["variant"]) or "").strip().lower(),  # v0.3
+            "variant": (extract_field(block, FIELD_LABELS["variant"]) or "").strip().lower(),
             "governing_thought": extract_field(block, FIELD_LABELS["governing_thought"]),
             "so_what": extract_field(block, FIELD_LABELS["so_what"]),
             "editorial_emphasis": extract_field(block, FIELD_LABELS["editorial_emphasis"]),
@@ -577,7 +562,7 @@ PATTERNS = {
     "decision_tree":       "Decision tree (branching)",
     "chart":               "Chart (with quadrant mode)",
     "table":               "Table",
-    "fallback":            "FALLBACK (Mermaid or SKELETON_REJECTED)",
+    "fallback":            "FALLBACK (SKELETON_REJECTED)",
 }
 
 _COUNT_RE = re.compile(r"\b(one|two|three|four|five|six|seven|eight|nine|\d+)\b", re.IGNORECASE)
@@ -700,8 +685,8 @@ def _md5(s: str) -> str:
 def compute_seeds(slide: dict[str, Any]) -> dict[str, str]:
     """Lock content_hash and compute 4 per-slide seeds.
 
-    Mirrors the canonical formulas in DECISIONS.md § "Variant rotation
-    discipline (simplified for v2)".
+    These seeds drive deterministic variant rotation: the same brief content
+    always produces the same pattern pick and variant choices.
     """
     content_str = (
         slide.get("governing_thought", "")
@@ -720,7 +705,7 @@ def compute_seeds(slide: dict[str, Any]) -> dict[str, str]:
 
 
 # ----------------------------------------------------------------------
-# Client slug + Mermaid theme generation
+# Client slug
 # ----------------------------------------------------------------------
 
 def slugify(name: str) -> str:
@@ -735,7 +720,7 @@ def detect_client_slug(template_path: Path, override: str | None) -> str:
     """Derive a client slug from CLI override or the template filename.
 
     Examples:
-        template = .../FedEx/_templates/Template2.pptx  →  "fedex"
+        template = .../Acme/_templates/Template2.pptx    →  "acme"
         template = .../ACME Project/template.pptx        →  "acme-project"
     """
     if override:
@@ -749,10 +734,8 @@ def detect_client_slug(template_path: Path, override: str | None) -> str:
     return slugify(template_path.stem)
 
 
-# `_compute_theme_variables`
-# and `generate_mermaid_theme` were removed here. The sketch path HTML→PNG
-# supersedes Mermaid for curved-container diagrams; per-client Mermaid theme
-# generation is no longer needed.
+# Per-client Mermaid theme generation was removed; the sketch path (HTML→PNG)
+# supersedes it for curved-container diagrams.
 
 
 # ----------------------------------------------------------------------
@@ -876,14 +859,13 @@ def validate_theme(
 
 
 # ----------------------------------------------------------------------
-# Gate C.1 — per-slide context bundle (_context.md)
+# Per-slide context bundle (_context.md)
 # ----------------------------------------------------------------------
 #
 # Generated alongside _prompt.md, this file gives the per-slide worker
 # agent the full constraint set — canonical reference, design rules,
 # brief metadata, and prior-slide context — to reason against as
-# context, not as gates. See SLIDE_LAB_FEEDBACK_LOG.md Issue #4 and
-# memory feedback_per_slide_agent_full_context.
+# context, not as gates.
 
 CONTEXT_TEMPLATE = """# Slide {slide_n} — Worker context bundle
 
@@ -900,7 +882,7 @@ CONTEXT_TEMPLATE = """# Slide {slide_n} — Worker context bundle
 ## 2. Design rules — soft constraints
 
 - **Title wrap:** if the title renders to >2 lines at the registered font
-  size, the slide drops its subtitle automatically (Mario's design rule).
+  size, the slide drops its subtitle automatically.
   Implication: keep titles to ≤2 visual lines; if a 3-line title is
   intentional, the subtitle/so-what won't render.
 - **Subtitle fit:** ~130 chars at 16pt in a ~12.5"×0.39" box. Above ~130
@@ -973,8 +955,7 @@ def _format_reference_block_for_context(brand: dict) -> str:
 
 
 def _load_prior_feedback_for_slide(slide_dir: Path) -> str:
-    """B7 fix (2026-06-11, feedback-2026-06-11 Part B): hydrate the
-    prior-feedback section from an on-disk file when one exists.
+    """Hydrate the prior-feedback section from an on-disk file when one exists.
 
     Convention: any rebuild flow that wants the per-slide worker to see
     prior rejections / coach notes / reference-image pointers writes them
@@ -1006,8 +987,7 @@ def _load_prior_feedback_for_slide(slide_dir: Path) -> str:
 def write_slide_context_md(slide: dict, brand: dict, slide_dir: Path,
                             slide_n: int) -> Path:
     """Write `_context.md` next to `_prompt.md` for the per-slide worker
-    agent. Gate C.1 (2026-06-08, SLIDE_LAB_FEEDBACK_LOG Issue #4).
-    B7 prior-feedback hydration added 2026-06-11."""
+    agent, hydrating any recorded prior feedback for the slide."""
     title = (slide.get("title") or "").strip()
     so_what = (slide.get("so_what") or "").strip()
     archetype = (slide.get("archetype") or "").strip()
@@ -1073,8 +1053,8 @@ def build_placeholders(
     """Assemble the {{TOKEN}} → value dictionary for one slide.
 
     `slide_pattern` is "sketch" (HTML output) or "direct" (python-pptx output,
-    default). Defaults to "direct" so legacy callers keep working without code
-    changes; the worker branches on the rendered PATTERN field.
+    default). Defaults to "direct" so callers that don't specify a pattern keep
+    working; the worker branches on the rendered PATTERN field.
     """
     return {
         "PATTERN":                 slide_pattern,
@@ -1140,9 +1120,8 @@ def write_dispatch_plan(
     """Write a deck-level dispatch_plan.md so the parent session has a
     one-stop summary of what was prepped.
 
-    M7 (Mermaid retirement, 2026-06-17): the Mermaid-theme reference + the
-    theme fallbacks section were removed — the sketch path HTML→PNG supersedes
-    Mermaid; brand validation now happens at template registration time.
+    Brand validation happens at template registration time, so the plan
+    carries no theme-fallback section.
     """
     plan_path = _p.dispatch_plan_md(out_dir)
     lines: list[str] = [
@@ -1214,7 +1193,6 @@ def write_dispatch_plan(
 #
 # Schema is reader-driven. Adding a new key is safe; renaming or removing
 # an existing one requires bumping META_SCHEMA_VERSION + updating readers.
-# Reader audit done 2026-05-25 (see _decisions/handoff-fix-review-{A,B,C}.md).
 #
 # Important: build_review.py uses `slides[].n` (NOT `slide_n`) as the
 # slide-number key. Keep this convention here so the readers match.
@@ -1238,8 +1216,8 @@ def write_meta_json(
     html_render_canvas, translator_dispatched, translation_reports, and
     per-slide pattern/artifacts). When "legacy" (or pattern_per_slide is
     None/empty), the optional fields are omitted entirely so the on-disk
-    JSON is byte-identical to the legacy output. This preserves the
-    guarantee: "OTC build with no flag is byte-identical to the current default."
+    JSON is byte-identical to the pptx-direct output. This preserves the
+    guarantee: a build with no flag is byte-identical to the default.
     """
     pattern_per_slide = pattern_per_slide or {}
     front_matter = brief.get("front_matter", {}) or {}
@@ -1258,8 +1236,8 @@ def write_meta_json(
                                    or _normalize_archetype_to_page_type(
                                        slide.get("archetype", "") or ""
                                    ),
-            #: chrome.yml layout name for this slide. Required at
-            # v3; resolve_slide_layouts already gates this is non-empty.
+            # chrome.yml layout name for this slide. Required;
+            # resolve_slide_layouts already gates this is non-empty.
             "layout":             slide.get("layout", "") or "",
             # per-slide variant flag. "dark" triggers full-bleed
             # brand.dark_bg_hex overlay + white title at finalize-time.
@@ -1275,18 +1253,16 @@ def write_meta_json(
         slides_meta.append(entry)
 
     # `generated_at` lives at TOP LEVEL because build_review.py:1117 reads it
-    # there (`(meta or {}).get("generated_at")`). Schema validation in v0.1
-    # will lock this. Do NOT also nest it inside deck_meta — single source of
-    # truth, no drift.
+    # there (`(meta or {}).get("generated_at")`). Do NOT also nest it inside
+    # deck_meta — single source of truth, no drift.
     meta = {
         "schema_version":  META_SCHEMA_VERSION,
         "template":        str(template_path.resolve()),
         "brief":           str(brief_path.resolve()),
         "out":             str(out_dir.resolve()),
-        # mermaid_theme field is no
-        # longer written. _meta_schema.py keeps it as an optional empty-
-        # default str so existing v3 readers continue to work without
-        # surgery; new writes simply omit it.
+        # The mermaid_theme field is no longer written. _meta_schema.py keeps
+        # it as an optional empty-default str so existing readers continue to
+        # work without surgery; new writes simply omit it.
         "client_slug":     client_slug,
         "slide_count":     len(slides_meta),
         "generated_at":    datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -1324,44 +1300,13 @@ def write_meta_json(
 # ----------------------------------------------------------------------
 # Stage-1 sanity check — proactive shared-infra prerequisite verification
 #
-# Halts at PREP time (before any agent dispatch) if:
-#   (a) Client template not registered — twins.client_theme.load_brand_sidecar
-#       raises BrandSidecarMissing
-#   (b) mmdc (Mermaid CLI) not installed — render_mermaid.py would fail at
-#       Stage 3 finalize for any FALLBACK_MERMAID option
+# Halts at PREP time (before any agent dispatch) when the client template is
+# not registered — twins.client_theme.load_brand_sidecar raises
+# BrandSidecarMissing.
 #
-# Reviewer A's "proactive sanity check, not reactive fail-at-finalize" pattern.
-# Production-grade bar requires it — agent compute is not wasted on dispatches
-# that would be unbuildable downstream.
+# Proactive sanity check, not reactive fail-at-finalize — agent compute is not
+# wasted on dispatches that would be unbuildable downstream.
 # ----------------------------------------------------------------------
-
-def _check_mmdc_installed() -> tuple[bool, str]:
-    """Verify mmdc is on PATH and runnable. Returns (ok, version_or_reason)."""
-    mmdc = shutil.which("mmdc")
-    if not mmdc and os.name == "nt":
-        # Windows npm-global fallback locations
-        for candidate in (
-            Path(os.environ.get("APPDATA", "")) / "npm" / "mmdc.cmd",
-            Path(os.environ.get("USERPROFILE", "")) / "AppData" / "Roaming" / "npm" / "mmdc.cmd",
-        ):
-            if candidate.exists():
-                mmdc = str(candidate)
-                break
-    if not mmdc:
-        return False, "mmdc not found on PATH"
-    try:
-        result = subprocess.run(
-            [mmdc, "--version"], capture_output=True, text=True, timeout=10,
-        )
-    except (FileNotFoundError, subprocess.TimeoutExpired) as exc:
-        return False, f"mmdc invocation failed: {type(exc).__name__}: {exc}"
-    if result.returncode != 0:
-        return False, f"mmdc --version returned exit {result.returncode}: {(result.stderr or '').strip()[:200]}"
-    version = (result.stdout or "").strip()
-    if not version:
-        return False, "mmdc --version returned empty stdout"
-    return True, version
-
 
 # ----------------------------------------------------------------------
 # — per-slide layout resolution + fail-loud gate
@@ -1401,10 +1346,8 @@ def resolve_slide_layouts(
     #   1. per-slide `Layout:` field in the brief
     #   2. brief front-matter `default_layout:`
     #   3. theme.json `default_content_layout` (set at registration time —
-    #      "the layout the user wants their content slides to look like";
-    #      added 2026-06-02 to bridge the picks-vs-layout-selection
-    #      conflation surfaced in feedback-2026-06-02.md)
-    #   4. RC-3 sole-body-canonical auto-fallback (when chrome.yml has
+    #      "the layout the user wants their content slides to look like")
+    #   4. sole-body-canonical auto-fallback (when chrome.yml has
     #      exactly one body-canonical layout, use it without asking)
     # Ambiguous templates with none of #1-#4 set still hard-fail with
     # exit 9 so the operator must disambiguate.
@@ -1453,7 +1396,7 @@ def resolve_slide_layouts(
             f"for slides without per-slide Layout: override.\n"
         )
     elif auto_default and not deck_default and not template_default:
-        # Sole-body-canonical fallback breadcrumb (RC-3).
+        # Sole-body-canonical fallback breadcrumb.
         sys.stderr.write(
             f"[layout] auto-fallback: no `default_layout:` or per-slide "
             f"`Layout:` set, theme.json has no default_content_layout; "
@@ -1467,10 +1410,10 @@ def emit_layout_resolution_error(
     template_path: Path, errors: list[str], available: list[str],
     front_matter: dict[str, str],
 ) -> None:
-    """Write the design-locked exit-9 message to stderr.
+    """Write the exit-9 message to stderr.
 
-    Format matches § 5.1 of v0.2-layout-inheritance-design-lock.md so the
-    operator gets exactly the two-paths-to-fix guidance the spec promised.
+    Gives the operator the two-paths-to-fix guidance for a brief missing a
+    required layout.
     """
     sys.stderr.write(
         "ERROR: brief is missing required `Layout:` field on these slides, and no\n"
@@ -1549,7 +1492,7 @@ def stage1_sanity_check(template_path: Path) -> int:
         )
         return 7
 
-    # Check (a.2): chrome.yml present (v0.2 P1.4). brand.yml is sufficient
+    # Check (a.2): chrome.yml present. brand.yml is sufficient
     # for theme remap but finalize_deck refuses to graft without chrome.yml.
     # Halt at prep so the operator re-registers before agent dispatch.
     chrome_yml_path = _p.chrome_yml(template_path)
@@ -1577,7 +1520,6 @@ def stage1_sanity_check(template_path: Path) -> int:
     # finalize_deck.py imports render_slides from slide-qc; without it,
     # Stage 3 cascades into a confusing ImportError hours into the build.
     # Halt at prep so the user re-installs the sibling skill upfront.
-    # (Audit fix 2026-06-11 — fresh-install gap.)
     qc_render_path = SKILL_ROOT.parent / "slide-qc" / "scripts" / "render_slides.py"
     if not qc_render_path.exists():
         sys.stderr.write(
@@ -1594,10 +1536,9 @@ def stage1_sanity_check(template_path: Path) -> int:
         )
         return 7
 
-    # M7 (Mermaid retirement, 2026-06-17): the mmdc CLI installation check
-    # used to live here. Mermaid was retired; the sketch path
-    # HTML→PNG via Playwright (verified at install via INSTALL.md Step 1.5)
-    # supersedes it.
+    # No mmdc CLI check runs here: the Mermaid fallback was removed, and the
+    # sketch path (HTML→PNG via Playwright, verified at install via INSTALL.md
+    # Step 1.5) supersedes it.
 
     print(f"[stage-1 sanity] brand sidecar OK for: {template_path}")
     print(f"[stage-1 sanity] slide-qc sibling OK: {qc_render_path}")
@@ -1707,7 +1648,7 @@ def main() -> int:
     )
     # Build-path routing override. Per-build override of
     # settings.json::default_pattern. Default None = use settings.json (which
-    # ships at "legacy"). See _decisions/pattern-b/spec-8-rollback-flag.md.
+    # ships at "legacy").
     parser.add_argument(
         "--pattern",
         choices=["auto", "sketch", "direct", "legacy"],
@@ -1775,7 +1716,7 @@ def main() -> int:
     slide_total = brief["slide_total"]
     deck_notes = brief["deck_notes"]
 
-    # 1.5 v0.2 P1.4: resolve every slide's layout name; fail-loud with exit 9
+    # 1.5 Resolve every slide's layout name; fail-loud with exit 9
     # if any slide lacks one (per-slide field OR deck default OR missing).
     slide_layouts, available_layouts, layout_errors = resolve_slide_layouts(
         brief, args.template
@@ -1797,22 +1738,18 @@ def main() -> int:
     # 3. Seeds — content_hash + 4 per slide
     seeds_by_slide: list[dict[str, str]] = [compute_seeds(s) for s in slides]
 
-    # 4. Load brand sidecar (still needed for write_meta_json + per-slide
-    # context). M7 (Mermaid retirement, 2026-06-17): the per-client Mermaid
-    # theme generation that used to live here was removed — the sketch path HTML
-    # path supersedes Mermaid. Brand-color validation now happens at template
+    # 4. Load brand sidecar (needed for write_meta_json + per-slide context).
+    # Per-client Mermaid theme generation no longer runs here — the sketch
+    # path (HTML) supersedes it. Brand-color validation happens at template
     # registration time (Phase 3 interactive color confirmation +
-    # register_template.py's WCAG warning emitted at M3).
+    # register_template.py's WCAG warning).
     client_slug = detect_client_slug(args.template, args.client_name)
     brand = load_brand_sidecar(args.template)
 
-    # M7 (Mermaid retirement, 2026-06-17): the inline theme sanity-check
-    # block that ran here used to re-read the generated Mermaid theme JSON
-    # and call validate_theme() on it. Validation now lives at template
-    # registration time (register_template.py Phase 3 + M3 WCAG warning);
-    # the runtime backstop here is dropped along with the Mermaid theme
-    # generation. theme_warnings (formerly returned by validate_theme) are
-    # no longer surfaced in the dispatch plan.
+    # No inline theme sanity-check runs here. Validation lives at template
+    # registration time (register_template.py Phase 3 + WCAG warning), so
+    # theme_warnings stays empty and the dispatch plan carries no theme
+    # warnings.
     theme_warnings: list = []
 
     # Classify per-slide pattern BEFORE rendering prompts (empty dict
@@ -1848,8 +1785,7 @@ def main() -> int:
         )
         rendered = render_prompt(template_text, placeholders)
         _p.prompt_md(args.out, slide_n).write_text(rendered, encoding="utf-8")
-        # Gate C.1 (2026-06-08, SLIDE_LAB_FEEDBACK_LOG Issue #4): write a
-        # `_context.md` sibling that bundles the canonical reference,
+        # Write a `_context.md` sibling that bundles the canonical reference,
         # design rules, brief metadata, and feedback ledger for the
         # per-slide worker agent to reason against.
         try:

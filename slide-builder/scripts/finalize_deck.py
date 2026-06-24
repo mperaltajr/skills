@@ -59,8 +59,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
-# Path setup: twins/ is local to this skill (re-homed Phase 2 cleanup
-# 2026-05-26); render_slides lives in the sibling slide-qc skill.
+# Path setup: twins/ is local to this skill; render_slides lives in the
+# sibling slide-qc skill.
 SKILL_ROOT = Path(__file__).resolve().parents[1]              # slide-builder/
 QC_SCRIPTS = SKILL_ROOT.parent / "slide-qc" / "scripts"       # render_slides
 sys.path.insert(0, str(SKILL_ROOT))
@@ -91,7 +91,7 @@ import twins.helpers as _twins_helpers  # noqa: E402
 
 
 # ---------------------------------------------------------------------------
-# v2 ADDITION — option-classification tokens
+# Option-classification tokens
 # ---------------------------------------------------------------------------
 SKELETON_REJECTED_TOKEN = "# SKELETON_REJECTED:"
 
@@ -107,7 +107,7 @@ SKELETON_REJECTED_TOKEN = "# SKELETON_REJECTED:"
 def _parse_template_fields(py_path: Path) -> dict[str, str]:
     """Extract the ``__template_fields__`` dict from a translator script header.
 
-    sketch-path translator output (Spec 4 §4) carries the chrome text
+    sketch-path translator output carries the chrome text
     (title/subtitle/footer/page_number) in a structured comment block at the
     top of `option_X_native.py`:
 
@@ -202,7 +202,7 @@ def _classify_option(py_path: Path) -> tuple[str, str]:
 
 
 # ---------------------------------------------------------------------------
-# Per-option render-QC self-check — verbatim from v1
+# Per-option render-QC self-check
 # ---------------------------------------------------------------------------
 _SRGB_RE = re.compile(r'srgbClr\s+val="([0-9A-Fa-f]{6})"')
 
@@ -211,9 +211,9 @@ _PLACEHOLDER_PATTERNS = (
     "Lorem ipsum",
     "Proceed with Option B",
 )
-# F1-B: import the canonical cross-skill placeholder
-# constants from twins/helpers.py so finalize_deck doesn't drift from
-# slide-qc or slide-builder on the intentional-presenter-prompt contract.
+# Import the canonical cross-skill placeholder constants from twins/helpers.py
+# so finalize_deck doesn't drift from slide-qc or slide-builder on the
+# intentional-presenter-prompt contract.
 try:
     from twins.helpers import (
         INTENTIONAL_FOOTNOTE_PLACEHOLDER,
@@ -232,7 +232,7 @@ except ImportError:
     )
 _FOOTNOTE_NAME_PREFIXES = ("footnote", "source", "page-number")
 _FOOTER_NUM_RE = re.compile(r"^\d+$")
-# Two-tier font floor (committee-decision 2026-05-26):
+# Two-tier font floor:
 #   - SOFT floor (10.5pt) applies to BODY-ROLE shapes only — named with
 #     body|bullet|paragraph|narrative tokens. Workers tag long-form prose
 #     this way; that's the text the floor protects.
@@ -242,9 +242,9 @@ _FOOTER_NUM_RE = re.compile(r"^\d+$")
 #     These are *legitimately* small in client decks (8-10pt) but anything
 #     below 8pt is illegible at projection scale regardless of role.
 # This replaces a flat "everything must be >= 10.5pt unless explicitly
-# excluded" rule that hit 10/12 false-positive last build because it had
-# no concept of small-by-design labels. See `_decisions/cleanup-plan-master`
-# committee log + reference/anti-patterns.md § Aesthetics #3.
+# excluded" rule that produced many false positives because it had
+# no concept of small-by-design labels. See reference/anti-patterns.md
+# § Aesthetics #3.
 _BODY_ROLE_NAME_TOKENS = ("body", "bullet", "paragraph", "narrative")
 _BODY_FONT_FLOOR_PT = 10.5
 _FONT_HARD_FLOOR_PT = 8.0
@@ -293,8 +293,7 @@ def _is_footnote_like_name(name: str) -> bool:
 def _is_body_role_name(name: str) -> bool:
     """True iff a shape name marks long-form running text (the only role the
     10.5pt soft floor applies to). All other roles fall through to the 8pt
-    hard floor. See the committee decision logged at the _BODY_ROLE_NAME_TOKENS
-    constant above for rationale."""
+    hard floor. See the _BODY_ROLE_NAME_TOKENS constant above for rationale."""
     n = (name or "").strip().lower()
     return any(tok in n for tok in _BODY_ROLE_NAME_TOKENS)
 
@@ -303,11 +302,10 @@ def detect_installed_fonts() -> set:
     """Enumerate installed fonts via PowerShell. Returns set of family names
     (empty set on any failure, but the failure is now logged loudly).
 
-    Pre-2026-06-02 the function silently swallowed every exception and
-    returned an empty set, which suppressed font-mismatch warnings for
-    operators on non-Windows shells or systems without PowerShell. Now the
-    failure mode is loud so the operator knows font warnings are absent
-    because detection failed, not because everything is installed.
+    On failure the cause is logged loudly rather than swallowed, so the
+    operator knows font warnings are absent because detection failed (e.g.,
+    a non-Windows shell or a system without PowerShell), not because every
+    font is installed.
     """
     try:
         cmd = (
@@ -385,11 +383,10 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
     if not png_path.exists():
         png_detail = "PNG not found"
     else:
-        # Floor was 50KB in v0; covers + sparse hero slides routinely render
-        # at 20-35KB even with correct content. P6.35 lowered
-        # to 12KB which is roughly the size of a near-blank PNG and lets
-        # legitimate sparse slides through while still catching the "blank
-        # canvas / render failed silently" failure mode.
+        # Covers + sparse hero slides routinely render at 20-35KB even with
+        # correct content, so the floor is 12KB — roughly the size of a
+        # near-blank PNG. This lets legitimate sparse slides through while
+        # still catching the "blank canvas / render failed silently" mode.
         try:
             sz = png_path.stat().st_size
             if sz <= 12 * 1024:
@@ -543,11 +540,10 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
     })
     checks.append({"check": "shape_count_sanity", "pass": shape_count_ok, "severity": "warn", "detail": shape_count_detail})
 
-    # Defect 7 fix (CDIO QBR, 2026-06-15): worker geometry guards.
-    # These three checks catch failure modes the original 7 checks missed,
-    # surfaced by the CDIO QBR build: zero-fill card backgrounds (worker
-    # forgot the fill_color arg), text-clip risk (text too long for box),
-    # and overlap-with-chrome (worker placed content at canonical chrome y).
+    # Worker geometry guards. These three checks catch failure modes the
+    # core checks miss: zero-fill card backgrounds (worker forgot the
+    # fill_color arg), text-clip risk (text too long for box), and
+    # overlap-with-chrome (worker placed content at canonical chrome y).
     zero_fill_ok = True
     zero_fill_offenders: list = []
     clip_risk_ok = True
@@ -564,7 +560,7 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
             # (a) Zero-fill card / badge detection. Workers conventionally name
             # background rects card-*, badge-*, pill-*, bg-*. If those AUTO_SHAPE
             # shapes ship with `fill.background()` (no fill), the slide
-            # renders with invisible cards. Catches the slide-111 bug from CDIO.
+            # renders with invisible cards.
             if (name_lower.startswith(("card-", "badge-", "pill-", "bg-"))
                     or "card_bg" in name_lower or "badge_bg" in name_lower):
                 try:
@@ -662,7 +658,7 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
 
 
 # ---------------------------------------------------------------------------
-# M6 (Pattern B QC, 2026-06-17) — R4.1 through R4.8 checks per Spec 6
+# Sketch-path QC — R4.1 through R4.8 checks
 # ---------------------------------------------------------------------------
 def _check_editability_structural(pptx_path: Path) -> dict:
     """Verify the translator's saved .pptx contains structurally editable text.
@@ -737,8 +733,7 @@ def _check_editability_structural(pptx_path: Path) -> dict:
 def _check_r4_rules_for_sketch(st: "OptionStatus") -> list[dict]:
     """Run R4.1-R4.8 QC checks on a sketch-path translator output.
 
-    Per Spec 6 (_decisions/pattern-b/spec-6-qc-rules-R4.md), Pattern B
-    introduces a parallel rule family R4 that operates on the
+    The sketch path adds a parallel rule family R4 that operates on the
     translator's output and report:
 
       R4.1 Strikethrough/underline on body text       (Critical)
@@ -752,7 +747,7 @@ def _check_r4_rules_for_sketch(st: "OptionStatus") -> list[dict]:
 
     Each return entry has the same shape as run_option_qc's `checks`
     items: {check, severity, pass, detail}. Severity values use the
-    legacy run_option_qc vocabulary: "block" = Critical hard-fail,
+    run_option_qc vocabulary: "block" = Critical hard-fail,
     "warn" = Major surfaceable in REVIEW.html, "info" = Advisory.
 
     Returns an empty list when:
@@ -788,7 +783,7 @@ def _check_r4_rules_for_sketch(st: "OptionStatus") -> list[dict]:
     }
 
     # Script-source scan for R4.1 (defense-in-depth alongside translator
-    # report). Pattern B output should never set strikethrough/underline
+    # report). Sketch-path output should never set strikethrough/underline
     # on body runs unless the brief explicitly authorizes — and the brief
     # gating happens at the translator, so any survivor here is a bug.
     script_has_strikethrough = False
@@ -860,7 +855,7 @@ def _check_r4_rules_for_sketch(st: "OptionStatus") -> list[dict]:
         "detail": f"filters={filters_dropped}, shadows={shadows_stripped}",
     })
 
-    # R4.6 Icons rendering (Major) — v0 trusts the translator's warning array.
+    # R4.6 Icons rendering (Major) — trusts the translator's warning array.
     r46_fail = any("ICON" in c for c in warning_codes)
     checks.append({
         "check": "R4.6 icons rendering",
@@ -870,13 +865,13 @@ def _check_r4_rules_for_sketch(st: "OptionStatus") -> list[dict]:
     })
 
     # R4.7 Editability verified (Critical, load-bearing).
-    # Structural introspection of the translator's saved .pptx — replaces the
-    # earlier SSIM-based translator self-report (2026-06-18 cutover validation
-    # found that self-report conflated editability with pre-graft visual
-    # fidelity, producing 11/15 false-positive BLOCKs on the OTC deck).
-    # Passes when the native .pptx contains at least one editable text shape
-    # and no zero-size text frames. The translator's `editability_self_check`
-    # subfield is now ignored — its prose is advisory only.
+    # Structural introspection of the translator's saved .pptx, rather than an
+    # SSIM-based translator self-report. The self-report conflated editability
+    # with pre-graft visual fidelity (chrome zones are empty pre-graft by
+    # design), producing false-positive BLOCKs. Passes when the native .pptx
+    # contains at least one editable text shape and no zero-size text frames.
+    # The translator's `editability_self_check` subfield is ignored — its
+    # prose is advisory only.
     if st.pptx_path.exists():
         struct = _check_editability_structural(st.pptx_path)
         r47_pass = struct["pass"]
@@ -909,7 +904,7 @@ def _check_r4_rules_for_sketch(st: "OptionStatus") -> list[dict]:
 
 
 # ---------------------------------------------------------------------------
-# Data classes — v1 base + v2 status enum
+# Data classes
 # ---------------------------------------------------------------------------
 @dataclass
 class OptionStatus:
@@ -920,32 +915,29 @@ class OptionStatus:
     raw_archive_path: Path
     themed_pptx_path: Path
     themed_png_path: Path
-    # v2 additions
-    # M7 (Mermaid retirement, 2026-06-17): `fallback_mermaid` is no longer
-    # produced by the classifier. `mmd_path` / `mermaid_png_path` removed.
+    # The classifier no longer produces a Mermaid fallback, so there are no
+    # mmd_path / mermaid_png_path fields.
     classification: str = "native"           # one of: native, sketch_translated, skeleton_rejected, missing
     classification_reason: str = ""
-    # v1 fields
     built: Optional[bool] = None
     themed: Optional[bool] = None
     rendered: Optional[bool] = None
     n_shapes: int = 0
     n_subs: int = 0
     error: str = ""
-    # v0.3 dark-variant collision tracking — populated by graft_and_theme
+    # dark-variant collision tracking — populated by graft_and_theme
     # when slide.variant == "dark" and content fill/text colors collide with
     # brand.dark_bg_hex. Empty list means clean; non-empty triggers hard fail
     # in main() after all options are processed.
     dark_collisions: list = field(default_factory=list)
-    # M6 (Pattern B QC, 2026-06-17): R4.1-R4.8 check results from
-    # _check_r4_rules_for_sketch. Empty for legacy / direct builds;
-    # populated for Pattern B picks after graft+theme so QC surfaces in
-    # REVIEW.html via the .qc.json file.
+    # R4.1-R4.8 check results from _check_r4_rules_for_sketch. Empty for
+    # direct builds; populated for sketch picks after graft+theme so QC
+    # surfaces in REVIEW.html via the .qc.json file.
     r4_checks: list = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
-# Discovery — v1 base + v2 classification at scan time
+# Discovery — classify each option at scan time
 # ---------------------------------------------------------------------------
 def discover_options(out_dir: Path, expected: Optional[set] = None) -> list:
     """Discover per-slide option scripts produced by the parallel worker fanout.
@@ -954,19 +946,19 @@ def discover_options(out_dir: Path, expected: Optional[set] = None) -> list:
         promised in _meta.json. Any pair in `expected` that has no
         corresponding option_X.py file on disk is synthesized as an
         OptionStatus with classification="missing" so finalize surfaces the
-        gap in RESULT.md instead of silently skipping the slide. This is the
-        committee P4 fix: treat a missing worker output the
-        same as a SKELETON_REJECTED, ride the existing rejected-branch rails,
-        no retries, no hard-fail. The operator sees the gap and re-dispatches
-        the worker if they want a fuller deck.
+        gap in RESULT.md instead of silently skipping the slide. A missing
+        worker output is treated the same as a SKELETON_REJECTED — it rides
+        the existing rejected-branch rails, with no retries and no hard-fail.
+        The operator sees the gap and re-dispatches the worker if they want a
+        fuller deck.
     """
     statuses: list = []
     found_pairs: set = set()
-    # M5: prefer sketch-path translator output (`option_X_native.py`) when both it
+    # Prefer sketch-path translator output (`option_X_native.py`) when both it
     # and a sibling `option_X.py` are present for the same slide+letter.
     # Build a map of which (slide_n, letter) pairs have a translator output so
     # we can skip the worker's `.py` if the translator already converted that
-    # option. In production, Pattern B slides emit only HTML (no `option_X.py`
+    # option. In production, sketch-path slides emit only HTML (no `option_X.py`
     # ever exists), so this guard mostly only matters for mixed-mode test runs.
     translator_pairs: set = set()
     for npy in out_dir.glob("slide_*/option_*_native.py"):
@@ -978,7 +970,7 @@ def discover_options(out_dir: Path, expected: Optional[set] = None) -> list:
             continue
         translator_pairs.add((slide_n, letter))
 
-    # First pass: legacy `option_X.py` worker output (Pattern C / native).
+    # First pass: direct-path `option_X.py` worker output (native).
     for py in sorted(out_dir.glob("slide_*/option_*.py")):
         # Skip translator-output files; they get their own pass below.
         if py.stem.endswith("_native"):
@@ -1005,7 +997,7 @@ def discover_options(out_dir: Path, expected: Optional[set] = None) -> list:
         ))
         found_pairs.add((slide_n, letter))
 
-    # M5: second pass — sketch-path translator output. Each `option_X_native.py`
+    # Second pass — sketch-path translator output. Each `option_X_native.py`
     # gets an OptionStatus whose `py_path` is the translator script. The
     # downstream build_pptx + graft_and_theme paths execute it via the normal
     # native code path; the `__template_fields__` header is parsed for
@@ -1031,7 +1023,7 @@ def discover_options(out_dir: Path, expected: Optional[set] = None) -> list:
         ))
         found_pairs.add((slide_n, letter))
 
-    # P4 — synthesize missing options for every (slide_n, letter) the parent
+    # Synthesize missing options for every (slide_n, letter) the parent
     # session promised but no file landed for. Inserted in slide+letter order.
     if expected:
         for slide_n, letter in sorted(expected - found_pairs):
@@ -1054,7 +1046,7 @@ def discover_options(out_dir: Path, expected: Optional[set] = None) -> list:
 def stash_raw(st: OptionStatus) -> None:
     """Move the worker-produced PPTX to the raw archive path.
 
-    Loud-failure contract (T2.13, audit 2026-05-26): if the rename fails —
+    Loud-failure contract: if the rename fails —
     most commonly a Windows file lock from PowerPoint still holding the
     worker output open, or antivirus mid-scan — we MUST surface that.
     Silent return previously left `st.pptx_path` pointing at the original
@@ -1101,7 +1093,7 @@ def _sha256_of_file(path: Path) -> str:
 
 def _load_and_verify_chrome(template_path: Path) -> ChromeSpec:
     """Load chrome.yml from the template's sidecar subfolder
-    (`<template-stem>/chrome.yml`, v0.4+ layout) and hard-fail on SHA mismatch.
+    (`<template-stem>/chrome.yml`) and hard-fail on SHA mismatch.
 
     Raises:
       ChromeSidecarMissingError if chrome.yml is absent (operator must run
@@ -1131,9 +1123,7 @@ def _pick_default_layout_name(spec: ChromeSpec) -> str:
       2. First body-canonical layout (any bg).
       3. First layout in the spec (alphabetical fallback).
 
-    P1.3 ships before P1.4 wires per-slide layout into _meta.json. Until P1.4
-    lands, every slide gets the deck-wide default returned here. After P1.4,
-    this function is only consulted for slides that lack a layout field AND
+    This function is consulted only for slides that lack a layout field AND
     have no default_layout in front-matter.
     """
     light_canonical = [n for n, lc in spec.layouts.items()
@@ -1149,23 +1139,22 @@ def _pick_default_layout_name(spec: ChromeSpec) -> str:
         return sorted(spec.layouts)[0]
     return ""
 
-# Body-zone embed coordinates — matches the conventions baked into prompt.md
-# and reference/fallback.md. 1240x540 PNG centered horizontally at y=110.
+# Body-zone embed coordinates — matches the conventions baked into prompt.md.
+# 1240x540 PNG centered horizontally at y=110.
 # Slide canvas: 1280x720 EMUs; we work in pixels and convert.
 PX_TO_EMU = 9525  # python-pptx convention: 1 px = 9525 EMU at 96 DPI
 
 
 
 # ---------------------------------------------------------------------------
-# Step 1: build pptx — v1 native path + Pattern B translator path (M5)
+# Step 1: build pptx — native path + sketch-path translator path
 # ---------------------------------------------------------------------------
-# M7 (Mermaid retirement, Decision 6, 2026-06-17): the Mermaid fallback path
-# was removed here. `_resolve_mermaid_theme`, `_render_mermaid_png`, and
-# `_assemble_fallback_pptx` were deleted. Pattern B HTML→PNG (per
-# `_decisions/pattern-b/SPEC.md`) supersedes Mermaid for curved-container
-# diagrams. Stale `option_X.py` scripts carrying `# FALLBACK_MERMAID:` on
-# line 1 now fall through to the `native` classifier and fail loudly at
-# execution time — the operator re-builds.
+# The Mermaid fallback path was removed: `_resolve_mermaid_theme`,
+# `_render_mermaid_png`, and `_assemble_fallback_pptx` no longer exist. The
+# sketch path (HTML→PNG) supersedes Mermaid for curved-container diagrams.
+# Stale `option_X.py` scripts carrying `# FALLBACK_MERMAID:` on line 1 fall
+# through to the `native` classifier and fail loudly at execution time — the
+# operator re-builds.
 # ---------------------------------------------------------------------------
 def _try_load_brief_title_from_prompt(st: OptionStatus) -> str:
     """Extract the slide title from <slide_dir>/_prompt.md so the fallback
@@ -1236,17 +1225,16 @@ def build_pptx(st: OptionStatus,
                layout_chrome=None,
                layout_name: str = "",
                prefer_runpy: bool = False) -> None:
-    """v2: branch on classification before invoking the native path.
+    """Branch on classification before invoking the native path.
 
     skeleton_rejected     -> mark not-built; rejection surfaces in REVIEW.html
-    sketch_translated  -> sketch-path translator output (M5); runs via the
+    sketch_translated  -> sketch-path translator output; runs via the
                               native path; finalize merges __template_fields__
                               into the placeholder population step.
-    native                -> v1's subprocess/runpy execution
+    native                -> subprocess/runpy execution
 
-    M7 (Mermaid retirement, Decision 6, 2026-06-17): the `fallback_mermaid`
-    branch was removed. `mermaid_theme` parameter was retired (it was only
-    consumed by the Mermaid fallback's `_render_mermaid_png` call).
+    There is no Mermaid fallback branch and no `mermaid_theme` parameter — the
+    Mermaid fallback was removed.
     """
     if st.pptx_path.exists():
         try:
@@ -1254,13 +1242,13 @@ def build_pptx(st: OptionStatus,
         except Exception:
             pass
 
-    # v2 skeleton-rejected branch — no build attempt
+    # skeleton-rejected branch — no build attempt
     if st.classification == "skeleton_rejected":
         st.built = False
         st.error = f"SKELETON_REJECTED: {st.classification_reason}"
         return
 
-    # v2 missing branch — option script not found
+    # missing branch — option script not found
     if st.classification == "missing":
         st.built = False
         st.error = st.classification_reason
@@ -1296,7 +1284,7 @@ def build_pptx(st: OptionStatus,
 
 
 # ---------------------------------------------------------------------------
-# Step 2: graft + theme remap — verbatim from v1
+# Step 2: graft + theme remap
 # ---------------------------------------------------------------------------
 def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
                                      src_slide, slide_n: int,
@@ -1308,12 +1296,11 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
                                      template_fields_override: Optional[dict] = None) -> None:
     """Body-canonical chrome population + title/subtitle finishing.
 
-    M5 (Pattern B production wiring, 2026-06-17): `template_fields_override`
-    is the dict parsed from a Pattern B translator's `__template_fields__`
-    header. When non-None and a `title` / `subtitle` key is present, that
-    value takes priority over `fallback_title` / `fallback_subtitle` (which
-    come from the brief). For Pattern C / legacy builds, this kwarg is
-    always None and behavior is byte-identical to pre-M5.
+    `template_fields_override` is the dict parsed from a sketch-path
+    translator's `__template_fields__` header. When non-None and a `title` /
+    `subtitle` key is present, that value takes priority over `fallback_title`
+    / `fallback_subtitle` (which come from the brief). For direct-path builds,
+    this kwarg is always None.
     """
     """Body-canonical post-graft.
 
@@ -1348,23 +1335,23 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
             except Exception:
                 src_title = ""
             continue
-        # v2.1 (2026-06-02, Bug #2): also harvest the source slide's
-        # subtitle textbox so finalize can populate the layout's inherited
-        # subtitle placeholder. Worker scripts name the shape "subtitle"
-        # by convention when they author a free-floating one.
+        # Also harvest the source slide's subtitle textbox so finalize can
+        # populate the layout's inherited subtitle placeholder. Worker scripts
+        # name the shape "subtitle" by convention when they author a
+        # free-floating one.
         if (not src_subtitle) and (name == "subtitle" or name.startswith("subtitle")):
             try:
                 src_subtitle = (shape.text_frame.text or "").strip()
             except Exception:
                 src_subtitle = ""
             continue
-    # M5 (Pattern B production wiring, 2026-06-17): translator's
-    # __template_fields__ takes priority over both source-shape harvest and
-    # brief fallback. Pattern B HTML stores title/subtitle as DATA fields
-    # (data-template-field attributes), extracted by the translator and
-    # carried in the script header. They are NEVER positioned as freeform
-    # shapes in the body, so the source-slide harvest above never finds
-    # them — this branch is how chrome lands for Pattern B picks.
+    # The translator's __template_fields__ takes priority over both the
+    # source-shape harvest and the brief fallback. Sketch-path HTML stores
+    # title/subtitle as DATA fields (data-template-field attributes),
+    # extracted by the translator and carried in the script header. They are
+    # NEVER positioned as freeform shapes in the body, so the source-slide
+    # harvest above never finds them — this branch is how chrome lands for
+    # sketch-path picks.
     if template_fields_override:
         if template_fields_override.get("title"):
             src_title = str(template_fields_override["title"]).strip()
@@ -1372,9 +1359,8 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
             src_subtitle = str(template_fields_override["subtitle"]).strip()
     if not src_title:
         src_title = (fallback_title or "").strip()
-    # v2.2 (2026-06-05, SLIDE_LAB_FEEDBACK_LOG #1): fall back to meta-supplied
-    # subtitle when source slide has no "subtitle" shape. Workers built before
-    # the body-canonical default fix don't name a subtitle shape, so without
+    # Fall back to meta-supplied subtitle when the source slide has no
+    # "subtitle" shape. Some workers don't name a subtitle shape, so without
     # this fallback the so-what from the brief never lands on the slide.
     if not src_subtitle:
         src_subtitle = (fallback_subtitle or "").strip()
@@ -1436,8 +1422,8 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
             run.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
         return
 
-    # v2.2 (2026-06-05, SLIDE_LAB_FEEDBACK_LOG #3): Mario's design rule —
-    # "if title wraps to >2 lines, no subtitle." Use Pillow + brand TTF
+    # Design rule — "if title wraps to >2 lines, no subtitle."
+    # Use Pillow + brand TTF
     # measurement (NOT char count — proportional fonts misfire on char
     # thresholds). Only fires when the layout actually exposes a subtitle
     # slot (otherwise there's nothing to drop) and src_subtitle is set.
@@ -1450,7 +1436,7 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
             _find_brand_ttf,
             TitleMetricsUnavailableError,
         )
-        # Prefer brand-yml-recorded TTF path (Gate A.3, persisted at register
+        # Prefer brand-yml-recorded TTF path (persisted at register
         # time); fall back to layout-chrome override; final fallback is a
         # transitional disk scan with a WARN telling the operator to
         # re-register.
@@ -1462,7 +1448,7 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
         # Title box width in px: layout's title_box_width_px if available,
         # else canonical CANONICAL_TITLE_W. Title font size: layout's
         # title_font_pt if available, else 28pt (canonical for body-canonical
-        # FedEx layouts).
+        # layouts).
         _title_w_px = getattr(layout_chrome, "title_box_width_px", None) or 1190
         _title_pt = getattr(layout_chrome, "title_font_pt", None) or 28
         try:
@@ -1471,7 +1457,7 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
                 sys.stderr.write(
                     f"  INFO: slide {slide_n} title wraps to {_n_lines} lines "
                     f"at {_title_pt}pt in {_title_w_px}px box; dropping "
-                    f"subtitle per Mario's >2-line rule.\n"
+                    f"subtitle per the >2-line rule.\n"
                 )
                 src_subtitle = ""
         except TitleMetricsUnavailableError as _exc:
@@ -1488,13 +1474,12 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
                 sys.stderr.write(
                     f"  INFO: slide {slide_n} title is {len(src_title)} chars "
                     f"(>110, char-count proxy); dropping subtitle per "
-                    f"Mario's >2-line rule.\n"
+                    f"the >2-line rule.\n"
                 )
                 src_subtitle = ""
 
-    # Light path: keep existing behavior — overlay only if the layout's
-    # chrome ships a body_overlay_hex (legacy per-layout dark path), then
-    # populate inherited placeholders.
+    # Light path: overlay only if the layout's chrome ships a body_overlay_hex
+    # (the per-layout dark path), then populate inherited placeholders.
     from twins.composer import _insert_dark_overlay
     overlay_hex = getattr(layout_chrome, "body_overlay_hex", None)
     body_top_px = getattr(layout_chrome, "body_top_y_px", None)
@@ -1507,14 +1492,12 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
             overlay_hex,
         )
 
-    # v2.1 (2026-06-02, Bug #2): pass subtitle through so finalize populates
-    # the inherited subtitle placeholder. Composer no-ops cleanly when
-    # subtitle is None or the layout has no subtitle placeholder type.
-    # v2.2 (2026-06-05, SLIDE_LAB_FEEDBACK_LOG #2 follow-up): pass the
-    # chrome-registered placeholder ids so the composer can match by idx
-    # FIRST. FedEx layout's "subtitle" slot is actually a BODY-type
-    # placeholder at idx=10; strict type matching alone would silently
-    # miss it.
+    # Pass subtitle through so finalize populates the inherited subtitle
+    # placeholder. Composer no-ops cleanly when subtitle is None or the layout
+    # has no subtitle placeholder type. Pass the chrome-registered placeholder
+    # ids too so the composer can match by idx FIRST. A layout's "subtitle"
+    # slot can actually be a BODY-type placeholder (e.g. at idx=10); strict
+    # type matching alone would silently miss it.
     _title_idx = getattr(layout_chrome, "title_placeholder_idx", None)
     _subtitle_idx = getattr(layout_chrome, "subtitle_placeholder_idx", None)
     found = _populate_layout_placeholders(
@@ -1527,13 +1510,11 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
         subtitle_idx=_subtitle_idx,
     )
 
-    # v2.2 (2026-06-05, SLIDE_LAB_FEEDBACK_LOG #2): loud-fail when non-empty
-    # title or subtitle text was supplied but the layout had no matching
-    # placeholder type to populate. The FedEx OTC bug shipped because this
-    # check did not exist — every slide's subtitle silently disappeared
-    # because the bespoke layout had no SUBTITLE placeholder. Honor
-    # feedback_sidecar_fallback_must_be_loud: invisible data loss is never
-    # a recoverable runtime state.
+    # Loud-fail when non-empty title or subtitle text was supplied but the
+    # layout had no matching placeholder type to populate. Without this check,
+    # a bespoke layout with no SUBTITLE placeholder silently drops every
+    # slide's subtitle. Honor feedback_sidecar_fallback_must_be_loud:
+    # invisible data loss is never a recoverable runtime state.
     layout_name = getattr(layout_chrome, "name", "(unknown)") if layout_chrome else "(unknown)"
     if src_title and not found.get("title"):
         raise TitleDropError(
@@ -1561,9 +1542,8 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
 class TitleDropError(RuntimeError):
     """Raised when title text was supplied but the slide's layout has no
     TITLE placeholder. Per feedback_sidecar_fallback_must_be_loud — silent
-    data loss is never a recoverable runtime state. The FedEx OTC bug shipped a deck with every subtitle silently dropped
-    because this check did not exist for subtitle; add for both to prevent
-    recurrence in either direction.
+    data loss is never a recoverable runtime state. Title and subtitle both
+    get this check so a missing placeholder can't silently drop either one.
     """
 
 
@@ -1577,9 +1557,9 @@ class TemplateLayoutMissingError(RuntimeError):
     """Raised when a per-slide layout name is supplied but no layout in the
     registered template matches that name.
 
-    Killing Feedback Log Deferred #1: _find_named_layout returned
-    None silently and the caller fell back to _find_blank_layout, hiding the
-    fact that the slide is now on the wrong layout. The most common real-world
+    Without this, _find_named_layout returns None silently and the caller
+    falls back to _find_blank_layout, hiding the fact that the slide is now
+    on the wrong layout. The most common real-world
     cause: template was re-saved in PowerPoint and a layout got renamed (or
     deleted) after registration; per-slide _meta.json still references the old
     name. Silent fallback = subtitle drop + chrome misalignment with no signal.
@@ -1610,7 +1590,7 @@ class DarkVariantCollisionError(RuntimeError):
     failure — at least the failure tells the user exactly what to fix.
 
     Per ``feedback_sidecar_fallback_must_be_loud``: silent fallback on
-    rendering issues is the v1 bug class we're not repeating.
+    rendering issues is a bug class we don't repeat.
     """
 
 
@@ -1736,13 +1716,12 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
 
         prs = Presentation(str(template_path))
         _clear_existing_slides(prs)
-        #: graft onto the layout named in chrome.yml / meta when one
+        # Graft onto the layout named in chrome.yml / meta when one
         # is supplied; fall back to blank for body-canonical and for slides
-        # that didn't carry a layout (P1.4 wires per-slide layout via meta).
+        # that didn't carry a layout.
         #
-        # Gate B.2 (2026-06-08, SLIDE_LAB_FEEDBACK_LOG Deferred #1): when a
-        # non-empty layout_name was requested but not found, raise loudly
-        # instead of silently falling back to blank. The blank fallback is
+        # When a non-empty layout_name was requested but not found, raise
+        # loudly instead of silently falling back to blank. The blank fallback is
         # ONLY for slides that asked for no specific layout (layout_name == "").
         target_layout = _find_named_layout(prs, layout_name)
         if target_layout is None:
@@ -1773,20 +1752,20 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
             target_layout = _find_blank_layout(prs)
         new_slide = prs.slides.add_slide(target_layout)
 
-        # v0.3 body-canonical layout inheritance:
+        # Body-canonical layout inheritance:
         # When the chosen layout is body-canonical AND chrome.yml carries the
-        # v2 layout-inheritance fields (title_placeholder_idx set), KEEP the
+        # layout-inheritance fields (title_placeholder_idx set), KEEP the
         # layout's inherited placeholders + decorative shapes. Slide Lab's
         # source-slide content gets grafted on top; the inherited title +
         # footer placeholders get populated with text from the source slide
-        # after the graft. Otherwise (bespoke / cover / v1 chrome) strip the
+        # after the graft. Otherwise (bespoke / cover chrome) strip the
         # placeholders so Slide Lab redraws everything at canonical position.
         # Dark-variant slides also strip — they want a clean canvas under
         # the full-bleed overlay (no gradient bar / orange bar bleeding
         # around the dark fill), and they draw their own title white on the
         # overlay rather than populating the inherited title placeholder.
         # MUST happen BEFORE the graft loop, otherwise the strip wipes out
-        # the just-grafted source content (audit-failed 2026-05-28).
+        # the just-grafted source content.
         _is_body_canonical = (
             layout_chrome is not None
             and getattr(layout_chrome, "layout_class", None) == "body-canonical"
@@ -1797,9 +1776,9 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
         # under the full-bleed dark overlay so the master's purple bars /
         # header rules don't bleed around the dark fill.
         # Bespoke non-dark: respect brand.yml `strip_master_backgrounds`.
-        # When false (default for FedEx-style brands), the master IS the
-        # brand chrome — keep the top/bottom bands inherited from the master.
-        # When true (legacy templates with photographic backgrounds), strip.
+        # When false (default for brands whose master IS the brand chrome),
+        # keep the top/bottom bands inherited from the master.
+        # When true (templates with photographic backgrounds), strip.
         # Body-canonical: no strip — inherits everything including placeholders
         # for the post-graft populate step.
         if _is_dark_variant:
@@ -1809,15 +1788,14 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
             _strip_layout_placeholders(new_slide, keep_master_shapes=_keep_master)
 
         sp_tree = new_slide.shapes._spTree
-        # Gate B.1 fix (2026-06-08, SLIDE_LAB_FEEDBACK_LOG #8 root cause):
         # When body-canonical, new_slide already has title/subtitle/footer
         # placeholders via layout inheritance — _populate_layout_placeholders
         # writes into them after the graft. If we also deepcopy the src_slide's
         # placeholder shapes here, we end up with N+1 copies of each placeholder
-        # on every finalize re-run (1 inherited + 1 from src). Five re-runs in
-        # one session → 6 stacked title placeholders, all populated identically,
-        # rendering as garbled anti-aliased text. compile_picks.py had a
-        # post-hoc dedupe; this is the real fix.
+        # on every finalize re-run (1 inherited + 1 from src). Repeated re-runs
+        # in one session stack title placeholders, all populated identically,
+        # rendering as garbled anti-aliased text. Skipping the deepcopy of
+        # placeholder shapes is the fix.
         _PH_TAG = qn("p:ph")
         for shape in src_slide.shapes:
             # Picture shapes carry a blipFill that references an image via
@@ -1826,16 +1804,12 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
             # the relationship onto the target slide's part, leaving an
             # orphan reference that LibreOffice and PowerPoint both render
             # as nothing. Re-embed the blob via add_picture so python-pptx
-            # registers a fresh, valid rId on the target. See finalize_deck
-            # committee 2026-05-26 root-cause report — Mermaid fallback live
-            # test surfaced this.
+            # registers a fresh, valid rId on the target.
             #
             # Custom <p:pic> children (srcRect crop, recolor, alpha, rot,
-            # picture-effects) are not preserved here. Today's only Picture
-            # consumer (_assemble_fallback_pptx) writes plain add_picture
-            # calls with no transforms, so this is safe. Add transform
-            # preservation here if a future fallback writes Picture shapes
-            # with effects.
+            # picture-effects) are not preserved here. Picture shapes today
+            # carry no transforms, so this is safe. Add transform preservation
+            # here if a future writer emits Picture shapes with effects.
             if shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
                 try:
                     blob = shape.image.blob
@@ -1856,17 +1830,17 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
                 continue
             sp_tree.append(deepcopy(shape.element))
 
-        # v0.3 body-canonical: insert dark-overlay rectangle (if any) so it
+        # Body-canonical: insert dark-overlay rectangle (if any) so it
         # sits BEFORE the source-slide content in z-order, and write the source
         # slide's title + footer text into the layout's inherited placeholders.
         if _is_body_canonical:
             try:
                 _is_dark = (slide_variant or "").strip().lower() == "dark"
                 _dark_bg = getattr(theme, "dark_bg_hex", "") or ""
-                # M5: for sketch-path translator output, parse the script's
-                # __template_fields__ header. Result is {} for Pattern C /
-                # legacy classifications (the parser exits early if the
-                # marker isn't found), so this is safe for every code path.
+                # For sketch-path translator output, parse the script's
+                # __template_fields__ header. Result is {} for direct-path
+                # classifications (the parser exits early if the marker isn't
+                # found), so this is safe for every code path.
                 _tf_override = None
                 if st.classification == "sketch_translated":
                     _tf_override = _parse_template_fields(st.py_path)
@@ -1879,7 +1853,7 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
                     brand_ttf_path=getattr(theme, "title_font_ttf_path", "") or "",
                     template_fields_override=_tf_override,
                 )
-                # v0.3: hard-fail collision check on dark-variant slides.
+                # Hard-fail collision check on dark-variant slides.
                 # If any shape fill or text color collides with dark_bg_hex,
                 # the content would render invisible. Record on st so the
                 # main loop can refuse the build after all options finish.
@@ -1889,13 +1863,12 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
                     )
             except (TitleDropError, SubtitleDropError,
                     TemplatePlaceholderEmptyError):
-                # v2.2 (2026-06-05, SLIDE_LAB_FEEDBACK_LOG #2): silent-drop
-                # errors are hard fails per feedback_sidecar_fallback_must_be_loud.
-                # Re-raise so the graft fails loudly with the named exception
-                # and stops the build — invisible data loss is worse than
-                # a stopped build.
-                # Gate B.3: TemplatePlaceholderEmptyError is the
-                # same silent-drop bug class one layer deeper; same handling.
+                # Silent-drop errors are hard fails per
+                # feedback_sidecar_fallback_must_be_loud. Re-raise so the graft
+                # fails loudly with the named exception and stops the build —
+                # invisible data loss is worse than a stopped build.
+                # TemplatePlaceholderEmptyError is the same silent-drop bug
+                # class one layer deeper; same handling.
                 raise
             except Exception as _exc:
                 # Don't fail the graft on overlay/populate trouble — surface
@@ -1920,9 +1893,9 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
         st.themed = True
     except (TitleDropError, SubtitleDropError,
             TemplateLayoutMissingError, TemplatePlaceholderEmptyError):
-        # Gate B fixes: named silent-drop / layout-drift errors
-        # must propagate out of graft_and_theme so main() halts the whole
-        # build (not just records one option as failed). Per
+        # Named silent-drop / layout-drift errors must propagate out of
+        # graft_and_theme so main() halts the whole build (not just records
+        # one option as failed). Per
         # feedback_sidecar_fallback_must_be_loud — invisible data loss is
         # worse than a stopped build. Without this, the outer generic
         # `except Exception` below would catch them and the build would
@@ -1935,7 +1908,7 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
 
 
 # ---------------------------------------------------------------------------
-# Step 3: render to PNG — verbatim from v1
+# Step 3: render to PNG
 # ---------------------------------------------------------------------------
 def render_one(st: OptionStatus) -> OptionStatus:
     from render_slides import render_libre
@@ -1958,7 +1931,7 @@ def render_one(st: OptionStatus) -> OptionStatus:
 
 
 # ---------------------------------------------------------------------------
-# Step 4: RESULT.md — v1 base + v2 classification column
+# Step 4: RESULT.md
 # ---------------------------------------------------------------------------
 RESULT_TEMPLATE = """# Slide Lab deck — finalize result
 
@@ -2056,7 +2029,7 @@ def write_result(out_dir: Path, template_path: Path, statuses: list) -> Path:
 
 
 # ---------------------------------------------------------------------------
-# Main — v1 base + v2 Mermaid theme resolution + classification counters
+# Main
 # ---------------------------------------------------------------------------
 def main() -> int:
     ap = argparse.ArgumentParser(description="Slide Lab deck orchestrator — Part B (finalize)")
@@ -2085,17 +2058,14 @@ def main() -> int:
         print(f"ERROR: template not found: {args.template}")
         return 2
 
-    # M7 (Mermaid retirement, 2026-06-17): the Mermaid theme resolution step
-    # was removed here. `_resolve_mermaid_theme` and the `--theme` CLI arg
-    # are retired; Pattern B HTML→PNG (per Decision 6) supersedes Mermaid for
-    # curved-container diagrams.
+    # No Mermaid theme resolution runs here: `_resolve_mermaid_theme` and the
+    # `--theme` CLI arg no longer exist, and the sketch path (HTML→PNG)
+    # supersedes Mermaid for curved-container diagrams.
 
-    # M1 — Pattern B routing read. Defensive only: log the
-    # effective pattern from _meta.json so operator output makes routing
-    # visible. Legacy mode (pattern_default absent or "legacy") proceeds
-    # with the existing code path verbatim. Translator dispatch (Stage 3.5)
-    # lands ; until then, even a non-legacy pattern_default takes the
-    # current path. This keeps M1 byte-identical to pre-M1 for legacy builds.
+    # Build-path routing read. Defensive only: log the effective pattern from
+    # _meta.json so operator output makes routing visible. Legacy mode
+    # (pattern_default absent or "legacy") proceeds with the pptx-direct code
+    # path.
     try:
         _meta_path = _p.meta_json(args.out)
         _meta_dict = json.loads(_meta_path.read_text(encoding="utf-8"))
@@ -2155,9 +2125,8 @@ def main() -> int:
     print("\n[1] Discover option_X.py files + classify by line-1 token")
     # Compute the expected (slide_n, letter) set from _meta.json so
     # discover_options can surface missing worker outputs as classification
-    # "missing" — committee P4 fix. If _meta.json is missing
-    # or unparseable, fall back to filesystem-only discovery (legacy
-    # behavior).
+    # "missing". If _meta.json is missing or unparseable, fall back to
+    # filesystem-only discovery.
     expected_pairs: set = set()
     try:
         meta_dict = json.loads(_p.meta_json(args.out).read_text(encoding="utf-8"))
@@ -2171,9 +2140,9 @@ def main() -> int:
     except Exception:
         expected_pairs = set()
 
-    #: slide_n -> layout name lookup. meta.slides[i].layout is
-    # added in P1.4; until then every slide gets default_layout_name.
-    # v0.3: slide_n -> variant lookup ("dark" or "" / "light"). Read from
+    # slide_n -> layout name lookup from meta.slides[i].layout; a slide
+    # without a layout field gets default_layout_name.
+    # slide_n -> variant lookup ("dark" or "" / "light"). Read from
     # meta.slides[i].variant; defaults to light.
     _slide_layout_names: dict[int, str] = {}
     _slide_titles: dict[int, str] = {}
@@ -2210,10 +2179,9 @@ def main() -> int:
         name = _layout_name_for(slide_n)
         lc = chrome_spec.layouts.get(name)
         if lc is None:
-            # Loud-fail per feedback_sidecar_fallback_must_be_loud. Silent
-            # fallback to a default layout was the OTC Sizing bug class —
-            # slides got built against geometry that didn't match the
-            # template's actual layout shapes.
+            # Loud-fail rather than silently falling back to a default layout:
+            # that fails quietly into slides built against geometry that
+            # doesn't match the template's actual layout shapes.
             available = ", ".join(sorted(chrome_spec.layouts.keys())) or "(none)"
             raise ChromeLayoutMissingError(
                 f"slide {slide_n} references layout {name!r}, which is not "
@@ -2234,8 +2202,8 @@ def main() -> int:
     n_rejected = sum(1 for s in statuses if s.classification == "skeleton_rejected")
     n_missing = sum(1 for s in statuses if s.classification == "missing")
     if n_missing:
-        # Pre-flight gate (RC-5 fix, 2026-06-02): if any expected option_X.py
-        # is absent, halt BEFORE the build loop with a punch list of slides
+        # Pre-flight gate: if any expected option_X.py is absent, halt BEFORE
+        # the build loop with a punch list of slides
         # that need re-dispatch. Otherwise finalize runs for several minutes,
         # then crashes mid-build when it tries to execute the missing script,
         # and the operator has to scroll through logs to find which slides
@@ -2311,14 +2279,14 @@ def main() -> int:
     print(f"  color_map entries: {len(color_map)}")
     print(f"  expected palette  : {len(expected_palette)} hex codes")
 
-    # Gate B.4: primary/accent RGB-distance backstop.
+    # Primary/accent RGB-distance backstop.
     # Catches the registration-best-guess-inverted class of failure where
     # _best_guess_primary_accent() picks the same slot for both (or two
     # slots whose colors are visually indistinguishable). The visual-
     # confirmation gate at registration is the primary defense; this is the
     # backstop that catches builds where the user accepted a bad auto-pick.
     # Threshold tuned conservatively — primary/accent on a real brand should
-    # be at least 60 units apart in RGB-Euclidean (e.g., FedEx purple
+    # be at least 60 units apart in RGB-Euclidean (e.g., a purple
     # #4D148C vs orange #FF6600 = ~310 units).
     try:
         _pa_dist = _rgb_distance(theme.brand_primary or "", theme.brand_accent or "")
@@ -2390,10 +2358,10 @@ def main() -> int:
         except (TitleDropError, SubtitleDropError,
                 TemplateLayoutMissingError,
                 TemplatePlaceholderEmptyError) as _exc:
-            # Gate B fixes: silent-drop / layout-drift errors
-            # halt the build cleanly with a recovery hint instead of a raw
-            # stack trace. The named exception messages were written for the
-            # operator; relay them verbatim and exit non-zero.
+            # Silent-drop / layout-drift errors halt the build cleanly with a
+            # recovery hint instead of a raw stack trace. The named exception
+            # messages were written for the operator; relay them verbatim and
+            # exit non-zero.
             print(
                 f"  [{i:>3}/{len(built_statuses)}] slide_"
                 f"{st.slide_n:02d}/option_{st.letter}  FAIL ({type(_exc).__name__})"
@@ -2408,7 +2376,7 @@ def main() -> int:
     themed_statuses = [s for s in built_statuses if s.themed]
     print(f"  themed: {len(themed_statuses)} / {len(built_statuses)}")
 
-    # v0.3 dark-variant collision gate. Before any further work, refuse to
+    # Dark-variant collision gate. Before any further work, refuse to
     # ship a build that contains shapes/text whose color would render
     # invisible against the brand's dark background. Loud, named failure.
     _all_dark_issues: list[str] = []
@@ -2471,10 +2439,10 @@ def main() -> int:
             pt = _slide_page_types.get(st.slide_n, "")
             result = run_option_qc(st.themed_pptx_path, st.themed_png_path, expected_palette,
                                    page_type=pt)
-            # M6 (Pattern B, 2026-06-17): for Pattern B picks, run R4.1-R4.8
-            # checks against the translator's report + script. Merge into the
-            # same QC JSON so build_review.py renders them uniformly with
-            # R1-R3 results. Pattern C / legacy returns [] and is a no-op.
+            # For sketch-path picks, run R4.1-R4.8 checks against the
+            # translator's report + script. Merge into the same QC JSON so
+            # build_review.py renders them uniformly with the R1-R3 results.
+            # Direct-path picks return [] and this is a no-op.
             r4 = _check_r4_rules_for_sketch(st)
             if r4:
                 st.r4_checks = r4
