@@ -13,7 +13,7 @@ The build layer of Slide Lab. The split is the spec.
 
 If you have never run this skill before, read these in order before anything else:
 
-1. **[INSTALL.md](INSTALL.md)** — pinned Python deps, Playwright + headless Chromium (sketch-path render), LibreOffice, sibling `slide-qc` skill, worker + translator agent install. End with the verification step printing `install OK`. (Mermaid CLI was retired; the sketch path supersedes it.)
+1. **[INSTALL.md](INSTALL.md)** — pinned Python deps, Playwright + headless Chromium (sketch-path render), LibreOffice, sibling `slide-qc` skill, worker + translator agent install. End with the verification step printing `install OK`.
 2. **[examples/RUN.md](examples/RUN.md)** — the canonical end-to-end walkthrough (prep → agent dispatch → finalize → gate → compile → review) against the bundled example brief + your registered template. Ends with a `REVIEW.html` you can open in a browser.
 
 After that, the input contract for real briefs is documented below in § "Input contract — narrative brief", and registering a new client template is below in § "Register a new client template."
@@ -131,11 +131,11 @@ The same hard rule applies: the orchestrator MUST take picks from the user in ch
 
 **Why a reference slide matters.** When the user gives Slide Lab a reference slide at registration, every worker agent that builds a slide gets that slide's spec as part of its context bundle — title position, subtitle box, accent placement, footer chrome, observed brand colors. The worker reasons against that spec as a visual anchor, so output stays consistent with the user's canonical example of "how the template should look." Without a reference slide, workers fall back to Slide Lab's 5 generic hardline rules, which are correct but not template-specific — output may drift in subtle ways (subtitle position, accent placement, chrome alignment) that the user notices and the tool can't explain. **Strongly recommended when the template has specific chrome geometry the user wants every output slide to honor.**
 
-**Optional: capture a reference slide (Gate A.1, 2026-06-08).** The reference slide is ONE slide in the registered template that defines how every output slide should look — title position, subtitle box, accent placement, footer chrome. When the user designates a reference slide, every per-slide worker agent receives that slide's spec as part of its `_context.md` bundle (Gate C.1), and the build can validate output against it.
+**Optional: capture a reference slide.** The reference slide is ONE slide in the registered template that defines how every output slide should look — title position, subtitle box, accent placement, footer chrome. When the user designates a reference slide, every per-slide worker agent receives that slide's spec as part of its `_context.md` bundle, and the build can validate output against it.
 
 The orchestrator should ask: *"Is there a slide in this template that's the canonical example of how output should look? Tell me the slide number."* Pass the answer through as `reference_slide_n` (integer, 1-indexed) in the picks JSON. At commit time, register_template extracts the layout name, placeholder geometries (title/subtitle boxes), and observed colors from that slide, and appends a `reference_slide:` block to `brand.yml`. Skipping this step is supported — builds still work, but workers reason against the skill's 5 hardline rules + anti-pattern library alone, without a per-template geometric anchor.
 
-> **Never expose architectural vocabulary to the user.** The terms `body-canonical` and `bespoke` are implementation details for chrome resolution. When asking the user to pick a layout, always show layout thumbnails (`<sidecar-dir>/thumbnails/*.png`) and ask *"which one should the slide look like?"* — never *"which body-canonical layout do you want?"* The 2026-06-02 OTC rebuild surfaced this gap (user picked `2_Title & Text 01` thinking they had selected it; system treated the pick as classification metadata only).
+> **Never expose architectural vocabulary to the user.** The terms `body-canonical` and `bespoke` are implementation details for chrome resolution. When asking the user to pick a layout, always show layout thumbnails (`<sidecar-dir>/thumbnails/*.png`) and ask *"which one should the slide look like?"* — never *"which body-canonical layout do you want?"* If you show the user only an internal classification name, they may think they picked a visible layout when the system recorded only metadata.
 
 ---
 
@@ -169,7 +169,7 @@ Full reference (one paragraph + one PNG per pattern) lives at `reference/layouts
 
 ## Build flow — four-stage architecture
 
-> **Inherited briefs: confirm the layout before building.** If the brief carries `mode: rebuild-slice` in front-matter, OR the brief file was authored in a prior session (different `_session/` folder than the current working session, OR `generated_at` more than ~24 hours old), the orchestrator MUST restate the brief's `default_layout` (or the template's `default_content_layout` from `theme.json`) and ask the user: *"This brief will build against the **<layout name>** layout. Still the right choice? (Show thumbnails)"* — and wait for confirmation BEFORE running `build_deck.py`. Reference: `feedback_validate_user_architecture`. Inherited briefs were the proximate cause of the 2026-06-02 OTC chrome regression where the orchestrator silently trusted a stale `default_layout` value and produced slides with broken footer boxes.
+> **Inherited briefs: confirm the layout before building.** If the brief carries `mode: rebuild-slice` in front-matter, OR the brief file was authored in a prior session (different `_session/` folder than the current working session, OR `generated_at` more than ~24 hours old), the orchestrator MUST restate the brief's `default_layout` (or the template's `default_content_layout` from `theme.json`) and ask the user: *"This brief will build against the **<layout name>** layout. Still the right choice? (Show thumbnails)"* — and wait for confirmation BEFORE running `build_deck.py`. Silently trusting a stale `default_layout` from an inherited brief is a known way to produce slides with broken footer boxes, so confirm the layout when the brief did not originate in the current session.
 
 N parallel agents per deck, three options per slide. The per-slide prompt injects the 14-pattern reference + 5 hardline rules + anti-pattern library.
 
@@ -234,7 +234,7 @@ STAGE 5 · COMPILE         compile_picks.py stitches the chosen option per
 
 ### Classifier — not a classifier, just a hint + tiebreaker
 
-The agent picks the split per slide directly from the brief content. There is no pre-classifier (a pre-classifier would re-introduce v1's chassis-routing logic). Two light layers help the agent without taking the decision away from it:
+The agent picks the split per slide directly from the brief content. There is no pre-classifier that takes the decision away from the agent. Two light layers help it instead:
 
 1. **Prep-time pattern-hint pass.** `build_deck.py` runs the **same signals table from `reference/layouts.md`** once per slide to forecast each slide's likely pattern. No new classifier logic — this IS the agent's picking procedure, run once at prep time as a forecast. The forecast is injected into the per-slide prompt as `{{LIKELY_PRIOR_PATTERNS}}` (the previous two slides' forecasts) so the agent has adjacency context at pick time. The agent can override the hint when its read of the brief differs.
 2. **Pattern-pick seed.** When multiple patterns score equally on the agent's own scoring pass, the seed picks among them deterministically:
@@ -249,8 +249,8 @@ Adjacency (Hardline #3 — no 3+ consecutive same-split) is **soft-enforced at p
 
 ### Why this flow wins
 
-1. **The primitive matches human perception.** A human can identify a 50/50 vertical split or a 3-column row from a thumbnail in under a second. The 19-chassis vocabulary required reading a label and recalling its definition.
-2. **Quality is a 3-layer stack, not a 31-rule constraint list.** Helpers cover geometry (`twins/helpers.py`), 5 hardline rules cover process, and a self-improving anti-pattern library at `reference/anti-patterns.md` covers aesthetics. Every curator-flagged failure becomes a permanent library entry.
+1. **The primitive matches human perception.** A human can identify a 50/50 vertical split or a 3-column row from a thumbnail in under a second — far faster than recalling what a named semantic layout means.
+2. **Quality is a 3-layer stack.** Helpers cover geometry (`twins/helpers.py`), 5 hardline rules cover process, and a self-improving anti-pattern library at `reference/anti-patterns.md` covers aesthetics. Every curator-flagged failure becomes a permanent library entry.
 3. **No fabrication.** SKELETON_REJECTED fires when brief and assigned split fundamentally disagree (brief enumerates 2 items, classifier assigned a 4-cell layout). The slide is not built rather than invented to fit.
 
 ---
@@ -259,10 +259,10 @@ Adjacency (Hardline #3 — no 3+ consecutive same-split) is **soft-enforced at p
 
 1. **Setup.** Confirm the client template path with the user. Read the brief and explicitly read the `## Deck-level design notes` section before proceeding; those constraints are binding.
 2. **Narrative + content gates.** Verify governing thoughts are specific and assertive; verify enough raw content per slide. Skip if storyline-helper already gated this session.
-3. **Stage 1 — Prep.** Run `build_deck.py` to render one self-contained `_prompt.md` per slide. Each prompt is `prompt.md` (the current template) with brief content interpolated, layouts/anti-patterns reference paths injected, the rotation seed computed, and the per-slide pattern routing (`PATTERN: sketch|C`) from M1's classifier.
+3. **Stage 1 — Prep.** Run `build_deck.py` to render one self-contained `_prompt.md` per slide. Each prompt is `prompt.md` with brief content interpolated, layouts/anti-patterns reference paths injected, the rotation seed computed, and the per-slide pattern routing (`PATTERN: sketch|direct`) from the classifier.
 4. **Stage 2 — Parallel fanout.** Dispatch one `slide-builder-worker` agent per slide IN PARALLEL from the parent session. Each agent reads the rendered `_prompt.md` and branches on the PATTERN field:
-   - **the direct path** (default, legacy): worker produces three standalone python-pptx option scripts `option_A.py / B / C`.
-   - **the sketch path** (opt-in): worker produces three HTML files `option_A.html / B / C`, then self-checks by rendering each via `scripts/render_html.py` and reading the resulting 1280×720 PNG before declaring done.
+   - **the sketch path** (default): worker produces three HTML files `option_A.html / B / C`, then self-checks by rendering each via `scripts/render_html.py` and reading the resulting 1280×720 PNG before declaring done.
+   - **the direct path**: worker produces three standalone python-pptx option scripts `option_A.py / B / C`.
 5. **Stage 2.5 — HTML render (sketch-path only).** For each the sketch-path slide's HTML options, the parent session renders to PNG via `py -3 scripts/render_html.py <html> <png>` so REVIEW.html has visual previews. Workers may also do this as part of their self-check; the parent renders any not-yet-rendered as a safety net.
 6. **Stage 3 — Review + compile.** Run `build_review.py` to build REVIEW.html (shows PNGs for both the direct and sketch paths options); user picks per-slide; picks written to `picks.json`.
 7. **Stage 3.5 — Translate (sketch-path only).** For each picked sketch-path slide, the parent session dispatches a `slide-builder-translator` agent. The translator reads the picked `option_X.html` + its rendered PNG + brief + brand context, produces `option_X_native.py` (native python-pptx script with editable text frames) + `option_X_translation_report.json` (SSIM zone scores + R4 QC findings).
@@ -277,37 +277,34 @@ Rebuild individual slides with "rebuild slide N" — re-prep the prompt for slid
 
 **If a build fails or the output is wrong:** tell the user they can type `/feedback` to capture a structured session report (the `slidelab-log` skill writes the technical detail; the user just submits the GitHub link). Offer this whenever a stage exits non-zero or the user says something looks broken.
 
-### Pattern routing flag — opt-in until validated
+### Pattern routing flag
 
-`build_deck.py` accepts a `--pattern` flag that controls which slide-build path the deck uses. The shipped default is `legacy` — the pipeline behaves exactly as before. the sketch path (HTML-spec → translator → native python-pptx) is opt-in.
+`build_deck.py` accepts a `--pattern` flag that controls which build path each slide uses. The shipped default is `auto`: the classifier routes each slide by its content — bullet/divider-heavy slides take the direct path, visually structured slides take the sketch path.
 
 ```powershell
 py -3 scripts/build_deck.py --brief <brief.md> --template <template.pptx> --out <out>
-#   ↑ no flag → uses settings.json::default_pattern (ships at "legacy")
-
-py -3 scripts/build_deck.py --brief ... --template ... --out ... --pattern legacy
-#   ↑ explicit legacy = pre-Pattern-B pipeline verbatim
+#   ↑ no flag → uses settings.json::default_pattern (ships at "auto")
 
 py -3 scripts/build_deck.py --brief ... --template ... --out ... --pattern auto
-#   ↑ per-slide routing via the Decision-2 classifier (bullets/dividers → C;
-#     visual structure → B). Requires settings.json::enable_sketch: true.
+#   ↑ per-slide routing: bullets/dividers → direct, visual structure → sketch
 
 py -3 scripts/build_deck.py --brief ... --template ... --out ... --pattern sketch
-#   ↑ force all slides through the sketch path (HTML stage + translator)
+#   ↑ force every slide through the sketch path (HTML authoring → translator → native python-pptx)
 
 py -3 scripts/build_deck.py --brief ... --template ... --out ... --pattern direct
-#   ↑ force all slides through the direct path (native python-pptx direct)
+#   ↑ force every slide through the direct path (native python-pptx, no HTML stage)
+
+py -3 scripts/build_deck.py --brief ... --template ... --out ... --pattern legacy
+#   ↑ python-pptx-direct pipeline with no per-slide classification
 ```
 
-Master switch is `settings.json::enable_sketch` (shipped `false`). When `false`, any non-legacy value is downgraded to `legacy` with a stderr warning — flipping `enable_sketch: false` is the skill-wide rollback if the sketch path underperforms.
-
-Full the sketch path spec + locked decisions live in `_decisions/pattern-b/`. Build plan lives in `_decisions/pattern-b/build-plan/` (after M0 lands). The four quality guarantees that must hold across the refactor are documented in `_decisions/pattern-b/README.md`.
+Master switch is `settings.json::enable_sketch` (shipped `true`). Set it to `false` to disable the sketch path entirely: `auto` and `sketch` are then downgraded to `legacy` with a stderr warning, and no slide renders through Chromium. The sketch path requires the Playwright Chromium binary (see INSTALL.md Step 1.5).
 
 ---
 
 ## Hardline rules (5)
 
-These five rules govern every v2 build. They are the entire process layer. The aesthetics layer is the anti-pattern library at `reference/anti-patterns.md`.
+These five rules govern every build. They are the entire process layer. The aesthetics layer is the anti-pattern library at `reference/anti-patterns.md`.
 
 1. **Charts and tables only in their respective object layouts.** No fake chart-looking visuals in card grids. Inline sparklines and micro-charts in other layouts are allowed.
 
@@ -315,11 +312,11 @@ These five rules govern every v2 build. They are the entire process layer. The a
 
 3. **No 3+ consecutive slides use the same split.** Adjacent same-split slides are allowed (legitimate cadences like a 6-finding executive section need to be expressible); three in a row is not.
 
-4. **Brief fidelity — prompt-time-only in v0.1.** Every visible word on every slide traces to brief content or documented chrome (footer, page number, section label). The agent self-attests in line 3 of each `option_X.py` header (`# Brief fidelity check: <one-line statement>`). **No automated checker runs in the v0.1 pipeline.** Target thresholds for v0.2 (when an enforcement script lands): (a) `structural_flag_count == 0` — zero structural-count fabrications (e.g., 4 cards when the brief enumerates 2); (b) token-ratio `PER_SLIDE_MIN = 0.30` / `DECK_AVG_MIN = 0.70`, inherited from the legacy chassis-vocabulary skill's empirical recalibration. Until the script ships, the rule depends on the agent's self-attestation + REVIEW.html human inspection. See `_decisions/v0.1-audit-handover-2026-05-26.md` T1.5 for the port-vs-rewrite trade-off; v0.1 chose rewrite (this doc) over port.
+4. **Brief fidelity.** Every visible word on every slide traces to brief content or documented chrome (footer, page number, section label). The agent self-attests in line 3 of each `option_X.py` header (`# Brief fidelity check: <one-line statement>`). The rule is enforced by that attestation plus human inspection in REVIEW.html — no invented third card when the brief enumerates two, no filler copy.
 
 5. **SKELETON_REJECTED protocol.** If brief and assigned split fundamentally disagree (e.g., brief enumerates 2 items, classifier assigned a 4-cell layout), emit `# SKELETON_REJECTED: <reason>` as the first line of the option script and stop. Do not fabricate to fit. The user gets a "this slide needs a different pattern" flag in REVIEW.html and can either pick a different split for that slide or revise the brief.
 
-The aesthetics layer (don't-library) starts with 26 entries from the v2 design session and grows from every curator-flagged failure on real builds. Read `reference/anti-patterns.md` for the live catalog. The anti-pattern library is wired into the per-slide agent prompt at prep time (preventive). It is **not** wired into slide-qc in v0; that decision is deferred until we have failure data from real A/B builds.
+The aesthetics layer (don't-library) grows from every curator-flagged failure on real builds. Read `reference/anti-patterns.md` for the live catalog. The anti-pattern library is wired into the per-slide agent prompt at prep time, so it works as prevention rather than after-the-fact QC.
 
 ---
 
@@ -327,9 +324,9 @@ The aesthetics layer (don't-library) starts with 26 entries from the v2 design s
 
 Triggers when a brief implies a hub-and-spoke, Porter's Five Forces, fishbone, ecosystem map, or free-form network. python-pptx cannot shape-fit text to ovals, so native rendering produces text that wraps badly across the curve.
 
-**Stack: sketch-path HTML+SVG rendered via Playwright.** The Mermaid fallback was retired entirely — sketch-path HTML→PNG via headless Chromium supersedes Mermaid for every curved-container archetype. The worker authors the diagram natively in HTML/SVG within the body zone (using `data-shape-id` to mark elements the translator should convert to native shapes); Playwright renders the page to a 1280×720 PNG; the translator (`agents/slide-builder-translator.md`) converts the picked HTML to editable native python-pptx at Stage 3.5.
+**Stack: sketch-path HTML+SVG rendered via Playwright.** The worker authors the diagram natively in HTML/SVG within the body zone (using `data-shape-id` to mark elements the translator should convert to native shapes); Playwright renders the page to a 1280×720 PNG; the translator (`agents/slide-builder-translator.md`) converts the picked HTML to editable native python-pptx at Stage 3.5.
 
-Under **the direct path** (legacy python-pptx direct), curved containers route to `# SKELETON_REJECTED:` — the user re-routes the slide through the sketch path for the visual treatment.
+Under **the direct path**, curved containers route to `# SKELETON_REJECTED:` — the user re-routes the slide through the sketch path for the visual treatment.
 
 ---
 
@@ -342,24 +339,17 @@ This file:         slide-builder\SKILL.md
 Layout reference:  slide-builder\reference\layouts.md
 Anti-patterns:     slide-builder\reference\anti-patterns.md
 Agent prompt:      slide-builder\prompt.md
-Decisions doc:     slide-builder\_decisions\DECISIONS.md
-Gallery:           slide-builder\_decisions\GALLERY.html
 
-Build scripts:     slide-builder\scripts\build_deck.py        (forked + modified from v1)
-                   slide-builder\scripts\finalize_deck.py     (forked verbatim from v1)
-                   slide-builder\scripts\build_review.py      (forked verbatim from v1)
-                   slide-builder\scripts\compile_picks.py     (originally forked from the legacy skill)
+Build scripts:     slide-builder\scripts\build_deck.py
+                   slide-builder\scripts\finalize_deck.py
+                   slide-builder\scripts\build_review.py
+                   slide-builder\scripts\compile_picks.py
 
 Worker agent:      %USERPROFILE%\.claude\agents\slide-builder-worker.md
+Translator agent:  %USERPROFILE%\.claude\agents\slide-builder-translator.md
 ```
 
----
-
-## Scripts — historical fork note
-
-Historical. The build scripts (`build_deck.py`, `finalize_deck.py`, `build_review.py`, `compile_picks.py`) were originally forked from the legacy chassis-vocabulary skill, which has since been archived and is no longer on disk. Three were near-verbatim copies; `build_deck.py` was the real new build — the chassis/rulebook injection was replaced with 14-pattern + anti-pattern-library injection.
-
-The agent definition for `slide-builder-worker` (the per-slide worker dispatched from the parent session) lives at `%USERPROFILE%\.claude\agents\slide-builder-worker.md`. Without it, the fanout step cannot execute.
+Both agent definitions are installed from `slide-builder/agents/`. Without `slide-builder-worker`, the Stage-2 fanout cannot execute; without `slide-builder-translator`, picked sketch-path slides cannot be converted to editable native python-pptx.
 
 ---
 
@@ -376,7 +366,7 @@ Deck artifacts (brief, PPTX outputs, REVIEW.html, picks.json, DECISIONS.md) live
 
 ---
 
-## Variant rotation (simplified for v2)
+## Variant rotation
 
 Within a chosen split, agents have autonomy on variant choices: typography weight, accent placement, icon vs no-icon, numeral vs no-numeral, eyebrow vs no-eyebrow. Variants rotate deterministically to prevent variant-level convergence:
 
@@ -386,28 +376,8 @@ pattern_pick_seed = md5(content_hash + slide_n)                       # picks am
 variant_seed      = md5(content_hash + slide_n + option_letter)       # picks variant per option
 ```
 
-**Simplification from v1.** v1's seed was `md5(family + intent + content_hash + slide_n)`. v2 drops `family` and `intent` (both required pre-classification work that v2 explicitly avoids) and adds `option_letter` so the three sibling options on the same slide pick different variants. Without `option_letter` in the seed, all three siblings would land on the same variant — caught and corrected during the architecture review.
+`option_letter` is part of `variant_seed` so the three sibling options on the same slide pick different variants; without it, all three siblings would land on the same variant.
 
 `content_hash` is locked at prep time by `build_deck.py` from the brief's governing thought + so-what + evidence content. Brief edits do not re-shuffle pattern picks within unchanged slides because `content_hash` absorbs only the meaning-carrying fields, not formatting changes.
 
 `pattern_pick_seed` also serves as the tiebreaker when multiple patterns fit the brief equally well — see **Build flow § Classifier** above.
-
----
-
-## Open questions
-
-- **Anti-patterns at QC time.** Wire `anti-patterns.md` into slide-qc's vision check, or rely on prompt-time prevention only? v0 picks prompt-time only. Revisit after real builds produce failure data.
-- **Silent mis-pick risk (review-side fatigue).** SKELETON_REJECTED only catches enumeration mismatches and curved-container triggers. For a 20-slide deck with 3–4 silent mis-picks (agent picked a pattern the user wouldn't have), REVIEW.html fatigue ships wrong layouts. Candidate mitigations: surface the agent's top-2 pattern picks + the score gap in REVIEW.html; add a `# CONFIDENCE_LOW` marker when the score gap is narrow; build a regression harness that re-runs the picker against a held-out brief set after every `layouts.md` signals-table change. Decide before pattern #15 ships.
-- **Anti-pattern library at scale.** Past ~100 entries, the library probably needs categorization (aesthetics / structural / content / chrome / encoding) and a deprecation rule. Defer until the library actually reaches that size.
-
----
-
-## Appendix — architectural history
-
-Background only. Not required reading to build a deck.
-
-**Why the current architecture exists.** The predecessor (chassis-vocabulary) path hit 23% curator acceptance after four compensating layers — skeleton pre-assignment, SKELETON_REJECTED rule, cross-slide collision detection, deadlock audit. The abstraction was too granular for humans to validate by eye. The current architecture collapses the lever stack by changing the primitive: from named semantic chassis (`dark-canvas-hero`, `anchor-with-cards`) to **geometric splits** a human can identify from a thumbnail. Full diagnosis and four rounds of empirical testing live in `_decisions/DECISIONS.md` and `_decisions/GALLERY.html`.
-
-**Legacy retirement.** The legacy chassis-vocabulary skill is being retired per `_decisions/cleanup-plan-master-2026-05-26.md`. Shared modules — `twins/{client_theme,composer,helpers}.py`, `scripts/icon_helper.py`, and the `icons/` catalog — have been re-homed inside this skill. The build layer is now structurally independent of the legacy code.
-
-Artifacts archived with the legacy skill and not maintained: 19-chassis vocabulary + adjacency graph + content tags; `list[1..2]` composite schema; Layer 5 cross-slide collision detector; deadlock audit + chassis-#24 acceptance rule; 489-slug chassis TAGS backfill; family×variant×intent×relation TAGS schema; the 31-rule "Hard constraints" stack. The "pattern is the spec" architecture replaces them.
