@@ -54,7 +54,7 @@ py -3 "$skill\scripts\build_deck.py" `
     --out "$session\out"
 ```
 
-Phase 1 should print Stage-1 sanity (brand.yml + mmdc), then write `slide_01/_prompt.md` through `slide_04/_prompt.md` plus `_meta.json` and `dispatch_plan.md` to `$session\out\`.
+Phase 1 should print the Stage-1 sanity check (brand sidecar + slide-qc sibling), then write `slide_01/_prompt.md` through `slide_04/_prompt.md` plus `_meta.json` and `dispatch_plan.md` to `$session\out\`.
 
 ## Phase 2 — dispatch agents (the part Claude does)
 

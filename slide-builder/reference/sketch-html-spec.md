@@ -1,12 +1,10 @@
-# Pattern B — HTML/CSS canvas specification
+# Sketch path — HTML/CSS canvas specification
 
-> Foundation spec for Slide Lab's Pattern B refactor. Defines the HTML canvas dimensions, CSS conventions, brand-variable injection, font fallback, icon handling, and CSS feature kill-list that every worker-generated HTML file must conform to.
+> The authoring contract for the sketch (HTML-first) build path. Defines the HTML canvas dimensions, CSS conventions, brand-variable injection, font fallback, icon handling, and CSS feature kill-list that every worker-generated HTML file must conform to.
 
-**Status:** locked 2026-06-16. Derived from Decision 1 (canvas) + Decision 4 (editability boundary) + chrome-handling clarification (Option I).
-
-**Locked decisions this spec depends on:**
-- Decision 1: HTML canvas = **1280×720** (PowerPoint default, 1:1 with PPT slide dimensions)
-- Decision 2: Pattern routing = Moderate (bullets → Pattern C; visual structure → Pattern B)
+**Key rules this spec defines:**
+- HTML canvas = **1280×720** (PowerPoint default, 1:1 with PPT slide dimensions)
+- Pattern routing: bullets/dividers → direct path; visual structure → sketch path
 - Chrome handling = Option I: full-slide HTML; title/subtitle/footer text are data fields written into template placeholders by translator
 
 ---
@@ -217,11 +215,11 @@ These CSS features DO NOT translate cleanly to python-pptx. The worker MUST NOT 
 - `font-family`, `font-size`, `font-weight`, `font-style`, `letter-spacing`, `line-height`, `text-align`, `text-transform` → all translate to python-pptx text run properties
 - `position: absolute`, `position: relative` → translates to absolute x/y positioning
 
-If the worker reaches for a forbidden feature, the worker prompt says: "If you genuinely need a forbidden feature for design impact, route to Pattern C (native-only) or flag the slide as requiring an image-embed exception."
+If the worker reaches for a forbidden feature, the worker prompt says: "If you genuinely need a forbidden feature for design impact, route to the direct path (native-only) or flag the slide as requiring an image-embed exception."
 
 ## 8. HTML file structure
 
-Every Pattern B worker HTML file follows this exact structure:
+Every sketch-path worker HTML file follows this exact structure:
 
 ```html
 <!DOCTYPE html>
@@ -284,9 +282,9 @@ The translator agent's contract (Spec 4) details the extraction logic.
 
 ## 9. Worker self-check requirement
 
-Per the 2026-06-16 log entry ("HTML phase is not optional"), the worker MUST render their HTML and read the rendered PNG before declaring the option done. This is the SEEING mechanism. Workers that skip the render+read step produce sterile output.
+The HTML phase is not optional: the worker MUST render their HTML and read the rendered PNG before declaring the option done. This is the SEEING mechanism. Workers that skip the render+read step produce sterile output.
 
-Worker prompt directive (to be enforced in `slide-builder-worker.md` for Pattern B):
+Worker prompt directive (enforced in `slide-builder-worker.md`):
 
 > Before emitting `# OPTION_A_DONE`, run the HTML render pipeline (`scripts/render_html.py --in option_A.html --out option_A.png --canvas 1280x720`) and READ the rendered PNG. Describe in one sentence what you see (e.g., "Anchor row visible at row 3 with rounded card + purple stripe + checkmark icon; comparison rows below with subtler weight"). If the render doesn't match your intent, fix the HTML and re-render before emitting done.
 

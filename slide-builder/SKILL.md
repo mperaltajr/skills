@@ -141,7 +141,7 @@ The orchestrator should ask: *"Is there a slide in this template that's the cano
 
 ## Routing
 
-Any deck-build request — "build a slide", "make a deck", "rebuild slide N" — uses this skill. Briefs authored by storyline-helper route here automatically once the narrative gate passes. Historical context (why this architecture, what was retired) lives at the bottom under § "Appendix — architectural history."
+Any deck-build request — "build a slide", "make a deck", "rebuild slide N" — uses this skill. Briefs authored by storyline-helper route here automatically once the narrative gate passes.
 
 ---
 
