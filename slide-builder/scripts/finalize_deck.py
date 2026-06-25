@@ -2017,7 +2017,8 @@ def _qc_cell(st) -> str:
     return "ok"
 
 
-def write_result(out_dir: Path, template_path: Path, statuses: list) -> Path:
+def write_result(out_dir: Path, template_path: Path, statuses: list,
+                 slide_n: Optional[int] = None) -> Path:
     rows = []
     for st in statuses:
         err_or_reason = st.error or (st.classification_reason if st.classification != "native" else "")
@@ -2064,7 +2065,7 @@ def write_result(out_dir: Path, template_path: Path, statuses: list) -> Path:
         qc_findings="\n".join(qc_finding_lines) if qc_finding_lines else "(none)",
         failures="\n".join(failures) if failures else "(none)",
     )
-    target = out_dir / "RESULT.md"
+    target = out_dir / (f"RESULT-slide-{slide_n:02d}.md" if slide_n is not None else "RESULT.md")
     target.write_text(content, encoding="utf-8")
     return target
 
@@ -2078,6 +2079,10 @@ def main() -> int:
     ap.add_argument("--template", required=True, type=Path, help="Client PPTX template")
     ap.add_argument("--skip-build", action="store_true", help="Skip executing option_X.py")
     ap.add_argument("--skip-render", action="store_true", help="Skip PNG rendering")
+    ap.add_argument("--slide", type=int, default=None,
+                    help="Rebuild mode: finalize only slide N (re-theme/render/QC just that "
+                         "slide, leaving every other slide's themed output untouched). Writes "
+                         "RESULT-slide-NN.md instead of overwriting the deck RESULT.md.")
     ap.add_argument("--allow-missing", action="store_true",
                     help="Proceed even when some expected option_X.py files are absent "
                          "(e.g., an interrupted worker). Default: hard-fail with a re-dispatch "
@@ -2238,6 +2243,14 @@ def main() -> int:
         return lc
 
     statuses = discover_options(args.out, expected=expected_pairs)
+    # Rebuild mode: process only the target slide. Other slides keep their
+    # existing themed output on disk, which compile_picks.py reuses.
+    if args.slide is not None:
+        statuses = [s for s in statuses if s.slide_n == args.slide]
+        if not statuses:
+            print(f"ERROR: --slide {args.slide} has no option scripts under {args.out}. "
+                  f"Run build_deck.py --slide {args.slide} and dispatch a worker first.")
+            return 11
     n_native = sum(1 for s in statuses if s.classification == "native")
     n_sketch = sum(1 for s in statuses if s.classification == "sketch_translated")
     n_rejected = sum(1 for s in statuses if s.classification == "skeleton_rejected")
@@ -2522,7 +2535,7 @@ def main() -> int:
     print(f"  QC totals: all-ok={qc_counts['all_ok']}  warn-only={qc_counts['warn_only']}  block={qc_counts['block']}")
 
     print("\n[6] Write RESULT.md")
-    result_path = write_result(args.out, args.template, statuses)
+    result_path = write_result(args.out, args.template, statuses, slide_n=args.slide)
     print(f"  {result_path}")
 
     print("\n[7] Generate Gate 3 visual preview (GATE3-PREVIEW.html)")

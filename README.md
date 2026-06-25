@@ -95,8 +95,9 @@ This installs `slide-builder-worker` (the Stage-2 per-slide fanout agent) and `s
 cd "$env:USERPROFILE\.claude\skills"
 py -3 slide-builder/tests/run_sketch_smoke.py
 py -3 slide-builder/tests/run_layout_inheritance_smoke.py
+py -3 slide-builder/tests/run_rebuild_slice_smoke.py
 ```
-The first exercises the sketch (HTML-first) build path end-to-end on the Python side (prompt rendering, HTML→PNG render, classifier, R4 QC, native execution). The second builds a 4-slide deck against a layout-diverse fixture template. Both print `All phases passed.` / `SMOKE PASSED.` on success; any failure points at the broken piece.
+The first exercises the sketch (HTML-first) build path end-to-end on the Python side (prompt rendering, HTML→PNG render, classifier, R4 QC, native execution). The second builds a 4-slide deck against a layout-diverse fixture template. The third builds a deck then rebuilds one slide, confirming the rebuild only touches that slide. All print `All phases passed.` / `SMOKE PASSED.` on success; any failure points at the broken piece.
 
 ---
 
