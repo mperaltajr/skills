@@ -417,6 +417,9 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
     body_ok = True
     body_offenders: list = []
     soft_floor_suppressed = 0  # runs in non-body roles between 8.0 and 10.5pt
+    sizes_locked_ok = True
+    offgrid_offenders: list = []  # runs whose size isn't a PowerPoint default
+    _allowed_sizes = set(_twins_helpers.ALLOWED_FONT_SIZES_PT)
     leak_ok = True
     leak_offenders: list = []
     shape_count = 0
@@ -464,6 +467,14 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
                     if not title_ok and sz is not None and sz > title_threshold:
                         title_ok = True
                         title_detail = f"run > 28pt found (name='{name}', size={sz.pt:.1f}pt)"
+                    # Sizes must be locked to PowerPoint defaults (finalize snaps
+                    # them; this is the guard that catches anything that slipped
+                    # the snap walk — e.g. inside an unusual shape type).
+                    if sz is not None and round(sz.pt, 2) not in _allowed_sizes:
+                        sizes_locked_ok = False
+                        offgrid_offenders.append(
+                            f"{name or '<unnamed>'} @ {sz.pt:.2f}pt: {text[:40]!r}"
+                        )
                     if not is_footnote_like and sz is not None:
                         # Per-role floor: body-role shapes get the 10.5pt soft
                         # floor; everything else gets the 8.0pt hard floor.
@@ -531,6 +542,13 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
     checks.append({
         "check": "body_font_floor", "pass": body_ok, "severity": "warn",
         "detail": body_detail,
+    })
+    checks.append({
+        "check": "font_size_locked", "pass": sizes_locked_ok, "severity": "warn",
+        "detail": ("all text sizes are PowerPoint defaults (>= 8pt)" if sizes_locked_ok
+                   else f"{len(offgrid_offenders)} off-grid size(s): "
+                        + "; ".join(offgrid_offenders[:4])
+                        + ("" if len(offgrid_offenders) <= 4 else f" (+{len(offgrid_offenders) - 4} more)")),
     })
     checks.append({
         "check": "placeholder_leak", "pass": leak_ok, "severity": "block",
@@ -1710,6 +1728,54 @@ def _check_dark_variant_collisions(slide, dark_bg_hex: str,
     return issues
 
 
+def _snap_text_frame_sizes(tf) -> int:
+    """Snap every explicitly-set font size in a text frame to a PowerPoint
+    default (floor 8pt). Returns the count of runs/paragraphs changed."""
+    changed = 0
+    for para in tf.paragraphs:
+        for holder in (para, *para.runs):
+            try:
+                sz = holder.font.size
+            except Exception:
+                continue
+            if sz is None:
+                continue
+            snapped = _twins_helpers.snap_font_pt(sz)
+            if snapped is not None and abs(snapped - sz.pt) > 1e-6:
+                holder.font.size = Pt(snapped)
+                changed += 1
+    return changed
+
+
+def _snap_font_sizes(shapes) -> int:
+    """Lock every visible text size on a slide to one of PowerPoint's default
+    sizes (floor 8pt) — no off-grid 7.3 / 8.2 values. Walks text frames, table
+    cells, and grouped shapes. Runs that inherit their size (size is None) are
+    left alone so they keep the layout/placeholder default."""
+    changed = 0
+    for shape in shapes:
+        try:
+            if shape.shape_type == MSO_SHAPE_TYPE.GROUP:
+                changed += _snap_font_sizes(shape.shapes)
+                continue
+        except Exception:
+            pass
+        if getattr(shape, "has_table", False):
+            try:
+                for row in shape.table.rows:
+                    for cell in row.cells:
+                        changed += _snap_text_frame_sizes(cell.text_frame)
+            except Exception:
+                pass
+            continue
+        if getattr(shape, "has_text_frame", False):
+            try:
+                changed += _snap_text_frame_sizes(shape.text_frame)
+            except Exception:
+                pass
+    return changed
+
+
 def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
                     layout_name: str = "",
                     layout_chrome=None,
@@ -1894,6 +1960,11 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
                 theme_slot_map=slot_map,
             )
         st.n_subs = subs
+
+        # Lock every text size to a PowerPoint default (floor 8pt) so no slide
+        # ships an off-grid size from a worker's Pt(8.2) or the translator's
+        # px->pt conversion. Applies to both build paths.
+        _snap_font_sizes(new_slide.shapes)
 
         st.themed_pptx_path.parent.mkdir(parents=True, exist_ok=True)
         prs.save(str(st.themed_pptx_path))

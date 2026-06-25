@@ -92,9 +92,47 @@ SLIDE_H_EMU = Emu(SLIDE_H_PX * 9525)
 def px_to_emu(px):
     return Emu(int(px * 9525))
 
-# CSS px → PowerPoint pt (1px @ 96dpi = 0.75pt @ 72dpi)
+# CSS px → PowerPoint pt (1px @ 96dpi = 0.75pt @ 72dpi). Used for BOTH font
+# sizes and shape geometry, so it must NOT snap — geometry needs the exact value.
+# Snap font sizes with snap_font_pt() instead.
 def px_to_pt(px):
     return Pt(px * 0.75)
+
+
+# The discrete font sizes PowerPoint's size dropdown offers. Every visible text
+# size in a Slide Lab deck is locked to one of these (floor 8pt) — no 7.3 / 8.2
+# off-grid values — so decks look hand-set, not auto-shrunk. The finalize step
+# snaps every run to the nearest value here; workers and the translator should
+# author in these sizes so what they see matches what ships.
+ALLOWED_FONT_SIZES_PT = (
+    8, 9, 10, 10.5, 11, 12, 14, 16, 18, 20, 24, 28, 32,
+    36, 40, 44, 48, 54, 60, 66, 72, 80, 88, 96,
+)
+FONT_FLOOR_PT = 8.0
+
+
+def snap_font_pt(pt):
+    """Snap a point size to the nearest allowed PowerPoint default, floored at 8.
+
+    `pt` may be a float or a python-pptx Length (`.pt`). Anything below 8 becomes
+    8; otherwise the nearest value in ALLOWED_FONT_SIZES_PT wins, with exact ties
+    rounding DOWN (the smaller size is the safe choice for fit). Returns a float
+    in points (callers wrap in Pt()).
+    """
+    value = getattr(pt, "pt", pt)
+    if value is None:
+        return None
+    value = float(value)
+    if value <= FONT_FLOOR_PT:
+        return FONT_FLOOR_PT
+    if value >= ALLOWED_FONT_SIZES_PT[-1]:
+        return float(ALLOWED_FONT_SIZES_PT[-1])
+    # Nearest allowed size; on an exact tie pick the smaller (left) option.
+    best = min(
+        ALLOWED_FONT_SIZES_PT,
+        key=lambda s: (abs(s - value), s),  # smaller distance, then smaller size
+    )
+    return float(best)
 
 
 def new_slide(prs=None):
@@ -230,10 +268,12 @@ def add_text(slide, shape_id, text, x_px, y_px, w_px, h_px, *,
         # See Defect 3 docstring above for the 2026-06-15 contract change.
         if font_name is not None:
             f.name = font_name
+        # Lock to PowerPoint's default sizes (floor 8pt) so helper-built text
+        # never ships an off-grid size.
         if font_size_pt is not None:
-            f.size = Pt(font_size_pt)
+            f.size = Pt(snap_font_pt(font_size_pt))
         elif font_size_px is not None:
-            f.size = px_to_pt(font_size_px)
+            f.size = Pt(snap_font_pt(px_to_pt(font_size_px)))
         if seg_bold is not None:
             f.bold = seg_bold
         if seg_italic is not None:

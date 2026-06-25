@@ -129,7 +129,7 @@ Map CSS properties to python-pptx per this table:
 | `borderStyle: none` or width 0   | `shape.line.fill.background()`                          |
 | `color`                          | `run.font.color.rgb = ...`                              |
 | `fontFamily`                     | `run.font.name = "..."`                                 |
-| `fontSize` (px)                  | `run.font.size = Pt(px * 72/96)`                        |
+| `fontSize` (px)                  | `run.font.size = Pt(snap_font_pt(px * 72/96))` — import `from twins.helpers import snap_font_pt`; snaps to PowerPoint's default grid, floor 8pt (the finalize step also enforces this) |
 | `fontWeight` >= 600              | `run.font.bold = True`                                  |
 | `fontStyle: italic`              | `run.font.italic = True`                                |
 | `textTransform: uppercase`       | uppercase the text BEFORE setting; do NOT use a CSS proxy |
