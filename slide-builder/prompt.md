@@ -246,7 +246,7 @@ This list is a heuristic for which entries are most load-bearing per pattern. Th
 **Pattern routing for this slide:** `{{PATTERN}}`
 
 - **Direct path** (default; python-pptx direct): write the three files listed below as `.py` scripts.
-- **Sketch path** (HTML-first): write `option_A.html`, `option_B.html`, `option_C.html` instead of `.py` files. Conventions in `slide-builder/_decisions/pattern-b/SPEC.md`. Chrome text on elements with `data-template-field`; body shapes on elements with `data-shape-id`. Self-check by rendering each HTML via `scripts/render_html.py` and reading the resulting 1280×720 PNG before declaring done. Do NOT also write `.py` files — the sketch path's downstream translator agent converts the picked HTML to native python-pptx at Stage 3.5.
+- **Sketch path** (HTML-first): write `option_A.html`, `option_B.html`, `option_C.html` instead of `.py` files. Conventions in `slide-builder/reference/sketch-html-spec.md`. Chrome text on elements with `data-template-field`; body shapes on elements with `data-shape-id`. Self-check by rendering each HTML via `scripts/render_html.py` and reading the resulting 1280×720 PNG before declaring done. Do NOT also write `.py` files — the sketch path's downstream translator agent converts the picked HTML to native python-pptx at Stage 3.5.
 
 For the direct path, write three files to `{{OUTPUT_DIR}}`:
 

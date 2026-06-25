@@ -100,13 +100,13 @@ Follow the procedure in your `_prompt.md` verbatim:
    <out_dir>/slide_NN/option_C.html
    ```
 
-   Each HTML file MUST follow `slide-builder/_decisions/pattern-b/SPEC.md` exactly:
+   Each HTML file MUST follow `slide-builder/reference/sketch-html-spec.md` exactly:
    - Canvas: `width: 1280px; height: 720px; overflow: hidden; position: relative;` on the root `.slide` element
    - Inline `<link rel="stylesheet" href="../../brand.css">` for the brand CSS variables (`var(--brand-primary)`, etc.) OR copy the `:root { ... }` block inline
    - Title / subtitle / footer / page-number text MUST be on elements with `data-template-field="title|subtitle|footer|page_number"` — these become template-inherited placeholders; do NOT position them as freeform shapes
    - **Every body-zone element you want translated to a native PowerPoint shape MUST have `data-shape-id="<unique-id>"`.** This is the LOAD-BEARING contract for the translator. Without `data-shape-id` on a body element, the translator will infer a shape via its fallback walk (lenient, but produces a `TRANSLATOR_WARNING` in the QC report) or skip the element entirely if it looks like a pure layout wrapper. Tag EVERY meaningful card / row / column / pill / badge / chart bar / label / heading / chip / divider in the body zone. **If you draw it on the slide, tag it.** The only exceptions are pure flex/grid wrapper `<div>`s with no background / border / text of their own — those route their children, not themselves.
    - Body zone is between `--body-top` and `--body-bottom` (from chrome.yml; inlined into _context.md)
-   - Use ONLY the CSS properties permitted by SPEC.md §7 (no gradients in body, no shadows, no filters, no text-decoration on body text)
+   - Use ONLY the CSS properties permitted by sketch-html-spec.md §7 (no gradients in body, no shadows, no filters, no text-decoration on body text)
 
    **Worker self-check before declaring done (sketch path) — TWO mandatory checks:**
 
