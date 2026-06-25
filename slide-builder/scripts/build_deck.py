@@ -337,7 +337,12 @@ GATE_BYPASS_MODES = {"template-fill", "rebuild-slice", "rfp"}
 
 
 def _enforce_storyline_gate(front_matter: dict[str, str], body: str,
-                            brief_path: Path) -> None:
+                            brief_path: Path, bypass: bool = False) -> None:
+    # A single-slide rebuild of an already-built deck is itself a rebuild-slice
+    # flow, so the narrative gate is bypassed regardless of the reused brief's
+    # own marker.
+    if bypass:
+        return
     mode = (front_matter.get("mode") or "").strip().lower()
     if mode in GATE_BYPASS_MODES:
         return
@@ -457,7 +462,7 @@ def extract_field(block: str, labels: tuple[str, ...]) -> str:
     return ""
 
 
-def parse_brief(brief_path: Path) -> dict[str, Any]:
+def parse_brief(brief_path: Path, bypass_gate: bool = False) -> dict[str, Any]:
     """Parse the storyline-helper narrative brief.
 
     Returns:
@@ -479,7 +484,7 @@ def parse_brief(brief_path: Path) -> dict[str, Any]:
         sys.exit(1)
 
     front_matter, body = extract_front_matter(text)
-    _enforce_storyline_gate(front_matter, body, brief_path)
+    _enforce_storyline_gate(front_matter, body, brief_path, bypass=bypass_gate)
     deck_notes = extract_deck_notes(body)
     blocks = split_slide_blocks(body)
     if not blocks:
@@ -1190,8 +1195,8 @@ def write_dispatch_plan(
 # Deck manifest — _meta.json
 #
 # Single source of truth for downstream pipeline scripts. Written by
-# build_deck.py after theme generation; consumed by:
-#   - finalize_deck.py::_resolve_mermaid_theme  (mermaid_theme path)
+# build_deck.py; consumed by:
+#   - finalize_deck.py:main                     (template path, per-slide entries)
 #   - compile_picks.py:main                     (template path)
 #   - build_review.py:main                      (slides[], brief, deck_meta)
 #
@@ -1201,6 +1206,39 @@ def write_dispatch_plan(
 # Important: build_review.py uses `slides[].n` (NOT `slide_n`) as the
 # slide-number key. Keep this convention here so the readers match.
 # ----------------------------------------------------------------------
+
+def _build_slide_meta_entry(slide: dict[str, Any], forecast: str,
+                            pattern_per_slide: dict[str, str]) -> dict[str, Any]:
+    """Build one slide's `_meta.json` entry. Shared by the full-deck writer and
+    the single-slide rebuild updater so the entry shape never drifts."""
+    slide_n = slide["slide_n"]
+    entry = {
+        "n":                  slide_n,
+        "title":              slide.get("title", "") or "",
+        "forecasted_pattern": forecast,
+        # page_type is explicit if the brief sets it, else derived from
+        # **Archetype:** via ARCHETYPE_TO_PAGE_TYPE. Empty if neither
+        # source resolves — downstream QC checks treat empty as "no
+        # archetype-specific exemptions apply."
+        "page_type":          (slide.get("page_type", "") or "").strip()
+                               or _normalize_archetype_to_page_type(
+                                   slide.get("archetype", "") or ""
+                               ),
+        # chrome.yml layout name for this slide. Required;
+        # resolve_slide_layouts already gates this is non-empty.
+        "layout":             slide.get("layout", "") or "",
+        # per-slide variant flag. "dark" triggers full-bleed
+        # brand.dark_bg_hex overlay + white title at finalize-time.
+        # Empty / "light" / anything else = light variant (default).
+        "variant":            (slide.get("variant", "") or "").strip().lower(),
+    }
+    # Only populate build-path fields when the classifier produced routing for
+    # this slide. Empty pattern_per_slide (legacy mode) leaves the shape unchanged.
+    if str(slide_n) in pattern_per_slide:
+        entry["pattern"] = pattern_per_slide[str(slide_n)]
+        entry["artifacts"] = {}  # populated as build progresses
+    return entry
+
 
 def write_meta_json(
     out_dir: Path,
@@ -1225,36 +1263,10 @@ def write_meta_json(
     """
     pattern_per_slide = pattern_per_slide or {}
     front_matter = brief.get("front_matter", {}) or {}
-    slides_meta: list[dict[str, Any]] = []
-    for slide, forecast in zip(brief["slides"], forecasts):
-        slide_n = slide["slide_n"]
-        entry = {
-            "n":                  slide_n,
-            "title":              slide.get("title", "") or "",
-            "forecasted_pattern": forecast,
-            # page_type is explicit if the brief sets it, else derived from
-            # **Archetype:** via ARCHETYPE_TO_PAGE_TYPE. Empty if neither
-            # source resolves — downstream QC checks treat empty as "no
-            # archetype-specific exemptions apply."
-            "page_type":          (slide.get("page_type", "") or "").strip()
-                                   or _normalize_archetype_to_page_type(
-                                       slide.get("archetype", "") or ""
-                                   ),
-            # chrome.yml layout name for this slide. Required;
-            # resolve_slide_layouts already gates this is non-empty.
-            "layout":             slide.get("layout", "") or "",
-            # per-slide variant flag. "dark" triggers full-bleed
-            # brand.dark_bg_hex overlay + white title at finalize-time.
-            # Empty / "light" / anything else = light variant (default).
-            "variant":            (slide.get("variant", "") or "").strip().lower(),
-        }
-        # Only populate build-path fields when the classifier produced
-        # routing for this slide. Empty pattern_per_slide (legacy mode)
-        # leaves the per-slide entry shape unchanged.
-        if str(slide_n) in pattern_per_slide:
-            entry["pattern"] = pattern_per_slide[str(slide_n)]
-            entry["artifacts"] = {}  # populated as build progresses
-        slides_meta.append(entry)
+    slides_meta: list[dict[str, Any]] = [
+        _build_slide_meta_entry(slide, forecast, pattern_per_slide)
+        for slide, forecast in zip(brief["slides"], forecasts)
+    ]
 
     # `generated_at` lives at TOP LEVEL because build_review.py:1117 reads it
     # there (`(meta or {}).get("generated_at")`). Do NOT also nest it inside
@@ -1297,6 +1309,65 @@ def write_meta_json(
     # write fails loudly here rather than at a downstream reader.
     MetaJson.model_validate(meta)
     meta_path = _p.meta_json(out_dir)
+    meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
+    return meta_path
+
+
+def update_meta_for_rebuild(
+    out_dir: Path,
+    brief: dict[str, Any],
+    slide_n: int,
+    forecasts: list[str],
+    pattern_per_slide: Optional[dict[str, str]] = None,
+) -> Optional[Path]:
+    """Splice one rebuilt slide's entry into the existing `_meta.json`.
+
+    Loads the on-disk manifest, replaces only slide `slide_n`'s entry (recomputed
+    with the same builder the full writer uses), refreshes the per-slide pattern
+    map + timestamp, and re-validates against the schema before writing. Every
+    other slide's entry — including artifacts populated by later stages — is left
+    exactly as it was. Returns the meta path, or None on a recoverable error.
+    """
+    pattern_per_slide = pattern_per_slide or {}
+    meta_path = _p.meta_json(out_dir)
+    try:
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        sys.stderr.write(f"ERROR: cannot read {meta_path} for rebuild: {exc}\n")
+        return None
+
+    # Locate the brief slide + its forecast (forecasts align with brief slides).
+    idx = next(
+        (i for i, s in enumerate(brief["slides"]) if s["slide_n"] == slide_n),
+        None,
+    )
+    if idx is None:
+        sys.stderr.write(f"ERROR: slide {slide_n} not present in the brief.\n")
+        return None
+    new_entry = _build_slide_meta_entry(
+        brief["slides"][idx], forecasts[idx], pattern_per_slide
+    )
+
+    slides_meta = meta.get("slides", [])
+    replaced = False
+    for i, entry in enumerate(slides_meta):
+        if entry.get("n") == slide_n:
+            slides_meta[i] = new_entry
+            replaced = True
+            break
+    if not replaced:
+        sys.stderr.write(
+            f"ERROR: slide {slide_n} not found in existing _meta.json; "
+            f"cannot rebuild a slide that wasn't in the original deck.\n"
+        )
+        return None
+
+    # Keep the per-slide routing map in sync when present.
+    if "pattern_per_slide" in meta and str(slide_n) in pattern_per_slide:
+        meta["pattern_per_slide"][str(slide_n)] = pattern_per_slide[str(slide_n)]
+    meta["generated_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+    MetaJson.model_validate(meta)
     meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
     return meta_path
 
@@ -1635,9 +1706,18 @@ def main() -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=__doc__,
     )
-    parser.add_argument("--brief",    required=True, type=Path, help="Path to narrative brief markdown")
+    parser.add_argument("--brief",    required=False, type=Path, default=None,
+                        help="Path to narrative brief markdown. Required for a full build; "
+                             "optional with --slide (defaults to the brief recorded in the "
+                             "existing _meta.json).")
     parser.add_argument("--template", required=True, type=Path, help="Path to client PPTX template")
     parser.add_argument("--out",      required=True, type=Path, help="Output directory for per-slide prompts")
+    parser.add_argument("--slide",    required=False, type=int, default=None,
+                        help="Rebuild a single slide in an existing build dir: re-prep only "
+                             "slide N, merge into the existing _meta.json, and leave every "
+                             "other slide untouched. Reuses the recorded brief unless --brief "
+                             "is given. After this, dispatch one worker for slide N, run "
+                             "finalize_deck.py --slide N, pick, then re-run compile_picks.py.")
     parser.add_argument(
         "--client-name",
         default=None,
@@ -1652,7 +1732,7 @@ def main() -> int:
     )
     # Build-path routing override. Per-build override of
     # settings.json::default_pattern. Default None = use settings.json (which
-    # ships at "legacy").
+    # ships at "auto").
     parser.add_argument(
         "--pattern",
         choices=["auto", "sketch", "direct", "legacy"],
@@ -1663,9 +1743,8 @@ def main() -> int:
             "direct). 'sketch' forces every slide through the HTML-first path "
             "(HTML-spec -> native translation). 'direct' forces every slide "
             "through the pptx-direct path (native python-pptx, no HTML stage). "
-            "'legacy' uses the pptx-direct-only pipeline verbatim. When "
-            "omitted, defaults from settings.json::default_pattern (shipped "
-            "at 'legacy')."
+            "'legacy' uses the pptx-direct-only pipeline. When omitted, "
+            "defaults from settings.json::default_pattern (shipped at 'auto')."
         ),
     )
     args = parser.parse_args()
@@ -1678,6 +1757,36 @@ def main() -> int:
     # If enable_sketch is False in settings.json, any non-legacy value is
     # downgraded to "legacy" with a stderr warning -- the master switch.
     effective_pattern = _resolve_effective_pattern(args.pattern)
+
+    # Rebuild mode (--slide N): reuse the brief recorded in the existing
+    # _meta.json unless --brief overrides it. A full build requires --brief.
+    rebuild_slide_n = args.slide
+    if rebuild_slide_n is None and args.brief is None:
+        sys.stderr.write(
+            "ERROR: --brief is required for a full build (it may be omitted only "
+            "with --slide, which then reuses the recorded brief).\n"
+        )
+        return 1
+    if rebuild_slide_n is not None:
+        existing_meta_path = args.out / "_meta.json"
+        if not existing_meta_path.exists():
+            sys.stderr.write(
+                f"ERROR: --slide {rebuild_slide_n} needs an existing build at {args.out} "
+                f"(no _meta.json found). Run a full build first.\n"
+            )
+            return 2
+        if args.brief is None:
+            try:
+                _recorded = json.loads(existing_meta_path.read_text(encoding="utf-8")).get("brief", "")
+            except (OSError, ValueError) as exc:
+                sys.stderr.write(f"ERROR: cannot read {existing_meta_path}: {exc}\n")
+                return 2
+            if not _recorded:
+                sys.stderr.write(
+                    "ERROR: existing _meta.json records no brief path; pass --brief explicitly.\n"
+                )
+                return 2
+            args.brief = Path(_recorded)
 
     from _log import attach as _log_attach  # noqa: E402
     _log_attach(args.out, "build_deck.py")
@@ -1715,10 +1824,20 @@ def main() -> int:
         return 5
 
     # 1. Read brief
-    brief = parse_brief(args.brief)
+    brief = parse_brief(args.brief, bypass_gate=(rebuild_slide_n is not None))
     slides = brief["slides"]
     slide_total = brief["slide_total"]
     deck_notes = brief["deck_notes"]
+
+    # Validate the rebuild target exists in this brief before any work.
+    if rebuild_slide_n is not None:
+        valid_ns = [s["slide_n"] for s in slides]
+        if rebuild_slide_n not in valid_ns:
+            sys.stderr.write(
+                f"ERROR: --slide {rebuild_slide_n} is not in the brief "
+                f"(slides present: {valid_ns}).\n"
+            )
+            return 2
 
     # 1.5 Resolve every slide's layout name; fail-loud with exit 9
     # if any slide lacks one (per-slide field OR deck default OR missing).
@@ -1771,9 +1890,14 @@ def main() -> int:
             f"per-slide map = {pattern_per_slide}\n"
         )
 
-    # 5. Render per-slide prompts
+    # 5. Render per-slide prompts. In rebuild mode, render only the target slide
+    # and leave every other slide's prompt/context/meta untouched.
     template_text = PROMPT_TEMPLATE.read_text(encoding="utf-8")
-    for slide, seeds in zip(slides, seeds_by_slide):
+    render_targets = [
+        (slide, seeds) for slide, seeds in zip(slides, seeds_by_slide)
+        if rebuild_slide_n is None or slide["slide_n"] == rebuild_slide_n
+    ]
+    for slide, seeds in render_targets:
         slide_n = slide["slide_n"]
         slide_dir = _p.slide_dir(args.out, slide_n)
         slide_dir.mkdir(parents=True, exist_ok=True)
@@ -1803,6 +1927,36 @@ def main() -> int:
                 f"  WARN: could not write slide {slide_n} _context.md: "
                 f"{type(_exc).__name__}: {_exc}\n"
             )
+
+    # Rebuild mode: merge only the target slide's entry into the existing
+    # _meta.json and stop. Every other slide's prompt, context, themed PPTX,
+    # and meta entry (including artifacts) are preserved. The operator then
+    # dispatches one worker for slide N, runs finalize_deck.py --slide N, picks,
+    # and re-runs compile_picks.py to graft the rebuilt slide into final_deck.pptx.
+    if rebuild_slide_n is not None:
+        meta_path = update_meta_for_rebuild(
+            out_dir=args.out,
+            brief=brief,
+            slide_n=rebuild_slide_n,
+            forecasts=forecasts,
+            pattern_per_slide=pattern_per_slide,
+        )
+        if meta_path is None:
+            return 2
+        rb_dir = _p.slide_dir(args.out, rebuild_slide_n)
+        print(f"Re-prepped slide {rebuild_slide_n} at:")
+        print(f"  {rb_dir.resolve()}")
+        print()
+        print(f"Updated deck manifest:")
+        print(f"  {meta_path.resolve()}")
+        print()
+        print(f"Next, to rebuild slide {rebuild_slide_n} end to end:")
+        print(f"  1. Dispatch ONE slide-builder-worker for slide {rebuild_slide_n} "
+              f"(reads {rb_dir / '_context.md'} then {rb_dir / '_prompt.md'}).")
+        print(f"  2. py -3 finalize_deck.py --out <out> --template <template> --slide {rebuild_slide_n}")
+        print(f"  3. Take the user's pick for slide {rebuild_slide_n}; update picks.json.")
+        print(f"  4. py -3 compile_picks.py --out <out>   # grafts the new slide into final_deck.pptx")
+        return 0
 
     # Deck manifest (_meta.json) — single source of truth for downstream
     # pipeline scripts. Writes AFTER slide prompts are rendered so that any
