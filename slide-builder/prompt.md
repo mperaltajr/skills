@@ -329,7 +329,9 @@ finalize_deck.py reads line 1. Token prefix decides routing:
 - **Do not write summaries, plans, or design docs to disk.** Inline reasoning goes in your response, not in side-files.
 - **No external assets.** No PIL, no PNG embedding for native patterns, no chart image generation. Bars, waterfalls, KPI tiles — all drawn with `add_rect` + `add_text`. (Curved diagrams that historically used the Mermaid fallback now route to the sketch path's HTML+SVG; see § 4 step 4.)
 - **Use the brand palette constants only.** Never raw `RGBColor(...)` literals. The named constants from `twins.helpers` are: `BRAND_PRIMARY`, `BRAND_PRIMARY_MID`, `BRAND_ACCENT`, `BRAND_ACCENT_SOFT`, `TEXT_DARK`, `TEXT_MID`, `TEXT_FAINT`, `CARD_BG`, `CARD_BORDER`, `WHITE`.
-- **Body font floor: 14px (≈10.5pt PPTX).** Eyebrows can be 11px; meta italic lines 12px; body claims and bullets ≥14px. No exceptions.
+- **Font sizes are locked to PowerPoint's default grid (floor 8pt).** Every visible text size must be one of: **8, 9, 10, 10.5, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 44, 48, 54, 60, 66, 72, 80, 88, 96** (pt) — never an off-grid value like 7.3 or 8.2, and never below 8pt. The finalize step snaps any straggler to the nearest grid size, but author on the grid so what you design is what ships.
+  - **Direct path (.py):** set `font_size_pt=` to a grid value (use `font_size_pt`, not raw `Pt(...)` arithmetic that lands off-grid).
+  - **Sketch path (HTML):** CSS uses px; px = pt × 4⁄3. Size text so it maps to the grid — e.g. **8pt→10.67px, 9pt→12px, 10.5pt→14px, 12pt→16px, 14pt→18.67px, 18pt→24px, 24pt→32px, 32pt→42.67px**. Body claims/bullets ≥ 10.5pt (14px); eyebrows/labels may go down to 8pt (10.67px) but no smaller. See `reference/sketch-html-spec.md` § "Font-size grid".
 - **Insertion order = paint order.** Background fills first, foreground/text last.
 
 ---

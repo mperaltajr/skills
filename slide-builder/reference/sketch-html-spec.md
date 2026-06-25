@@ -112,8 +112,8 @@ Brand colors and fonts are injected as CSS variables at the top of every HTML fi
   --brand-divider: #E1E1E6;
 
   /* Fonts (from brand.yml font_heading + font_body) */
-  --font-heading: "FedEx Sans", "Segoe UI", -apple-system, sans-serif;
-  --font-sans: "FedEx Sans", "Segoe UI", -apple-system, sans-serif;
+  --font-heading: "<brand heading font>", "Segoe UI", -apple-system, sans-serif;
+  --font-sans: "<brand body font>", "Segoe UI", -apple-system, sans-serif;
   --font-mono: ui-monospace, "Consolas", monospace;
 
   /* Canvas */
@@ -146,21 +146,27 @@ The `build_deck.py` Stage 1 generates `_context.md` with the `:root` block inlin
 
 ## 5. Font handling
 
-- Brand fonts (e.g., FedEx Sans, Graphik) are referenced by name in `--font-heading` and `--font-sans`.
+- Brand fonts (the client's heading/body typefaces from brand.yml) are referenced by name in `--font-heading` and `--font-sans`.
 - The worker assumes the brand font is installed locally during HTML render (Playwright uses the system font stack).
 - If the brand font is missing during render, the CSS fallback chain kicks in (`"Segoe UI", -apple-system, sans-serif`).
-- The translator agent uses the SAME font name in python-pptx (`run.font.name = "FedEx Sans"`). If the font isn't installed on the build machine, PowerPoint falls back when the deck is opened — known limitation; INSTALL.md documents the install step for brand fonts.
-- **Font sizes are specified in pixels at the 1280×720 canvas scale**, NOT in pt. Conversion to pt for python-pptx: `pt = px * 72 / 96` (e.g., 16px = 12pt).
+- The translator agent uses the SAME font name in python-pptx (`run.font.name = "<brand font>"`). If the font isn't installed on the build machine, PowerPoint falls back when the deck is opened — known limitation; INSTALL.md documents the install step for brand fonts.
 
-Standard font sizes (consulting-grade typography):
-- Slide title: `22px–28px`, weight 700
-- Subtitle / so-what: `14px–16px`, weight 500
-- Body / card title: `13px–16px`, weight 600
-- Body text / bullets: `11px–13px`, weight 400
-- Footnote / source / page #: `9px–10px`, weight 400
-- Eyebrow / caps label: `10px–11px`, weight 600, letter-spacing 0.05em, text-transform uppercase
+### Font-size grid (locked)
 
-**No font sizes below 9px.** No font sizes above 32px (except specific hero numerals).
+Font sizes are specified in pixels at the 1280×720 canvas scale. They convert to pt as `pt = px × 72 / 96` (= px × 0.75), and **every size must land on PowerPoint's default grid, floored at 8pt**: `8, 9, 10, 10.5, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 44, 48, 54, 60, 66, 72, 80, 88, 96`. The translator and the finalize step snap to the nearest grid value, but **author on the grid** so the rendered PNG you review matches the shipped PPTX. Use these px values (px → resulting pt):
+
+| Role | px | pt |
+|---|---|---|
+| Footnote / source / page # | 11–12px | 8–9pt |
+| Eyebrow / caps label | 13–15px | 10–11pt |
+| Body text / bullets | 14–16px | 10.5–12pt |
+| Body / card title | 16–19px | 12–14pt |
+| Subtitle / so-what | 19–21px | 14–16pt |
+| Slide title | 32–37px | 24–28pt |
+
+- **Floor: 11px (8pt). Never smaller** — anything below renders illegibly at projector scale and is bumped to 8pt.
+- Hero numerals may exceed the title range (e.g., 64px ≈ 48pt) — still on the grid.
+- Pick a px value from the table; don't free-type arbitrary px that lands between grid points (e.g., 13px → 9.75pt snaps to 10pt anyway, so just use 13px for a 10pt label).
 
 ## 6. Icon handling
 
