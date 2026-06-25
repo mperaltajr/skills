@@ -1,6 +1,6 @@
 ---
 name: storyline-helper
-description: "Primary entry point for deck building in Slide Lab. Coaches the consultant from objective → strategic framework → narrative framework → deck type → per-slide structure. Detects mode (consulting deck / RFP / PMO) and routes accordingly. Runs a strict quality gate before producing the narrative brief and handing off to slide-builder. RFP responses route to rfp-helper. PMO/template fill routes to slide-builder template fill mode."
+description: "Primary entry point for building any multi-slide PowerPoint deck in Slide Lab — whether the user is starting from an objective, a rough outline, scratch notes, an existing HTML mockup, OR a finished storyline/package they already wrote. Coaches the narrative when needed (objective → strategic framework → narrative framework → deck type → per-slide structure); when the user already has the storyline, VALIDATES it against the gate instead of re-coaching, then emits the narrative brief and hands off to slide-builder. Use this (never a hand-rolled python-pptx script) whenever someone wants a deck built on a client template. Detects mode (consulting deck / RFP / PMO) and routes accordingly. RFP responses route to rfp-helper. PMO/template fill routes to slide-builder template fill mode."
 ---
 
 # Storyline Helper
@@ -97,6 +97,7 @@ Open in plain language:
 
 | What they hand you | What to do with it |
 |---|---|
+| **Finished storyline / package** (the narrative is already written — per-slide governing thoughts, a structured storyline doc, or a complete HTML mockup) | **Do NOT re-coach from scratch.** Validate it against the quality gate as a review pass, fill any gaps with the user, then emit the brief and hand to slide-builder. See "Finished package — validate, don't re-coach" below. |
 | Bullet outline (3–8 lines, often section headers) | Parse each bullet as a candidate slide. Mirror back the count and the shape. |
 | Full slide deck (any length) | Read titles + body. Identify the argument buried in it. Note redundancies, appendix material, and the load-bearing slides. |
 | Scratch notes / paragraph | Pull the claims out. Surface what's an assertion vs. what's an observation vs. what's a question. |
@@ -130,6 +131,18 @@ For a short outline:
 For nothing-but-an-idea:
 
 > *"OK — Q3 results for Charles. Three quick things before I work on it: …"*
+
+#### Finished package — validate, don't re-coach
+
+When the narrative is **already written** — the user hands you a structured storyline doc, per-slide governing thoughts, or a complete HTML mockup — do not run the from-scratch coaching flow and do not improvise a build. Switch to validate-and-emit:
+
+1. **Mirror it back** (above) so the user knows you read the actual package, not a summary.
+2. **Run the quality gate as a review pass, not a rebuild.** Check the existing storyline against the nine-part gate (governing thought per slide, so-what, evidence, sequence, etc.). You are auditing what's there, not regenerating it. Surface only real gaps — a slide with no clear so-what, an unsupported claim, a missing audience — and resolve them with the user (or mark a placeholder). Don't relitigate decisions the package already made well.
+3. **Capture the four commit-stage values** (session folder, client + topic, registered template, default content layout) — see "Commit & emit."
+4. **Emit the brief** in the slide-builder schema and hand off. Do **not** stop at the package.
+5. **Hand off to slide-builder** — it registers the client template and builds on the template's own layouts. **Never** hand-roll a python-pptx script or use the generic `pptx` skill to port the package yourself: that path skips template registration, REVIEW.html, and slide-qc, and is the documented way this goes wrong.
+
+**HTML mockup as input:** an HTML deck is a finished package in HTML form. It maps onto slide-builder's **sketch path** (HTML → native python-pptx translator), not a hand-written port. Validate the narrative as above, then hand off; slide-builder's sketch path consumes the HTML through its worker/translator agents.
 
 #### Ask 1–3 sharp questions that target the actual ambiguity
 
