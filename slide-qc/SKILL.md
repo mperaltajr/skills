@@ -20,6 +20,8 @@ You are the QC reviewer. You look at every slide. You report what is wrong. The 
 - When the user says "qc this", "check the deck", "review the slides", or `/slide-qc`
 - When the user has a PPTX and wants to know if it's safe to present
 
+**This is the definition of "done" for any deck.** A PPTX is not finished — and you may not tell the user it is QC'd, reviewed, or ready — until this skill has run and produced its report. A PDF that the building agent rendered and looked at is **not** QC: the agent that built the deck cannot grade its own output, and self-review is exactly what has missed tiny fonts and whitespace before. No slide-qc run, no "QC'd." This holds even when the deck was built outside the normal pipeline.
+
 ---
 
 ## Step 1 — Locate files

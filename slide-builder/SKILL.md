@@ -1,6 +1,6 @@
 ﻿---
 name: slide-builder
-description: "Default build layer of Slide Lab. Takes a narrative brief + a registered client PPTX template and produces a full PPTX deck via parallel agent fanout. Architecture: 9 geometric splits + 3 diagram primitives + 2 special objects + 1 HTML→PNG fallback = 14 patterns governed by 5 hardline rules and a self-improving anti-pattern library. Invoked automatically by storyline-helper after the narrative gate passes, or directly for 'rebuild slide N'."
+description: "Default build layer of Slide Lab and the ONLY sanctioned way to build a branded multi-slide PowerPoint on a client template — never hand-roll python-pptx from a blank Presentation for this. Takes a narrative brief + a registered client PPTX template and produces a full PPTX deck via parallel agent fanout, building on the template's own layouts/masters (registering it first if needed). Architecture: 9 geometric splits + 3 diagram primitives + 2 special objects + 1 HTML→PNG fallback = 14 patterns governed by 5 hardline rules and a self-improving anti-pattern library. Invoked automatically by storyline-helper after the narrative gate passes, directly to build a full deck from an existing brief/storyline package on a registered template, or for 'rebuild slide N'."
 ---
 
 # Slide Lab — slide-builder
@@ -270,7 +270,7 @@ Adjacency (Hardline #3 — no 3+ consecutive same-split) is **soft-enforced at p
    - For direct-path picks: execute `option_X.py` as before, graft body onto template, populate placeholders from brief title/subtitle.
    - For sketch-path picks: execute `option_X_native.py`, graft body, parse the script's `__template_fields__` header, populate placeholders from THOSE values (translator-extracted from the HTML's `data-template-field` attributes, takes priority over brief fallback).
 9. **Stage 5 — Compile.** `compile_picks.py` stitches the final deck.
-10. **QC.** Run slide-qc against the compiled deck.
+10. **QC — mandatory, not optional.** Run **slide-qc** against the compiled deck. This is the definition of done: do not tell the user the deck is finished or "QC'd" until slide-qc has run and produced its report. A PDF you rendered and eyeballed is not QC — the agent that built the deck cannot grade its own output.
 11. **Deliver.** PPTX. Output full absolute Windows path. No preview links.
 
 Rebuild individual slides with "rebuild slide N". This re-prep + re-finalize touches only slide N and grafts it back into the existing deck — every other slide's prompt, themed PPTX, and pick are left exactly as they were:
