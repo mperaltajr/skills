@@ -374,6 +374,7 @@ SMOKE_BRIEF_TEMPLATE = """---
 client_template: {tpl}
 deck_type: Smoke test (v0.2 P1.9)
 default_layout: body_canonical_light
+storyline_gate_passed: true
 ---
 
 ## Deck-level design notes
@@ -426,6 +427,9 @@ def run_build_deck_against_fixture(fixture_pptx: Path) -> tuple[int, list[str]]:
             "--brief", str(brief),
             "--template", str(fixture_pptx),
             "--out", str(out_dir),
+            # Scripted run: acknowledge the resolved template so the non-TTY
+            # confirmation gate (confirm_template_choice) does not abort.
+            "--confirm-template",
         ]
         # build_deck.py also requires mmdc via stage1; we may not have it.
         # Capture stdout/stderr; gate failure handling on the actual exit code.
