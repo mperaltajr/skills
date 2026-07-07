@@ -175,11 +175,16 @@ stays visible for the human and QC without polluting the slide.
 Why `**HEADING** — body` on the evidence bullets: slide-builder's translator parses that
 shape into structured slide content; loose prose bullets render as placeholder text.
 
+**Auto-fill `default_layout`.** Read the registered template's `<stem>/theme.json`, take
+`default_content_layout`, and write it into the front-matter yourself — the same way
+storyline-helper does. Do not rely on the human to copy the layout name in; a wrong or
+blank value makes the build stop with a layout error.
+
 ```markdown
 ---
 client_template: [absolute path to the registered .pptx template]
 deck_type: Capability Pitch
-default_layout: [layout name from the template's theme.json::default_content_layout]
+default_layout: [auto-filled — read from <template-stem>/theme.json::default_content_layout; do NOT ask the user to transcribe it]
 session_folder: [absolute path to the session folder]
 mode: rfp
 win_theme: [1–2 word differentiator]

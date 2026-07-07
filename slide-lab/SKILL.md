@@ -38,12 +38,12 @@ If the request is already specific ("build me a 5-slide steering deck from this 
 | Choice | Route |
 |---|---|
 | 1 Build new | **storyline-helper** → coaches narrative → quality gate → emits brief → **slide-builder** → **slide-qc**. |
-| 2 Work from what I have | **storyline-helper** "review &/or build" path. First ask **review or build** (see below). Review → critique + suggestions, STOP. Build → validate → emit → slide-builder. HTML mockup → slide-builder **sketch path**. |
+| 2 Work from what I have | **storyline-helper** "review &/or build" path. First ask **review or build** (see below). Review → critique + suggestions, STOP. Build → validate → emit → slide-builder. An HTML mockup is read as **reference** (its content/structure), then slides are **rebuilt on the client template** — the mockup's exact design is not copied 1:1; say so up front. |
 | 3 RFP | **rfp-helper** → proposal brief (`mode: rfp`) → slide-builder. |
 | 4 QC a deck | **slide-qc** on a built `.pptx`. Ask for the deck path if not given. |
 | 5 Rebuild / fix / insert a slide | **slide-builder** — rebuild: `build_deck.py --slide N`; insert: `build_deck.py --insert N`; then worker → `finalize_deck.py --slide N` → `compile_picks.py`. **Only works on a deck Slide Lab built** (an `<out>/` with `_meta.json`). |
 | 6 Edit existing `.pptx` | **pptx** skill (read / extract / edit an existing file). |
-| 7 Register a template | **register_template.py** `propose` → user picks → `commit` (or `commit-cli`). Standalone, no build; writes `<stem>/` brand.yml + theme.json + chrome.yml. |
+| 7 Register a template | **register_template.py** `propose` → user picks → `commit` (or `commit-cli`). Standalone, no build; writes `<stem>/` brand.yml + theme.json + chrome.yml. **Follow slide-builder's "Register a new client template" rules:** show the user the proposed colors and let them confirm — do NOT auto-accept (proposed brand colors can come out inverted), and you MUST capture the **default content layout**, or every later build fails mid-way. |
 | 8 Not sure | Orientation (below), then route. |
 
 ## Disambiguator — options 2 vs 5 vs 6 all touch "a deck"
@@ -58,12 +58,16 @@ Ask ONE question before routing any "change my deck" request:
 
 Note: editing pages of an external `.pptx` Slide Lab did NOT build is the pptx skill (option 6) — the per-slide rebuild/insert (option 5) needs the pipeline's `_meta.json` and only works on decks Slide Lab produced.
 
+## Before any build path (options 1, 2, 3) — check the template is set up first
+
+A build needs a **registered** template. Confirm it's registered *at the start* — before the user does all the storyline/RFP work — not after. If its `<stem>/` sidecars are missing, do **option 7 (set up the template)** first, then come back to the build. This spares a first-timer from finishing the whole narrative only to hit a "set up your template first" wall at the end.
+
 ## Orientation — option 8 ("not sure")
 
 Ask up to three, then route:
-1. Do you already have a deck **Slide Lab built** (a build folder / REVIEW.html)? → yes: fix/insert a slide (5) or QC it (4).
-2. Starting fresh, or do you already have a **storyline / outline / mockup**? → fresh: (1); have material: (2).
-3. Is it an **RFP / proposal**? → (3). Is it just editing an **existing `.pptx`**? → (6).
+1. Is this the **first time** building with this client's template? → set it up first (**option 7**).
+2. Do you already have a deck **Slide Lab built** (a build folder / REVIEW.html)? → yes: fix/insert a slide (5) or QC it (4).
+3. Starting fresh, or do you already have a **storyline / outline / mockup**? → fresh: (1); have material: (2). Is it an **RFP / proposal**? → (3). Just editing an **existing `.pptx`**? → (6).
 
 ## After routing
 

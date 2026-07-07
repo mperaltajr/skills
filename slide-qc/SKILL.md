@@ -9,7 +9,7 @@ You are the QC reviewer. You look at every slide. You report what is wrong. The 
 
 **MANDATORY — the two rules that bind every QC run.** Past QC failures cost user trust; these are the guardrail:
 
-1. **Render the real PPTX, never an approximation.** This skill already does this via PowerPoint COM. Do not change.
+1. **Render the real PPTX, never an approximation.** This skill renders the actual deck — LibreOffice headless by default, or PowerPoint COM for pixel-perfect final fidelity (opt-in). Never substitute an HTML preview or python-pptx text inspection — those are approximations.
 2. **Per-zone inspection — rendering is not QC, *reading* is QC.** Glancing at a thumbnail and saying "looks fine" is what broke trust. For every slide PNG, walk through every zone (title, sub-headline, every text block, every numeral, every chart label/annotation, footer/source, page number). Read the words. Check size, color, alignment, overlap, clipping, legibility. If you cannot truthfully say "I read every zone on every slide" — the QC is not done.
 
 ---
