@@ -281,6 +281,8 @@ Rebuild individual slides with "rebuild slide N". This re-prep + re-finalize tou
 4. Take the user's new pick for slide N; update `picks.json`.
 5. `compile_picks.py --out <out>` — rebuilds `final_deck.pptx` from every slide's themed PPTX, grafting the rebuilt slide N into place.
 
+**Insert a new slide** at position N with `build_deck.py --insert N`. First add the new slide to the brief at position N and renumber the later slide headers (the brief must have exactly one more slide than the current build). `--insert N` then shifts slides ≥ N up by one — their `slide_NN/` dirs, `_meta.json` entries, and `picks.json` keys — and preps only the new slide N; the shifted slides keep their built output under their new numbers. Then dispatch one worker for slide N, run `finalize_deck.py --slide N`, take the pick, and re-run `compile_picks.py`. (Adding a page to an *external* `.pptx` Slide Lab didn't build is a `pptx`-skill edit, not this flow — `--insert`/`--slide` only work on decks with the pipeline's `_meta.json`.)
+
 **If a build fails or the output is wrong:** tell the user they can type `/feedback` to capture a structured session report (the `slidelab-log` skill writes the technical detail; the user just submits the GitHub link). Offer this whenever a stage exits non-zero or the user says something looks broken.
 
 ### Pattern routing flag

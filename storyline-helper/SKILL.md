@@ -1105,7 +1105,7 @@ Do not hand off. Say: "I need to finish the brief first — the slide builder ne
 
 If the user picks Edit, ask what they want to change. If the user picks Review, run the full nine-part gate + cross-cutting rules sweep against the existing brief and produce the review-and-save section Review output (table + conversational Major prompts). No new file is written until the user resolves Criticals and chooses fix-or-override on Majors. Once they do, save the brief and re-run `emit_dot_dash.py`.
 
-**User wants to add a slide to an existing deck.** Don't rebuild the whole narrative. Read the existing brief, insert the new slide's governing thought at the right position, re-run the gate, save the updated brief. Slide Builder then builds just the new slide and inserts it.
+**User wants to add a slide to an existing deck Slide Lab built.** Don't rebuild the whole narrative. Read the existing brief, insert the new slide (governing thought + so-what + evidence) at the right position and **renumber the later slide headers** so the brief has exactly one more slide, re-run the gate, save the updated brief. Then slide-builder inserts it for real: `build_deck.py --insert N` shifts slides ≥ N (dirs, `_meta`, picks) up by one and preps only the new slide N; dispatch one worker for slide N, run `finalize_deck.py --slide N`, take the pick, and re-run `compile_picks.py` to graft the renumbered deck. (Adding a page to an *external* `.pptx` Slide Lab didn't build is a `pptx`-skill edit, not this flow.)
 
 **User's answer to "what's the argument?" is a topic.** Foundation Check. Don't proceed to sequencing until the governing thought is a declarative sentence.
 
