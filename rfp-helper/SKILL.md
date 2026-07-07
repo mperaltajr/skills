@@ -130,9 +130,13 @@ Proposal brief saved:
 
 ### Step 6 — Hand off to Slide Builder
 
-**Before handing off, confirm the client template is registered.** Slide Builder requires a registered template (a `<stem>/` sidecar subfolder next to the `.pptx` containing `brand.yml` + `theme.json`). If the template hasn't been registered this engagement, run the chat-driven flow documented in `slide-builder/SKILL.md` § "Register a new client template" — `register_template.py propose` then `commit`. The registration produces the canonical theme + brand sidecars.
+**Before handing off, confirm the client template is registered** (a `<stem>/` sidecar subfolder next to the `.pptx` containing `brand.yml` + `theme.json` + `chrome.yml`). If it isn't, **do not register it inline** — registration is a standalone step. Stop and route the user to the standalone Register action (`slide-lab` option 7); resume this handoff once the sidecars exist.
 
-**When the user confirms the brief, invoke the `slide-builder` skill using the Skill tool:**
+**When the user confirms the brief, invoke the `slide-builder` skill using the Skill tool** — pass the brief path explicitly:
+
+Skill tool call: `skill="slide-builder"`, args=`"[absolute path to proposal-brief-rfp.md]"`
+
+Then post the handoff note so the build honors the RFP constraints:
 
 > *Handing off to Slide Builder now.*
 >
