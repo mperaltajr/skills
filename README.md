@@ -11,7 +11,7 @@ Claude Slide Lab is a collection of Claude Code skills that turn a narrative bri
 **What makes it different from just asking Claude to make slides:**
 - Pulls colors and fonts directly from your client's `.pptx` template — no manual branding
 - Generates 3 structurally distinct design options per slide, not just 3 color variations
-- Runs quality gates before showing you anything — canvas fill, takeaway dominance, story-first structure
+- Runs quality gates before showing you anything — a narrative gate on the storyline and hardline build rules on every slide
 - Flags missing data with placeholder blocks so you know exactly what to fill in before client delivery
 - Outputs a real `.pptx` file you can open, edit, and send
 
@@ -23,8 +23,8 @@ Claude Slide Lab is a collection of Claude Code skills that turn a narrative bri
 |---|---|
 | `slide-lab` | **Front door — start here for any deck request.** Routes the request to the right skill (new narrative → storyline-helper; finished package/HTML mockup → validate → slide-builder; RFP → rfp-helper; edit existing `.pptx` → pptx; QC → slide-qc) and enforces the rule: never hand-roll python-pptx for a branded deck; build on the client template's layouts; a deck isn't done until slide-qc has run. |
 | `storyline-helper` | Coaches your deck narrative — governing thought, audience, per-slide story — before any slides are built |
-| `slide-builder` | Builds a PowerPoint deck from a narrative brief via parallel agent fanout: prep → per-slide workers produce three python-pptx option scripts each → finalize → REVIEW.html → pick → compile. Brand colors + fonts come from your registered client template. |
-| `slide-qc` | Renders every slide to PNG (LibreOffice by default; opt-in PowerPoint COM) and reviews them with vision — produces a per-slide PASS/WARN/FAIL report before you open the deck |
+| `slide-builder` | Builds a PowerPoint deck from a narrative brief via parallel agent fanout: prep → per-slide workers produce three structurally distinct design options each (image-first, then converted to native PowerPoint) → finalize → REVIEW.html → pick → compile. Brand colors + fonts + layouts come from your registered client template. |
+| `slide-qc` | Renders every slide to PNG (LibreOffice by default; opt-in PowerPoint COM) and reviews them with vision — produces a per-slide Critical / Major / Advisory report before you open the deck |
 | `pptx` | Read / extract / edit an **existing** `.pptx`. Not for building a new branded or narrative deck — that routes through `slide-lab` → slide-builder. |
 | `docx` | Word document generation — reports, memos, letters with proper formatting |
 | `xlsx` | Spreadsheet creation, editing, and cleaning for any `.xlsx` / `.csv` task |
@@ -171,7 +171,7 @@ After a build completes, run QC before opening the file:
 ```
 /slide-qc
 ```
-Claude renders every slide to PNG (LibreOffice by default; opt-in PowerPoint COM for pixel-perfect fidelity), reads them with vision, and gives you a per-slide PASS/WARN/FAIL report.
+Claude renders every slide to PNG (LibreOffice by default; opt-in PowerPoint COM for pixel-perfect fidelity), reads them with vision, and gives you a per-slide Critical / Major / Advisory report.
 
 ### Rebuilding a single slide
 ```

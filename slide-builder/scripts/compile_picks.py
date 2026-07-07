@@ -566,6 +566,10 @@ def main() -> int:
     print(f"  Report  : {compiled_md}")
     print(f"  Deck    : {final_path}")
     print("=" * 72)
+    print("\nNOT DONE YET — the deck must pass slide-qc before it is delivered.")
+    print("A self-rendered PDF is not QC. Run the reviewer on the compiled deck:")
+    print(f"  invoke the slide-qc skill on:  {final_path}")
+    print("Do not tell the user the deck is finished or 'QC'd' until slide-qc has run.")
 
     return 0 if (opens and render_fail == 0 and not failures) else 1
 
