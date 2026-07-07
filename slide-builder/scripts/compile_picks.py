@@ -106,7 +106,8 @@ def parse_picks(arg: Optional[str], out_dir: Path) -> dict[str, str]:
 def copy_picked_slide_into(dst_prs, src_pptx: Path,
                            layout_name: str = "",
                            layout_chrome=None,
-                           keep_master_shapes: bool = False) -> int:
+                           keep_master_shapes: bool = False,
+                           page_position: Optional[int] = None) -> int:
     """Open `src_pptx`, append its first slide's shapes onto a new slide in
     `dst_prs`.
 
@@ -115,6 +116,11 @@ def copy_picked_slide_into(dst_prs, src_pptx: Path,
     placeholders + decorative shapes are KEPT (not stripped); the layout name
     drives the layout pick. Otherwise this falls back to the blank-layout
     behavior (blank layout, strip placeholders).
+
+    `page_position` (1-based) re-stamps the slide-number placeholder to the
+    slide's actual position in the compiled deck. finalize bakes the page number
+    at build time from the slide's original number, so after a rebuild/insert
+    renumber the baked value can be stale; compile order is the source of truth.
     """
     src_prs = Presentation(str(src_pptx))
     src_slide = src_prs.slides[0]
@@ -154,7 +160,39 @@ def copy_picked_slide_into(dst_prs, src_pptx: Path,
     # (type, idx), and when two exist for the same key, drop the empty one.
     if _is_body_canonical:
         _dedupe_placeholder_duplicates(new_slide)
+    if page_position is not None:
+        _restamp_page_number(new_slide, page_position)
     return count
+
+
+def _restamp_page_number(slide, position: int) -> None:
+    """Set the slide-number placeholder's text to `position` (its 1-based place
+    in the compiled deck). Only re-stamps a placeholder that currently holds a
+    bare integer — the literal finalize bakes in — so auto-number fields and
+    cover slides (no page-number placeholder) are left alone. Preserves the
+    existing run's formatting by editing the run text in place."""
+    from pptx.enum.shapes import PP_PLACEHOLDER
+    for shape in slide.shapes:
+        try:
+            if not shape.is_placeholder:
+                continue
+            if shape.placeholder_format.type != PP_PLACEHOLDER.SLIDE_NUMBER:
+                continue
+        except Exception:
+            continue
+        try:
+            tf = shape.text_frame
+            if (tf.text or "").strip().isdigit():
+                paras = tf.paragraphs
+                if paras and paras[0].runs:
+                    paras[0].runs[0].text = str(position)
+                    for extra in paras[0].runs[1:]:
+                        extra.text = ""
+                else:
+                    tf.text = str(position)
+        except Exception:
+            pass
+        return
 
 
 def _dedupe_zip_entries(pptx_path: Path) -> int:
@@ -416,6 +454,7 @@ def main() -> int:
                     layout_name=slide_layout_name,
                     layout_chrome=slide_layout_chrome,
                     keep_master_shapes=_keep_master,
+                    page_position=copied_count + 1,
                 )
                 copied_count += 1
                 rows.append(f"| {key} | {letter} | `{src.name}` | {n_shapes} | ok |")
