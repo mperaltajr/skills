@@ -104,6 +104,61 @@ def main() -> int:
         assert r.returncode == 2, f"count-mismatch insert: expected 2, got {r.returncode}"
         print("    ok: out-of-range=2, count-mismatch=2")
 
+        print("[4] Transactional: a mis-numbered brief must NOT shift the build")
+        before = sorted(p.name for p in out.glob("slide_*"))
+        misnum = tmp / "misnum.md"  # 5 slides but numbered 1,2,3,4,6 (gap at 5)
+        head = (
+            f"---\nclient_template: {tpl}\ndeck_type: Smoke test\n"
+            f"default_layout: body_canonical_light\nmode: template-fill\n---\n\n"
+            f"## Deck-level design notes\n\nMis-numbered.\n\n"
+        )
+        misbody = ""
+        for n in (1, 2, 3, 4, 6):
+            misbody += (
+                f"## Slide {n} — S{n}\n**Layout:** body_canonical_light\n"
+                f"**Archetype:** Synthesis / Findings\n**Governing thought:** g.\n"
+                f"**So-what:** s.\n**Evidence:** N/A.\n\n"
+            )
+        misnum.write_text(head + misbody, encoding="utf-8")
+        r = _build("--brief", str(misnum), "--template", str(tpl), "--out", str(out),
+                   "--insert", "2", "--confirm-template")
+        assert r.returncode == 2, f"mis-numbered insert: expected 2, got {r.returncode}"
+        after = sorted(p.name for p in out.glob("slide_*"))
+        assert after == before, f"build was shifted despite a rejected insert: {before} -> {after}"
+        print("    ok: rejected (exit 2) and the build dirs are unchanged")
+
+        print("[5] Page numbers re-stamp from compile position, not the baked value")
+        import compile_picks
+        from copy import deepcopy
+        from pptx import Presentation
+        from pptx.enum.shapes import PP_PLACEHOLDER
+
+        def _slide_number_ph(slide):
+            for ph in slide.placeholders:
+                if ph.placeholder_format.type == PP_PLACEHOLDER.SLIDE_NUMBER:
+                    return ph
+            return None
+
+        prs = Presentation()
+        lay = prs.slide_layouts[6]  # Blank; its layout carries a slide-number placeholder
+        sl = prs.slides.add_slide(lay)
+        # The real pipeline deepcopies a finalized source slide (which carries a
+        # populated slide-number placeholder) into the compiled deck; reproduce that
+        # by copying the layout's slide-number placeholder onto the slide.
+        lay_pn = next(ph for ph in lay.placeholders
+                      if ph.placeholder_format.type == PP_PLACEHOLDER.SLIDE_NUMBER)
+        sl.shapes._spTree.append(deepcopy(lay_pn._element))
+        _slide_number_ph(sl).text_frame.text = "3"  # simulate finalize baking the original number
+        compile_picks._restamp_page_number(sl, 7)
+        got = _slide_number_ph(sl).text_frame.text
+        assert got == "7", f"page number not re-stamped: {got!r}"
+        # a non-numeric placeholder (empty / auto field) must be left alone
+        _slide_number_ph(sl).text_frame.text = ""
+        compile_picks._restamp_page_number(sl, 9)
+        got2 = _slide_number_ph(sl).text_frame.text
+        assert got2 == "", f"empty page-number placeholder should be left alone, got {got2!r}"
+        print("    ok: baked '3' -> '7' by position; empty/field left alone")
+
         print("\nSMOKE PASSED.")
         return 0
     finally:

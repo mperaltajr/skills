@@ -1377,30 +1377,44 @@ def _shift_build_for_insert(out_dir: Path, insert_n: int, old_count: int) -> Non
     >= insert_n up by one on disk: rename `slide_NN/` dirs (highest first, so
     each destination is free before the rename) and shift `picks.json` keys.
     `_meta.json` is updated separately by update_meta_for_insert. No-op tail when
-    inserting at the end (insert_n == old_count + 1)."""
-    for k in range(old_count, insert_n - 1, -1):
-        src = _p.slide_dir(out_dir, k)
-        dst = _p.slide_dir(out_dir, k + 1)
-        if src.exists():
-            if dst.exists():
-                raise OSError(f"insert shift collision: {dst} already exists")
-            src.rename(dst)
+    inserting at the end (insert_n == old_count + 1).
 
-    picks_path = out_dir / "picks.json"
-    if picks_path.exists():
-        try:
-            picks = json.loads(picks_path.read_text(encoding="utf-8"))
-        except (OSError, ValueError):
-            picks = None
-        if isinstance(picks, dict):
-            shifted: dict[str, Any] = {}
-            for key, val in picks.items():
-                m = re.fullmatch(r"slide_(\d+)", key)
-                if m and int(m.group(1)) >= insert_n:
-                    shifted[_p.slide_key(int(m.group(1)) + 1)] = val
-                else:
-                    shifted[key] = val
-            picks_path.write_text(json.dumps(shifted, indent=2), encoding="utf-8")
+    Self-reversing: if any rename fails partway, the renames already done are
+    undone before re-raising, so the build is never left half-shifted."""
+    renamed: list[tuple[Path, Path]] = []  # (current, original) to undo on failure
+    try:
+        for k in range(old_count, insert_n - 1, -1):
+            src = _p.slide_dir(out_dir, k)
+            dst = _p.slide_dir(out_dir, k + 1)
+            if src.exists():
+                if dst.exists():
+                    raise OSError(f"insert shift collision: {dst} already exists")
+                src.rename(dst)
+                renamed.append((dst, src))
+
+        picks_path = out_dir / "picks.json"
+        if picks_path.exists():
+            try:
+                picks = json.loads(picks_path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                picks = None
+            if isinstance(picks, dict):
+                shifted: dict[str, Any] = {}
+                for key, val in picks.items():
+                    m = re.fullmatch(r"slide_(\d+)", key)
+                    if m and int(m.group(1)) >= insert_n:
+                        shifted[_p.slide_key(int(m.group(1)) + 1)] = val
+                    else:
+                        shifted[key] = val
+                picks_path.write_text(json.dumps(shifted, indent=2), encoding="utf-8")
+    except OSError:
+        # Undo the dir renames we managed so the build isn't half-shifted.
+        for current, original in reversed(renamed):
+            try:
+                current.rename(original)
+            except OSError:
+                pass
+        raise
 
 
 def update_meta_for_insert(
@@ -1974,6 +1988,19 @@ def main() -> int:
                 f"current build ({existing_slide_count + 1}), with the new slide at position "
                 f"{insert_slide_n} and later slides renumbered. The brief has {slide_total} "
                 f"slides. Add the new slide to the brief and renumber, then re-run.\n"
+            )
+            return 2
+        # The brief slides must be numbered contiguously 1..count+1 (so the new
+        # slide at insert_n exists and the shift math is sound). Checked BEFORE
+        # any on-disk shift, so a mis-numbered / non-1-based brief fails cleanly
+        # here instead of leaving the build half-shifted.
+        _brief_ns = sorted(s["slide_n"] for s in slides)
+        _expected_ns = list(range(1, existing_slide_count + 2))
+        if _brief_ns != _expected_ns:
+            sys.stderr.write(
+                f"ERROR: --insert needs the brief slides numbered 1..{existing_slide_count + 1} "
+                f"with no gaps (found {_brief_ns}). Renumber the brief headers so the new slide "
+                f"sits at position {insert_slide_n} and the rest follow in order, then re-run.\n"
             )
             return 2
 
