@@ -21,10 +21,11 @@ Claude Slide Lab is a collection of Claude Code skills that turn a narrative bri
 
 | Skill | What it does |
 |---|---|
+| `slide-lab` | **Front door — start here for any deck request.** Routes the request to the right skill (new narrative → storyline-helper; finished package/HTML mockup → validate → slide-builder; RFP → rfp-helper; edit existing `.pptx` → pptx; QC → slide-qc) and enforces the rule: never hand-roll python-pptx for a branded deck; build on the client template's layouts; a deck isn't done until slide-qc has run. |
 | `storyline-helper` | Coaches your deck narrative — governing thought, audience, per-slide story — before any slides are built |
 | `slide-builder` | Builds a PowerPoint deck from a narrative brief via parallel agent fanout: prep → per-slide workers produce three python-pptx option scripts each → finalize → REVIEW.html → pick → compile. Brand colors + fonts come from your registered client template. |
 | `slide-qc` | Renders every slide to PNG (LibreOffice by default; opt-in PowerPoint COM) and reviews them with vision — produces a per-slide PASS/WARN/FAIL report before you open the deck |
-| `pptx` | General PowerPoint read / edit / create for any `.pptx` task |
+| `pptx` | Read / extract / edit an **existing** `.pptx`. Not for building a new branded or narrative deck — that routes through `slide-lab` → slide-builder. |
 | `docx` | Word document generation — reports, memos, letters with proper formatting |
 | `xlsx` | Spreadsheet creation, editing, and cleaning for any `.xlsx` / `.csv` task |
 | `slidelab-log` | Generates a structured session report when something goes wrong — Claude writes the technical details, you submit it as a GitHub issue |
