@@ -1372,6 +1372,105 @@ def update_meta_for_rebuild(
     return meta_path
 
 
+def _shift_build_for_insert(out_dir: Path, insert_n: int, old_count: int) -> None:
+    """Make room at position `insert_n` for a new slide by shifting slides
+    >= insert_n up by one on disk: rename `slide_NN/` dirs (highest first, so
+    each destination is free before the rename) and shift `picks.json` keys.
+    `_meta.json` is updated separately by update_meta_for_insert. No-op tail when
+    inserting at the end (insert_n == old_count + 1)."""
+    for k in range(old_count, insert_n - 1, -1):
+        src = _p.slide_dir(out_dir, k)
+        dst = _p.slide_dir(out_dir, k + 1)
+        if src.exists():
+            if dst.exists():
+                raise OSError(f"insert shift collision: {dst} already exists")
+            src.rename(dst)
+
+    picks_path = out_dir / "picks.json"
+    if picks_path.exists():
+        try:
+            picks = json.loads(picks_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            picks = None
+        if isinstance(picks, dict):
+            shifted: dict[str, Any] = {}
+            for key, val in picks.items():
+                m = re.fullmatch(r"slide_(\d+)", key)
+                if m and int(m.group(1)) >= insert_n:
+                    shifted[_p.slide_key(int(m.group(1)) + 1)] = val
+                else:
+                    shifted[key] = val
+            picks_path.write_text(json.dumps(shifted, indent=2), encoding="utf-8")
+
+
+def update_meta_for_insert(
+    out_dir: Path,
+    brief: dict[str, Any],
+    insert_n: int,
+    forecasts: list[str],
+    pattern_per_slide: Optional[dict[str, str]] = None,
+    old_count: int = 0,
+) -> Optional[Path]:
+    """Splice a newly inserted slide's entry into `_meta.json`.
+
+    Assumes `_shift_build_for_insert` already moved the on-disk dirs + picks.
+    Shifts existing `_meta` entries (and the pattern map) with n >= insert_n up by
+    one, inserts the new slide's entry at insert_n (recomputed with the shared
+    builder), bumps slide_count, and re-validates before writing. Other slides'
+    entries are preserved verbatim apart from their renumbered `n`."""
+    pattern_per_slide = pattern_per_slide or {}
+    meta_path = _p.meta_json(out_dir)
+    try:
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        sys.stderr.write(f"ERROR: cannot read {meta_path} for insert: {exc}\n")
+        return None
+
+    # Shift existing per-slide entries up by one for n >= insert_n.
+    for entry in meta.get("slides", []):
+        if entry.get("n", 0) >= insert_n:
+            entry["n"] = entry["n"] + 1
+
+    # Shift the per-slide routing map's (string) keys the same way.
+    existing_pps = meta.get("pattern_per_slide")
+    if isinstance(existing_pps, dict):
+        shifted_pps: dict[str, str] = {}
+        for k, v in existing_pps.items():
+            try:
+                kn = int(k)
+            except (TypeError, ValueError):
+                shifted_pps[k] = v
+                continue
+            shifted_pps[str(kn + 1 if kn >= insert_n else kn)] = v
+        meta["pattern_per_slide"] = shifted_pps
+
+    # Build + insert the new slide's entry from the brief.
+    idx = next(
+        (i for i, s in enumerate(brief["slides"]) if s["slide_n"] == insert_n),
+        None,
+    )
+    if idx is None:
+        sys.stderr.write(f"ERROR: slide {insert_n} not present in the brief.\n")
+        return None
+    new_entry = _build_slide_meta_entry(
+        brief["slides"][idx], forecasts[idx], pattern_per_slide
+    )
+    meta.setdefault("slides", []).append(new_entry)
+    meta["slides"].sort(key=lambda e: e.get("n", 0))
+    if (
+        isinstance(meta.get("pattern_per_slide"), dict)
+        and str(insert_n) in pattern_per_slide
+    ):
+        meta["pattern_per_slide"][str(insert_n)] = pattern_per_slide[str(insert_n)]
+
+    meta["slide_count"] = old_count + 1
+    meta["generated_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+
+    MetaJson.model_validate(meta)
+    meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
+    return meta_path
+
+
 # ----------------------------------------------------------------------
 # Stage-1 sanity check — proactive shared-infra prerequisite verification
 #
@@ -1718,6 +1817,14 @@ def main() -> int:
                              "other slide untouched. Reuses the recorded brief unless --brief "
                              "is given. After this, dispatch one worker for slide N, run "
                              "finalize_deck.py --slide N, pick, then re-run compile_picks.py.")
+    parser.add_argument("--insert",   required=False, type=int, default=None,
+                        help="Insert a NEW slide at position N into an existing build: shift "
+                             "slides >= N (dirs, _meta entries, picks) up by one, prep only the "
+                             "new slide N, and leave the shifted slides' built output intact. The "
+                             "brief (recorded or --brief) must already contain the new slide at "
+                             "position N with subsequent slides renumbered (one more slide than "
+                             "the current build). Then dispatch one worker for slide N, run "
+                             "finalize_deck.py --slide N, pick, and re-run compile_picks.py.")
     parser.add_argument(
         "--client-name",
         default=None,
@@ -1758,29 +1865,42 @@ def main() -> int:
     # downgraded to "legacy" with a stderr warning -- the master switch.
     effective_pattern = _resolve_effective_pattern(args.pattern)
 
-    # Rebuild mode (--slide N): reuse the brief recorded in the existing
-    # _meta.json unless --brief overrides it. A full build requires --brief.
+    # Single-slide modes: --slide N (rebuild existing slide N) or --insert N
+    # (add a new slide at position N). Both reuse the brief recorded in the
+    # existing _meta.json unless --brief overrides it. A full build requires --brief.
     rebuild_slide_n = args.slide
-    if rebuild_slide_n is None and args.brief is None:
+    insert_slide_n = args.insert
+    if rebuild_slide_n is not None and insert_slide_n is not None:
+        sys.stderr.write("ERROR: use --slide OR --insert, not both.\n")
+        return 1
+    single_slide_mode = rebuild_slide_n is not None or insert_slide_n is not None
+    # The current on-disk slide count (needed by --insert to shift slides); read
+    # from the existing manifest below.
+    existing_slide_count = 0
+    if not single_slide_mode and args.brief is None:
         sys.stderr.write(
             "ERROR: --brief is required for a full build (it may be omitted only "
-            "with --slide, which then reuses the recorded brief).\n"
+            "with --slide/--insert, which reuse the recorded brief).\n"
         )
         return 1
-    if rebuild_slide_n is not None:
+    if single_slide_mode:
+        _mode_flag = "--slide" if rebuild_slide_n is not None else "--insert"
+        _mode_n = rebuild_slide_n if rebuild_slide_n is not None else insert_slide_n
         existing_meta_path = args.out / "_meta.json"
         if not existing_meta_path.exists():
             sys.stderr.write(
-                f"ERROR: --slide {rebuild_slide_n} needs an existing build at {args.out} "
+                f"ERROR: {_mode_flag} {_mode_n} needs an existing build at {args.out} "
                 f"(no _meta.json found). Run a full build first.\n"
             )
             return 2
+        try:
+            _existing_meta = json.loads(existing_meta_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError) as exc:
+            sys.stderr.write(f"ERROR: cannot read {existing_meta_path}: {exc}\n")
+            return 2
+        existing_slide_count = int(_existing_meta.get("slide_count", 0) or 0)
         if args.brief is None:
-            try:
-                _recorded = json.loads(existing_meta_path.read_text(encoding="utf-8")).get("brief", "")
-            except (OSError, ValueError) as exc:
-                sys.stderr.write(f"ERROR: cannot read {existing_meta_path}: {exc}\n")
-                return 2
+            _recorded = _existing_meta.get("brief", "")
             if not _recorded:
                 sys.stderr.write(
                     "ERROR: existing _meta.json records no brief path; pass --brief explicitly.\n"
@@ -1824,7 +1944,7 @@ def main() -> int:
         return 5
 
     # 1. Read brief
-    brief = parse_brief(args.brief, bypass_gate=(rebuild_slide_n is not None))
+    brief = parse_brief(args.brief, bypass_gate=single_slide_mode)
     slides = brief["slides"]
     slide_total = brief["slide_total"]
     deck_notes = brief["deck_notes"]
@@ -1836,6 +1956,24 @@ def main() -> int:
             sys.stderr.write(
                 f"ERROR: --slide {rebuild_slide_n} is not in the brief "
                 f"(slides present: {valid_ns}).\n"
+            )
+            return 2
+
+    # Validate the insert target + that the brief carries exactly one new slide.
+    if insert_slide_n is not None:
+        if insert_slide_n < 1 or insert_slide_n > existing_slide_count + 1:
+            sys.stderr.write(
+                f"ERROR: --insert {insert_slide_n} out of range; the existing build has "
+                f"{existing_slide_count} slides, so a new slide can go at positions "
+                f"1..{existing_slide_count + 1}.\n"
+            )
+            return 2
+        if slide_total != existing_slide_count + 1:
+            sys.stderr.write(
+                f"ERROR: --insert expects the brief to contain exactly one more slide than the "
+                f"current build ({existing_slide_count + 1}), with the new slide at position "
+                f"{insert_slide_n} and later slides renumbered. The brief has {slide_total} "
+                f"slides. Add the new slide to the brief and renumber, then re-run.\n"
             )
             return 2
 
@@ -1890,12 +2028,23 @@ def main() -> int:
             f"per-slide map = {pattern_per_slide}\n"
         )
 
-    # 5. Render per-slide prompts. In rebuild mode, render only the target slide
-    # and leave every other slide's prompt/context/meta untouched.
+    # Insert mode: make room at position N by shifting slides >= N (dirs + picks)
+    # up by one BEFORE rendering, so the new slide N renders into the freed slot
+    # and the shifted slides keep their built output. Must run before the render.
+    if insert_slide_n is not None:
+        try:
+            _shift_build_for_insert(args.out, insert_slide_n, existing_slide_count)
+        except OSError as exc:
+            sys.stderr.write(f"ERROR: could not shift build for insert: {exc}\n")
+            return 5
+
+    # 5. Render per-slide prompts. In single-slide modes, render only the target
+    # slide and leave every other slide's prompt/context/meta untouched.
+    target_slide_n = rebuild_slide_n if rebuild_slide_n is not None else insert_slide_n
     template_text = PROMPT_TEMPLATE.read_text(encoding="utf-8")
     render_targets = [
         (slide, seeds) for slide, seeds in zip(slides, seeds_by_slide)
-        if rebuild_slide_n is None or slide["slide_n"] == rebuild_slide_n
+        if target_slide_n is None or slide["slide_n"] == target_slide_n
     ]
     for slide, seeds in render_targets:
         slide_n = slide["slide_n"]
@@ -1956,6 +2105,35 @@ def main() -> int:
         print(f"  2. py -3 finalize_deck.py --out <out> --template <template> --slide {rebuild_slide_n}")
         print(f"  3. Take the user's pick for slide {rebuild_slide_n}; update picks.json.")
         print(f"  4. py -3 compile_picks.py --out <out>   # grafts the new slide into final_deck.pptx")
+        return 0
+
+    # Insert mode: dirs + picks were already shifted; splice the new slide's entry
+    # into _meta.json (shifting existing entries >= N) and bump slide_count. Every
+    # shifted slide's prompt/context/themed PPTX is preserved under its new number.
+    if insert_slide_n is not None:
+        meta_path = update_meta_for_insert(
+            out_dir=args.out,
+            brief=brief,
+            insert_n=insert_slide_n,
+            forecasts=forecasts,
+            pattern_per_slide=pattern_per_slide,
+            old_count=existing_slide_count,
+        )
+        if meta_path is None:
+            return 2
+        ins_dir = _p.slide_dir(args.out, insert_slide_n)
+        print(f"Inserted new slide {insert_slide_n} (build now has {existing_slide_count + 1} slides):")
+        print(f"  {ins_dir.resolve()}")
+        print()
+        print(f"Updated deck manifest:")
+        print(f"  {meta_path.resolve()}")
+        print()
+        print(f"Next, to build the inserted slide {insert_slide_n} end to end:")
+        print(f"  1. Dispatch ONE slide-builder-worker for slide {insert_slide_n} "
+              f"(reads {ins_dir / '_context.md'} then {ins_dir / '_prompt.md'}).")
+        print(f"  2. py -3 finalize_deck.py --out <out> --template <template> --slide {insert_slide_n}")
+        print(f"  3. Take the user's pick for slide {insert_slide_n}; add it to picks.json.")
+        print(f"  4. py -3 compile_picks.py --out <out>   # grafts the full renumbered deck")
         return 0
 
     # Deck manifest (_meta.json) — single source of truth for downstream
