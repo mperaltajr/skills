@@ -1,36 +1,74 @@
 ---
 name: slide-lab
-description: "Front door for ALL deck and PowerPoint work in Slide Lab. Start here for ANY request to build, make, port, rebuild, or brand a multi-slide deck — from an objective, an outline, scratch notes, a finished storyline/package, or an HTML mockup. NEVER hand-roll python-pptx from a blank Presentation and NEVER use the generic pptx skill for a branded or narrative deck — that is the documented failure path (wrong template, tiny fonts, no review). This skill routes the request: a new narrative → storyline-helper; an already-written storyline/package or an HTML mockup → storyline-helper's validate-and-emit path, then slide-builder (build on the client template's real layouts); RFP/proposal → rfp-helper; reading or editing an existing .pptx → the pptx skill; QC of a built deck → slide-qc. A deck is not done until slide-qc has run."
+description: "Front door for ALL deck and PowerPoint work in Slide Lab. Start here for ANY request to build, make, port, rebuild, review, or brand a multi-slide deck — from an objective, an outline, scratch notes, a finished storyline/package, or an HTML mockup. NEVER hand-roll python-pptx from a blank Presentation and NEVER use the generic pptx skill for a branded or narrative deck — that is the documented failure path (wrong template, tiny fonts, no review). Presents the user a menu and routes: new narrative → storyline-helper; already-written storyline/package or HTML mockup → storyline-helper's review-and/or-build path, then slide-builder (build on the client template's real layouts); RFP/proposal → rfp-helper; rebuild/insert a slide in a deck Slide Lab built → slide-builder; read or edit an existing .pptx → the pptx skill; register a client template (one-time, standalone) → register_template; QC of a built deck → slide-qc. A deck is not done until slide-qc has run."
 ---
 
-# Slide Lab — front door / router
+# Slide Lab — front door
 
-You are the single entry point for deck work. **You do not build anything yourself.** You read the request, pick the route, state it, and invoke the matching skill. If a request smells at all like "produce a PowerPoint," it comes through here first.
+You are the single entry point for deck work. **You build nothing yourself.** Two jobs:
+1. If the user's intent is already specific, name the route in one line and go.
+2. If they ask for help, invoke `/slide-lab`, or their intent is unclear, **show the menu below and let them pick** — do not silently guess.
 
-## Absolute rules (apply on every route)
+## Show the menu when intent isn't already specific
 
-- **Never** hand-roll `python-pptx` / `pptxgenjs` from a blank `Presentation()` for a branded or multi-slide deck. That is the documented failure path — it skips template registration, the layout system, REVIEW.html, and QC, and produces off-brand slides with invented font sizes.
-- **"Use the client template" means build on its layouts/masters** — register it and build on it. Copying its theme colors into a blank deck is a deviation, not a build.
-- **Do not use the generic `pptx` skill to create a branded or narrative deck.** `pptx` is only for reading or editing an existing `.pptx`.
-- **A deck is not "done" until `slide-qc` has run and produced a report.** A PDF you rendered and looked at yourself is not QC — the agent that built the deck cannot grade its own output.
-- **Font sizes** stay on PowerPoint's default grid with an 8pt floor; body copy sits at ~11–14pt. Never invent a px→pt scale.
+Present this to the user (adapt lightly), then route on their choice:
 
-## Routing
+> **Slide Lab — what are you trying to do?**
+> 1. **Build a new deck** — you have a topic/message but no slides yet.
+> 2. **Work from something I already have** — a storyline, package, outline, existing deck, or HTML mockup. I can **review & refine** it (suggestions, no build yet) and/or **build** it.
+> 3. **RFP / proposal response** — scored against evaluation criteria.
+> 4. **QC a deck** — review a built `.pptx` before you send it.
+> 5. **Rebuild, fix, or insert a slide** — in a deck Slide Lab already built.
+> 6. **Edit an existing PowerPoint** — change or extract content in a `.pptx` you already have.
+> 7. **Register a client template** — one-time setup (brand + layouts) before building.
+> 8. **Not sure** — I'll ask a couple of questions.
 
-| The request is… | Route to |
+If the request is already specific ("build me a 5-slide steering deck from this brief on template X"), skip the menu, state the route, and proceed — with a one-line *"not what you wanted? here are the options"* fallback.
+
+## Absolute rules (on every route)
+
+- **Never** hand-roll `python-pptx` / `pptxgenjs` from a blank `Presentation()` for a branded or multi-slide deck — that is the documented failure path.
+- **"Use the client template" means build on its layouts/masters** (register it, build on it) — not scrape its colors into a blank deck.
+- **Registration is a standalone step, never inline in a build.** If any path finds an unregistered template, STOP and route to option 7 first.
+- **A deck is not "done" until `slide-qc` has run and produced a report.** A PDF you rendered yourself is not QC.
+- **Font sizes** stay on PowerPoint's default grid, 8pt floor; body ~11–14pt.
+
+## Routing — what each choice invokes
+
+| Choice | Route |
 |---|---|
-| A new deck, narrative not written yet | **storyline-helper** — it coaches the narrative, runs the quality gate, emits the brief, and hands off to slide-builder. |
-| A deck where the storyline/brief/**package** is already written, or an **HTML mockup** exists | **storyline-helper**, told to **validate** the existing package against the gate (not re-coach), emit the brief, and hand to **slide-builder**. HTML mockups build via slide-builder's **sketch path** — not a hand-written port. |
-| An RFP / proposal response (scored against criteria) | **rfp-helper** → produces a proposal brief → slide-builder. |
-| Reading, extracting, or editing an **existing** `.pptx` (no new narrative) | the **pptx** skill. |
-| QC a built deck | **slide-qc**. |
-| A recurring PMO / template-fill deck | **slide-builder** template-fill mode. |
-| Rebuild one slide of an existing build | **slide-builder** (`build_deck.py --slide N` → worker → `finalize_deck.py --slide N` → pick → `compile_picks.py`). |
+| 1 Build new | **storyline-helper** → coaches narrative → quality gate → emits brief → **slide-builder** → **slide-qc**. |
+| 2 Work from what I have | **storyline-helper** "review &/or build" path. First ask **review or build** (see below). Review → critique + suggestions, STOP. Build → validate → emit → slide-builder. HTML mockup → slide-builder **sketch path**. |
+| 3 RFP | **rfp-helper** → proposal brief (`mode: rfp`) → slide-builder. |
+| 4 QC a deck | **slide-qc** on a built `.pptx`. Ask for the deck path if not given. |
+| 5 Rebuild / fix / insert a slide | **slide-builder** — rebuild: `build_deck.py --slide N`; insert: `build_deck.py --insert N`; then worker → `finalize_deck.py --slide N` → `compile_picks.py`. **Only works on a deck Slide Lab built** (an `<out>/` with `_meta.json`). |
+| 6 Edit existing `.pptx` | **pptx** skill (read / extract / edit an existing file). |
+| 7 Register a template | **register_template.py** `propose` → user picks → `commit` (or `commit-cli`). Standalone, no build; writes `<stem>/` brand.yml + theme.json + chrome.yml. |
+| 8 Not sure | Orientation (below), then route. |
+
+## Disambiguator — options 2 vs 5 vs 6 all touch "a deck"
+
+Ask ONE question before routing any "change my deck" request:
+
+> *"Is this a deck Slide Lab already built for you (there's a build folder / REVIEW.html), or something else?"*
+
+- **Slide Lab built it**, want to change/add slides → **option 5** (rebuild slide N, or insert a new slide N).
+- **Material not yet built** (storyline/outline/HTML mockup, or an external deck to base a new build on) → **option 2** (review/refine, then build).
+- **Just edit an existing `.pptx` file** directly (text/format tweaks), not rebuild → **option 6** (pptx skill).
+
+Note: editing pages of an external `.pptx` Slide Lab did NOT build is the pptx skill (option 6) — the per-slide rebuild/insert (option 5) needs the pipeline's `_meta.json` and only works on decks Slide Lab produced.
+
+## Orientation — option 8 ("not sure")
+
+Ask up to three, then route:
+1. Do you already have a deck **Slide Lab built** (a build folder / REVIEW.html)? → yes: fix/insert a slide (5) or QC it (4).
+2. Starting fresh, or do you already have a **storyline / outline / mockup**? → fresh: (1); have material: (2).
+3. Is it an **RFP / proposal**? → (3). Is it just editing an **existing `.pptx`**? → (6).
 
 ## After routing
 
-State the route in one line, invoke the skill, and let it run. Do not duplicate its work or pre-empt its steps.
+State the route in one line, invoke the skill, and let it run. Do not duplicate its work.
 
 ## Enforcement note (for maintainers, not a build instruction)
 
-This front door and the skill descriptions **steer** routing strongly, but they are advisory — they cannot hard-block a hand-rolled script on their own. A true hard block requires a `PreToolUse` hook shipped as a Claude Code plugin and force-deployed by your org's Claude Code admin via managed settings (`extraKnownMarketplaces` + force-enabled plugin); it is not active by default and, in a managed-enterprise org, a self-installed plugin's hook may be suppressed by `allowManagedHooksOnly`. Until an admin deploys that, this router plus the skill descriptions are the enforcement layer.
+This front door and the skill descriptions **steer** routing strongly, but they are advisory — they cannot hard-block a hand-rolled script on their own. A true hard block requires a `PreToolUse` hook shipped as a Claude Code plugin and force-deployed by your org's Claude Code admin via managed settings; it is not active by default, and in a managed-enterprise org a self-installed plugin's hook may be suppressed by `allowManagedHooksOnly`. Until an admin deploys that, this router plus the skill descriptions are the enforcement layer.

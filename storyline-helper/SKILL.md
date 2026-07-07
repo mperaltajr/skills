@@ -132,17 +132,19 @@ For nothing-but-an-idea:
 
 > *"OK — Q3 results for Charles. Three quick things before I work on it: …"*
 
-#### Finished package — validate, don't re-coach
+#### Finished material — review &/or build (don't re-coach)
 
-When the narrative is **already written** — the user hands you a structured storyline doc, per-slide governing thoughts, or a complete HTML mockup — do not run the from-scratch coaching flow and do not improvise a build. Switch to validate-and-emit:
+When the narrative is **already written** — the user hands you a structured storyline doc, per-slide governing thoughts, an existing deck, or a complete HTML mockup — do not run the from-scratch coaching flow and do not improvise a build. First find out what they actually want, because "I have this already" splits two ways:
 
-1. **Mirror it back** (above) so the user knows you read the actual package, not a summary.
-2. **Run the quality gate as a review pass, not a rebuild.** Check the existing storyline against the nine-part gate (governing thought per slide, so-what, evidence, sequence, etc.). You are auditing what's there, not regenerating it. Surface only real gaps — a slide with no clear so-what, an unsupported claim, a missing audience — and resolve them with the user (or mark a placeholder). Don't relitigate decisions the package already made well.
-3. **Capture the four commit-stage values** (session folder, client + topic, registered template, default content layout) — see "Commit & emit."
-4. **Emit the brief** in the slide-builder schema and hand off. Do **not** stop at the package.
-5. **Hand off to slide-builder** — it registers the client template and builds on the template's own layouts. **Never** hand-roll a python-pptx script or use the generic `pptx` skill to port the package yourself: that path skips template registration, REVIEW.html, and slide-qc, and is the documented way this goes wrong.
+> *"You've already got the storyline. Do you want me to **review** it — pressure-test it and suggest refinements, no build yet — or **build** it into a deck now? (Or review first, then build.)"*
 
-**HTML mockup as input:** an HTML deck is a finished package in HTML form. It maps onto slide-builder's **sketch path** (HTML → native python-pptx translator), not a hand-written port. Validate the narrative as above, then hand off; slide-builder's sketch path consumes the HTML through its worker/translator agents.
+1. **Mirror it back** (above) so the user knows you read the actual material, not a summary.
+2. **Run the quality gate as a REVIEW pass** (never a rebuild). Audit the material against the nine-part gate + cross-cutting rules (governing thought per slide, so-what, evidence, sequence, etc.). Surface real gaps — a slide with no clear so-what, an unsupported claim, a missing audience — and propose **concrete refinements**. You are auditing, not regenerating; don't relitigate what the material already does well.
+3. **If they chose review (or "review first"):** produce the Review output — a Critical / Major table plus specific suggested refinements — and **STOP**. Do not capture setup values, do not emit a brief, do not build. Iterate with the user on the refinements. When they're satisfied, ask explicitly *"build from this now?"* — only a yes moves you to step 4.
+4. **If they chose build (or review is resolved and they said go):** capture the four commit-stage values (session folder, client + topic, registered template, default content layout — see "Commit & emit"), emit the brief in the slide-builder schema, and hand off.
+5. **Before handing off, confirm the template is registered.** If the `<stem>/` sidecars are missing, **STOP and route the user to register it first** (the standalone Register action / `slide-lab` option 7) — do **not** register inline here. Then hand to slide-builder, which builds on the template's own layouts. **Never** hand-roll a python-pptx script or use the generic `pptx` skill to port the material yourself: that path skips template registration, REVIEW.html, and slide-qc, and is the documented way this goes wrong.
+
+**HTML mockup as input:** an HTML deck is finished material in HTML form. It maps onto slide-builder's **sketch path** (HTML → native python-pptx translator), not a hand-written port. Review/refine as above, then (on a yes) hand off; slide-builder's sketch path consumes the HTML through its worker/translator agents.
 
 #### Ask 1–3 sharp questions that target the actual ambiguity
 
@@ -477,7 +479,7 @@ The named sub-passes below — quality gate, language pass, pushback, save, hand
 
 1. **Session folder root** — the parent directory where the dated session folder will be created. Convention: `<Client>/sessions/YYYY-MM-DD Topic Name/`.
 2. **Client name and topic** — drives the dated subfolder name and the brief filename (e.g., `Acme / Cost Baseline` → `Acme/sessions/2026-05-06 Cost Baseline/`).
-3. **Client template** — the `.pptx` that carries the client's brand. Must be **registered** (have a `<stem>/` sidecar subfolder with `brand.yml` + `theme.json` + `chrome.yml`). If not registered, register via `register_template.py propose` → `commit` before handoff.
+3. **Client template** — the `.pptx` that carries the client's brand. Must be **registered** (have a `<stem>/` sidecar subfolder with `brand.yml` + `theme.json` + `chrome.yml`). If it's not registered, **stop and route the user to register it first** (the standalone Register action / `slide-lab` option 7) — registration is its own step, not something to run inline in the middle of the deck flow. Resume the handoff once it's registered.
 4. **Default content layout** — read `<stem>/theme.json::default_content_layout` from the registered template and surface it. If empty or template unregistered, the user picks at registration time. Never let `build_deck.py` run with an empty default layout — that's a hard mid-build failure.
 
 **Combine the asks** — one message, four lines:
@@ -783,11 +785,11 @@ When a reason is given, append to the brief's `## Flags` section in the format:
 
 Once the user has resolved Criticals and handled (fix-or-override) all Majors, save the brief as `_session/narrative-brief-[deck-topic].md` inside the session folder established in the Commit & emit stage. The brief lives inside `_session/` so the human-readable dot-dash storyline (next step) is the only file the user sees at the session root.
 
-**Auto-inject `default_layout` into the front-matter.** Before saving the brief, read the registered template's `theme.json` (located next to the `.pptx` at `<template-stem>.theme.json` OR in the sidecar subfolder `<template-stem>/theme.json` depending on registration era). Extract the `default_content_layout` field and inject it into the brief's YAML front-matter as `default_layout: <value>`. This stops the build-time silent gap where build_deck.py couldn't find a default layout and fell into mid-build error.
+**Auto-inject `default_layout` into the front-matter.** Before saving the brief, read the registered template's `theme.json` in the sidecar subfolder (`<template-stem>/theme.json`). Extract the `default_content_layout` field and inject it into the brief's YAML front-matter as `default_layout: <value>`. This stops the build-time silent gap where build_deck.py couldn't find a default layout and fell into mid-build error.
 
-If `theme.json` is missing OR `default_content_layout` is empty: HALT. Do not save the brief. Tell the user the template isn't fully registered and re-route to the handoff section's registration flow:
+If `theme.json` is missing OR `default_content_layout` is empty: HALT. Do not save the brief. The template isn't fully registered — **route the user to the standalone Register action** (don't register inline here):
 
-> *"Your template doesn't have a default content layout set yet — I need this before I can hand off to slide-builder, or the build will fail mid-stream. Let me walk you through registering it now. Run `py -3 scripts/register_template.py propose '<template path>'`, then we'll pick a layout together at register.html section 3."*
+> *"Your template doesn't have a default content layout set yet, and I need that before slide-builder can build. That's part of the one-time Register step — let's register the template first (the standalone Register action / `slide-lab` option 7), pick the default layout there, then I'll save the brief and hand off."*
 
 The brief save is the LAST possible moment to catch this gap cleanly. Catching it here means the user fixes the gap before any build_deck.py compute is sunk.
 
@@ -838,17 +840,11 @@ Then **hand off immediately to slide-builder** without waiting for a confirmatio
 
 ### the handoff section — Hand off to Slide Builder
 
-Before handing off, verify the client template is **registered** (has a `<stem>/` sidecar subfolder next to the PPTX containing `brand.yml` + `theme.json`). If the sidecar subfolder is missing, register it first via the chat-driven flow:
+Before handing off, verify the client template is **registered** (has a `<stem>/` sidecar subfolder next to the PPTX containing `brand.yml` + `theme.json` + `chrome.yml`). If the sidecar subfolder is missing, **do not register it inline as part of this handoff** — registration is a standalone action. Stop and route the user to it:
 
-```bash
-py -3 skills/slide-builder/scripts/register_template.py propose <client-template.pptx>
-```
+> *"Your template isn't registered yet — that's a one-time setup step of its own. Let's register it first (the standalone Register action / `slide-lab` option 7), then I'll hand this brief straight to slide-builder."*
 
-This produces `<stem>/register.proposal.json` and a smoke PNG in the sidecar subfolder. Show the smoke to the user, take picks in chat (or `{"accept": true}` if the proposal looks right), then:
-
-```bash
-py -3 skills/slide-builder/scripts/register_template.py commit <client-template.pptx> --picks <picks.json>
-```
+Once the template is registered (its `<stem>/` sidecars exist), resume the handoff.
 
 Once `<stem>/brand.yml` exists, slide-builder's Stage-1 sanity check passes and the build can proceed.
 
