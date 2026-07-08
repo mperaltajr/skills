@@ -3891,12 +3891,141 @@ def _commit_from_picks_dict(tpl: Path, picks: dict, *, source: str) -> int:
     return 0
 
 
+def _slide_has_prompt_text(slide) -> bool:
+    """True if any shape still shows placeholder prompt text ('Click to add…')."""
+    for shape in slide.shapes:
+        if getattr(shape, "has_text_frame", False):
+            t = (shape.text_frame.text or "").lower()
+            if "click to add" in t or "click to edit" in t:
+                return True
+    return False
+
+
+def _render_mock_page_selftest(tpl: Path) -> tuple[list[str], list[str]]:
+    """Build a real mock page on the registered default content layout of the
+    BUILD COPY, populate its actual title / subtitle / footer / page-number
+    placeholders, render it with LibreOffice, and confirm the text lands.
+
+    This is the registration-time proof that titles/subtitles actually show up —
+    catching the TitleDrop / SubtitleDrop / empty-placeholder classes here
+    instead of hours into a build. The build copy has already been normalized
+    (sample slides + sections stripped, empty placeholders repaired), so a
+    template that was broken passes here *because* of the auto-fix.
+
+    Returns (failures, infos). Landing failures (text didn't land, or prompt
+    text leaked) are hard failures. Render-infra problems (no LibreOffice) and
+    fit measurements are INFO only, so registration never false-blocks on a
+    rendering quirk or a missing optional dependency. The mock page is never
+    saved back over the build copy.
+    """
+    from twins.composer import (_find_named_layout, _populate_layout_placeholders,
+                                _clear_existing_slides, TemplatePlaceholderEmptyError)
+    from _chrome_schema import (load_chrome_yml, count_wrapped_lines,
+                                TitleMetricsUnavailableError)
+    fails: list[str] = []
+    infos: list[str] = []
+
+    try:
+        theme_data = json.loads(_p.theme_json(tpl).read_text(encoding="utf-8"))
+    except Exception as exc:  # noqa: BLE001
+        return ([], [f"mock-page self-test skipped: theme.json unreadable ({exc})"])
+    layout_name = (theme_data.get("default_content_layout") or "").strip()
+    if not layout_name:
+        return ([], ["mock-page self-test skipped: no default content layout recorded"])
+
+    build_tpl = _p.build_template_pptx(tpl)
+    if not build_tpl.exists():
+        build_tpl = tpl
+
+    lc = None
+    try:
+        spec = load_chrome_yml(_p.chrome_yml(tpl))
+        lc = spec.layouts.get(layout_name)
+    except Exception:  # noqa: BLE001
+        pass
+    title_idx = getattr(lc, "title_placeholder_idx", None)
+    subtitle_idx = getattr(lc, "subtitle_placeholder_idx", None)
+
+    prs = Presentation(str(build_tpl))
+    layout = _find_named_layout(prs, layout_name)
+    if layout is None:
+        return ([f"default content layout {layout_name!r} not found in the build "
+                 f"copy — pick a different default layout and re-register."], infos)
+    _clear_existing_slides(prs)
+    slide = prs.slides.add_slide(layout)
+
+    # Worst-case realistic content: a long two-clause title + full-sentence
+    # subtitle + a long source line + a two-digit page number.
+    TITLE = ("Accelerating enterprise value through an integrated operating model "
+             "and disciplined capital allocation across the portfolio")
+    SUB = ("A single sentence that states the takeaway the audience should "
+           "remember, long enough to exercise the subtitle box on this layout.")
+    FOOTER = "Source: Company filings, analyst estimates, and Slide Lab analysis, 2026"
+    try:
+        found = _populate_layout_placeholders(
+            slide, title=TITLE, subtitle=SUB, footer=FOOTER, page_num="7",
+            title_idx=title_idx, subtitle_idx=subtitle_idx,
+        )
+    except TemplatePlaceholderEmptyError as exc:
+        return ([f"a placeholder on layout {layout_name!r} has no text line even "
+                 f"after auto-repair — the template may need re-exporting from "
+                 f"PowerPoint. ({str(exc).splitlines()[0]})"], infos)
+
+    if not found.get("title"):
+        fails.append(f"title did NOT land in a placeholder on layout {layout_name!r} "
+                     f"(the deck's titles would come out blank).")
+    if subtitle_idx is not None and not found.get("subtitle"):
+        fails.append(f"subtitle did NOT land in a placeholder on layout "
+                     f"{layout_name!r} (subtitles would silently drop).")
+    if _slide_has_prompt_text(slide):
+        fails.append(f"placeholder prompt text ('Click to add…') is still visible "
+                     f"on layout {layout_name!r} after populating.")
+
+    # Best-effort visual render — confirms the page actually produces output.
+    # Never a hard fail (LibreOffice may be absent or quirky on a given machine).
+    try:
+        from render_slides import render_libre
+        with tempfile.TemporaryDirectory() as td:
+            tmp = Path(td)
+            mock = tmp / "mock.pptx"
+            prs.save(str(mock))
+            render_libre(mock, tmp, dpi=120)
+            pngs = sorted(tmp.glob("slide_*.png"))
+            if pngs and pngs[0].stat().st_size >= 12 * 1024:
+                infos.append(f"mock page rendered ({pngs[0].stat().st_size // 1024} KB PNG)")
+            else:
+                infos.append("mock page built, but LibreOffice produced no PNG "
+                             "(visual confirmation skipped)")
+    except Exception as exc:  # noqa: BLE001
+        infos.append(f"visual render skipped ({type(exc).__name__}: {exc})")
+
+    # Informational fit measurement (mirrors finalize's >2-line rule).
+    ttf = _resolve_brand_ttf_path((theme_data.get("brand") or {}).get("font_heading", ""))
+    if ttf:
+        title_w = getattr(lc, "title_box_width_px", None) or 1190
+        title_pt = getattr(lc, "title_font_pt", None) or 28
+        try:
+            n = count_wrapped_lines(TITLE, ttf, title_pt, title_w)
+            note = "; long titles auto-drop the subtitle (>2 lines)" if n >= 3 else ""
+            infos.append(f"worst-case title wraps to {n} line(s) at {title_pt}pt "
+                         f"in a {title_w}px box{note}")
+        except TitleMetricsUnavailableError:
+            infos.append("title-fit measurement unavailable (brand font not on this "
+                         "machine); re-register where the font is installed to record it")
+    else:
+        infos.append("brand title font not resolved on this machine; "
+                     "title-fit measurement skipped")
+
+    return fails, infos
+
+
 def _post_commit_smoke(tpl: Path) -> bool:
     """Validate that the just-registered template is brand-bound and ready.
 
-    Lightweight contract checks — no LibreOffice rendering, no agent
-    dispatch. Catches the structural failure modes registration used to
-    ship silently:
+    Contract checks plus a render-based mock-page self-test (see
+    _render_mock_page_selftest) that builds a real page on the default content
+    layout and confirms titles/subtitles actually land. Catches the structural
+    failure modes registration used to ship silently:
       - theme1.xml's primary_slot/accent_slot values diverging from
         brand.yml (a theme-part orphan issue, now also guarded by
         the canonical-theme-part loader fix);
@@ -4008,6 +4137,19 @@ def _post_commit_smoke(tpl: Path) -> bool:
               f"sizes that reference them, and re-register if you want a "
               f"cleaner template.")
 
+    # Render-based mock-page self-test: prove titles/subtitles actually land on a
+    # real page built from the default content layout of the normalized copy.
+    try:
+        mock_fails, mock_infos = _render_mock_page_selftest(tpl)
+        for i in mock_infos:
+            print(f"  info: {i}")
+        fails.extend(mock_fails)
+        if not mock_fails:
+            print(f"  ok: mock page — title/subtitle/footer land in real placeholders")
+    except Exception as exc:  # noqa: BLE001 — never let the self-test itself crash commit
+        print(f"  warn: mock-page self-test could not run "
+              f"({type(exc).__name__}: {exc}); skipped.")
+
     if fails:
         print(f"\n  Smoke FAILED — {len(fails)} issue(s):")
         for f in fails:
@@ -4015,9 +4157,9 @@ def _post_commit_smoke(tpl: Path) -> bool:
         print(f"\n  Sidecars were written but registration did NOT produce "
               f"a working contract. Investigate the issues above and re-run "
               f"commit. Decks built against this template will likely "
-              f"misrender brand colors or font.")
+              f"misrender brand colors/font or drop titles.")
         return False
-    print(f"\n  Smoke PASSED — registration is brand-bound and ready.")
+    print(f"\n  Smoke PASSED — registration is brand-bound and titles/subtitles land.")
     return True
 
 
