@@ -70,7 +70,7 @@ def main() -> int:
     # --- Phase 1: happy path ---
     tmp1 = Path(tempfile.mkdtemp(prefix="selftest_smoke_ok_"))
     try:
-        print("[1] Happy path: title/subtitle/footer land + render")
+        print("[1] Happy path: title + takeaway + footnote + source render")
         tpl = _register(tmp1)
         fixture.register_fixture(tpl)          # builds + normalizes the build copy
         _set_default_layout(tpl, LAYOUT)
@@ -78,9 +78,28 @@ def main() -> int:
         assert fails == [], f"unexpected failures on a clean template: {fails}"
         mock = _p.selftest_pptx(tpl)
         assert mock.exists(), f"mock .pptx not saved for review: {mock}"
+        assert mock.parent.name == "selftest", f"mock not in selftest/ subfolder: {mock}"
         mprs = Presentation(str(mock))
         assert len(mprs.slides._sldIdLst) == 1, "mock .pptx should have exactly one slide"
-        print("    ok: landed; mock .pptx saved + openable; infos: " + " | ".join(infos))
+        # Prove the takeaway/footnote/source actually rendered (the whole point of
+        # the faithful mock — not just that placeholders were populated).
+        texts = " ".join(
+            (sh.text_frame.text or "") for sh in mprs.slides[0].shapes
+            if getattr(sh, "has_text_frame", False)
+        ).lower()
+        assert "takeaway" in texts, f"takeaway line missing from mock: {texts[:200]}"
+        assert "unaudited" in texts, f"footnote missing from mock: {texts[:200]}"
+        assert "source:" in texts, f"source missing from mock: {texts[:200]}"
+        print("    ok: title/takeaway/footnote/source all present; in selftest/ subfolder")
+
+        # cleanup-on-confirm: confirm removes the selftest folder + flags confirmed
+        import _registry
+        _registry.REGISTRY_PATH = tmp1 / "reg.json"   # isolate from the real registry
+        rt._main_confirm(type("A", (), {"template": tpl})())
+        assert not _p.selftest_dir(tpl).exists(), "confirm did not delete selftest/"
+        import json as _json
+        assert _json.loads(_p.theme_json(tpl).read_text(encoding="utf-8"))["confirmed"] is True
+        print("    ok: confirm cleaned up selftest/ and set confirmed=true")
     finally:
         shutil.rmtree(tmp1, ignore_errors=True)
 

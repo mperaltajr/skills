@@ -8,10 +8,10 @@ Produces per-template sidecars in a subfolder NEXT TO the .pptx:
     build-template.pptx   : normalized copy every build opens (sample slides +
                             named sections stripped, empty placeholders repaired);
                             the user's original .pptx is never modified
-    selftest-mock.pptx    : a real mock slide on the default layout — the user
-                            OPENS THIS IN POWERPOINT to confirm titles/subtitles
-                            land, then runs `confirm`
-    selftest-mock.png     : rendered preview of the mock slide (in-app panel)
+    selftest/             : registration self-test artifacts (mock.pptx +
+                            mock.png) — the user OPENS mock.pptx IN POWERPOINT
+                            to confirm titles/takeaway/footnote/source land,
+                            then runs `confirm` (which deletes this subfolder)
     brand.css             : CSS variables for the sketch (HTML) build path
     preview.pptx / .png   : 3-surface registration preview
     palette.png           : swatch grid
@@ -64,7 +64,7 @@ Six CLI subcommands:
       users running from a real terminal. NOT for coworkers — see `propose`
       / `commit` / `commit-cli` for the chat-driven paths.
       NOTE: this legacy path writes brand.yml/theme.json/chrome.yml directly
-      and does NOT run the mock-page self-test, produce selftest-mock.pptx,
+      and does NOT run the mock-page self-test, produce selftest/mock.pptx,
       set default_content_layout, or add to the pick-list. Prefer commit /
       commit-cli, which do all of that.
 
@@ -78,7 +78,7 @@ Six CLI subcommands:
   -----------------------------------------------------------------------
   py -3 scripts/register_template.py confirm <template.pptx>
       Records confirmed=true in theme.json (survives reconcile) after the
-      user has opened selftest-mock.pptx in PowerPoint and verified the
+      user has opened selftest/mock.pptx in PowerPoint and verified the
       title/subtitle land. Until confirmed, the pick-list shows the template
       as '(needs review)' and builds warn.
 
@@ -3954,8 +3954,10 @@ def _slide_has_prompt_text(slide) -> bool:
 
 def _render_mock_page_selftest(tpl: Path) -> tuple[list[str], list[str]]:
     """Build a real mock page on the registered default content layout of the
-    BUILD COPY, populate its actual title / subtitle / footer / page-number
-    placeholders, render it with LibreOffice, and confirm the text lands.
+    BUILD COPY and render it the way a real build does — populate the title (and
+    any subtitle placeholder that exists), then draw the free-floating takeaway
+    line + footnote + source at their canonical positions — render with
+    LibreOffice, and confirm every piece actually lands.
 
     This is the registration-time proof that titles/subtitles actually show up —
     catching the TitleDrop / SubtitleDrop / empty-placeholder classes here
@@ -4006,15 +4008,19 @@ def _render_mock_page_selftest(tpl: Path) -> tuple[list[str], list[str]]:
     slide = prs.slides.add_slide(layout)
 
     # Worst-case realistic content: a long two-clause title + full-sentence
-    # subtitle + a long source line + a two-digit page number.
+    # takeaway + footnote + source + a two-digit page number.
     TITLE = ("Accelerating enterprise value through an integrated operating model "
              "and disciplined capital allocation across the portfolio")
     SUB = ("A single sentence that states the takeaway the audience should "
-           "remember, long enough to exercise the subtitle box on this layout.")
-    FOOTER = "Source: Company filings, analyst estimates, and Slide Lab analysis, 2026"
+           "remember, long enough to exercise the takeaway line on this layout.")
+    FOOTNOTE = "Figures are unaudited and subject to revision."
+    SOURCE = "Company filings, analyst estimates, and Slide Lab analysis, 2026"
     try:
+        # Mirror a real build: finalize populates the title (+ any subtitle/footer
+        # placeholders that exist) via _populate_layout_placeholders with
+        # footer=None, then draws the free-floating chrome. Match that here.
         found = _populate_layout_placeholders(
-            slide, title=TITLE, subtitle=SUB, footer=FOOTER, page_num="7",
+            slide, title=TITLE, subtitle=SUB, footer=None, page_num="7",
             title_idx=title_idx, subtitle_idx=subtitle_idx,
         )
     except TemplatePlaceholderEmptyError as exc:
@@ -4022,12 +4028,35 @@ def _render_mock_page_selftest(tpl: Path) -> tuple[list[str], list[str]]:
                  f"after auto-repair — the template may need re-exporting from "
                  f"PowerPoint. ({str(exc).splitlines()[0]})"], infos)
 
+    # Render the REST of the page the way a real build does, so the mock shows
+    # what the user actually gets (not a placeholder-only stub):
+    #  - a free-floating takeaway line when the layout has no subtitle placeholder
+    #    (the designed case — helpers.add_title_block draws only the subtitle here
+    #    because the title placeholder was already populated above), and
+    #  - footnote + source at the canonical bottom-zone positions.
+    from twins.helpers import add_title_block, add_footer
+    if lc is not None:
+        if not found.get("subtitle") and subtitle_idx is None:
+            add_title_block(slide, "", SUB, chrome=lc)
+        add_footer(slide, page_num="7", source=SOURCE, footnote=FOOTNOTE, chrome=lc)
+
+    def _has_shape(prefix: str) -> bool:
+        return any((getattr(sh, "name", "") or "").lower().startswith(prefix)
+                   for sh in slide.shapes)
+
     if not found.get("title"):
-        fails.append(f"title did NOT land in a placeholder on layout {layout_name!r} "
+        fails.append(f"title did NOT land on layout {layout_name!r} "
                      f"(the deck's titles would come out blank).")
-    if subtitle_idx is not None and not found.get("subtitle"):
-        fails.append(f"subtitle did NOT land in a placeholder on layout "
-                     f"{layout_name!r} (subtitles would silently drop).")
+    # Subtitle/takeaway is a REAL check now: it must land in a placeholder OR
+    # render as the free-floating line (no longer silently skipped).
+    if lc is not None:
+        if not (found.get("subtitle") or _has_shape("subtitle")):
+            fails.append(f"the takeaway line did NOT render on layout {layout_name!r} "
+                         f"(no subtitle placeholder and no free-floating line).")
+        if not _has_shape("footnote"):
+            fails.append(f"footnote did NOT render on layout {layout_name!r}.")
+        if not _has_shape("source"):
+            fails.append(f"source did NOT render on layout {layout_name!r}.")
     if _slide_has_prompt_text(slide):
         fails.append(f"placeholder prompt text ('Click to add…') is still visible "
                      f"on layout {layout_name!r} after populating.")
@@ -4210,7 +4239,7 @@ def _post_commit_smoke(tpl: Path) -> bool:
             print(f"  info: {i}")
         fails.extend(mock_fails)
         if not mock_fails:
-            print(f"  ok: mock page — title/subtitle/footer land in real placeholders")
+            print(f"  ok: mock page — title, takeaway, footnote + source all render")
     except Exception as exc:  # noqa: BLE001 — never let the self-test itself crash commit
         print(f"  warn: mock-page self-test could not run "
               f"({type(exc).__name__}: {exc}); skipped.")
@@ -4367,6 +4396,12 @@ def _main_confirm(args) -> int:
         _registry.add_or_update(_registry._entry_from_template(tpl))
     except Exception:  # noqa: BLE001 — reconcile will refresh it anyway
         pass
+    # Clean up the self-test artifacts now that a human has reviewed them —
+    # they were only there for the confirm step.
+    _selftest_dir = _p.selftest_dir(tpl)
+    if _selftest_dir.exists():
+        shutil.rmtree(_selftest_dir, ignore_errors=True)
+        print(f"  Cleaned up self-test artifacts: {_selftest_dir}")
     print(f"  Confirmed: {tpl.name} is marked reviewed and ready to build on.")
     return 0
 
@@ -4449,7 +4484,7 @@ def main() -> int:
 
     p_conf = sub.add_parser("confirm",
         help="Mark a registered template as human-confirmed, after you've opened "
-             "its mock slide (<stem>/selftest-mock.pptx) in PowerPoint and the "
+             "its mock slide (<stem>/selftest/mock.pptx) in PowerPoint and the "
              "title/subtitle look right.")
     p_conf.add_argument("template", type=Path, help="Path to the registered .pptx/.potx")
 

@@ -239,21 +239,29 @@ def build_template_pptx(template_pptx: Path) -> Path:
     return template_sidecar_dir(template_pptx) / "build-template.pptx"
 
 
+def selftest_dir(template_pptx: Path) -> Path:
+    """<sidecar-dir>/selftest/ — holds the registration self-test artifacts so
+    they don't clutter the template settings folder. Created at commit, DELETED
+    by `register_template.py confirm` once the human has reviewed the mock."""
+    return template_sidecar_dir(template_pptx) / "selftest"
+
+
 def selftest_pptx(template_pptx: Path) -> Path:
-    """<sidecar-dir>/selftest-mock.pptx — a real mock slide the registration
+    """<sidecar-dir>/selftest/mock.pptx — a real mock slide the registration
     self-test builds on the default content layout, kept so the USER can OPEN
-    IT IN POWERPOINT and confirm titles/subtitles land + fit before building
-    (the automated self-test can miss things; PowerPoint is the real check).
+    IT IN POWERPOINT and confirm titles/takeaway/footnote/source land before
+    building (the automated self-test can miss things; PowerPoint is the real
+    check). Removed on `confirm`.
     Writer: register_template.py commit. Readers: (user opens it)."""
-    return template_sidecar_dir(template_pptx) / "selftest-mock.pptx"
+    return selftest_dir(template_pptx) / "mock.pptx"
 
 
 def selftest_png(template_pptx: Path) -> Path:
-    """<sidecar-dir>/selftest-mock.png — a rendered preview of the mock page
+    """<sidecar-dir>/selftest/mock.png — a rendered preview of the mock page
     (for the in-app preview panel). The .pptx (selftest_pptx) is the real
-    confirmation artifact the user opens in PowerPoint.
+    confirmation artifact the user opens in PowerPoint. Removed on `confirm`.
     Writer: register_template.py commit. Readers: (user opens it)."""
-    return template_sidecar_dir(template_pptx) / "selftest-mock.png"
+    return selftest_dir(template_pptx) / "mock.png"
 
 
 def brand_css(template_pptx: Path) -> Path:
