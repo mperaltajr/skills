@@ -1,6 +1,6 @@
 ---
 name: storyline-helper
-description: "Primary entry point for building any multi-slide PowerPoint deck in Slide Lab — whether the user is starting from an objective, a rough outline, scratch notes, an existing HTML mockup, OR a finished storyline/package they already wrote. Coaches the narrative when needed (objective → strategic framework → narrative framework → deck type → per-slide structure); when the user already has the storyline, VALIDATES it against the gate instead of re-coaching, then emits the narrative brief and hands off to slide-builder. Use this (never a hand-rolled python-pptx script) whenever someone wants a deck built on a client template. Detects mode (consulting deck / RFP / PMO) and routes accordingly. RFP responses route to rfp-helper. PMO/template fill routes to slide-builder template fill mode."
+description: "Primary entry point for building any multi-slide PowerPoint deck in Slide Lab — whether the user is starting from an objective, a rough outline, scratch notes, an existing HTML mockup, OR a finished storyline/package they already wrote. Coaches the narrative when needed (objective → strategic framework → narrative framework → deck type → per-slide structure); when the user already has the storyline, VALIDATES it against the gate instead of re-coaching, then emits the narrative brief + storyline (dot-dash). Can be used STANDALONE to produce just the storyline — after emitting the dot-dash it STOPS and asks whether to build slides or stop there (only builds slides on a yes). Use this (never a hand-rolled python-pptx script) whenever someone wants a deck built on a client template, OR when they just want a storyline / dot-dash. Detects mode (consulting deck / RFP / PMO) and routes accordingly. RFP responses route to rfp-helper. PMO/template fill routes to slide-builder template fill mode."
 ---
 
 # Storyline Helper
@@ -833,11 +833,19 @@ Storyline locked. Quick check:
   Slide 3: [governing thought, ≤90 chars]
   ... (one line per slide)
 
-Dot-dash for sharing: <absolute path to .html file>
-Hand-off to slide-builder ready. Proceeding.
+Storyline saved:
+  Dot-dash (to read/share): <absolute path to .html file>
+  Brief (for building):     <absolute path to _session/narrative-brief-[topic].md>
 ```
 
-Then **hand off immediately to slide-builder** without waiting for a confirmation. The user reviewed the brief during the nine-part gate — they don't need to re-read its projection.
+**Then STOP and ask — do NOT auto-build.** The storyline (dot-dash) is a deliverable in its own right: many users want just the storyline and will build later, hand it to someone else, or not build at all. Ask exactly:
+
+> *"That's the storyline. Is this what you needed, or should I build it into slides now? I can also just stop here — the dot-dash and the brief are both saved."*
+
+- **Build now** → go to the handoff section below (verify the template is registered, then invoke slide-builder).
+- **Just the storyline / not yet** → **STOP.** Restate the two saved paths and end cleanly. The brief is already on disk, so building later is a plain "build the deck from `<brief path>`" — resume the handoff then; nothing needs redoing.
+
+This is a go/stop decision, not a re-review — the user already reviewed the brief during the nine-part gate.
 
 **Re-run only if the brief changes.** If the user later adjusts the brief during slide-build, update the brief, re-run the gate, and re-run `emit_dot_dash.py` to keep the .md / .html in sync. Otherwise the initial generation is enough.
 
