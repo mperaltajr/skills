@@ -226,6 +226,19 @@ def chrome_yml(template_pptx: Path) -> Path:
     return template_sidecar_dir(template_pptx) / "chrome.yml"
 
 
+def build_template_pptx(template_pptx: Path) -> Path:
+    """<sidecar-dir>/build-template.pptx — the normalized copy a build opens.
+
+    Registration saves a cleaned copy of the client template here (named
+    sections stripped, placeholders repaired, etc.); every build opens THIS
+    file instead of the user's original so pages come out consistent. Sidecars
+    stay keyed off the original stem, so the copy living inside the sidecar dir
+    can never be mistaken for a template with its own sidecars.
+    Writer: register_template.py commit. Readers: finalize_deck.py,
+    compile_picks.py (via twins.client_theme.resolve_build_template)."""
+    return template_sidecar_dir(template_pptx) / "build-template.pptx"
+
+
 def brand_css(template_pptx: Path) -> Path:
     """<sidecar-dir>/brand.css — CSS-variables sidecar for the sketch path.
 
@@ -354,6 +367,7 @@ ARTIFACT_MANIFEST: list[dict] = [
     # the contract tool's _p.<name> regex, so we mark this entry accepted.
     {"name": "theme_json",                "writer": "register_template.py",  "readers": ["build_deck.py"], "accepted": True, "reason": "twins/client_theme.py reads via sidecar_paths() with a lazy _paths import that the contract grep can't detect; build_deck.py reads directly via _p.theme_json"},
     {"name": "chrome_yml",                "writer": "register_template.py",  "readers": ["finalize_deck.py", "build_deck.py"]},
+    {"name": "build_template_pptx",       "writer": "register_template.py",  "readers": ["finalize_deck.py", "compile_picks.py"], "accepted": True, "reason": "Opened via twins/client_theme.py:resolve_build_template (lazy _paths import the contract grep can't detect); readers pass args.template and the resolver swaps in this copy."},
     {"name": "brand_css",                 "writer": "register_template.py",  "readers": [], "accepted": True, "reason": "Sketch-path foundation; no reader until the HTML render path is wired. Pure ADD — presence does not affect the python-pptx pipeline."},
     {"name": "chrome_commit_method_txt",  "writer": "register_template.py",  "readers": [], "accepted": True, "reason": "Operator audit only — no pipeline reader"},
     {"name": "preview_pptx",              "writer": "register_template.py",  "readers": [], "accepted": True, "reason": "Registration UI artifact — opened in chat preview"},

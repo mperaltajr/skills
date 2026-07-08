@@ -75,7 +75,7 @@ from pptx import Presentation  # noqa: E402
 from pptx.util import Emu, Pt  # noqa: E402
 from pptx.enum.shapes import MSO_SHAPE_TYPE  # noqa: E402
 from pptx.oxml.ns import qn  # noqa: E402
-from twins.client_theme import load_client_theme, apply_theme_to_shape_xml  # noqa: E402
+from twins.client_theme import load_client_theme, apply_theme_to_shape_xml, resolve_build_template  # noqa: E402
 from twins.composer import (  # noqa: E402
     _clear_existing_slides,
     _find_blank_layout,
@@ -2175,6 +2175,12 @@ def main() -> int:
         print(f"ERROR: template not found: {args.template}")
         return 2
 
+    # Open the normalized build copy when registration made one; every sidecar
+    # lookup below stays keyed off the ORIGINAL args.template.
+    build_template = resolve_build_template(args.template)
+    if build_template != args.template:
+        print(f"  building on normalized copy: {build_template}")
+
     # No Mermaid theme resolution runs here: `_resolve_mermaid_theme` and the
     # `--theme` CLI arg no longer exist, and the sketch path (HTML→PNG)
     # supersedes Mermaid for curved-container diagrams.
@@ -2473,7 +2479,7 @@ def main() -> int:
     for i, st in enumerate(built_statuses, 1):
         try:
             graft_and_theme(
-                st, args.template, theme, color_map,
+                st, build_template, theme, color_map,
                 layout_name=_layout_name_for(st.slide_n),
                 layout_chrome=_layout_chrome_for(st.slide_n),
                 slide_title=_slide_title_for(st.slide_n),

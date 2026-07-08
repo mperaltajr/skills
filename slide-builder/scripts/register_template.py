@@ -2146,15 +2146,24 @@ def write_theme_json(path: Path, *, template_path: Path, sha: str,
                      master_count: int, layout_count: int,
                      brand_yml_path: Path,
                      default_content_layout: str = "",
+                     build_template_path: str = "",
+                     build_template_sha: str = "",
                      theme_parts: Optional[dict] = None) -> None:
     """Schema v3: adds ``theme_parts`` capturing the canonical
     theme part + any orphan theme parts in the .pptx. Diagnostic; the
     loader walks the OOXML rels graph to resolve canonical at load time, so
-    this is informational. ``default_content_layout`` preserved."""
+    this is informational. ``default_content_layout`` preserved.
+
+    ``build_template_path`` / ``build_template_sha`` record the normalized copy
+    a build should open (``<stem>/build-template.pptx``). ``template_sha`` still
+    hashes the ORIGINAL — it stays the drift guard so editing the original
+    forces re-registration (which regenerates the copy)."""
     obj = {
         "schema_version": 3,
         "template_path": str(template_path),
         "template_sha": sha,
+        "build_template_path": build_template_path or "",
+        "build_template_sha": build_template_sha or "",
         "registered_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "registered_by": os.environ.get("USERNAME") or os.environ.get("USER") or "",
         "default_content_layout": default_content_layout or "",
@@ -2514,6 +2523,22 @@ def _main_interactive(args) -> int:
     return 0
 
 
+def _write_build_template_copy(tpl: Path) -> tuple[Path, str]:
+    """Produce the normalized build copy at ``<stem>/build-template.pptx`` and
+    return (path, sha256-of-copy).
+
+    Every build opens this copy instead of the user's original so pages come
+    out consistent. Stage 3A ships a pristine duplicate; the normalize fixes
+    (strip named sections, repair empty placeholders, grow a short title box,
+    etc.) are layered onto this function in a later sub-step. The copy is ALWAYS
+    regenerated from the pristine original — never fixed on top of a prior copy —
+    so re-registration is deterministic."""
+    build_tpl = _p.build_template_pptx(tpl)
+    build_tpl.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(str(tpl), str(build_tpl))
+    return build_tpl, hashlib.sha256(build_tpl.read_bytes()).hexdigest()
+
+
 def _write_outputs(tpl: Path, sha: str, sha8: str,
                    primary_hex: str, primary_slot: str,
                    accent_hex: str, accent_slot: str,
@@ -2573,6 +2598,9 @@ def _write_outputs(tpl: Path, sha: str, sha8: str,
         "font_body": font_body,
         "strip_master_backgrounds": strip_master_backgrounds,
     }
+    # Normalized build copy — every build opens this, not the user's original.
+    build_tpl, build_sha = _write_build_template_copy(tpl)
+
     theme_parts = _enumerate_theme_parts(tpl)
     write_theme_json(
         theme_json,
@@ -2581,6 +2609,8 @@ def _write_outputs(tpl: Path, sha: str, sha8: str,
         master_count=n_master, layout_count=n_layout,
         brand_yml_path=brand_yml,
         default_content_layout=default_content_layout,
+        build_template_path=str(build_tpl.resolve()),
+        build_template_sha=build_sha,
         theme_parts=theme_parts,
     )
 

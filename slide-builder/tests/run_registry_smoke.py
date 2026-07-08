@@ -58,13 +58,16 @@ def main() -> int:
         entry = _registry._entry_from_template(tpl)
         assert entry is not None, "sidecar present but entry came back None"
         assert _registry._key(entry["template_path"]) == key
-        assert entry["build_template_path"] == str(tpl.resolve()), entry["build_template_path"]
+        # Registration now records the normalized build copy as build_template_path.
+        btp = Path(entry["build_template_path"])
+        assert btp.name == "build-template.pptx", entry["build_template_path"]
+        assert btp.exists(), f"build copy not created: {btp}"
         assert len(entry["template_sha8"]) == 8, entry["template_sha8"]
         assert entry["brand_primary_hex"], "brand primary not captured"
         _registry.add_or_update(entry)
         got = _registry.load_registry()["templates"]
         assert len(got) == 1 and _registry._key(got[0]["template_path"]) == key, got
-        print("    ok: 1 entry, fields populated, build_template_path == template_path")
+        print("    ok: 1 entry, fields populated, build_template_path -> build copy")
 
         print("[3] add_or_update is idempotent (no duplicates)")
         _registry.add_or_update(_registry._entry_from_template(tpl))
