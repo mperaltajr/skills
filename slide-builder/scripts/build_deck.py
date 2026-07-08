@@ -1055,6 +1055,32 @@ def render_prompt(template_text: str, placeholders: dict[str, str]) -> str:
     return body
 
 
+def density_directive(front_matter: dict[str, Any]) -> str:
+    """The per-deck content-density instruction threaded to the worker.
+
+    Default (ALL decks): fill the page — a content slide must be useful on its
+    own. Slides rendered near-empty (a few words on a full canvas) were the
+    recurring complaint. An explicit `density: executive` (or sparse/minimal)
+    front-matter opts a genuinely minimal deck back into headline-led sparseness.
+    This never overrides brief fidelity — the worker renders what the brief
+    supplies richly and still never fabricates beyond it.
+    """
+    density = (front_matter.get("density") or "").strip().lower()
+    if density in ("executive", "sparse", "minimal"):
+        return ("Executive / sparse deck (density: {d}). Lead with the headline; "
+                "keep the body minimal — proof only. Generous whitespace is "
+                "intentional here.".format(d=density))
+    return (
+        "Fill the page. Every CONTENT slide must be useful on its own: render all "
+        "of the brief's evidence as substantive, self-explanatory body content — "
+        "each point a full, readable statement, not a stub or a 2-3 word label. A "
+        "near-empty content page (a handful of words on a full canvas) is a DEFECT; "
+        "use the body zone. This does NOT override brief fidelity: render what the "
+        "brief supplies richly, never fabricate beyond it. Cover / section-divider / "
+        "single-hero-stat slides are exempt — those stay deliberately spare."
+    )
+
+
 def build_placeholders(
     slide: dict[str, Any],
     slide_total: int,
@@ -1064,6 +1090,7 @@ def build_placeholders(
     seeds: dict[str, str],
     likely_prior_patterns: str,
     slide_pattern: str = "direct",
+    density_note: str = "",
 ) -> dict[str, str]:
     """Assemble the {{TOKEN}} → value dictionary for one slide.
 
@@ -1088,6 +1115,7 @@ def build_placeholders(
         "FORBIDDEN_PATTERNS":      slide.get("forbidden_patterns", "") or "(none)",
         "ACCENT_PLACEMENT":        slide.get("accent_placement", "") or "(worker's judgment)",
         "DECK_LEVEL_DESIGN_NOTES": deck_notes or "(no deck-level design notes)",
+        "DENSITY_DIRECTIVE":       density_note or density_directive({}),
         "CLIENT_TEMPLATE_PATH":    str(client_template_path),
         "OUTPUT_DIR":              str(output_dir),
         "CONTENT_HASH":            seeds["content_hash"],
@@ -2042,6 +2070,7 @@ def main() -> int:
     slides = brief["slides"]
     slide_total = brief["slide_total"]
     deck_notes = brief["deck_notes"]
+    _density_note = density_directive(brief.get("front_matter", {}) or {})
 
     # Validate the rebuild target exists in this brief before any work.
     if rebuild_slide_n is not None:
@@ -2170,6 +2199,7 @@ def main() -> int:
             seeds=seeds,
             likely_prior_patterns=likely_prior,
             slide_pattern=slide_pattern,
+            density_note=_density_note,
         )
         rendered = render_prompt(template_text, placeholders)
         _p.prompt_md(args.out, slide_n).write_text(rendered, encoding="utf-8")

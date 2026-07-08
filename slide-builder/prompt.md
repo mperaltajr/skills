@@ -84,6 +84,10 @@ You are one of {{SLIDE_TOTAL}} parallel agents dispatched from the same parent s
 
 These steering fields come from the brief author. A set value is a constraint, not a suggestion; an unset value (shown as a `(...)` placeholder) leaves the choice to you.
 
+### Content density (binding)
+
+{{DENSITY_DIRECTIVE}}
+
 ---
 
 ## 2. Deck-level design notes (binding on every slide)

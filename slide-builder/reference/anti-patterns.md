@@ -41,7 +41,7 @@ Entry format:
 
 7. **DON'T let a slide have more than one visual accent moment.** — *Why:* multiple accent moments (brand-accent stripes, hero metrics, color-coded callouts) compete and the reader can't tell what's important. *Do instead:* one accent moment per slide — pick whichever element carries the takeaway and accent only that.
 
-8. **DON'T compress vertical spacing between text elements.** — *Why:* compressed spacing reads as cramped and amateur, even when content fits. *Do instead:* minimum 12–16pt between paragraphs in the same block, 24pt between sections, 32pt above a section heading.
+8. **DON'T compress vertical spacing between text elements.** — *Why:* compressed spacing reads as cramped and amateur, even when content fits. *Do instead:* minimum 12–16pt between paragraphs in the same block, 24pt between sections, 32pt above a section heading. *Note:* this is about breathing room BETWEEN elements — not a reason to reduce content. A content slide should still be filled with substantive content (see the binding Content-density directive in the prompt); whitespace discipline and a full, useful page are not in tension.
 
 ---
 
