@@ -2971,8 +2971,8 @@ def _extract_reference_slide_spec(tpl: Path, slide_n: int) -> dict | None:
             idx = ph.placeholder_format.idx
         except Exception:
             continue
-        # Title types: 1=TITLE, 13=CENTER_TITLE
-        if t in (1, 13) and title_box is None:
+        # Title types: 1=TITLE, 3=CENTER_TITLE (python-pptx PP_PLACEHOLDER)
+        if t in (1, 3) and title_box is None:
             title_box = _box_px(ph)
         # Subtitle type: 4=SUBTITLE. Many real templates use BODY (idx=10)
         # as the subtitle slot — capture idx=10 as a secondary candidate.
@@ -3269,8 +3269,8 @@ def _extract_body_zone_for_canonical(layout) -> dict:
             idx = int(pf.idx)
         except Exception:
             continue
-        # type values: 1=TITLE, 13=CENTER_TITLE, 4=SUBTITLE, 15=FOOTER
-        if t in (1, 13) and title_idx is None:
+        # type values: 1=TITLE, 3=CENTER_TITLE, 4=SUBTITLE, 15=FOOTER (13=SLIDE_NUMBER)
+        if t in (1, 3) and title_idx is None:
             title_idx = idx
             try:
                 title_bottom_px = _emu_to_px(int(ph.top) + int(ph.height))

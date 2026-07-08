@@ -81,6 +81,7 @@ from twins.composer import (  # noqa: E402
     _find_blank_layout,
     _find_named_layout,
     _strip_layout_placeholders,
+    clone_missing_chrome_placeholders,
     TemplatePlaceholderEmptyError,
 )
 from _chrome_schema import (  # noqa: E402
@@ -1895,6 +1896,15 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
         elif not _is_body_canonical:
             _keep_master = not bool(getattr(theme, "strip_master_backgrounds", True))
             _strip_layout_placeholders(new_slide, keep_master_shapes=_keep_master)
+        else:
+            # Body-canonical: add_slide clones only title/body — clone the
+            # slide-number placeholder too so the page number can populate +
+            # render (LibreOffice doesn't render the inherited auto-field).
+            try:
+                clone_missing_chrome_placeholders(new_slide, target_layout)
+            except Exception as _exc:  # noqa: BLE001 — never fail the graft on this
+                sys.stderr.write(f"  WARN: could not clone slide-number placeholder "
+                                 f"for slide {slide_n}: {type(_exc).__name__}: {_exc}\n")
 
         sp_tree = new_slide.shapes._spTree
         # When body-canonical, new_slide already has title/subtitle/footer
