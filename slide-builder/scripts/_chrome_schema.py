@@ -325,6 +325,17 @@ class LayoutChrome(BaseModel):
     subtitle_placeholder_idx: int | None = None
     body_top_y_px: int | None = None
     body_bottom_y_px: int | None = None
+    # Title placeholder geometry (px) + controlled title font size, captured for
+    # body-canonical layouts. Additive/optional (older chrome.yml files omit
+    # them → None → callers fall back to canonical). Used to (a) render the
+    # free-floating takeaway line as wide as the title, and (b) populate the
+    # title placeholder at a consistent title_font_pt. Also feed the title-wrap
+    # fit calc (finalize) which already reads title_box_width_px / title_font_pt.
+    title_box_x_px: int | None = None
+    title_box_y_px: int | None = None
+    title_box_width_px: int | None = None
+    title_box_height_px: int | None = None
+    title_font_pt: int | None = None
     # body_overlay_hex retained for backward-compat with existing chrome.yml
     # files; never populated by current register_template and unread by any
     # downstream code. Slated for removal once existing templates are

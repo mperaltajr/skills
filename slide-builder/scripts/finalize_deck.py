@@ -1533,6 +1533,7 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
         page_num=str(slide_n),
         title_idx=_title_idx,
         subtitle_idx=_subtitle_idx,
+        title_font_pt=getattr(layout_chrome, "title_font_pt", None),
     )
 
     # Loud-fail when non-empty title or subtitle text was supplied but the
