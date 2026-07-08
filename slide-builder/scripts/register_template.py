@@ -5,6 +5,9 @@ Produces per-template sidecars in a subfolder NEXT TO the .pptx:
     brand.yml             : human-editable, ~15 lines
     theme.json            : machine-generated, SHA-stamped audit
     chrome.yml            : per-layout chrome geometry
+    build-template.pptx   : normalized copy every build opens (sample slides +
+                            named sections stripped, empty placeholders repaired);
+                            the user's original .pptx is never modified
     preview.pptx / .png   : 3-surface registration preview
     palette.png           : swatch grid
     register.html         : interactive picker UI
