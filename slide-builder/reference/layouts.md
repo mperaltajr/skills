@@ -70,7 +70,7 @@ The vocabulary is intentionally bounded: the list is capped at 7 verbs and inven
 
 A single dominant zone. The slide is one composition — hero claim, statement, divider, or quote — typeset against an unbroken canvas. Asymmetric left-aligned typography breathes against the whitespace and lets the claim land without competing elements. Light canvas is the default; dark canvas (brand-primary fill) is the variant for cover slides, section dividers, and high-emphasis statements.
 
-**Use when:** the brief is one sentence carrying the slide alone · the slide is a section divider or cover · a single dominant quote or claim · a sparse "so what" statement after an evidence-heavy slide.
+**Use when:** the brief is one sentence carrying the slide alone · the slide is a section divider or cover · a single dominant quote or claim · a sparse "so what" statement after an evidence-heavy slide. **Not** a way to render a content slide sparse: if the brief supplies real evidence for this slide, pick a pattern that renders it fully (see the binding Content-density directive) — Full canvas is only for slides that are genuinely a single idea.
 
 **Variants:** light vs. dark canvas · counter-line (brand-primary horizontal rule) yes/no · supporting tagline below the claim yes/no · type alignment (left, center).
 

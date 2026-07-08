@@ -677,7 +677,7 @@ For each headline that fails: show a before/after rewrite. Ask the user to confi
 
 #### Body content quality (supporting bullets and evidence)
 
-Test each slide's evidence bullets against four checks:
+Test each slide's evidence bullets against five checks:
 
 1. **Supports-the-claim test.** Does every bullet directly prove or illustrate the governing thought? If a bullet is true but doesn't connect to the claim, it belongs on a different slide or gets cut. Fail: governing thought = "Margin eroded due to product mix shift" → bullet: "The team delivered 12 projects this quarter." Pass: same headline → bullet: "SMB deals grew 40% but carry 18pp lower margin than enterprise deals."
 
@@ -687,10 +687,13 @@ Test each slide's evidence bullets against four checks:
 
 4. **Specificity ratio test.** At least 60% of the content in each bullet should be concrete — numbers, names, timeframes, decisions, sources. Fail: "Performance was mixed across regions with some areas doing better than others." Pass: "EMEA grew 15%; APAC declined 8% driven by a single delayed contract in Singapore worth $4M."
 
-**Deck-type body content calibration:**
-- **Executive audiences (board, C-suite):** Each slide should communicate its full point in the headline alone. Body = proof only. If a reader grasps the slide from the headline without reading the body, that's correct.
-- **Operational audiences (working teams, project leads):** Supporting detail in the body is appropriate — process steps, criteria, instructions.
-- **Mixed rooms:** Default to executive compression — operational detail goes in the appendix or speaker notes.
+5. **Content-floor test (a slide must be useful on its own — DEFAULT for ALL decks).** Each **content** slide must carry enough substance to stand alone when read later without a presenter: several substantive points, each a full explained statement — not one-liners, not a single sentence, not 2–3 word stubs. A content slide whose evidence is too thin **FAILS this gate**; enrich it (concrete points, examples, "what this means") before locking. Do not lock sparse pages — near-empty slides were the #1 complaint. This is a hard check, not advisory.
+   - **Exemptions:** Cover / Title, Section divider, and single-hero-stat slides are meant to be spare — the floor does not apply to them (judge by the slide's **slide type**).
+   - **Executive opt-out (opt OUT, not in):** for a genuinely executive/board deck where the headline alone carries each slide, the user may set `density: executive` in the brief front-matter, or use editorial emphasis `summarize` on a specific slide — then headline-led sparseness is correct and the floor relaxes to "proof only." Absent that explicit signal, default to density and hold the floor.
+
+**Deck-type body content calibration (applies only under the executive opt-out above):**
+- **Executive audiences (board, C-suite) with `density: executive`:** the headline carries the point; body = proof only.
+- **Everyone else (the default):** the body must make the slide self-explanatory — real supporting detail, examples, and implications, per the content-floor test above.
 
 ### the pushback protocol — Pushback protocol
 
@@ -878,6 +881,7 @@ default_layout: <layout name from theme.json>  # required — storyline-helper t
 session_folder: <absolute path to _session>    # optional — helps slide-builder anchor outputs
 storyline_gate_passed: true                   # required — slide-builder hard-fails without this
 storyline_gate_at: 2026-06-02T14:00:00Z       # required — ISO-8601 UTC timestamp of the gate pass
+# density: executive                          # OPTIONAL opt-out — headline-led/sparse deck; relaxes the content-floor gate. Omit for the dense default (pages useful on their own).
 # mode: template-fill                          # OR set mode: to skip the gate (PMO / rebuild flows)
 ---
 
