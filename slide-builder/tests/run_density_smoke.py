@@ -75,7 +75,10 @@ def main() -> int:
         p1 = (out1 / "slide_01" / "_prompt.md").read_text(encoding="utf-8")
         assert "Content density (binding)" in p1, "density header missing from _prompt.md"
         assert "Fill the page" in p1, "default density directive not rendered in _prompt.md"
-        print("    ok: _prompt.md has the binding fill-the-page directive")
+        # default options_per_slide=1 → prompt asks for exactly one option file
+        assert "option_A.py" in p1, "option_A not listed in _prompt.md"
+        assert "option_C.py" not in p1, "extra options listed — expected one option by default"
+        print("    ok: _prompt.md has the fill-the-page directive + exactly one option (A)")
 
         print("[3] density: executive brief -> opt-out directive in the prompt")
         out2 = tmp / "out_exec"

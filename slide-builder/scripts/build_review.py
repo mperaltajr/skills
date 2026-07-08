@@ -294,7 +294,7 @@ def parse_prompt(prompt_path: Path) -> dict:
 # Slide scan — pattern capture per option
 # ---------------------------------------------------------------------------
 
-OPTIONS = ("A", "B", "C")
+OPTIONS = _p.option_letters()  # settings-driven count (default 1); iterate, don't assume 3
 
 
 def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dict:
