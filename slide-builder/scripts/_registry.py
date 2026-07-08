@@ -148,6 +148,8 @@ def _entry_from_template(pptx: Path) -> Optional[dict[str, Any]]:
         "brand_accent_hex": (brand.get("accent_hex") or "").strip(),
         "registered_at": theme.get("registered_at") or "",
         "registered_by": theme.get("registered_by") or "",
+        "confirmed": bool(theme.get("confirmed", False)),
+        "confirmed_at": theme.get("confirmed_at") or "",
         "last_seen_at": _now(),
     }
 

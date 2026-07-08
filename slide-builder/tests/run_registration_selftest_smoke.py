@@ -76,9 +76,11 @@ def main() -> int:
         _set_default_layout(tpl, LAYOUT)
         fails, infos = rt._render_mock_page_selftest(tpl)
         assert fails == [], f"unexpected failures on a clean template: {fails}"
-        assert any("wrap" in i or "render" in i for i in infos), infos
-        assert any("rendered" in i for i in infos), f"mock page did not render: {infos}"
-        print("    ok: landed + rendered; infos: " + " | ".join(infos))
+        mock = _p.selftest_pptx(tpl)
+        assert mock.exists(), f"mock .pptx not saved for review: {mock}"
+        mprs = Presentation(str(mock))
+        assert len(mprs.slides._sldIdLst) == 1, "mock .pptx should have exactly one slide"
+        print("    ok: landed; mock .pptx saved + openable; infos: " + " | ".join(infos))
     finally:
         shutil.rmtree(tmp1, ignore_errors=True)
 
@@ -103,6 +105,7 @@ def main() -> int:
                                 "setup: original title should still be broken"
         fails, infos = rt._render_mock_page_selftest(tpl)
         assert fails == [], f"auto-fix did not make the title land: {fails}"
+        assert _p.selftest_pptx(tpl).exists(), "mock .pptx not saved for review"
         print("    ok: broken template auto-fixed; title lands on the copy")
     finally:
         shutil.rmtree(tmp2, ignore_errors=True)

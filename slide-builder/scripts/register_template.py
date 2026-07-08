@@ -3891,6 +3891,31 @@ def _commit_from_picks_dict(tpl: Path, picks: dict, *, source: str) -> int:
         print(f"  WARNING: template registered on disk but the pick-list index "
               f"update failed ({type(exc).__name__}: {exc}). It will be "
               f"re-indexed automatically the next time the list is loaded.")
+
+    # Human confirmation gate. The automated self-test can miss things, so a
+    # registration is NOT considered good until a person eyeballs the rendered
+    # mock page and runs `confirm`. Until then the pick-list marks it '(needs
+    # review)' and builds warn.
+    _mock_pptx = _p.selftest_pptx(tpl)
+    _mock_png = _p.selftest_png(tpl)
+    print()
+    print("=" * 70)
+    print("  ACTION REQUIRED — review this registration before you build on it.")
+    if _mock_pptx.exists():
+        print("  A real mock slide was built on your default layout. OPEN IT IN")
+        print("  POWERPOINT and confirm the TITLE and SUBTITLE appear correctly")
+        print("  and fit (PowerPoint is the real check — the automated self-test")
+        print("  can pass when something is still off):")
+        print(f"    {_mock_pptx}")
+        if _mock_png.exists():
+            print(f"  (quick preview image: {_mock_png})")
+    else:
+        print("  The mock slide could not be built — build one slide yourself and")
+        print("  check the title/subtitle before relying on this template.")
+    print("  When it looks right in PowerPoint, mark it confirmed:")
+    print(f"    py -3 scripts/register_template.py confirm \"{tpl}\"")
+    print("  Until confirmed, the pick-list shows it as '(needs review)'.")
+    print("=" * 70)
     return 0
 
 
@@ -3984,23 +4009,37 @@ def _render_mock_page_selftest(tpl: Path) -> tuple[list[str], list[str]]:
         fails.append(f"placeholder prompt text ('Click to add…') is still visible "
                      f"on layout {layout_name!r} after populating.")
 
-    # Best-effort visual render — confirms the page actually produces output.
-    # Never a hard fail (LibreOffice may be absent or quirky on a given machine).
+    # Save the mock slide as a REAL .pptx in the sidecar so the user can open it
+    # in PowerPoint and confirm — the automated checks above can miss things, so
+    # a human opening the actual file is the real gate.
+    mock_pptx = _p.selftest_pptx(tpl)
     try:
-        from render_slides import render_libre
-        with tempfile.TemporaryDirectory() as td:
-            tmp = Path(td)
-            mock = tmp / "mock.pptx"
-            prs.save(str(mock))
-            render_libre(mock, tmp, dpi=120)
-            pngs = sorted(tmp.glob("slide_*.png"))
-            if pngs and pngs[0].stat().st_size >= 12 * 1024:
-                infos.append(f"mock page rendered ({pngs[0].stat().st_size // 1024} KB PNG)")
-            else:
-                infos.append("mock page built, but LibreOffice produced no PNG "
-                             "(visual confirmation skipped)")
+        mock_pptx.parent.mkdir(parents=True, exist_ok=True)
+        prs.save(str(mock_pptx))
+        infos.append(f"mock slide saved for your review -> {mock_pptx}")
     except Exception as exc:  # noqa: BLE001
-        infos.append(f"visual render skipped ({type(exc).__name__}: {exc})")
+        infos.append(f"could not save the mock .pptx ({type(exc).__name__}: {exc})")
+        mock_pptx = None
+
+    # Also render a PNG preview of that .pptx for the in-app preview panel.
+    # Best-effort: never a hard fail (LibreOffice may be absent or quirky).
+    if mock_pptx is not None:
+        try:
+            from render_slides import render_libre
+            dest = _p.selftest_png(tpl)
+            with tempfile.TemporaryDirectory() as td:
+                tmp = Path(td)
+                render_libre(mock_pptx, tmp, dpi=120)
+                pngs = sorted(tmp.glob("slide_*.png"))
+                if pngs and pngs[0].stat().st_size >= 12 * 1024:
+                    shutil.copy2(str(pngs[0]), str(dest))
+                    infos.append(f"preview image -> {dest}")
+                else:
+                    infos.append("mock .pptx saved, but the PNG preview looks "
+                                 "empty — open the .pptx in PowerPoint to check")
+        except Exception as exc:  # noqa: BLE001
+            infos.append(f"PNG preview skipped ({type(exc).__name__}: {exc}); "
+                         "open the .pptx in PowerPoint to check")
 
     # Informational fit measurement (mirrors finalize's >2-line rule).
     ttf = _resolve_brand_ttf_path((theme_data.get("brand") or {}).get("font_heading", ""))
@@ -4281,6 +4320,34 @@ def _main_commit_cli(args) -> int:
     return 0
 
 
+def _main_confirm(args) -> int:
+    """Mark a registered template as human-confirmed. Records `confirmed` +
+    `confirmed_at` in theme.json (so it survives pick-list reconcile) and
+    refreshes the registry entry."""
+    sys.stdout.reconfigure(encoding="utf-8")
+    tpl = args.template.resolve()
+    theme_json = _p.theme_json(tpl)
+    if not theme_json.exists():
+        print(f"ERROR: template not registered (no theme.json at {theme_json}).\n"
+              f"  Register it first: register_template.py propose/commit.")
+        return 2
+    try:
+        data = json.loads(theme_json.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        print(f"ERROR: could not read theme.json: {exc}")
+        return 2
+    data["confirmed"] = True
+    data["confirmed_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
+    theme_json.write_text(json.dumps(data, indent=2), encoding="utf-8")
+    try:
+        import _registry
+        _registry.add_or_update(_registry._entry_from_template(tpl))
+    except Exception:  # noqa: BLE001 — reconcile will refresh it anyway
+        pass
+    print(f"  Confirmed: {tpl.name} is marked reviewed and ready to build on.")
+    return 0
+
+
 # ---------------------------------------------------------------------------
 # Top-level dispatcher
 # ---------------------------------------------------------------------------
@@ -4357,6 +4424,12 @@ def main() -> int:
         help="Print the registered-template pick-list as JSON. Self-heals first "
              "(prunes missing templates, rediscovers sidecars in OneDrive/Documents).")
 
+    p_conf = sub.add_parser("confirm",
+        help="Mark a registered template as human-confirmed, after you've opened "
+             "its mock slide (<stem>/selftest-mock.pptx) in PowerPoint and the "
+             "title/subtitle look right.")
+    p_conf.add_argument("template", type=Path, help="Path to the registered .pptx/.potx")
+
     args = ap.parse_args()
     if args.cmd == "propose":
         return _main_propose(args)
@@ -4370,6 +4443,8 @@ def main() -> int:
         import _registry
         print(json.dumps(_registry.list_templates(), indent=2))
         return 0
+    if args.cmd == "confirm":
+        return _main_confirm(args)
     ap.print_help()
     return 2
 
