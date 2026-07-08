@@ -45,9 +45,10 @@ Collect three things before coaching begins:
 
 For the template, run `py -3 slide-builder/scripts/register_template.py list` and present the
 result as a **numbered pick-list** of registered templates; the user picks one and you use its
-`build_template_path`. If the template they want isn't listed (or the list is empty), do NOT
-guess a path — route them to the standalone Register step (`slide-lab` option 7) first, then
-re-list and pick.
+`template_path` (the original `.pptx` — pass that as `client_template:`; the pipeline opens the
+normalized build copy automatically). If the template they want isn't listed (or the list is
+empty), do NOT guess a path — route them to the standalone Register step (`slide-lab` option 7)
+first, then re-list and pick.
 
 Read the RFP in full. Extract and confirm:
 - Required sections and their order
@@ -136,7 +137,7 @@ Proposal brief saved:
 
 ### Step 6 — Hand off to Slide Builder
 
-**Before handing off, confirm the client template is registered** (a `<stem>/` sidecar subfolder next to the `.pptx` containing `brand.yml` + `theme.json` + `chrome.yml`). If it isn't, **do not register it inline** — registration is a standalone step. Stop and route the user to the standalone Register action (`slide-lab` option 7); resume this handoff once the sidecars exist.
+**Before handing off, confirm the client template is registered** (a `<stem>/` template-settings subfolder next to the `.pptx` containing `brand.yml` + `theme.json` + `chrome.yml`). If it isn't, **do not register it inline** — registration is a standalone step. Stop and route the user to the standalone Register action (`slide-lab` option 7); resume this handoff once those files exist.
 
 **When the user confirms the brief, invoke the `slide-builder` skill using the Skill tool** — pass the brief path explicitly:
 

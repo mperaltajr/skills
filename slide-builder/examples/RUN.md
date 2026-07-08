@@ -4,12 +4,12 @@ This example uses `quickstart-brief.md` (4 slides) and any registered client PPT
 
 ## What you need
 
-- A registered client template — a `.pptx` file with a `<stem>/` sidecar subfolder next to it (containing `brand.yml` and `theme.json`).
+- A registered client template — a `.pptx` file with a `<stem>/` template-settings subfolder next to it (containing `brand.yml` and `theme.json`).
 - The verification step from INSTALL.md passing.
 
 ## If you don't have a registered template yet (do this first)
 
-Slide Lab can't build against a raw `.pptx`; it builds against a *registered* template (one with sidecar `brand.yml` + `theme.json` + `chrome.yml` files capturing the client's colors, fonts, layouts). Registration is a one-time chat-driven flow per template:
+Slide Lab can't build against a raw `.pptx`; it builds against a *registered* template (one with `brand.yml` + `theme.json` + `chrome.yml` template-settings files capturing the client's colors, fonts, layouts). Registration is a one-time chat-driven flow per template:
 
 ```powershell
 # Phase 1 — propose (no writes to brand.yml yet)
@@ -34,7 +34,7 @@ py -3 "$env:USERPROFILE\.claude\skills\slide-builder\scripts\register_template.p
     --picks "<path to picks.json>"
 ```
 
-That's it — your template is now registered. The sidecar files (`brand.yml`, `theme.json`, `chrome.yml`) sit in a `<stem>/` subfolder next to the `.pptx`. You only need to repeat this if the template's master/layouts change.
+That's it — your template is now registered. The template-settings files (`brand.yml`, `theme.json`, `chrome.yml`) sit in a `<stem>/` subfolder next to the `.pptx`. You only need to repeat this if the template's master/layouts change.
 
 For the full registration flow with diagrams, see SKILL.md § "Register a new client template."
 
@@ -54,7 +54,7 @@ py -3 "$skill\scripts\build_deck.py" `
     --out "$session\out"
 ```
 
-Phase 1 should print the Stage-1 sanity check (brand sidecar + slide-qc sibling), then write `slide_01/_prompt.md` through `slide_04/_prompt.md` plus `_meta.json` and `dispatch_plan.md` to `$session\out\`.
+Phase 1 should print the Stage-1 sanity check (brand settings + slide-qc sibling), then write `slide_01/_prompt.md` through `slide_04/_prompt.md` plus `_meta.json` and `dispatch_plan.md` to `$session\out\`.
 
 ## Phase 2 — dispatch agents (the part Claude does)
 
@@ -72,7 +72,7 @@ py -3 "$skill\scripts\finalize_deck.py" `
     --template "$template"
 ```
 
-This executes each `option_X.py`, grafts the produced slide onto your template, renders PNGs, and assembles fallback PPTXs for any `# FALLBACK_MERMAID:` options.
+This executes each `option_X.py`, grafts the produced slide onto your template, and renders the per-option PNGs.
 
 ## Phase 4 — visual gate
 

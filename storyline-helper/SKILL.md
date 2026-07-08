@@ -479,7 +479,7 @@ The named sub-passes below — quality gate, language pass, pushback, save, hand
 
 1. **Session folder root** — the parent directory where the dated session folder will be created. Convention: `<Client>/sessions/YYYY-MM-DD Topic Name/`.
 2. **Client name and topic** — drives the dated subfolder name and the brief filename (e.g., `Acme / Cost Baseline` → `Acme/sessions/2026-05-06 Cost Baseline/`).
-3. **Client template** — the `.pptx` that carries the client's brand. **Pick it from the list, don't guess a path:** run `py -3 slide-builder/scripts/register_template.py list` and present the registered templates as a **numbered pick-list**; the user picks one and you use its `build_template_path`. If the template they want isn't listed (or the list is empty), **stop and route the user to register it first** (the standalone Register action / `slide-lab` option 7) — registration is its own step, not something to run inline in the middle of the deck flow — then re-run `list` and pick it.
+3. **Client template** — the `.pptx` that carries the client's brand. **Pick it from the list, don't guess a path:** run `py -3 slide-builder/scripts/register_template.py list` and present the registered templates as a **numbered pick-list**; the user picks one and you use its `template_path` (the original `.pptx` — pass that as `client_template:`; the pipeline opens the normalized build copy automatically). If the template they want isn't listed (or the list is empty), **stop and route the user to register it first** (the standalone Register action / `slide-lab` option 7) — registration is its own step, not something to run inline in the middle of the deck flow — then re-run `list` and pick it.
 4. **Default content layout** — take it from the picked list entry's `default_content_layout` (or read `<stem>/theme.json::default_content_layout`). If empty, the template needs (re-)registration to capture it. Never let `build_deck.py` run with an empty default layout — that's a hard mid-build failure.
 
 **Combine the asks** — one message, four lines:
@@ -856,7 +856,7 @@ Skill tool call: `skill="slide-builder"`, args=`"[absolute path to _session/narr
 > *Handing off to Slide Builder now.*
 >
 > *Brief: `[absolute path to _session/narrative-brief-[topic].md file]`*
-> *Template: `[absolute path to .pptx template]` (registered: brand.yml + theme.json sidecars present)*
+> *Template: `[absolute path to .pptx template]` (registered: brand.yml + theme.json settings present)*
 >
 > *Slide Builder: read `reference/layouts.md` and `reference/anti-patterns.md` before dispatching per-slide workers. The brand colors come from the registered `brand.yml`; the layout catalog is `reference/layouts.md` (14 patterns + 1 fallback).*
 

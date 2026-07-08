@@ -30,16 +30,20 @@ Usage:
 Exit codes:
     0  Success.
     1  Brief file missing, unreadable, or empty.
-    2  Brief has no parseable slides.
+    2  Brief has no parseable slides (or an invalid --slide/--insert request).
     3  Client template missing.
     4  prompt.md template missing or malformed.
     5  Output directory cannot be created.
-    6  Client theme validation failed — refusing to build slides with wrong colors.
-       See validate_theme().
     7  Stage-1 sanity check failed — prerequisite missing.
        The client template is not registered (BrandSidecarMissing — run
        slide-builder/scripts/register_template.py). Halts at prep time
        before agent dispatch costs are sunk.
+    8  Template-choice confirmation aborted (the operator declined the
+       confirm-template gate).
+    9  Layout resolution failed — a slide's layout could not be resolved
+       against the template's registered layouts (emit_layout_resolution_error).
+   10  Storyline gate failed — the narrative brief did not pass the quality
+       gate (bypassed by mode: template-fill / rebuild-slice / rfp).
 
 Cross-platform note: invoke this script with sys.executable from other scripts.
 """
@@ -1758,13 +1762,25 @@ def stage1_sanity_check(template_path: Path) -> int:
                 f"  py -3 scripts/register_template.py commit  \"{template_path}\" --picks <picks.json>\n"
             )
         if not _theme_data.get("confirmed", False):
-            sys.stderr.write(
-                "WARNING: this template hasn't been confirmed by a human yet.\n"
-                "  Registration's automated self-test can miss things, so open the "
-                "mock slide in PowerPoint and confirm before relying on this template:\n"
-                f"  {_p.selftest_pptx(template_path)}\n"
-                f"  py -3 scripts/register_template.py confirm \"{template_path}\"\n"
-            )
+            _mock = _p.selftest_pptx(template_path)
+            if _mock.exists():
+                sys.stderr.write(
+                    "WARNING: this template hasn't been confirmed by a human yet.\n"
+                    "  Registration's automated self-test can miss things, so open the "
+                    "mock slide in PowerPoint and confirm before relying on this template:\n"
+                    f"  {_mock}\n"
+                    f"  py -3 scripts/register_template.py confirm \"{template_path}\"\n"
+                )
+            else:
+                sys.stderr.write(
+                    "WARNING: this template hasn't been confirmed by a human yet, and no "
+                    "mock slide was produced (registered via the legacy interactive flow, "
+                    "or the render was skipped).\n"
+                    "  Re-register via commit/commit-cli to get a mock slide to review, "
+                    "then confirm:\n"
+                    f"  py -3 scripts/register_template.py commit \"{template_path}\" --picks <picks.json>\n"
+                    f"  py -3 scripts/register_template.py confirm \"{template_path}\"\n"
+                )
     except (OSError, ValueError):
         pass  # theme.json already validated above via load_brand_sidecar
 

@@ -8,6 +8,11 @@ Produces per-template sidecars in a subfolder NEXT TO the .pptx:
     build-template.pptx   : normalized copy every build opens (sample slides +
                             named sections stripped, empty placeholders repaired);
                             the user's original .pptx is never modified
+    selftest-mock.pptx    : a real mock slide on the default layout — the user
+                            OPENS THIS IN POWERPOINT to confirm titles/subtitles
+                            land, then runs `confirm`
+    selftest-mock.png     : rendered preview of the mock slide (in-app panel)
+    brand.css             : CSS variables for the sketch (HTML) build path
     preview.pptx / .png   : 3-surface registration preview
     palette.png           : swatch grid
     register.html         : interactive picker UI
@@ -15,7 +20,7 @@ Produces per-template sidecars in a subfolder NEXT TO the .pptx:
     register.picks.json   : user's confirmed picks (when used)
     thumbnails/           : per-layout PNG thumbnails
 
-Four CLI subcommands:
+Six CLI subcommands:
 
   propose      (chat-driven flow, default for coworker setup)
   -----------------------------------------------------------------------
@@ -58,6 +63,24 @@ Four CLI subcommands:
       TTY confirmation gate. For batch registration / migration / power
       users running from a real terminal. NOT for coworkers — see `propose`
       / `commit` / `commit-cli` for the chat-driven paths.
+      NOTE: this legacy path writes brand.yml/theme.json/chrome.yml directly
+      and does NOT run the mock-page self-test, produce selftest-mock.pptx,
+      set default_content_layout, or add to the pick-list. Prefer commit /
+      commit-cli, which do all of that.
+
+  list         (print the registered-template pick-list as JSON)
+  -----------------------------------------------------------------------
+  py -3 scripts/register_template.py list
+      Self-heals first (prunes templates whose files are gone, rediscovers
+      sidecar bundles under OneDrive/Documents), then prints the registry.
+
+  confirm      (mark a template human-confirmed)
+  -----------------------------------------------------------------------
+  py -3 scripts/register_template.py confirm <template.pptx>
+      Records confirmed=true in theme.json (survives reconcile) after the
+      user has opened selftest-mock.pptx in PowerPoint and verified the
+      title/subtitle land. Until confirmed, the pick-list shows the template
+      as '(needs review)' and builds warn.
 
 Picks JSON shape (consumed by `commit`):
 

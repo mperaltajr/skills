@@ -64,7 +64,7 @@ A build needs a **registered** template, chosen *at the start* — before the us
 
 1. Run `py -3 slide-builder/scripts/register_template.py list` — it prints the registered templates as JSON (and self-heals: prunes ones whose files are gone, rediscovers a template's settings files in OneDrive/Documents).
 2. **Present them to the user as a numbered pick-list**, e.g. *"Which client template? 1) Acme — Template2  2) Globex — Deck (needs review)  …  N) Register a new one."* Show each entry's `confirmed` status — mark `confirmed: false` ones **"(needs review)"**.
-3. Route the chosen entry's **`build_template_path`** into the build (it becomes the brief's `client_template:` front-matter).
+3. Route the chosen entry's **`template_path`** (the original `.pptx`) into the build as the brief's `client_template:` front-matter. Always pass the **original** path — the pipeline opens the normalized build copy automatically (via `resolve_build_template`); the entry's `build_template_path` is informational only. Passing the copy as `client_template:` would fail the build (its sidecars live under the original stem).
 4. **If the template they want is not in the list, do NOT guess a path** — go to **option 7 (set up the template)** first, then re-run `list` and pick it. If the list is empty, the user has no registered templates yet → option 7.
 5. **If the chosen template is not yet confirmed** (`confirmed: false`), stop and have the user open its mock slide (`<stem>/selftest-mock.pptx`) in PowerPoint; once they confirm the title/subtitle land, run `register_template.py confirm <template>` before building. Don't build on an unconfirmed template.
 
