@@ -152,10 +152,14 @@ def _populate_layout_placeholders(slide, *, title=None, subtitle=None,
     vs. _strip_layout_placeholders (bespoke / cover).
     """
     from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
-    TITLE_TYPES = {1, 13}      # TITLE, CENTER_TITLE
+    # python-pptx PP_PLACEHOLDER values: TITLE=1, CENTER_TITLE=3, SUBTITLE=4,
+    # FOOTER=15, SLIDE_NUMBER=13. (Earlier code used 13 for CENTER_TITLE and 12
+    # for SLIDE_NUMBER — both wrong: 13 is the slide number, so page numbers
+    # never populated and center-title covers never matched by type.)
+    TITLE_TYPES = {1, 3}        # TITLE, CENTER_TITLE
     SUBTITLE_TYPES = {4}        # SUBTITLE
     FOOTER_TYPES = {15}         # FOOTER
-    PAGE_NUM_TYPES = {12}       # SLIDE_NUMBER (idx 12 per python-pptx enum)
+    PAGE_NUM_TYPES = {13}       # SLIDE_NUMBER
 
     found = {"title": False, "subtitle": False,
              "footer": False, "page_number": False}
@@ -199,6 +203,11 @@ def _populate_layout_placeholders(slide, *, title=None, subtitle=None,
         # Clear existing runs
         for r in list(first.runs):
             r._r.getparent().remove(r._r)
+        # Clear any auto-field (e.g. a slide-number <a:fld>) — we write literal
+        # text so it renders reliably in LibreOffice + PowerPoint (auto-number
+        # fields don't render under LibreOffice headless).
+        for fld in first._p.findall(qn("a:fld")):
+            first._p.remove(fld)
         run = first.add_run()
         run.text = str(text) if text is not None else ""
         # Controlled size (e.g. a consistent 28pt title) when the caller supplies
@@ -290,7 +299,7 @@ def _compute_body_zone(layout):
             t = int(ph.placeholder_format.type)
         except Exception:
             continue
-        if t in (1, 13) and title_bottom is None:
+        if t in (1, 3) and title_bottom is None:  # TITLE, CENTER_TITLE
             try:
                 title_bottom = int(ph.top) + int(ph.height)
             except Exception:
@@ -357,6 +366,39 @@ def _insert_dark_overlay(slide, prs, body_top_emu, body_bottom_emu, hex_color):
     # Find first shape-child index (skip nvGrpSpPr + grpSpPr at positions 0,1)
     sp_tree.insert(2, elem)
     return shape
+
+
+def clone_missing_chrome_placeholders(slide, layout):
+    """Deepcopy the SLIDE_NUMBER placeholder from `layout` onto `slide` when it
+    isn't already present.
+
+    python-pptx's ``add_slide`` clones only the title/body placeholders — it
+    skips SLIDE_NUMBER / FOOTER / DATE (treated as inherited chrome). But those
+    aren't reliably rendered from the master by LibreOffice headless, so the
+    page number silently vanished on every body-canonical build. Cloning the
+    real placeholder here lets _populate_layout_placeholders write a literal
+    page number into it (and compile_picks re-stamp it to the compile position).
+    Returns the number of placeholders cloned.
+    """
+    from copy import deepcopy
+    have = set()
+    for ph in slide.placeholders:
+        try:
+            have.add(int(ph.placeholder_format.idx))
+        except Exception:
+            continue
+    sp_tree = slide.shapes._spTree
+    cloned = 0
+    for ph in layout.placeholders:
+        try:
+            t = int(ph.placeholder_format.type)
+            idx = int(ph.placeholder_format.idx)
+        except Exception:
+            continue
+        if t == 13 and idx not in have:  # SLIDE_NUMBER
+            sp_tree.append(deepcopy(ph._element))
+            cloned += 1
+    return cloned
 
 
 def _clear_existing_slides(prs):
