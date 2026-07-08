@@ -2523,19 +2523,66 @@ def _main_interactive(args) -> int:
     return 0
 
 
+def _repair_empty_layout_placeholders(prs) -> int:
+    """Ensure every slide-layout placeholder has at least one ``<a:p>`` in its
+    text body, so content can land on inheriting slides.
+
+    Pre-empts the ``TemplatePlaceholderEmptyError`` class (twins/composer.py) —
+    the "the title/subtitle just won't show up" failure, which happens when a
+    placeholder loses its empty text line (often after being deleted + re-added
+    in PowerPoint). We repair it automatically in the build copy instead of
+    handing the user a manual PowerPoint chore. Returns the count repaired.
+    """
+    repaired = 0
+    for master in prs.slide_masters:
+        for layout in master.slide_layouts:
+            for ph in layout.placeholders:
+                sp = ph._element
+                txBody = sp.find(qn("p:txBody"))
+                if txBody is None:
+                    # No text body at all — create a minimal one.
+                    txBody = sp.makeelement(qn("p:txBody"), {})
+                    txBody.append(sp.makeelement(qn("a:bodyPr"), {}))
+                    sp.append(txBody)
+                if txBody.find(qn("a:p")) is None:
+                    txBody.append(txBody.makeelement(qn("a:p"), {}))
+                    repaired += 1
+    return repaired
+
+
 def _write_build_template_copy(tpl: Path) -> tuple[Path, str]:
     """Produce the normalized build copy at ``<stem>/build-template.pptx`` and
     return (path, sha256-of-copy).
 
     Every build opens this copy instead of the user's original so pages come
-    out consistent. Stage 3A ships a pristine duplicate; the normalize fixes
-    (strip named sections, repair empty placeholders, grow a short title box,
-    etc.) are layered onto this function in a later sub-step. The copy is ALWAYS
-    regenerated from the pristine original — never fixed on top of a prior copy —
-    so re-registration is deterministic."""
+    out consistent. This applies the SAFE, geometry-preserving normalize fixes:
+      - strip sample slides + named sections (reuse composer._clear_existing_slides,
+        which register's own local clear does NOT do), so stale section groups
+        never bleed into a deck;
+      - repair placeholders that lost their empty text line, so titles/subtitles
+        reliably show up.
+    (Geometry-changing fixes such as growing a too-short title box are applied by
+    the render-based self-test's auto-fix loop, which re-extracts chrome.)
+
+    The copy is ALWAYS regenerated from the pristine original — never fixed on
+    top of a prior copy — so re-registration is deterministic. Normalize failures
+    never fail registration: the copy stays a valid duplicate and the issue is
+    surfaced loudly.
+    """
     build_tpl = _p.build_template_pptx(tpl)
     build_tpl.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(str(tpl), str(build_tpl))
+    try:
+        from twins.composer import _clear_existing_slides
+        prs = Presentation(str(build_tpl))
+        _clear_existing_slides(prs)  # sample slides + <p:sectionLst>
+        n_repaired = _repair_empty_layout_placeholders(prs)
+        prs.save(str(build_tpl))
+        print(f"  normalized copy: stripped sample slides + sections, "
+              f"repaired {n_repaired} empty placeholder(s)")
+    except Exception as exc:  # noqa: BLE001 — never fail registration on normalize
+        print(f"  WARNING: normalize step skipped ({type(exc).__name__}: {exc}); "
+              f"the build copy is a plain duplicate of the original.")
     return build_tpl, hashlib.sha256(build_tpl.read_bytes()).hexdigest()
 
 
