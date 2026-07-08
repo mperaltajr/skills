@@ -37,7 +37,7 @@ If the request is already specific ("build me a 5-slide steering deck from this 
 
 | Choice | Route |
 |---|---|
-| 1 Build new | **storyline-helper** → coaches narrative → quality gate → emits brief → **slide-builder** → **slide-qc**. |
+| 1 Build new | **storyline-helper** → coaches narrative → quality gate → emits brief + storyline (dot-dash) → **then stops and asks whether to build**. On yes: **slide-builder** → **slide-qc**. (A user who just wants a storyline/dot-dash stops here — that's a valid finish.) |
 | 2 Work from what I have | **storyline-helper** "review &/or build" path. First ask **review or build** (see below). Review → critique + suggestions, STOP. Build → validate → emit → slide-builder. An HTML mockup is read as **reference** (its content/structure), then slides are **rebuilt on the client template** — the mockup's exact design is not copied 1:1; say so up front. |
 | 3 RFP | **rfp-helper** → proposal brief (`mode: rfp`) → slide-builder. |
 | 4 QC a deck | **slide-qc** on a built `.pptx`. Ask for the deck path if not given. |
