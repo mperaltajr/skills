@@ -281,9 +281,19 @@ Rebuild individual slides with "rebuild slide N". This re-prep + re-finalize tou
 4. Take the user's new pick for slide N; update `picks.json`.
 5. `compile_picks.py --out <out>` — rebuilds `final_deck.pptx` from every slide's themed PPTX, grafting the rebuilt slide N into place.
 
-**Insert a new slide** at position N with `build_deck.py --insert N`. First add the new slide to the brief at position N and renumber the later slide headers (the brief must have exactly one more slide than the current build). `--insert N` then shifts slides ≥ N up by one — their `slide_NN/` dirs, `_meta.json` entries, and `picks.json` keys — and preps only the new slide N; the shifted slides keep their built output under their new numbers. Then dispatch one worker for slide N, run `finalize_deck.py --slide N`, take the pick, and re-run `compile_picks.py`. (Adding a page to an *external* `.pptx` Slide Lab didn't build is a `pptx`-skill edit, not this flow — `--insert`/`--slide` only work on decks with the pipeline's `_meta.json`.)
+**Insert a new slide** at position N with `build_deck.py --insert N`. First add the new slide to the brief at position N and renumber the later slide headers (the brief must have exactly one more slide than the current build). `--insert N` then shifts slides ≥ N up by one — their `slide_NN/` dirs, `_meta.json` entries, and `picks.json` keys — and preps only the new slide N; the shifted slides keep their built output under their new numbers. Then dispatch one worker for slide N, run `finalize_deck.py --slide N`, take the pick, and re-run `compile_picks.py`. (Adding a page to an *external* `.pptx` Slide Lab didn't build is an existing-file edit — see "Edit an existing PowerPoint" below — not this flow; `--insert`/`--slide` only work on decks with the pipeline's `_meta.json`.)
 
 **If a build fails or the output is wrong:** tell the user they can type `/feedback` to capture a structured session report (the `slidelab-log` skill writes the technical detail; the user just submits the GitHub link). Offer this whenever a stage exits non-zero or the user says something looks broken.
+
+### Edit an existing PowerPoint (not built by Slide Lab)
+
+For a small change to a `.pptx` that Slide Lab did **not** build — fix a typo, swap a number, tweak or pull out some text — edit it directly with `python-pptx` (already a dependency). This is **not** a rebuild: no brief, no template registration, no options, no QC pipeline. Use it only for small text/shape tweaks on a file the user already has.
+
+- **Read / extract:** open the file, walk `slide.shapes`, read `shape.text_frame.text`.
+- **Edit text:** locate the shape (by slide index + shape name, or by matching its current text) and set `run.text` on the target run — editing the run (not `text_frame.text`) preserves the existing font, size, and color. Save to a **new** path (e.g. `<name>-edited.pptx`) unless the user explicitly asks to overwrite; never overwrite the user's file without confirming.
+- **Scope guard:** if the real ask is "make this deck good," "rebrand it," or "rebuild these slides," that is **not** an edit — route to the storyline → slide-builder pipeline so it is rebuilt on a registered template. **Never** hand-roll a whole deck from a blank `Presentation()`.
+
+Always output the full absolute path of the saved file as plain text.
 
 ### Pattern routing flag
 

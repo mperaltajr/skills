@@ -45,7 +45,7 @@ Session folder: [absolute path, or "not established"]
 [Slide type, deck topic, client if known]
 
 ## Skill(s) involved
-[storyline-helper | slide-builder | pptx | docx | xlsx — list all that ran]
+[slide-lab | storyline-helper | slide-builder | slide-qc | rfp-helper — list all that ran]
 
 ## Pipeline used
 [HTML mockup | direct python-pptx | N/A]
