@@ -479,8 +479,8 @@ The named sub-passes below — quality gate, language pass, pushback, save, hand
 
 1. **Session folder root** — the parent directory where the dated session folder will be created. Convention: `<Client>/sessions/YYYY-MM-DD Topic Name/`.
 2. **Client name and topic** — drives the dated subfolder name and the brief filename (e.g., `Acme / Cost Baseline` → `Acme/sessions/2026-05-06 Cost Baseline/`).
-3. **Client template** — the `.pptx` that carries the client's brand. Must be **registered** (have a `<stem>/` sidecar subfolder with `brand.yml` + `theme.json` + `chrome.yml`). If it's not registered, **stop and route the user to register it first** (the standalone Register action / `slide-lab` option 7) — registration is its own step, not something to run inline in the middle of the deck flow. Resume the handoff once it's registered.
-4. **Default content layout** — read `<stem>/theme.json::default_content_layout` from the registered template and surface it. If empty or template unregistered, the user picks at registration time. Never let `build_deck.py` run with an empty default layout — that's a hard mid-build failure.
+3. **Client template** — the `.pptx` that carries the client's brand. **Pick it from the list, don't guess a path:** run `py -3 slide-builder/scripts/register_template.py list` and present the registered templates as a **numbered pick-list**; the user picks one and you use its `build_template_path`. If the template they want isn't listed (or the list is empty), **stop and route the user to register it first** (the standalone Register action / `slide-lab` option 7) — registration is its own step, not something to run inline in the middle of the deck flow — then re-run `list` and pick it.
+4. **Default content layout** — take it from the picked list entry's `default_content_layout` (or read `<stem>/theme.json::default_content_layout`). If empty, the template needs (re-)registration to capture it. Never let `build_deck.py` run with an empty default layout — that's a hard mid-build failure.
 
 **Combine the asks** — one message, four lines:
 

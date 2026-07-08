@@ -43,7 +43,7 @@ If the request is already specific ("build me a 5-slide steering deck from this 
 | 4 QC a deck | **slide-qc** on a built `.pptx`. Ask for the deck path if not given. |
 | 5 Rebuild / fix / insert a slide | **slide-builder** — rebuild: `build_deck.py --slide N`; insert: `build_deck.py --insert N`; then worker → `finalize_deck.py --slide N` → `compile_picks.py`. **Only works on a deck Slide Lab built** (an `<out>/` with `_meta.json`). |
 | 6 Edit existing `.pptx` | **pptx** skill (read / extract / edit an existing file). |
-| 7 Register a template | **register_template.py** `propose` → user picks → `commit` (or `commit-cli`). Standalone, no build; writes `<stem>/` brand.yml + theme.json + chrome.yml. **Follow slide-builder's "Register a new client template" rules:** show the user the proposed colors and let them confirm — do NOT auto-accept (proposed brand colors can come out inverted), and you MUST capture the **default content layout**, or every later build fails mid-way. |
+| 7 Register a template | **register_template.py** `propose` → user picks → `commit` (or `commit-cli`). Standalone, no build; writes `<stem>/` brand.yml + theme.json + chrome.yml. A successful commit **auto-adds the template to the pick-list** (`register_template.py list`). **Follow slide-builder's "Register a new client template" rules:** show the user the proposed colors and let them confirm — do NOT auto-accept (proposed brand colors can come out inverted), and you MUST capture the **default content layout**, or every later build fails mid-way. |
 | 8 Not sure | Orientation (below), then route. |
 
 ## Disambiguator — options 2 vs 5 vs 6 all touch "a deck"
@@ -58,9 +58,16 @@ Ask ONE question before routing any "change my deck" request:
 
 Note: editing pages of an external `.pptx` Slide Lab did NOT build is the pptx skill (option 6) — the per-slide rebuild/insert (option 5) needs the pipeline's `_meta.json` and only works on decks Slide Lab produced.
 
-## Before any build path (options 1, 2, 3) — check the template is set up first
+## Before any build path (options 1, 2, 3) — pick the template from the list first
 
-A build needs a **registered** template. Confirm it's registered *at the start* — before the user does all the storyline/RFP work — not after. If its `<stem>/` sidecars are missing, do **option 7 (set up the template)** first, then come back to the build. This spares a first-timer from finishing the whole narrative only to hit a "set up your template first" wall at the end.
+A build needs a **registered** template, chosen *at the start* — before the user does all the storyline/RFP work — not after. Do this via the pick-list, never by guessing a path:
+
+1. Run `py -3 slide-builder/scripts/register_template.py list` — it prints the registered templates as JSON (and self-heals: prunes ones whose files are gone, rediscovers sidecars in OneDrive/Documents).
+2. **Present them to the user as a numbered pick-list**, e.g. *"Which client template? 1) Acme — Template2  2) Globex — Deck  …  N) Register a new one."*
+3. Route the chosen entry's **`build_template_path`** into the build (it becomes the brief's `client_template:` front-matter).
+4. **If the template they want is not in the list, do NOT guess a path** — go to **option 7 (set up the template)** first, then re-run `list` and pick it. If the list is empty, the user has no registered templates yet → option 7.
+
+Picking at the start spares a first-timer from finishing the whole narrative only to hit a "set up your template first" wall at the end.
 
 ## Orientation — option 8 ("not sure")
 

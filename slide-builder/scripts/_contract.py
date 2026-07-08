@@ -933,10 +933,15 @@ def _registered_template_search_roots() -> tuple[Path, ...]:
     return tuple(roots)
 
 
-def _opportunistic_chrome_yml_pairs() -> list[tuple[Path, Path]]:
+def _opportunistic_chrome_yml_pairs(cap: int = 8,
+                                    max_depth: int = 5) -> list[tuple[Path, Path]]:
     """Find (chrome.yml, sibling .pptx) pairs under the search roots.
     Returns []; the disk scan is best-effort + bounded — we don't want the
     contract test to take minutes scanning a large file tree.
+
+    `cap` and `max_depth` bound the scan. The defaults (8 / 5) suit the
+    diagnostic contract test. The template-registry reconciler passes a higher
+    cap so a real template library isn't silently truncated at 8 templates.
 
     Subfolder layout: chrome.yml lives at `<template-parent>/<stem>/chrome.yml`,
     sibling .pptx is at `<template-parent>/<stem>.pptx`. The older flat
@@ -952,7 +957,7 @@ def _opportunistic_chrome_yml_pairs() -> list[tuple[Path, Path]]:
             # Subfolder layout: <stem>/chrome.yml
             for chrome_yml in root.rglob("chrome.yml"):
                 depth = len(chrome_yml.relative_to(root).parts)
-                if depth > 5:
+                if depth > max_depth:
                     continue
                 # Sibling .pptx lives one level up, named <stem>.pptx where
                 # <stem> is the parent dir name.
@@ -962,12 +967,12 @@ def _opportunistic_chrome_yml_pairs() -> list[tuple[Path, Path]]:
                     pptx_sibling = chrome_yml.parent.parent / f"{stem}.potx"
                 if pptx_sibling.exists():
                     pairs.append((chrome_yml, pptx_sibling))
-                if len(pairs) >= 8:
+                if len(pairs) >= cap:
                     return pairs
             # Legacy flat layout fallback: <stem>.chrome.yml + <stem>.pptx
             for chrome_yml in root.rglob("*.chrome.yml"):
                 depth = len(chrome_yml.relative_to(root).parts)
-                if depth > 5:
+                if depth > max_depth:
                     continue
                 stem = chrome_yml.name[:-len(".chrome.yml")]
                 pptx_sibling = chrome_yml.with_name(f"{stem}.pptx")
@@ -975,7 +980,7 @@ def _opportunistic_chrome_yml_pairs() -> list[tuple[Path, Path]]:
                     pptx_sibling = chrome_yml.with_name(f"{stem}.potx")
                 if pptx_sibling.exists():
                     pairs.append((chrome_yml, pptx_sibling))
-                if len(pairs) >= 8:
+                if len(pairs) >= cap:
                     return pairs
         except (PermissionError, OSError):
             continue
