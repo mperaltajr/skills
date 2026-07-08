@@ -401,6 +401,30 @@ def clone_missing_chrome_placeholders(slide, layout):
     return cloned
 
 
+def remove_empty_placeholders(slide) -> int:
+    """Remove inherited placeholders left empty after population.
+
+    Body-canonical grafts draw the slide's body as free-floating shapes, so the
+    layout's content placeholder stays empty — and PowerPoint shows its
+    'Click to add text' prompt in edit mode (harmless in slideshow/export, but it
+    looks unfinished when the user opens the deck). Populated placeholders
+    (title, subtitle, page number) are non-empty and kept. Returns the count
+    removed.
+    """
+    removed = 0
+    for ph in list(slide.placeholders):
+        try:
+            txt = (ph.text_frame.text or "").strip() if ph.has_text_frame else ""
+        except Exception:
+            txt = ""
+        if not txt:
+            parent = ph._element.getparent()
+            if parent is not None:
+                parent.remove(ph._element)
+                removed += 1
+    return removed
+
+
 def _clear_existing_slides(prs):
     """Remove any slides already present in the presentation (client
     templates often ship with sample slides we don't want) AND remove
