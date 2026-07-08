@@ -239,6 +239,23 @@ def build_template_pptx(template_pptx: Path) -> Path:
     return template_sidecar_dir(template_pptx) / "build-template.pptx"
 
 
+def selftest_pptx(template_pptx: Path) -> Path:
+    """<sidecar-dir>/selftest-mock.pptx — a real mock slide the registration
+    self-test builds on the default content layout, kept so the USER can OPEN
+    IT IN POWERPOINT and confirm titles/subtitles land + fit before building
+    (the automated self-test can miss things; PowerPoint is the real check).
+    Writer: register_template.py commit. Readers: (user opens it)."""
+    return template_sidecar_dir(template_pptx) / "selftest-mock.pptx"
+
+
+def selftest_png(template_pptx: Path) -> Path:
+    """<sidecar-dir>/selftest-mock.png — a rendered preview of the mock page
+    (for the in-app preview panel). The .pptx (selftest_pptx) is the real
+    confirmation artifact the user opens in PowerPoint.
+    Writer: register_template.py commit. Readers: (user opens it)."""
+    return template_sidecar_dir(template_pptx) / "selftest-mock.png"
+
+
 def brand_css(template_pptx: Path) -> Path:
     """<sidecar-dir>/brand.css — CSS-variables sidecar for the sketch path.
 
@@ -369,6 +386,8 @@ ARTIFACT_MANIFEST: list[dict] = [
     {"name": "chrome_yml",                "writer": "register_template.py",  "readers": ["finalize_deck.py", "build_deck.py"]},
     {"name": "build_template_pptx",       "writer": "register_template.py",  "readers": ["finalize_deck.py", "compile_picks.py"], "accepted": True, "reason": "Opened via twins/client_theme.py:resolve_build_template (lazy _paths import the contract grep can't detect); readers pass args.template and the resolver swaps in this copy."},
     {"name": "brand_css",                 "writer": "register_template.py",  "readers": [], "accepted": True, "reason": "Sketch-path foundation; no reader until the HTML render path is wired. Pure ADD — presence does not affect the python-pptx pipeline."},
+    {"name": "selftest_pptx",             "writer": "register_template.py",  "readers": [], "accepted": True, "reason": "Registration self-test mock slide — opened by the user in PowerPoint to confirm titles/subtitles land; no pipeline reader."},
+    {"name": "selftest_png",              "writer": "register_template.py",  "readers": [], "accepted": True, "reason": "Rendered preview of the self-test mock page for the in-app preview panel; no pipeline reader."},
     {"name": "chrome_commit_method_txt",  "writer": "register_template.py",  "readers": [], "accepted": True, "reason": "Operator audit only — no pipeline reader"},
     {"name": "preview_pptx",              "writer": "register_template.py",  "readers": [], "accepted": True, "reason": "Registration UI artifact — opened in chat preview"},
     {"name": "preview_png",               "writer": "register_template.py",  "readers": [], "accepted": True, "reason": "Registration UI artifact"},

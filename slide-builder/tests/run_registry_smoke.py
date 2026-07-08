@@ -30,6 +30,7 @@ sys.path.insert(0, str(SCRIPTS))
 import run_layout_inheritance_smoke as fixture  # reuse fixture template + registration
 import _registry
 import _contract
+import _paths as _p
 
 
 def main() -> int:
@@ -73,6 +74,17 @@ def main() -> int:
         _registry.add_or_update(_registry._entry_from_template(tpl))
         assert len(_registry.load_registry()["templates"]) == 1
         print("    ok: still 1 entry after re-add")
+
+        print("[3b] confirmed flag reflects theme.json (survives reconcile)")
+        assert entry["confirmed"] is False, "new registration should be unconfirmed"
+        import json as _json
+        tj = _p.theme_json(tpl)
+        _d = _json.loads(tj.read_text(encoding="utf-8"))
+        _d["confirmed"] = True
+        _d["confirmed_at"] = "2026-07-08T00:00:00+00:00"
+        tj.write_text(_json.dumps(_d, indent=2), encoding="utf-8")
+        assert _registry._entry_from_template(tpl)["confirmed"] is True, "confirm not picked up"
+        print("    ok: unconfirmed by default; confirm flag read from theme.json")
 
         print("[4] reconcile() prunes a vanished entry, keeps the real one")
         _registry.add_or_update({"template_path": str(tmp / "ghost.pptx"),

@@ -1755,6 +1755,14 @@ def stage1_sanity_check(template_path: Path) -> int:
                 f"  py -3 scripts/register_template.py propose \"{template_path}\"\n"
                 f"  py -3 scripts/register_template.py commit  \"{template_path}\" --picks <picks.json>\n"
             )
+        if not _theme_data.get("confirmed", False):
+            sys.stderr.write(
+                "WARNING: this template hasn't been confirmed by a human yet.\n"
+                "  Registration's automated self-test can miss things, so open the "
+                "mock slide in PowerPoint and confirm before relying on this template:\n"
+                f"  {_p.selftest_pptx(template_path)}\n"
+                f"  py -3 scripts/register_template.py confirm \"{template_path}\"\n"
+            )
     except (OSError, ValueError):
         pass  # theme.json already validated above via load_brand_sidecar
 

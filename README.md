@@ -144,7 +144,11 @@ Before the first build on a new template, register it so Claude learns its brand
 Register my template at _templates/client-template.pptx
 ```
 
-Claude walks you through confirming the brand colors (it proposes them from the template; you correct anything wrong), then writes a small set of sidecar files next to the template. As part of registration it also saves a **cleaned copy** of your template that every build runs on — sample slides and stray named sections removed, placeholders repaired so titles and subtitles reliably show up — and **tests it by building a mock page** to confirm the title/subtitle land before you rely on it. Your original `.pptx` is never modified. **This is required once per template** — if you skip it and start a build, Claude will stop and ask you to register first. Re-registering is only needed if the template itself changes.
+Claude walks you through confirming the brand colors (it proposes them from the template; you correct anything wrong), then writes a small set of sidecar files next to the template. As part of registration it also saves a **cleaned copy** of your template that every build runs on — sample slides and stray named sections removed, placeholders repaired so titles and subtitles reliably show up. Your original `.pptx` is never modified.
+
+Registration then builds a real **mock slide** (`selftest-mock.pptx`, next to your template) on your default layout. **Open it in PowerPoint and confirm the title and subtitle appear correctly and fit** — the automated check can pass when something is still off, so this human look is required. When it looks right, tell Claude to confirm it (it runs `register_template.py confirm`). Until you confirm, the template shows as **"(needs review)"** in your pick-list and builds will warn.
+
+**This is required once per template** — if you skip it and start a build, Claude will stop and ask you to register first. Re-registering is only needed if the template itself changes.
 
 Once registered, a template joins your **pick-list**: the next time you start a deck, Claude shows you your registered templates to choose from instead of asking for a file path. The list keeps itself current — it drops templates whose files have moved or been deleted, and finds ones that sync over from OneDrive — so you don't have to remember paths.
 
