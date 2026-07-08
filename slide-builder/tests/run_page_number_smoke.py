@@ -28,7 +28,8 @@ sys.path.insert(0, str(SKILL_ROOT / "scripts"))  # for scripts-local imports
 
 from pptx import Presentation
 from pptx.oxml.ns import qn
-from twins.composer import clone_missing_chrome_placeholders, _populate_layout_placeholders
+from twins.composer import (clone_missing_chrome_placeholders,
+                            _populate_layout_placeholders, remove_empty_placeholders)
 
 SLIDE_NUMBER = 13
 
@@ -65,6 +66,14 @@ def main() -> int:
     flds = ph._element.findall(".//" + qn("a:fld"))
     assert not flds, f"auto-field left in slide-number placeholder ({len(flds)})"
     print("    ok: slide number = '7', no auto-field")
+
+    print("[4] remove_empty_placeholders drops empty prompts, keeps populated ones")
+    remove_empty_placeholders(slide)
+    assert _has_slide_number_ph(slide), "removed the populated slide-number placeholder!"
+    for ph in slide.placeholders:
+        assert (ph.text_frame.text or "").strip() if ph.has_text_frame else False, \
+            f"empty placeholder survived (would show 'Click to add'): idx {ph.placeholder_format.idx}"
+    print("    ok: empty placeholders removed; populated slide-number kept")
 
     print("\nSMOKE PASSED.")
     return 0

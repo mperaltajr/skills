@@ -54,6 +54,7 @@ from twins.composer import (  # noqa: E402
     _find_blank_layout,
     _find_named_layout,
     _strip_layout_placeholders,
+    remove_empty_placeholders,
 )
 
 
@@ -160,6 +161,11 @@ def copy_picked_slide_into(dst_prs, src_pptx: Path,
     # (type, idx), and when two exist for the same key, drop the empty one.
     if _is_body_canonical:
         _dedupe_placeholder_duplicates(new_slide)
+        # Drop any inherited placeholder left empty (e.g. the layout's content
+        # placeholder — the body renders as free-floating shapes) so PowerPoint
+        # doesn't show its 'Click to add text' prompt in edit mode. Runs AFTER
+        # dedupe so the populated title/slide-number survive.
+        remove_empty_placeholders(new_slide)
     if page_position is not None:
         _restamp_page_number(new_slide, page_position)
     return count

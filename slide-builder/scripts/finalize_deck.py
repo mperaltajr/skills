@@ -82,6 +82,7 @@ from twins.composer import (  # noqa: E402
     _find_named_layout,
     _strip_layout_placeholders,
     clone_missing_chrome_placeholders,
+    remove_empty_placeholders,
     TemplatePlaceholderEmptyError,
 )
 from _chrome_schema import (  # noqa: E402
@@ -1582,6 +1583,11 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
                 f"subtitle_placeholder_idx set), or omit the subtitle field if "
                 f"this slide intentionally has no takeaway."
             )
+
+    # Drop any inherited placeholder left empty after population (e.g. the
+    # layout's content placeholder — the body is drawn as free-floating shapes),
+    # so PowerPoint doesn't show a 'Click to add text' prompt in edit mode.
+    remove_empty_placeholders(new_slide)
 
 
 def _has_free_floating_subtitle(slide) -> bool:
