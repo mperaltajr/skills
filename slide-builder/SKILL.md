@@ -289,7 +289,7 @@ Rebuild individual slides with "rebuild slide N". This re-prep + re-finalize tou
 
 For a small change to a `.pptx` that Slide Lab did **not** build — fix a typo, swap a number, tweak or pull out some text — edit it directly with `python-pptx` (already a dependency). This is **not** a rebuild: no brief, no template registration, no options, no QC pipeline. Use it only for small text/shape tweaks on a file the user already has.
 
-- **Read / extract:** open the file, walk `slide.shapes`, read `shape.text_frame.text`.
+- **Read / extract:** open the file, walk `slide.shapes`, and for each shape guard with `if shape.has_text_frame:` before reading `shape.text_frame.text` (pictures, lines, and connectors have no text frame and raise otherwise).
 - **Edit text:** locate the shape (by slide index + shape name, or by matching its current text) and set `run.text` on the target run — editing the run (not `text_frame.text`) preserves the existing font, size, and color. Save to a **new** path (e.g. `<name>-edited.pptx`) unless the user explicitly asks to overwrite; never overwrite the user's file without confirming.
 - **Scope guard:** if the real ask is "make this deck good," "rebrand it," or "rebuild these slides," that is **not** an edit — route to the storyline → slide-builder pipeline so it is rebuilt on a registered template. **Never** hand-roll a whole deck from a blank `Presentation()`.
 

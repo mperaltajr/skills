@@ -23,11 +23,11 @@ Acme Corp executive team. Currently believe quarterly churn requires bigger mark
 
 ### Slide 1 — Q3 Churn: A Product-Fit Signal
 
-**Archetype:** Cover / Title
+**Slide type:** Cover / Title
 
 **Governing thought (the claim):** Q3's churn spike is a product-fit signal, not a marketing-spend gap.
 
-**So-what (the takeaway):** Set the frame — this deck reframes churn as a product problem.
+**The takeaway:** Set the frame — this deck reframes churn as a product problem.
 
 **Editorial emphasis:** the conclusion — the cover wordmark carries the deck's argument.
 
@@ -43,11 +43,11 @@ Acme Corp executive team. Currently believe quarterly churn requires bigger mark
 
 ### Slide 2 — Churn jumped 38% in Q3 — but the cause isn't where you'd expect
 
-**Archetype:** Synthesis / Findings
+**Slide type:** Synthesis / Findings
 
 **Governing thought (the claim):** 72% of Q3 churn cancelled within 14 days of signup — the failure point is onboarding, not renewal.
 
-**So-what (the takeaway):** Acme's instinct is to escalate marketing spend. The data argues the opposite: churn is concentrated in the first 14 days, which means the product-onboarding flow is the failure point.
+**The takeaway:** Acme's instinct is to escalate marketing spend. The data argues the opposite: churn is concentrated in the first 14 days, which means the product-onboarding flow is the failure point.
 
 **Editorial emphasis:** the numbers — 38%, 72%, and the flat 6-month cohort are the load-bearing claims.
 
@@ -61,11 +61,11 @@ Acme Corp executive team. Currently believe quarterly churn requires bigger mark
 
 ### Slide 3 — Two paths: brand spend vs. product investment
 
-**Archetype:** Recommendation
+**Slide type:** Recommendation
 
 **Governing thought (the claim):** The brand-spend path buys one quarter of cover; the product-investment path permanently closes the gap.
 
-**So-what (the takeaway):** Doubling down on brand compounds the underlying defect. The product-investment path is two quarters slower but permanently fixes the activation problem.
+**The takeaway:** Doubling down on brand compounds the underlying defect. The product-investment path is two quarters slower but permanently fixes the activation problem.
 
 **Editorial emphasis:** the contrast — Path A vs Path B side-by-side, with Path B's permanent fix dominating.
 
@@ -78,11 +78,11 @@ Acme Corp executive team. Currently believe quarterly churn requires bigger mark
 
 ### Slide 4 — Reallocate $4M to product investment
 
-**Archetype:** Decision / Ask
+**Slide type:** Decision / Ask
 
 **Governing thought (the claim):** Halt the planned Q4 brand push and redirect the budget to the 14-day onboarding flow.
 
-**So-what (the takeaway):** Q4 budget decision required by 2026-11-15. The recommendation is to halt Path A and fund Path B in full.
+**The takeaway:** Q4 budget decision required by 2026-11-15. The recommendation is to halt Path A and fund Path B in full.
 
 **Editorial emphasis:** the ask — Path B funded, Path A halted, decision date stamped.
 
