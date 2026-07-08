@@ -1552,16 +1552,51 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
             f"default_content_layout points to a body-canonical layout."
         )
     if src_subtitle and not found.get("subtitle"):
-        raise SubtitleDropError(
-            f"slide {slide_n}: subtitle text supplied ({len(src_subtitle)} chars) "
-            f"but layout {layout_name!r} has no SUBTITLE placeholder to host it.\n"
-            f"  This is the silent-drop bug class — the takeaway for this slide "
-            f"would have been invisibly dropped.\n"
-            f"  Recovery: pick a body-canonical layout for this slide (edit "
-            f"_meta.json slides[].layout to a layout with "
-            f"subtitle_placeholder_idx set), or omit the subtitle field if "
-            f"this slide intentionally has no takeaway."
-        )
+        # No subtitle PLACEHOLDER matched. For a body-canonical layout with
+        # subtitle_placeholder_idx == None this is the DESIGNED case, not a
+        # drop: the takeaway renders as a free-floating line at the canonical
+        # subtitle position (helpers.add_title_block). The direct path's worker
+        # already drew + grafted that shape; the sketch/meta path has not. So
+        # ensure the free-floating subtitle is present and do NOT raise — the
+        # takeaway is not being dropped. (Bespoke layouts, or a body-canonical
+        # layout that DID register a subtitle idx we couldn't match, still fail
+        # loud below.)
+        _sub_idx = getattr(layout_chrome, "subtitle_placeholder_idx", None)
+        _is_body_canon = getattr(layout_chrome, "layout_class", None) == "body-canonical"
+        if _is_body_canon and _sub_idx is None:
+            if not _has_free_floating_subtitle(new_slide):
+                from twins.helpers import add_title_block
+                # title="" — the title placeholder was already populated above;
+                # add_title_block only draws the free-floating subtitle here.
+                add_title_block(new_slide, "", src_subtitle, chrome=layout_chrome)
+        else:
+            raise SubtitleDropError(
+                f"slide {slide_n}: subtitle text supplied ({len(src_subtitle)} chars) "
+                f"but layout {layout_name!r} has no SUBTITLE placeholder to host it.\n"
+                f"  This is the silent-drop bug class — the takeaway for this slide "
+                f"would have been invisibly dropped.\n"
+                f"  Recovery: pick a body-canonical layout for this slide (edit "
+                f"_meta.json slides[].layout to a layout with "
+                f"subtitle_placeholder_idx set), or omit the subtitle field if "
+                f"this slide intentionally has no takeaway."
+            )
+
+
+def _has_free_floating_subtitle(slide) -> bool:
+    """True if the slide already carries a free-floating (non-placeholder)
+    subtitle textbox — the shape helpers.add_title_block draws (named
+    'subtitle') when a layout has no subtitle placeholder. Used to avoid
+    double-drawing the takeaway on the direct path (worker already drew it)."""
+    for sh in slide.shapes:
+        try:
+            if sh.is_placeholder:
+                continue
+        except Exception:
+            pass
+        name = (getattr(sh, "name", "") or "").lower()
+        if name.startswith("subtitle") and getattr(sh, "has_text_frame", False):
+            return True
+    return False
 
 
 class TitleDropError(RuntimeError):
