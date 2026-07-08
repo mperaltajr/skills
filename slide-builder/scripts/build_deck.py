@@ -129,11 +129,13 @@ DECK_NOTES_RE = re.compile(
 # Bold-labeled field lines: **Label:** value (one-line)  OR  **Label:**\nblock
 FIELD_LABELS = {
     "title":               ("slide title",),
-    "archetype":           ("archetype",),
+    # "slide type" is the user-facing label; "archetype" still parses (older briefs).
+    "archetype":           ("slide type", "archetype"),
     "layout":              ("layout",),  #
     "variant":             ("variant",),  # "dark" triggers dark-background variant
     "governing_thought":   ("governing thought", "governing thought (the claim)"),
-    "so_what":             ("so-what", "so what", "so-what (the takeaway)"),
+    # "the takeaway" is the user-facing label; "so-what" variants still parse.
+    "so_what":             ("the takeaway", "so-what", "so what", "so-what (the takeaway)"),
     "editorial_emphasis":  ("editorial emphasis",),
     "evidence_content":    ("evidence", "evidence / content", "evidence/content", "content"),
     "chart_type":          ("chart type",),
@@ -893,7 +895,7 @@ CONTEXT_TEMPLATE = """# Slide {slide_n} — Worker context bundle
 - **Title wrap:** if the title renders to >2 lines at the registered font
   size, the slide drops its subtitle automatically.
   Implication: keep titles to ≤2 visual lines; if a 3-line title is
-  intentional, the subtitle/so-what won't render.
+  intentional, the subtitle/takeaway won't render.
 - **Subtitle fit:** ~130 chars at 16pt in a ~12.5"×0.39" box. Above ~130
   chars the subtitle will wrap and crowd the body zone.
 - **Accent placement:** legends go right-aligned below the sub-headline

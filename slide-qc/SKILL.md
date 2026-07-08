@@ -68,7 +68,7 @@ Parse this and hold the violations in memory. They will be merged with the visua
 **What this script intentionally does NOT catch** (left to the visual pass at Step 5 because they require resolved rendering):
 - Missing footer or page number — master / layout inheritance is not visible at slide level
 - Overflow, overlap, clipping — visual only
-- Font size drift across same-archetype slides — visual only
+- Font size drift across same-slide type slides — visual only
 - Color contrast — visual only
 
 If the script errors out (file not found, malformed PPTX), do not continue to Step 3 — report the error and ask the user to confirm the PPTX path.
@@ -154,7 +154,7 @@ For each slide, in addition to the per-zone walkthrough, evaluate these categori
 | **Unreadable overlap** | Critical | Text obscured by another element so it cannot be read |
 | **Background contrast** | Critical | White text on white background; same-color-on-same-color violations that hide content |
 | **Action title content** | Major | Title missing on a non-cover slide; title is a topic label not an action title (refer to storyline brief if available) |
-| **Font size drift across same archetype** | Major | Slide N title is materially different size from slide M title where both are the same archetype |
+| **Font size drift across same slide type** | Major | Slide N title is materially different size from slide M title where both are the same slide type |
 | **Missing footer / page number** | Major | No footer or page number on a non-cover slide (the visual pass catches this because rendered output resolves master inheritance) |
 | **Chart axis missing unit** | Major | Y-axis labeled "Value" / "Amount" with no unit — is it $M, count, percent? |
 | **Mixed icon styles within deck** | Major | Flat icons on some slides, outline on others, emoji elsewhere |
@@ -174,10 +174,10 @@ After all per-slide checks, scan for consistency issues that only appear when co
 
 | Check | Severity | What to flag |
 |---|---|---|
-| **Typography drift across deck** | Major | Title sizes vary across slides of the same archetype; body text sizes drift |
+| **Typography drift across deck** | Major | Title sizes vary across slides of the same slide type; body text sizes drift |
 | **Footer drift** | Major | Same confidentiality / client name should appear on all non-cover slides; if it changes, flag |
 | **Color palette drift** | Major | A slide uses an off-brand color without semantic reason |
-| **Layout drift for same archetype** | Major | Two Analytical slides have noticeably different layouts; two Risk slides structured differently |
+| **Layout drift for same slide type** | Major | Two Analytical slides have noticeably different layouts; two Risk slides structured differently |
 
 Cross-slide findings get tagged to the slide(s) where they appear in the final table — not as a separate "cross-deck" section.
 
@@ -221,7 +221,7 @@ Want me to fix all of these in one pass?
 
 [Each Major addressed in turn — same conversational prompt, with one or two concrete fix suggestions. Example:]
 
-Slide 4 — title is 28pt but Slide 1 (same archetype) is 32pt.
+Slide 4 — title is 28pt but Slide 1 (same slide type) is 32pt.
 Suggestions: resize Slide 4 to 32pt, or resize Slide 1 to match Slide 4. Or tell me why you want to ship it as-is and I'll record your reason.
 ```
 

@@ -393,11 +393,16 @@ def parse_brief_for_dot_dash(brief_text: str) -> Dict[str, Any]:
     blocks = _split_slides(brief_text)
     slides: List[Dict[str, Any]] = []
     for block in blocks:
-        archetype = _extract_field(block, "Archetype")
-        # The brief stores so-what under either header form depending on
-        # the slide kind. Try the canonical first, then the cover-shortened.
+        # "Slide type" is the current label; "Archetype" still parses (older briefs).
+        archetype = (
+            _extract_field(block, "Slide type")
+            or _extract_field(block, "Archetype")
+        )
+        # The brief stores the takeaway under a few header forms depending on
+        # the slide kind + brief vintage. Try current label first, then legacy.
         so_what = (
-            _extract_field(block, "So-what (the takeaway)")
+            _extract_field(block, "The takeaway")
+            or _extract_field(block, "So-what (the takeaway)")
             or _extract_field(block, "So-what")
         )
         # Cover/transition placeholder text ("[Cover slide — no so-what required]")

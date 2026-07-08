@@ -172,7 +172,7 @@ stays visible for the human and QC without polluting the slide.
 |---|---|
 | Section name | `### Slide N — <section name>` header |
 | Opening claim | `**Governing thought (the claim):**` |
-| Win theme echo | `**So-what (the takeaway):**` |
+| Win theme echo | `**The takeaway:**` |
 | Proof points | `**Evidence / content:**` bullets, each as `**HEADING** — body.` |
 | "Why us" / Full marks | folded into Evidence as labeled bullets (so they render on the slide) |
 | Evaluation criterion / Weight | kept as bold fields (parser ignores; visible for scoring) |
@@ -216,7 +216,7 @@ win_theme: [1–2 word differentiator]
 
 **Governing thought (the claim):** [the section's opening claim — the single governing statement]
 
-**So-what (the takeaway):** [how this section reinforces the win theme — the belief it drives]
+**The takeaway:** [how this section reinforces the win theme — the belief it drives]
 
 **Evidence / content:**
 - **[PROOF POINT LABEL]** — [specific engagement / number / tool / person].

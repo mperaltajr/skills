@@ -60,11 +60,11 @@ Acme Corp executive team. Currently believe quarterly churn requires bigger mark
 
 ### Slide 2 — Churn jumped 38% in Q3 — but the cause isn't where you'd expect
 
-**Archetype:** Synthesis / Findings
+**Slide type:** Synthesis / Findings
 
 **Governing thought (the claim):** 72% of Q3 churn cancelled within 14 days of signup — the failure point is onboarding, not renewal.
 
-**So-what (the takeaway):** Acme's instinct is to escalate marketing spend. The data argues the opposite: churn is concentrated in the first 14 days.
+**The takeaway:** Acme's instinct is to escalate marketing spend. The data argues the opposite: churn is concentrated in the first 14 days.
 
 **Editorial emphasis:** the numbers — 38%, 72%, and the flat 6-month cohort are the load-bearing claims.
 
@@ -79,7 +79,7 @@ Field reference:
 
 - **Front matter (YAML, deck-level):** `deck_type`, `audience`, `governing_thought` (the deck's single argument), `client_name` (drives template lookup), `client_template` (absolute path to the registered `.pptx`).
 - **Slide header line:** `### Slide N — <Title>` (H3, with title separated by em-dash, en-dash, or colon). The title is required on the header line — the parser pulls it from there, not from a body field.
-- **Per-slide bold-labeled fields:** `**Archetype:**`, `**Governing thought (the claim):**`, `**So-what (the takeaway):**`, `**Editorial emphasis:**`, `**Evidence / content:**`, `**What this slide is NOT:**`, `**Chart type:**`. Labels are case-insensitive. Field values can be inline (`**Label:** text`) or block (`**Label:**\nmulti-line text`).
+- **Per-slide bold-labeled fields:** `**Slide type:**`, `**Governing thought (the claim):**`, `**The takeaway:**`, `**Editorial emphasis:**`, `**Evidence / content:**`, `**What this slide is NOT:**`, `**Chart type:**`. Labels are case-insensitive. Field values can be inline (`**Label:** text`) or block (`**Label:**\nmulti-line text`).
 - **Evidence bullets:** every bullet should use `- **HEADING** — body sentence` so the worker can lift the bold heading into a card/column/pillar label and the body into the supporting text. Loose prose bullets work but produce less-structured slides.
 - **Editorial emphasis vocabulary (closed list):** `recommend`, `warn`, `diagnose`, `show urgency`, `show progress`, `compare neutrally`, `summarize`. The worker uses this to tilt at least one of the three options toward the directive.
 
@@ -396,6 +396,6 @@ variant_seed      = md5(content_hash + slide_n + option_letter)       # picks va
 
 `option_letter` is part of `variant_seed` so the three sibling options on the same slide pick different variants; without it, all three siblings would land on the same variant.
 
-`content_hash` is locked at prep time by `build_deck.py` from the brief's governing thought + so-what + evidence content. Brief edits do not re-shuffle pattern picks within unchanged slides because `content_hash` absorbs only the meaning-carrying fields, not formatting changes.
+`content_hash` is locked at prep time by `build_deck.py` from the brief's governing thought + takeaway + evidence content. Brief edits do not re-shuffle pattern picks within unchanged slides because `content_hash` absorbs only the meaning-carrying fields, not formatting changes.
 
 `pattern_pick_seed` also serves as the tiebreaker when multiple patterns fit the brief equally well — see **Build flow § Classifier** above.

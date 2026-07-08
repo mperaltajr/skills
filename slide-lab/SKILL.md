@@ -62,7 +62,7 @@ Note: editing pages of an external `.pptx` Slide Lab did NOT build is option 6 (
 
 A build needs a **registered** template, chosen *at the start* — before the user does all the storyline/RFP work — not after. Do this via the pick-list, never by guessing a path:
 
-1. Run `py -3 slide-builder/scripts/register_template.py list` — it prints the registered templates as JSON (and self-heals: prunes ones whose files are gone, rediscovers sidecars in OneDrive/Documents).
+1. Run `py -3 slide-builder/scripts/register_template.py list` — it prints the registered templates as JSON (and self-heals: prunes ones whose files are gone, rediscovers a template's settings files in OneDrive/Documents).
 2. **Present them to the user as a numbered pick-list**, e.g. *"Which client template? 1) Acme — Template2  2) Globex — Deck (needs review)  …  N) Register a new one."* Show each entry's `confirmed` status — mark `confirmed: false` ones **"(needs review)"**.
 3. Route the chosen entry's **`build_template_path`** into the build (it becomes the brief's `client_template:` front-matter).
 4. **If the template they want is not in the list, do NOT guess a path** — go to **option 7 (set up the template)** first, then re-run `list` and pick it. If the list is empty, the user has no registered templates yet → option 7.

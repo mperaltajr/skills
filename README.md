@@ -143,7 +143,7 @@ Before the first build on a new template, register it so Claude learns its brand
 Register my template at _templates/client-template.pptx
 ```
 
-Claude walks you through confirming the brand colors (it proposes them from the template; you correct anything wrong), then writes a small set of sidecar files next to the template. As part of registration it also saves a **cleaned copy** of your template that every build runs on — sample slides and stray named sections removed, placeholders repaired so titles and subtitles reliably show up. Your original `.pptx` is never modified.
+Claude walks you through confirming the brand colors (it proposes them from the template; you correct anything wrong), then writes a small set of template settings files next to the template. As part of registration it also saves a **cleaned copy** of your template that every build runs on — sample slides and stray named sections removed, placeholders repaired so titles and subtitles reliably show up. Your original `.pptx` is never modified.
 
 Registration then builds a real **mock slide** (`selftest-mock.pptx`, next to your template) on your default layout. **Open it in PowerPoint and confirm the title and subtitle appear correctly and fit** — the automated check can pass when something is still off, so this human look is required. When it looks right, tell Claude to confirm it (it runs `register_template.py confirm`). Until you confirm, the template shows as **"(needs review)"** in your pick-list and builds will warn.
 
