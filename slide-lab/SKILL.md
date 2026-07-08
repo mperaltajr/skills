@@ -1,6 +1,6 @@
 ---
 name: slide-lab
-description: "Front door for ALL deck and PowerPoint work in Slide Lab. Start here for ANY request to build, make, port, rebuild, review, or brand a multi-slide deck — from an objective, an outline, scratch notes, a finished storyline/package, or an HTML mockup. NEVER hand-roll python-pptx from a blank Presentation and NEVER use the generic pptx skill for a branded or narrative deck — that is the documented failure path (wrong template, tiny fonts, no review). Presents the user a menu and routes: new narrative → storyline-helper; already-written storyline/package or HTML mockup → storyline-helper's review-and/or-build path, then slide-builder (build on the client template's real layouts); RFP/proposal → rfp-helper; rebuild/insert a slide in a deck Slide Lab built → slide-builder; read or edit an existing .pptx → the pptx skill; register a client template (one-time, standalone) → register_template; QC of a built deck → slide-qc. A deck is not done until slide-qc has run."
+description: "Front door for ALL deck and PowerPoint work in Slide Lab. Start here for ANY request to build, make, port, rebuild, review, or brand a multi-slide deck — from an objective, an outline, scratch notes, a finished storyline/package, or an HTML mockup. NEVER hand-roll a deck from a blank python-pptx Presentation for a branded or narrative deck — that is the documented failure path (wrong template, tiny fonts, no review). Presents the user a menu and routes: new narrative → storyline-helper; already-written storyline/package or HTML mockup → storyline-helper's review-and/or-build path, then slide-builder (build on the client template's real layouts); RFP/proposal → rfp-helper; rebuild/insert a slide in a deck Slide Lab built → slide-builder; read or edit an existing .pptx Slide Lab didn't build → slide-builder's 'edit an existing PowerPoint' mode; register a client template (one-time, standalone) → register_template; QC of a built deck → slide-qc. A deck is not done until slide-qc has run."
 ---
 
 # Slide Lab — front door
@@ -42,7 +42,7 @@ If the request is already specific ("build me a 5-slide steering deck from this 
 | 3 RFP | **rfp-helper** → proposal brief (`mode: rfp`) → slide-builder. |
 | 4 QC a deck | **slide-qc** on a built `.pptx`. Ask for the deck path if not given. |
 | 5 Rebuild / fix / insert a slide | **slide-builder** — rebuild: `build_deck.py --slide N`; insert: `build_deck.py --insert N`; then worker → `finalize_deck.py --slide N` → `compile_picks.py`. **Only works on a deck Slide Lab built** (an `<out>/` with `_meta.json`). |
-| 6 Edit existing `.pptx` | **pptx** skill (read / extract / edit an existing file). |
+| 6 Edit existing `.pptx` | **slide-builder** — "Edit an existing PowerPoint" mode: open the file with python-pptx, tweak/extract text, save a copy. For small text/shape tweaks only; if the real ask is a rebuild/rebrand, route to option 1/2 so it's built on a registered template. |
 | 7 Register a template | **register_template.py** `propose` → user picks → `commit` (or `commit-cli`). Standalone, no build; writes `<stem>/` brand.yml + theme.json + chrome.yml, saves a normalized `build-template.pptx` every build opens (original never touched), and builds a real **mock slide** (`<stem>/selftest-mock.pptx`) on the default layout. **Registration is NOT done until the user opens that mock slide in PowerPoint, confirms the title/subtitle land + fit, and you run `register_template.py confirm <template>`** — the automated self-test can pass when something is still off, so a human check is required. A commit auto-adds the template to the pick-list (`register_template.py list`) marked **"(needs review)"** until confirmed. | **Follow slide-builder's "Register a new client template" rules:** show the user the proposed colors and let them confirm — do NOT auto-accept (proposed brand colors can come out inverted), and you MUST capture the **default content layout**, or every later build fails mid-way. |
 | 8 Not sure | Orientation (below), then route. |
 
@@ -54,9 +54,9 @@ Ask ONE question before routing any "change my deck" request:
 
 - **Slide Lab built it**, want to change/add slides → **option 5** (rebuild slide N, or insert a new slide N).
 - **Material not yet built** (storyline/outline/HTML mockup, or an external deck to base a new build on) → **option 2** (review/refine, then build).
-- **Just edit an existing `.pptx` file** directly (text/format tweaks), not rebuild → **option 6** (pptx skill).
+- **Just edit an existing `.pptx` file** directly (text/format tweaks), not rebuild → **option 6** (slide-builder's "Edit an existing PowerPoint" mode).
 
-Note: editing pages of an external `.pptx` Slide Lab did NOT build is the pptx skill (option 6) — the per-slide rebuild/insert (option 5) needs the pipeline's `_meta.json` and only works on decks Slide Lab produced.
+Note: editing pages of an external `.pptx` Slide Lab did NOT build is option 6 (slide-builder's edit mode) — the per-slide rebuild/insert (option 5) needs the pipeline's `_meta.json` and only works on decks Slide Lab produced.
 
 ## Before any build path (options 1, 2, 3) — pick the template from the list first
 
