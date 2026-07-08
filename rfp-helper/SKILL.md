@@ -40,8 +40,14 @@ Collect three things before coaching begins:
 
 > *"Three things before we start:*
 > *1. Session folder path (e.g., `ClientName/sessions/YYYY-MM-DD RFP Topic/`)*
-> *2. Path to the client's PowerPoint template*
+> *2. Which client template — I'll show you your registered ones to pick from*
 > *3. The RFP document — paste it in, or give me a file path. I need to read the required sections, page/slide limits, evaluation criteria, and weightings before we structure anything."*
+
+For the template, run `py -3 slide-builder/scripts/register_template.py list` and present the
+result as a **numbered pick-list** of registered templates; the user picks one and you use its
+`build_template_path`. If the template they want isn't listed (or the list is empty), do NOT
+guess a path — route them to the standalone Register step (`slide-lab` option 7) first, then
+re-list and pick.
 
 Read the RFP in full. Extract and confirm:
 - Required sections and their order

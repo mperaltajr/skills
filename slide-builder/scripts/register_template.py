@@ -3799,6 +3799,18 @@ def _commit_from_picks_dict(tpl: Path, picks: dict, *, source: str) -> int:
     # building real decks.
     if not _post_commit_smoke(tpl):
         return 3
+
+    # Add / refresh this template in the machine-local pick-list so the front
+    # door can offer it. Best-effort: a registry write must never fail an
+    # otherwise-good registration — the reconcile-on-read path is the backstop.
+    try:
+        import _registry
+        _registry.add_or_update(_registry._entry_from_template(tpl))
+        print(f"  pick-list:   {_registry.REGISTRY_PATH}")
+    except Exception as exc:  # noqa: BLE001 — never fail registration on index write
+        print(f"  WARNING: template registered on disk but the pick-list index "
+              f"update failed ({type(exc).__name__}: {exc}). It will be "
+              f"re-indexed automatically the next time the list is loaded.")
     return 0
 
 
@@ -4119,6 +4131,10 @@ def main() -> int:
     p_int.add_argument("--auto-accept-phase1", action="store_true",
         help="Skip interactive confirmation; write brand.yml using Phase-1 best-guesses.")
 
+    p_list = sub.add_parser("list",
+        help="Print the registered-template pick-list as JSON. Self-heals first "
+             "(prunes missing templates, rediscovers sidecars in OneDrive/Documents).")
+
     args = ap.parse_args()
     if args.cmd == "propose":
         return _main_propose(args)
@@ -4128,6 +4144,10 @@ def main() -> int:
         return _main_commit_cli(args)
     if args.cmd == "interactive":
         return _main_interactive(args)
+    if args.cmd == "list":
+        import _registry
+        print(json.dumps(_registry.list_templates(), indent=2))
+        return 0
     ap.print_help()
     return 2
 

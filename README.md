@@ -146,6 +146,8 @@ Register my template at _templates/client-template.pptx
 
 Claude walks you through confirming the brand colors (it proposes them from the template; you correct anything wrong), then writes a small set of sidecar files next to the template. **This is required once per template** — if you skip it and start a build, Claude will stop and ask you to register first. Re-registering is only needed if the template itself changes.
 
+Once registered, a template joins your **pick-list**: the next time you start a deck, Claude shows you your registered templates to choose from instead of asking for a file path. The list keeps itself current — it drops templates whose files have moved or been deleted, and finds ones that sync over from OneDrive — so you don't have to remember paths.
+
 ---
 
 ## Getting Started
