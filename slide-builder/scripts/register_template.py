@@ -3261,6 +3261,7 @@ def _extract_body_zone_for_canonical(layout) -> dict:
     subtitle_idx = None
     title_bottom_px = None
     footer_top_px = None
+    title_box = None  # (x, y, w, h) px of the title placeholder, when available
     for ph in layout.placeholders:
         try:
             pf = ph.placeholder_format
@@ -3275,6 +3276,17 @@ def _extract_body_zone_for_canonical(layout) -> dict:
                 title_bottom_px = _emu_to_px(int(ph.top) + int(ph.height))
             except Exception:
                 pass
+            # Capture the title placeholder's full geometry so the takeaway line
+            # can render as wide as the title (matched per-template, not a fixed
+            # canonical guess). Left None when the geometry is inherited from the
+            # master and unreadable on the layout — helpers fall back to canonical.
+            try:
+                title_box = (
+                    _emu_to_px(int(ph.left)), _emu_to_px(int(ph.top)),
+                    _emu_to_px(int(ph.width)), _emu_to_px(int(ph.height)),
+                )
+            except Exception:
+                title_box = None
         if t == 4 and subtitle_idx is None:
             subtitle_idx = idx
         if t == 15 and footer_top_px is None:
@@ -3286,12 +3298,22 @@ def _extract_body_zone_for_canonical(layout) -> dict:
         title_bottom_px = CANONICAL_BODY_TOP_Y
     if footer_top_px is None:
         footer_top_px = CANONICAL_BODY_BOTTOM_Y
-    return {
+    fields = {
         "title_placeholder_idx": title_idx,
         "subtitle_placeholder_idx": subtitle_idx,
         "body_top_y_px": int(title_bottom_px),
         "body_bottom_y_px": int(footer_top_px),
+        # Controlled title size for body-canonical content slides — every deck's
+        # titles render at a consistent 28pt regardless of the master's inherited
+        # size. finalize applies this when populating the title placeholder.
+        "title_font_pt": 28,
     }
+    if title_box is not None:
+        fields["title_box_x_px"] = title_box[0]
+        fields["title_box_y_px"] = title_box[1]
+        fields["title_box_width_px"] = title_box[2]
+        fields["title_box_height_px"] = title_box[3]
+    return fields
 
 
 def _propose_layout_chromes(prs, classifications_override: dict[str, str] | None = None
@@ -3363,6 +3385,13 @@ def _propose_layout_chromes(prs, classifications_override: dict[str, str] | None
                 body_top_y_px=inherit_fields["body_top_y_px"],
                 body_bottom_y_px=inherit_fields["body_bottom_y_px"],
                 body_overlay_hex=inherit_fields["body_overlay_hex"],
+                # body-canonical title geometry + controlled size (absent for
+                # bespoke → .get() yields None)
+                title_font_pt=inherit_fields.get("title_font_pt"),
+                title_box_x_px=inherit_fields.get("title_box_x_px"),
+                title_box_y_px=inherit_fields.get("title_box_y_px"),
+                title_box_width_px=inherit_fields.get("title_box_width_px"),
+                title_box_height_px=inherit_fields.get("title_box_height_px"),
             )
     return out
 
@@ -4022,6 +4051,7 @@ def _render_mock_page_selftest(tpl: Path) -> tuple[list[str], list[str]]:
         found = _populate_layout_placeholders(
             slide, title=TITLE, subtitle=SUB, footer=None, page_num="7",
             title_idx=title_idx, subtitle_idx=subtitle_idx,
+            title_font_pt=getattr(lc, "title_font_pt", None),
         )
     except TemplatePlaceholderEmptyError as exc:
         return ([f"a placeholder on layout {layout_name!r} has no text line even "

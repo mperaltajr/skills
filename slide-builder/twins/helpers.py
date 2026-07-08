@@ -44,6 +44,7 @@ from _chrome_schema import (  # noqa: E402
     canonical_title_box, canonical_subtitle_box,
     canonical_footnote_box, canonical_source_box, canonical_page_number_box,
     CANONICAL_TITLE_X, CANONICAL_TITLE_FONT_PT, CANONICAL_SUBTITLE_FONT_PT,
+    CANONICAL_SUBTITLE_H,
     CANONICAL_FOOTNOTE_FONT_PX, CANONICAL_SOURCE_FONT_PX,
     CANONICAL_PAGE_NUMBER_FONT_PX,
     CANONICAL_BODY_TOP_Y, CANONICAL_BODY_BOTTOM_Y,
@@ -710,6 +711,24 @@ def add_footer(slide, page_num, source=None, footnote=None, *,
         )
 
 
+def _subtitle_geom_for(chrome):
+    """(x, y, w, h, font_pt) for the free-floating takeaway line.
+
+    When the layout recorded the title placeholder's geometry (body-canonical
+    templates registered with the title-box fields), the takeaway spans the SAME
+    x + width as the title — so it renders as wide as the title, just below it.
+    Falls back to the canonical subtitle box when that geometry isn't available.
+    """
+    tx = getattr(chrome, "title_box_x_px", None)
+    tw = getattr(chrome, "title_box_width_px", None)
+    ty = getattr(chrome, "title_box_y_px", None)
+    th = getattr(chrome, "title_box_height_px", None)
+    if None not in (tx, tw, ty, th):
+        return tx, ty + th + 8, tw, CANONICAL_SUBTITLE_H, CANONICAL_SUBTITLE_FONT_PT
+    b = canonical_subtitle_box()
+    return b.x_px, b.y_px, b.w_px, b.h_px, (b.font_pt or CANONICAL_SUBTITLE_FONT_PT)
+
+
 def add_title_block(slide, title, subtitle="", *,
                     chrome: LayoutChrome | None = None):
     """Title + optional subtitle. Positions and text colors come from chrome.
@@ -755,13 +774,12 @@ def add_title_block(slide, title, subtitle="", *,
             # and italic=True. The template's subtitle styling (color, font,
             # italic, weight) is defined in the layout's <a:defRPr> cascade;
             # passing None lets it inherit. Only position + size come from
-            # chrome.yml; everything else defers to the template.
-            subtitle_box = _chrome_box_for(chrome, "subtitle")
+            # chrome.yml; everything else defers to the template. The takeaway
+            # spans the title's width when the layout recorded it.
+            sx, sy, sw, sh, sfp = _subtitle_geom_for(chrome)
             add_text(
                 slide, "subtitle", subtitle,
-                x_px=subtitle_box.x_px, y_px=subtitle_box.y_px,
-                w_px=subtitle_box.w_px, h_px=subtitle_box.h_px,
-                font_size_pt=subtitle_box.font_pt or CANONICAL_SUBTITLE_FONT_PT,
+                x_px=sx, y_px=sy, w_px=sw, h_px=sh, font_size_pt=sfp,
             )
         return None
 
@@ -784,12 +802,16 @@ def add_title_block(slide, title, subtitle="", *,
             return
         # Defect 3 fix (2026-06-15): drop hardcoded color/italic. Subtitle
         # styling comes from the layout's <a:defRPr> cascade now.
-        subtitle_box = _chrome_box_for(chrome, "subtitle")
+        if chrome.layout_class == "bespoke" and chrome.subtitle is not None:
+            subtitle_box = chrome.subtitle
+            sx, sy, sw, sh = (subtitle_box.x_px, subtitle_box.y_px,
+                              subtitle_box.w_px, subtitle_box.h_px)
+            sfp = subtitle_box.font_pt or CANONICAL_SUBTITLE_FONT_PT
+        else:
+            sx, sy, sw, sh, sfp = _subtitle_geom_for(chrome)
         add_text(
             slide, "subtitle", subtitle,
-            x_px=subtitle_box.x_px, y_px=subtitle_box.y_px,
-            w_px=subtitle_box.w_px, h_px=subtitle_box.h_px,
-            font_size_pt=subtitle_box.font_pt or CANONICAL_SUBTITLE_FONT_PT,
+            x_px=sx, y_px=sy, w_px=sw, h_px=sh, font_size_pt=sfp,
         )
 
 

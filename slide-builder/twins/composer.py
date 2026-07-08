@@ -33,6 +33,7 @@ from __future__ import annotations
 import re
 
 from pptx.oxml.ns import qn
+from pptx.util import Pt
 
 
 class TemplatePlaceholderEmptyError(RuntimeError):
@@ -128,7 +129,8 @@ def _strip_layout_placeholders(slide, *, keep_master_shapes: bool = False) -> in
 
 def _populate_layout_placeholders(slide, *, title=None, subtitle=None,
                                    footer=None, page_num=None,
-                                   title_idx=None, subtitle_idx=None):
+                                   title_idx=None, subtitle_idx=None,
+                                   title_font_pt=None):
     """Write text into the slide's inherited layout placeholders.
 
     For body-canonical grafts: instead of stripping the layout's title/footer/
@@ -158,7 +160,7 @@ def _populate_layout_placeholders(slide, *, title=None, subtitle=None,
     found = {"title": False, "subtitle": False,
              "footer": False, "page_number": False}
 
-    def _write(ph, text, *, anchor_bottom: bool = False):
+    def _write(ph, text, *, anchor_bottom: bool = False, font_pt=None):
         tf = ph.text_frame
         # Replace existing paragraph text in the first paragraph; clear extras.
         if not tf.paragraphs:
@@ -199,6 +201,14 @@ def _populate_layout_placeholders(slide, *, title=None, subtitle=None,
             r._r.getparent().remove(r._r)
         run = first.add_run()
         run.text = str(text) if text is not None else ""
+        # Controlled size (e.g. a consistent 28pt title) when the caller supplies
+        # one; otherwise leave the run size unset so the template's placeholder
+        # cascade governs.
+        if font_pt:
+            try:
+                run.font.size = Pt(font_pt)
+            except Exception:
+                pass
         # Defect 4 fix (2026-06-15 CDIO QBR feedback): enforce
         # feedback_title_bottom_anchor on placeholder-populated titles too.
         # Without this, the inherited title placeholder uses the layout's
@@ -220,7 +230,7 @@ def _populate_layout_placeholders(slide, *, title=None, subtitle=None,
         for ph in list(slide.placeholders):
             try:
                 if ph.placeholder_format.idx == title_idx:
-                    _write(ph, title, anchor_bottom=True)
+                    _write(ph, title, anchor_bottom=True, font_pt=title_font_pt)
                     found["title"] = True
                     break
             except Exception:
@@ -243,7 +253,7 @@ def _populate_layout_placeholders(slide, *, title=None, subtitle=None,
             continue
         if title is not None and not found["title"] and t in TITLE_TYPES:
             # Title gets bottom-anchor invariant per feedback_title_bottom_anchor.
-            _write(ph, title, anchor_bottom=True)
+            _write(ph, title, anchor_bottom=True, font_pt=title_font_pt)
             found["title"] = True
             continue
         if subtitle is not None and not found["subtitle"] and t in SUBTITLE_TYPES:
