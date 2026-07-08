@@ -1739,6 +1739,25 @@ def stage1_sanity_check(template_path: Path) -> int:
         )
         return 7
 
+    # Check (a.3): if theme.json records a normalized build copy, it should be
+    # on disk — finalize/compile build on it. A missing copy is non-fatal (the
+    # resolver falls back to the original) but it means builds won't get the
+    # normalized template, so surface it rather than silently degrade.
+    try:
+        _theme_data = json.loads(_p.theme_json(template_path).read_text(encoding="utf-8"))
+        _btp = (_theme_data.get("build_template_path") or "").strip()
+        if _btp and not Path(_btp).exists():
+            sys.stderr.write(
+                "WARNING: this template's normalized build copy is missing.\n"
+                f"  Expected at: {_btp}\n"
+                "  Builds will fall back to the original template. Re-register to "
+                "regenerate the copy:\n"
+                f"  py -3 scripts/register_template.py propose \"{template_path}\"\n"
+                f"  py -3 scripts/register_template.py commit  \"{template_path}\" --picks <picks.json>\n"
+            )
+    except (OSError, ValueError):
+        pass  # theme.json already validated above via load_brand_sidecar
+
     # Check (b): slide-qc sibling skill installed at the expected path.
     # finalize_deck.py imports render_slides from slide-qc; without it,
     # Stage 3 cascades into a confusing ImportError hours into the build.

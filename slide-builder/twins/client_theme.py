@@ -249,6 +249,37 @@ def sidecar_paths(template_path: Path) -> tuple:
     return (_p.brand_yml(template_path), _p.theme_json(template_path))
 
 
+def resolve_build_template(original_template: Path) -> Path:
+    """Return the .pptx a build should OPEN for this registered template.
+
+    Registration saves a normalized "build copy" next to the sidecars and
+    records it in ``theme.json::build_template_path``; builds open that copy so
+    every deck comes out consistent, while ALL sidecar lookups stay keyed off
+    the ORIGINAL stem. Falls back to the original when no copy is recorded
+    (legacy / un-normalized templates) or the recorded copy is missing.
+
+    Rail: if handed a path that already lives inside a sidecar dir (i.e. the
+    build copy itself, whose parent contains theme.json), return it unchanged —
+    never try to re-resolve it, which would key sidecars off a phantom
+    ``<build-template>/`` folder.
+    """
+    original_template = Path(original_template)
+    # A real template's sidecars live in a SUBfolder (`<stem>/theme.json`), so
+    # theme.json is NOT next to the .pptx. The build copy lives INSIDE that
+    # subfolder, so theme.json IS next to it — use that to detect + bail.
+    if (original_template.parent / "theme.json").exists():
+        return original_template
+    _brand, theme_json = sidecar_paths(original_template)
+    try:
+        data = json.loads(theme_json.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return original_template
+    btp = (data.get("build_template_path") or "").strip()
+    if btp and Path(btp).exists():
+        return Path(btp)
+    return original_template
+
+
 class BrandSidecarMissing(FileNotFoundError):
     """Raised when brand.yml or theme.json is missing next to a template."""
     pass

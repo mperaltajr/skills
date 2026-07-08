@@ -392,7 +392,13 @@ def main() -> int:
     print("=" * 72)
 
     print("\n[1] Open template + clear existing slides + sections")
-    dst_prs = Presentation(str(template_path))
+    # Open the normalized build copy when registration made one; sidecar lookups
+    # below stay keyed off the ORIGINAL template_path.
+    from twins.client_theme import resolve_build_template  # noqa: E402
+    build_template_path = resolve_build_template(template_path)
+    if build_template_path != template_path:
+        print(f"  building on normalized copy: {build_template_path}")
+    dst_prs = Presentation(str(build_template_path))
     _clear_existing_slides(dst_prs)
 
     # Load brand.yml to honor strip_master_backgrounds. When false (the
