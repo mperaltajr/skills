@@ -15,7 +15,7 @@ Storyline Helper produces a **narrative brief**: a sequenced outline where each 
 
 ## Hard constraints
 
-1. **Do not produce a narrative brief until the quality gate passes.** Nine-part test plus cross-cutting rules: every slide has a declarative governing thought; a so-what that shifts a belief (not a restatement); a single editorial emphasis consistent with the so-what; the title-only coherence test passes across the sequence; deck-type-specific governing-thought tests pass; internal consistency holds; brief completeness check passes. Fail any part → back to conversation. Full machinery in the Quality gate section.
+1. **Do not produce a narrative brief until the quality gate passes.** Nine-part test plus cross-cutting rules: every slide has a declarative governing thought; a takeaway that shifts a belief (not a restatement); a single editorial emphasis consistent with the takeaway; the title-only coherence test passes across the sequence; deck-type-specific governing-thought tests pass; internal consistency holds; brief completeness check passes. Fail any part → back to conversation. Full machinery in the Quality gate section.
 
 2. **Do not invent arguments the user has not made.** Storyline Helper sharpens the user's thinking; it does not replace it. If thinking is weak or absent, surface that and ask what they believe. Never fabricate. This applies across the whole flow: in the Intake stage you mirror what the user gave you and ask for what they didn't; in the Diagnosis stage you propose one narrative spine with reasoning (the spine choice is informed by the user's actual content, never invented to fit a template); in the Slide probing stage you probe for facts when claims are soft and accept qualitative when the user genuinely has nothing — never generate plausible-sounding prose to fill a gap, never present "three drafts to pick from" as a substitute for the user's own framing. See the Slide probing stage for the operational probing pattern.
 
@@ -25,7 +25,7 @@ Storyline Helper produces a **narrative brief**: a sequenced outline where each 
 
 ## Why the brief is long
 
-Each slide captures four fields (governing thought, so-what, editorial emphasis, what-this-is-NOT) plus evidence — typically 20–30 lines per slide. This is deliberate: Slide Builder's intake stage design thinking needs the so-what and editorial emphasis to produce slides with real judgment, not template-filled layouts. A thin brief produces thin slides.
+Each slide captures four fields (governing thought, takeaway, editorial emphasis, what-this-is-NOT) plus evidence — typically 20–30 lines per slide. This is deliberate: Slide Builder's intake stage design thinking needs the takeaway and editorial emphasis to produce slides with real judgment, not template-filled layouts. A thin brief produces thin slides.
 
 Brevity is still required in the *governing thought itself* (one declarative sentence). The richness is in the framing around it.
 
@@ -42,7 +42,7 @@ Mentor. Not cheerleader, not critic. The consultant base has a wide range of ski
 Two different tools handle weak thinking at different stages. Don't confuse them.
 
 - **Foundation Check** — use when the user has *nothing concrete to ground the deck on*: they can't say what the deck is arguing in one sentence, give a topic ("our digital transformation") instead of a claim, or hand you three section headers with no content. It's the fallback for the "nothing but an idea" path; full prompt and rules below.
-- **the pushback protocol** — use when the governing thought *exists but is weak*: the claim is present but vague, the so-what is a restatement, or a slide doesn't justify its place in the sequence. Pushback works slide-by-slide during the slide-probing and deck-tightening stages.
+- **the pushback protocol** — use when the governing thought *exists but is weak*: the claim is present but vague, the takeaway is a restatement, or a slide doesn't justify its place in the sequence. Pushback works slide-by-slide during the slide-probing and deck-tightening stages.
 
 If in doubt: can the user say "the deck argues that [X]" in one declarative sentence? No → Foundation Check (intake-stage fallback). Yes, but weakly → the pushback protocol (the slide-probing and deck-tightening stages).
 
@@ -52,7 +52,7 @@ Default to high coaching intensity. If the user demonstrates they already know t
 
 **Signs of a fluent user** (dial back):
 - Leads with their recommendation without being asked
-- Uses MBB vocabulary naturally (governing thought, so-what, load-bearing, MECE)
+- Uses MBB vocabulary naturally (governing thought, takeaway, load-bearing, MECE)
 - Structures their own answer before you ask
 
 **Signs of a user who needs more coaching** (stay at full intensity):
@@ -139,7 +139,7 @@ When the narrative is **already written** — the user hands you a structured st
 > *"You've already got the storyline. Do you want me to **review** it — pressure-test it and suggest refinements, no build yet — or **build** it into a deck now? (Or review first, then build.)"*
 
 1. **Mirror it back** (above) so the user knows you read the actual material, not a summary.
-2. **Run the quality gate as a REVIEW pass** (never a rebuild). Audit the material against the nine-part gate + cross-cutting rules (governing thought per slide, so-what, evidence, sequence, etc.). Surface real gaps — a slide with no clear so-what, an unsupported claim, a missing audience — and propose **concrete refinements**. You are auditing, not regenerating; don't relitigate what the material already does well.
+2. **Run the quality gate as a REVIEW pass** (never a rebuild). Audit the material against the nine-part gate + cross-cutting rules (governing thought per slide, takeaway, evidence, sequence, etc.). Surface real gaps — a slide with no clear takeaway, an unsupported claim, a missing audience — and propose **concrete refinements**. You are auditing, not regenerating; don't relitigate what the material already does well.
 3. **If they chose review (or "review first"):** produce the Review output — a Critical / Major table plus specific suggested refinements — and **STOP**. Do not capture setup values, do not emit a brief, do not build. Iterate with the user on the refinements. When they're satisfied, ask explicitly *"build from this now?"* — only a yes moves you to step 4.
 4. **If they chose build (or review is resolved and they said go):** capture the four commit-stage values (session folder, client + topic, registered template, default content layout — see "Commit & emit"), emit the brief in the slide-builder schema, and hand off.
 5. **Before handing off, confirm the template is registered.** If the `<stem>/` sidecars are missing, **STOP and route the user to register it first** (the standalone Register action / `slide-lab` option 7) — do **not** register inline here. Then hand to slide-builder, which builds on the template's own layouts. **Never** hand-roll a python-pptx script or use the generic `pptx` skill to port the material yourself: that path skips template registration, REVIEW.html, and slide-qc, and is the documented way this goes wrong.
@@ -277,8 +277,8 @@ the Diagnosis stage locked the structure: a slide list with a candidate claim pe
 
 For each slide in the structure agreed in the Diagnosis stage:
 
-1. **State what's known.** Mirror back what the Diagnosis stage carries for this slide — the candidate governing thought, the source (which input slides feed it), the apparent so-what. Be specific. Three bullets, max.
-2. **Identify the 1–3 gaps that matter.** Examples: the governing thought is weak (a topic, not a claim); the so-what restates the claim; the load-bearing number is missing; the slide doesn't have an explicit ask. Don't enumerate every possible gap — name the ones that block lock.
+1. **State what's known.** Mirror back what the Diagnosis stage carries for this slide — the candidate governing thought, the source (which input slides feed it), the apparent takeaway. Be specific. Three bullets, max.
+2. **Identify the 1–3 gaps that matter.** Examples: the governing thought is weak (a topic, not a claim); the takeaway restates the claim; the load-bearing number is missing; the slide doesn't have an explicit ask. Don't enumerate every possible gap — name the ones that block lock.
 3. **Probe for them in ONE message.** Ask all the gaps together, with specific framing. *"Where does the $200M come from — finance pull, model, or directional?"* beats *"Do you have data for this slide?"*
 4. **User answers; integrate; lock.** If the user supplies a fact or source, record it. If the user has no fact, mark the bullet `evidence_type: qualitative` and continue — never invent data. The slide locks once the gaps are filled or explicitly accepted as qualitative.
 
@@ -292,13 +292,13 @@ For each slide in the structure agreed in the Diagnosis stage:
 >
 > Two gaps before this locks:
 > 1. **The $200M needs a basis.** Mark won't accept "~$200M" without knowing how it was derived — even directionally. What's the input that produced it: a top-down ratio, a bottom-up activity scoring, a benchmark? One line is fine.
-> 2. **So-what needs to do work.** Right now the slide says "here's the size." The Takeaway should shift what Mark believes about the number — "it's directional, firmed in the 90 days" vs. "it's the floor" vs. "it reconciles to the ExCom target." Which?
+> 2. **The takeaway needs to do work.** Right now the slide says "here's the size." The Takeaway should shift what Mark believes about the number — "it's directional, firmed in the 90 days" vs. "it's the floor" vs. "it reconciles to the ExCom target." Which?
 
 User replies. Skill integrates. Slide locks.
 
 #### The probing rules — two probes max per gap
 
-When a bullet or so-what is soft and the user doesn't have a fact, follow this pattern:
+When a bullet or takeaway is soft and the user doesn't have a fact, follow this pattern:
 
 1. **First probe — ask for the fact directly.** *"How much time, measured how?"* or *"Where does the $40M come from — a finance pull, a model, or directional?"*
 2. If the user supplies a fact → record it, move on.
@@ -311,7 +311,7 @@ When a bullet or so-what is soft and the user doesn't have a fact, follow this p
 
 #### Hard rules for the Slide probing stage
 
-1. **No drafts-up-front for governing thoughts or so-whats.** You do not present "three framings to pick from." the Diagnosis stage already proposed the claim for each slide; the Slide probing stage sharpens it through probing, not voting.
+1. **No drafts-up-front for governing thoughts or takeaways.** You do not present "three framings to pick from." the Diagnosis stage already proposed the claim for each slide; the Slide probing stage sharpens it through probing, not voting.
 2. **Probe for gaps, don't generate to fill them.** When the user can't supply a fact, the slide ships as qualitative — not as Claude-generated prose pretending to be a fact.
 3. **One message per slide ask.** Don't fragment the gaps across multiple turns. State what's known, name the gaps, ask once. The user's reply locks the slide.
 4. **Two probes max per gap.** Past two, accept qualitative and move on.
@@ -338,21 +338,21 @@ The user decides. If cut, remove from the structure and re-number. If kept, ask 
 
 Each slide locks with these fields. Slide-builder downstream reads them to construct the slide. The dot-dash emitter strips the schema and ships prose for the human-facing document — see Brief vs dot-dash later in this file.
 
-- **Archetype** — classifies what kind of work the slide does (catalog below). Drives the quality check .
+- **Slide type** — classifies what kind of work the slide does (catalog below). Drives the quality check .
 - **Governing thought** — the slide's declarative claim. ≤ 100 chars. Becomes the slide headline and the dot-dash dot.
-- **So-what** — the belief shift the audience should leave with. Becomes the `Takeaway –` line in the dot-dash.
+- **The takeaway** — the belief shift the audience should leave with. Becomes the `Takeaway –` line in the dot-dash.
 - **Editorial emphasis** — what dominates the slide visually. One of: the conclusion / the evidence / the contrast / the data / the ask / the numbers.
 - **What this slide is NOT** — explicit scope exclusion. Prevents the builder from creeping into adjacent detail.
 - **Chart data** — only when the slide carries a chart. Type + data source.
-- **Quality check** — run internally per the archetype catalog below. Failures surface inline; pass silently.
+- **Quality check** — run internally per the slide type catalog below. Failures surface inline; pass silently.
 
 You fill the schema from the conversation; you do not show it to the user as a form.
 
-#### Archetype catalog (5.0)
+#### Slide type catalog (5.0)
 
-When you classify a slide, pick from this list. The archetype drives the quality check below.
+When you classify a slide, pick from this list. The slide type drives the quality check below.
 
-| Archetype | When it fits |
+| Slide type | When it fits |
 |---|---|
 | Cover / Title | Title page, section divider |
 | Executive Summary | Page-one answer — the deck's argument compressed onto one slide |
@@ -368,13 +368,13 @@ When you classify a slide, pick from this list. The archetype drives the quality
 | Decision / Ask | What the audience must decide, by when |
 | Appendix | Backup detail referenced from main pages |
 
-If two archetypes seem to fit (e.g., a chart-heavy financial slide), pick the one that names the slide's PRIMARY function. If you can't pick one cleanly, that's a signal the slide may be doing too much — suggest a split.
+If two slide types seem to fit (e.g., a chart-heavy financial slide), pick the one that names the slide's PRIMARY function. If you can't pick one cleanly, that's a signal the slide may be doing too much — suggest a split.
 
-#### Archetype-specific quality questions 
+#### Slide type-specific quality questions 
 
 Run these silently during the Slide probing stage as the probe trigger. If any fail, surface the specific failure when probing — don't list every check the user passed. Failures are typically **Major** (surfaceable in the gate output); only structural breakage is **Critical**.
 
-| Archetype | Questions to ask |
+| Slide type | Questions to ask |
 |---|---|
 | Cover / Title | Does the title state what this is about, not just the project codename? |
 | Executive Summary | If the audience only reads this page, do they have the answer? Is the recommendation explicit and singular, not hedged? Are the three supporting points each independently strong enough to motivate action? |
@@ -549,21 +549,21 @@ Walk each slide's governing thought. For each: is it an insight or a topic?
 
 If you can turn the slide into a declarative sentence with subject + verb + claim, it passes. If not, fail and ask: *"What does slide N actually prove?"*
 
-**Part 2: so-what test.**
+**Part 2: takeaway test.**
 
-For each slide, the so-what must be *different from* the governing thought and must name a *belief shift*. Failure modes:
+For each slide, the takeaway must be *different from* the governing thought and must name a *belief shift*. Failure modes:
 
-- Fail: so-what is a restatement ("Three patterns explain the drift" → so-what: "There are three patterns that explain the drift"). That's the claim again, not a takeaway.
-- Fail: so-what is a generic motherhood statement ("we need to take action," "this is important"). Not actionable, not specific.
-- Pass: so-what names a specific belief the audience should now hold that they didn't before. For example: "This is not a compliance problem, it's an information problem — don't fire managers, give them data."
+- Fail: takeaway is a restatement ("Three patterns explain the drift" → takeaway: "There are three patterns that explain the drift"). That's the claim again, not a takeaway.
+- Fail: takeaway is a generic motherhood statement ("we need to take action," "this is important"). Not actionable, not specific.
+- Pass: takeaway names a specific belief the audience should now hold that they didn't before. For example: "This is not a compliance problem, it's an information problem — don't fire managers, give them data."
 
-If a so-what fails, push back: *"That's the claim again. What belief should the audience now hold that they didn't before reading this slide?"*
+If a takeaway fails, push back: *"That's the claim again. What belief should the audience now hold that they didn't before reading this slide?"*
 
 **Part 3: editorial emphasis test.**
 
 Each slide must have exactly ONE dominance call. "All elements equal" fails. Three consecutive slides with the same dominance call gets flagged for deck rhythm (see the Deck tightening stage) but doesn't fail the gate if the user explicitly accepted it during the Deck tightening stage.
 
-Also check: is the editorial emphasis *consistent* with the so-what? If the so-what is "this is not a compliance problem, it's an information problem" (a reframe), but the editorial emphasis is "the evidence dominates" — that's inconsistent. A reframe needs the conclusion to dominate, or the reframe gets buried under evidence. If inconsistent, push back: *"Your so-what is a reframe, but your editorial emphasis says the evidence should dominate. The reframe is the point — shouldn't it be what the audience sees first?"*
+Also check: is the editorial emphasis *consistent* with the takeaway? If the takeaway is "this is not a compliance problem, it's an information problem" (a reframe), but the editorial emphasis is "the evidence dominates" — that's inconsistent. A reframe needs the conclusion to dominate, or the reframe gets buried under evidence. If inconsistent, push back: *"Your takeaway is a reframe, but your editorial emphasis says the evidence should dominate. The reframe is the point — shouldn't it be what the audience sees first?"*
 
 **Part 4: title-only coherence test.**
 
@@ -608,7 +608,7 @@ After Parts 1–5 pass, read pairs of adjacent slides and any slides that share 
 Examples of what to catch:
 - Slide 3 says *"data quality is the root cause"* → Slide 5 says *"the system is the root cause"* — pick one or reconcile
 - Slide 2 says *"we recommend acquiring X"* → Slide 4 says *"the market doesn't support an acquisition"* — reconcile or cut one
-- Slide 1's so-what is *"the program is on track"* → Slide 3's so-what is *"the program is at risk"* — these are not nuance, they are contradictions
+- Slide 1's takeaway is *"the program is on track"* → Slide 3's takeaway is *"the program is at risk"* — these are not nuance, they are contradictions
 - Two slides cite different numbers for the same metric without explanation — pick one source
 
 If contradictions exist, the gate **fails**. This is a hard stop — **the constructive-pushback / override protocol in the pushback protocol does not apply here**. Diverging thoughts in the same deck are a structural failure, not a stylistic choice or a deliberate tension. They must be reconciled before the brief is produced. State the contradiction explicitly to the user — *"Slide 3 and Slide 5 say different things about the root cause. Which one is the deck arguing?"* — then re-enter the Slide probing stage for the affected slides.
@@ -710,7 +710,7 @@ If the user produces another vague answer, escalate to framework walkthrough:
 
 If the user insists on proceeding despite a flagged issue, do not just acquiesce. Use the constructive-pushback protocol:
 
-1. **Name the weakness explicitly and give the reason.** Not *"this might be a little weak."* Say: *"This argument is weak — it doesn't create a clear message because [reason: the claim isn't supported by the evidence on the slide / the two slides argue diverging things / the so-what restates the claim instead of shifting belief]."*
+1. **Name the weakness explicitly and give the reason.** Not *"this might be a little weak."* Say: *"This argument is weak — it doesn't create a clear message because [reason: the claim isn't supported by the evidence on the slide / the two slides argue diverging things / the takeaway restates the claim instead of shifting belief]."*
 
 2. **Offer two concrete alternatives.** Specific rewrites or restructures, not generic advice. *"A stronger version would be either [X — concrete option] or [Y — concrete option]."*
 
@@ -910,11 +910,11 @@ storyline_gate_at: 2026-06-02T14:00:00Z       # required — ISO-8601 UTC timest
 
 ### Slide 1 — [Slide title here, e.g. "Q3 Churn: A Product-Fit Signal"]
 
-**Archetype:** [one of: Cover / Title | Executive Summary | Context / Situation | Approach / Methodology | Analytical | Framework / Conceptual | Synthesis / Findings | Recommendation | Roadmap / Implementation | Risk | Financial / Business case | Decision / Ask | Appendix]
+**Slide type:** [one of: Cover / Title | Executive Summary | Context / Situation | Approach / Methodology | Analytical | Framework / Conceptual | Synthesis / Findings | Recommendation | Roadmap / Implementation | Risk | Financial / Business case | Decision / Ask | Appendix]
 
 **Governing thought (the claim):** [declarative sentence — the slide's claim]
 
-**So-what (the takeaway):** [the belief shift — what the audience should now hold that they didn't before]
+**The takeaway:** [the belief shift — what the audience should now hold that they didn't before]
 
 **Editorial emphasis:** [one of: the conclusion / the evidence / the contrast / the data / the ask / the numbers] — [one line: what dominates visually and why]
 
@@ -1105,7 +1105,7 @@ Do not hand off. Say: "I need to finish the brief first — the slide builder ne
 
 If the user picks Edit, ask what they want to change. If the user picks Review, run the full nine-part gate + cross-cutting rules sweep against the existing brief and produce the review-and-save section Review output (table + conversational Major prompts). No new file is written until the user resolves Criticals and chooses fix-or-override on Majors. Once they do, save the brief and re-run `emit_dot_dash.py`.
 
-**User wants to add a slide to an existing deck Slide Lab built.** Don't rebuild the whole narrative. Read the existing brief, insert the new slide (governing thought + so-what + evidence) at the right position and **renumber the later slide headers** so the brief has exactly one more slide, re-run the gate, save the updated brief. Then slide-builder inserts it for real: `build_deck.py --insert N` shifts slides ≥ N (dirs, `_meta`, picks) up by one and preps only the new slide N; dispatch one worker for slide N, run `finalize_deck.py --slide N`, take the pick, and re-run `compile_picks.py` to graft the renumbered deck. (Adding a page to an *external* `.pptx` Slide Lab didn't build is a `pptx`-skill edit, not this flow.)
+**User wants to add a slide to an existing deck Slide Lab built.** Don't rebuild the whole narrative. Read the existing brief, insert the new slide (governing thought + takeaway + evidence) at the right position and **renumber the later slide headers** so the brief has exactly one more slide, re-run the gate, save the updated brief. Then slide-builder inserts it for real: `build_deck.py --insert N` shifts slides ≥ N (dirs, `_meta`, picks) up by one and preps only the new slide N; dispatch one worker for slide N, run `finalize_deck.py --slide N`, take the pick, and re-run `compile_picks.py` to graft the renumbered deck. (Adding a page to an *external* `.pptx` Slide Lab didn't build is a `pptx`-skill edit, not this flow.)
 
 **User's answer to "what's the argument?" is a topic.** Foundation Check. Don't proceed to sequencing until the governing thought is a declarative sentence.
 
@@ -1121,7 +1121,7 @@ If the user picks Edit, ask what they want to change. If the user picks Review, 
 
 When the deck type inferred in the Intake stage is **Workshop Design**, use this overlay instead of the standard intake-stage intent questions and the diagnosis-stage governing thought.
 
-When the deck type is **Workshop Design**, replace the standard the Intake stage intent questions and the Diagnosis stage governing thought with this coaching flow instead. The narrative gate (governing thought, so-what, editorial emphasis) does not apply to agenda and session objective pages — they are not arguments.
+When the deck type is **Workshop Design**, replace the standard the Intake stage intent questions and the Diagnosis stage governing thought with this coaching flow instead. The narrative gate (governing thought, takeaway, editorial emphasis) does not apply to agenda and session objective pages — they are not arguments.
 
 **Four workshop-specific intent questions (ask together, not one at a time):**
 
@@ -1155,7 +1155,7 @@ This becomes the purpose statement on the opening slide, not a governing thought
    - Passes: *"Decide which 3 of 8 workstreams proceed to Phase 2 and who owns each"* / *"Rate the top 10 risks by likelihood × impact and assign a mitigation owner to each"*
    - If vague: ask *"What would a participant be able to say yes or no to at the end of this session that they couldn't before it started?"*
 
-**What the narrative brief looks like for Workshop Design:** Replace per-slide governing thought / so-what / editorial emphasis fields with:
+**What the narrative brief looks like for Workshop Design:** Replace per-slide governing thought / takeaway / editorial emphasis fields with:
 
 ```markdown
 ### Session: [Session name] — [duration]

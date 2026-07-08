@@ -1555,12 +1555,12 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
         raise SubtitleDropError(
             f"slide {slide_n}: subtitle text supplied ({len(src_subtitle)} chars) "
             f"but layout {layout_name!r} has no SUBTITLE placeholder to host it.\n"
-            f"  This is the silent-drop bug class — the so-what for this slide "
+            f"  This is the silent-drop bug class — the takeaway for this slide "
             f"would have been invisibly dropped.\n"
             f"  Recovery: pick a body-canonical layout for this slide (edit "
             f"_meta.json slides[].layout to a layout with "
             f"subtitle_placeholder_idx set), or omit the subtitle field if "
-            f"this slide intentionally has no so-what."
+            f"this slide intentionally has no takeaway."
         )
 
 
