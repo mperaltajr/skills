@@ -1191,6 +1191,41 @@ def write_dispatch_plan(
     return plan_path
 
 
+def regenerate_dispatch_plan_from_meta(out_dir: Path) -> Optional[Path]:
+    """Rebuild dispatch_plan.md from the current _meta.json so its per-slide
+    numbering stays in sync after an insert (or rebuild).
+
+    dispatch_plan.md is a human-readable summary; the build itself keys off
+    _meta.json / picks.json, so a stale plan never breaks a build — it just
+    misleads the reader. Best-effort: only refreshes a plan that already
+    exists (never invents one for a legacy build that lacked it), and a
+    missing/unreadable _meta.json is a no-op that returns None rather than
+    failing the caller."""
+    plan_path = _p.dispatch_plan_md(out_dir)
+    if not plan_path.exists():
+        return None
+    meta_path = _p.meta_json(out_dir)
+    try:
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    slides_meta = sorted(meta.get("slides", []), key=lambda e: e.get("n", 0))
+    slides = [
+        {"slide_n": e.get("n"), "title": e.get("title", "") or ""}
+        for e in slides_meta
+    ]
+    forecasts = [e.get("forecasted_pattern", "") or "" for e in slides_meta]
+    return write_dispatch_plan(
+        out_dir=out_dir,
+        slides=slides,
+        forecasts=forecasts,
+        client_slug=meta.get("client_slug", "") or "",
+        theme_warnings=[],
+        brief_path=Path(meta.get("brief", "") or ""),
+        client_template_path=Path(meta.get("template", "") or ""),
+    )
+
+
 # ----------------------------------------------------------------------
 # Deck manifest — _meta.json
 #
@@ -2148,12 +2183,18 @@ def main() -> int:
         )
         if meta_path is None:
             return 2
+        # Keep the human-readable dispatch plan's numbering in sync with the
+        # shifted _meta.json (best-effort; never fails the insert).
+        plan_path = regenerate_dispatch_plan_from_meta(args.out)
         ins_dir = _p.slide_dir(args.out, insert_slide_n)
         print(f"Inserted new slide {insert_slide_n} (build now has {existing_slide_count + 1} slides):")
         print(f"  {ins_dir.resolve()}")
         print()
         print(f"Updated deck manifest:")
         print(f"  {meta_path.resolve()}")
+        if plan_path is not None:
+            print(f"Renumbered dispatch plan:")
+            print(f"  {plan_path.resolve()}")
         print()
         print(f"Next, to build the inserted slide {insert_slide_n} end to end:")
         print(f"  1. Dispatch ONE slide-builder-worker for slide {insert_slide_n} "
@@ -2161,6 +2202,10 @@ def main() -> int:
         print(f"  2. py -3 finalize_deck.py --out <out> --template <template> --slide {insert_slide_n}")
         print(f"  3. Take the user's pick for slide {insert_slide_n}; add it to picks.json.")
         print(f"  4. py -3 compile_picks.py --out <out>   # grafts the full renumbered deck")
+        print()
+        print(f"  Note: the deck-level RESULT.md still shows the pre-insert numbering — it")
+        print(f"  refreshes on the next FULL finalize (finalize_deck.py --out <out> with no")
+        print(f"  --slide). The single-slide finalize in step 2 writes RESULT-slide-{insert_slide_n:02d}.md.")
         return 0
 
     # Deck manifest (_meta.json) — single source of truth for downstream

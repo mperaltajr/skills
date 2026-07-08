@@ -92,7 +92,12 @@ def main() -> int:
         assert (out / "slide_04").is_dir(), "shifted slide 4 dir missing"
         picks = json.loads((out / "picks.json").read_text(encoding="utf-8"))
         assert picks == {"slide_01": "A", "slide_03": "B", "slide_04": "C"}, picks
-        print("    ok: 4 slides [Alpha, INSERTED, Beta, Gamma]; picks shifted A/-/B/C")
+        # the human-readable dispatch plan renumbers to match the shifted deck
+        plan = (out / "dispatch_plan.md").read_text(encoding="utf-8")
+        for n, title in ((1, "Alpha"), (2, "INSERTED"), (3, "Beta"), (4, "Gamma")):
+            assert f"| {n} | {title} |" in plan, f"dispatch_plan missing row {n} {title}:\n{plan}"
+        assert "| 3 | Gamma |" not in plan, f"dispatch_plan kept stale numbering:\n{plan}"
+        print("    ok: 4 slides [Alpha, INSERTED, Beta, Gamma]; picks shifted A/-/B/C; plan renumbered")
 
         print("[3] Error paths")
         r = _build("--brief", str(brief4), "--template", str(tpl), "--out", str(out),
