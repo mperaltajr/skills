@@ -41,9 +41,9 @@ Placeholders rendered by `build_deck.py`:
 
 You are building **slide {{SLIDE_N}} of {{SLIDE_TOTAL}}** of a deck using `slide-builder`. Produce **three structurally distinct options** for this single slide.
 
-**This slide's build path is `{{PATTERN}}`** — and that determines your output format:
-- **`direct`** → write three standalone python-pptx scripts: `option_A.py`, `option_B.py`, `option_C.py`. Each is executed by `finalize_deck.py` at finalize time.
-- **`sketch`** → write three HTML files instead: `option_A.html`, `option_B.html`, `option_C.html`. A translator converts the picked one to native python-pptx downstream. Do NOT write `.py` files on a `sketch` slide.
+**This slide's build path is `{{PATTERN}}`** — and that determines your output format. Produce **{{OPTIONS_COUNT}} option(s)** ({{OPTION_LETTERS}}) — the exact file list is in §8:
+- **`direct`** → write standalone python-pptx script(s) (`.py`, e.g. `option_A.py`). Each is executed by `finalize_deck.py` at finalize time.
+- **`sketch`** → write HTML file(s) (`.html`, e.g. `option_A.html`) instead. A translator converts the picked one to native python-pptx downstream. Do NOT write `.py` files on a `sketch` slide.
 
 The full output contract for each path is in §6 below. Read it before writing anything.
 
@@ -189,25 +189,23 @@ PATTERN PICK — Slide {{SLIDE_N}}
 
 ---
 
-## 5. Pick three variants — your autonomy within the pattern
+## 5. Your option(s) — autonomy within the pattern
 
-You produce **three structurally distinct options** for the same picked pattern. The options differ on variant choices — typography weight, accent placement, icon vs. no-icon, numeral vs. no-numeral, eyebrow vs. no-eyebrow, light vs. dark canvas where the pattern allows it, anchor side (left vs. right) for asymmetric splits.
+Produce **{{OPTIONS_COUNT}} option(s)** ({{OPTION_LETTERS}}) for the SAME picked pattern.
+- **When exactly one** (the default), make it the single strongest execution of the pattern — one that clearly honors the directive verb (§4 step 1.5). Don't hedge toward a neutral default; commit to the best design.
+- **When more than one**, the options must be **structurally distinct** executions of that one pattern — differing on typography weight, accent placement, icon vs. none, numeral vs. none, eyebrow vs. none, light vs. dark canvas where allowed, anchor side. Genuinely different, not near-clones; a reasonable person would pick differently on aesthetic preference. Offer a spread — one safer + the rest bolder (dark canvas, hero metric, oversized type) — so the reviewer has a real choice.
 
-**Variant picking rules:**
+**Variant rules:**
 
 - Read the picked pattern's "Variants" list in `layouts.md`. Those are your degrees of freedom.
-- The three options must be **genuinely different**, not three near-clones with one tweak each. A reasonable person should pick differently between them based on aesthetic preference.
-- Use the per-option variant seeds to vary your starting variant choice — each of the three options has its own seed so the three end up on different variants. The seeds also prevent 5 parallel agents on the same brief from picking the same variant set.
-  - Option A variant seed: `{{VARIANT_SEED_A}}`
-  - Option B variant seed: `{{VARIANT_SEED_B}}`
-  - Option C variant seed: `{{VARIANT_SEED_C}}`
-  - Tiebreak rule within variants is the same as the pattern tiebreak: first hex character mod the number of eligible variants, sorted alphabetically by variant name.
-- One option SHOULD push the pattern further than the safe-default version (e.g., dark canvas instead of light, hero metric instead of bullets, oversized typography instead of standard). The user picks among the three; offering one safer + two bolder is good.
-- **All three variants MUST use at least one brand token on a load-bearing element** (hero text, accent rule, divider, anchor, fill — NOT placeholders like `[Date]` or `[Presenter]`). A "safe default" is *quieter typography or composition* — not the absence of brand identity. Every option must include `BRAND_PRIMARY`, `BRAND_ACCENT`, `BRAND_PRIMARY_MID`, or `BRAND_ACCENT_SOFT` somewhere visible. A variant rendering only in TEXT_DARK / TEXT_MID / TEXT_FAINT is a brand-fidelity failure. **Vary the brand application across the three variants** — don't converge on the same element (e.g., A on accent rule, B on hero fill, C on anchor circle).
+- Use the per-option variant seed(s) to vary your starting variant choice (they also stop parallel agents on the same brief from converging on the same variant):
+{{VARIANT_SEEDS}}
+  - Tiebreak within variants: first hex character mod the number of eligible variants, sorted alphabetically by variant name.
+- **Every option MUST use at least one brand token on a load-bearing element** (hero text, accent rule, divider, anchor, fill — NOT placeholders like `[Date]` or `[Presenter]`). A "safe default" is *quieter typography or composition* — not the absence of brand identity. Every option includes `BRAND_PRIMARY`, `BRAND_ACCENT`, `BRAND_PRIMARY_MID`, or `BRAND_ACCENT_SOFT` somewhere visible; a variant rendering only in TEXT_DARK / TEXT_MID / TEXT_FAINT is a brand-fidelity failure. When you produce multiple options, vary which element carries the brand.
 
-**Do not produce three options on three different patterns.** That defeats the point of pattern-picking. All three options use the same pattern; only the variants differ.
+**All options use the SAME pattern** — only the variants differ. Don't spread options across different patterns.
 
-**At least one of the three variants MUST explicitly honor the directive verb you identified in § 4 step 1.5.** Variant tilt translation lives at `layouts.md § "Directive verb vocabulary"`. For "recommend": asymmetric weight toward the recommended item. For "warn": high-contrast accent on the threat. For "compare neutrally": equal weight, no accent winner. The honoring variant is not necessarily the safest of the three — bolder tilt is fine. What matters is that the three options are not all cosmetic variations of a neutral default; at least one carries the directive verb visibly. State which variant honors the directive in the PATTERN PICK output block.
+**At least one option MUST explicitly honor the directive verb from § 4 step 1.5** (with a single option, that one must). Variant tilt translation lives at `layouts.md § "Directive verb vocabulary"`: "recommend" → asymmetric weight toward the recommended item; "warn" → high-contrast accent on the threat; "compare neutrally" → equal weight, no accent winner. State which option honors the directive in the PATTERN PICK output block.
 
 ---
 
@@ -249,15 +247,21 @@ This list is a heuristic for which entries are most load-bearing per pattern. Th
 
 **Pattern routing for this slide:** `{{PATTERN}}`
 
-- **Direct path** (default; python-pptx direct): write the three files listed below as `.py` scripts.
-- **Sketch path** (HTML-first): write `option_A.html`, `option_B.html`, `option_C.html` instead of `.py` files. Conventions in `slide-builder/reference/sketch-html-spec.md`. Chrome text on elements with `data-template-field`; body shapes on elements with `data-shape-id`. Self-check by rendering each HTML via `scripts/render_html.py` and reading the resulting 1280×720 PNG before declaring done. Do NOT also write `.py` files — the sketch path's downstream translator agent converts the picked HTML to native python-pptx at Stage 3.5.
+Produce **{{OPTIONS_COUNT}} option(s)** ({{OPTION_LETTERS}}) — no more, no fewer.
 
-For the direct path, write three files to `{{OUTPUT_DIR}}`:
+- **Direct path** (default; python-pptx direct): write the option(s) as `.py` script(s) — the exact file(s) listed below.
+- **Sketch path** (HTML-first): write the option(s) as `.html` instead (the sketch file list below); do NOT also write `.py`. Conventions in `slide-builder/reference/sketch-html-spec.md`. Chrome text on elements with `data-template-field`; body shapes on elements with `data-shape-id`. Self-check by rendering each HTML via `scripts/render_html.py` and reading the resulting 1280×720 PNG before declaring done. The picked HTML is converted to native python-pptx by the translator at Stage 3.5.
+
+Direct-path file(s) to write:
 
 ```
-{{OUTPUT_DIR}}\option_A.py
-{{OUTPUT_DIR}}\option_B.py
-{{OUTPUT_DIR}}\option_C.py
+{{OPTION_FILES_DIRECT}}
+```
+
+Sketch-path file(s) to write instead:
+
+```
+{{OPTION_FILES_SKETCH}}
 ```
 
 Each `option_X.py` is a **standalone runnable Python script** that:
@@ -327,7 +331,7 @@ finalize_deck.py reads line 1. Token prefix decides routing:
 
 ## 9. Constraints
 
-- **Touch only files in `{{OUTPUT_DIR}}`.** The expected files are `option_A.py`, `option_B.py`, `option_C.py` (direct path) OR `option_A.html`, `option_B.html`, `option_C.html` (sketch path — when the dispatch's `PATTERN` field is `sketch`), plus the generated `.pptx` / `.png` siblings (when the script or renderer runs). Do not write to any other path. Do not modify `_prompt.md` or any file outside this directory.
+- **Touch only files in `{{OUTPUT_DIR}}`.** The expected files are the option file(s) listed in §8 (`.py` for the direct path, `.html` for the sketch path when `PATTERN` is `sketch`), plus their generated `.pptx` / `.png` siblings (when the script or renderer runs). Do not write to any other path. Do not modify `_prompt.md` or any file outside this directory.
 - **Do not modify `slide-builder\twins\helpers.py`.** It is shared geometry infrastructure; structural changes break every script that depends on it.
 - **Do not read or modify other slides' brief content.** You see only this slide's brief.
 - **Do not write summaries, plans, or design docs to disk.** Inline reasoning goes in your response, not in side-files.

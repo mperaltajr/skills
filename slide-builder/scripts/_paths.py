@@ -61,9 +61,30 @@ def slide_key(n: int) -> str:
     return f"slide_{n:02d}"
 
 
-def option_letters() -> tuple[str, str, str]:
-    """The three canonical option letters."""
-    return ("A", "B", "C")
+_ALL_OPTION_LETTERS = ("A", "B", "C")
+
+
+def options_per_slide(default: int = 1) -> int:
+    """How many design options to build per slide, from
+    slide-builder/settings.json::options_per_slide (default 1, clamped 1-3).
+    Never raises — a missing/malformed settings file yields the default."""
+    try:
+        import json
+        settings = Path(__file__).resolve().parents[1] / "settings.json"
+        v = int(json.loads(settings.read_text(encoding="utf-8")).get("options_per_slide", default))
+        return v if 1 <= v <= len(_ALL_OPTION_LETTERS) else default
+    except Exception:
+        return default
+
+
+def option_letters(n: int | None = None) -> tuple[str, ...]:
+    """The option letters to build for one slide. Defaults to
+    settings.json::options_per_slide (default 1); max 3 (A/B/C). Callers iterate
+    this — never assume exactly three."""
+    if n is None:
+        n = options_per_slide()
+    n = max(1, min(len(_ALL_OPTION_LETTERS), int(n)))
+    return _ALL_OPTION_LETTERS[:n]
 
 
 # ---------------------------------------------------------------------------

@@ -48,7 +48,7 @@ except Exception:
     pass
 
 
-OPTIONS = ("A", "B", "C")
+OPTIONS = _p.option_letters()  # settings-driven count (default 1); iterate, don't assume 3
 FALLBACK_TOKEN = "# FALLBACK_MERMAID:"
 REJECTED_TOKEN = "# SKELETON_REJECTED:"
 

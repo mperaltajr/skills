@@ -1098,7 +1098,23 @@ def build_placeholders(
     default). Defaults to "direct" so callers that don't specify a pattern keep
     working; the worker branches on the rendered PATTERN field.
     """
+    # Option count is settings-driven (default 1). Build the count-aware tokens
+    # the worker prompt uses so it authors exactly N options.
+    letters = _p.option_letters()
+    _seed_by_letter = {"A": seeds["variant_seed_a"],
+                       "B": seeds["variant_seed_b"],
+                       "C": seeds["variant_seed_c"]}
+    variant_seeds = "\n".join(
+        f"  - Option {L} variant seed: `{_seed_by_letter[L]}`" for L in letters
+    )
+    files_direct = "\n".join(str(output_dir / _p.option_py_name(L)) for L in letters)
+    files_sketch = "\n".join(str(output_dir / f"option_{L}.html") for L in letters)
     return {
+        "OPTIONS_COUNT":           str(len(letters)),
+        "OPTION_LETTERS":          ", ".join(letters),
+        "VARIANT_SEEDS":           variant_seeds,
+        "OPTION_FILES_DIRECT":     files_direct,
+        "OPTION_FILES_SKETCH":     files_sketch,
         "PATTERN":                 slide_pattern,
         "SLIDE_N":                 str(slide["slide_n"]),
         "SLIDE_TOTAL":             str(slide_total),

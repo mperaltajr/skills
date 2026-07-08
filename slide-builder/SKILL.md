@@ -81,7 +81,7 @@ Field reference:
 - **Slide header line:** `### Slide N — <Title>` (H3, with title separated by em-dash, en-dash, or colon). The title is required on the header line — the parser pulls it from there, not from a body field.
 - **Per-slide bold-labeled fields:** `**Slide type:**`, `**Governing thought (the claim):**`, `**The takeaway:**`, `**Editorial emphasis:**`, `**Evidence / content:**`, `**What this slide is NOT:**`, `**Chart type:**`. Labels are case-insensitive. Field values can be inline (`**Label:** text`) or block (`**Label:**\nmulti-line text`).
 - **Evidence bullets:** every bullet should use `- **HEADING** — body sentence` so the worker can lift the bold heading into a card/column/pillar label and the body into the supporting text. Loose prose bullets work but produce less-structured slides.
-- **Editorial emphasis vocabulary (closed list):** `recommend`, `warn`, `diagnose`, `show urgency`, `show progress`, `compare neutrally`, `summarize`. The worker uses this to tilt at least one of the three options toward the directive.
+- **Editorial emphasis vocabulary (closed list):** `recommend`, `warn`, `diagnose`, `show urgency`, `show progress`, `compare neutrally`, `summarize`. The worker uses this to tilt the option(s) toward the directive.
 
 A live working example is at [examples/quickstart-brief.md](examples/quickstart-brief.md).
 
@@ -171,7 +171,7 @@ Full reference (one paragraph + one PNG per pattern) lives at `reference/layouts
 
 > **Inherited briefs: confirm the layout before building.** If the brief carries `mode: rebuild-slice` in front-matter, OR the brief file was authored in a prior session (different `_session/` folder than the current working session, OR `generated_at` more than ~24 hours old), the orchestrator MUST restate the brief's `default_layout` (or the template's `default_content_layout` from `theme.json`) and ask the user: *"This brief will build against the **<layout name>** layout. Still the right choice? (Show thumbnails)"* — and wait for confirmation BEFORE running `build_deck.py`. Silently trusting a stale `default_layout` from an inherited brief is a known way to produce slides with broken footer boxes, so confirm the layout when the brief did not originate in the current session.
 
-N parallel agents per deck, three options per slide. The per-slide prompt injects the 14-pattern reference + 5 hardline rules + anti-pattern library.
+N parallel agents per deck, **one option per slide by default** (configurable via `settings.json::options_per_slide`; the reviewer requests more per slide only where wanted). The per-slide prompt injects the option count + the 14-pattern reference + 5 hardline rules + anti-pattern library.
 
 ```
 STAGE 1 · PREP            build_deck.py

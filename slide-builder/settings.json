@@ -5,6 +5,9 @@
   "default_pattern": "auto",
   "_doc_default_pattern": "One of: legacy | auto | sketch | direct. 'legacy' = pptx-direct-only pipeline verbatim (the safe fallback). 'auto' = per-slide routing via _classify_all_slides. 'sketch' = force all slides through the HTML-first path. 'direct' = force all slides through the pptx-direct path (native, no HTML stage). Per-build override: build_deck.py --pattern <value>.",
 
+  "options_per_slide": 1,
+  "_doc_options_per_slide": "How many design options each slide's worker produces up front (1-3). Default 1 to minimize token use — the reviewer requests more options only where wanted. Set to 3 to restore the earlier always-three-options behavior. Read via _paths.option_letters().",
+
   "enable_sketch": true,
   "_doc_enable_sketch": "Master switch for the sketch (HTML-first) path. When false, default_pattern is forced to 'legacy' regardless of its value, and --pattern auto|sketch is downgraded.",
 
