@@ -94,8 +94,8 @@ def main():
     parser.add_argument("--out", default=None, help="Output directory (default: <pptx_dir>/_qc/)")
     # Default 1920 (1.5× 1280) so small text — chart annotations, footnotes,
     # numerals — is legible at thumbnail zoom. At 1280 a 9pt footnote was ~6px
-    # tall and Claude could not reliably read it; that gap was the QC failure
-    # mode documented in memory/qc_mandatory_rules.md. Do not lower.
+    # tall and Claude could not reliably read it; that gap was the review failure
+    # mode documented in slide-qc/SKILL.md. Do not lower.
     parser.add_argument("--width", type=int, default=1920, help="Export width in pixels (default: 1920)")
     args = parser.parse_args()
 
