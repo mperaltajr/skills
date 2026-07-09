@@ -282,9 +282,7 @@ For the recommended-row indicator, use an accent stripe — not a stacked badge.
 
 **Use when:** hub-and-spoke topologies · Porter's Five Forces · fishbone / cause-and-effect diagrams · ecosystem maps · any free-form network with curved containers and text inside them · concentric ring frameworks.
 
-**Stack (v0):** Mermaid with brand theme overrides. Mermaid covers the entire curved-container failure set with existing syntax and supports CSS-style brand color theming. The agent emits a Mermaid spec; the build script renders it to PNG via headless Mermaid CLI; the PNG is embedded as a full-bleed image on the slide.
-
-**Escalation:** raw HTML + CSS rendered via Playwright, only if Mermaid's brand fidelity is visibly wrong on a real failing brief. Playwright is not on the day-1 ship list.
+**Stack: sketch-path HTML+SVG rendered via Playwright.** (Mermaid was retired — see CHANGELOG "M7 Mermaid retirement"; the sketch path supersedes it.) The worker authors the diagram natively in HTML/SVG within the body zone, marking elements with `data-shape-id` for the translator to convert to native shapes and using `<img>` or inline `<svg>` for genuinely curve-shaped paths. Playwright renders the page to a 1280×720 PNG for the preview (`scripts/render_html.py`); the translator (`agents/slide-builder-translator.md`) converts the picked HTML to editable native python-pptx at Stage 3.5. See `SKILL.md § "Fallback path — HTML→PNG for curved-container diagrams"`.
 
 **Do not use for:** any diagram that one of the three native primitives can carry cleanly (Org chart, Swimlane, Decision tree). The fallback is only for shapes the natives cannot represent.
 
@@ -309,7 +307,7 @@ For the recommended-row indicator, use an accent stripe — not a stacked badge.
 - **Build mechanics** (how to invoke `twins/helpers.py`, how to write a python-pptx option script): in `prompt.md`.
 - **Aesthetics rules** (don't use accent bars on every slide, don't put low-contrast text on dark fill, etc.): in `reference/anti-patterns.md`.
 - **The 5 hardline rules:** in `SKILL.md § "Hardline rules (5)"`.
-- **The fallback renderer implementation:** in `scripts/build_deck.py` (Mermaid CLI invocation) and the agent prompt template.
+- **The fallback renderer implementation:** the sketch path — `scripts/render_html.py` (HTML→PNG via Playwright) plus `agents/slide-builder-translator.md` (HTML→native python-pptx).
 
 ---
 
