@@ -612,6 +612,20 @@ FEEDBACK_FIELDS = [
     ("other",      "Other notes",              "Anything else worth capturing for the regen?"),
 ]
 
+# One-click feedback so the reviewer doesn't have to type the common notes.
+# A clicked chip is stored in the same feedback store (a synthetic "quick"
+# field), so it flows into the copied compile command with no extra plumbing.
+QUICK_FEEDBACK = [
+    "Too sparse — add detail",
+    "Too dense — simplify",
+    "Content overlaps / cut off",
+    "Wrong layout / structure",
+    "Change the accent color",
+    "Title too long — reword",
+    "Fix a number / wording",
+    "More visual, less text",
+]
+
 
 def render_option_tile(slide: dict, opt: dict, themed_path_str: str) -> str:
     letter = opt["letter"]
@@ -844,6 +858,30 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
         f'<button class="none" onclick="pickNone(\'{sid}\')">'
         '&#10007; NONE &mdash; TRY AGAIN</button>'
     )
+    more_picker = (
+        f'<div class="more-picker" role="group" aria-label="Request more design options for slide {n}">'
+        f'<span class="more-picker-label">Want more options?</span>'
+        f'<div class="more-seg">'
+        + "".join(
+            f'<button type="button" class="more-opt" data-n="{k}" aria-pressed="false" '
+            f'onclick="requestMore(\'{sid}\', {k})" '
+            f'title="Keep the current option(s) and generate {k} more design '
+            f'{"option" if k == 1 else "options"} for this slide">+{k}</button>'
+            for k in (1, 2, 3)
+        )
+        + f'</div>'
+        f'<span class="more-picker-hint" id="more-hint-{sid}"></span>'
+        f'</div>'
+    )
+    n_opts = len(slide["options"])
+    layout = "solo" if n_opts == 1 else "multi"
+    # per-card inline rule: multi mode uses one column per option
+    row_style = "" if layout == "solo" else f' style="grid-template-columns: repeat({n_opts}, 1fr);"'
+    chips_html = "".join(
+        f'<button type="button" class="chip" data-slide="{sid}" '
+        f'data-chip="{html.escape(text)}" onclick="toggleChip(this)">{html.escape(text)}</button>'
+        for text in QUICK_FEEDBACK
+    )
     feedback_html = "".join(
         f'<div class="feedback-field">'
         f'<label for="fb-{sid}-{key}">{label}</label>'
@@ -852,15 +890,8 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
         f'</div>'
         for (key, label, placeholder) in FEEDBACK_FIELDS
     )
-    prompt_uri = file_uri(slide["prompt_path"]) if slide["prompt_path"].exists() else ""
-    regen_text = (
-        f"Re-dispatch slide {n} ({slide.get('title')}) with stronger visual treatment.\n"
-        f"Original prompt: {str(slide['prompt_path'].resolve())}\n"
-        f"None of options A/B/C landed. Pick a different pattern this time."
-    )
-
     return f"""
-<div class="card" id="card-{sid}" data-slide="{sid}">
+<div class="card" id="card-{sid}" data-slide="{sid}" data-layout="{layout}" data-count="{n_opts}">
   <div class="card-header-row">
     <div style="flex:1;">
       <div class="card-num">SLIDE {n}</div>
@@ -872,7 +903,8 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
   {adjacency_banner}
   {context_chip}
 
-  <div class="options-row">
+  <div class="card-body">
+  <div class="options-row" data-count="{n_opts}"{row_style}>
     {option_tiles}
   </div>
 
@@ -885,25 +917,30 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
         {pick_buttons}
         {none_btn}
       </div>
-      <div class="hint-text">Pick one option, or click NONE to mark for regeneration.</div>
+      <div class="hint-text">Pick an option, click NONE to redo it, or ask for more designs below.</div>
+      {more_picker}
 
-      <div class="regen-panel" id="regen-{sid}" style="display:none;">
-        <div class="field-label" style="margin-top:14px;">Regen instruction (copy-paste into new session)</div>
-        <textarea readonly class="regen-text" rows="5">{html.escape(regen_text)}</textarea>
-        <div style="margin-top:6px;">
-          <button class="btn ghost small" onclick="copyRegen('{sid}')">Copy regen text</button>
-          {f'<a class="open-prompt" href="{html.escape(prompt_uri)}" target="_blank" rel="noopener">Open _prompt.md</a>' if prompt_uri else ''}
-        </div>
+      <div class="redo-note" id="regen-{sid}" style="display:none;">
+        &#8635; Marked to redo. No extra copy needed — it's included automatically when you click
+        <strong>&#10003; Build my deck</strong> at the bottom, along with any feedback you leave here.
       </div>
     </div>
 
     <div>
-      <div class="field-label">Section-level feedback</div>
-      <div class="hint-text">Leave feedback on any section. Skip what doesn't apply.</div>
+      <div class="quick-fb">
+        <div class="field-label">Quick feedback</div>
+        <div class="hint-text">Click any that apply — no typing needed.</div>
+        <div class="chip-row">
+          {chips_html}
+        </div>
+      </div>
+      <div class="field-label">More detail (optional)</div>
+      <div class="hint-text">Only if a chip isn't enough. Skip what doesn't apply.</div>
       <div class="feedback-grid">
         {feedback_html}
       </div>
     </div>
+  </div>
   </div>
 </div>
 """
@@ -915,19 +952,22 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
 
 CSS = """
 :root {
-  --bg: #0F172A;
-  --panel: #1E293B;
-  --panel-2: #273448;
-  --text: #E2E8F0;
-  --text-dim: #94A3B8;
-  --accent: #A100FF;
-  --accent-soft: #C780FF;
-  --approve: #16A34A;
-  --tweak: #CA8A04;
-  --reject: #DC2626;
-  --info: #2563EB;
-  --pending: #64748B;
-  --border: #334155;
+  --bg: #F4F5F7;          /* app background — soft neutral gray so white cards pop */
+  --panel: #FFFFFF;       /* cards, topbar, dialog, toast */
+  --panel-2: #EEF1F6;     /* insets: option tiles, textareas, buttons, chips */
+  --text: #17202E;        /* primary near-black slate (~14:1 on white) */
+  --text-dim: #475569;    /* secondary text / labels (7.4:1 on white) */
+  --accent: #A100FF;      /* Accenture purple — UNCHANGED */
+  --accent-soft: #7A0FB8; /* darkened purple — used as text/marks on light bg */
+  --approve: #15803D;     /* green-700 — readable as text on white */
+  --tweak: #B45309;       /* amber-700 — readable as text on white */
+  --reject: #B91C1C;      /* red-700 — AA as text on white */
+  --info: #2563EB;        /* blue-600 */
+  --pending: #94A3B8;     /* neutral border / muted */
+  --border: #E2E8F0;      /* slate-200 hairline */
+  --shadow: rgba(15,23,42,0.08);
+  --shadow-strong: rgba(15,23,42,0.16);
+  --approve-tint: rgba(21,128,61,0.12);
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; padding: 0; }
@@ -975,37 +1015,37 @@ code { font-family: Consolas, monospace; font-size: 12px; color: var(--text-dim)
 /* Gap 3: worker context-ack chip */
 .context-chip { margin: 0 20px 10px; padding: 8px 12px; border-radius: 4px; font-size: 12px; line-height: 1.4; }
 .context-chip-icon { margin-right: 6px; font-weight: 700; }
-.context-chip-ok { background: rgba(16,185,129,0.12); border-left: 3px solid #10B981; color: #6EE7B7; }
-.context-chip-ok strong { color: #10B981; }
-.context-chip-warn { background: rgba(202,138,4,0.14); border-left: 3px solid var(--tweak); color: #FDE68A; }
+.context-chip-ok { background: rgba(16,185,129,0.12); border-left: 3px solid #10B981; color: #065F46; }
+.context-chip-ok strong { color: #047857; }
+.context-chip-warn { background: rgba(202,138,4,0.14); border-left: 3px solid var(--tweak); color: #78350F; }
 .context-chip-warn strong { color: var(--tweak); }
 
 /* adjacency advisory banner */
-.adjacency-banner { margin: 0 20px 12px; padding: 10px 14px; background: rgba(202,138,4,0.14); border-left: 4px solid var(--tweak); border-radius: 4px; color: #FDE68A; font-size: 13px; line-height: 1.45; }
+.adjacency-banner { margin: 0 20px 12px; padding: 10px 14px; background: rgba(202,138,4,0.14); border-left: 4px solid var(--tweak); border-radius: 4px; color: #78350F; font-size: 13px; line-height: 1.45; }
 .adjacency-banner-title { font-size: 11px; font-weight: 800; color: var(--tweak); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; }
 .adjacency-icon { color: var(--tweak); margin-right: 4px; }
 .adjacency-banner ul { margin: 4px 0 0; padding-left: 18px; }
 .adjacency-banner li { padding: 2px 0; }
 
 /* Sketch-path translation QC */
-.sketch-qc { margin: 0 20px 14px; padding: 10px 14px; background: rgba(99,102,241,0.10); border-left: 4px solid #6366F1; border-radius: 4px; color: #C7D2FE; font-size: 12.5px; line-height: 1.5; }
-.sketch-qc-title { font-size: 11px; font-weight: 800; color: #A5B4FC; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
-.sketch-qc-icon { color: #A5B4FC; margin-right: 4px; }
-.sketch-qc-hint { font-weight: 500; text-transform: none; letter-spacing: 0; color: #94A3B8; font-size: 11px; margin-left: 6px; }
+.sketch-qc { margin: 0 20px 14px; padding: 10px 14px; background: rgba(99,102,241,0.10); border-left: 4px solid #6366F1; border-radius: 4px; color: #3730A3; font-size: 12.5px; line-height: 1.5; }
+.sketch-qc-title { font-size: 11px; font-weight: 800; color: #4338CA; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.sketch-qc-icon { color: #4338CA; margin-right: 4px; }
+.sketch-qc-hint { font-weight: 500; text-transform: none; letter-spacing: 0; color: var(--text-dim); font-size: 11px; margin-left: 6px; }
 .sketch-row { display: grid; grid-template-columns: 80px 1fr 1fr; gap: 14px; padding: 4px 0; align-items: center; }
-.sketch-letter { font-weight: 700; color: #C7D2FE; font-size: 12px; }
-.sketch-ssim { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11.5px; color: #94A3B8; }
+.sketch-letter { font-weight: 700; color: #3730A3; font-size: 12px; }
+.sketch-ssim { display: flex; gap: 12px; flex-wrap: wrap; font-size: 11.5px; color: var(--text-dim); }
 .sketch-ssim .ssim-zone { display: inline-flex; gap: 4px; align-items: center; }
-.sketch-ssim .ssim-pass     { color: #10B981; font-weight: 600; font-variant-numeric: tabular-nums; }
-.sketch-ssim .ssim-major    { color: #FBBF24; font-weight: 600; font-variant-numeric: tabular-nums; }
-.sketch-ssim .ssim-critical { color: #F87171; font-weight: 700; font-variant-numeric: tabular-nums; }
-.sketch-ssim .ssim-na       { color: #64748B; }
+.sketch-ssim .ssim-pass     { color: #047857; font-weight: 600; font-variant-numeric: tabular-nums; }
+.sketch-ssim .ssim-major    { color: var(--tweak); font-weight: 600; font-variant-numeric: tabular-nums; }
+.sketch-ssim .ssim-critical { color: var(--reject); font-weight: 700; font-variant-numeric: tabular-nums; }
+.sketch-ssim .ssim-na       { color: var(--text-dim); }
 .sketch-chips { display: flex; gap: 6px; flex-wrap: wrap; }
 .r4-chip { display: inline-block; padding: 2px 8px; border-radius: 11px; font-size: 10.5px; font-weight: 700; letter-spacing: 0.25px; }
-.r4-chip-critical { background: rgba(248,113,113,0.16); color: #FCA5A5; border: 1px solid rgba(248,113,113,0.35); }
-.r4-chip-major    { background: rgba(251,191,36,0.16); color: #FDE68A; border: 1px solid rgba(251,191,36,0.35); }
-.r4-chip-advisory { background: rgba(148,163,184,0.16); color: #CBD5E1; border: 1px solid rgba(148,163,184,0.30); }
-.r4-chip-pass     { background: rgba(16,185,129,0.14); color: #6EE7B7; border: 1px solid rgba(16,185,129,0.30); }
+.r4-chip-critical { background: rgba(248,113,113,0.16); color: #991B1B; border: 1px solid rgba(248,113,113,0.35); }
+.r4-chip-major    { background: rgba(251,191,36,0.16); color: #92400E; border: 1px solid rgba(251,191,36,0.35); }
+.r4-chip-advisory { background: rgba(148,163,184,0.16); color: #475569; border: 1px solid rgba(148,163,184,0.30); }
+.r4-chip-pass     { background: rgba(16,185,129,0.14); color: #065F46; border: 1px solid rgba(16,185,129,0.30); }
 
 /* classification badge on option frame */
 .class-badge { position: absolute; bottom: 6px; right: 6px; padding: 3px 8px; border-radius: 10px; font-size: 9px; font-weight: 800; letter-spacing: 0.6px; line-height: 1.1; z-index: 2; box-shadow: 0 2px 5px rgba(0,0,0,0.25); cursor: help; }
@@ -1022,7 +1062,7 @@ code { font-family: Consolas, monospace; font-size: 12px; color: var(--text-dim)
 
 .vision-qc-btn { display: inline-block; margin-left: auto; padding: 3px 10px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; border: 1px solid var(--border); background: var(--panel); color: var(--text-dim); border-radius: 3px; cursor: pointer; transition: all 0.15s; }
 .vision-qc-btn:hover { background: var(--accent); color: white; border-color: var(--accent); }
-.vision-qc-btn.copied { background: #16A34A; color: white; border-color: #16A34A; }
+.vision-qc-btn.copied { background: var(--approve); color: white; border-color: var(--approve); }
 
 .qc-brief-banner { background: var(--panel-2); border-bottom: 1px solid var(--border); padding: 12px 24px; }
 .qc-brief-banner-title { font-size: 10px; font-weight: 800; color: var(--text); text-transform: uppercase; letter-spacing: 1.5px; margin-bottom: 8px; }
@@ -1053,14 +1093,32 @@ code { font-family: Consolas, monospace; font-size: 12px; color: var(--text-dim)
 .status-badge.picked  { background: rgba(22,163,74,0.18); color: var(--approve); border: 1px solid var(--approve); }
 .status-badge.none    { background: rgba(220,38,38,0.18); color: var(--reject); border: 1px solid var(--reject); }
 
+/* MULTI (2-3 options): thumbnails compare side-by-side across the top; the
+   column count comes from an inline style keyed to the option count. */
 .options-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; padding: 14px 20px; }
-.option { background: var(--panel-2); border: 2px solid transparent; border-radius: 6px; overflow: hidden; cursor: pointer; transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s; }
-.option:hover { transform: translateY(-2px); box-shadow: 0 8px 18px rgba(0,0,0,0.35); border-color: var(--accent); }
-.option.picked { border-color: var(--approve); background: rgba(22,163,74,0.10); }
+.option { background: var(--panel-2); border: 2px solid var(--border); border-radius: 6px; overflow: hidden; cursor: pointer; transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s; }
+.option:hover { transform: translateY(-2px); box-shadow: 0 8px 18px var(--shadow-strong); border-color: var(--accent); }
+.option.picked { border-color: var(--approve); background: var(--approve-tint); box-shadow: 0 0 0 3px var(--approve-tint), 0 8px 20px var(--shadow-strong); }
+.option.picked .option-frame::after { content: "\2713  PICKED"; position: absolute; top: 8px; left: 8px; z-index: 3; background: var(--approve); color: #fff; font-size: 11px; font-weight: 800; letter-spacing: 0.5px; padding: 4px 9px; border-radius: 6px; box-shadow: 0 2px 6px var(--shadow-strong); }
+/* Once a pick exists on a multi-option card, fade the non-picked tiles. */
+.card.has-pick .options-row[data-count="2"] .option:not(.picked),
+.card.has-pick .options-row[data-count="3"] .option:not(.picked) { opacity: 0.5; }
+
+/* SOLO (1 option): big HERO thumbnail on the left, decision + feedback stacked
+   on the right. Eye path: see the slide -> decide -> annotate. */
+.card[data-layout="solo"] .card-body { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(340px, 1fr); grid-template-areas: "thumb controls" "qc qc"; gap: 22px; align-items: start; padding: 16px 20px 18px; }
+.card[data-layout="solo"] .options-row  { grid-area: thumb;    display: block; padding: 0; max-width: 1120px; }
+.card[data-layout="solo"] .sketch-qc    { grid-area: qc;       margin: 0; }
+.card[data-layout="solo"] .card-controls{ grid-area: controls; grid-template-columns: 1fr; gap: 18px; padding: 0; border-top: none; }
+.card[data-layout="solo"] .feedback-grid{ grid-template-columns: 1fr; }
+@media (max-width: 1100px) {
+  .card[data-layout="solo"] .card-body { grid-template-columns: 1fr; grid-template-areas: "thumb" "controls" "qc"; }
+  .card[data-layout="solo"] .options-row { max-width: none; }
+}
 .option-frame { background: #fff; width: 100%; aspect-ratio: 16/9; overflow: hidden; position: relative; }
 .option-frame .thumb { width: 100%; height: 100%; }
 .option-frame .thumb img { width: 100%; height: 100%; object-fit: contain; display: block; background: #fff; }
-.option-frame .thumb.missing { display: flex; align-items: center; justify-content: center; background: rgba(220,38,38,0.18); color: #FCA5A5; font-size: 11px; font-weight: 600; }
+.option-frame .thumb.missing { display: flex; align-items: center; justify-content: center; background: rgba(185,28,28,0.10); color: var(--reject); font-size: 11px; font-weight: 600; }
 .option-meta { padding: 8px 10px 10px; font-size: 11px; }
 .option-letter { font-size: 11px; font-weight: 800; color: var(--accent); text-transform: uppercase; }
 .option-taxon { color: var(--text-dim); margin-top: 2px; font-size: 11px; }
@@ -1070,28 +1128,28 @@ code { font-family: Consolas, monospace; font-size: 12px; color: var(--text-dim)
 .qc-badge.block { background: var(--reject);  color: #fff; }
 
 .card-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 14px 20px 18px; border-top: 1px solid var(--border); }
-.decision-buttons { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
-.decision-buttons button { padding: 11px 6px; font-size: 11px; font-weight: 700; border-radius: 5px; border: 2px solid transparent; background: var(--panel-2); color: var(--text-dim); cursor: pointer; transition: all 0.15s; font-family: inherit; }
+.decision-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
+.decision-buttons button { flex: 1 1 120px; padding: 11px 6px; font-size: 11px; font-weight: 700; border-radius: 5px; border: 2px solid transparent; background: var(--panel-2); color: var(--text-dim); cursor: pointer; transition: all 0.15s; font-family: inherit; }
 .decision-buttons button:hover { filter: brightness(1.18); border-color: var(--accent); color: var(--accent); }
 .decision-buttons button.none:hover { border-color: var(--reject); color: var(--reject); }
 .decision-buttons button.active.pick { background: var(--approve); color: white; border-color: var(--approve); }
 .decision-buttons button.active.none { background: var(--reject); color: white; border-color: var(--reject); }
 
 textarea { width: 100%; min-height: 44px; background: var(--panel-2); color: var(--text); border: 1px solid var(--border); border-radius: 5px; padding: 7px 10px; font-family: inherit; font-size: 12px; line-height: 1.4; resize: vertical; }
-textarea.regen-text { background: rgba(220,38,38,0.06); border-color: rgba(220,38,38,0.35); color: #FCA5A5; min-height: 90px; font-family: Consolas, monospace; font-size: 11px; }
 .field-label { font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; font-weight: 700; margin-bottom: 5px; }
 .hint-text { font-size: 11px; color: var(--text-dim); margin-bottom: 10px; font-style: italic; }
 .feedback-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 14px; }
 .feedback-field label { display: block; font-size: 10px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 700; margin-bottom: 4px; }
-.regen-panel { margin-top: 10px; padding: 10px 12px; background: rgba(220,38,38,0.04); border-left: 3px solid var(--reject); border-radius: 4px; }
+.redo-note { margin-top: 12px; padding: 10px 12px; background: rgba(185,28,28,0.06); border-left: 3px solid var(--reject); border-radius: 4px; font-size: 12px; line-height: 1.5; color: var(--text); }
+.redo-note strong { color: var(--accent); }
 
-footer.summary-footer { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(15,23,42,0.96); border-top: 1px solid var(--border); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; gap: 14px; z-index: 50; backdrop-filter: blur(6px); }
+footer.summary-footer { position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255,255,255,0.96); border-top: 1px solid var(--border); box-shadow: 0 -2px 12px var(--shadow); padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; gap: 14px; z-index: 50; backdrop-filter: blur(6px); }
 footer.summary-footer .count { font-size: 14px; font-weight: 700; color: var(--text); }
 footer.summary-footer .count .num { color: var(--accent); }
 footer.summary-footer .btns { display: flex; gap: 8px; flex-wrap: wrap; }
 button.btn { background: var(--accent); color: #fff; border: none; padding: 9px 14px; border-radius: 5px; font-size: 12px; font-weight: 700; font-family: inherit; cursor: pointer; transition: opacity 0.12s; }
 button.btn:hover { opacity: 0.85; }
-button.btn.ghost { background: transparent; border: 1px solid #475569; color: #CBD5E1; }
+button.btn.ghost { background: transparent; border: 1px solid var(--border); color: #334155; }
 button.btn.primary { background: var(--accent); color: #fff; border: 1px solid var(--accent); }
 button.btn.big { padding: 13px 26px; font-size: 14px; letter-spacing: 0.3px; }
 button.btn.small { padding: 6px 11px; font-size: 11px; }
@@ -1099,11 +1157,28 @@ button.btn.small { padding: 6px 11px; font-size: 11px; }
 dialog#picks-dialog { background: var(--panel); color: var(--text); border: 1px solid var(--border); border-radius: 8px; padding: 0; max-width: 720px; width: 90vw; }
 dialog#picks-dialog::backdrop { background: rgba(0,0,0,0.6); }
 dialog#picks-dialog .dlg-head { padding: 14px 18px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
-dialog#picks-dialog pre { margin: 0; padding: 16px 18px; background: var(--bg); color: #86EFAC; font-size: 12px; font-family: Consolas, monospace; max-height: 60vh; overflow: auto; white-space: pre-wrap; word-break: break-all; }
+dialog#picks-dialog pre { margin: 0; padding: 16px 18px; background: #0F172A; color: #86EFAC; font-size: 12px; font-family: Consolas, monospace; max-height: 60vh; overflow: auto; white-space: pre-wrap; word-break: break-all; }
 dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--border); display: flex; justify-content: flex-end; gap: 8px; }
 
-#toast { position: fixed; bottom: 88px; left: 50%; transform: translateX(-50%); background: var(--panel); border: 1px solid var(--accent); color: var(--text); padding: 9px 16px; border-radius: 5px; font-size: 12px; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 200; max-width: 80vw; }
+#toast { position: fixed; bottom: 88px; left: 50%; transform: translateX(-50%); background: var(--panel); border: 1px solid var(--accent); box-shadow: 0 6px 20px var(--shadow-strong); color: var(--text); padding: 9px 16px; border-radius: 5px; font-size: 12px; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 200; max-width: 80vw; }
 #toast.show { opacity: 1; }
+
+/* Quick-feedback chips + "another option" (Stage 5) */
+.quick-fb { margin-bottom: 12px; }
+.chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.chip { font-size: 11px; font-weight: 600; padding: 6px 11px; border-radius: 999px; border: 1.5px solid var(--panel-2); background: var(--panel-2); color: var(--text-dim); cursor: pointer; font-family: inherit; transition: all 0.14s; }
+.chip:hover { border-color: var(--accent); color: var(--accent); }
+.chip.selected { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* "Want more options?" — 1/2/3 segmented picker (Stage 5b) */
+.more-picker { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.more-picker-label { font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
+.more-seg { display: inline-flex; border: 1.5px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--panel); }
+.more-opt { padding: 7px 16px; font-size: 13px; font-weight: 700; font-family: inherit; background: transparent; color: var(--text-dim); border: none; border-right: 1.5px solid var(--border); cursor: pointer; transition: all 0.14s; }
+.more-opt:last-child { border-right: none; }
+.more-opt:hover { background: rgba(161,0,255,0.08); color: var(--accent); }
+.more-opt.active { background: var(--accent); color: #fff; }
+.more-picker-hint { font-size: 11px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
 """
 
 
@@ -1115,6 +1190,7 @@ JS = r"""
 const PICKS_KEY = "slidelab_v2_picks_v1::" + window.location.pathname;
 const FB_KEY    = "slidelab_v2_feedback_v1::" + window.location.pathname;
 const REGEN_KEY = "slidelab_v2_regen_v1::"    + window.location.pathname;
+const MORE_KEY  = "slidelab_v2_more_v1::"     + window.location.pathname;
 const TOTAL_SLIDES = window.__TOTAL_SLIDES__;
 const SLIDE_IDS = window.__SLIDE_IDS__;
 const SLIDE_MAP = window.__SLIDE_MAP__;
@@ -1127,6 +1203,8 @@ function loadRegens() { return loadJson(REGEN_KEY); }
 function saveRegens(r){ saveJson(REGEN_KEY, r); }
 function loadFb()     { return loadJson(FB_KEY); }
 function saveFb(f)    { saveJson(FB_KEY, f); }
+function loadMore()   { return loadJson(MORE_KEY); }
+function saveMore(m)  { saveJson(MORE_KEY, m); }
 
 function pickForSlide(sid) {
     const picks = loadPicks();
@@ -1147,6 +1225,7 @@ function renderSlideState(sid) {
     card.querySelectorAll(".option").forEach(opt => {
         opt.classList.toggle("picked", opt.dataset.letter === letter);
     });
+    card.classList.toggle("has-pick", !!letter);
     card.querySelectorAll(".decision-buttons button").forEach(btn => {
         btn.classList.remove("active");
     });
@@ -1163,6 +1242,15 @@ function renderSlideState(sid) {
     if (letter) { badge.classList.add("picked"); badge.textContent = "DECIDED " + letter; }
     else if (isNone) { badge.classList.add("none"); badge.textContent = "REGEN REQUESTED"; }
     else { badge.classList.add("pending"); badge.textContent = "PENDING"; }
+
+    const moreN = loadMore()[sid] || 0;
+    card.querySelectorAll(".more-opt").forEach(b => {
+        const on = Number(b.dataset.n) === moreN;
+        b.classList.toggle("active", on);
+        b.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    const moreHint = document.getElementById("more-hint-" + sid);
+    if (moreHint) moreHint.textContent = moreN ? ("+" + moreN + " requested") : "";
 
     const regenPanel = document.getElementById("regen-" + sid);
     if (regenPanel) regenPanel.style.display = isNone ? "block" : "none";
@@ -1187,6 +1275,11 @@ function renderAll() {
     document.querySelectorAll("textarea[data-slide][data-field]").forEach(ta => {
         const k = ta.dataset.slide + "_" + ta.dataset.field;
         if (fb[k]) ta.value = fb[k];
+    });
+    // restore quick-feedback chip selections
+    document.querySelectorAll(".chip[data-slide][data-chip]").forEach(chip => {
+        const sel = (fb[chip.dataset.slide + "_quick"] || "").split("; ");
+        chip.classList.toggle("selected", sel.indexOf(chip.dataset.chip) !== -1);
     });
     updateCounts();
 }
@@ -1256,6 +1349,48 @@ function wireFeedback() {
     });
 }
 
+// Quick-feedback chips: a clicked chip is stored in the same feedback store
+// under a synthetic "quick" field, so it rides into the compile command like
+// any typed note. Multiple chips on one slide are joined with "; ".
+function toggleChip(btn) {
+    btn.classList.toggle("selected");
+    const sid = btn.dataset.slide;
+    const card = document.getElementById("card-" + sid);
+    const selected = Array.from(card.querySelectorAll(".chip.selected"))
+        .map(c => c.dataset.chip);
+    const fb = loadFb();
+    const k = sid + "_quick";
+    if (selected.length) fb[k] = selected.join("; "); else delete fb[k];
+    saveFb(fb);
+}
+
+// "Want more options?" picker: the reviewer chooses HOW MANY more designs to
+// add (1/2/3), keeping whatever exists. MORE_KEY stores a per-slide count, not
+// a boolean. Clicking the already-selected count clears the request. Setting a
+// count copies a ready-to-paste instruction; the count also rides into the
+// final compile command.
+function requestMore(sid, n) {
+    const more = loadMore();
+    if (more[sid] === n) {            // click the active count -> cancel
+        delete more[sid]; saveMore(more); renderSlideState(sid);
+        showToast("More-options request cleared for " + sid + ".");
+        return;
+    }
+    more[sid] = n; saveMore(more); renderSlideState(sid);
+    const word = n === 1 ? "option" : "options";
+    const cmd =
+        "Add " + n + " more design " + word + " for " + sid + " in my Slide Lab deck.\n" +
+        "Out dir: " + window.__OUT_DIR__ + "\n" +
+        "Keep the existing option(s). Dispatch that slide's worker on " +
+        window.__OUT_DIR__ + "/" + sid + "/_prompt.md to produce " + n +
+        " additional, structurally distinct " + word +
+        ", then rebuild REVIEW.html so I can compare.";
+    const done = () => showToast("Request for " + n + " more " + word + " copied — paste into Claude Code.");
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(cmd).then(done).catch(() => showDialog(cmd, "More-options request (Ctrl+C to copy)"));
+    } else { showDialog(cmd, "More-options request (Ctrl+C to copy)"); }
+}
+
 async function buildDeck() {
     const picks = {};
     SLIDE_IDS.forEach(sid => { const l = pickForSlide(sid); if (l) picks[sid] = l; });
@@ -1271,10 +1406,13 @@ async function buildDeck() {
     });
     const regens = loadRegens();
     const regenSlides = Object.keys(regens).filter(s => regens[s]);
+    const more = loadMore();
+    const moreSlides = Object.keys(more).filter(s => more[s] > 0).sort();
     let cmd = "Compile my slide-lab deck.\n";
     cmd += "Out dir: " + window.__OUT_DIR__ + "\n";
     cmd += "Picks: " + JSON.stringify(picks) + "\n";
     if (regenSlides.length) cmd += "Regen requested: " + regenSlides.join(", ") + "\n";
+    if (moreSlides.length) cmd += "More options requested (keep existing, add N each): " + moreSlides.map(s => s + " (+" + more[s] + ")").join(", ") + "\n";
     if (Object.keys(fbBySlide).length) {
         cmd += "Feedback:\n";
         Object.keys(fbBySlide).sort().forEach(sid => {
@@ -1289,16 +1427,10 @@ async function buildDeck() {
 
 function clearAll() {
     if (!confirm("Clear all picks, regens, and feedback?")) return;
-    savePicks({}); saveRegens({}); saveFb({});
+    savePicks({}); saveRegens({}); saveFb({}); saveMore({});
     document.querySelectorAll("textarea[data-slide][data-field]").forEach(ta => ta.value = "");
+    document.querySelectorAll(".chip.selected").forEach(c => c.classList.remove("selected"));
     renderAll(); showToast("Cleared.");
-}
-
-async function copyRegen(sid) {
-    const ta = document.querySelector("#regen-" + sid + " textarea.regen-text");
-    if (!ta) return;
-    try { await navigator.clipboard.writeText(ta.value); showToast("Regen text copied."); }
-    catch (e) { ta.select(); document.execCommand && document.execCommand("copy"); showToast("Selected — Ctrl+C to copy."); }
 }
 
 function showDialog(text, heading) {
@@ -1381,7 +1513,7 @@ def build_html(out_dir: Path, meta: Optional[dict], slides: list, storyline: dic
 <div class="topbar">
   <div>
     <div class="title">{html.escape(deck_topic)} &middot; OPTIONS REVIEW &middot; {slide_count} slides</div>
-    <div class="title-sub">{html.escape(deck_type)} &middot; Pick A/B/C per slide or mark NONE.</div>
+    <div class="title-sub">{html.escape(deck_type)} &middot; Pick an option per slide, mark NONE, or ask for more.</div>
     <div class="topbar-meta">
       <div class="k">Generated</div><div class="v">{html.escape(generated)}</div>
       <div class="k">Brief</div><div class="v"><code>{html.escape(brief_path)}</code></div>
@@ -1507,7 +1639,7 @@ def main(argv: list[str]) -> int:
     review_path.write_text(html_text, encoding="utf-8")
 
     print(f"[ok] wrote {review_path}")
-    print(f"     {len(slides)} slides x 3 options = {total_opts} tiles")
+    print(f"     {len(slides)} slides, {total_opts} option tiles")
     print(f"     missing PNGs: {missing_png}, missing themed PPTX: {missing_themed}")
     print(f"     storyline parsed from brief: {storyline.get('found')}")
     print(f"     size: {fmt_bytes(review_path.stat().st_size)}")
