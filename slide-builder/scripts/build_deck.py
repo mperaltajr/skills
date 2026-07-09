@@ -1228,14 +1228,17 @@ def write_dispatch_plan(
     lines.append("")
     lines.append("## Next step")
     lines.append("")
+    _letters = _p.option_letters()
+    _files = " / ".join(f"`option_{L}`" for L in _letters)
+    _n = len(_letters)
+    _opt_word = "option" if _n == 1 else f"{_n} options"
     lines.append(
         "Parent session dispatches one `slide-builder-worker` agent per slide "
         "IN PARALLEL. Each worker reads its `_context.md` first, then "
-        "`_prompt.md`, and writes its three options into its own `slide_NN/` "
-        "directory — `option_A.py` / `B` / `C` for direct-path slides, or "
-        "`option_A.html` / `B` / `C` for sketch-path slides (per the slide's "
-        "PATTERN field). Then run `finalize_deck.py` to graft, render, and "
-        "produce REVIEW.html."
+        f"`_prompt.md`, and writes its {_opt_word} into its own `slide_NN/` "
+        f"directory — {_files} as `.py` for direct-path slides, or as `.html` "
+        "for sketch-path slides (per the slide's PATTERN field). Then run "
+        "`finalize_deck.py` to graft, render, and produce REVIEW.html."
     )
     plan_path.write_text("\n".join(lines), encoding="utf-8")
     return plan_path

@@ -73,7 +73,7 @@ Entry format:
 
 5. **DON'T repeat the same split for 3+ consecutive slides.** — *Why:* visual monotony reads as a deck-design failure even when each individual slide is correct. *Do instead:* honor Hardline Rule #3. Two consecutive slides on the same split is allowed; three is not. The rotation seed handles this automatically per-slide.
 
-6. **DON'T build a neutral-weight layout when the brief's directive verb argues a position.** — *Why:* "recommend X" needs asymmetric weight toward X; "warn against Y" needs accent on the threat; "show urgency" needs bold typography on the deadline. Building three cosmetic variants of a neutral default strips the slide of its argument — the deck reads as a status update when it was supposed to be a recommendation. This is the failure mode the closed 7-verb directive vocabulary exists to prevent. *Do instead:* extract the directive verb from the brief (governing thought + editorial_emphasis) and map to one of `{recommend, warn, diagnose, show urgency, show progress, compare neutrally, summarize}`. See `layouts.md § "Directive verb vocabulary"` for the verb→variant-tilt translations. At least one of the three option variants must explicitly honor the directive (not just cosmetic variation). If no verb maps clearly from the brief, emit `SKELETON_REJECTED: ambiguous editorial intent` and stop — defaulting to neutral when the brief argues a position is itself the anti-pattern.
+6. **DON'T build a neutral-weight layout when the brief's directive verb argues a position.** — *Why:* "recommend X" needs asymmetric weight toward X; "warn against Y" needs accent on the threat; "show urgency" needs bold typography on the deadline. Building cosmetic variants of a neutral default strips the slide of its argument — the deck reads as a status update when it was supposed to be a recommendation. This is the failure mode the closed 7-verb directive vocabulary exists to prevent. *Do instead:* extract the directive verb from the brief (governing thought + editorial_emphasis) and map to one of `{recommend, warn, diagnose, show urgency, show progress, compare neutrally, summarize}`. See `layouts.md § "Directive verb vocabulary"` for the verb→variant-tilt translations. At least one generated option variant (the single option, when only one is produced) must explicitly honor the directive (not just cosmetic variation). If no verb maps clearly from the brief, emit `SKELETON_REJECTED: ambiguous editorial intent` and stop — defaulting to neutral when the brief argues a position is itself the anti-pattern.
 
 ---
 
@@ -136,7 +136,7 @@ The library is self-improving. Every curator-flagged aesthetic failure on a real
 
 **Process:**
 
-1. During or after a build, capture the failure: which slide, which pattern, which option (A/B/C), what the curator (or user) flagged.
+1. During or after a build, capture the failure: which slide, which pattern, which option, what the curator (or user) flagged.
 2. Choose the category (aesthetics / structural / content / chrome / encoding). If the failure doesn't fit, propose a new category — but check first whether an existing category covers it.
 3. Write the entry in the same format: `DON'T do X. — Why: ... Do instead: ...`. Keep it tight; one rule per entry.
 4. Append to the appropriate section. Do not renumber existing entries; new entries get the next available number.
