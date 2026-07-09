@@ -1319,6 +1319,10 @@ def _build_slide_meta_entry(slide: dict[str, Any], forecast: str,
         # brand.dark_bg_hex overlay + white title at finalize-time.
         # Empty / "light" / anything else = light variant (default).
         "variant":            (slide.get("variant", "") or "").strip().lower(),
+        # Freeze the option letters this slide is built with, so finalize's
+        # expected-pairs gate doesn't re-read options_per_slide live (which
+        # would break if settings changed between build and finalize).
+        "options":            list(_p.option_letters()),
     }
     # Only populate build-path fields when the classifier produced routing for
     # this slide. Empty pattern_per_slide (legacy mode) leaves the shape unchanged.

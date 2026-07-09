@@ -81,6 +81,13 @@ class SlideMeta(BaseModel):
     #     sketch slides as the build progresses.
     pattern: Optional[str] = None
     artifacts: Optional[dict[str, Any]] = None
+    # The option letters this slide was BUILT with, frozen at prep time
+    # (from settings.json::options_per_slide then). finalize's expected-pairs
+    # gate reads this instead of re-reading option_letters() live, so changing
+    # options_per_slide between build and finalize can't make the gate demand
+    # options that were never dispatched. None on legacy metas → reader falls
+    # back to the live option_letters().
+    options: Optional[list[str]] = None
 
 
 class DeckMeta(BaseModel):
