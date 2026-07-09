@@ -295,13 +295,25 @@ Rebuild individual slides with "rebuild slide N". This re-prep + re-finalize tou
 
 **If a build fails or the output is wrong:** tell the user they can type `/feedback` to capture a structured session report (the `slidelab-log` skill writes the technical detail; the user just submits the GitHub link). Offer this whenever a stage exits non-zero or the user says something looks broken.
 
-### Edit an existing PowerPoint (not built by Slide Lab)
+### Work on a deck Slide Lab did NOT build (external `.pptx`) — options 6a / 6b / 6c
 
-For a small change to a `.pptx` that Slide Lab did **not** build — fix a typo, swap a number, tweak or pull out some text — edit it directly with `python-pptx` (already a dependency). This is **not** a rebuild: no brief, no template registration, no options, no QC pipeline. Use it only for small text/shape tweaks on a file the user already has.
+An external `.pptx` has none of the pipeline's metadata (`_meta.json`, a brief, a registered template), so the option-5 rebuild can't touch it directly. Route by **what's changing** — ask the user, then pick the fork. All three write a **new** file; never overwrite the user's original.
 
-- **Read / extract:** open the file, walk `slide.shapes`, and for each shape guard with `if shape.has_text_frame:` before reading `shape.text_frame.text` (pictures, lines, and connectors have no text frame and raise otherwise).
-- **Edit text:** locate the shape (by slide index + shape name, or by matching its current text) and set `run.text` on the target run — editing the run (not `text_frame.text`) preserves the existing font, size, and color. Save to a **new** path (e.g. `<name>-edited.pptx`) unless the user explicitly asks to overwrite; never overwrite the user's file without confirming.
-- **Scope guard:** if the real ask is "make this deck good," "rebrand it," or "rebuild these slides," that is **not** an edit — route to the storyline → slide-builder pipeline so it is rebuilt on a registered template. **Never** hand-roll a whole deck from a blank `Presentation()`.
+**6a — Fix text or numbers, keep the design (small edit).** Edit directly with `python-pptx` (already a dependency). Not a rebuild: no brief, no options, no QC pipeline.
+- **Read / extract:** open the file, walk `slide.shapes`, guard each with `if shape.has_text_frame:` before reading `shape.text_frame.text` (pictures/lines/connectors have no text frame and raise otherwise).
+- **Edit text:** locate the shape (slide index + shape name, or by matching its current text) and set `run.text` on the target run — editing the run (not `text_frame.text`) preserves the font, size, and color. Save to a new path.
+- **Scope guard:** if the real ask is "redesign this slide" → **6b**; "refresh this recurring deck" → **6c**; "rebuild the whole thing / rebrand" → route to the storyline → slide-builder pipeline (option 1/2). **Never** hand-roll a whole deck from a blank `Presentation()`.
+
+**6b — Redesign a slide (or a few) at full quality, then splice it back.** Rebuilds specific slides on the deck's own template and drops them back into the original, leaving every other slide untouched.
+1. **Register the deck as its OWN template** first (option 7 — standalone, never inline). This makes the rebuilt slide match its neighbors' masters/layouts/brand.
+2. `py -3 scripts/adopt_deck.py <deck.pptx> --slides N[,M] --out <out>` — extracts each slide's text into a `mode: rebuild-slice` brief, reads each slide's real layout, and writes `_meta.json` (marked `adopted_source`) + a copy of the original at `<out>/adopted_source.pptx`. Enrich the target slide's Evidence in `adopted_brief.md` if the extract is thin (charts/images/SmartArt don't extract).
+3. `py -3 scripts/build_deck.py --slide N --out <out> --template <deck.pptx>` → dispatch the worker for slide N → `py -3 scripts/finalize_deck.py --slide N --out <out>` → pick in REVIEW.html.
+4. `py -3 scripts/compile_picks.py --out <out> --splice-into "<deck.pptx>"` — replaces slide N **in place** in a copy of the original (via `_sldIdLst` surgery), keeping every other slide. The `adopted_source` marker makes a plain `compile_picks` refuse (it would drop the un-rebuilt slides). Then **slide-qc**.
+
+**6c — Refresh a recurring / PMO deck (content only, design frozen).** For a status/PMO deck on a fixed template re-issued each cycle with new numbers, same look.
+1. `py -3 scripts/refresh_deck.py spec <deck.pptx>` — dumps every text field into an editable `*_refresh_spec.json`.
+2. Fill `new_text` for the fields that change this cycle; leave the rest `null`.
+3. `py -3 scripts/refresh_deck.py apply <deck.pptx> <spec.json>` — writes a dated copy with those text runs replaced in place (formatting preserved), design untouched; a drift guard skips any field whose text moved since the spec was made. Then **slide-qc**.
 
 Always output the full absolute path of the saved file as plain text.
 

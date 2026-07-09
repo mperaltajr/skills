@@ -324,6 +324,113 @@ Final deck: `{final}`
 
 
 # ---------------------------------------------------------------------------
+# Splice-back (option 6b) — replace slide(s) in an EXTERNAL deck in place
+# ---------------------------------------------------------------------------
+def run_splice(out_dir: Path, meta: dict, picks: dict, template_path: Path,
+               original: Path, final: Optional[Path]) -> int:
+    """Splice picked, rebuilt slides back into `original` at their positions,
+    preserving every other slide. Writes a NEW file; never touches the original.
+
+    Each picks key `slide_NN` is the 1-based position IN THE ORIGINAL DECK
+    (adopt_deck.py records it that way). For each, we append the rebuilt themed
+    slide, move it to position NN in `<p:sldIdLst>`, and drop the old slide
+    there. Slide count is unchanged.
+    """
+    from pptx.oxml.ns import qn  # noqa: E402
+    if not original.exists():
+        print(f"ERROR: --splice-into deck not found: {original}")
+        return 2
+
+    # Per-slide layout + chrome + keep-master, same resolution as a compile.
+    from twins.client_theme import load_client_theme  # noqa: E402
+    from _chrome_schema import load_chrome_yml  # noqa: E402
+    try:
+        _theme = load_client_theme(str(template_path))
+        keep_master = not bool(getattr(_theme, "strip_master_backgrounds", True))
+    except Exception:
+        keep_master = True  # external deck may not be registered; keep master chrome
+    chrome_spec = None
+    try:
+        chrome_spec = load_chrome_yml(_p.chrome_yml(template_path))
+    except Exception:
+        chrome_spec = None
+    slide_layouts: dict[str, str] = {}
+    for s in meta.get("slides", []):
+        n = s.get("n")
+        if isinstance(n, int):
+            slide_layouts[_p.slide_key(n)] = (s.get("layout") or "").strip()
+
+    out = final or original.with_name(f"{original.stem}_slidelab{original.suffix}")
+    prs = Presentation(str(original))
+    sldIdLst = prs.slides._sldIdLst
+    n_slides = len(list(sldIdLst))
+
+    print("=" * 72)
+    print("Slide Lab splice-back (option 6b)")
+    print(f"  original : {original}  ({n_slides} slides)")
+    print(f"  out      : {out}")
+    print("=" * 72)
+
+    spliced, failures = [], []
+    for key in sorted(picks.keys(), key=lambda k: int(k.split("_")[1])):
+        raw = picks[key]
+        letter = raw[0] if isinstance(raw, list) else raw
+        pos = int(key.split("_")[1])  # 1-based position in the ORIGINAL deck
+        src = out_dir / key / _p.option_pptx_name(letter)
+        if not (1 <= pos <= n_slides):
+            failures.append(f"{key}: position {pos} out of range (deck has {n_slides})")
+            continue
+        if not src.exists():
+            failures.append(f"{key}: missing rebuilt slide {src}")
+            continue
+        layout_name = slide_layouts.get(key, "")
+        layout_chrome = chrome_spec.layouts.get(layout_name) if (chrome_spec and layout_name) else None
+        ids_before = list(sldIdLst)          # snapshot BEFORE the append
+        copy_picked_slide_into(prs, src, layout_name=layout_name,
+                               layout_chrome=layout_chrome,
+                               keep_master_shapes=keep_master, page_position=pos)
+        new_sldId = list(sldIdLst)[-1]        # the just-appended slide
+        old_sldId = ids_before[pos - 1]       # the slide currently at position pos
+        old_sldId.addprevious(new_sldId)      # move rebuilt slide into position pos
+        rId = old_sldId.get(qn("r:id"))
+        try:
+            prs.part.drop_rel(rId)
+        except Exception:
+            pass
+        sldIdLst.remove(old_sldId)            # drop the old slide (count unchanged)
+        spliced.append(pos)
+        print(f"  spliced {key} (pick {letter}) into position {pos}  ok")
+
+    if not spliced:
+        print("ERROR: nothing spliced.")
+        for f in failures:
+            print(f"  - {f}")
+        return 2
+    try:
+        prs.save(str(out))
+    except (PermissionError, OSError) as exc:
+        print(f"ERROR: could not write {out.name}: {type(exc).__name__}: {exc} "
+              f"(is it open in PowerPoint?)")
+        return 3
+    _dedupe_zip_entries(out)
+
+    # Verify the count is preserved (the whole point of a splice vs a compile).
+    verify = Presentation(str(out))
+    final_count = len(verify.slides)
+    ok = final_count == n_slides
+    print(f"\n[verify] slide count {final_count} (was {n_slides}) — "
+          f"{'ok' if ok else 'MISMATCH'}")
+    print(f"  spliced positions: {spliced}")
+    if failures:
+        print("  skipped:")
+        for f in failures:
+            print(f"    - {f}")
+    print(f"\nSpliced deck: {out}")
+    print("Run slide-qc on it before sending (a deck isn't done until QC has run).")
+    return 0 if ok else 1
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 def main() -> int:
@@ -339,6 +446,13 @@ def main() -> int:
                          "deck. Useful for shipping a stakeholder-review "
                          "artifact where the audience picks among variants. "
                          "Mutually exclusive with --picks.")
+    ap.add_argument("--splice-into", default=None, type=Path,
+                    help="Option 6b (external-deck redesign): splice the picked, "
+                         "rebuilt slide(s) back into THIS original .pptx at their "
+                         "positions, keeping every other slide untouched. Writes a "
+                         "new file (never overwrites the original). Use this for a "
+                         "deck adopted via adopt_deck.py — a plain compile would "
+                         "drop the un-rebuilt slides.")
     args = ap.parse_args()
     if args.all_variations and args.picks:
         print("ERROR: --all-variations is mutually exclusive with --picks. "
@@ -396,6 +510,24 @@ def main() -> int:
     else:
         picks = parse_picks(args.picks, out_dir)
         final_path = args.final or (out_dir / "final_deck.pptx")
+
+    # Option 6b: splice rebuilt slides back into the external original in place.
+    if args.splice_into:
+        return run_splice(out_dir, meta, picks, template_path,
+                          Path(args.splice_into), args.final)
+
+    # Guard: an adopted external deck must NOT be compiled from scratch — the
+    # clear-and-rebuild path would drop every slide the user didn't rebuild.
+    # adopt_deck.py stamps `adopted_source`; force the splice path instead.
+    if meta.get("adopted_source") and not args.all_variations:
+        print("ERROR: this build was adopted from an external deck "
+              f"({meta.get('adopted_source')}).")
+        print("       A plain compile would keep ONLY the rebuilt slides and drop the rest.")
+        print("       Splice the rebuilt slide(s) back into the original instead:")
+        print(f"         py -3 compile_picks.py --out {out_dir} "
+              f"--splice-into \"{meta.get('adopted_source')}\"")
+        return 2
+
     final_path.parent.mkdir(parents=True, exist_ok=True)
 
     print("=" * 72)
