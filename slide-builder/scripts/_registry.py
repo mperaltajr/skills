@@ -137,7 +137,14 @@ def _entry_from_template(pptx: Path) -> Optional[dict[str, Any]]:
         return None
     brand = theme.get("brand") or {}
     template_path = str(pptx.resolve())
-    build_template_path = theme.get("build_template_path") or template_path
+    # Only trust theme.json's build_template_path if the normalized copy still
+    # exists — otherwise fall back to the original. Without this, reconcile()'s
+    # prune (which drops entries whose build copy is gone) and rediscovery
+    # disagree: the entry gets pruned then immediately re-added with the same
+    # dangling path, so a build later opens a missing file. resolve_build_template
+    # applies the same original-path fallback at build time.
+    _bt = theme.get("build_template_path")
+    build_template_path = _bt if (_bt and Path(_bt).exists()) else template_path
     return {
         "display_name": _display_name(pptx),
         "template_path": template_path,

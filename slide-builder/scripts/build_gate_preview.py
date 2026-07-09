@@ -6,7 +6,8 @@ brand/pattern expectations before approving Stage 4 (build_review.py).
 
 Spec (from operator):
   - Vertical scroll, one section per slide (10 sections for a 10-slide deck)
-  - Per slide: slide number + title + 3 option tiles side-by-side
+  - Per slide: slide number + title + the option tile(s) side-by-side
+    (one by default; more when settings.json::options_per_slide > 1)
   - Each tile shows the rendered PNG (option_X.png)
   - Under each tile: pattern + variant + directive verb + classification
   - Adjacency advisory at top if any pattern appears 3+ consecutive across option_A
@@ -558,7 +559,7 @@ def render_html(out_dir: Path, slides: list[dict], adjacency: list[str]) -> str:
       <span><span class="label">Directive verb</span>{html.escape(s["directive"])}</span>
     </div>
   </div>
-  <div class="options-grid">
+  <div class="options-grid" style="grid-template-columns: repeat({len(OPTIONS)}, 1fr);">
     {"".join(tiles_html)}
   </div>
 </section>

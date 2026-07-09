@@ -1163,7 +1163,7 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
 #toast { position: fixed; bottom: 88px; left: 50%; transform: translateX(-50%); background: var(--panel); border: 1px solid var(--accent); box-shadow: 0 6px 20px var(--shadow-strong); color: var(--text); padding: 9px 16px; border-radius: 5px; font-size: 12px; opacity: 0; transition: opacity 0.2s; pointer-events: none; z-index: 200; max-width: 80vw; }
 #toast.show { opacity: 1; }
 
-/* Quick-feedback chips + "another option" (Stage 5) */
+/* Quick-feedback chips */
 .quick-fb { margin-bottom: 12px; }
 .chip-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
 .chip { font-size: 11px; font-weight: 600; padding: 6px 11px; border-radius: 999px; border: 1.5px solid var(--panel-2); background: var(--panel-2); color: var(--text-dim); cursor: pointer; font-family: inherit; transition: all 0.14s; }
@@ -1366,9 +1366,9 @@ function toggleChip(btn) {
 
 // "Want more options?" picker: the reviewer chooses HOW MANY more designs to
 // add (1/2/3), keeping whatever exists. MORE_KEY stores a per-slide count, not
-// a boolean. Clicking the already-selected count clears the request. Setting a
-// count copies a ready-to-paste instruction; the count also rides into the
-// final compile command.
+// a boolean. Clicking the already-selected count clears the request. Like NONE,
+// this only FLAGS the slide — no separate copy — so all requests batch into the
+// single "Build my deck" command (one paste, not one per slide).
 function requestMore(sid, n) {
     const more = loadMore();
     if (more[sid] === n) {            // click the active count -> cancel
@@ -1378,23 +1378,12 @@ function requestMore(sid, n) {
     }
     more[sid] = n; saveMore(more); renderSlideState(sid);
     const word = n === 1 ? "option" : "options";
-    const cmd =
-        "Add " + n + " more design " + word + " for " + sid + " in my Slide Lab deck.\n" +
-        "Out dir: " + window.__OUT_DIR__ + "\n" +
-        "Keep the existing option(s). Dispatch that slide's worker on " +
-        window.__OUT_DIR__ + "/" + sid + "/_prompt.md to produce " + n +
-        " additional, structurally distinct " + word +
-        ", then rebuild REVIEW.html so I can compare.";
-    const done = () => showToast("Request for " + n + " more " + word + " copied — paste into Claude Code.");
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(cmd).then(done).catch(() => showDialog(cmd, "More-options request (Ctrl+C to copy)"));
-    } else { showDialog(cmd, "More-options request (Ctrl+C to copy)"); }
+    showToast(n + " more " + word + " queued for " + sid + " — included when you click Build my deck.");
 }
 
 async function buildDeck() {
     const picks = {};
     SLIDE_IDS.forEach(sid => { const l = pickForSlide(sid); if (l) picks[sid] = l; });
-    if (Object.keys(picks).length === 0) { showToast("No picks yet."); return; }
     const fb = loadFb();
     const fbBySlide = {};
     Object.keys(fb).forEach(k => {
@@ -1408,11 +1397,25 @@ async function buildDeck() {
     const regenSlides = Object.keys(regens).filter(s => regens[s]);
     const more = loadMore();
     const moreSlides = Object.keys(more).filter(s => more[s] > 0).sort();
-    let cmd = "Compile my slide-lab deck.\n";
+
+    // Build from whatever the reviewer left — picks, NONE (regen), or more-
+    // options requests. Only truly-empty state is a no-op.
+    if (Object.keys(picks).length === 0 && regenSlides.length === 0 && moreSlides.length === 0) {
+        showToast("Nothing to send yet — pick a slide, mark NONE, or request more options.");
+        return;
+    }
+
+    // When any slide needs regeneration or more options, this is an ITERATE
+    // instruction (regenerate, then rebuild REVIEW for another look), not a
+    // final compile. Frame the header so the paste is unambiguous.
+    const iterate = regenSlides.length > 0 || moreSlides.length > 0;
+    let cmd = iterate
+        ? "Update my slide-lab deck as follows, then rebuild REVIEW.html so I can review again.\n"
+        : "Compile my slide-lab deck.\n";
     cmd += "Out dir: " + window.__OUT_DIR__ + "\n";
-    cmd += "Picks: " + JSON.stringify(picks) + "\n";
-    if (regenSlides.length) cmd += "Regen requested: " + regenSlides.join(", ") + "\n";
-    if (moreSlides.length) cmd += "More options requested (keep existing, add N each): " + moreSlides.map(s => s + " (+" + more[s] + ")").join(", ") + "\n";
+    if (Object.keys(picks).length) cmd += (iterate ? "Picks so far: " : "Picks: ") + JSON.stringify(picks) + "\n";
+    if (regenSlides.length) cmd += "Redo from scratch (reject the current option, generate a fresh one): " + regenSlides.join(", ") + "\n";
+    if (moreSlides.length) cmd += "Add more options (keep the existing one, add N more each): " + moreSlides.map(s => s + " (+" + more[s] + ")").join(", ") + "\n";
     if (Object.keys(fbBySlide).length) {
         cmd += "Feedback:\n";
         Object.keys(fbBySlide).sort().forEach(sid => {
@@ -1421,8 +1424,9 @@ async function buildDeck() {
             Object.keys(f).forEach(k => { cmd += "    " + k + ": " + f[k].replace(/\n/g, " ") + "\n"; });
         });
     }
-    try { await navigator.clipboard.writeText(cmd); showToast("Compile command copied. Paste into Claude Code."); }
-    catch (e) { showDialog(cmd, "Compile command (Ctrl+C to copy)"); }
+    const label = iterate ? "Update command copied. Paste into Claude Code." : "Compile command copied. Paste into Claude Code.";
+    try { await navigator.clipboard.writeText(cmd); showToast(label); }
+    catch (e) { showDialog(cmd, iterate ? "Update command (Ctrl+C to copy)" : "Compile command (Ctrl+C to copy)"); }
 }
 
 function clearAll() {
@@ -1450,7 +1454,9 @@ function showToast(msg) {
 document.addEventListener("DOMContentLoaded", () => {
     document.querySelectorAll(".option").forEach(el => {
         el.addEventListener("click", (e) => {
-            if (e.target.closest("a")) return;
+            // Don't treat a click on a link or an in-tile button (e.g. Vision QC)
+            // as a pick — only bare clicks on the thumbnail select the option.
+            if (e.target.closest("a, button")) return;
             pickOption(el.dataset.slide, el.dataset.letter);
         });
     });
@@ -1519,7 +1525,7 @@ def build_html(out_dir: Path, meta: Optional[dict], slides: list, storyline: dic
       <div class="k">Brief</div><div class="v"><code>{html.escape(brief_path)}</code></div>
       <div class="k">Template</div><div class="v"><code>{html.escape(template_path)}</code></div>
       <div class="k">Output</div><div class="v"><code>{html.escape(str(out_dir.resolve()))}</code></div>
-      <div class="k">Client</div><div class="v">{html.escape(client_display) if client_display else '<em style="color:#888;">(not set)</em>'}</div>
+      <div class="k">Client</div><div class="v">{html.escape(client_display) if client_display else '<em style="color:#64748B;">(not set)</em>'}</div>
     </div>
   </div>
   <div class="summary">
@@ -1532,7 +1538,7 @@ def build_html(out_dir: Path, meta: Optional[dict], slides: list, storyline: dic
 
     footer_html = """
 <footer class="summary-footer">
-  <div class="count"><span class="num" id="pick-count">0</span> / <span id="total-slides">0</span> picked &middot; <span style="color:#94A3B8;font-weight:400;font-size:12px;">picks auto-save in this browser</span></div>
+  <div class="count"><span class="num" id="pick-count">0</span> / <span id="total-slides">0</span> picked &middot; <span style="color:#64748B;font-weight:400;font-size:12px;">picks auto-save in this browser</span></div>
   <div class="btns">
     <button class="btn ghost small" id="btn-clear">&#x1F5D1; Clear</button>
     <button class="btn primary big" id="btn-build">&#10003; Build my deck</button>

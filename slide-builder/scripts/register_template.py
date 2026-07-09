@@ -3609,7 +3609,19 @@ def _check_libreoffice_available() -> tuple[bool, str]:
     """
     try:
         from render_slides import _resolve_soffice
-        _resolve_soffice()  # raises if nothing resolves
+    except Exception as _imp_err:
+        # A broken/missing renderer import is a different failure than "no
+        # LibreOffice" — don't mislabel it. render_slides lives in the sibling
+        # slide-qc skill (on sys.path via the QC_SCRIPTS insert above).
+        return False, (
+            "Slide Lab install looks incomplete: could not import the renderer "
+            "(slide-qc/scripts/render_slides.py).\n"
+            f"  {_imp_err}\n"
+            "  Make sure the sibling `slide-qc` skill is installed next to "
+            "`slide-builder`, then re-run."
+        )
+    try:
+        _resolve_soffice()  # raises RuntimeError if nothing resolves
         return True, ""
     except Exception:
         pass
