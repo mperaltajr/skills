@@ -39,13 +39,17 @@ Before installing, make sure you have:
 - **Claude Code** — [claude.ai/code](https://claude.ai/code)
 - **Git** — [git-scm.com](https://git-scm.com) *(download and install, keep all defaults)*
 - **Python 3** — [python.org](https://python.org) *(needed for slide-builder)*
-- **LibreOffice** — [libreoffice.org](https://www.libreoffice.org) *(needed for slide-qc review and visual previews; the deck build itself runs without it. Defaults to `C:\Program Files\LibreOffice\`)*
+- **LibreOffice** — [libreoffice.org](https://www.libreoffice.org) *(needed for slide-qc review and visual previews; the deck build itself runs without it. Found automatically on Windows `C:\Program Files\LibreOffice\`, macOS `/Applications/LibreOffice.app`, and Linux via PATH)*
 
 ---
 
 ## Installation
 
+### Windows (PowerShell)
+
 Open **PowerShell** and run these commands one at a time. Copy each block, paste it into PowerShell, and press Enter. Wait for it to finish before running the next one.
+
+*(On macOS/Linux, skip to the [macOS / Linux](#macos--linux) section below.)*
 
 **1. Download the skills:**
 ```powershell
@@ -100,6 +104,46 @@ py -3 slide-builder/tests/run_insert_slice_smoke.py
 py -3 slide-builder/tests/run_font_lock_smoke.py
 ```
 The first exercises the sketch (HTML-first) build path end-to-end on the Python side (prompt rendering, HTML→PNG render, classifier, R4 QC, native execution). The second builds a 4-slide deck against a layout-diverse fixture template. The third builds a deck then rebuilds one slide, confirming the rebuild only touches that slide. The fourth builds a deck then inserts a slide, confirming the deck renumbers correctly and the shifted slides keep their output. The fifth checks that every text size is locked to PowerPoint's default sizes (floor 8pt). All print `All phases passed.` / `SMOKE PASSED.` on success; any failure points at the broken piece.
+
+### macOS / Linux
+
+Open **Terminal** and run these one at a time. Same scripts as Windows — just `python3` instead of `py -3` (use `pip3` if `pip` isn't found).
+
+**1. Download the skills:**
+```bash
+git clone https://github.com/mperaltajr/skills ~/.claude/skills
+```
+
+**2. Install Python dependencies, then the Chromium browser slide-builder renders with:**
+```bash
+pip3 install -r ~/.claude/skills/requirements.txt
+python3 -m playwright install chromium
+```
+> On a corporate network seeing SSL errors, add `--trusted-host pypi.org --trusted-host files.pythonhosted.org --trusted-host pypi.python.org` to the `pip3 install` command.
+
+**3. Install LibreOffice** from [libreoffice.org](https://www.libreoffice.org/download). macOS installs to `/Applications/LibreOffice.app` — Slide Lab finds it there automatically, **no PATH change needed**. On Linux use your package manager (e.g. `sudo apt install libreoffice`). Set `SLIDE_LAB_SOFFICE` to the full `soffice` path only if you installed it somewhere non-standard.
+
+**4. *(Optional but recommended)* Configure settings + auto-update** — allow shell commands and silently pull the latest skills each time Claude Code starts:
+```bash
+mkdir -p ~/.claude
+cat > ~/.claude/settings.json <<'JSON'
+{"permissions":{"defaultMode":"bypassPermissions","allow":["Bash","Read","Write","Edit","Glob","Grep"]},"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"cd ~/.claude/skills && git pull --quiet 2>/dev/null; exit 0","shell":"bash","async":true}]}]}}
+JSON
+```
+> If `~/.claude/settings.json` already exists, do **not** overwrite it — open it and add `"Bash"` to `permissions.allow` plus the `hooks.SessionStart` git-pull block by hand.
+
+**5. Install the Slide Lab agents:**
+```bash
+mkdir -p ~/.claude/agents
+cp ~/.claude/skills/slide-builder/agents/*.md ~/.claude/agents/
+```
+
+**6. Restart Claude Code.** Optionally verify:
+```bash
+cd ~/.claude/skills
+python3 slide-builder/tests/run_sketch_smoke.py
+python3 slide-builder/tests/run_layout_inheritance_smoke.py
+```
 
 ---
 
@@ -190,9 +234,15 @@ Tell Claude what's missing — it will build the slide with clearly labeled plac
 
 ## Getting Updates
 
+If you set up the SessionStart hook during install, updates pull automatically each time Claude Code starts. To update by hand:
+
 ```powershell
-cd "$env:USERPROFILE\.claude\skills"
-git pull
+# Windows
+cd "$env:USERPROFILE\.claude\skills"; git pull
+```
+```bash
+# macOS / Linux
+cd ~/.claude/skills && git pull
 ```
 
 Then restart Claude Code.

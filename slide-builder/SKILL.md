@@ -7,6 +7,15 @@ description: "Default build layer of Slide Lab and the ONLY sanctioned way to bu
 
 The build layer of Slide Lab. The split is the spec.
 
+> **Running the commands in this skill — Windows vs macOS/Linux.** Every `py -3 …`
+> command below is written for Windows. On **macOS/Linux**, run the identical
+> command with **`python3`** instead of `py -3` (e.g. `python3 scripts/build_deck.py …`);
+> script paths, flags, and arguments are all the same. LibreOffice is located
+> automatically on every OS (Windows `C:\Program Files\LibreOffice`, macOS
+> `/Applications/LibreOffice.app`, Linux via PATH); set the `SLIDE_LAB_SOFFICE`
+> environment variable to the `soffice` path only if you installed it somewhere
+> non-standard.
+
 ---
 
 ## First time here?

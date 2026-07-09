@@ -31,7 +31,12 @@ def _resolve_soffice() -> str:
     env = os.environ.get("SLIDE_LAB_SOFFICE")
     if env and pathlib.Path(env).exists():
         return env
-    on_path = shutil.which("soffice") or shutil.which("soffice.exe")
+    # `soffice` is the canonical binary on every OS; `libreoffice` is the
+    # command name many Linux distros ship (a wrapper/symlink).
+    on_path = (
+        shutil.which("soffice") or shutil.which("soffice.exe")
+        or shutil.which("libreoffice") or shutil.which("libreoffice.exe")
+    )
     if on_path:
         return on_path
     candidates = [
@@ -40,6 +45,7 @@ def _resolve_soffice() -> str:
         "/Applications/LibreOffice.app/Contents/MacOS/soffice",
         "/usr/bin/soffice",
         "/usr/local/bin/soffice",
+        "/opt/libreoffice/program/soffice",
     ]
     for c in candidates:
         if pathlib.Path(c).exists():
