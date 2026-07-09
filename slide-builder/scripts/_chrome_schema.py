@@ -199,56 +199,66 @@ class TitleMetricsUnavailableError(RuntimeError):
     """
 
 
-def _find_brand_ttf(font_name: str | None = None) -> str | None:
-    """Discover a brand TTF on disk by name. Returns absolute path or None.
+import functools as _functools
 
-    Scans the OS font directories for a file matching `font_name`:
-      - Windows: `%LOCALAPPDATA%\\Microsoft\\Windows\\Fonts` then `C:\\Windows\\Fonts`
-      - macOS:   `~/Library/Fonts`, `/Library/Fonts`, `/System/Library/Fonts`
-      - Linux:   `~/.fonts`, `~/.local/share/fonts`, `/usr/share/fonts`,
-                 `/usr/local/share/fonts`
-    All platforms' directories are scanned regardless of the current OS (the
-    non-existent ones are simply skipped), so this stays additive. Used as a
-    transitional fallback when brand.yml doesn't yet record the TTF path; once
-    register_template writes the resolved path into brand.yml, callers prefer
-    that and skip this scan. With no `font_name` there is nothing to search
-    for, so the function returns None.
+
+@_functools.lru_cache(maxsize=1)
+def _font_index() -> dict[str, str]:
+    """Build a `lowercased-filename -> absolute-path` index of every font on
+    disk, scanned ONCE per process (lru_cache). The OS font dirs are visited in
+    preference order (Windows user → system → macOS → Linux) and the FIRST
+    occurrence of a filename wins, so the resolution order matches the old
+    per-call scan. Flat dirs use a cheap listdir; the nested Linux trees are
+    walked once here instead of on every _find_brand_ttf call (registration
+    calls it ~10x per template — that was ~10 full /usr walks).
     """
     import os
-    if not font_name:
-        return None
-    candidates = [font_name]
-    font_dirs = [
-        # Windows
+    flat_dirs = [
         os.path.expandvars(r"%LOCALAPPDATA%\Microsoft\Windows\Fonts"),
         r"C:\Windows\Fonts",
-        # macOS
         os.path.expanduser("~/Library/Fonts"),
         "/Library/Fonts",
         "/System/Library/Fonts",
-        # Linux
+    ]
+    walk_dirs = [
         os.path.expanduser("~/.fonts"),
         os.path.expanduser("~/.local/share/fonts"),
         "/usr/share/fonts",
         "/usr/local/share/fonts",
     ]
-    for dir_path in font_dirs:
-        if not dir_path or not os.path.isdir(dir_path):
+    idx: dict[str, str] = {}
+    for d in flat_dirs:
+        if not d or not os.path.isdir(d):
             continue
-        for fn in candidates:
-            full = os.path.join(dir_path, fn)
-            if os.path.isfile(full):
-                return full
-        # Linux font trees are nested (e.g. /usr/share/fonts/truetype/...),
-        # so walk them when a direct hit fails. Windows/macOS dirs are flat
-        # and the direct check above already covered them.
-        if dir_path.startswith(("/usr", os.path.expanduser("~/.fonts"),
-                                os.path.expanduser("~/.local"))):
-            for root, _dirs, files in os.walk(dir_path):
-                for fn in candidates:
-                    if fn in files:
-                        return os.path.join(root, fn)
-    return None
+        try:
+            for fn in os.listdir(d):
+                full = os.path.join(d, fn)
+                if os.path.isfile(full):
+                    idx.setdefault(fn.lower(), full)
+        except OSError:
+            pass
+    for d in walk_dirs:
+        if not d or not os.path.isdir(d):
+            continue
+        for root, _dirs, files in os.walk(d):
+            for fn in files:
+                idx.setdefault(fn.lower(), os.path.join(root, fn))
+    return idx
+
+
+def _find_brand_ttf(font_name: str | None = None) -> str | None:
+    """Discover a brand TTF on disk by name. Returns absolute path or None.
+
+    Looks `font_name` up in a cached index of the OS font directories
+    (Windows / macOS / Linux — all scanned regardless of current OS, so this
+    stays additive). Case-insensitive. Used as a transitional fallback when
+    brand.yml doesn't yet record the TTF path; once register_template writes the
+    resolved path into brand.yml, callers prefer that and skip this. With no
+    `font_name` there is nothing to search for, so it returns None.
+    """
+    if not font_name:
+        return None
+    return _font_index().get(font_name.lower())
 
 
 def count_wrapped_lines(text: str, ttf_path: str | None,
