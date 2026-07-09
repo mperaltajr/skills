@@ -307,11 +307,11 @@ An external `.pptx` has none of the pipeline's metadata (`_meta.json`, a brief, 
 **6b — Redesign a slide (or a few) at full quality, then splice it back.** Rebuilds specific slides on the deck's own template and drops them back into the original, leaving every other slide untouched.
 1. **Register the deck as its OWN template** first (option 7 — standalone, never inline). This makes the rebuilt slide match its neighbors' masters/layouts/brand.
 2. `py -3 scripts/adopt_deck.py <deck.pptx> --slides N[,M] --out <out>` — extracts each slide's text into a `mode: rebuild-slice` brief, reads each slide's real layout, and writes `_meta.json` (marked `adopted_source`) + a copy of the original at `<out>/adopted_source.pptx`. Enrich the target slide's Evidence in `adopted_brief.md` if the extract is thin (charts/images/SmartArt don't extract).
-3. `py -3 scripts/build_deck.py --slide N --out <out> --template <deck.pptx>` → dispatch the worker for slide N → `py -3 scripts/finalize_deck.py --slide N --out <out>` → pick in REVIEW.html.
+3. `py -3 scripts/build_deck.py --slide N --out <out> --template <deck.pptx>` → dispatch the worker for slide N → `py -3 scripts/finalize_deck.py --slide N --out <out> --template <deck.pptx>` → pick in REVIEW.html.
 4. `py -3 scripts/compile_picks.py --out <out> --splice-into "<deck.pptx>"` — replaces slide N **in place** in a copy of the original (via `_sldIdLst` surgery), keeping every other slide. The `adopted_source` marker makes a plain `compile_picks` refuse (it would drop the un-rebuilt slides). Then **slide-qc**.
 
 **6c — Refresh a recurring / PMO deck (content only, design frozen).** For a status/PMO deck on a fixed template re-issued each cycle with new numbers, same look.
-1. `py -3 scripts/refresh_deck.py spec <deck.pptx>` — dumps every text field into an editable `*_refresh_spec.json`.
+1. `py -3 scripts/refresh_deck.py spec <deck.pptx>` — dumps every **text box / placeholder** field into an editable `*_refresh_spec.json`. **Limitation:** table cells, chart data, and SmartArt are NOT captured (they aren't text frames) — update those by hand, or route the slide to 6b. Say this to the user up front for a status deck with RAG tables.
 2. Fill `new_text` for the fields that change this cycle; leave the rest `null`.
 3. `py -3 scripts/refresh_deck.py apply <deck.pptx> <spec.json>` — writes a dated copy with those text runs replaced in place (formatting preserved), design untouched; a drift guard skips any field whose text moved since the spec was made. Then **slide-qc**.
 

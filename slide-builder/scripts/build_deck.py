@@ -1455,7 +1455,15 @@ def update_meta_for_rebuild(
         meta["pattern_per_slide"][str(slide_n)] = pattern_per_slide[str(slide_n)]
     meta["generated_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
-    MetaJson.model_validate(meta)
+    try:
+        MetaJson.model_validate(meta)
+    except Exception as exc:
+        # A malformed on-disk _meta.json (e.g. an incomplete hand-built or
+        # adopted manifest) should fail with a clear message, not a raw
+        # traceback out of a rebuild/insert. Caller treats None as exit 2.
+        print(f"[error] _meta.json failed schema validation: "
+              f"{type(exc).__name__}: {exc}", file=sys.stderr)
+        return None
     meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
     return meta_path
 
@@ -1568,7 +1576,15 @@ def update_meta_for_insert(
     meta["slide_count"] = old_count + 1
     meta["generated_at"] = datetime.now(timezone.utc).isoformat(timespec="seconds")
 
-    MetaJson.model_validate(meta)
+    try:
+        MetaJson.model_validate(meta)
+    except Exception as exc:
+        # A malformed on-disk _meta.json (e.g. an incomplete hand-built or
+        # adopted manifest) should fail with a clear message, not a raw
+        # traceback out of a rebuild/insert. Caller treats None as exit 2.
+        print(f"[error] _meta.json failed schema validation: "
+              f"{type(exc).__name__}: {exc}", file=sys.stderr)
+        return None
     meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
     return meta_path
 

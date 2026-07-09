@@ -361,6 +361,12 @@ def run_splice(out_dir: Path, meta: dict, picks: dict, template_path: Path,
             slide_layouts[_p.slide_key(n)] = (s.get("layout") or "").strip()
 
     out = final or original.with_name(f"{original.stem}_slidelab{original.suffix}")
+    # Never write over the original — the whole promise of a splice.
+    if out.resolve() == original.resolve():
+        print("ERROR: output resolves to the original deck; refusing to overwrite it. "
+              "Pass a different --final.")
+        return 3
+
     prs = Presentation(str(original))
     sldIdLst = prs.slides._sldIdLst
     n_slides = len(list(sldIdLst))
@@ -371,7 +377,13 @@ def run_splice(out_dir: Path, meta: dict, picks: dict, template_path: Path,
     print(f"  out      : {out}")
     print("=" * 72)
 
-    spliced, failures = [], []
+    # Snapshot the original sldId elements ONCE. We append every rebuilt slide
+    # first, then remove the old ones at the end: dropping an old slide's rel
+    # mid-loop frees its partname, which the next add_slide reuses — producing
+    # duplicate zip entries that the dedupe pass then collapses, silently losing
+    # a spliced slide. Defer all removals until after every append.
+    orig_ids = list(sldIdLst)
+    spliced, failures, pending_old = [], [], []
     for key in sorted(picks.keys(), key=lambda k: int(k.split("_")[1])):
         raw = picks[key]
         letter = raw[0] if isinstance(raw, list) else raw
@@ -385,21 +397,27 @@ def run_splice(out_dir: Path, meta: dict, picks: dict, template_path: Path,
             continue
         layout_name = slide_layouts.get(key, "")
         layout_chrome = chrome_spec.layouts.get(layout_name) if (chrome_spec and layout_name) else None
-        ids_before = list(sldIdLst)          # snapshot BEFORE the append
-        copy_picked_slide_into(prs, src, layout_name=layout_name,
-                               layout_chrome=layout_chrome,
-                               keep_master_shapes=keep_master, page_position=pos)
-        new_sldId = list(sldIdLst)[-1]        # the just-appended slide
-        old_sldId = ids_before[pos - 1]       # the slide currently at position pos
-        old_sldId.addprevious(new_sldId)      # move rebuilt slide into position pos
-        rId = old_sldId.get(qn("r:id"))
         try:
-            prs.part.drop_rel(rId)
-        except Exception:
-            pass
-        sldIdLst.remove(old_sldId)            # drop the old slide (count unchanged)
+            copy_picked_slide_into(prs, src, layout_name=layout_name,
+                                   layout_chrome=layout_chrome,
+                                   keep_master_shapes=keep_master, page_position=pos)
+        except Exception as e:
+            failures.append(f"{key}: {type(e).__name__}: {e}")
+            continue
+        new_sldId = list(sldIdLst)[-1]        # the just-appended slide
+        old_sldId = orig_ids[pos - 1]         # the original slide at position pos
+        old_sldId.addprevious(new_sldId)      # move rebuilt slide into position pos
+        pending_old.append(old_sldId)
         spliced.append(pos)
         print(f"  spliced {key} (pick {letter}) into position {pos}  ok")
+
+    # Now drop the replaced slides (rel + sldId). Count stays invariant.
+    for old_sldId in pending_old:
+        try:
+            prs.part.drop_rel(old_sldId.get(qn("r:id")))
+        except Exception:
+            pass
+        sldIdLst.remove(old_sldId)
 
     if not spliced:
         print("ERROR: nothing spliced.")
@@ -519,7 +537,7 @@ def main() -> int:
     # Guard: an adopted external deck must NOT be compiled from scratch — the
     # clear-and-rebuild path would drop every slide the user didn't rebuild.
     # adopt_deck.py stamps `adopted_source`; force the splice path instead.
-    if meta.get("adopted_source") and not args.all_variations:
+    if meta.get("adopted_source"):
         print("ERROR: this build was adopted from an external deck "
               f"({meta.get('adopted_source')}).")
         print("       A plain compile would keep ONLY the rebuilt slides and drop the rest.")

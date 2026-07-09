@@ -106,10 +106,46 @@ def main() -> int:
         assert "--splice-into" in r2.stdout, r2.stdout
         print("    ok: adopted-deck guard blocks the deck-wiping compile")
 
+        print("[5] MULTI-slice: splice two slides at once (positions 2 and 5 of 5)")
+        orig5 = tmp / "deck5.pptx"
+        prs5 = Presentation()
+        for t in ["S1", "S2 OLD", "S3", "S4", "S5 OLD"]:
+            _titled_slide(prs5, t)
+        prs5.save(str(orig5))
+        out5 = tmp / "adopt5"
+        for n, label in ((2, "REBUILT-2"), (5, "REBUILT-5")):
+            (out5 / f"slide_0{n}").mkdir(parents=True)
+            _make_rebuilt_named(out5 / f"slide_0{n}" / "option_A.pptx", label)
+        (out5 / "_meta.json").write_text(json.dumps({
+            "template": str(orig5), "adopted_source": str(orig5), "slide_count": 5,
+            "slides": [{"n": i, "layout": ""} for i in range(1, 6)],
+        }), encoding="utf-8")
+        spliced5 = tmp / "deck5_slidelab.pptx"
+        r = subprocess.run(
+            [sys.executable, str(SCRIPTS / "compile_picks.py"), "--out", str(out5),
+             "--picks", json.dumps({"slide_02": "A", "slide_05": "A"}),
+             "--splice-into", str(orig5), "--final", str(spliced5)],
+            capture_output=True, text=True)
+        assert r.returncode == 0, f"multi-splice failed:\n{r.stdout}\n{r.stderr}"
+        got = [_slide_text(s) for s in Presentation(str(spliced5)).slides]
+        assert len(got) == 5, f"expected 5 slides, got {len(got)}: {got}"
+        assert "REBUILT-2" in got[1] and "REBUILT-5" in got[4], got
+        assert "S1" in got[0] and "S3" in got[2] and "S4" in got[3], got
+        assert not any("OLD" in g for g in got), f"old content survived: {got}"
+        # the bug this guards: content loss / wrong order when both were spliced
+        assert "REBUILT-5" not in got[1], f"position 2 got slide 5's content: {got}"
+        print("    ok: both slices landed in the right positions; no content loss")
+
         print("\nSMOKE PASSED.")
         return 0
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
+
+
+def _make_rebuilt_named(path: Path, label: str):
+    prs = Presentation()
+    _titled_slide(prs, label)
+    prs.save(str(path))
 
 
 if __name__ == "__main__":

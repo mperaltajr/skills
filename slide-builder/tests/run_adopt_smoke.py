@@ -77,6 +77,9 @@ def main() -> int:
 
         print("[3] verify scaffolding")
         meta = json.loads((out_dir / "_meta.json").read_text(encoding="utf-8"))
+        # The synthesized meta MUST satisfy the schema build_deck --slide hard-validates.
+        from _meta_schema import MetaJson
+        MetaJson.model_validate(meta)   # raises if a required field is missing
         assert Path(meta.get("adopted_source", "")).resolve() == deck.resolve(), meta.get("adopted_source")
         assert meta.get("slide_count") == 3, meta
         assert len(meta["slides"]) == 3 and all("layout" in s for s in meta["slides"]), meta["slides"]

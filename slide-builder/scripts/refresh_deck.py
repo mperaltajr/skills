@@ -10,9 +10,11 @@ identical). This does neither: it edits text runs in place, design frozen.
 Two subcommands:
 
   spec  <deck.pptx> [--out spec.json]
-        Dump every text shape (per slide) into a refresh spec the user/Claude
-        edits: fill `new_text` for the fields that change this cycle, leave the
-        rest null. Non-destructive — only reads the deck.
+        Dump every text-box / placeholder field (per slide) into a refresh spec
+        the user/Claude edits: fill `new_text` for the fields that change this
+        cycle, leave the rest null. Non-destructive — only reads the deck.
+        NOTE: table cells, chart data, and SmartArt are NOT text frames and are
+        not captured — update those by hand, or route the slide to 6b.
 
   apply <deck.pptx> <spec.json> [--out <dated-copy.pptx>]
         Apply the spec to a COPY of the deck (never the original). For each
@@ -96,18 +98,21 @@ def _set_text_preserving_format(shape, new_text: str) -> None:
     the result is a single clean run — right for a number/label swap.
     """
     tf = shape.text_frame
-    # Keep the first paragraph; drop the others.
-    for p in list(tf.paragraphs[1:]):
-        p._p.getparent().remove(p._p)
-    para = tf.paragraphs[0]
-    runs = list(para.runs)
-    if runs:
-        runs[0].text = new_text
-        for r in runs[1:]:
+    paras = list(tf.paragraphs)
+    # Inherit formatting from the first run that exists ANYWHERE (an empty
+    # leading paragraph shouldn't force the new text to the default font).
+    src_idx = next((i for i, p in enumerate(paras) if p.runs), 0)
+    keep = paras[src_idx]
+    if keep.runs:
+        keep.runs[0].text = new_text
+        for r in list(keep.runs[1:]):
             r._r.getparent().remove(r._r)
     else:
-        # No run to inherit formatting from — add one.
-        para.add_run().text = new_text
+        keep.add_run().text = new_text
+    # Drop every other paragraph so the result is a single clean line.
+    for i, p in enumerate(paras):
+        if i != src_idx:
+            p._p.getparent().remove(p._p)
 
 
 def cmd_apply(args) -> int:
@@ -132,6 +137,10 @@ def cmd_apply(args) -> int:
     else:
         stamp = _dt.datetime.now().strftime("%Y%m%d")
         out = deck.with_name(f"{deck.stem}_refreshed_{stamp}{deck.suffix}")
+    if out.resolve() == deck.resolve():
+        print("[error] --out resolves to the original deck; refusing to overwrite it.",
+              file=sys.stderr)
+        return 2
     out.parent.mkdir(parents=True, exist_ok=True)
     shutil.copy2(deck, out)
 
