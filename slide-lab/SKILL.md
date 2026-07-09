@@ -24,7 +24,7 @@ Present this to the user (adapt lightly), then route on their choice:
 > 6. **Work on a deck Slide Lab did *not* build** — an existing `.pptx` you already have. I'll ask what you're changing:
 >    &nbsp;&nbsp;**a. Fix text or numbers**, keep the design — small edits.
 >    &nbsp;&nbsp;**b. Redesign / upgrade a slide** (or a few) — rebuilt on the deck's own template, then dropped back into your file.
->    &nbsp;&nbsp;**c. Refresh a recurring / PMO deck** — drop this cycle's content into the fixed template, design unchanged.
+>    &nbsp;&nbsp;**c. Refresh a recurring / PMO deck** — drop this cycle's text into the fixed template, design unchanged. *(text boxes only; tables/charts by hand)*
 > 7. **Register a client template** — one-time setup (brand + layouts) before building.
 > 8. **Not sure** — I'll ask a couple of questions.
 
@@ -35,7 +35,7 @@ If the request is already specific ("build me a 5-slide steering deck from this 
 - **Never** hand-roll `python-pptx` / `pptxgenjs` from a blank `Presentation()` for a branded or multi-slide deck — that is the documented failure path.
 - **"Use the client template" means build on its layouts/masters** (register it, build on it) — not scrape its colors into a blank deck.
 - **Registration is a standalone step, never inline in a build.** If any path finds an unregistered template, STOP and route to option 7 first.
-- **A deck is not "done" until `slide-qc` has run and produced a report.** A PDF you rendered yourself is not QC.
+- **A deck is not "done" until `slide-qc` has run and produced a report.** A PDF you rendered yourself is not QC. (Applies to any built or rebuilt deck — options 1/2/3/5, and 6b/6c. A **6a** text-only tweak is exempt, but run QC anyway if the edit changed text length, since a longer run can overflow its box.)
 - **Font sizes** stay on PowerPoint's default grid, 8pt floor; body ~11–14pt.
 
 ## Routing — what each choice invokes

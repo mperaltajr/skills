@@ -34,8 +34,15 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+import re as _re  # noqa: E402
 import _paths as _p  # noqa: E402
+from _meta_schema import META_SCHEMA_VERSION_CURRENT  # noqa: E402
 from pptx import Presentation  # noqa: E402
+
+
+def _slug(text: str) -> str:
+    s = _re.sub(r"[^a-z0-9]+", "-", (text or "").lower()).strip("-")
+    return s or "adopted"
 
 
 def _registration_missing(deck: Path) -> list[str]:
@@ -67,7 +74,10 @@ def _extract_slide(slide) -> tuple[str, list[str], str]:
         if sh.has_text_frame and getattr(sh, "is_placeholder", False):
             try:
                 if sh.placeholder_format.idx == 0 or "title" in (sh.name or "").lower():
-                    title = sh.text_frame.text.strip()
+                    _t = sh.text_frame.text.strip()
+                    # First line only — a multi-line title would orphan text
+                    # above the brief's field labels (SLIDE_HEADER_RE is single-line).
+                    title = _t.splitlines()[0].strip() if _t else ""
                     title_shape = sh
                     break
             except Exception:
@@ -156,9 +166,14 @@ def main(argv) -> int:
     brief_path.write_text(brief_text, encoding="utf-8")
 
     # 3. Synthesize _meta.json + copy the original as the splice target.
+    # Shape must satisfy _meta_schema.MetaJson — build_deck.py --slide N
+    # hard-validates it (schema_version, out, client_slug, deck_meta required).
     meta = {
+        "schema_version": META_SCHEMA_VERSION_CURRENT,
         "template": str(deck),
         "brief": str(brief_path),
+        "out": str(out_dir),
+        "client_slug": _slug(deck.stem),
         "adopted_source": str(deck),
         "slide_count": n_slides,
         "generated_at": _dt.datetime.now().isoformat(timespec="seconds"),
@@ -167,6 +182,11 @@ def main(argv) -> int:
              "layout": layouts[i - 1], "page_type": ""}
             for i in range(1, n_slides + 1)
         ],
+        "deck_meta": {
+            "deck_type": "Adopted external deck",
+            "governing_thought": "",
+            "audience": "",
+        },
     }
     (out_dir / "_meta.json").write_text(
         json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -195,7 +215,7 @@ def main(argv) -> int:
           + (", ".join(str(t) for t in targets) if targets else "N") + "):")
     print(f"  1. Enrich that slide's Evidence in {brief_path.name} if the extract is thin.")
     print(f"  2. py -3 build_deck.py --slide N --out {out_dir} --template \"{deck}\"")
-    print(f"  3. dispatch the worker for slide N, then py -3 finalize_deck.py --slide N --out {out_dir}")
+    print(f"  3. dispatch the worker for slide N, then py -3 finalize_deck.py --slide N --out {out_dir} --template \"{deck}\"")
     print(f"  4. pick in REVIEW.html, then splice back (keeps every other slide):")
     print(f"       py -3 compile_picks.py --out {out_dir} --splice-into \"{deck}\"")
     return 0
