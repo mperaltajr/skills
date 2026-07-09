@@ -5,6 +5,8 @@ description: "Front door for ALL deck and PowerPoint work in Slide Lab. Start he
 
 # Slide Lab — front door
 
+> **Windows vs macOS/Linux — applies to every Slide Lab skill.** Commands are written with `py -3` (Windows). On **macOS/Linux**, run the identical command with **`python3`** instead of `py -3`. Paths/flags are unchanged. LibreOffice (used for rendering) is located automatically on all three OSes; PowerPoint COM QC is Windows-only and opt-in.
+
 You are the single entry point for deck work. **You build nothing yourself.** Two jobs:
 1. If the user's intent is already specific, name the route in one line and go.
 2. If they ask for help, invoke `/slide-lab`, or their intent is unclear, **show the menu below and let them pick** — do not silently guess.

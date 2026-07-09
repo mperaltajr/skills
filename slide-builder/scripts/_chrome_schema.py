@@ -202,26 +202,52 @@ class TitleMetricsUnavailableError(RuntimeError):
 def _find_brand_ttf(font_name: str | None = None) -> str | None:
     """Discover a brand TTF on disk by name. Returns absolute path or None.
 
-    Scans `%LOCALAPPDATA%\\Microsoft\\Windows\\Fonts` (user fonts) then
-    `C:\\Windows\\Fonts` (system fonts) for a file matching `font_name`. Used
-    as a transitional fallback when brand.yml doesn't yet record the TTF path;
-    once register_template writes the resolved path into brand.yml, callers
-    prefer that and skip this scan. With no `font_name` there is nothing to
-    search for, so the function returns None.
+    Scans the OS font directories for a file matching `font_name`:
+      - Windows: `%LOCALAPPDATA%\\Microsoft\\Windows\\Fonts` then `C:\\Windows\\Fonts`
+      - macOS:   `~/Library/Fonts`, `/Library/Fonts`, `/System/Library/Fonts`
+      - Linux:   `~/.fonts`, `~/.local/share/fonts`, `/usr/share/fonts`,
+                 `/usr/local/share/fonts`
+    All platforms' directories are scanned regardless of the current OS (the
+    non-existent ones are simply skipped), so this stays additive. Used as a
+    transitional fallback when brand.yml doesn't yet record the TTF path; once
+    register_template writes the resolved path into brand.yml, callers prefer
+    that and skip this scan. With no `font_name` there is nothing to search
+    for, so the function returns None.
     """
     import os
-    candidates: list[str] = []
-    if font_name:
-        candidates.append(font_name)
-    else:
+    if not font_name:
         return None
-    user_fonts = os.path.expandvars(r"%LOCALAPPDATA%\Microsoft\Windows\Fonts")
-    system_fonts = r"C:\Windows\Fonts"
-    for dir_path in (user_fonts, system_fonts):
+    candidates = [font_name]
+    font_dirs = [
+        # Windows
+        os.path.expandvars(r"%LOCALAPPDATA%\Microsoft\Windows\Fonts"),
+        r"C:\Windows\Fonts",
+        # macOS
+        os.path.expanduser("~/Library/Fonts"),
+        "/Library/Fonts",
+        "/System/Library/Fonts",
+        # Linux
+        os.path.expanduser("~/.fonts"),
+        os.path.expanduser("~/.local/share/fonts"),
+        "/usr/share/fonts",
+        "/usr/local/share/fonts",
+    ]
+    for dir_path in font_dirs:
+        if not dir_path or not os.path.isdir(dir_path):
+            continue
         for fn in candidates:
             full = os.path.join(dir_path, fn)
             if os.path.isfile(full):
                 return full
+        # Linux font trees are nested (e.g. /usr/share/fonts/truetype/...),
+        # so walk them when a direct hit fails. Windows/macOS dirs are flat
+        # and the direct check above already covered them.
+        if dir_path.startswith(("/usr", os.path.expanduser("~/.fonts"),
+                                os.path.expanduser("~/.local"))):
+            for root, _dirs, files in os.walk(dir_path):
+                for fn in candidates:
+                    if fn in files:
+                        return os.path.join(root, fn)
     return None
 
 

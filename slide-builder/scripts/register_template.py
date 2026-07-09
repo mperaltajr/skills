@@ -3595,27 +3595,36 @@ def _extract_theme_and_preview(tpl: Path) -> dict:
 
 
 def _check_libreoffice_available() -> tuple[bool, str]:
-    """Detect LibreOffice on PATH. Returns (ok, error_message).
+    """Detect LibreOffice the same way the renderer resolves it.
 
     Audit blocker: without LibreOffice the propose flow silently
     produces empty thumbnail grids in register.html — the user sees blank
     sections and concludes Slide Lab is broken. Hard-fail early with a clear
     install hint so the failure mode is obvious, not silent.
+
+    Routes through render_slides._resolve_soffice so this gate agrees with
+    what render_libre will actually do — including the default macOS
+    (/Applications/LibreOffice.app) and Linux install locations that are NOT
+    on PATH. A PATH-only check would falsely block a stock Mac install.
     """
-    import shutil as _sh
-    for cand in ("soffice", "soffice.exe", "libreoffice", "libreoffice.exe"):
-        if _sh.which(cand):
-            return True, ""
+    try:
+        from render_slides import _resolve_soffice
+        _resolve_soffice()  # raises if nothing resolves
+        return True, ""
+    except Exception:
+        pass
     msg = (
-        "LibreOffice is not on your PATH. Slide Lab needs it to render the "
-        "preview, the layout thumbnails, and the per-slide thumbnails shown "
-        "in register.html.\n\n"
+        "LibreOffice was not found. Slide Lab needs it to render the preview, "
+        "the layout thumbnails, and the per-slide thumbnails shown in "
+        "register.html.\n\n"
         "  Install LibreOffice (free): https://www.libreoffice.org/download/\n\n"
-        "  On Windows the default install path is\n"
-        "    C:\\Program Files\\LibreOffice\\program\\soffice.exe\n"
-        "  After installing, either add that directory to PATH or restart\n"
-        "  your shell so the new PATH is picked up.\n\n"
-        "  Then re-run:\n"
+        "  Default locations Slide Lab checks automatically:\n"
+        "    Windows  C:\\Program Files\\LibreOffice\\program\\soffice.exe\n"
+        "    macOS    /Applications/LibreOffice.app/Contents/MacOS/soffice\n"
+        "    Linux    /usr/bin/soffice (or install via your package manager)\n\n"
+        "  If it's installed elsewhere, set SLIDE_LAB_SOFFICE to the full path\n"
+        "  of the soffice executable, or add its folder to PATH and restart your\n"
+        "  shell. Then re-run (use python3 on macOS/Linux):\n"
         "    py -3 scripts/register_template.py propose <your-template.pptx>"
     )
     return False, msg

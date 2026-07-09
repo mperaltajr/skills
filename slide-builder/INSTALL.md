@@ -1,6 +1,19 @@
 ﻿# Install — Slide Lab
 
-Tested on Windows 11. Linux + macOS should work; the LibreOffice command differs.
+Works on Windows, macOS, and Linux. The steps below show Windows (PowerShell)
+commands; **on macOS/Linux, translate each command with the mapping below** —
+the scripts, flags, and arguments are identical across all three.
+
+| Windows (as written below) | macOS / Linux |
+|---|---|
+| `py -3 …` | `python3 …` |
+| `& "C:\Program Files\LibreOffice\program\soffice.exe"` | `soffice` (on PATH), or macOS `/Applications/LibreOffice.app/Contents/MacOS/soffice` |
+| `$env:USERPROFILE\.claude\skills` | `~/.claude/skills` |
+| `Copy-Item` | `cp` |
+
+LibreOffice is located automatically on every OS (see Step 2). Set the
+`SLIDE_LAB_SOFFICE` environment variable to the full `soffice` path only if you
+installed it somewhere non-standard.
 
 ## Prerequisites
 
@@ -8,7 +21,7 @@ Tested on Windows 11. Linux + macOS should work; the LibreOffice command differs
 |---|---|---|
 | Python | **3.10+** | Type hints and f-string features used throughout |
 | LibreOffice | any recent | Headless PPTX → PNG render path (via slide-qc) |
-| PowerPoint | 2019+ (optional) | Pixel-perfect QC pass; LibreOffice render is the default |
+| PowerPoint | 2019+ (optional, **Windows-only**) | Pixel-perfect QC pass; LibreOffice render is the cross-platform default |
 
 ## Step 1 — Python deps
 
@@ -44,12 +57,26 @@ Expected: `playwright + chromium OK`. If you see `BrowserType.launch: Executable
 
 ## Step 2 — LibreOffice headless
 
-Download from https://www.libreoffice.org/download and install. The default Windows install path is `C:\Program Files\LibreOffice\program\soffice.exe`.
+Download from https://www.libreoffice.org/download and install. Default install locations Slide Lab finds automatically:
 
-Verify:
+| OS | Default location |
+|---|---|
+| Windows | `C:\Program Files\LibreOffice\program\soffice.exe` |
+| macOS | `/Applications/LibreOffice.app/Contents/MacOS/soffice` |
+| Linux | `/usr/bin/soffice` (or your package manager's path; the `libreoffice` command also works) |
+
+> **macOS note:** LibreOffice installs to `/Applications` but is **not** added to your PATH. Slide Lab checks that default location automatically, so no PATH change is needed. If you moved it, set `SLIDE_LAB_SOFFICE` to the full `soffice` path.
+
+Verify (Windows):
 
 ```powershell
 & "C:\Program Files\LibreOffice\program\soffice.exe" --version
+```
+
+macOS / Linux:
+
+```bash
+soffice --version   # or: /Applications/LibreOffice.app/Contents/MacOS/soffice --version
 ```
 
 Expected: a version string like `LibreOffice 24.x.x ...`. The headless render path is invoked by `slide-qc/scripts/render_slides.py`, which Slide Lab calls via subprocess.
