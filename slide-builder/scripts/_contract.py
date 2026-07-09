@@ -954,34 +954,38 @@ def _opportunistic_chrome_yml_pairs(cap: int = 8,
         if not root.exists():
             continue
         try:
-            # Subfolder layout: <stem>/chrome.yml
-            for chrome_yml in root.rglob("chrome.yml"):
-                depth = len(chrome_yml.relative_to(root).parts)
-                if depth > max_depth:
-                    continue
-                # Sibling .pptx lives one level up, named <stem>.pptx where
-                # <stem> is the parent dir name.
-                stem = chrome_yml.parent.name
-                pptx_sibling = chrome_yml.parent.parent / f"{stem}.pptx"
-                if not pptx_sibling.exists():
-                    pptx_sibling = chrome_yml.parent.parent / f"{stem}.potx"
-                if pptx_sibling.exists():
-                    pairs.append((chrome_yml, pptx_sibling))
-                if len(pairs) >= cap:
-                    return pairs
-            # Legacy flat layout fallback: <stem>.chrome.yml + <stem>.pptx
-            for chrome_yml in root.rglob("*.chrome.yml"):
-                depth = len(chrome_yml.relative_to(root).parts)
-                if depth > max_depth:
-                    continue
-                stem = chrome_yml.name[:-len(".chrome.yml")]
-                pptx_sibling = chrome_yml.with_name(f"{stem}.pptx")
-                if not pptx_sibling.exists():
-                    pptx_sibling = chrome_yml.with_name(f"{stem}.potx")
-                if pptx_sibling.exists():
-                    pairs.append((chrome_yml, pptx_sibling))
-                if len(pairs) >= cap:
-                    return pairs
+            # Depth-PRUNED walk: os.walk with topdown=True lets us clear `dirs`
+            # at max_depth so we never descend deeper. (rglob would traverse the
+            # ENTIRE tree and only filter by depth afterward — slow on a big
+            # OneDrive/Documents root, which the front-door pick-list hits on
+            # every reconcile.)
+            import os
+            root_depth = len(root.parts)
+            for dirpath, dirs, files in os.walk(root):
+                if (len(Path(dirpath).parts) - root_depth) >= max_depth:
+                    dirs[:] = []  # prune: stop descending past max_depth
+                dp = Path(dirpath)
+                # Subfolder layout: <stem>/chrome.yml, sibling <stem>.pptx one level up.
+                if "chrome.yml" in files:
+                    stem = dp.name
+                    pptx_sibling = dp.parent / f"{stem}.pptx"
+                    if not pptx_sibling.exists():
+                        pptx_sibling = dp.parent / f"{stem}.potx"
+                    if pptx_sibling.exists():
+                        pairs.append((dp / "chrome.yml", pptx_sibling))
+                        if len(pairs) >= cap:
+                            return pairs
+                # Legacy flat layout fallback: <stem>.chrome.yml + <stem>.pptx (same dir).
+                for f in files:
+                    if f.endswith(".chrome.yml"):
+                        stem = f[:-len(".chrome.yml")]
+                        pptx_sibling = dp / f"{stem}.pptx"
+                        if not pptx_sibling.exists():
+                            pptx_sibling = dp / f"{stem}.potx"
+                        if pptx_sibling.exists():
+                            pairs.append((dp / f, pptx_sibling))
+                            if len(pairs) >= cap:
+                                return pairs
         except (PermissionError, OSError):
             continue
     return pairs
