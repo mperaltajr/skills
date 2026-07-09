@@ -77,11 +77,11 @@ py -3 -m playwright install chromium
 
 **3. *(Optional but recommended)* Configure recommended settings:**
 
-This does two things: silently pulls the latest skills every time Claude Code starts, and allows Claude to run PowerShell commands during a session without prompting for permission each time.
+This does two things: silently pulls the latest skills every time Claude Code starts, and pre-approves what a deck build actually does so Claude doesn't prompt you for permission repeatedly. The key entries are `Agent(slide-builder-worker)` and `Agent(slide-builder-translator)` — a build dispatches one of those per slide, and without pre-approving them you get an "allow?" prompt on every slide. `acceptEdits` mode is used (rather than `bypassPermissions`, which many corporate-managed setups disable).
 
 ```powershell
 $s = "$env:USERPROFILE\.claude\settings.json"
-$settings = '{"permissions":{"defaultMode":"bypassPermissions","allow":["Bash","PowerShell","Read","Write","Edit","Glob","Grep"]},"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"Set-Location \"$env:USERPROFILE\\.claude\\skills\"; git pull --quiet 2>$null; exit 0","shell":"powershell","async":true}]}]}}'
+$settings = '{"permissions":{"defaultMode":"acceptEdits","allow":["Bash","PowerShell","Read","Write","Edit","Glob","Grep","WebFetch","Agent(slide-builder-worker)","Agent(slide-builder-translator)","Agent(Explore)","Agent(Plan)"]},"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"Set-Location \"$env:USERPROFILE\\.claude\\skills\"; git pull --quiet 2>$null; exit 0","shell":"powershell","async":true}]}]}}'
 if (!(Test-Path $s)) { Set-Content $s $settings -Encoding utf8 } else { Write-Host "Global settings already exist — see Troubleshooting below." }
 ```
 
@@ -123,14 +123,14 @@ python3 -m playwright install chromium
 
 **3. Install LibreOffice** from [libreoffice.org](https://www.libreoffice.org/download). macOS installs to `/Applications/LibreOffice.app` — Slide Lab finds it there automatically, **no PATH change needed**. On Linux use your package manager (e.g. `sudo apt install libreoffice`). Set `SLIDE_LAB_SOFFICE` to the full `soffice` path only if you installed it somewhere non-standard.
 
-**4. *(Optional but recommended)* Configure settings + auto-update** — allow shell commands and silently pull the latest skills each time Claude Code starts:
+**4. *(Optional but recommended)* Configure settings + auto-update** — pre-approve what a build does (so Claude doesn't prompt you per slide) and silently pull the latest skills each time Claude Code starts. The `Agent(slide-builder-worker)` / `Agent(slide-builder-translator)` entries are the ones that stop the per-slide "allow?" prompts:
 ```bash
 mkdir -p ~/.claude
 cat > ~/.claude/settings.json <<'JSON'
-{"permissions":{"defaultMode":"bypassPermissions","allow":["Bash","Read","Write","Edit","Glob","Grep"]},"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"cd ~/.claude/skills && git pull --quiet 2>/dev/null; exit 0","shell":"bash","async":true}]}]}}
+{"permissions":{"defaultMode":"acceptEdits","allow":["Bash","Read","Write","Edit","Glob","Grep","WebFetch","Agent(slide-builder-worker)","Agent(slide-builder-translator)","Agent(Explore)","Agent(Plan)"]},"hooks":{"SessionStart":[{"hooks":[{"type":"command","command":"cd ~/.claude/skills && git pull --quiet 2>/dev/null; exit 0","shell":"bash","async":true}]}]}}
 JSON
 ```
-> If `~/.claude/settings.json` already exists, do **not** overwrite it — open it and add `"Bash"` to `permissions.allow` plus the `hooks.SessionStart` git-pull block by hand.
+> If `~/.claude/settings.json` already exists, do **not** overwrite it — open it and add the `permissions` block above (especially the `Agent(...)` lines) plus the `hooks.SessionStart` git-pull block by hand.
 
 **5. Install the Slide Lab agents:**
 ```bash
@@ -156,7 +156,10 @@ Use `py -3 -m playwright install chromium` instead of `playwright install chromi
 Your company network is blocking the connection. Use the `--trusted-host` version of step 2 above.
 
 **"Global settings already exist" during step 3**
-You already have a Claude Code settings file. Open `%USERPROFILE%\.claude\settings.json` in Notepad and verify two things are present: (1) `"PowerShell"` is in the `permissions.allow` array — without it, Claude will prompt for permission on every shell command; (2) the `hooks.SessionStart` block is present for auto-updates. Add whichever is missing, then restart Claude Code.
+You already have a Claude Code settings file. Open `%USERPROFILE%\.claude\settings.json` in Notepad and verify three things are present: (1) `"PowerShell"` (and `"Bash"`) are in the `permissions.allow` array — without them, Claude prompts on every shell command; (2) `"Agent(slide-builder-worker)"` and `"Agent(slide-builder-translator)"` are in `permissions.allow` — a build dispatches one of these per slide, so without them you get an "allow?" prompt on every slide; (3) the `hooks.SessionStart` block is present for auto-updates. Add whichever is missing, then restart Claude Code.
+
+**Claude keeps asking "allow?" all through a deck build**
+Your `permissions.allow` list is missing the agent pre-approvals. Add `"Agent(slide-builder-worker)"` and `"Agent(slide-builder-translator)"` to it (see step 3), or just tell Claude: *"update my settings.json so Slide Lab doesn't keep asking for permission during builds."*
 
 **Skills not showing up after restart**
 Check that the skills folder exists at `%USERPROFILE%\.claude\skills\`. If the folder is empty or missing, re-run step 1.
