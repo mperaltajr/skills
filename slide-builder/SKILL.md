@@ -317,6 +317,16 @@ An external `.pptx` has none of the pipeline's metadata (`_meta.json`, a brief, 
 
 Always output the full absolute path of the saved file as plain text.
 
+### Editable chart data (think-cell / Excel)
+
+Slide Lab **draws** charts as shapes (`add_rect` + `add_text`) — clean and on-brand, but not a data-bound chart you can edit in place. When the user wants charts they can re-point at data (e.g. in **think-cell**), export the underlying numbers to Excel:
+
+```
+py -3 scripts/export_chart_data.py <out_dir | narrative-brief.md> [--out chart-data.xlsx]
+```
+
+It reads each slide's `**Chart data:**` block from the brief and writes one workbook with a sheet per chart slide (data table from row 3, numbers as numbers). The user opens it, copies a sheet's range, and pastes it into a think-cell datasheet or a native PowerPoint chart's data grid. Slides with `chart type: none`, no data, or a `TBD` placeholder are skipped. This is on-request — the built deck's charts stay drawn shapes.
+
 ### Pattern routing flag
 
 `build_deck.py` accepts a `--pattern` flag that controls which build path each slide uses. The shipped default is `auto`: the classifier routes each slide by its content — bullet/divider-heavy slides take the direct path, visually structured slides take the sketch path.
