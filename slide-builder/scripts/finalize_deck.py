@@ -2310,7 +2310,12 @@ def main() -> int:
         for s in meta_dict.get("slides", []):
             n = s.get("n")
             if isinstance(n, int):
-                for letter in _p.option_letters():
+                # Prefer the option letters frozen into the slide at build time;
+                # fall back to the live count only for legacy metas that predate
+                # the `options` field. This keeps the gate honest if
+                # options_per_slide changed after the build.
+                letters = s.get("options") or _p.option_letters()
+                for letter in letters:
                     expected_pairs.add((n, letter))
     except Exception:
         expected_pairs = set()
