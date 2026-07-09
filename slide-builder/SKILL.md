@@ -188,11 +188,11 @@ STAGE 2 · PARALLEL FANOUT slide-builder-worker agents
                           PARALLEL (Task tool, single message with N calls).
                           Each agent reads its _prompt.md and branches on
                           the PATTERN field:
-                            PATTERN: direct → option_A.py / B.py / C.py
-                                        (legacy python-pptx direct)
-                            PATTERN: sketch → option_A.html / B.html / C.html
-                                        (HTML-first; translator converts
-                                         to native at Stage 3.5)
+                            PATTERN: direct → option_A.py (+ B/C only when
+                                        the option count > 1; python-pptx)
+                            PATTERN: sketch → option_A.html (+ B/C only when
+                                        the option count > 1; HTML-first,
+                                        translator converts at Stage 3.5)
                           NOTE: dispatched from the parent session, not from
                           inside the agent itself.
 
@@ -203,8 +203,9 @@ STAGE 2.5 · HTML RENDER   (sketch-path only) For each option_X.html, parent
                           before declaring done; this stage is a safety net.
 
 STAGE 3 · REVIEW          build_review.py + REVIEW.html
-                          Builds REVIEW.html with all 3N options (PNG
-                          thumbnails for both the direct and sketch paths).
+                          Builds REVIEW.html with each slide's option(s) (PNG
+                          thumbnails for both the direct and sketch paths); the
+                          reviewer can request 1-3 more per slide.
                           User picks per-slide; picks written to picks.json.
 
 STAGE 3.5 · TRANSLATE     (sketch-path only) For each picked sketch-path slide,
@@ -243,7 +244,7 @@ The agent picks the split per slide directly from the brief content. There is no
    variant_seed      = md5(content_hash + slide_n + option_letter)
    content_hash      = md5(governing_thought + so_what + evidence_content)
    ```
-   `content_hash` is locked in `build_deck.py` at prep time. Per-option variant seeds (one each for option_letter ∈ {A, B, C}) ensure the three sibling options pick different variants within the chosen pattern. Without `option_letter` in the seed, all three siblings would pick the same variant — that was a real bug caught by the architecture review.
+   `content_hash` is locked in `build_deck.py` at prep time. Per-option variant seeds (one per requested `option_letter`) ensure sibling options — when more than one is generated — pick different variants within the chosen pattern. Without `option_letter` in the seed, all siblings would pick the same variant — that was a real bug caught by the architecture review.
 
 Adjacency (Hardline #3 — no 3+ consecutive same-split) is **soft-enforced at pick time** (agent uses the prep-time hint as adjacency context) and **surfaced post-build** by `build_gate_preview.py` (advisory banner in `GATE3-PREVIEW.html`) + `build_review.py` (advisory section in `REVIEW.html`). The user resolves the run by picking a different option for one of the offending slides at compile time, or by re-dispatching the slide with a different forecasted pattern. Brief fidelity (Hardline #4) wins over adjacency at pick time — the agent does not bend its pattern pick to satisfy adjacency.
 
@@ -261,8 +262,8 @@ Adjacency (Hardline #3 — no 3+ consecutive same-split) is **soft-enforced at p
 2. **Narrative + content gates.** Verify governing thoughts are specific and assertive; verify enough raw content per slide. Skip if storyline-helper already gated this session.
 3. **Stage 1 — Prep.** Run `build_deck.py` to render one self-contained `_prompt.md` per slide. Each prompt is `prompt.md` with brief content interpolated, layouts/anti-patterns reference paths injected, the rotation seed computed, and the per-slide pattern routing (`PATTERN: sketch|direct`) from the classifier.
 4. **Stage 2 — Parallel fanout.** Dispatch one `slide-builder-worker` agent per slide IN PARALLEL from the parent session. Each agent reads the rendered `_prompt.md` and branches on the PATTERN field:
-   - **the sketch path** (default): worker produces three HTML files `option_A.html / B / C`, then self-checks by rendering each via `scripts/render_html.py` and reading the resulting 1280×720 PNG before declaring done.
-   - **the direct path**: worker produces three standalone python-pptx option scripts `option_A.py / B / C`.
+   - **the sketch path** (default): worker produces the requested option HTML file(s) (`option_A.html`, plus `B`/`C` only when the count > 1), then self-checks by rendering each via `scripts/render_html.py` and reading the resulting 1280×720 PNG before declaring done.
+   - **the direct path**: worker produces the requested option script(s) (`option_A.py`, plus `B`/`C` only when the count > 1).
 5. **Stage 2.5 — HTML render (sketch-path only).** For each the sketch-path slide's HTML options, the parent session renders to PNG via `py -3 scripts/render_html.py <html> <png>` so REVIEW.html has visual previews. Workers may also do this as part of their self-check; the parent renders any not-yet-rendered as a safety net.
 6. **Stage 3 — Review + compile.** Run `build_review.py` to build REVIEW.html (shows PNGs for both the direct and sketch paths options); user picks per-slide; picks written to `picks.json`.
 7. **Stage 3.5 — Translate (sketch-path only).** For each picked sketch-path slide, the parent session dispatches a `slide-builder-translator` agent. The translator reads the picked `option_X.html` + its rendered PNG + brief + brand context, produces `option_X_native.py` (native python-pptx script with editable text frames) + `option_X_translation_report.json` (SSIM zone scores + R4 QC findings).
@@ -394,7 +395,7 @@ pattern_pick_seed = md5(content_hash + slide_n)                       # picks am
 variant_seed      = md5(content_hash + slide_n + option_letter)       # picks variant per option
 ```
 
-`option_letter` is part of `variant_seed` so the three sibling options on the same slide pick different variants; without it, all three siblings would land on the same variant.
+`option_letter` is part of `variant_seed` so that, when more than one option is generated on the same slide, the sibling options pick different variants; without it, all siblings would land on the same variant.
 
 `content_hash` is locked at prep time by `build_deck.py` from the brief's governing thought + takeaway + evidence content. Brief edits do not re-shuffle pattern picks within unchanged slides because `content_hash` absorbs only the meaning-carrying fields, not formatting changes.
 

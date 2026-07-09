@@ -335,7 +335,7 @@ def main() -> int:
     ap.add_argument("--all-variations", action="store_true",
                     help="Instead of "
                          "selecting one pick per slide, iterate ALL options "
-                         "(A/B/C) per slide and stack them into the final "
+                         "present per slide and stack them into the final "
                          "deck. Useful for shipping a stakeholder-review "
                          "artifact where the audience picks among variants. "
                          "Mutually exclusive with --picks.")
@@ -380,9 +380,18 @@ def main() -> int:
         for s in meta.get("slides", []):
             n = s.get("n")
             if isinstance(n, int):
-                picks[_p.slide_key(n)] = ["A", "B", "C"]
-        print(f"  all-variations mode: {len(picks)} slides × 3 options = "
-              f"{sum(len(v) for v in picks.values())} planned outputs")
+                sdir = out_dir / _p.slide_key(n)
+                # Iterate the options actually built on disk — the count is
+                # now settings-driven (default 1) and a reviewer may have
+                # requested extra options on specific slides, so a hardcoded
+                # A/B/C would emit FAIL rows for options that never existed.
+                letters = sorted(
+                    p.stem.split("_")[1] for p in sdir.glob("option_?.pptx")
+                )
+                picks[_p.slide_key(n)] = letters or list(_p.option_letters())
+        total = sum(len(v) for v in picks.values())
+        print(f"  all-variations mode: {len(picks)} slides, "
+              f"{total} options present = {total} planned outputs")
         final_path: Path = args.final or (out_dir / "final_deck_all_variations.pptx")
     else:
         picks = parse_picks(args.picks, out_dir)

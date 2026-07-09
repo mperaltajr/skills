@@ -39,7 +39,7 @@ Placeholders rendered by `build_deck.py`:
 
 # Slide {{SLIDE_N}} build prompt — `{{SLIDE_TITLE}}`
 
-You are building **slide {{SLIDE_N}} of {{SLIDE_TOTAL}}** of a deck using `slide-builder`. Produce **three structurally distinct options** for this single slide.
+You are building **slide {{SLIDE_N}} of {{SLIDE_TOTAL}}** of a deck using `slide-builder`. Produce the **{{OPTIONS_COUNT}} option(s)** ({{OPTION_LETTERS}}) this prompt lists for this single slide — one by default; more only when the count says so. When you produce more than one, make them structurally distinct.
 
 **This slide's build path is `{{PATTERN}}`** — and that determines your output format. Produce **{{OPTIONS_COUNT}} option(s)** ({{OPTION_LETTERS}}) — the exact file list is in §8:
 - **`direct`** → write standalone python-pptx script(s) (`.py`, e.g. `option_A.py`). Each is executed by `finalize_deck.py` at finalize time.
@@ -162,7 +162,7 @@ There is no pre-classifier. You pick the pattern from the 14 in `layouts.md` bas
 
 4. **Check the curved-container trigger.** If the slide concept implies a curved-container diagram (hub-spoke, Porter's Five Forces, ecosystem map, fishbone, concentric rings, free-form network), the routing depends on `{{PATTERN}}` from the dispatch:
 
-   **Direct path (python-pptx, no native curve primitives):** For each of the three options write `option_X.py` with line 1 = `# SKELETON_REJECTED: curved-container diagram — not supported in the direct path; re-route through the sketch path for HTML+SVG`. The script body has `import sys; sys.exit(0)`. The rejection surfaces in REVIEW.html and the user re-routes the slide through the sketch path.
+   **Direct path (python-pptx, no native curve primitives):** For each option the prompt lists (§8), write `option_X.py` with line 1 = `# SKELETON_REJECTED: curved-container diagram — not supported in the direct path; re-route through the sketch path for HTML+SVG`. The script body has `import sys; sys.exit(0)`. The rejection surfaces in REVIEW.html and the user re-routes the slide through the sketch path.
 
    **Sketch path (HTML-first):** Author the curved diagram natively in HTML/SVG within the body zone. Use `data-shape-id` to mark elements the translator should convert to native shapes; use `<img>` or inline `<svg>` for genuinely curve-shaped paths. The sketch path is the modern replacement for the retired Mermaid fallback.
 
@@ -181,10 +181,10 @@ PATTERN PICK — Slide {{SLIDE_N}}
   Picked        : <pattern name from layouts.md>
   Top signals   : <which signals matched, 2-3 max>
   Directive verb: <one of: recommend | warn | diagnose | show urgency | show progress | compare neutrally | summarize>
-  Variant tilt  : <one-line description of how the verb will shape at least one of the three variants — e.g., "Option B asymmetric weight toward recommended option, accent stripe">
+  Variant tilt  : <one-line description of how the verb shapes the option(s) — with one option, how that single option honors the verb; with more, which option carries the strongest tilt, e.g., "asymmetric weight toward the recommended item, accent stripe">
   Seed used?    : <yes/no — yes if you tiebroke with {{PATTERN_PICK_SEED}}>
   Adjacency     : <one of: matches hint / overrides hint / no prior context / would-be-3-in-a-row, kept anyway because top scorer>
-  Curved-container? : <no | yes-rejected-routed-to-Pattern-B | yes-authored-in-Pattern-B-HTML>
+  Curved-container? : <no | yes-rejected-routed-to-sketch-path | yes-authored-in-sketch-HTML>
 ```
 
 ---
@@ -344,7 +344,7 @@ finalize_deck.py reads line 1. Token prefix decides routing:
 
 ---
 
-## 10. After writing the three option scripts
+## 10. After writing your option script(s)
 
 Output this block as the **last thing** in your response (the parent session captures it):
 
@@ -352,11 +352,10 @@ Output this block as the **last thing** in your response (the parent session cap
 SLIDE {{SLIDE_N}} BUILD REPORT
   Pattern picked  : <pattern name>
   Directive verb  : <one of the 7 verbs>
-  Variant tilt    : <one-line — which option (A/B/C) honors the directive, and how>
-  Variant A       : <one-line variant description>  | <status: built | SKELETON_REJECTED>
-  Variant B       : <one-line variant description>  | <status>
-  Variant C       : <one-line variant description>  | <status>
-  Curved container? : <no | rejected-routed-to-Pattern-B | yes-via-Pattern-B-HTML>
+  Variant tilt    : <one-line — which option honors the directive, and how>
+  Variants        : one line per option you built ({{OPTION_LETTERS}}) —
+                    <letter>: <one-line variant description> | <status: built | SKELETON_REJECTED>
+  Curved container? : <no | rejected-routed-to-sketch-path | yes-via-sketch-HTML>
   Anti-patterns   : <list any anti-pattern entry numbers you specifically guarded against>
   Brief fidelity  : <one-line statement, e.g., "every word on every option traces to brief or chrome">
 ```

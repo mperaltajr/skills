@@ -10,7 +10,7 @@ Claude Slide Lab is a collection of Claude Code skills that turn a narrative bri
 
 **What makes it different from just asking Claude to make slides:**
 - Pulls colors and fonts directly from your client's `.pptx` template — no manual branding
-- Generates 3 structurally distinct design options per slide, not just 3 color variations
+- Generates a structurally distinct design option per slide by default — ask for up to 3 alternatives on any slide from the review page (not just color variations)
 - Runs quality gates before showing you anything — a narrative gate on the storyline and hardline build rules on every slide
 - Flags missing data with placeholder blocks so you know exactly what to fill in before client delivery
 - Outputs a real `.pptx` file you can open, edit, and send
@@ -23,7 +23,7 @@ Claude Slide Lab is a collection of Claude Code skills that turn a narrative bri
 |---|---|
 | `slide-lab` | **Front door — start here for any deck request.** Routes the request to the right skill (new narrative → storyline-helper; finished package/HTML mockup → validate → slide-builder; RFP → rfp-helper; edit an existing `.pptx` → slide-builder's edit mode; QC → slide-qc) and enforces the rule: never hand-roll a deck from a blank python-pptx Presentation for a branded deck; build on the client template's layouts; a deck isn't done until slide-qc has run. |
 | `storyline-helper` | Coaches your deck narrative — governing thought, audience, per-slide story — before any slides are built |
-| `slide-builder` | Builds a PowerPoint deck from a narrative brief via parallel agent fanout: prep → per-slide workers produce three structurally distinct design options each (image-first, then converted to native PowerPoint) → finalize → REVIEW.html → pick → compile. Brand colors + fonts + layouts come from your registered client template. Also handles small edits to an **existing** `.pptx` Slide Lab didn't build (text/shape tweaks, extraction). |
+| `slide-builder` | Builds a PowerPoint deck from a narrative brief via parallel agent fanout: prep → per-slide workers produce one design option each by default (up to 3 on request), image-first, then converted to native PowerPoint → finalize → REVIEW.html → pick → compile. Brand colors + fonts + layouts come from your registered client template. Also handles small edits to an **existing** `.pptx` Slide Lab didn't build (text/shape tweaks, extraction). |
 | `slide-qc` | Renders every slide to PNG (LibreOffice by default; opt-in PowerPoint COM) and reviews them with vision — produces a per-slide Critical / Major / Advisory report before you open the deck |
 | `docx` | Word document generation — reports, memos, letters with proper formatting |
 | `xlsx` | Spreadsheet creation, editing, and cleaning for any `.xlsx` / `.csv` task |
@@ -166,8 +166,8 @@ Template: _templates/client-template.pptx
 
 Claude will:
 1. Coach you through the deck narrative one slide at a time
-2. Show you **3 design options per slide** as a visual preview
-3. Ask you to pick one option per slide
+2. Show you **one design option per slide** as a visual preview
+3. Let you pick it, request more options (up to 3), or leave quick feedback on any slide
 4. Build the full `.pptx` with your client's branding
 5. Give you the exact file path to open it
 

@@ -5,7 +5,7 @@ The authoritative catalog for `slide-builder`. Every per-slide agent reads this 
 The pattern is the spec. Within a chosen pattern, the agent has variant autonomy (typography weight, accent placement, icon vs. no-icon, eyebrow vs. no-eyebrow, light vs. dark canvas where applicable). Two seeds drive determinism, both stamped per slide by `build_deck.py`:
 
 - `pattern_pick_seed = md5(content_hash + slide_n)` — breaks ties when multiple patterns score equally for a slide.
-- `variant_seed_{A,B,C} = md5(content_hash + slide_n + option_letter)` — drives variant choices within the picked pattern, distinct per A/B/C option.
+- `variant_seed = md5(content_hash + slide_n + option_letter)` — drives variant choices within the picked pattern, distinct per requested option.
 
 `content_hash = md5(governing_thought + so_what + evidence_content)` so re-running the same brief reproduces the same picks.
 
@@ -40,7 +40,7 @@ If brief and pattern fundamentally disagree (brief enumerates 2 items, slot call
 
 ## Directive verb vocabulary — pick exactly one per slide
 
-A pattern doesn't fully specify a slide. The same pattern can ship two different decks — one that argues a position, one that reads neutral. The agent must identify the **editorial intent** of the slide from the brief, mapped to a **closed 7-verb vocabulary**, and tilt at least one of the three option variants to honor it.
+A pattern doesn't fully specify a slide. The same pattern can ship two different decks — one that argues a position, one that reads neutral. The agent must identify the **editorial intent** of the slide from the brief, mapped to a **closed 7-verb vocabulary**, and tilt the option(s) toward it.
 
 The vocabulary is intentionally bounded: the list is capped at 7 verbs and invention is forbidden, so it never regrows into an open-ended, hard-to-maintain set of named intents. A brief that doesn't map to one of the 7 → `SKELETON_REJECTED: ambiguous editorial intent`. Defaulting to neutral is the failure mode this list exists to prevent.
 
@@ -58,7 +58,7 @@ The vocabulary is intentionally bounded: the list is capped at 7 verbs and inven
 
 **No invention.** If the brief signal doesn't clearly map to one of the 7, do not invent an 8th. Emit `SKELETON_REJECTED: ambiguous editorial intent — brief does not map to {recommend, warn, diagnose, show urgency, show progress, compare neutrally, summarize}`. The closed vocabulary is what keeps the intent list from regrowing into something unbounded.
 
-**The directive verb shapes the variant tilt, not the pattern.** "Recommend" can ship via 50/50 or 75/25 or Table — what makes it a "recommend" slide is asymmetric weight + accent on the recommended side, regardless of the pattern. The verb is a separate axis from pattern picking. Pick the pattern first (per the signals table above); then identify the verb; then tilt at least one of your three variants to honor the verb.
+**The directive verb shapes the variant tilt, not the pattern.** "Recommend" can ship via 50/50 or 75/25 or Table — what makes it a "recommend" slide is asymmetric weight + accent on the recommended side, regardless of the pattern. The verb is a separate axis from pattern picking. Pick the pattern first (per the signals table above); then identify the verb; then tilt at least one of your generated option variants (the single option, when only one is produced) to honor the verb.
 
 ---
 

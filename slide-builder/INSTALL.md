@@ -114,7 +114,7 @@ $wp = "$env:USERPROFILE\.claude\agents\slide-builder-worker.md"
 ```
 
 Expected: `True`. The four greps prove the installed file is the current worker contract:
-  - `option_A.py` — writes `option_A.py` / `option_B.py` / `option_C.py` (rules out v1-era workers that wrote 4 options or used `sys.argv` paths)
+  - `option_A.py` — writes `option_A.py` (plus `option_B.py` / `option_C.py` only when the option count > 1) — rules out v1-era workers that wrote 4 options or used `sys.argv` paths
   - `_context.md` — knows to read the per-slide context bundle BEFORE the prompt (Gate C.1, added)
   - `_context_ack.txt` — knows to write the soft-enforcement acknowledgment (Gap 3, added)
   - `PATTERN: sketch` — knows the sketch-path branch (HTML output when dispatched with `PATTERN: sketch`). A worker pre-dating this branch silently falls back to python-pptx output even when the sketch path is enabled
