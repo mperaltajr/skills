@@ -1980,6 +1980,12 @@ def main() -> int:
                              "other slide untouched. Reuses the recorded brief unless --brief "
                              "is given. After this, dispatch one worker for slide N, run "
                              "finalize_deck.py --slide N, pick, then re-run compile_picks.py.")
+    parser.add_argument("--like-slide", required=False, type=int, default=None, dest="like_slide",
+                        help="With --slide N: force slide N onto the SAME build path "
+                             "(sketch/direct) as reference slide M in the existing build, "
+                             "instead of re-classifying it. Use when the user says 'make slide N "
+                             "look like slide M' — the reference slide's cleaner look often comes "
+                             "from its build path, and re-classifying would silently re-route N.")
     parser.add_argument("--insert",   required=False, type=int, default=None,
                         help="Insert a NEW slide at position N into an existing build: shift "
                              "slides >= N (dirs, _meta entries, picks) up by one, prep only the "
@@ -2204,6 +2210,38 @@ def main() -> int:
             f"  Build-path routing: effective_pattern={effective_pattern!r}; "
             f"per-slide map = {pattern_per_slide}\n"
         )
+
+    # --like-slide M (issue #2 follow-up): force the rebuilt slide onto the SAME
+    # build path as an existing reference slide, instead of re-classifying from
+    # scratch. "Make slide N look like slide M" usually means "the reference
+    # slide's cleaner look came from ITS path" — re-classifying N would silently
+    # re-route it (a visual archetype defaults to sketch) and reproduce the
+    # mismatch. We read the reference's recorded pattern from the existing
+    # _meta.json and pin N to it.
+    if rebuild_slide_n is not None and getattr(args, "like_slide", None) is not None:
+        try:
+            _existing_meta = json.loads(_p.meta_json(args.out).read_text(encoding="utf-8"))
+        except Exception:
+            _existing_meta = {}
+        _ref = str(args.like_slide)
+        _ref_pattern = (_existing_meta.get("pattern_per_slide", {}) or {}).get(_ref)
+        if _ref_pattern not in ("sketch", "direct"):
+            for _s in _existing_meta.get("slides", []):
+                if _s.get("n") == args.like_slide:
+                    _ref_pattern = _s.get("pattern")
+                    break
+        if _ref_pattern in ("sketch", "direct"):
+            pattern_per_slide[str(rebuild_slide_n)] = _ref_pattern
+            sys.stderr.write(
+                f"  --like-slide {args.like_slide}: pinning slide {rebuild_slide_n} "
+                f"to the '{_ref_pattern}' path to match slide {args.like_slide}.\n"
+            )
+        else:
+            sys.stderr.write(
+                f"  WARN: --like-slide {args.like_slide} — no recorded build path for "
+                f"slide {args.like_slide} in _meta.json (legacy build, or slide not "
+                f"found); keeping the classifier's choice for slide {rebuild_slide_n}.\n"
+            )
 
     # Insert mode: make room at position N by shifting slides >= N (dirs + picks)
     # up by one BEFORE rendering, so the new slide N renders into the freed slot
