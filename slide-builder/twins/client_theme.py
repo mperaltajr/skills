@@ -298,6 +298,25 @@ class LegacyTemplateLayoutError(FileNotFoundError):
     pass
 
 
+def _resolve_ttf_path(value: str, brand_yml: Path) -> str:
+    """Resolve a brand.yml `title_font_ttf_path` to an absolute path.
+
+    A relative value (a bare filename — the font bundled into the sidecar at
+    registration) is resolved against brand.yml's own directory, so it survives
+    the sidecar being copied/synced to a machine that doesn't have the brand
+    font installed (the title-overlap gate then still measures with real
+    metrics). An absolute value (older registrations) is returned as-is. Empty
+    stays empty (finalize falls back to a disk scan + warning).
+    """
+    if not value:
+        return ""
+    p = Path(value)
+    if p.is_absolute():
+        return value
+    resolved = (Path(brand_yml).parent / value)
+    return str(resolved) if resolved.exists() else value
+
+
 def load_brand_sidecar(template_path: Path) -> dict:
     """Read <template>.brand.yml and validate against <template>.theme.json.
 
@@ -400,9 +419,13 @@ def load_brand_sidecar(template_path: Path) -> dict:
             brand_raw.get("strip_master_backgrounds", False)
         ),
         # Gate A.3: resolved TTF path from brand.yml (empty when unresolved
-        # at registration; finalize_deck falls back to disk scan).
-        "title_font_ttf_path": str(
-            brand_raw.get("title_font_ttf_path", "") or ""
+        # at registration; finalize_deck falls back to disk scan). A RELATIVE
+        # value (just a filename — the font bundled into the sidecar) is
+        # resolved against brand.yml's own dir, so it survives the sidecar being
+        # synced/copied to another machine (OneDrive). Absolute values (older
+        # registrations) pass through unchanged.
+        "title_font_ttf_path": _resolve_ttf_path(
+            str(brand_raw.get("title_font_ttf_path", "") or ""), brand_yml
         ),
         # Gate A.1: reference-slide spec (dict or None). Captured at
         # registration when the user designates a canonical slide in the

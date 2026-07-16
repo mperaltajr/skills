@@ -295,6 +295,8 @@ Rebuild individual slides with "rebuild slide N". This re-prep + re-finalize tou
 
 **If a build fails or the output is wrong:** tell the user they can type `/feedback` to capture a structured session report (the `slidelab-log` skill writes the technical detail; the user just submits the GitHub link). Offer this whenever a stage exits non-zero or the user says something looks broken.
 
+**`finalize_deck.py` exits 8 with a `[4c] TITLE / BAND OVERLAP` list** when a slide's title wraps to more lines than its title box holds (it would overlap the heading band/body — the class from GitHub issue #2). It's measured with the brand font, so it reflects PowerPoint even when the local preview looks fine. Fix: shorten the flagged title(s) — for a direct-path build, in the brief's `### Slide N — <title>` header (editing `_meta.json` alone is overwritten on the next `build_deck` run); for a sketch/6b slide, the `data-template-field="title"` in the worker HTML — then re-run finalize. A 2-line title never trips this; only 3+ lines that exceed the box.
+
 ### Work on a deck Slide Lab did NOT build (external `.pptx`) — options 6a / 6b / 6c
 
 An external `.pptx` has none of the pipeline's metadata (`_meta.json`, a brief, a registered template), so the option-5 rebuild can't touch it directly. Route by **what's changing** — ask the user, then pick the fork. All three write a **new** file; never overwrite the user's original.
