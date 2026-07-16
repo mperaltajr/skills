@@ -2630,26 +2630,40 @@ def _write_outputs(tpl: Path, sha: str, sha8: str,
     # Resolve the heading font's on-disk TTF and persist into
     # brand.yml so finalize_deck doesn't scan Windows fonts each build.
     title_font_ttf_path = _resolve_brand_ttf_path(font_heading)
+    _sidecar = _p.template_sidecar_dir(tpl)
     if title_font_ttf_path:
-        # Bundle the resolved TTF INTO the sidecar next to brand.yml, and persist
-        # that portable path. This lets a build on a machine that doesn't have the
-        # brand font installed still measure title geometry (the title/band
-        # overlap gate, GitHub issue #2) — otherwise the check degrades to a crude
-        # char-count proxy exactly when a custom brand font is in play.
+        # Bundle the resolved TTF INTO the sidecar next to brand.yml and store a
+        # RELATIVE path (just the filename). finalize resolves it against
+        # brand.yml's dir, so it stays valid when the sidecar syncs to another
+        # machine (OneDrive) that doesn't have the brand font installed — the
+        # exact FedEx setup. Otherwise the title/band overlap gate (issue #2)
+        # would silently skip precisely when a custom brand font is in play.
         try:
             import shutil as _shutil
             _src_ttf = Path(title_font_ttf_path)
-            _bundled = _p.template_sidecar_dir(tpl) / _src_ttf.name
+            _bundled = _sidecar / _src_ttf.name
             if _src_ttf.resolve() != _bundled.resolve():
                 _shutil.copy2(_src_ttf, _bundled)
-            title_font_ttf_path = str(_bundled)
+            title_font_ttf_path = _bundled.name  # RELATIVE to the sidecar/brand.yml
             print(f"  title_font_ttf_path: {title_font_ttf_path} (bundled into sidecar)")
         except Exception as _exc:
-            print(f"  title_font_ttf_path: {title_font_ttf_path} "
-                  f"(sidecar bundle failed: {type(_exc).__name__}; using original path)")
+            sys.stderr.write(
+                f"  WARN: could not bundle brand TTF into sidecar "
+                f"({type(_exc).__name__}: {_exc}); keeping the machine-local "
+                f"absolute path (title-overlap gate won't survive a move).\n"
+            )
     else:
-        print(f"  title_font_ttf_path: <not resolved on this machine — "
-              f"finalize_deck will fall back to disk scan>")
+        # Font not installed on THIS machine — but if a prior registration
+        # already bundled the TTF into the sidecar, reuse it rather than blanking
+        # the reference (a re-register for colors/chrome shouldn't drop the gate).
+        _existing = sorted(_sidecar.glob("*.ttf"))
+        if _existing:
+            title_font_ttf_path = _existing[0].name
+            print(f"  title_font_ttf_path: {title_font_ttf_path} "
+                  f"(reused previously-bundled font from sidecar)")
+        else:
+            print(f"  title_font_ttf_path: <not resolved on this machine — "
+                  f"finalize_deck will fall back to disk scan>")
 
     write_brand_yml(
         brand_yml,

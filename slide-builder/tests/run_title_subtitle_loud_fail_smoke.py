@@ -230,16 +230,19 @@ def phase_P5_title_overlap_gate() -> None:
     sys.modules["finalize_deck"] = fd
     spec.loader.exec_module(fd)
     assert hasattr(fd, "TitleOverlapError"), "TitleOverlapError missing on finalize_deck"
-    assert issubclass(fd.TitleOverlapError, RuntimeError)
 
-    # Static wiring: raised once, and present in the class def + all 3 propagation
-    # tuples (inner graft re-raise, outer graft re-raise, main catch) so it halts.
+    # Static wiring: the gate COLLECTS onto st.title_overlaps (not an inline
+    # raise) and main() refuses the build after the loop with a [4c] punch list
+    # + clean exit 8 — mirrors the dark-collision gate.
     src = (SCRIPTS / "finalize_deck.py").read_text(encoding="utf-8")
-    assert "raise TitleOverlapError(" in src, "gate must raise TitleOverlapError"
-    assert src.count("TitleOverlapError") >= 5, \
-        f"TitleOverlapError should appear in the class + raise + 3 except tuples (got {src.count('TitleOverlapError')})"
+    assert "st.title_overlaps = _apply_body_canonical_finishing" in src, \
+        "graft must capture the overlap list onto st.title_overlaps"
+    assert "_all_title_overlaps" in src and "[4c] TITLE / BAND OVERLAP" in src, \
+        "main() must aggregate title_overlaps and refuse the build"
+    assert "title_overlaps: list" in src, "OptionStatus must declare title_overlaps"
 
-    # Capacity math (mirrors the gate): a ~2-line-tall box overflows at 3+ lines.
+    # Capacity math (mirrors the gate): a ~2-line box holds 2 lines; the gate
+    # requires >= 3 lines AND > capacity, so a 2-line title NEVER trips it.
     from _chrome_schema import count_wrapped_lines, _find_brand_ttf
     ttf = _find_brand_ttf("Arial.ttf") or _find_brand_ttf()
     if not ttf:
@@ -252,17 +255,34 @@ def phase_P5_title_overlap_gate() -> None:
         print("  P5 PARTIAL — no TTF discoverable; class + wiring checks passed only")
         return
     title_pt, title_w = 28, 1190
+    wrap_w = max(1, title_w - 19)                 # inset, as the gate does
     line_h = title_pt * 1.2 * 96.0 / 72.0
-    title_h = line_h * 2 + 8                       # a title box ~2 lines tall
-    capacity = max(1, int((title_h + line_h * 0.5) / line_h))
-    assert capacity == 2, f"expected capacity 2, got {capacity}"
-    n_short = count_wrapped_lines("A concise action title", ttf, title_pt, title_w)
-    assert n_short <= capacity, f"short title ({n_short} lines) should fit capacity {capacity}"
-    long_title = " ".join(["Transformation"] * 18)  # forces many wrapped lines
-    n_long = count_wrapped_lines(long_title, ttf, title_pt, title_w)
-    assert n_long > capacity, f"long title should overflow (lines={n_long}, capacity={capacity})"
-    print(f"  P5 PASS — TitleOverlapError wired into the halt path; capacity math flags "
-          f"the {n_long}-line title, passes the {n_short}-line one")
+
+    def _flags(title, box_lines):
+        box_h = line_h * box_lines + 8
+        cap = max(1, int((box_h + line_h * 0.5) / line_h))
+        n = count_wrapped_lines(title, ttf, title_pt, wrap_w)
+        return (n >= 3 and n > cap), n, cap
+
+    # A genuinely long title (3+ lines) in a 2-line box → flagged.
+    long_title = " ".join(["Transformation"] * 18)
+    flag_long, n_long, cap = _flags(long_title, 2)
+    assert flag_long, f"long title should flag (lines={n_long}, capacity={cap})"
+    # A short 1-line title → not flagged.
+    flag_short, n_short, _ = _flags("A concise action title", 2)
+    assert not flag_short, f"short title should NOT flag (lines={n_short})"
+    # THE FALSE-POSITIVE GUARD: a 2-line title in a 1-line box must NOT flag
+    # (bottom-anchored titles grow up into reserved chrome — 2 lines is fine).
+    two_line = " ".join(["word"] * 12)
+    n_two = count_wrapped_lines(two_line, ttf, title_pt, wrap_w)
+    if n_two == 2:
+        flag_two, _, cap1 = _flags(two_line, 1)
+        assert not flag_two, f"2-line title must not flag even in a 1-line box (cap={cap1})"
+        churn_note = "; 2-line title in 1-line box correctly NOT flagged"
+    else:
+        churn_note = ""
+    print(f"  P5 PASS — collect-then-refuse wired; flags the {n_long}-line title, "
+          f"passes the {n_short}-line one{churn_note}")
 
 
 # ---------------------------------------------------------------------------

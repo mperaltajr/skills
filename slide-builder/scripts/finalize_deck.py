@@ -950,6 +950,10 @@ class OptionStatus:
     # brand.dark_bg_hex. Empty list means clean; non-empty triggers hard fail
     # in main() after all options are processed.
     dark_collisions: list = field(default_factory=list)
+    # Title/band overlap issues (GitHub issue #2). Empty means the title fits;
+    # non-empty triggers a hard fail in main() after all options are processed
+    # (same collect-then-refuse rail as dark_collisions).
+    title_overlaps: list = field(default_factory=list)
     # R4.1-R4.8 check results from _check_r4_rules_for_sketch. Empty for
     # direct builds; populated for sketch picks after graft+theme so QC
     # surfaces in REVIEW.html via the .qc.json file.
@@ -1320,7 +1324,7 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
                                      dark_variant: bool = False,
                                      dark_bg_hex: str = "",
                                      brand_ttf_path: str = "",
-                                     template_fields_override: Optional[dict] = None) -> None:
+                                     template_fields_override: Optional[dict] = None) -> list:
     """Body-canonical chrome population + title/subtitle finishing.
 
     `template_fields_override` is the dict parsed from a sketch-path
@@ -1457,6 +1461,7 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
     # Gated to LIGHT path only — dark-variant titles are drawn freshly and
     # don't share the subtitle box.
     _subtitle_idx = getattr(layout_chrome, "subtitle_placeholder_idx", None)
+    _title_overlap_issues: list[str] = []  # collected; graft records on st.title_overlaps
     if src_title:
         from _chrome_schema import (
             count_wrapped_lines,
@@ -1480,34 +1485,38 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
         _title_pt = getattr(layout_chrome, "title_font_pt", None) or 28
         _title_h_px = getattr(layout_chrome, "title_box_height_px", None)
         try:
-            _n_lines = count_wrapped_lines(src_title, _ttf, _title_pt, _title_w_px)
+            # Subtract PowerPoint's default L/R text insets (~0.1in each ≈ 19px
+            # total at 1280px) so we don't under-count the wrapped lines.
+            _wrap_w = max(1, int(_title_w_px) - 19)
+            _n_lines = count_wrapped_lines(src_title, _ttf, _title_pt, _wrap_w)
             # GEOMETRY GATE (GitHub issue #2): a title that wraps to more lines
-            # than its box can hold overflows into the heading band / body. We
-            # measure with the brand TTF here, so this is immune to the
-            # LibreOffice font-substitution blind spot that let this class of
-            # overlap slip past visual QC ("looks fine in the preview, broken in
-            # PowerPoint"). Only fires when the layout records a title-box height.
-            if _title_h_px:
-                _line_h = _title_pt * 1.2 * 96.0 / 72.0   # ~1.6 * pt (1.2 line spacing)
-                # +half a line of slack so a title that just fits isn't flagged.
+            # than its box can hold overflows into the heading band / body.
+            # Measured with the brand TTF, so it's immune to the LibreOffice
+            # font-substitution blind spot that let this slip past visual QC.
+            # COLLECTED (not raised) here — the main loop refuses the build after
+            # every option is grafted, so the operator sees ALL offenders at once
+            # (mirrors the dark-variant collision gate).
+            #
+            # Require >= 3 lines: body-canonical titles are bottom-anchored and
+            # DESIGNED to grow up to 2 lines into reserved chrome, so a 2-line
+            # title is never an overflow. Only a 3+ line title that also exceeds
+            # the box capacity is a real band/body collision — this keeps the
+            # hard gate from false-firing on routine 2-line titles.
+            if _title_h_px and _n_lines >= 3:
+                _line_h = _title_pt * 1.2 * 96.0 / 72.0   # ~1.6 * pt (1.2 spacing)
                 _capacity = max(1, int((_title_h_px + _line_h * 0.5) / _line_h))
                 if _n_lines > _capacity:
-                    raise TitleOverlapError(
-                        f"slide {slide_n}: the title wraps to {_n_lines} lines at "
-                        f"{_title_pt}pt in its {int(_title_w_px)}px-wide box, but the "
-                        f"title area only holds ~{_capacity} line(s) "
-                        f"(~{int(_title_h_px)}px) — it would overflow into the heading "
-                        f"band / body (the overlap class from issue #2).\n"
-                        f"  Measured with the brand font, so this reflects PowerPoint, "
-                        f"not the LibreOffice preview.\n"
-                        f"  Recovery: shorten the title, or rebuild this slide on a "
-                        f"taller-title layout."
+                    _title_overlap_issues.append(
+                        f"slide {slide_n}: title wraps to {_n_lines} lines at "
+                        f"{_title_pt}pt in its {int(_title_w_px)}px-wide box "
+                        f"(~{_capacity}-line capacity, {int(_title_h_px)}px tall) — "
+                        f"it overflows into the heading band / body."
                     )
             # Subtitle-drop rule: a >2-line title crowds the subtitle out.
             if src_subtitle and _subtitle_idx is not None and _n_lines >= 3:
                 sys.stderr.write(
                     f"  INFO: slide {slide_n} title wraps to {_n_lines} lines "
-                    f"at {_title_pt}pt in {_title_w_px}px box; dropping "
+                    f"at {_title_pt}pt in {_wrap_w}px box; dropping "
                     f"subtitle per the >2-line rule.\n"
                 )
                 src_subtitle = ""
@@ -1614,6 +1623,10 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
     # layout's content placeholder — the body is drawn as free-floating shapes),
     # so PowerPoint doesn't show a 'Click to add text' prompt in edit mode.
     remove_empty_placeholders(new_slide)
+
+    # Title/band overlap issues collected above — graft records these on
+    # st.title_overlaps; main() refuses the build after all options finish.
+    return _title_overlap_issues
 
 
 def _has_free_floating_subtitle(slide) -> bool:
@@ -2004,7 +2017,7 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
                 _tf_override = None
                 if st.classification == "sketch_translated":
                     _tf_override = _parse_template_fields(st.py_path)
-                _apply_body_canonical_finishing(
+                st.title_overlaps = _apply_body_canonical_finishing(
                     new_slide, prs, layout_chrome, src_slide, st.slide_n,
                     fallback_title=slide_title,
                     fallback_subtitle=slide_subtitle,
@@ -2012,7 +2025,7 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
                     dark_bg_hex=_dark_bg,
                     brand_ttf_path=getattr(theme, "title_font_ttf_path", "") or "",
                     template_fields_override=_tf_override,
-                )
+                ) or []
                 # Hard-fail collision check on dark-variant slides.
                 # If any shape fill or text color collides with dark_bg_hex,
                 # the content would render invisible. Record on st so the
@@ -2021,7 +2034,7 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
                     st.dark_collisions = _check_dark_variant_collisions(
                         new_slide, _dark_bg, st.slide_n,
                     )
-            except (TitleDropError, SubtitleDropError, TitleOverlapError,
+            except (TitleDropError, SubtitleDropError,
                     TemplatePlaceholderEmptyError):
                 # Silent-drop errors are hard fails per
                 # feedback_sidecar_fallback_must_be_loud. Re-raise so the graft
@@ -2056,7 +2069,7 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
         st.themed_pptx_path.parent.mkdir(parents=True, exist_ok=True)
         prs.save(str(st.themed_pptx_path))
         st.themed = True
-    except (TitleDropError, SubtitleDropError, TitleOverlapError,
+    except (TitleDropError, SubtitleDropError,
             TemplateLayoutMissingError, TemplatePlaceholderEmptyError):
         # Named silent-drop / layout-drift errors must propagate out of
         # graft_and_theme so main() halts the whole build (not just records
@@ -2578,7 +2591,7 @@ def main() -> int:
                 slide_subtitle=_slide_subtitle_for(st.slide_n),
                 slide_variant=_slide_variant_for(st.slide_n),
             )
-        except (TitleDropError, SubtitleDropError, TitleOverlapError,
+        except (TitleDropError, SubtitleDropError,
                 TemplateLayoutMissingError,
                 TemplatePlaceholderEmptyError) as _exc:
             # Silent-drop / layout-drift errors halt the build cleanly with a
@@ -2623,6 +2636,29 @@ def main() -> int:
             f"{len(_all_dark_issues)} dark-variant collision(s); "
             f"build refused. See [4b] output above for the offending slides."
         )
+
+    # Title/band overlap gate (GitHub issue #2). Collected during graft on
+    # st.title_overlaps; refuse the build here — after every option is grafted —
+    # so the operator sees ALL offending slides in one pass (not one at a time).
+    # Measured with the brand font, so it catches the overlap the LibreOffice
+    # visual QC can miss when the brand font isn't installed.
+    _all_title_overlaps: list[str] = []
+    for s in themed_statuses:
+        _all_title_overlaps.extend(getattr(s, "title_overlaps", []) or [])
+    if _all_title_overlaps:
+        print("\n[4c] TITLE / BAND OVERLAP CHECK — BUILD REFUSED")
+        print(f"  {len(_all_title_overlaps)} slide title(s) wrap to more lines "
+              f"than the title box holds and would overlap the heading band / body:\n")
+        for issue in _all_title_overlaps:
+            print(f"    - {issue}")
+        print("")
+        print("  To fix: SHORTEN the title on each slide above (direct-path builds:")
+        print("  the brief's '### Slide N — <title>' header — editing _meta.json alone")
+        print("  is overwritten on the next build_deck run; sketch/6b slides: the")
+        print("  data-template-field=\"title\" text in the worker HTML). Or rebuild the")
+        print("  slide on a taller-title layout. Measured with the brand font, so this")
+        print("  reflects PowerPoint, not the LibreOffice preview.")
+        return 8
 
     if not args.skip_render:
         print(f"\n[5] Render themed .pptx -> .png (parallel x4)")
