@@ -91,6 +91,20 @@ def main() -> int:
         assert r.returncode == 1, f"full build w/o --brief: expected 1, got {r.returncode}"
         print("    ok: missing-out=2, out-of-range=2, no-brief=1")
 
+        print("[4] --like-slide pins the rebuilt slide to a reference slide's path")
+        _ref_pat = next(s for s in meta1["slides"] if s["n"] == 3).get("pattern")
+        if _ref_pat in ("sketch", "direct"):
+            r = _build_deck("--template", str(tpl), "--out", str(out),
+                            "--slide", "1", "--like-slide", "3", "--confirm-template")
+            assert r.returncode == 0, f"--like-slide rebuild failed:\n{r.stderr[-800:]}"
+            assert "pinning slide 1" in r.stderr, r.stderr[-400:]
+            meta2 = json.loads((out / "_meta.json").read_text(encoding="utf-8"))
+            _got = next(s for s in meta2["slides"] if s["n"] == 1).get("pattern")
+            assert _got == _ref_pat, f"slide 1 pattern {_got!r} != reference slide 3 {_ref_pat!r}"
+            print(f"    ok: slide 1 pinned to slide 3's '{_ref_pat}' path")
+        else:
+            print("    ok: (routing not active; --like-slide is a no-op here — skipped)")
+
         print("\nSMOKE PASSED.")
         return 0
     finally:
