@@ -2631,7 +2631,22 @@ def _write_outputs(tpl: Path, sha: str, sha8: str,
     # brand.yml so finalize_deck doesn't scan Windows fonts each build.
     title_font_ttf_path = _resolve_brand_ttf_path(font_heading)
     if title_font_ttf_path:
-        print(f"  title_font_ttf_path: {title_font_ttf_path}")
+        # Bundle the resolved TTF INTO the sidecar next to brand.yml, and persist
+        # that portable path. This lets a build on a machine that doesn't have the
+        # brand font installed still measure title geometry (the title/band
+        # overlap gate, GitHub issue #2) — otherwise the check degrades to a crude
+        # char-count proxy exactly when a custom brand font is in play.
+        try:
+            import shutil as _shutil
+            _src_ttf = Path(title_font_ttf_path)
+            _bundled = _p.template_sidecar_dir(tpl) / _src_ttf.name
+            if _src_ttf.resolve() != _bundled.resolve():
+                _shutil.copy2(_src_ttf, _bundled)
+            title_font_ttf_path = str(_bundled)
+            print(f"  title_font_ttf_path: {title_font_ttf_path} (bundled into sidecar)")
+        except Exception as _exc:
+            print(f"  title_font_ttf_path: {title_font_ttf_path} "
+                  f"(sidecar bundle failed: {type(_exc).__name__}; using original path)")
     else:
         print(f"  title_font_ttf_path: <not resolved on this machine — "
               f"finalize_deck will fall back to disk scan>")

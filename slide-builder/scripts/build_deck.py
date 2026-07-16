@@ -896,10 +896,12 @@ CONTEXT_TEMPLATE = """# Slide {slide_n} — Worker context bundle
 
 ## 2. Design rules — soft constraints
 
-- **Title wrap:** if the title renders to >2 lines at the registered font
-  size, the slide drops its subtitle automatically.
-  Implication: keep titles to ≤2 visual lines; if a 3-line title is
-  intentional, the subtitle/takeaway won't render.
+- **Title wrap (HARD LIMIT):** the title must fit inside its title box. If it
+  wraps to more lines than the box holds, the build **hard-fails at finalize**
+  (a longer title would overlap the heading band / body — measured with the
+  brand font, so it reflects PowerPoint, not the preview). At >2 lines the slide
+  also drops its subtitle automatically. Keep titles to ≤2 visual lines and
+  shorten an over-long title rather than counting on it to fit.
 - **Subtitle fit:** ~130 chars at 16pt in a ~12.5"×0.39" box. Above ~130
   chars the subtitle will wrap and crowd the body zone.
 - **Accent placement:** legends go right-aligned below the sub-headline

@@ -216,6 +216,56 @@ def phase_P1_validator_rejects_bespoke_default() -> None:
 
 
 # ---------------------------------------------------------------------------
+# Phase P5 — title/band overlap gate (GitHub issue #2)
+# ---------------------------------------------------------------------------
+
+def phase_P5_title_overlap_gate() -> None:
+    """The finalize geometry gate hard-fails when a title wraps to more lines
+    than its box can hold. Verify (a) TitleOverlapError exists and is wired into
+    the propagation tuples so it actually halts the build, and (b) the capacity
+    math flags a too-long title but not a short one, measured with a real TTF."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("finalize_deck", SCRIPTS / "finalize_deck.py")
+    fd = importlib.util.module_from_spec(spec)
+    sys.modules["finalize_deck"] = fd
+    spec.loader.exec_module(fd)
+    assert hasattr(fd, "TitleOverlapError"), "TitleOverlapError missing on finalize_deck"
+    assert issubclass(fd.TitleOverlapError, RuntimeError)
+
+    # Static wiring: raised once, and present in the class def + all 3 propagation
+    # tuples (inner graft re-raise, outer graft re-raise, main catch) so it halts.
+    src = (SCRIPTS / "finalize_deck.py").read_text(encoding="utf-8")
+    assert "raise TitleOverlapError(" in src, "gate must raise TitleOverlapError"
+    assert src.count("TitleOverlapError") >= 5, \
+        f"TitleOverlapError should appear in the class + raise + 3 except tuples (got {src.count('TitleOverlapError')})"
+
+    # Capacity math (mirrors the gate): a ~2-line-tall box overflows at 3+ lines.
+    from _chrome_schema import count_wrapped_lines, _find_brand_ttf
+    ttf = _find_brand_ttf("Arial.ttf") or _find_brand_ttf()
+    if not ttf:
+        import os
+        for cand in ("Arial.ttf", "calibri.ttf", "tahoma.ttf"):
+            p = os.path.join(r"C:\Windows\Fonts", cand)
+            if os.path.isfile(p):
+                ttf = p; break
+    if not ttf:
+        print("  P5 PARTIAL — no TTF discoverable; class + wiring checks passed only")
+        return
+    title_pt, title_w = 28, 1190
+    line_h = title_pt * 1.2 * 96.0 / 72.0
+    title_h = line_h * 2 + 8                       # a title box ~2 lines tall
+    capacity = max(1, int((title_h + line_h * 0.5) / line_h))
+    assert capacity == 2, f"expected capacity 2, got {capacity}"
+    n_short = count_wrapped_lines("A concise action title", ttf, title_pt, title_w)
+    assert n_short <= capacity, f"short title ({n_short} lines) should fit capacity {capacity}"
+    long_title = " ".join(["Transformation"] * 18)  # forces many wrapped lines
+    n_long = count_wrapped_lines(long_title, ttf, title_pt, title_w)
+    assert n_long > capacity, f"long title should overflow (lines={n_long}, capacity={capacity})"
+    print(f"  P5 PASS — TitleOverlapError wired into the halt path; capacity math flags "
+          f"the {n_long}-line title, passes the {n_short}-line one")
+
+
+# ---------------------------------------------------------------------------
 # Runner
 # ---------------------------------------------------------------------------
 
@@ -224,6 +274,7 @@ PHASES = {
     "P2": phase_P2_loud_fail_on_drop,
     "P3": phase_P3_schema_has_subtitle,
     "P4": phase_P4_pillow_wrap_count,
+    "P5": phase_P5_title_overlap_gate,
 }
 
 

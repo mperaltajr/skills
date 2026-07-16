@@ -1457,7 +1457,7 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
     # Gated to LIGHT path only — dark-variant titles are drawn freshly and
     # don't share the subtitle box.
     _subtitle_idx = getattr(layout_chrome, "subtitle_placeholder_idx", None)
-    if src_title and src_subtitle and _subtitle_idx is not None:
+    if src_title:
         from _chrome_schema import (
             count_wrapped_lines,
             _find_brand_ttf,
@@ -1478,9 +1478,33 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
         # layouts).
         _title_w_px = getattr(layout_chrome, "title_box_width_px", None) or 1190
         _title_pt = getattr(layout_chrome, "title_font_pt", None) or 28
+        _title_h_px = getattr(layout_chrome, "title_box_height_px", None)
         try:
             _n_lines = count_wrapped_lines(src_title, _ttf, _title_pt, _title_w_px)
-            if _n_lines >= 3:
+            # GEOMETRY GATE (GitHub issue #2): a title that wraps to more lines
+            # than its box can hold overflows into the heading band / body. We
+            # measure with the brand TTF here, so this is immune to the
+            # LibreOffice font-substitution blind spot that let this class of
+            # overlap slip past visual QC ("looks fine in the preview, broken in
+            # PowerPoint"). Only fires when the layout records a title-box height.
+            if _title_h_px:
+                _line_h = _title_pt * 1.2 * 96.0 / 72.0   # ~1.6 * pt (1.2 line spacing)
+                # +half a line of slack so a title that just fits isn't flagged.
+                _capacity = max(1, int((_title_h_px + _line_h * 0.5) / _line_h))
+                if _n_lines > _capacity:
+                    raise TitleOverlapError(
+                        f"slide {slide_n}: the title wraps to {_n_lines} lines at "
+                        f"{_title_pt}pt in its {int(_title_w_px)}px-wide box, but the "
+                        f"title area only holds ~{_capacity} line(s) "
+                        f"(~{int(_title_h_px)}px) — it would overflow into the heading "
+                        f"band / body (the overlap class from issue #2).\n"
+                        f"  Measured with the brand font, so this reflects PowerPoint, "
+                        f"not the LibreOffice preview.\n"
+                        f"  Recovery: shorten the title, or rebuild this slide on a "
+                        f"taller-title layout."
+                    )
+            # Subtitle-drop rule: a >2-line title crowds the subtitle out.
+            if src_subtitle and _subtitle_idx is not None and _n_lines >= 3:
                 sys.stderr.write(
                     f"  INFO: slide {slide_n} title wraps to {_n_lines} lines "
                     f"at {_title_pt}pt in {_title_w_px}px box; dropping "
@@ -1488,16 +1512,18 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
                 )
                 src_subtitle = ""
         except TitleMetricsUnavailableError as _exc:
-            # Transitional fallback: brand.yml doesn't yet record the title
-            # TTF (older registration). Char-count proxy at ≥110 chars is
-            # imperfect for proportional fonts but better than skipping the
-            # rule entirely. Re-register the template to fix permanently.
+            # No brand TTF recorded (older registration). We cannot reliably
+            # measure the overlap, so the geometry gate is SKIPPED — WARN loudly
+            # that it's unverified rather than hard-fail off a crude proxy (a
+            # char-count is too imprecise to justify a build-halting Critical).
+            # The softer subtitle-drop rule still uses the char-count proxy.
             sys.stderr.write(
-                f"  WARN: slide {slide_n} title-wrap measurement unavailable "
-                f"({_exc}); falling back to char-count proxy. Recovery: "
-                f"re-run register_template to record the brand TTF path.\n"
+                f"  WARN: slide {slide_n} title geometry UNVERIFIED ({_exc}) — "
+                f"brand TTF unavailable, so the title/band overlap check was "
+                f"skipped. Recovery: re-run register_template to record the "
+                f"brand TTF path.\n"
             )
-            if len(src_title) > 110:
+            if src_subtitle and _subtitle_idx is not None and len(src_title) > 110:
                 sys.stderr.write(
                     f"  INFO: slide {slide_n} title is {len(src_title)} chars "
                     f"(>110, char-count proxy); dropping subtitle per "
@@ -1618,6 +1644,15 @@ class TitleDropError(RuntimeError):
 class SubtitleDropError(RuntimeError):
     """Raised when subtitle text was supplied but the slide's layout has
     no SUBTITLE placeholder. See TitleDropError for the design rationale.
+    """
+
+
+class TitleOverlapError(RuntimeError):
+    """Raised when a slide's title wraps to more lines than its title box can
+    hold, so it would overflow into the heading band / body (GitHub issue #2).
+    Measured with the brand TTF, so it catches the font-substitution case that
+    slips past the LibreOffice-rendered visual QC. A hard fail — a title
+    overlapping the deck's chrome is a visible-quality defect, not a warning.
     """
 
 
@@ -1986,7 +2021,7 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
                     st.dark_collisions = _check_dark_variant_collisions(
                         new_slide, _dark_bg, st.slide_n,
                     )
-            except (TitleDropError, SubtitleDropError,
+            except (TitleDropError, SubtitleDropError, TitleOverlapError,
                     TemplatePlaceholderEmptyError):
                 # Silent-drop errors are hard fails per
                 # feedback_sidecar_fallback_must_be_loud. Re-raise so the graft
@@ -2021,7 +2056,7 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
         st.themed_pptx_path.parent.mkdir(parents=True, exist_ok=True)
         prs.save(str(st.themed_pptx_path))
         st.themed = True
-    except (TitleDropError, SubtitleDropError,
+    except (TitleDropError, SubtitleDropError, TitleOverlapError,
             TemplateLayoutMissingError, TemplatePlaceholderEmptyError):
         # Named silent-drop / layout-drift errors must propagate out of
         # graft_and_theme so main() halts the whole build (not just records
@@ -2543,7 +2578,7 @@ def main() -> int:
                 slide_subtitle=_slide_subtitle_for(st.slide_n),
                 slide_variant=_slide_variant_for(st.slide_n),
             )
-        except (TitleDropError, SubtitleDropError,
+        except (TitleDropError, SubtitleDropError, TitleOverlapError,
                 TemplateLayoutMissingError,
                 TemplatePlaceholderEmptyError) as _exc:
             # Silent-drop / layout-drift errors halt the build cleanly with a
