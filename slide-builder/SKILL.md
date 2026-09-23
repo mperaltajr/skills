@@ -212,10 +212,13 @@ STAGE 2.5 · HTML RENDER   (sketch-path only) For each option_X.html, parent
                           before declaring done; this stage is a safety net.
 
 STAGE 3 · REVIEW          build_review.py + REVIEW.html
-                          Builds REVIEW.html with each slide's option(s) (PNG
+   (HUMAN GATE)           Builds REVIEW.html with each slide's option(s) (PNG
                           thumbnails for both the direct and sketch paths); the
                           reviewer can request 1-3 more per slide.
-                          User picks per-slide; picks written to picks.json.
+                          MUST show the user REVIEW.html and WAIT for their picks
+                          in chat before writing picks.json / finalizing /
+                          compiling. options_per_slide=1 is NOT an auto-pick.
+                          User picks per-slide -> picks.json.
 
 STAGE 3.5 · TRANSLATE     (sketch-path only) For each picked sketch-path slide,
                           parent session dispatches one slide-builder-
@@ -237,9 +240,10 @@ STAGE 4 · FINALIZE        finalize_deck.py
                             takes priority over brief fallback).
                           Renders PNGs via LibreOffice headless.
 
-STAGE 5 · COMPILE         compile_picks.py stitches the chosen option per
-                          slide into the final deck.pptx grafted onto the
-                          client template.
+STAGE 5 · COMPILE         compile_picks.py --user-approved stitches the chosen
+                          option per slide into the final deck.pptx grafted onto
+                          the client template. REFUSES (exit 5) without the flag
+                          — Stage 3's human pick must have happened first.
 ```
 
 ### Classifier — not a classifier, just a hint + tiebreaker
@@ -274,12 +278,15 @@ Adjacency (Hardline #3 — no 3+ consecutive same-split) is **soft-enforced at p
    - **the sketch path** (default): worker produces the requested option HTML file(s) (`option_A.html`, plus `B`/`C` only when the count > 1), then self-checks by rendering each via `scripts/render_html.py` and reading the resulting 1280×720 PNG before declaring done.
    - **the direct path**: worker produces the requested option script(s) (`option_A.py`, plus `B`/`C` only when the count > 1).
 5. **Stage 2.5 — HTML render (sketch-path only).** For each the sketch-path slide's HTML options, the parent session renders to PNG via `py -3 scripts/render_html.py <html> <png>` so REVIEW.html has visual previews. Workers may also do this as part of their self-check; the parent renders any not-yet-rendered as a safety net.
-6. **Stage 3 — Review + compile.** Run `build_review.py` to build REVIEW.html (shows PNGs for both the direct and sketch paths options); user picks per-slide; picks written to `picks.json`.
+6. **Stage 3 — Review (a HUMAN gate — stop and wait).** Run `build_review.py` to build REVIEW.html (shows PNGs for both the direct and sketch path options). **The orchestrator MUST show the user the `REVIEW.html` file path and WAIT for the user's picks in chat before writing `picks.json`, finalizing, or compiling.** This is the same hard contract as the template-registration gate (see "Show + take picks"): never auto-write picks, never treat the review as a formality.
+   - **`options_per_slide: 1` is NOT an auto-pick.** A single option per slide still requires the user's explicit accept — or a request for 1-3 more options on the slides where they want alternatives. Writing `picks.json` as an all-"A" foregone conclusion is the documented failure that skips the user's review entirely (it silently ships whatever the worker produced).
+   - **Do not review a half-rendered deck.** `build_review.py` prints `missing PNGs` / `missing themed PPTX` counts; if any option PNG is missing, finish rendering before asking the user to look. A review the user cannot actually see (thumbnails not built) is not a review.
+   - **Only after the user picks/accepts:** write `picks.json`, then proceed to finalize + compile. `compile_picks.py` REFUSES to build a final deck unless you pass `--user-approved` (it exits 5 otherwise). Pass that flag ONLY after the user has genuinely picked or accepted in chat, never as a default.
 7. **Stage 3.5 — Translate (sketch-path only).** For each picked sketch-path slide, the parent session dispatches a `slide-builder-translator` agent. The translator reads the picked `option_X.html` + its rendered PNG + brief + brand context, produces `option_X_native.py` (native python-pptx script with editable text frames) + `option_X_translation_report.json` (SSIM zone scores + R4 QC findings).
 8. **Stage 4 — Finalize.** Run `finalize_deck.py`:
    - For direct-path picks: execute `option_X.py` as before, graft body onto template, populate placeholders from brief title/subtitle.
    - For sketch-path picks: execute `option_X_native.py`, graft body, parse the script's `__template_fields__` header, populate placeholders from THOSE values (translator-extracted from the HTML's `data-template-field` attributes, takes priority over brief fallback).
-9. **Stage 5 — Compile.** `compile_picks.py` stitches the final deck.
+9. **Stage 5 — Compile.** `compile_picks.py --out <out> --user-approved` stitches the final deck. `--user-approved` is mandatory: it asserts the user picked/accepted in Stage 3. Without it, compile refuses (exit 5). Never pass it as a default.
 10. **QC — mandatory, not optional.** Invoke slide-qc with an explicit Skill call, passing the compiled deck path so it doesn't re-discover it — `Skill tool call: skill="slide-qc", args="<absolute path to final_deck.pptx>"`. This is the definition of done: do not tell the user the deck is finished or "QC'd" until slide-qc has run and produced its report. A PDF you rendered and eyeballed is not QC — the agent that built the deck cannot grade its own output. (compile_picks.py also prints this reminder when it finishes.)
 11. **Deliver.** PPTX. Output full absolute Windows path. No preview links.
 
@@ -289,9 +296,9 @@ Rebuild individual slides with "rebuild slide N". This re-prep + re-finalize tou
 2. Dispatch one `slide-builder-worker` for slide N (reads `slide_NN/_context.md` then `_prompt.md`).
 3. `finalize_deck.py --slide N --out <out> --template <template>` — re-themes/renders/QCs only slide N; writes `RESULT-slide-NN.md` so the deck `RESULT.md` is preserved.
 4. Take the user's new pick for slide N; update `picks.json`.
-5. `compile_picks.py --out <out>` — rebuilds `final_deck.pptx` from every slide's themed PPTX, grafting the rebuilt slide N into place.
+5. `compile_picks.py --out <out> --user-approved` — rebuilds `final_deck.pptx` from every slide's themed PPTX, grafting the rebuilt slide N into place. (`--user-approved` is required after the user re-picks in step 4 — a rebuild must NOT silently ride stale picks; take the fresh pick/accept first.)
 
-**Insert a new slide** at position N with `build_deck.py --insert N`. First add the new slide to the brief at position N and renumber the later slide headers (the brief must have exactly one more slide than the current build). `--insert N` then shifts slides ≥ N up by one — their `slide_NN/` dirs, `_meta.json` entries, and `picks.json` keys — and preps only the new slide N; the shifted slides keep their built output under their new numbers. Then dispatch one worker for slide N, run `finalize_deck.py --slide N`, take the pick, and re-run `compile_picks.py`. (Adding a page to an *external* `.pptx` Slide Lab didn't build is an existing-file edit — see "Edit an existing PowerPoint" below — not this flow; `--insert`/`--slide` only work on decks with the pipeline's `_meta.json`.)
+**Insert a new slide** at position N with `build_deck.py --insert N`. First add the new slide to the brief at position N and renumber the later slide headers (the brief must have exactly one more slide than the current build). `--insert N` then shifts slides ≥ N up by one — their `slide_NN/` dirs, `_meta.json` entries, and `picks.json` keys — and preps only the new slide N; the shifted slides keep their built output under their new numbers. Then dispatch one worker for slide N, run `finalize_deck.py --slide N`, take the user's pick, and re-run `compile_picks.py --out <out> --user-approved`. (Adding a page to an *external* `.pptx` Slide Lab didn't build is an existing-file edit — see "Edit an existing PowerPoint" below — not this flow; `--insert`/`--slide` only work on decks with the pipeline's `_meta.json`.)
 
 **If a build fails or the output is wrong:** tell the user they can type `/feedback` to capture a structured session report (the `slidelab-log` skill writes the technical detail; the user just submits the GitHub link). Offer this whenever a stage exits non-zero or the user says something looks broken.
 
@@ -310,7 +317,7 @@ An external `.pptx` has none of the pipeline's metadata (`_meta.json`, a brief, 
 1. **Register the deck as its OWN template** first (option 7 — standalone, never inline). This makes the rebuilt slide match its neighbors' masters/layouts/brand.
 2. `py -3 scripts/adopt_deck.py <deck.pptx> --slides N[,M] --out <out>` — extracts each slide's text into a `mode: rebuild-slice` brief, reads each slide's real layout, and writes `_meta.json` (marked `adopted_source`) + a copy of the original at `<out>/adopted_source.pptx`. Enrich the target slide's Evidence in `adopted_brief.md` if the extract is thin (charts/images/SmartArt don't extract).
 3. `py -3 scripts/build_deck.py --slide N --out <out> --template <deck.pptx>` → dispatch the **worker** for slide N. **If that slide built on the sketch path** (the worker wrote `option_A.html`, the default), also dispatch the **`slide-builder-translator`** on the picked option to produce `option_A_native.py` — finalize needs the native script for sketch slides (a direct-path slide already has `option_A.py`). Then `py -3 scripts/finalize_deck.py --slide N --out <out> --template <deck.pptx>` → pick in REVIEW.html. (If the deck was registered but not yet confirmed, `build_deck` will stop and ask you to confirm it first.)
-4. `py -3 scripts/compile_picks.py --out <out> --splice-into "<deck.pptx>"` — replaces slide N **in place** in a copy of the original (via `_sldIdLst` surgery), keeping every other slide. The `adopted_source` marker makes a plain `compile_picks` refuse (it would drop the un-rebuilt slides). Then **slide-qc**.
+4. `py -3 scripts/compile_picks.py --out <out> --splice-into "<deck.pptx>" --user-approved` — replaces slide N **in place** in a copy of the original (via `_sldIdLst` surgery), keeping every other slide. `--user-approved` is required (as for any compile — the user must have picked the redesign in REVIEW.html first). The `adopted_source` marker makes a plain `compile_picks` refuse (it would drop the un-rebuilt slides). Then **slide-qc**.
 
 **6c — Refresh a recurring / PMO deck (content only, design frozen).** For a status/PMO deck on a fixed template re-issued each cycle with new numbers, same look.
 1. `py -3 scripts/refresh_deck.py spec <deck.pptx>` — dumps every **text box / placeholder** field into an editable `*_refresh_spec.json`. **Limitation:** table cells, chart data, and SmartArt are NOT captured (they aren't text frames) — update those by hand, or route the slide to 6b. Say this to the user up front for a status deck with RAG tables.

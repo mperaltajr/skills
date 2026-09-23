@@ -2320,7 +2320,7 @@ def main() -> int:
               f"(reads {rb_dir / '_context.md'} then {rb_dir / '_prompt.md'}).")
         print(f"  2. py -3 finalize_deck.py --out <out> --template <template> --slide {rebuild_slide_n}")
         print(f"  3. Take the user's pick for slide {rebuild_slide_n}; update picks.json.")
-        print(f"  4. py -3 compile_picks.py --out <out>   # grafts the new slide into final_deck.pptx")
+        print(f"  4. py -3 compile_picks.py --out <out> --user-approved   # after the user re-picks; grafts the new slide into final_deck.pptx")
         return 0
 
     # Insert mode: dirs + picks were already shifted; splice the new slide's entry
@@ -2355,7 +2355,7 @@ def main() -> int:
               f"(reads {ins_dir / '_context.md'} then {ins_dir / '_prompt.md'}).")
         print(f"  2. py -3 finalize_deck.py --out <out> --template <template> --slide {insert_slide_n}")
         print(f"  3. Take the user's pick for slide {insert_slide_n}; add it to picks.json.")
-        print(f"  4. py -3 compile_picks.py --out <out>   # grafts the full renumbered deck")
+        print(f"  4. py -3 compile_picks.py --out <out> --user-approved   # after the user picks; grafts the full renumbered deck")
         print()
         print(f"  Note: the deck-level RESULT.md still shows the pre-insert numbering — it")
         print(f"  refreshes on the next FULL finalize (finalize_deck.py --out <out> with no")

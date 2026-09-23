@@ -471,6 +471,12 @@ def main() -> int:
                          "new file (never overwrites the original). Use this for a "
                          "deck adopted via adopt_deck.py — a plain compile would "
                          "drop the un-rebuilt slides.")
+    ap.add_argument("--user-approved", action="store_true",
+                    help="REQUIRED to compile a final picked deck: asserts the user has "
+                         "opened REVIEW.html and picked/accepted each slide in chat. Never "
+                         "pass this as an orchestrator default — options_per_slide=1 is NOT "
+                         "an auto-pick; a single option still needs the user's explicit "
+                         "accept. Exempt for --all-variations (a pre-pick review artifact).")
     args = ap.parse_args()
     if args.all_variations and args.picks:
         print("ERROR: --all-variations is mutually exclusive with --picks. "
@@ -485,6 +491,25 @@ def main() -> int:
         sys.stdout.reconfigure(encoding="utf-8")
     except Exception:
         pass
+
+    # ---- User-approval gate — Stage 3 review is a HUMAN gate --------------
+    # A final picked deck may only be compiled AFTER the user has opened
+    # REVIEW.html and picked/accepted each slide in chat. options_per_slide=1
+    # is NOT an auto-pick: a single option still needs the user's explicit
+    # accept (or a request for more options). The orchestrator asserts that
+    # approval by passing --user-approved (see SKILL.md Stage 3). This is the
+    # same trust model as the register.html {"accept": true} shortcut: it is a
+    # user-issued assertion, never an orchestrator default. --all-variations is
+    # a pre-pick review artifact (the audience picks FROM it), so it is exempt.
+    if not args.user_approved and not args.all_variations:
+        print(
+            "REFUSED: will not compile a final deck without user approval.\n"
+            "  The reviewer must open REVIEW.html and pick/accept each slide FIRST.\n"
+            "  A single option per slide is NOT an automatic pick.\n"
+            "  Re-run with --user-approved ONLY after the user has picked or\n"
+            "  accepted the review in chat."
+        )
+        return 5
 
     out_dir: Path = args.out
     if not out_dir.exists():
