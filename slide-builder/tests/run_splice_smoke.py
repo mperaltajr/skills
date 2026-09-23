@@ -76,7 +76,7 @@ def main() -> int:
         r = subprocess.run(
             [sys.executable, str(SCRIPTS / "compile_picks.py"), "--out", str(out_dir),
              "--picks", json.dumps({"slide_02": "A"}), "--splice-into", str(original),
-             "--final", str(spliced)],
+             "--final", str(spliced), "--user-approved"],
             capture_output=True, text=True)
         assert r.returncode == 0, f"splice failed:\n{r.stdout}\n{r.stderr}"
         assert spliced.exists(), "spliced deck not written"
@@ -99,12 +99,21 @@ def main() -> int:
         print("[4] guard: plain compile on an adopted deck refuses (exit 2)")
         r2 = subprocess.run(
             [sys.executable, str(SCRIPTS / "compile_picks.py"), "--out", str(out_dir),
-             "--picks", json.dumps({"slide_02": "A"})],
+             "--picks", json.dumps({"slide_02": "A"}), "--user-approved"],
             capture_output=True, text=True)
         assert r2.returncode == 2, f"guard should exit 2, got {r2.returncode}\n{r2.stdout}"
         assert "adopted" in r2.stdout.lower(), r2.stdout
         assert "--splice-into" in r2.stdout, r2.stdout
         print("    ok: adopted-deck guard blocks the deck-wiping compile")
+
+        print("[4b] guard: compile WITHOUT --user-approved refuses (exit 5)")
+        r3 = subprocess.run(
+            [sys.executable, str(SCRIPTS / "compile_picks.py"), "--out", str(out_dir),
+             "--picks", json.dumps({"slide_02": "A"}), "--splice-into", str(original)],
+            capture_output=True, text=True)
+        assert r3.returncode == 5, f"approval guard should exit 5, got {r3.returncode}\n{r3.stdout}"
+        assert "approval" in r3.stdout.lower() or "REFUSED" in r3.stdout, r3.stdout
+        print("    ok: user-approval gate blocks compile until the user picks")
 
         print("[5] MULTI-slice: splice two slides at once (positions 2 and 5 of 5)")
         orig5 = tmp / "deck5.pptx"
@@ -124,7 +133,7 @@ def main() -> int:
         r = subprocess.run(
             [sys.executable, str(SCRIPTS / "compile_picks.py"), "--out", str(out5),
              "--picks", json.dumps({"slide_02": "A", "slide_05": "A"}),
-             "--splice-into", str(orig5), "--final", str(spliced5)],
+             "--splice-into", str(orig5), "--final", str(spliced5), "--user-approved"],
             capture_output=True, text=True)
         assert r.returncode == 0, f"multi-splice failed:\n{r.stdout}\n{r.stderr}"
         got = [_slide_text(s) for s in Presentation(str(spliced5)).slides]

@@ -96,7 +96,8 @@ Then:
 py -3 "$skill\scripts\compile_picks.py" `
     --out "$session\out" `
     --picks "$session\picks.json" `
-    --final "$session\final.pptx"
+    --final "$session\final.pptx" `
+    --user-approved   # REQUIRED — pass only after the user picks in REVIEW.html
 
 py -3 "$skill\scripts\build_review.py" --out "$session\out"
 ```
