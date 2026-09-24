@@ -26,8 +26,16 @@ HERE = Path(__file__).resolve().parent
 SCRIPTS = HERE.parent / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
+import _state  # noqa: E402
 from pptx import Presentation
 from pptx.util import Inches
+
+
+def _approve(out_dir):
+    """Set up the build state so compile is allowed: prep records the content-hash
+    + canonical out, then build_review mints the approval token. Returns the token."""
+    _state.record_prep(out_dir, "testhash", out_dir)
+    return _state.record_review(out_dir)
 
 
 def _titled_slide(prs, text):
@@ -70,13 +78,15 @@ def main() -> int:
             "slides": [{"n": 1, "layout": ""}, {"n": 2, "layout": ""}, {"n": 3, "layout": ""}],
         }
         (out_dir / "_meta.json").write_text(json.dumps(meta), encoding="utf-8")
+        TOKEN = _approve(out_dir)
+        (out_dir / "picks.json").write_text(json.dumps({"slide_02": "A"}), encoding="utf-8")
 
         print("[1] splice rebuilt slide 2 into the external deck")
         spliced = tmp / "client_pmo_slidelab.pptx"
         r = subprocess.run(
             [sys.executable, str(SCRIPTS / "compile_picks.py"), "--out", str(out_dir),
-             "--picks", json.dumps({"slide_02": "A"}), "--splice-into", str(original),
-             "--final", str(spliced), "--user-approved"],
+             "--picks", str(out_dir / "picks.json"), "--splice-into", str(original),
+             "--final", str(spliced), "--review-token", TOKEN],
             capture_output=True, text=True)
         assert r.returncode == 0, f"splice failed:\n{r.stdout}\n{r.stderr}"
         assert spliced.exists(), "spliced deck not written"
@@ -99,21 +109,40 @@ def main() -> int:
         print("[4] guard: plain compile on an adopted deck refuses (exit 2)")
         r2 = subprocess.run(
             [sys.executable, str(SCRIPTS / "compile_picks.py"), "--out", str(out_dir),
-             "--picks", json.dumps({"slide_02": "A"}), "--user-approved"],
+             "--picks", str(out_dir / "picks.json"), "--review-token", TOKEN],
             capture_output=True, text=True)
         assert r2.returncode == 2, f"guard should exit 2, got {r2.returncode}\n{r2.stdout}"
         assert "adopted" in r2.stdout.lower(), r2.stdout
         assert "--splice-into" in r2.stdout, r2.stdout
         print("    ok: adopted-deck guard blocks the deck-wiping compile")
 
-        print("[4b] guard: compile WITHOUT --user-approved refuses (exit 5)")
+        print("[4b] guard: compile WITHOUT a review token refuses (exit 5)")
         r3 = subprocess.run(
             [sys.executable, str(SCRIPTS / "compile_picks.py"), "--out", str(out_dir),
-             "--picks", json.dumps({"slide_02": "A"}), "--splice-into", str(original)],
+             "--picks", str(out_dir / "picks.json"), "--splice-into", str(original)],
             capture_output=True, text=True)
         assert r3.returncode == 5, f"approval guard should exit 5, got {r3.returncode}\n{r3.stdout}"
-        assert "approval" in r3.stdout.lower() or "REFUSED" in r3.stdout, r3.stdout
-        print("    ok: user-approval gate blocks compile until the user picks")
+        assert "REFUSED" in r3.stdout, r3.stdout
+        print("    ok: no token -> compile blocked")
+
+        print("[4c] guard: a WRONG review token refuses (exit 5)")
+        r4 = subprocess.run(
+            [sys.executable, str(SCRIPTS / "compile_picks.py"), "--out", str(out_dir),
+             "--picks", str(out_dir / "picks.json"), "--splice-into", str(original),
+             "--review-token", "deadbeefdeadbeef"],
+            capture_output=True, text=True)
+        assert r4.returncode == 5, f"wrong token should exit 5, got {r4.returncode}\n{r4.stdout}"
+        print("    ok: forged token rejected")
+
+        print("[4d] guard: inline --picks JSON is refused (must be a file)")
+        r5 = subprocess.run(
+            [sys.executable, str(SCRIPTS / "compile_picks.py"), "--out", str(out_dir),
+             "--picks", json.dumps({"slide_02": "A"}), "--splice-into", str(original),
+             "--review-token", TOKEN],
+            capture_output=True, text=True)
+        assert r5.returncode != 0, f"inline picks should be refused, got {r5.returncode}"
+        assert "picks.json" in (r5.stdout + r5.stderr), (r5.stdout + r5.stderr)
+        print("    ok: inline picks JSON rejected")
 
         print("[5] MULTI-slice: splice two slides at once (positions 2 and 5 of 5)")
         orig5 = tmp / "deck5.pptx"
@@ -129,11 +158,13 @@ def main() -> int:
             "template": str(orig5), "adopted_source": str(orig5), "slide_count": 5,
             "slides": [{"n": i, "layout": ""} for i in range(1, 6)],
         }), encoding="utf-8")
+        TOKEN5 = _approve(out5)
+        (out5 / "picks.json").write_text(json.dumps({"slide_02": "A", "slide_05": "A"}), encoding="utf-8")
         spliced5 = tmp / "deck5_slidelab.pptx"
         r = subprocess.run(
             [sys.executable, str(SCRIPTS / "compile_picks.py"), "--out", str(out5),
-             "--picks", json.dumps({"slide_02": "A", "slide_05": "A"}),
-             "--splice-into", str(orig5), "--final", str(spliced5), "--user-approved"],
+             "--picks", str(out5 / "picks.json"),
+             "--splice-into", str(orig5), "--final", str(spliced5), "--review-token", TOKEN5],
             capture_output=True, text=True)
         assert r.returncode == 0, f"multi-splice failed:\n{r.stdout}\n{r.stderr}"
         got = [_slide_text(s) for s in Presentation(str(spliced5)).slides]

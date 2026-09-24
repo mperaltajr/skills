@@ -47,6 +47,7 @@ sys.path.insert(0, str(SKILL_ROOT))
 sys.path.insert(0, str(QC_SCRIPTS))
 
 import _paths as _p  # noqa: E402
+import _state  # noqa: E402  (build state manifest: review-token approval gate)
 
 from pptx import Presentation  # noqa: E402
 from twins.composer import (  # noqa: E402
@@ -75,10 +76,12 @@ def parse_picks(arg: Optional[str], out_dir: Path) -> dict[str, str]:
         raw = candidate.read_text(encoding="utf-8")
     else:
         as_path = Path(arg)
-        if as_path.exists():
-            raw = as_path.read_text(encoding="utf-8")
-        else:
-            raw = arg
+        if not as_path.exists():
+            raise SystemExit(
+                "--picks must be a path to a picks.json file on disk. Inline JSON is "
+                "no longer accepted: picks must be produced by the human review "
+                f"(REVIEW.html writes picks.json). No such file: {arg}")
+        raw = as_path.read_text(encoding="utf-8")
 
     try:
         data = json.loads(raw)
@@ -471,12 +474,13 @@ def main() -> int:
                          "new file (never overwrites the original). Use this for a "
                          "deck adopted via adopt_deck.py — a plain compile would "
                          "drop the un-rebuilt slides.")
-    ap.add_argument("--user-approved", action="store_true",
-                    help="REQUIRED to compile a final picked deck: asserts the user has "
-                         "opened REVIEW.html and picked/accepted each slide in chat. Never "
-                         "pass this as an orchestrator default — options_per_slide=1 is NOT "
-                         "an auto-pick; a single option still needs the user's explicit "
-                         "accept. Exempt for --all-variations (a pre-pick review artifact).")
+    ap.add_argument("--review-token", default=None,
+                    help="REQUIRED to compile a final picked deck. The token build_review.py "
+                         "minted and displayed ONLY inside REVIEW.html (in its 'Build my deck' "
+                         "command). compile refuses unless it matches the review recorded for "
+                         "the current deck content-hash. Never invent it — it exists only after "
+                         "a real review was built for this deck. Not used with --all-variations "
+                         "(a pre-pick review artifact, guarded separately).")
     args = ap.parse_args()
     if args.all_variations and args.picks:
         print("ERROR: --all-variations is mutually exclusive with --picks. "
@@ -492,29 +496,29 @@ def main() -> int:
     except Exception:
         pass
 
-    # ---- User-approval gate — Stage 3 review is a HUMAN gate --------------
-    # A final picked deck may only be compiled AFTER the user has opened
-    # REVIEW.html and picked/accepted each slide in chat. options_per_slide=1
-    # is NOT an auto-pick: a single option still needs the user's explicit
-    # accept (or a request for more options). The orchestrator asserts that
-    # approval by passing --user-approved (see SKILL.md Stage 3). This is the
-    # same trust model as the register.html {"accept": true} shortcut: it is a
-    # user-issued assertion, never an orchestrator default. --all-variations is
-    # a pre-pick review artifact (the audience picks FROM it), so it is exempt.
-    if not args.user_approved and not args.all_variations:
-        print(
-            "REFUSED: will not compile a final deck without user approval.\n"
-            "  The reviewer must open REVIEW.html and pick/accept each slide FIRST.\n"
-            "  A single option per slide is NOT an automatic pick.\n"
-            "  Re-run with --user-approved ONLY after the user has picked or\n"
-            "  accepted the review in chat."
-        )
-        return 5
-
     out_dir: Path = args.out
     if not out_dir.exists():
         print(f"ERROR: out dir not found: {out_dir}")
         return 2
+
+    # ---- User-approval gate (Rule 2): a review token minted by build_review,
+    # not a self-asserted flag. compile refuses unless the token supplied matches
+    # the one recorded in _state.json for the CURRENT deck content-hash — i.e. a
+    # real REVIEW.html was built for this content and the user relayed its token.
+    # A (re)build clears the token (build_deck), so a stale review can't compile.
+    # --all-variations is a pre-pick review ARTIFACT (see its own guard below), so
+    # it does not carry a token.
+    if not args.all_variations:
+        ok, reason = _state.check_compile_allowed(out_dir, args.review_token)
+        if not ok:
+            print("REFUSED: will not compile a final deck.\n  " + reason)
+            return 5
+        # Rule 1: the canonical out-dir is the one prep recorded; refuse a split.
+        _canon = _state.canonical_out(out_dir)
+        if _canon and Path(_canon).resolve() != out_dir.resolve():
+            print(f"REFUSED: --out ({out_dir.resolve()}) is not the build's canonical "
+                  f"out dir recorded at prep ({_canon}).")
+            return 5
 
     meta_path = _p.meta_json(out_dir)
     if not meta_path.exists():
@@ -546,6 +550,16 @@ def main() -> int:
                     p.stem.split("_")[1] for p in sdir.glob("option_?.pptx")
                 )
                 picks[_p.slide_key(n)] = letters or list(_p.option_letters())
+        # Rule 2 guard: with one option per slide, --all-variations produces a
+        # full one-option deck identical to an all-"A" pick, with no review token
+        # — i.e. an unapproved final deck by another name. Refuse it and route the
+        # user to the real pick flow.
+        if picks and all(len(v) <= 1 for v in picks.values()):
+            print("REFUSED: --all-variations needs at least one slide with multiple "
+                  "options. With one option per slide it is just an unapproved final "
+                  "deck. Build REVIEW.html, have the user pick, then compile with "
+                  "--review-token.")
+            return 5
         total = sum(len(v) for v in picks.values())
         print(f"  all-variations mode: {len(picks)} slides, "
               f"{total} options present = {total} planned outputs")
