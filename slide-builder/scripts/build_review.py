@@ -41,6 +41,7 @@ sys.path.insert(0, str(SKILL_ROOT))
 sys.path.insert(0, str(QC_SCRIPTS))
 
 import _paths as _p  # noqa: E402
+import _state  # noqa: E402  (build state manifest: mint the review-approval token)
 
 
 # ---------------------------------------------------------------------------
@@ -1424,6 +1425,9 @@ async function buildDeck() {
             Object.keys(f).forEach(k => { cmd += "    " + k + ": " + f[k].replace(/\n/g, " ") + "\n"; });
         });
     }
+    if (!iterate && window.__REVIEW_TOKEN__) {
+        cmd += "Approved by reviewer. Compile with: compile_picks.py --out <out> --review-token " + window.__REVIEW_TOKEN__ + "\n";
+    }
     const label = iterate ? "Update command copied. Paste into Claude Code." : "Compile command copied. Paste into Claude Code.";
     try { await navigator.clipboard.writeText(cmd); showToast(label); }
     catch (e) { showDialog(cmd, iterate ? "Update command (Ctrl+C to copy)" : "Compile command (Ctrl+C to copy)"); }
@@ -1555,11 +1559,16 @@ def build_html(out_dir: Path, meta: Optional[dict], slides: list, storyline: dic
 </dialog>
 """
 
+    # Rule 2: mint the review-approval token here (only build_review does this),
+    # bound to the deck content-hash recorded at prep, and surface it ONLY inside
+    # REVIEW.html's "Build my deck" command. compile_picks refuses without it.
+    review_token = _state.record_review(out_dir)
     js_setup = (
         f"window.__TOTAL_SLIDES__ = {len(slides)};\n"
         f"window.__SLIDE_IDS__ = {json.dumps(slide_ids)};\n"
         f"window.__SLIDE_MAP__ = {json.dumps(slide_map)};\n"
         f"window.__OUT_DIR__ = {json.dumps(str(out_dir.resolve()))};\n"
+        f"window.__REVIEW_TOKEN__ = {json.dumps(review_token)};\n"
     )
 
     return (

@@ -220,7 +220,7 @@ def main(argv) -> int:
     print(f"     pick to make option_A_native.py. Then:")
     print(f"       py -3 finalize_deck.py --slide N --out {out_dir} --template \"{deck}\"")
     print(f"  4. pick in REVIEW.html, then splice back (keeps every other slide):")
-    print(f"       py -3 compile_picks.py --out {out_dir} --splice-into \"{deck}\" --user-approved")
+    print(f"       py -3 compile_picks.py --out {out_dir} --splice-into \"{deck}\" --review-token <token-from-REVIEW.html>")
     return 0
 
 

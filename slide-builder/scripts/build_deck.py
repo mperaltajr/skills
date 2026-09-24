@@ -100,6 +100,7 @@ except ImportError as _imp_exc:
 
 
 import _paths as _p  # noqa: E402
+import _state  # noqa: E402  (build state manifest: prep record + review invalidation)
 from _meta_schema import MetaJson, META_SCHEMA_VERSION_CURRENT  # noqa: E402
 from _chrome_schema import (  # noqa: E402
     ChromeSidecarMissingError, load_chrome_yml,
@@ -2117,6 +2118,13 @@ def main() -> int:
     slides = brief["slides"]
     slide_total = brief["slide_total"]
     deck_notes = brief["deck_notes"]
+
+    # Build-state manifest: a stable hash of the deck inputs. Any (re)prep records
+    # it and invalidates a prior review approval, so a rebuilt/edited deck can
+    # never compile on a stale review (Rule 1). Computed here so all three exit
+    # paths (full / --slide / --insert) share it.
+    _deck_hash = _state.deck_content_hash(
+        json.dumps(brief, sort_keys=True, default=str), str(args.template), effective_pattern)
     _density_note = density_directive(brief.get("front_matter", {}) or {})
 
     # Validate the rebuild target exists in this brief before any work.
@@ -2319,8 +2327,10 @@ def main() -> int:
         print(f"  1. Dispatch ONE slide-builder-worker for slide {rebuild_slide_n} "
               f"(reads {rb_dir / '_context.md'} then {rb_dir / '_prompt.md'}).")
         print(f"  2. py -3 finalize_deck.py --out <out> --template <template> --slide {rebuild_slide_n}")
-        print(f"  3. Take the user's pick for slide {rebuild_slide_n}; update picks.json.")
-        print(f"  4. py -3 compile_picks.py --out <out> --user-approved   # after the user re-picks; grafts the new slide into final_deck.pptx")
+        print(f"  3. Re-run build_review.py --out <out>; the user re-picks in REVIEW.html")
+        print(f"     (this (re)build invalidated the prior approval; a fresh review mints a new token).")
+        print(f"  4. py -3 compile_picks.py --out <out> --review-token <token-from-REVIEW.html>   # grafts the rebuilt slide in")
+        _state.record_prep(args.out, _deck_hash, args.out)
         return 0
 
     # Insert mode: dirs + picks were already shifted; splice the new slide's entry
@@ -2355,11 +2365,12 @@ def main() -> int:
               f"(reads {ins_dir / '_context.md'} then {ins_dir / '_prompt.md'}).")
         print(f"  2. py -3 finalize_deck.py --out <out> --template <template> --slide {insert_slide_n}")
         print(f"  3. Take the user's pick for slide {insert_slide_n}; add it to picks.json.")
-        print(f"  4. py -3 compile_picks.py --out <out> --user-approved   # after the user picks; grafts the full renumbered deck")
+        print(f"  4. Re-run build_review.py, the user picks, then py -3 compile_picks.py --out <out> --review-token <token>   # grafts the renumbered deck")
         print()
         print(f"  Note: the deck-level RESULT.md still shows the pre-insert numbering — it")
         print(f"  refreshes on the next FULL finalize (finalize_deck.py --out <out> with no")
         print(f"  --slide). The single-slide finalize in step 2 writes RESULT-slide-{insert_slide_n:02d}.md.")
+        _state.record_prep(args.out, _deck_hash, args.out)
         return 0
 
     # Deck manifest (_meta.json) — single source of truth for downstream
@@ -2409,6 +2420,7 @@ def main() -> int:
     print("Next: dispatch one slide-builder-worker agent per slide in parallel.")
     print("Each worker reads _context.md first, then _prompt.md in its slide_NN/")
     print("directory. Then run finalize_deck.py.")
+    _state.record_prep(args.out, _deck_hash, args.out)
     return 0
 
 
