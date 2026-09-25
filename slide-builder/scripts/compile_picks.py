@@ -62,6 +62,52 @@ from twins.composer import (  # noqa: E402
 # ---------------------------------------------------------------------------
 # Pick parsing
 # ---------------------------------------------------------------------------
+def assert_package_integrity(path: Path) -> list[str]:
+    """Return a list of package-integrity problems in a saved .pptx (empty = ok).
+
+    A structural edit that drops a slide's relationship without removing its part
+    (or the reverse) leaves an ORPHANED slide part: present in the zip and in
+    [Content_Types].xml but referenced by no <p:sldId>. PowerPoint sometimes
+    tolerates it; LibreOffice reports "source file could not be loaded", which is
+    how that symptom got misfiled as a stale LibreOffice profile. The existing
+    _dedupe_zip_entries only collapses duplicate NAMES and is structurally blind
+    to this, so it needs its own check.
+    """
+    problems: list[str] = []
+    import zipfile as _zf
+    try:
+        with _zf.ZipFile(path) as z:
+            names = z.namelist()
+        parts = [n for n in names if re.match(r"ppt/slides/slide\d+\.xml$", n)]
+        seen, dupes = set(), set()
+        for n in names:
+            (dupes.add(n) if n in seen else seen.add(n))
+        listed = len(Presentation(str(path)).slides)
+        if len(parts) != listed:
+            problems.append(
+                f"{len(parts)} slide part(s) in the package but {listed} listed in the "
+                f"deck — {abs(len(parts) - listed)} orphaned/unlisted slide part(s)")
+        if dupes:
+            problems.append(f"duplicate zip entries: {sorted(dupes)[:3]}")
+    except Exception as exc:
+        problems.append(f"could not verify package: {type(exc).__name__}: {exc}")
+    return problems
+
+
+def _report_integrity(path: Path) -> int:
+    """Print and grade the integrity result. Returns 0 (ok) or 6 (corrupt)."""
+    problems = assert_package_integrity(path)
+    if not problems:
+        return 0
+    print("\nREFUSED: the saved deck failed the package-integrity check.")
+    for p in problems:
+        print(f"  - {p}")
+    print("  This usually means a slide was added or replaced outside the pipeline.\n"
+          "  Rebuild through compile_picks/--splice-into rather than editing the\n"
+          "  package by hand; those paths keep the slide list and parts in sync.")
+    return 6
+
+
 def parse_picks(arg: Optional[str], out_dir: Path) -> dict[str, str]:
     """Resolve --picks. Accepts:
       - None             -> read <out>/picks.json
@@ -442,6 +488,9 @@ def run_splice(out_dir: Path, meta: dict, picks: dict, template_path: Path,
               f"(is it open in PowerPoint?)")
         return 3
     _dedupe_zip_entries(out)
+    _rc = _report_integrity(out)
+    if _rc:
+        return _rc
 
     # Verify the count is preserved (the whole point of a splice vs a compile).
     verify = Presentation(str(out))
@@ -728,6 +777,9 @@ def main() -> int:
     # as corrupt. Run an unconditional zip rewrite that keeps the LAST
     # occurrence of each name. Cheap on size, unbreakable for downstream readers.
     _dedupe_zip_entries(final_path)
+    _rc = _report_integrity(final_path)
+    if _rc:
+        return _rc
     print(f"  saved ({final_path.stat().st_size:,} bytes)")
 
     print("\n[4] Verify opens cleanly")

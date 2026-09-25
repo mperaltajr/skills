@@ -79,6 +79,15 @@ def record_review(out_dir) -> str:
     return token
 
 
+def record_qc(out_dir, blocks: int, detail: str = "") -> None:
+    """Record finalize's QC outcome. `severity: "block"` used to be decorative:
+    finalize counted blocks, printed the tally, and returned 0, and nothing
+    downstream ever read it. Recording it here lets compile refuse."""
+    state = read_state(out_dir)
+    state["qc"] = {"blocks": int(blocks or 0), "detail": detail, "at": _now()}
+    _write(out_dir, state)
+
+
 def record_compile(out_dir) -> None:
     """A final deck was compiled from the approved picks."""
     state = read_state(out_dir)
@@ -133,6 +142,14 @@ def check_compile_allowed(out_dir, review_token: str) -> tuple[bool, str]:
     if cur and review.get("content_hash") != cur:
         return False, ("the review is stale — the deck was re-prepped/rebuilt after "
                        "this review. Run build_review.py again and have the user re-pick.")
+    # A recorded QC block is a hard stop. Absence of a QC record is "no opinion"
+    # (finalize has not run here), never an implicit pass.
+    qc = state.get("qc") or {}
+    if int(qc.get("blocks") or 0) > 0:
+        return False, (f"QC recorded {qc['blocks']} blocking issue(s) for this build"
+                       + (f": {qc.get('detail')}" if qc.get("detail") else "")
+                       + ". Fix them and re-run finalize_deck.py; 'block' severity "
+                         "now actually blocks the compile.")
     return True, "ok"
 
 
