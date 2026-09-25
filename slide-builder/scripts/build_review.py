@@ -321,7 +321,23 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
         page_type = page_type.split("\n")[0].strip()
 
     options = []
-    for letter in OPTIONS:
+    # Only render tiles for options that were ACTUALLY built for this slide.
+    # OPTIONS is the settings-driven maximum (e.g. 3). A slide built with a
+    # single option must show ONE tile, not one tile plus empty B/C "missing"
+    # slots. The "Want more options? +1/+2/+3" control in render_card stays
+    # available regardless, so the reviewer can still request B/C on demand.
+    def _option_built(letter: str) -> bool:
+        return (
+            (src_dir / _p.option_py_name(letter)).exists()
+            or (src_dir / f"option_{letter}.html").exists()
+            or (src_dir / f"option_{letter}_native.py").exists()
+            or (themed_dir / _p.option_pptx_name(letter)).exists()
+            or (themed_dir / _p.option_png_name(letter)).exists()
+        )
+    built_letters = [l for l in OPTIONS if _option_built(l)]
+    if not built_letters:
+        built_letters = list(OPTIONS)  # nothing built yet (fresh prep): fall back
+    for letter in built_letters:
         png = themed_dir / _p.option_png_name(letter)
         themed_pptx = themed_dir / _p.option_pptx_name(letter)
         src_pptx = src_dir / _p.option_pptx_name(letter)
