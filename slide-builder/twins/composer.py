@@ -30,10 +30,44 @@ than expect a live archive path.
 """
 from __future__ import annotations
 
+import copy
 import re
 
 from pptx.oxml.ns import qn
 from pptx.util import Pt
+
+
+def write_literal_run_preserving_field(para, text):
+    """Replace `para`'s content with ONE literal run carrying `text`, keeping the
+    character formatting of any `<a:fld>` being replaced. Returns the new run.
+
+    Auto-number fields (`<a:fld type="slidenum">`) do not render under LibreOffice
+    headless, so the pipeline writes literal text instead. But on many templates
+    the field's own `<a:rPr>` is the ONLY carrier of size / color / typeface: the
+    layout AND the master can both ship an empty `<a:lstStyle/>`, leaving no
+    placeholder cascade to inherit from. Dropping the field therefore silently
+    discarded all three and the run fell back to the presentation default
+    (`<p:otherStyle>`, ~13pt black), which is the "page numbers render huge and
+    stack vertically" defect. Capture the field's rPr and re-apply it verbatim so
+    the template's own chrome formatting survives, whatever that template is.
+    """
+    for r in list(para.runs):
+        r._r.getparent().remove(r._r)
+    fld_rpr = None
+    for fld in para._p.findall(qn("a:fld")):
+        if fld_rpr is None:
+            _r = fld.find(qn("a:rPr"))
+            if _r is not None:
+                fld_rpr = copy.deepcopy(_r)
+        para._p.remove(fld)
+    run = para.add_run()
+    run.text = str(text) if text is not None else ""
+    if fld_rpr is not None:
+        existing = run._r.find(qn("a:rPr"))
+        if existing is not None:
+            run._r.remove(existing)
+        run._r.insert(0, fld_rpr)  # rPr must be the first child of <a:r>
+    return run
 
 
 class TemplatePlaceholderEmptyError(RuntimeError):
@@ -200,16 +234,14 @@ def _populate_layout_placeholders(slide, *, title=None, subtitle=None,
                 f"         py -3 scripts/register_template.py propose <your-template.pptx>"
             )
         first = tf.paragraphs[0]
-        # Clear existing runs
-        for r in list(first.runs):
-            r._r.getparent().remove(r._r)
-        # Clear any auto-field (e.g. a slide-number <a:fld>) — we write literal
-        # text so it renders reliably in LibreOffice + PowerPoint (auto-number
-        # fields don't render under LibreOffice headless).
-        for fld in first._p.findall(qn("a:fld")):
-            first._p.remove(fld)
-        run = first.add_run()
-        run.text = str(text) if text is not None else ""
+        # Drop trailing paragraphs so stale template lines cannot survive. The
+        # comment above has always promised "clear extras"; the code never did it.
+        for _extra in list(tf.paragraphs[1:]):
+            _extra._p.getparent().remove(_extra._p)
+        # Write a literal run, preserving the character formatting carried on any
+        # auto-field we replace (size/color/typeface). See the helper's docstring:
+        # on templates with an empty <a:lstStyle/> the field IS the only carrier.
+        run = write_literal_run_preserving_field(first, text)
         # Controlled size (e.g. a consistent 28pt title) when the caller supplies
         # one; otherwise leave the run size unset so the template's placeholder
         # cascade governs.

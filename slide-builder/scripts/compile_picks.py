@@ -197,6 +197,14 @@ def _restamp_page_number(slide, position: int) -> None:
                     paras[0].runs[0].text = str(position)
                     for extra in paras[0].runs[1:]:
                         extra.text = ""
+                elif paras:
+                    # Field-only placeholder: python-pptx reports the <a:fld>'s
+                    # cached text, so .isdigit() passed above, but there are no
+                    # runs. Assigning tf.text here would drop the field AND the
+                    # rPr it carries, re-creating the unformatted-page-number
+                    # defect at COMPILE time even after finalize did it right.
+                    from twins.composer import write_literal_run_preserving_field
+                    write_literal_run_preserving_field(paras[0], position)
                 else:
                     tf.text = str(position)
         except Exception:
