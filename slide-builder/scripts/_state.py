@@ -79,6 +79,38 @@ def record_review(out_dir) -> str:
     return token
 
 
+def record_compile(out_dir) -> None:
+    """A final deck was compiled from the approved picks."""
+    state = read_state(out_dir)
+    state.setdefault("stages", {})["compile"] = {"at": _now()}
+    _write(out_dir, state)
+
+
+def has_compiled(out_dir) -> bool:
+    """True once this build has produced a final deck from an approval."""
+    return bool(read_state(out_dir).get("stages", {}).get("compile"))
+
+
+def invalidate_review(out_dir, reason: str = "") -> bool:
+    """Drop any recorded review approval. Called when a stage REBUILDS output that
+    was already reviewed (a targeted re-finalize, or any re-finalize after a
+    compile), so a changed deck cannot ship on the approval the user gave for the
+    previous content. Returns True if an approval was actually dropped.
+
+    Deliberately NOT called on the first full finalize: the documented order is
+    review -> finalize -> compile, so finalize runs once between the pick and the
+    compile, and invalidating there would make every build unshippable.
+    """
+    state = read_state(out_dir)
+    if not state.get("review"):
+        return False
+    state.pop("review", None)
+    state.setdefault("stages", {})["review_invalidated"] = {
+        "at": _now(), "reason": reason or "output rebuilt after approval"}
+    _write(out_dir, state)
+    return True
+
+
 def check_compile_allowed(out_dir, review_token: str) -> tuple[bool, str]:
     """True only if a real review happened for the CURRENT content and the
     supplied token matches. Returns (ok, reason)."""

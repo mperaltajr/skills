@@ -488,6 +488,31 @@ def discover_slide_count(out_dir: Path) -> int:
 # Storyline rendering
 # ---------------------------------------------------------------------------
 
+def render_preview_banner(slides: list) -> str:
+    """Loud in-page notice when options have no rendered preview.
+
+    build_review used to print `missing PNGs: N` / `missing themed PPTX: N` to the
+    log and say NOTHING in the page. A 13-slide review was handed over with 36 of
+    39 tiles unviewable and it was invisible to the reviewer. Surface it where the
+    decision is actually made.
+    """
+    total = sum(len(s["options"]) for s in slides)
+    no_png = sum(1 for s in slides for o in s["options"] if not o["png_exists"])
+    if not no_png:
+        return ""
+    return (
+        '<div class="font-banner">'
+        '<div class="font-banner-title"><span class="font-banner-icon">&#9888;</span> '
+        f'{no_png} of {total} options have no rendered preview</div>'
+        '<div class="font-banner-body">'
+        'Those tiles show no image, so they cannot be judged on sight. Picking still '
+        'works (picks are recorded by option letter), but render the missing options '
+        'and rebuild this page if you want to see them. '
+        '<strong>Do not approve a deck you could not look at.</strong></div>'
+        '</div>'
+    )
+
+
 def render_storyline_html(storyline: dict, slides: list) -> str:
     brief_slides = storyline.get("slides") or []
     by_num = {s["n"]: s for s in brief_slides}
@@ -1204,10 +1229,16 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
 # ---------------------------------------------------------------------------
 
 JS = r"""
-const PICKS_KEY = "slidelab_v2_picks_v1::" + window.location.pathname;
-const FB_KEY    = "slidelab_v2_feedback_v1::" + window.location.pathname;
-const REGEN_KEY = "slidelab_v2_regen_v1::"    + window.location.pathname;
-const MORE_KEY  = "slidelab_v2_more_v1::"     + window.location.pathname;
+// Store namespace: the BUILD (out dir), not the file path. Keying on
+// window.location.pathname gave "REVIEW.html" and a "REVIEW (shareable).html"
+// copy two independent pick stores, so picks made in one were invisible to the
+// other — a silent way to lose or transpose a decision. Version bumped to v2
+// because the pick store schema changed from {pptxPath: letter} to {sid: letter}.
+const PICK_NS   = "::" + (window.__OUT_DIR__ || window.location.pathname);
+const PICKS_KEY = "slidelab_picks_v2" + PICK_NS;
+const FB_KEY    = "slidelab_feedback_v2" + PICK_NS;
+const REGEN_KEY = "slidelab_regen_v2"    + PICK_NS;
+const MORE_KEY  = "slidelab_more_v2"     + PICK_NS;
 const TOTAL_SLIDES = window.__TOTAL_SLIDES__;
 const SLIDE_IDS = window.__SLIDE_IDS__;
 const SLIDE_MAP = window.__SLIDE_MAP__;
@@ -1224,12 +1255,11 @@ function loadMore()   { return loadJson(MORE_KEY); }
 function saveMore(m)  { saveJson(MORE_KEY, m); }
 
 function pickForSlide(sid) {
-    const picks = loadPicks();
-    const map = SLIDE_MAP[sid] || {};
-    for (const letter of Object.keys(map)) {
-        if (picks[map[letter]] === letter) return letter;
-    }
-    return null;
+    // Picks are keyed by slide id -> option letter. They used to be keyed by the
+    // themed PPTX path, which meant a slide with no themed file yet could not
+    // hold a pick at all.
+    const v = loadPicks()[sid];
+    return (typeof v === "string" && v) ? v : null;
 }
 
 function renderSlideState(sid) {
@@ -1324,15 +1354,13 @@ function copyVisionQcPrompt(btn, pptxPath) {
 }
 
 function pickOption(sid, letter) {
-    const map = SLIDE_MAP[sid] || {};
-    const pptx = map[letter];
-    if (!pptx) { showToast("Option " + letter + " has no themed PPTX."); return; }
+    // A pick records an OPTION LETTER for a slide. It must not depend on a
+    // themed PPTX: that artifact is written by finalize, which runs AFTER the
+    // review, so gating here left every button inert on a first-pass build.
+    // compile_picks resolves <out>/<slide>/option_<letter>.pptx from the letter.
     const picks = loadPicks();
-    for (const l of Object.keys(map)) {
-        if (map[l] && picks[map[l]] === l) delete picks[map[l]];
-    }
-    const current = pickForSlide(sid);
-    if (current !== letter) picks[pptx] = letter;
+    if (picks[sid] === letter) delete picks[sid];   // clicking the pick again clears it
+    else picks[sid] = letter;
     savePicks(picks);
     const regens = loadRegens();
     if (regens[sid]) { delete regens[sid]; saveRegens(regens); }
@@ -1344,11 +1372,8 @@ function pickNone(sid) {
     if (regens[sid]) { delete regens[sid]; }
     else {
         regens[sid] = true;
-        const map = SLIDE_MAP[sid] || {};
         const picks = loadPicks();
-        for (const l of Object.keys(map)) {
-            if (map[l] && picks[map[l]] === l) delete picks[map[l]];
-        }
+        delete picks[sid];
         savePicks(picks);
     }
     saveRegens(regens);
@@ -1508,8 +1533,16 @@ def build_html(out_dir: Path, meta: Optional[dict], slides: list, storyline: dic
         slides_by_n[s["n"]] = s
         slide_map[sid] = {}
         for o in s["options"]:
+            # Record the best previewable artifact per option, or "" when none
+            # exists yet. Picking no longer reads this (it is keyed by slide +
+            # letter): gating picks on the themed PPTX, which finalize writes
+            # AFTER the review, is what left the pick buttons inert.
             if o["themed_exists"]:
                 slide_map[sid][o["letter"]] = str(o["themed_pptx"].resolve())
+            elif o.get("src_exists"):
+                slide_map[sid][o["letter"]] = str(o["src_pptx"].resolve())
+            else:
+                slide_map[sid][o["letter"]] = ""
 
     # compute adjacency warnings across option_A
     adjacency_warnings = compute_adjacency_warnings(slides_by_n, option_letter="A")
@@ -1533,6 +1566,7 @@ def build_html(out_dir: Path, meta: Optional[dict], slides: list, storyline: dic
     storyline_html = render_storyline_html(storyline, slides)
     qc_html = render_qc_banner(out_dir)
     font_html = render_font_banner(out_dir)
+    preview_html = render_preview_banner(slides)
     cards_html = "\n".join(render_card(s, adjacency_warnings) for s in slides)
 
     topbar_html = f"""
@@ -1595,6 +1629,7 @@ def build_html(out_dir: Path, meta: Optional[dict], slides: list, storyline: dic
         f"{topbar_html}"
         f"{storyline_html}"
         f"{font_html}"
+        f"{preview_html}"
         f"{qc_html}"
         f"<div class=\"cards\">{cards_html}</div>"
         f"{footer_html}"

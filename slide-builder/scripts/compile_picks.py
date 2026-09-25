@@ -456,6 +456,12 @@ def run_splice(out_dir: Path, meta: dict, picks: dict, template_path: Path,
             print(f"    - {f}")
     print(f"\nSpliced deck: {out}")
     print("Run slide-qc on it before sending (a deck isn't done until QC has run).")
+    # Record that this build produced a deck from an approval, so a later
+    # re-finalize knows it is rebuilding already-shipped content.
+    try:
+        _state.record_compile(out_dir)
+    except Exception:
+        pass
     return 0 if ok else 1
 
 
@@ -789,6 +795,12 @@ def main() -> int:
     print(f"  invoke the slide-qc skill on:  {final_path}")
     print("Do not tell the user the deck is finished or 'QC'd' until slide-qc has run.")
 
+    # Record that this build produced a deck from an approval, so a later
+    # re-finalize knows it is rebuilding already-shipped content.
+    try:
+        _state.record_compile(out_dir)
+    except Exception:
+        pass
     return 0 if (opens and render_fail == 0 and not failures) else 1
 
 

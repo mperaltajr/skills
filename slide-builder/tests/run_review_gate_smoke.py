@@ -79,11 +79,48 @@ def main() -> int:
         assert not ok, "a forged token must be refused"
         print("    ok")
 
-        print("[4] a rebuild (re-prep) invalidates the token -> stale review refused")
+        print("[4] picks are slide-keyed and do NOT gate on a themed PPTX")
+        # The themed option_X.pptx is written by finalize, which runs AFTER the
+        # review. Gating picks on it left 36 of 39 buttons inert on a real build.
+        assert "picks[sid] = letter" in html, "pick store is not slide-keyed"
+        assert "has no themed PPTX" not in html, "the themed-PPTX pick gate is still present"
+        assert "loadPicks()[sid]" in html, "pickForSlide still resolves through SLIDE_MAP"
+        assert "window.__OUT_DIR__ || window.location.pathname" in html, \
+            "pick store is still namespaced per-file (shareable copy would split it)"
+        print("    ok: pick = slide id -> letter, namespaced on the out dir")
+
+        print("[5] a missing preview is surfaced in the page, not just the log")
+        (out / "slide_01" / "option_A.png").unlink()
+        r = subprocess.run(
+            [sys.executable, str(SCRIPTS / "build_review.py"), "--out", str(out)],
+            capture_output=True, text=True, env={**os.environ, "PYTHONPATH": str(SCRIPTS)})
+        assert r.returncode == 0, r.stderr[-400:]
+        html2 = (out / "REVIEW.html").read_text(encoding="utf-8")
+        assert "have no rendered preview" in html2, "no in-page warning for unviewable tiles"
+        assert "Do not approve a deck you could not look at" in html2
+        print("    ok: unviewable tiles are called out in the review itself")
+
+        print("[6] a rebuild (re-prep) invalidates the token -> stale review refused")
+        tok2 = _state.read_state(out)["review"]["token"]
         _state.record_prep(out, "hashV2", out)   # content changed / rebuilt
-        ok, why = _state.check_compile_allowed(out, tok)
+        ok, why = _state.check_compile_allowed(out, tok2)
         assert not ok, "a stale review token must be refused after a rebuild"
         print(f"    ok: {why[:56]}")
+
+        print("[7] re-finalize after a compile also clears the approval")
+        _state.record_prep(out, "hashV3", out)
+        tok3 = _state.record_review(out)
+        assert _state.check_compile_allowed(out, tok3)[0]
+        assert not _state.has_compiled(out), "no compile recorded yet"
+        # First full finalize sits between the pick and the compile: exempt.
+        assert _state.invalidate_review(out, "x") is True  # (direct call drops it)
+        tok4 = _state.record_review(out)
+        _state.record_compile(out)
+        assert _state.has_compiled(out), "compile not recorded"
+        assert _state.invalidate_review(out, "re-finalized after compile") is True
+        ok, _ = _state.check_compile_allowed(out, tok4)
+        assert not ok, "an approval must not survive a rebuild of shipped content"
+        print("    ok: approval cleared once already-shipped content is rebuilt")
 
         print("\nSMOKE PASSED.")
         return 0

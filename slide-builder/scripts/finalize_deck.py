@@ -2765,6 +2765,24 @@ def main() -> int:
     except Exception as exc:
         print(f"  WARNING: build_gate_preview.py invocation failed: {type(exc).__name__}: {exc}")
 
+    # A rebuild must not ship on an approval the user gave for the PREVIOUS
+    # content. build_deck clears the approval when it re-preps, but a targeted
+    # re-finalize (or any re-finalize after a compile) also changes built output
+    # without going through build_deck, which is how one review token rode six
+    # rebuilds and seven compiles in the 13-slide build. A first full finalize
+    # sits legitimately between the pick and the compile, so it is exempt.
+    try:
+        import _state  # noqa: E402
+        if args.slide is not None or _state.has_compiled(args.out):
+            _why = (f"finalize --slide {args.slide}" if args.slide is not None
+                    else "deck re-finalized after a compile")
+            if _state.invalidate_review(args.out, _why):
+                print("\n  NOTE: the previous review approval was cleared "
+                      f"({_why}).\n        Re-run build_review.py and have the user "
+                      "re-pick before compiling.")
+    except Exception as exc:  # never let bookkeeping break a finished build
+        print(f"  WARNING: could not update build state: {type(exc).__name__}: {exc}")
+
     print("\n" + "=" * 72)
     print("DONE — Part B complete.")
     print(f"  Native     : {n_native}")
