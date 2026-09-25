@@ -181,10 +181,16 @@ def copy_picked_slide_into(dst_prs, src_pptx: Path,
         and getattr(layout_chrome, "title_placeholder_idx", None) is not None
     )
 
-    if _is_body_canonical and layout_name:
-        target = _find_named_layout(dst_prs, layout_name) or _find_blank_layout(dst_prs)
-    else:
-        target = _find_blank_layout(dst_prs)
+    # Honor the named layout whenever it resolves, body-canonical or not.
+    # Previously a non-body-canonical ("bespoke") layout name was discarded here
+    # and the slide was grafted onto the BLANK layout, so Cover / Dark statement /
+    # Section layouts lost their identity and their layout-level branding at
+    # COMPILE time even when finalize had grafted them correctly. finalize_deck
+    # honors the name; compile did not, and that disagreement is how a branded
+    # cover silently became a blank slide. Only the placeholder-strip behavior
+    # depends on body-canonical, not the layout choice.
+    target = (_find_named_layout(dst_prs, layout_name) if layout_name else None) \
+        or _find_blank_layout(dst_prs)
 
     new_slide = dst_prs.slides.add_slide(target)
     if not _is_body_canonical:
