@@ -127,6 +127,38 @@ def main() -> int:
         assert not _fires("underline"), "an underline inside the text bbox must NOT fire"
         print("    ok: fires on a rule through text; silent on cards and underlines")
 
+        print("[5] check_done refuses until a FULL vision pass is recorded")
+        import os
+        import subprocess
+        d = tmp / "done"
+        d.mkdir()
+        deck = d / "final_deck.pptx"
+        prs3 = Presentation()
+        for _ in range(3):
+            prs3.slides.add_slide(prs3.slide_layouts[6])
+        prs3.save(str(deck))
+
+        def _done() -> tuple[int, str]:
+            r = subprocess.run(
+                [sys.executable, str(SCRIPTS / "check_done.py"), "--out", str(d)],
+                capture_output=True, text=True,
+                env={**os.environ, "PYTHONPATH": str(SCRIPTS)})
+            return r.returncode, r.stdout
+
+        assert _done()[0] == 1, "an empty build must not be deliverable"
+        _state.record_prep(d, "h", d); _state.record_review(d)
+        _state.record_compile(d); _state.record_qc(d, 0, "clean")
+        rc, o = _done()
+        assert rc == 1 and "no vision pass recorded" in o, o
+        _state.record_vision_qc(d, deck, 2, 0)          # partial look
+        rc, o = _done()
+        assert rc == 1 and "covered 2 of 3" in o, o
+        _state.record_vision_qc(d, deck, 3, 1)          # every slide
+        assert _done()[0] == 0, "a compiled, clean, fully-reviewed deck IS deliverable"
+        _state.record_qc(d, 2, "2 blocking")            # a block re-opens it
+        assert _done()[0] == 1, "a blocking QC finding must re-open 'done'"
+        print("    ok: no vision pass / partial pass / QC block all refuse; full pass passes")
+
         print("\nSMOKE PASSED.")
         return 0
     finally:
