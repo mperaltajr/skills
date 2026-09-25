@@ -570,6 +570,8 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
     clip_risk_offenders: list = []
     chrome_overlap_ok = True
     chrome_overlap_offenders: list = []
+    _thin_rules: list = []   # untexted rules/dividers: (name, x0, y0, x1, y1)
+    _text_boxes: list = []   # shapes carrying text:    (name, x0, y0, x1, y1)
     try:
         for shape in shapes:
             try:
@@ -626,6 +628,21 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
                                 )
                 except Exception:
                     pass
+            # (d) Collect geometry for the thin-rule collision test after the walk.
+            try:
+                _l = int(shape.left or 0) / 9525.0
+                _t = int(shape.top or 0) / 9525.0
+                _w = int(shape.width or 0) / 9525.0
+                _h = int(shape.height or 0) / 9525.0
+                if _w > 0 and _h > 0:
+                    if shape.has_text_frame and (shape.text_frame.text or "").strip():
+                        _text_boxes.append((name, _l, _t, _l + _w, _t + _h))
+                    elif min(_w, _h) <= 12.0 and max(_w, _h) >= 40.0:
+                        # Thin + long + untexted = a rule / divider / accent bar.
+                        _thin_rules.append((name, _l, _t, _l + _w, _t + _h))
+            except Exception:
+                pass
+
             # (c) Chrome-zone overlap: worker shapes whose top-y sits inside
             # the top invariant zone (< 60 px) or bottom invariant zone
             # (> 660 px). The invariant zones are reserved for chrome
@@ -671,6 +688,35 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
         # Don't fail the QC on geometry-walk error; record so operator sees it.
         zero_fill_ok = False
         zero_fill_offenders.append("(geometry-walk failed)")
+
+    # Thin-rule collisions. A decorative rule drawn straight through text is the
+    # defect class that shipped (a 3px vertical rule crossing the numerals on
+    # slide 9). A general bbox overlap test is far too noisy to act on here:
+    # PowerPoint text boxes are routinely much larger than their glyphs, and
+    # background cards legitimately sit behind text. So this is deliberately
+    # narrow: UNTEXTED, thin (<=12px on one axis), long (>=40px), intersecting a
+    # text shape, and neither shape fully containing the other (which excludes
+    # background cards and underlines that sit inside a text frame's bounds).
+    rule_hit_ok = True
+    rule_hit_offenders: list = []
+    for rname, rx0, ry0, rx1, ry1 in _thin_rules:
+        for tname, tx0, ty0, tx1, ty1 in _text_boxes:
+            if min(rx1, tx1) - max(rx0, tx0) <= 1.0:
+                continue
+            if min(ry1, ty1) - max(ry0, ty0) <= 1.0:
+                continue
+            if ((rx0 <= tx0 and rx1 >= tx1 and ry0 <= ty0 and ry1 >= ty1)
+                    or (tx0 <= rx0 and tx1 >= rx1 and ty0 <= ry0 and ty1 >= ry1)):
+                continue  # full containment: a card behind text, or a rule inside it
+            rule_hit_ok = False
+            rule_hit_offenders.append(f"{rname!r} crosses {tname!r}")
+            break
+    checks.append({
+        "check": "rule_crosses_text", "pass": rule_hit_ok, "severity": "warn",
+        "detail": ("no decorative rule crosses a text shape" if rule_hit_ok
+                   else f"{len(rule_hit_offenders)} collision(s): "
+                        + "; ".join(rule_hit_offenders[:3])),
+    })
 
     checks.append({
         "check": "zero_fill_card_bg", "pass": zero_fill_ok, "severity": "warn",
@@ -1171,10 +1217,15 @@ def _load_and_verify_chrome(template_path: Path) -> ChromeSpec:
     return spec
 
 
-def _pick_default_layout_name(spec: ChromeSpec) -> str:
+def _pick_default_layout_name(spec: ChromeSpec, template_path=None) -> str:
     """Return a sensible default layout name when the meta lacks one.
 
     Priority:
+      0. theme.json:default_content_layout — the layout the USER picked at
+         registration. build_deck resolves layouts from this key; finalize
+         ignoring it meant the two stages could silently disagree about the same
+         brief (build_deck said 'Content', finalize said 'Agenda / Contents'),
+         which is the same wrong-layout class as the cover defect.
       1. First body-canonical layout (with light bg if any).
       2. First body-canonical layout (any bg).
       3. First layout in the spec (alphabetical fallback).
@@ -1182,6 +1233,16 @@ def _pick_default_layout_name(spec: ChromeSpec) -> str:
     This function is consulted only for slides that lack a layout field AND
     have no default_layout in front-matter.
     """
+    if template_path is not None:
+        try:
+            _tp = _p.theme_json(template_path)
+            if _tp.exists():
+                _name = (json.loads(_tp.read_text(encoding="utf-8"))
+                         .get("default_content_layout") or "").strip()
+                if _name and (not spec.layouts or _name in spec.layouts):
+                    return _name
+        except Exception:
+            pass
     light_canonical = [n for n, lc in spec.layouts.items()
                        if lc.layout_class == "body-canonical"
                        and lc.background == "light"]
@@ -2359,7 +2420,7 @@ def main() -> int:
         print(f"ERROR: chrome.yml is stale.\n{exc}", file=sys.stderr)
         return 7
     chrome_yml_path = _p.chrome_yml(args.template)
-    default_layout_name = _pick_default_layout_name(chrome_spec)
+    default_layout_name = _pick_default_layout_name(chrome_spec, args.template)
 
     print("=" * 72)
     print("Slide Lab deck orchestrator — Part B (finalize)")

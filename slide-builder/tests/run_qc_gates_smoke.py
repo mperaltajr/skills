@@ -87,6 +87,46 @@ def main() -> int:
             "every option of every slide and therefore carried no signal")
         print("    ok: bottom zone tested via the bounding box; template chrome exempt")
 
+        print("[4] a decorative rule crossing text is caught; false positives are not")
+        from pptx import Presentation as _P
+        from pptx.util import Emu
+        from pptx.enum.shapes import MSO_SHAPE
+        import finalize_deck as F
+        PX = 9525
+
+        def _build(path, mode):
+            prs = _P(); prs.slide_width = Emu(1280 * PX); prs.slide_height = Emu(720 * PX)
+            s = prs.slides.add_slide(prs.slide_layouts[6])
+            if mode == "rule_crosses":       # the shipped slide-9 defect
+                r = s.shapes.add_shape(MSO_SHAPE.RECTANGLE, Emu(83*PX), Emu(192*PX), Emu(3*PX), Emu(450*PX))
+                r.name = "accent-rule"; r.text_frame.text = ""
+                for i, y in enumerate((200, 300, 400)):
+                    tb = s.shapes.add_textbox(Emu(53*PX), Emu(y*PX), Emu(62*PX), Emu(40*PX))
+                    tb.name = f"TextBox {i}"; tb.text_frame.text = f"0{i+1}"
+            elif mode == "card_behind":      # legitimate: card behind text
+                c = s.shapes.add_shape(MSO_SHAPE.RECTANGLE, Emu(100*PX), Emu(100*PX), Emu(400*PX), Emu(200*PX))
+                c.name = "card-bg"; c.text_frame.text = ""
+                tb = s.shapes.add_textbox(Emu(120*PX), Emu(120*PX), Emu(300*PX), Emu(100*PX))
+                tb.name = "TextBox 1"; tb.text_frame.text = "hello"
+            else:                            # legitimate: underline inside the text bbox
+                tb = s.shapes.add_textbox(Emu(100*PX), Emu(100*PX), Emu(300*PX), Emu(120*PX))
+                tb.name = "TextBox 1"; tb.text_frame.text = "heading"
+                r = s.shapes.add_shape(MSO_SHAPE.RECTANGLE, Emu(110*PX), Emu(150*PX), Emu(200*PX), Emu(3*PX))
+                r.name = "rule-underline"; r.text_frame.text = ""
+            prs.save(str(path))
+
+        def _fires(mode) -> bool:
+            p = tmp / f"{mode}.pptx"
+            _build(p, mode)
+            res = F.run_option_qc(p, tmp / "missing.png", set(), "")
+            chk = [c for c in res["checks"] if c["check"] == "rule_crosses_text"][0]
+            return not chk["pass"]
+
+        assert _fires("rule_crosses"), "a rule drawn through text must be caught"
+        assert not _fires("card_behind"), "a background card behind text must NOT fire"
+        assert not _fires("underline"), "an underline inside the text bbox must NOT fire"
+        print("    ok: fires on a rule through text; silent on cards and underlines")
+
         print("\nSMOKE PASSED.")
         return 0
     finally:
