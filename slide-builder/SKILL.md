@@ -290,7 +290,12 @@ Adjacency (Hardline #3 — no 3+ consecutive same-split) is **soft-enforced at p
    - For sketch-path picks: execute `option_X_native.py`, graft body, parse the script's `__template_fields__` header, populate placeholders from THOSE values (translator-extracted from the HTML's `data-template-field` attributes, takes priority over brief fallback).
 9. **Stage 5 — Compile.** `compile_picks.py --out <out> --review-token <token>` stitches the final deck. The token comes from REVIEW.html's 'Build my deck' command (Stage 3), bound to the current deck content. Without a valid token, compile refuses (exit 5). Never invent it; inline `--picks` JSON is also refused.
 10. **QC — mandatory, not optional.** Invoke slide-qc with an explicit Skill call, passing the compiled deck path so it doesn't re-discover it — `Skill tool call: skill="slide-qc", args="<absolute path to final_deck.pptx>"`. This is the definition of done: do not tell the user the deck is finished or "QC'd" until slide-qc has run and produced its report. A PDF you rendered and eyeballed is not QC — the agent that built the deck cannot grade its own output. (compile_picks.py also prints this reminder when it finishes.)
-11. **Deliver.** PPTX. Output full absolute Windows path. No preview links.
+11. **Prove it's done — `check_done.py`.** "Done" is no longer something the orchestrator may assert. Run:
+    ```powershell
+    py -3 scripts/check_done.py --out <out>
+    ```
+    It exits non-zero unless (a) a final deck was compiled from an approved review, (b) finalize recorded **zero** blocking QC findings, and (c) a **vision pass covering every slide** is recorded (slide-qc writes it via `record_vision_qc.py`). The deterministic self-check does not count: it is structurally blind to shapes overlapping and to large empty areas, which is exactly the class that has shipped before. Do not tell the user the deck is finished until this passes.
+12. **Deliver.** PPTX. Output full absolute Windows path. No preview links.
 
 Rebuild individual slides with "rebuild slide N". This re-prep + re-finalize touches only slide N and grafts it back into the existing deck — every other slide's prompt, themed PPTX, and pick are left exactly as they were:
 

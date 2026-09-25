@@ -88,6 +88,19 @@ def record_qc(out_dir, blocks: int, detail: str = "") -> None:
     _write(out_dir, state)
 
 
+def record_vision_qc(out_dir, deck: str, slides_reviewed: int, findings: int = 0) -> None:
+    """Record that a real page-by-page VISION pass ran over the compiled deck.
+
+    "Done" used to be an orchestrator claim backed by the deterministic
+    self-check, which is structurally blind to overlaps and whitespace. This
+    turns the claim into a fact another step can verify. slide-qc writes it.
+    """
+    state = read_state(out_dir)
+    state["vision_qc"] = {"deck": str(deck), "slides_reviewed": int(slides_reviewed),
+                          "findings": int(findings), "at": _now()}
+    _write(out_dir, state)
+
+
 def record_compile(out_dir) -> None:
     """A final deck was compiled from the approved picks."""
     state = read_state(out_dir)

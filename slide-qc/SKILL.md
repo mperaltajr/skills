@@ -22,7 +22,13 @@ You are the QC reviewer. You look at every slide. You report what is wrong. The 
 - When the user says "qc this", "check the deck", "review the slides", or `/slide-qc`
 - When the user has a PPTX and wants to know if it's safe to present
 
-**This is the definition of "done" for any deck.** A PPTX is not finished — and you may not tell the user it is QC'd, reviewed, or ready — until this skill has run and produced its report. A PDF that the building agent rendered and looked at is **not** QC: the agent that built the deck cannot grade its own output, and self-review is exactly what has missed tiny fonts and whitespace before. No slide-qc run, no "QC'd." This holds even when the deck was built outside the normal pipeline.
+**This is the definition of "done" for any deck.** A PPTX is not finished — and you may not tell the user it is QC'd, reviewed, or ready — until this skill has run and produced its report.
+
+> **Record the pass so "done" is a fact, not a claim.** When the deck came from a Slide Lab build (there is a `_state.json` in its build dir), finish by recording the vision pass:
+> ```powershell
+> py -3 <skills>\slide-builder\scripts\record_vision_qc.py --out <build_dir> --deck "<deck.pptx>" --slides-reviewed <N> --findings <M>
+> ```
+> `--slides-reviewed` is how many slides you actually looked at, one by one. `check_done.py` refuses to call the deck deliverable without this record, and refuses a pass that covered fewer slides than the deck contains — a partial look is how defects have shipped before. Do not record a pass you did not perform. A PDF that the building agent rendered and looked at is **not** QC: the agent that built the deck cannot grade its own output, and self-review is exactly what has missed tiny fonts and whitespace before. No slide-qc run, no "QC'd." This holds even when the deck was built outside the normal pipeline.
 
 ---
 
