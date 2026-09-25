@@ -632,14 +632,39 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
             # (sources, footnotes, page numbers); content there collides
             # with the chrome graft. Per feedback_invariant_zone_chrome.
             try:
-                top_emu = int(shape.top or 0)
-                top_px = top_emu / 9525.0
+                TOP_ZONE_PX, BOTTOM_ZONE_PX = 40.0, 660.0
+                top_px = int(shape.top or 0) / 9525.0
+                try:
+                    h_px = int(shape.height or 0) / 9525.0
+                except Exception:
+                    h_px = 0.0
+                bottom_px = top_px + h_px
                 if shape.has_text_frame and (shape.text_frame.text or "").strip():
-                    if 0 < top_px < 40 and not name_lower.startswith(
-                        ("page-number", "footnote", "source", "header", "chrome")
-                    ):
-                        chrome_overlap_ok = False
-                        chrome_overlap_offenders.append(f"{name!r}@y={top_px:.0f}px")
+                    # Inherited template placeholders ARE the chrome (title,
+                    # page number, footer). Flagging them made this check fire on
+                    # every option of every slide, so it carried no signal and was
+                    # ignored. The check is about WORKER shapes, per its comment.
+                    try:
+                        is_ph = bool(shape.is_placeholder)
+                    except Exception:
+                        is_ph = False
+                    named_chrome = name_lower.startswith(
+                        ("page-number", "footnote", "source", "header", "chrome"))
+                    if not is_ph and not named_chrome:
+                        if 0 < top_px < TOP_ZONE_PX:
+                            chrome_overlap_ok = False
+                            chrome_overlap_offenders.append(
+                                f"{name!r}@y={top_px:.0f}px (top zone)")
+                        elif bottom_px > BOTTOM_ZONE_PX:
+                            # The bottom zone was promised by this check's own
+                            # comment but never implemented, and testing shape.top
+                            # alone can never see a tall shape reaching DOWN into
+                            # the chrome. That is exactly the recurring class:
+                            # grafted chrome is taller than the sketch, so content
+                            # bottom-pins and collides with the footer/page number.
+                            chrome_overlap_ok = False
+                            chrome_overlap_offenders.append(
+                                f"{name!r}@y={top_px:.0f}-{bottom_px:.0f}px (bottom zone)")
             except Exception:
                 pass
     except Exception:
@@ -2738,6 +2763,19 @@ def main() -> int:
         except Exception as e:
             print(f"  slide_{st.slide_n:02d}/option_{st.letter}  qc-FAIL ({type(e).__name__}: {e})")
     print(f"  QC totals: all-ok={qc_counts['all_ok']}  warn-only={qc_counts['warn_only']}  block={qc_counts['block']}")
+    # Record the QC outcome so 'block' severity finally means something. Until
+    # now finalize counted blocks, printed this line, and returned 0, and nothing
+    # downstream read it, so a deck with blocking defects reported DONE.
+    try:
+        import _state  # noqa: E402
+        _state.record_qc(
+            args.out, qc_counts["block"],
+            f"{qc_counts['block']} option(s) with blocking QC findings")
+        if qc_counts["block"]:
+            print(f"  NOTE: {qc_counts['block']} blocking QC finding(s) recorded — "
+                  "compile_picks.py will refuse until these are fixed.")
+    except Exception as exc:
+        print(f"  WARNING: could not record QC state: {type(exc).__name__}: {exc}")
 
     print("\n[6] Write RESULT.md")
     result_path = write_result(args.out, args.template, statuses, slide_n=args.slide)
