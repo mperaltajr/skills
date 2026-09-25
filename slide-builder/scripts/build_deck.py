@@ -1651,13 +1651,30 @@ def resolve_slide_layouts(
     # Ambiguous templates with none of #1-#4 set still hard-fail with
     # exit 9 so the operator must disambiguate.
     template_default = ""
+    cover_default = ""
     try:
         theme_path = _p.theme_json(template_path)
         if theme_path.exists():
             theme_data = json.loads(theme_path.read_text(encoding="utf-8"))
             template_default = (theme_data.get("default_content_layout") or "").strip()
+            cover_default = (theme_data.get("cover_layout") or "").strip()
     except Exception:
         template_default = ""
+
+    # Cover routing. The brief's Archetype already yields page_type "cover", but
+    # that token was never used to pick a layout, so slide 1 landed on the CONTENT
+    # layout and the template's branded Cover layout went unused. The deck then
+    # needed a hand-built cover, and building it outside the pipeline is what
+    # orphaned a slide part and lost a page number. Prefer a cover layout
+    # registered on the template; otherwise accept an UNAMBIGUOUS name match so
+    # templates registered before this keep working without re-registration.
+    if not cover_default and available:
+        _cover_names = {"cover", "title", "cover / title", "cover/title", "title slide"}
+        _matches = [n for n in available if n.strip().lower() in _cover_names]
+        if len(_matches) == 1:
+            cover_default = _matches[0]
+    if cover_default and available and cover_default not in available:
+        cover_default = ""   # registered name no longer in the template
 
     auto_default = ""
     if not deck_default and not template_default and spec is not None:
@@ -1670,9 +1687,17 @@ def resolve_slide_layouts(
 
     resolved: list[str] = []
     errors: list[str] = []
+    _cover_routed: list[int] = []
     for slide in slides:
         per_slide = (slide.get("layout") or "").strip()
-        chosen = per_slide or deck_default or template_default or auto_default
+        # page_type resolves the same way _build_slide_meta_entry resolves it.
+        _pt = ((slide.get("page_type", "") or "").strip()
+               or _normalize_archetype_to_page_type(slide.get("archetype", "") or ""))
+        _cover_pick = cover_default if (_pt == "cover" and cover_default) else ""
+        if _cover_pick and not per_slide:
+            _cover_routed.append(slide.get("slide_n"))
+        # An explicit per-slide `Layout:` still wins over cover routing.
+        chosen = per_slide or _cover_pick or deck_default or template_default or auto_default
         if not chosen:
             errors.append(
                 f"Slide {slide['slide_n']} — \"{slide.get('title', '(untitled)')}\""
@@ -1688,6 +1713,11 @@ def resolve_slide_layouts(
             continue
         resolved.append(chosen)
 
+    if _cover_routed:
+        sys.stderr.write(
+            f"[layout] cover routing: slide(s) {_cover_routed} have page_type "
+            f"'cover' and were routed to the {cover_default!r} layout.\n"
+        )
     if template_default and not deck_default:
         sys.stderr.write(
             f"[layout] template default: using "
