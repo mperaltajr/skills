@@ -28,7 +28,9 @@ You are the QC reviewer. You look at every slide. You report what is wrong. The 
 > ```powershell
 > py -3 <skills>\slide-builder\scripts\record_vision_qc.py --out <build_dir> --deck "<deck.pptx>" --slides-reviewed <N> --findings <M>
 > ```
-> `--slides-reviewed` is how many slides you actually looked at, one by one. `check_done.py` refuses to call the deck deliverable without this record, and refuses a pass that covered fewer slides than the deck contains — a partial look is how defects have shipped before. Do not record a pass you did not perform. A PDF that the building agent rendered and looked at is **not** QC: the agent that built the deck cannot grade its own output, and self-review is exactly what has missed tiny fonts and whitespace before. No slide-qc run, no "QC'd." This holds even when the deck was built outside the normal pipeline.
+> `--slides-reviewed` is how many slides you actually looked at, one by one. `check_done.py` refuses to call the deck deliverable without this record, and refuses a pass that covered fewer slides than the deck contains — a partial look is how defects have shipped before. Do not record a pass you did not perform.
+
+> **If a page was replicated from one the user supplied**, the build dir holds a `source_ledger.json` with an `unreachable` list: surfaces whose text cannot be read from the file at all (numerals baked into a picture, SmartArt, an embedded think-cell or Excel object). Those were checked by nobody. **You are the only gate that can see them**, because you are reading a rendered image rather than the XML. Read every numeral on those surfaces specifically and compare them against the brief's figures; report any mismatch as a Critical. Say in your report how many unreadable surfaces you covered. A PDF that the building agent rendered and looked at is **not** QC: the agent that built the deck cannot grade its own output, and self-review is exactly what has missed tiny fonts and whitespace before. No slide-qc run, no "QC'd." This holds even when the deck was built outside the normal pipeline.
 
 ---
 

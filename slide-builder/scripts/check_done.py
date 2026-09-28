@@ -56,6 +56,12 @@ def main(argv=None) -> int:
         problems.append(f"finalize recorded {blocks} blocking QC finding(s); "
                         "fix them and re-run finalize_deck.py")
 
+    sl = state.get("source_ledger") or {}
+    if int(sl.get("unresolved") or 0) > 0:
+        problems.append(
+            f"{sl['unresolved']} figure(s) on a supplied/replicated page are "
+            "unreconciled; resolve every row in source_ledger.json")
+
     vq = state.get("vision_qc") or {}
     if not vq:
         problems.append(
@@ -96,6 +102,13 @@ def main(argv=None) -> int:
     print(f"  blocking QC        : 0")
     print(f"  vision pass        : {vq.get('slides_reviewed')} slide(s), "
           f"{vq.get('findings', 0)} finding(s), {vq.get('at')}")
+    if sl:
+        # State plainly how much was taken on trust rather than verified. These
+        # are not failures; they are the size of the unchecked surface, and they
+        # belong in front of the person shipping the deck.
+        print(f"  supplied page      : {sl.get('keep_source', 0)} figure(s) kept "
+              f"verbatim from the source, {sl.get('unreachable', 0)} surface(s) "
+              f"unreadable and covered only by the vision pass")
     return 0
 
 

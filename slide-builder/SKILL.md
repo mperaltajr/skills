@@ -305,6 +305,27 @@ Rebuild individual slides with "rebuild slide N". This re-prep + re-finalize tou
 4. Take the user's new pick for slide N; update `picks.json`.
 5. Re-run `build_review.py --out <out>` (the rebuild invalidated the old token; the user re-picks and gets a fresh token), then `compile_picks.py --out <out> --review-token <token>` rebuilds `final_deck.pptx`, grafting the rebuilt slide N into place. A rebuild can NOT ride the old approval.
 
+### Replicating a supplied page
+
+When the user hands over a page and wants **that page** (a one-pager, a mockup), do not substitute your own summary of it. That substitution is a known failure: a supplied one-pager was replaced by an exec-summary nobody asked for.
+
+But replicating a page faithfully also replicates its **numbers**, and that is the second known failure: a replica shipped `$300B / 6-12 months / 3x` when the brief already carried the verified `~$450B / sold out / ~4x`. Both failures are live, and fixing one naively causes the other.
+
+The flow:
+
+1. **Pin it** so it cannot be quietly dropped: record `pinned_source_page` in `_meta.json`; the page is always built as a required option on its slide.
+2. **Enumerate its figures:**
+   ```powershell
+   py -3 scripts/source_ledger.py build --out <out> --deck "<supplied.pptx>" --slide N
+   ```
+   This lists only the **figure-bearing** slots (a dense page has 30+ text surfaces; prompting on all of them produces a bulk-accept reflex). It reads table cells, grouped shapes and chart labels, and it writes an `unreachable` list of surfaces it genuinely cannot read (numerals baked into a picture, SmartArt, think-cell/OLE).
+3. **Resolve every row with the user.** Each takes exactly one of `bind_from_brief` (the value comes from the brief), `keep_source` (the user states the page's value is still right), or `replace_with` (+ a `replacement`). `null` is not a resolution.
+4. **Compile refuses** (exit 5) while any row is unresolved, and `check_done.py` reports how many figures were kept verbatim and how many surfaces were unreadable, so what was taken on trust is visible at delivery.
+
+> **Why a ledger and not an automatic check.** A differ would compare each figure against the brief and pass or fail. It cannot: the brief carries prose, not typed numbers, so deciding that "6-12 months" and "sold out" denote the same quantity is a judgment the machine does not own. A check reporting "0 conflicts" would assert exactly that judgment and the pipeline would consume it as fact. The machine records only what it knows: **this slot has not been resolved by a human.** Unreadable surfaces are referred to the slide-qc vision pass, which reads a rendered image and is the only gate that can see them.
+
+> **If the supplied page is a PDF, a Word page or a screenshot** there is no shape tree to read. Pin it as a visual reference and rebuild through the sketch path instead. In that mode every slot is bound from the brief by construction and `keep_source` is not offered, which is the safest configuration available.
+
 **Insert a new slide** at position N with `build_deck.py --insert N`. First add the new slide to the brief at position N and renumber the later slide headers (the brief must have exactly one more slide than the current build). `--insert N` then shifts slides ≥ N up by one — their `slide_NN/` dirs, `_meta.json` entries, and `picks.json` keys — and preps only the new slide N; the shifted slides keep their built output under their new numbers. Then dispatch one worker for slide N, run `finalize_deck.py --slide N`, re-run `build_review.py` so the user re-picks (fresh token), and compile with `compile_picks.py --out <out> --review-token <token>`. (Adding a page to an *external* `.pptx` Slide Lab didn't build is an existing-file edit — see "Edit an existing PowerPoint" below — not this flow; `--insert`/`--slide` only work on decks with the pipeline's `_meta.json`.)
 
 **If a build fails or the output is wrong:** tell the user they can type `/feedback` to capture a structured session report (the `slidelab-log` skill writes the technical detail; the user just submits the GitHub link). Offer this whenever a stage exits non-zero or the user says something looks broken.
