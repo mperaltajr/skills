@@ -41,6 +41,8 @@ from pathlib import Path
 
 from pptx import Presentation  # noqa: E402
 
+import _extract  # noqa: E402  (shared full-fidelity text walk)
+
 
 def _iter_text_shapes(prs):
     """Yield (slide_no_1based, shape_idx, shape) for every shape with text.
@@ -68,13 +70,17 @@ def cmd_spec(args) -> int:
         print(f"[error] deck not found: {deck}", file=sys.stderr)
         return 2
     prs = Presentation(str(deck))
+    surfaces, unreachable = _extract.walk_deck(prs)
     fields = []
-    for slide_no, shape_idx, shape in _iter_text_shapes(prs):
+    for s in surfaces:
+        if not s["writable"]:
+            continue            # chart data lives in an embedded workbook
         fields.append({
-            "slide": slide_no,
-            "shape_idx": shape_idx,
-            "shape_name": _shape_name(shape),
-            "current_text": shape.text_frame.text,
+            "slide": s["slide"],
+            "addr": s["addr"],          # stable address: table cells + groups too
+            "kind": s["kind"],
+            "shape_name": s["name"],
+            "current_text": s["text"],
             "new_text": None,  # fill this for the fields that change this cycle
         })
     spec = {
@@ -83,21 +89,28 @@ def cmd_spec(args) -> int:
         "_how_to": ("Fill `new_text` for the fields that change this cycle; "
                     "leave the rest null. Then: refresh_deck.py apply <deck> <this file>."),
         "fields": fields,
+        "unreachable": unreachable,
     }
     out = Path(args.out) if args.out else deck.with_name(deck.stem + "_refresh_spec.json")
     out.write_text(json.dumps(spec, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"[ok] wrote refresh spec: {out}")
-    print(f"     {len(fields)} text fields found across {len(prs.slides._sldIdLst)} slides.")
+    print(f"     {len(fields)} text fields found across {len(prs.slides._sldIdLst)} slides "
+          f"(table cells and grouped shapes included).")
+    if unreachable:
+        print(f"     {len(unreachable)} surface(s) could NOT be read (pictures / SmartArt / "
+              f"embedded objects); they are listed in the spec under `unreachable`.")
     print("     Edit `new_text` for the fields to change, then run `apply`.")
     return 0
 
 
-def _set_text_preserving_format(shape, new_text: str) -> None:
+def _set_text_preserving_format(tf, new_text: str) -> None:
     """Replace a shape's visible text with `new_text`, keeping the first run's
     formatting (font, size, color, bold). Extra runs/paragraphs are removed so
     the result is a single clean run — right for a number/label swap.
+
+    Takes a TEXT FRAME (not a shape) so it works for table cells and shapes
+    nested in groups, which have no top-level shape of their own.
     """
-    tf = shape.text_frame
     paras = list(tf.paragraphs)
     # Inherit formatting from the first run that exists ANYWHERE (an empty
     # leading paragraph shouldn't force the new text to the default font).
@@ -148,20 +161,30 @@ def cmd_apply(args) -> int:
     slides = list(prs.slides)
     applied, mismatched, out_of_range = 0, [], []
     for f in changes:
-        s_no, sh_idx = f.get("slide"), f.get("shape_idx")
+        s_no = f.get("slide")
         if not isinstance(s_no, int) or not (1 <= s_no <= len(slides)):
             out_of_range.append(f); continue
-        shapes = list(slides[s_no - 1].shapes)
-        if not isinstance(sh_idx, int) or not (0 <= sh_idx < len(shapes)):
+        slide = slides[s_no - 1]
+        tf = None
+        if f.get("addr"):
+            tf = _extract.resolve_text_frame(slide, f["addr"])
+        else:
+            # Legacy spec keyed on a flat top-level shape index.
+            sh_idx = f.get("shape_idx")
+            shapes = list(slide.shapes)
+            if isinstance(sh_idx, int) and 0 <= sh_idx < len(shapes):
+                sh = shapes[sh_idx]
+                try:
+                    tf = sh.text_frame if sh.has_text_frame else None
+                except Exception:
+                    tf = None
+        if tf is None:
             out_of_range.append(f); continue
-        shape = shapes[sh_idx]
-        if not shape.has_text_frame:
-            out_of_range.append(f); continue
-        # Drift guard: only overwrite if the shape still holds the text the spec
-        # was generated against. Protects against a template that moved shapes.
-        if shape.text_frame.text != f.get("current_text"):
+        # Drift guard: only overwrite if the surface still holds the text the
+        # spec was generated against. Protects against a deck that moved shapes.
+        if tf.text != f.get("current_text"):
             mismatched.append(f); continue
-        _set_text_preserving_format(shape, f["new_text"])
+        _set_text_preserving_format(tf, f["new_text"])
         applied += 1
 
     prs.save(str(out))

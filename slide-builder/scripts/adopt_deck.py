@@ -36,6 +36,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import re as _re  # noqa: E402
 import _paths as _p  # noqa: E402
+import _extract  # noqa: E402  (shared full-fidelity text walk)
 from _meta_schema import META_SCHEMA_VERSION_CURRENT  # noqa: E402
 from pptx import Presentation  # noqa: E402
 
@@ -56,46 +57,54 @@ def _registration_missing(deck: Path) -> list[str]:
     return missing
 
 
-def _extract_slide(slide) -> tuple[str, list[str], str]:
-    """Return (title, body_lines, layout_name) from a slide's text shapes.
+def _extract_slide(slide, slide_no: int = 1) -> tuple[str, list[str], str, list[dict]]:
+    """Return (title, body_lines, layout_name, unreachable) from a slide.
 
-    Title = the title placeholder if present, else the first text shape.
-    Body = every other non-empty text shape, one bullet per paragraph.
+    Uses the shared full-fidelity walk (`_extract.walk_slide`), so TABLE cells,
+    shapes nested in GROUPS and chart labels are captured. The previous version
+    kept only top-level shapes whose `has_text_frame` was true, which on a real
+    client one-pager silently dropped most of the page (measured: 2 of 8 figures).
+
+    `unreachable` lists surfaces whose text cannot be read from the XML at all
+    (pictures, SmartArt, OLE). Callers must surface it rather than assume those
+    surfaces were empty.
     """
     try:
         layout_name = slide.slide_layout.name or ""
     except Exception:
         layout_name = ""
-    title = ""
-    body: list[str] = []
-    title_shape = None
-    # Prefer a real title placeholder.
-    for sh in slide.shapes:
-        if sh.has_text_frame and getattr(sh, "is_placeholder", False):
-            try:
-                if sh.placeholder_format.idx == 0 or "title" in (sh.name or "").lower():
-                    _t = sh.text_frame.text.strip()
+
+    surfaces, unreachable = _extract.walk_slide(slide, slide_no)
+
+    # Prefer a real title placeholder; note its address so we don't repeat it.
+    title, title_addr = "", None
+    for sh_i, sh in enumerate(slide.shapes):
+        try:
+            if (sh.has_text_frame and getattr(sh, "is_placeholder", False)
+                    and (sh.placeholder_format.idx == 0
+                         or "title" in (sh.name or "").lower())):
+                _t = (sh.text_frame.text or "").strip()
+                if _t:
                     # First line only — a multi-line title would orphan text
                     # above the brief's field labels (SLIDE_HEADER_RE is single-line).
-                    title = _t.splitlines()[0].strip() if _t else ""
-                    title_shape = sh
-                    break
-            except Exception:
-                pass
-    for sh in slide.shapes:
-        if not sh.has_text_frame or sh is title_shape:
+                    title = _t.splitlines()[0].strip()
+                    title_addr = f"s{slide_no}/sh{sh_i}"
+                break
+        except Exception:
+            pass
+
+    body: list[str] = []
+    for s in surfaces:
+        if title_addr and s["addr"] == title_addr:
             continue
-        txt = sh.text_frame.text.strip()
-        if not txt:
+        if not title:  # no placeholder title — first surface becomes the title
+            lines = s["text"].splitlines()
+            title = lines[0].strip()
+            title_addr = s["addr"]
+            body.extend(l.strip() for l in lines[1:] if l.strip())
             continue
-        if not title:  # no placeholder title — first text shape becomes title
-            title = txt.splitlines()[0].strip()
-            title_shape = sh
-            rest = txt.splitlines()[1:]
-            body.extend(l.strip() for l in rest if l.strip())
-            continue
-        body.extend(l.strip() for l in txt.splitlines() if l.strip())
-    return title, body, layout_name
+        body.extend(l.strip() for l in s["text"].splitlines() if l.strip())
+    return title, body, layout_name, unreachable
 
 
 def _slide_section(n: int, title: str, body: list[str], layout: str) -> str:
@@ -143,10 +152,12 @@ def main(argv) -> int:
     layouts: list[str] = []
     titles: list[str] = []
     sections = []
+    unreachable_all: list = []
     for i, slide in enumerate(slides, start=1):
-        title, body, layout = _extract_slide(slide)
+        title, body, layout, unreachable = _extract_slide(slide, i)
         titles.append(title)
         layouts.append(layout)
+        unreachable_all.extend(unreachable)
         sections.append(_slide_section(i, title, body, layout))
     default_layout = layouts[0] if layouts else ""
     brief_text = (
@@ -158,8 +169,13 @@ def main(argv) -> int:
         f"---\n\n"
         f"## Deck-level design notes\n\n"
         f"Adopted from an external deck ({deck.name}) for per-slide rebuild. "
-        f"Extracted text is a starting point — enrich the target slide's Evidence "
-        f"before rebuilding (charts/images/SmartArt don't extract).\n\n"
+        f"Extracted text is a starting point: enrich the target slide's Evidence "
+        f"before rebuilding. Table cells, grouped shapes and chart labels ARE "
+        f"captured now; text baked into pictures, SmartArt or embedded objects "
+        f"is not.\n\n"
+        + (f"NOT READ ({len(unreachable_all)} surface(s)): "
+           + "; ".join(f'{u["addr"]} {u["why"]}' for u in unreachable_all[:6])
+           + "\n\n" if unreachable_all else "")
         + "".join(sections)
     )
     brief_path = out_dir / "adopted_brief.md"
