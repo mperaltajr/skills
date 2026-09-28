@@ -88,6 +88,25 @@ def record_qc(out_dir, blocks: int, detail: str = "") -> None:
     _write(out_dir, state)
 
 
+def record_source_ledger(out_dir, unresolved: int, keep_source: int = 0,
+                         unreachable: int = 0) -> None:
+    """Record reconciliation state for a SUPPLIED page that is being replicated.
+
+    Deliberately records only what the machine owns: how many figure-bearing
+    slots a human has not yet resolved. It does NOT record "the figures match the
+    brief" — deciding that "6-12 months" and "sold out" denote the same quantity
+    is a semantic judgment, and a gate that asserted it would be false assurance.
+    `keep_source` and `unreachable` are carried so delivery can state how much was
+    taken on trust rather than checked.
+    """
+    state = read_state(out_dir)
+    state["source_ledger"] = {"unresolved": int(unresolved or 0),
+                              "keep_source": int(keep_source or 0),
+                              "unreachable": int(unreachable or 0),
+                              "at": _now()}
+    _write(out_dir, state)
+
+
 def record_vision_qc(out_dir, deck: str, slides_reviewed: int, findings: int = 0) -> None:
     """Record that a real page-by-page VISION pass ran over the compiled deck.
 
@@ -157,6 +176,16 @@ def check_compile_allowed(out_dir, review_token: str) -> tuple[bool, str]:
                        "this review. Run build_review.py again and have the user re-pick.")
     # A recorded QC block is a hard stop. Absence of a QC record is "no opinion"
     # (finalize has not run here), never an implicit pass.
+    # A supplied page that is being replicated must have every figure-bearing
+    # slot resolved by a human first. Unresolved means nobody decided whether the
+    # page's number or the brief's number is the right one.
+    sl = state.get("source_ledger") or {}
+    if int(sl.get("unresolved") or 0) > 0:
+        return False, (f"{sl['unresolved']} figure(s) on the supplied page are "
+                       "unreconciled. Every row in source_ledger.json needs a "
+                       "resolution (bind_from_brief / keep_source / replace_with). "
+                       "Replicating a page also replicates its numbers, and that is "
+                       "how stale figures have shipped before.")
     qc = state.get("qc") or {}
     if int(qc.get("blocks") or 0) > 0:
         return False, (f"QC recorded {qc['blocks']} blocking issue(s) for this build"
