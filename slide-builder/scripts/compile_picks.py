@@ -243,6 +243,70 @@ def copy_picked_slide_into(dst_prs, src_pptx: Path,
     return count
 
 
+def _stamp_option_badge(slide, prs, label: str) -> bool:
+    """Stamp "Option A" on the slide, clear of everything already on it.
+
+    The all-options deck is unreadable without labels — three versions of the
+    same slide in a row and no way to say which one you mean. Badging it by hand
+    afterwards is what put a badge on top of the page number on all 87 slides of
+    one deck and clipped the date off its cover, so the compile does it.
+
+    Placement is bottom-right, then shifted LEFT past anything it would touch.
+    Returns False if there was nowhere clear to put it, which is better than
+    covering the page number.
+    """
+    from pptx.util import Emu, Pt
+    from pptx.enum.text import PP_ALIGN, MSO_ANCHOR
+    from pptx.dml.color import RGBColor
+
+    PX = 9525
+    W, H = 74 * PX, 20 * PX
+    MARGIN = 14 * PX
+    slide_w = int(prs.slide_width or 0)
+    slide_h = int(prs.slide_height or 0)
+    if slide_w <= 0 or slide_h <= 0:
+        return False
+
+    boxes = []
+    for sh in slide.shapes:
+        try:
+            l, t = int(sh.left or 0), int(sh.top or 0)
+            w, h = int(sh.width or 0), int(sh.height or 0)
+            if w > 0 and h > 0:
+                boxes.append((l, t, l + w, t + h))
+        except Exception:
+            continue
+
+    top = slide_h - MARGIN - H
+    left = slide_w - MARGIN - W
+    # Walk left in badge-widths until the slot touches nothing. Eight steps
+    # covers most of the page; past that the bottom band is genuinely full.
+    for _ in range(8):
+        if not any(left < bx1 and left + W > bx0 and top < by1 and top + H > by0
+                   for bx0, by0, bx1, by1 in boxes):
+            break
+        left -= (W + 6 * PX)
+    else:
+        return False
+    if left < MARGIN:
+        return False
+
+    box = slide.shapes.add_textbox(Emu(left), Emu(top), Emu(W), Emu(H))
+    box.name = "chrome-option-badge"
+    tf = box.text_frame
+    tf.word_wrap = False
+    tf.margin_left = tf.margin_right = tf.margin_top = tf.margin_bottom = 0
+    tf.vertical_anchor = MSO_ANCHOR.MIDDLE
+    para = tf.paragraphs[0]
+    para.alignment = PP_ALIGN.RIGHT
+    run = para.add_run()
+    run.text = label
+    run.font.size = Pt(9)
+    run.font.bold = True
+    run.font.color.rgb = RGBColor(0x8A, 0x8A, 0x8A)
+    return True
+
+
 def _restamp_page_number(slide, position: int) -> None:
     """Set the slide-number placeholder's text to `position` (its 1-based place
     in the compiled deck). Only re-stamps a placeholder that currently holds a
@@ -553,6 +617,14 @@ def main() -> int:
                          "deck. Useful for shipping a stakeholder-review "
                          "artifact where the audience picks among variants. "
                          "Mutually exclusive with --picks.")
+    ap.add_argument("--badge", action="store_true",
+                    help="Stamp 'Option A/B/C' on each slide, placed clear of "
+                         "the page number and anything else already there. Use "
+                         "with --all-variations: three versions of the same "
+                         "slide in a row are unreadable without labels, and "
+                         "badging the compiled deck by hand is what put a badge "
+                         "on top of the page number on all 87 slides of one "
+                         "deck.")
     ap.add_argument("--splice-into", default=None, type=Path,
                     help="Option 6b (external-deck redesign): splice the picked, "
                          "rebuilt slide(s) back into THIS original .pptx at their "
@@ -726,6 +798,7 @@ def main() -> int:
     print("\n[2] Copy picked themed slides")
     rows: list[str] = []
     failures: list[str] = []
+    badge_skipped: list[str] = []
     ordered_keys = sorted(picks.keys(), key=lambda k: int(k.split("_")[1]))
     copied_count = 0
     for key in ordered_keys:
@@ -753,8 +826,19 @@ def main() -> int:
                     page_position=copied_count + 1,
                 )
                 copied_count += 1
-                rows.append(f"| {key} | {letter} | `{src.name}` | {n_shapes} | ok |")
-                print(f"  {key} pick {letter}  ok (shapes={n_shapes})")
+                badge_note = ""
+                if args.badge:
+                    # Badge AFTER the graft, so the placement search sees the
+                    # page number and the slide's real content, and BEFORE the
+                    # next slide is copied, so slides[-1] is this one.
+                    if _stamp_option_badge(dst_prs.slides[-1], dst_prs,
+                                           f"Option {letter}"):
+                        reassign_shape_ids(dst_prs.slides[-1])
+                    else:
+                        badge_note = " (no clear spot for the badge)"
+                        badge_skipped.append(f"{key} {letter}")
+                rows.append(f"| {key} | {letter} | `{src.name}` | {n_shapes} | ok{badge_note} |")
+                print(f"  {key} pick {letter}  ok (shapes={n_shapes}){badge_note}")
             except Exception as e:
                 tb = traceback.format_exc().strip().splitlines()[-1]
                 msg = f"{type(e).__name__}: {e} | {tb}"
@@ -804,6 +888,12 @@ def main() -> int:
     if _rc:
         return _rc
     print(f"  saved ({final_path.stat().st_size:,} bytes)")
+    if badge_skipped:
+        # Say it out loud rather than leaving unlabeled slides to be noticed in
+        # the meeting. The bottom band was full on these; nothing was covered.
+        print(f"  NOTE: no clear spot for a badge on {len(badge_skipped)} slide(s): "
+              f"{', '.join(badge_skipped[:5])}"
+              f"{' ...' if len(badge_skipped) > 5 else ''}")
 
     print("\n[4] Verify opens cleanly")
     opens = False
