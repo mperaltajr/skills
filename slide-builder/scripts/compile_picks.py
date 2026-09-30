@@ -592,13 +592,12 @@ def run_splice(out_dir: Path, meta: dict, picks: dict, template_path: Path,
             print(f"    - {f}")
     print(f"\nSpliced deck: {out}")
     print("Run slide-qc on it before sending (a deck isn't done until QC has run).")
-    # Record that this build produced a deck from an approval, so a later
-    # re-finalize knows it is rebuilding already-shipped content.
-    try:
-        _state.record_compile(out_dir)
-    except Exception:
-        pass
-    return 0 if ok else 1
+    # Record only a splice that kept the slide count, and record where it went:
+    # the spliced deck is written next to the original, not in the build
+    # folder, so check_done needs the path to find it.
+    if ok and not failures:
+        _state.record_compile(out_dir, kind="splice", output=out, slides=final_count)
+    return 0 if (ok and not failures) else 1
 
 
 # ---------------------------------------------------------------------------
@@ -625,6 +624,10 @@ def main() -> int:
                          "badging the compiled deck by hand is what put a badge "
                          "on top of the page number on all 87 slides of one "
                          "deck.")
+    ap.add_argument("--drop", default=None,
+                    help="Slide numbers to leave out of the final deck on purpose "
+                         "(comma-separated, e.g. 4,7). Without this, compile refuses "
+                         "when any slide in the build has no pick.")
     ap.add_argument("--splice-into", default=None, type=Path,
                     help="Option 6b (external-deck redesign): splice the picked, "
                          "rebuilt slide(s) back into THIS original .pptx at their "
@@ -732,6 +735,25 @@ def main() -> int:
     else:
         picks = parse_picks(args.picks, out_dir)
         final_path = args.final or (out_dir / "final_deck.pptx")
+        # Every slide in the build, or an explicit reason it is left out. A
+        # partial picks file used to compile into a shorter deck with no
+        # warning, and every later check passed because it compared the deck
+        # against itself: a 12-slide brief could ship as 10 slides.
+        _dropped = {int(x) for x in (args.drop or "").replace(" ", "").split(",") if x}
+        _expected = {s.get("n") for s in meta.get("slides", [])
+                     if isinstance(s.get("n"), int)}
+        _picked = {int(k.split("_")[1]) for k, v in picks.items()
+                   if v and str(v).strip().lower() != "none"}
+        _unpicked = sorted(_expected - _picked - _dropped)
+        # An adopted external deck only ever rebuilds some slides; it has its
+        # own guard below that routes to --splice-into.
+        if _unpicked and not args.splice_into and not meta.get("adopted_source"):
+            print(f"REFUSED: {len(_unpicked)} slide(s) have no pick: "
+                  f"{', '.join(f'slide {n}' for n in _unpicked)}.\n"
+                  "  Every slide in the build must be picked, or left out on purpose "
+                  "with --drop N[,M]. Compiling without them would ship a shorter "
+                  "deck than the brief with nothing saying so.")
+            return 5
 
     # Every option about to ship must have been finalized, and cleanly. Checked
     # per option against exactly what ships, so a blocked option nobody picked
@@ -869,6 +891,46 @@ def main() -> int:
     print(f"\n[3] Save final deck -> {final_path}")
     # Backup existing final deck before overwrite so re-runs don't silently
     # destroy hand-edits the user may have made between compiles.
+    # Every slide or nothing. A picked option whose file was missing or failed
+    # to copy used to be a row in a table, and the deck saved without it.
+    if failures:
+        print(f"\nREFUSED: {len(failures)} picked slide(s) could not be copied; "
+              "no deck written.")
+        for f in failures:
+            print(f"  {f}")
+        return 1
+
+    # Save to a temporary name, check it, and only then replace the previous
+    # deck. The old order backed the good deck up, wrote the new one in its
+    # place, and THEN checked it, so a failed check left a corrupt file named
+    # final_deck.pptx and the working one renamed out of the way.
+    incoming = final_path.with_name(f"{final_path.stem}.incoming{final_path.suffix}")
+    try:
+        dst_prs.save(str(incoming))
+    except (PermissionError, OSError) as exc:
+        sys.stderr.write(
+            f"\nERROR: could not write {incoming.name}: {type(exc).__name__}: {exc}\n"
+            f"       Most commonly the folder is locked (antivirus, OneDrive sync).\n")
+        return 3
+
+    # python-pptx can write
+    # zips with duplicate entry names when many slides graft from
+    # similarly-structured source decks. LibreOffice rejects such PPTX files
+    # as corrupt. Run an unconditional zip rewrite that keeps the LAST
+    # occurrence of each name. Cheap on size, unbreakable for downstream readers.
+    _dedupe_zip_entries(incoming)
+    _rc = _report_integrity(incoming)
+    if _rc:
+        rejected = final_path.with_name(f"{final_path.stem}.REJECTED{final_path.suffix}")
+        try:
+            incoming.replace(rejected)
+            print(f"  the rejected file is kept for diagnosis: {rejected.name}")
+        except OSError:
+            pass
+        if final_path.exists():
+            print(f"  {final_path.name} was left as it was.")
+        return _rc
+
     if final_path.exists():
         try:
             from datetime import datetime as _dt
@@ -878,35 +940,11 @@ def main() -> int:
             print(f"  backed up prior deck -> {backup.name}")
         except OSError as exc:
             sys.stderr.write(
-                f"  WARN: could not back up prior {final_path.name}: {exc}\n"
-                f"  Proceeding will overwrite. If you have unsaved edits in the prior deck, abort now (Ctrl+C).\n"
-            )
-    # The save itself can fail with
-    # PermissionError if the destination final_deck.pptx is open in
-    # PowerPoint, or with OSError under antivirus/file-lock conditions.
-    # The backup above protects the prior copy; this guard protects
-    # the user from a raw traceback on save.
-    try:
-        dst_prs.save(str(final_path))
-    except (PermissionError, OSError) as exc:
-        sys.stderr.write(
-            f"\nERROR: could not write {final_path.name}: {type(exc).__name__}: {exc}\n"
-            f"       The deck is locked - most commonly because the prior "
-            f"copy is open in PowerPoint.\n"
-            f"       Close PowerPoint (or pause antivirus on the build dir) "
-            f"and re-run compile_picks.py.\n"
-        )
-        sys.exit(3)
-
-    # python-pptx can write
-    # zips with duplicate entry names when many slides graft from
-    # similarly-structured source decks. LibreOffice rejects such PPTX files
-    # as corrupt. Run an unconditional zip rewrite that keeps the LAST
-    # occurrence of each name. Cheap on size, unbreakable for downstream readers.
-    _dedupe_zip_entries(final_path)
-    _rc = _report_integrity(final_path)
-    if _rc:
-        return _rc
+                f"\nERROR: could not move the prior {final_path.name} aside: {exc}\n"
+                f"       It is usually open in PowerPoint. Close it and re-run.\n"
+                f"       The new deck is at {incoming.name}.\n")
+            return 3
+    incoming.replace(final_path)
     print(f"  saved ({final_path.stat().st_size:,} bytes)")
     if badge_skipped:
         # Say it out loud rather than leaving unlabeled slides to be noticed in
@@ -980,13 +1018,16 @@ def main() -> int:
     print(f"  invoke the slide-qc skill on:  {final_path}")
     print("Do not tell the user the deck is finished or 'QC'd' until slide-qc has run.")
 
-    # Record that this build produced a deck from an approval, so a later
-    # re-finalize knows it is rebuilding already-shipped content.
-    try:
-        _state.record_compile(out_dir)
-    except Exception:
-        pass
-    return 0 if (opens and render_fail == 0 and not failures) else 1
+    rc = 0 if (opens and render_fail == 0 and not failures) else 1
+    # Record the compile only when it succeeded, and record exactly what it
+    # produced: which file, its bytes, the content it came from, and how many
+    # slides it should have. check_done verifies the deck against this. A
+    # failed compile used to be recorded too, and counted as a deliverable.
+    if rc == 0:
+        _state.record_compile(
+            out_dir, kind="all_variations" if args.all_variations else "picks",
+            output=final_path, slides=slide_count)
+    return rc
 
 
 if __name__ == "__main__":
