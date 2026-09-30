@@ -922,6 +922,7 @@ CONTEXT_TEMPLATE = """# Slide {slide_n} — Worker context bundle
 - Archetype: {archetype!r}
 - Editorial emphasis: {emphasis!r}
 - Layout: {layout!r}
+{body_geometry}
 
 ## 4. QC anchor
 
@@ -1002,8 +1003,48 @@ def _load_prior_feedback_for_slide(slide_dir: Path) -> str:
     )
 
 
+_CHROME_SPEC_CACHE: dict = {}
+
+
+def _body_geometry_block(template_path, layout_name: str) -> str:
+    """The authoritative body zone for this slide's layout, as a :root block.
+
+    reference/sketch-html-spec.md has long asserted that prep inlines this into
+    _context.md. It did not. Workers were told to "use the body zone" with no
+    numbers anywhere in _context.md or _prompt.md, so they guessed: on one real
+    deck 123 options read chrome.yml themselves and got it right, and 9 copied
+    the `149px` out of the spec's ILLUSTRATIVE example, a number belonging to a
+    different template. Emit the real numbers, from the same resolver finalize
+    uses, so the graft zone is reserved before anything is authored.
+    """
+    if not template_path or not layout_name:
+        return ""
+    try:
+        from twins.helpers import body_zone_for_chrome  # noqa: E402
+        key = str(template_path)
+        if key not in _CHROME_SPEC_CACHE:
+            _CHROME_SPEC_CACHE[key] = load_chrome_yml(_p.chrome_yml(Path(template_path)))
+        lc = _CHROME_SPEC_CACHE[key].layouts.get(layout_name)
+        if lc is None:
+            return ""
+        top, bot = body_zone_for_chrome(lc)
+    except Exception:
+        return ""   # never break prep over a context nicety
+    return (
+        "\n**Body zone for this layout (authoritative, use these numbers, do not guess):**\n\n"
+        "```css\n:root {\n"
+        f"  --body-top: {top}px;      /* first body shape starts at or below this */\n"
+        f"  --body-bottom: {bot}px;   /* last body shape ends at or above this */\n"
+        f"  --body-height: {bot - top}px;\n"
+        "}\n```\n\n"
+        "The grafted title and takeaway line own everything above `--body-top`. "
+        "Anything you place above it will be collided with after the graft, which "
+        "no pre-graft preview can show you.\n"
+    )
+
+
 def write_slide_context_md(slide: dict, brand: dict, slide_dir: Path,
-                            slide_n: int) -> Path:
+                            slide_n: int, template_path=None) -> Path:
     """Write `_context.md` next to `_prompt.md` for the per-slide worker
     agent, hydrating any recorded prior feedback for the slide."""
     title = (slide.get("title") or "").strip()
@@ -1021,6 +1062,7 @@ def write_slide_context_md(slide: dict, brand: dict, slide_dir: Path,
         archetype=archetype,
         emphasis=emphasis,
         layout=layout,
+        body_geometry=_body_geometry_block(template_path, layout),
         primary_hex=brand.get("primary_hex", "(unset)"),
         accent_hex=brand.get("accent_hex", "(unset)"),
         prior_feedback=_load_prior_feedback_for_slide(slide_dir),
@@ -2324,7 +2366,7 @@ def main() -> int:
         # design rules, brief metadata, and feedback ledger for the
         # per-slide worker agent to reason against.
         try:
-            write_slide_context_md(slide, brand, slide_dir, slide_n)
+            write_slide_context_md(slide, brand, slide_dir, slide_n, args.template)
         except Exception as _exc:
             sys.stderr.write(
                 f"  WARN: could not write slide {slide_n} _context.md: "

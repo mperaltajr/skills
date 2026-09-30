@@ -51,6 +51,12 @@ from _chrome_schema import (  # noqa: E402
     load_chrome_yml,
 )
 
+# Breathing room between the grafted takeaway line and the first body shape.
+# Used by body_zone_for_chrome to reserve the subtitle band on layouts that have
+# no subtitle placeholder. 8px matches the title-to-subtitle gap; 16 gives the
+# body a visible gutter rather than butting straight against the takeaway.
+SUBTITLE_BODY_GUTTER_PX = 16
+
 # --- Brand palette (Accenture Graphik template — ACN Graphik Template.md) ---
 # lt2  = #460073  Deep Purple     — dark backgrounds, primary dark fills
 BRAND_PRIMARY     = RGBColor(0x46, 0x00, 0x73)
@@ -574,6 +580,21 @@ def body_zone_for_chrome(chrome: LayoutChrome) -> tuple[int, int]:
                 f"(register_template.py propose -> commit) so the v2 layout-"
                 f"inheritance fields are populated."
             )
+        # Reserve the grafted-subtitle band.
+        #
+        # registration publishes body_top_y_px = the TITLE's bottom edge. When the
+        # layout has no subtitle placeholder, finalize still grafts a free-floating
+        # takeaway line at title_bottom + 8 (see _subtitle_geom_for), so that band
+        # sits INSIDE the body zone this function advertises. Authors are told to
+        # fill from body_top down, so a collision was guaranteed for any design that
+        # used the top of its own legal zone: measured at 37 of 87 options on one
+        # real deck. Subtract the band here, at the single resolver every consumer
+        # reads through, so already-registered templates are fixed without
+        # re-registration.
+        if getattr(chrome, "subtitle_placeholder_idx", None) is None:
+            _sx, _sy, _sw, _sh, _spt = _subtitle_geom_for(chrome)
+            reserved = int(_sy) + int(_sh) + SUBTITLE_BODY_GUTTER_PX
+            top = max(int(top), reserved)
         return int(top), int(bot)
     # Bespoke: conservative defaults sourced from _chrome_schema constants
     return 40, CANONICAL_BODY_BOTTOM_Y
