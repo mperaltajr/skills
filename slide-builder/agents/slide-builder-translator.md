@@ -135,6 +135,16 @@ Map CSS properties to python-pptx per this table:
 | `textTransform: uppercase`       | uppercase the text BEFORE setting; do NOT use a CSS proxy |
 | `textAlign`                      | `paragraph.alignment = PP_ALIGN.{LEFT,CENTER,RIGHT}`    |
 | `letterSpacing` (px)             | `run.font.spc = int(px * 50)`  (100ths of pt)           |
+| `white-space: nowrap`, or any single-line label | `shape.text_frame.word_wrap = False` |
+
+**Single-line labels must set `word_wrap = False`.** You size a box from Chrome's
+measurement of the text, and LibreOffice and PowerPoint set the same font very
+slightly wider. A box that fits in Chrome by a pixel therefore wraps on the render,
+and a short word breaks mid-word: "TaaS" became "Taa S", "Other" became "Othe r".
+Axis labels, legend keys, units, pills, eyebrows and any other one-line label get
+`word_wrap = False`, which lets the text overhang the box rather than break. Do NOT
+pad the box width to compensate — widening a box while holding its left edge moves
+centered and right-aligned text, which is its own defect.
 
 For colors, use the public helpers in `twins/client_theme.py`:
 

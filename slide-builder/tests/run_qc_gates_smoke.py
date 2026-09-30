@@ -33,6 +33,7 @@ SCRIPTS = HERE.parent / "scripts"
 sys.path.insert(0, str(SCRIPTS))
 
 from pptx import Presentation  # noqa: E402
+from pptx.util import Inches  # noqa: E402
 
 import _state  # noqa: E402
 from compile_picks import assert_package_integrity  # noqa: E402
@@ -158,6 +159,51 @@ def main() -> int:
         _state.record_qc(d, 2, "2 blocking")            # a block re-opens it
         assert _done()[0] == 1, "a blocking QC finding must re-open 'done'"
         print("    ok: no vision pass / partial pass / QC block all refuse; full pass passes")
+
+        print("[6] a deck edited after the vision pass is not deliverable")
+        _state.record_qc(d, 0, "clean")
+        _state.record_vision_qc(d, deck, 3, 0)
+        assert _done()[0] == 0, "precondition: the reviewed deck is deliverable"
+        # The ad hoc post-compile edit that broke something every time it was used.
+        prs4 = Presentation(str(deck))
+        prs4.slides[0].shapes.add_textbox(Inches(1), Inches(1), Inches(2), Inches(1))
+        prs4.save(str(deck))
+        rc, o = _done()
+        assert rc == 1 and "changed since the vision pass" in o, o
+        print("    ok: hand-editing the compiled deck re-opens 'done'")
+
+        print("[7] a missing deck is a refusal, not a silent pass")
+        d2 = tmp / "done_nodeck"
+        d2.mkdir()
+        _state.record_prep(d2, "h", d2); _state.record_review(d2)
+        _state.record_compile(d2); _state.record_qc(d2, 0, "clean")
+        _state.record_vision_qc(d2, d2 / "final_deck.pptx", 3, 0)
+        r = subprocess.run(
+            [sys.executable, str(SCRIPTS / "check_done.py"), "--out", str(d2)],
+            capture_output=True, text=True,
+            env={**os.environ, "PYTHONPATH": str(SCRIPTS)})
+        assert r.returncode == 1 and "nothing to deliver" in r.stdout, r.stdout
+        print("    ok: no deck, no delivery")
+
+        print("[8] --all-variations output is recognized as a deliverable")
+        d3 = tmp / "done_allvar"
+        d3.mkdir()
+        allvar = d3 / "final_deck_all_variations.pptx"
+        prs5 = Presentation()
+        for _ in range(3):
+            prs5.slides.add_slide(prs5.slide_layouts[6])
+        prs5.save(str(allvar))
+        _state.record_prep(d3, "h", d3); _state.record_review(d3)
+        _state.record_compile(d3); _state.record_qc(d3, 0, "clean")
+        _state.record_vision_qc(d3, allvar, 3, 0)
+        r = subprocess.run(
+            [sys.executable, str(SCRIPTS / "check_done.py"), "--out", str(d3)],
+            capture_output=True, text=True,
+            env={**os.environ, "PYTHONPATH": str(SCRIPTS)})
+        assert r.returncode == 0, (
+            "the all-options deck is what 'put every option in one deck' "
+            f"produces; it must be checkable: {r.stdout}")
+        print("    ok: final_deck_all_variations.pptx resolves without --deck")
 
         print("\nSMOKE PASSED.")
         return 0
