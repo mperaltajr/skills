@@ -66,8 +66,21 @@ _ALL_OPTION_LETTERS = ("A", "B", "C")
 
 def options_per_slide(default: int = 1) -> int:
     """How many design options to build per slide, from
-    slide-builder/settings.json::options_per_slide (default 1, clamped 1-3).
-    Never raises — a missing/malformed settings file yields the default."""
+    slide-builder/settings.json::options_per_slide (clamped 1-3; 1 if the file
+    is missing). Never raises — a missing/malformed settings file yields the
+    default.
+
+    SLIDE_LAB_OPTIONS_PER_SLIDE overrides the file. Tests set it so they do not
+    depend on whatever the user's live settings say; three tests failed the day
+    the live value changed from 1 to 3."""
+    import os
+    env = os.environ.get("SLIDE_LAB_OPTIONS_PER_SLIDE")
+    if env:
+        try:
+            v = int(env)
+            return v if 1 <= v <= len(_ALL_OPTION_LETTERS) else default
+        except ValueError:
+            pass
     try:
         import json
         settings = Path(__file__).resolve().parents[1] / "settings.json"

@@ -224,7 +224,7 @@ The following CSS features are FORBIDDEN in body-zone elements. If you encounter
       eff.set("idx", "0")
   ```
 
-  `<p:style>` takes exactly four children, in this order: `lnRef`, `fillRef`, `effectRef`, `fontRef`. Removing `effectRef` (or any of the other three) leaves a file python-pptx reads, LibreOffice renders, and **PowerPoint refuses to open**. That shipped twice. Never delete a `<p:style>` child, never delete `<p:style>` itself, and do no other raw XML surgery on it. `compile_picks.py` and `check_pptx_hygiene.py` both refuse a deck whose `<p:style>` is incomplete.
+  `<p:style>` takes exactly four children, in this order: `lnRef`, `fillRef`, `effectRef`, `fontRef`. Removing `effectRef` (or any of the other three) leaves a file python-pptx reads, LibreOffice renders, and **PowerPoint refuses to open**. That shipped twice. Never delete a `<p:style>` child, never delete `<p:style>` itself, and do no other raw XML surgery on it. `compile_picks.py` and `slide-qc/scripts/check_pptx_hygiene.py` both refuse a deck whose `<p:style>` is incomplete.
 - **opacity < 1** on text → set alpha to 1.0; warn `R4.2 opacity stripped from text` (R4.2 Major)
 - **text-decoration: line-through OR underline** on body text → REMOVE the decoration in the python-pptx output unless the brief explicitly authorizes it; warn `R4.1 text-decoration stripped` (R4.1 Critical)
 

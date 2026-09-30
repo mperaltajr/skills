@@ -391,7 +391,21 @@ _RUNTIME_ARTIFACTS = {
     "option_X.py", "option_X.pptx", "option_X.mmd",  # template names in docs
     "option_X-mermaid.png",  # rendered fallback PNG
     "spec.md",
+    # Sketch-path per-slide artifacts (written under slide_NN/ at build time)
+    "_context.md", "_context_ack.txt", "brand.css", "_brief.md",
+    "slide_01.png", "RESULT-slide-NN.md", "adopted_brief.md",
+    "SLIDE_LAB_FEEDBACK_LOG.md",  # per-user feedback log, outside the repo
+    "_state.json", "source_ledger.json",
 }
+
+# Per-option files follow one naming scheme (option_<letter>[_native].<ext>,
+# option_<letter>_translation_report.json). Matching the scheme instead of
+# listing each letter/extension is what kept this list from drifting: 60 of 62
+# failures on 2026-09-30 were these names, all of them legitimate.
+import re as _re_rt
+_RUNTIME_NAME_RE = _re_rt.compile(
+    r"^option_[A-FX](_native)?\.(html|py|pptx|png|mmd|qc\.json)$"
+    r"|^option_[A-FX]_translation_report\.json$")
 
 # Per-client runtime theme files (mermaid-<slug>.json). The slug
 # varies by client; we treat the whole family as runtime.
@@ -405,6 +419,7 @@ _RUNTIME_PREFIXES = (
 # them globally — if they reappear as live code, the import check
 # would catch it.
 _DELETED_BY_DESIGN = {
+    "run_pattern_b_smoke.py",  # renamed to run_sketch_smoke.py
     "build_slide.py", "extract_icons.py", "QUICKSTART.md",
     "phase-a-rules.md", "visual-treatment-library.md",
     "designer-brief.md", "rules.md",
@@ -498,7 +513,7 @@ def check_doc_file_refs() -> list[str]:
                 refs_skipped_runtime += 1
                 continue
             # Runtime-artifact allowlist (output files, not source)
-            if ref in _RUNTIME_ARTIFACTS or ref_name in _RUNTIME_ARTIFACTS:
+            if ref in _RUNTIME_ARTIFACTS or ref_name in _RUNTIME_ARTIFACTS                     or _RUNTIME_NAME_RE.match(ref_name):
                 refs_skipped_runtime += 1
                 continue
             # Intentionally-deleted-by-design allowlist (history docs

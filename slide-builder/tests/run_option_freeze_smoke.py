@@ -21,6 +21,10 @@ import json
 import shutil
 import subprocess
 import sys
+import os
+# Pin the option count: these tests assert the one-option behavior and
+# must not depend on the user's live settings.json.
+os.environ["SLIDE_LAB_OPTIONS_PER_SLIDE"] = "1"
 import tempfile
 from pathlib import Path
 
