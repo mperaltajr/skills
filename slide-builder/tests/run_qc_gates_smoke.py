@@ -42,21 +42,43 @@ from compile_picks import assert_package_integrity  # noqa: E402
 def main() -> int:
     tmp = Path(tempfile.mkdtemp(prefix="qc_gates_smoke_"))
     try:
-        print("[1] a recorded QC block refuses the compile")
+        print("[1] finalize's per-option record decides what may ship")
         out = tmp / "build"
         out.mkdir()
         _state.record_prep(out, "h1", out)
-        tok = _state.record_review(out)
-        ok, _ = _state.check_compile_allowed(out, tok)
-        assert ok, "clean build should be compilable"
-        _state.record_qc(out, 2, "2 option(s) with blocking QC findings")
-        ok, why = _state.check_compile_allowed(out, tok)
-        assert not ok, "a recorded QC block must refuse the compile"
-        assert "blocking" in why, why
-        _state.record_qc(out, 0, "clean")          # the fix re-runs finalize
-        ok, _ = _state.check_compile_allowed(out, tok)
-        assert ok, "clearing the blocks must re-allow the compile"
-        print("    ok: block -> refuse, and a clean re-finalize re-allows it")
+        K = _state.option_key
+        clean = {"blocks": 0, "reasons": []}
+        blocked = {"blocks": 1, "reasons": ["chrome_buried"]}
+
+        def _allowed(keys):
+            return _state.check_options_finalized(_state.read_state(out), keys)
+
+        ok, why = _allowed([K(1, "A")])
+        assert not ok and "has not run" in why, "no finalize at all must refuse"
+        _state.begin_finalize(out)
+        ok, why = _allowed([K(1, "A")])
+        assert not ok and "did not finish" in why, "a crashed finalize must refuse"
+        _state.record_option_qc(out, {K(1, "A"): clean, K(2, "A"): clean,
+                                      K(3, "A"): blocked, K(3, "C"): blocked,
+                                      K(5, "A"): blocked})
+        _state.end_finalize(out, "ok")
+        assert _allowed([K(1, "A"), K(2, "A")])[0], "clean picks must ship"
+        ok, why = _allowed([K(1, "A"), K(3, "A")])
+        assert not ok and "slide_03/A" in why, "a blocked pick must refuse, by name"
+        assert not _allowed([K(4, "A")])[0], "an option never finalized must refuse"
+        print("    ok: none / crashed / blocked / never-finalized all refuse, by option")
+
+        # Fixing slide 3 with finalize --slide 3 must not wipe slide 5's block.
+        _state.begin_finalize(out, slide=3)
+        _state.record_option_qc(out, {K(3, "A"): clean, K(3, "C"): blocked})
+        _state.end_finalize(out, "ok")
+        assert _allowed([K(3, "A")])[0], "the fixed option ships"
+        assert not _allowed([K(5, "A")])[0], (
+            "a finalize --slide 3 wiped slide 5's block; that is how two blocked "
+            "slides once reached compile")
+        # A blocked option nobody picked must not stop the deck.
+        assert _allowed([K(1, "A"), K(3, "A")])[0], "unpicked 3C must not block"
+        print("    ok: --slide keeps other slides' blocks; unpicked blocks don't stop the deck")
 
         print("[2] an orphaned slide part is caught")
         good = tmp / "good.pptx"

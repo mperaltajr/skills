@@ -671,12 +671,19 @@ def main() -> int:
         if not ok:
             print("REFUSED: will not compile a final deck.\n  " + reason)
             return 5
-        # Rule 1: the canonical out-dir is the one prep recorded; refuse a split.
-        _canon = _state.canonical_out(out_dir)
-        if _canon and Path(_canon).resolve() != out_dir.resolve():
-            print(f"REFUSED: --out ({out_dir.resolve()}) is not the build's canonical "
-                  f"out dir recorded at prep ({_canon}).")
-            return 5
+    # These apply to every mode. --all-variations used to skip all of them, so
+    # an all-options deck shipped with recorded QC blocks and unreconciled
+    # figures; both 09/29 decks went out that way.
+    # Rule 1: the canonical out-dir is the one prep recorded; refuse a split.
+    _canon = _state.canonical_out(out_dir)
+    if _canon and Path(_canon).resolve() != out_dir.resolve():
+        print(f"REFUSED: --out ({out_dir.resolve()}) is not the build's canonical "
+              f"out dir recorded at prep ({_canon}).")
+        return 5
+    ok, reason = _state.check_ledger(_state.read_state(out_dir))
+    if not ok:
+        print("REFUSED: will not compile.\n  " + reason)
+        return 5
 
     meta_path = _p.meta_json(out_dir)
     if not meta_path.exists():
@@ -725,6 +732,19 @@ def main() -> int:
     else:
         picks = parse_picks(args.picks, out_dir)
         final_path = args.final or (out_dir / "final_deck.pptx")
+
+    # Every option about to ship must have been finalized, and cleanly. Checked
+    # per option against exactly what ships, so a blocked option nobody picked
+    # does not stop the deck, and a refused or crashed finalize cannot leave a
+    # half-written option looking finished.
+    _ship = [_state.option_key(int(k.split("_")[1]), L)
+             for k, v in picks.items()
+             for L in (v if isinstance(v, list) else [v])
+             if L and str(L).strip().lower() not in ("none", "")]
+    ok, reason = _state.check_options_finalized(_state.read_state(out_dir), _ship)
+    if not ok:
+        print("REFUSED: will not compile.\n  " + reason)
+        return 5
 
     # Option 6b: splice rebuilt slides back into the external original in place.
     if args.splice_into:

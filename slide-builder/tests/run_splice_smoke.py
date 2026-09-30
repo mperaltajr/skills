@@ -31,10 +31,14 @@ from pptx import Presentation
 from pptx.util import Inches
 
 
-def _approve(out_dir):
+def _approve(out_dir, finalized=("slide_02/A",)):
     """Set up the build state so compile is allowed: prep records the content-hash
-    + canonical out, then build_review mints the approval token. Returns the token."""
+    + canonical out, finalize records a clean result for each option that will
+    ship, then build_review mints the approval token. Returns the token."""
     _state.record_prep(out_dir, "testhash", out_dir)
+    _state.begin_finalize(out_dir)
+    _state.record_option_qc(out_dir, {k: {"blocks": 0, "reasons": []} for k in finalized})
+    _state.end_finalize(out_dir, "ok")
     return _state.record_review(out_dir)
 
 
@@ -158,7 +162,7 @@ def main() -> int:
             "template": str(orig5), "adopted_source": str(orig5), "slide_count": 5,
             "slides": [{"n": i, "layout": ""} for i in range(1, 6)],
         }), encoding="utf-8")
-        TOKEN5 = _approve(out5)
+        TOKEN5 = _approve(out5, finalized=("slide_02/A", "slide_05/A"))
         (out5 / "picks.json").write_text(json.dumps({"slide_02": "A", "slide_05": "A"}), encoding="utf-8")
         spliced5 = tmp / "deck5_slidelab.pptx"
         r = subprocess.run(
