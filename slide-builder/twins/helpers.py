@@ -197,6 +197,29 @@ def _split_runs(text, *, base_bold=False, base_italic=False,
     return runs
 
 
+# Terms whose casing is part of the name. An all-caps label must not turn "TaaS"
+# into "TAAS"; that shipped on more than one deck.
+PROTECTED_TERMS = ("TaaS",)
+
+
+def upper_preserving_terms(text: str, terms=PROTECTED_TERMS) -> str:
+    """Uppercase `text` but leave each protected term in its own casing."""
+    out = (text or "").upper()
+    for term in terms:
+        out = re.sub(re.escape(term.upper()), term, out)
+    return out
+
+
+def set_letter_spacing(run, px: float) -> None:
+    """CSS letter-spacing (px) onto a run.
+
+    The unit is hundredths of a point and 1px = 0.75pt, so the factor is 75.
+    It must be the raw `spc` attribute: python-pptx has no letter-spacing
+    property, and `run.font.spc = ...` raises no error while writing nothing.
+    """
+    run.font._rPr.set("spc", str(int(round(px * 75))))
+
+
 def add_text(slide, shape_id, text, x_px, y_px, w_px, h_px, *,
              font_size_px=None, font_size_pt=None, color=None, bold=None, italic=None,
              font_name=None, align="left", anchor="top",
@@ -268,8 +291,12 @@ def add_text(slide, shape_id, text, x_px, y_px, w_px, h_px, *,
 
     for seg, seg_bold, seg_italic, seg_color in runs:
         run = p.add_run()
-        run.text = seg.upper() if uppercase else seg
+        run.text = upper_preserving_terms(seg) if uppercase else seg
         f = run.font
+        # letter_spacing_px used to be accepted and silently ignored. Written as
+        # the raw attribute because python-pptx has no letter-spacing property.
+        if letter_spacing_px:
+            set_letter_spacing(run, letter_spacing_px)
         # Only write run-level properties when the caller specified them.
         # Anything left None inherits from the layout/master/theme cascade.
         # See Defect 3 docstring above for the 2026-06-15 contract change.
