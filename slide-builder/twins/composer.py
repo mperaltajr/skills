@@ -457,6 +457,85 @@ def remove_empty_placeholders(slide) -> int:
     return removed
 
 
+def reassign_shape_ids(slide) -> int:
+    """Give every shape on the slide a unique, sequential id. Returns the count changed.
+
+    A shape's id (``<p:cNvPr id="...">``) must be unique within its slide. Both
+    graft paths build a slide by deepcopying elements from several source slides,
+    and each source numbered its own shapes from 1 — so an untouched graft routinely
+    lands three or four shapes all claiming id "2". LibreOffice and python-pptx read
+    those files without complaint; PowerPoint shows "found a problem with content"
+    and then refuses to open the deck. That is how a deck passed every offline check
+    and still could not be opened by the person it was sent to.
+
+    Call this once after the graft loop, on the finished slide, so ids are assigned
+    over the whole shape tree rather than per-source.
+
+    Only shapes that actually collide are moved, and they move to fresh ids above
+    the slide's current maximum. Renumbering everything from 1 would be tidier to
+    read but would invalidate any ``spid`` reference held elsewhere in the slide
+    part (animation timing on an adopted page, for one); leaving the unique ids
+    alone keeps those references pointing where they did.
+    """
+    sp_tree = slide.shapes._spTree
+    nodes = []
+    for cNvPr in sp_tree.iter(qn("p:cNvPr")):
+        # Skip the spTree's own nvGrpSpPr/cNvPr — that id belongs to the slide's
+        # root group, not to a shape.
+        parent = cNvPr.getparent()
+        if parent is not None and parent.tag == qn("p:nvGrpSpPr") \
+                and parent.getparent() is sp_tree:
+            continue
+        nodes.append(cNvPr)
+
+    used: set[int] = set()
+    next_free = 2  # 1 is taken by the root group
+    for cNvPr in nodes:
+        try:
+            sid = int(cNvPr.get("id") or 0)
+        except ValueError:
+            sid = 0
+        if sid > 1 and sid not in used:
+            used.add(sid)
+        next_free = max(next_free, sid + 1)
+
+    changed = 0
+    for cNvPr in nodes:
+        try:
+            sid = int(cNvPr.get("id") or 0)
+        except ValueError:
+            sid = 0
+        if sid > 1 and sid in used:
+            used.discard(sid)   # first claimant keeps it
+            continue
+        cNvPr.set("id", str(next_free))
+        next_free += 1
+        changed += 1
+    return changed
+
+
+def find_duplicate_shape_ids(prs) -> list[str]:
+    """Report slides carrying more than one shape with the same id.
+
+    The defect reassign_shape_ids prevents, checked on the saved package so a
+    hand-edit made after compile (stamping badges, patching a label) cannot ship
+    a deck PowerPoint will refuse. See reassign_shape_ids for why this is fatal
+    there and invisible everywhere else.
+    """
+    problems: list[str] = []
+    for n, slide in enumerate(prs.slides, start=1):
+        seen: dict[str, int] = {}
+        for cNvPr in slide.shapes._spTree.iter(qn("p:cNvPr")):
+            sid = cNvPr.get("id")
+            if sid:
+                seen[sid] = seen.get(sid, 0) + 1
+        dupes = sorted(sid for sid, c in seen.items() if c > 1)
+        if dupes:
+            problems.append(
+                f"slide {n}: shape id(s) {', '.join(dupes[:4])} used more than once")
+    return problems
+
+
 def _clear_existing_slides(prs):
     """Remove any slides already present in the presentation (client
     templates often ship with sample slides we don't want) AND remove

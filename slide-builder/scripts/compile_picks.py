@@ -55,6 +55,8 @@ from twins.composer import (  # noqa: E402
     _find_blank_layout,
     _find_named_layout,
     _strip_layout_placeholders,
+    find_duplicate_shape_ids,
+    reassign_shape_ids,
     remove_empty_placeholders,
 )
 
@@ -72,6 +74,11 @@ def assert_package_integrity(path: Path) -> list[str]:
     how that symptom got misfiled as a stale LibreOffice profile. The existing
     _dedupe_zip_entries only collapses duplicate NAMES and is structurally blind
     to this, so it needs its own check.
+
+    Also catches duplicate shape ids, the other defect that reads clean offline
+    and makes PowerPoint refuse the file. The graft paths now prevent it, but a
+    hand-edit after compile (stamping option badges, patching one label) can
+    still introduce it, which is exactly how it shipped once.
     """
     problems: list[str] = []
     import zipfile as _zf
@@ -82,7 +89,9 @@ def assert_package_integrity(path: Path) -> list[str]:
         seen, dupes = set(), set()
         for n in names:
             (dupes.add(n) if n in seen else seen.add(n))
-        listed = len(Presentation(str(path)).slides)
+        prs = Presentation(str(path))
+        problems.extend(find_duplicate_shape_ids(prs))
+        listed = len(prs.slides)
         if len(parts) != listed:
             problems.append(
                 f"{len(parts)} slide part(s) in the package but {listed} listed in the "
@@ -201,6 +210,10 @@ def copy_picked_slide_into(dst_prs, src_pptx: Path,
     for shape in src_slide.shapes:
         sp_tree.append(deepcopy(shape.element))
         count += 1
+
+    # Each source slide numbered its own shapes from 1, so grafting several of
+    # them onto one slide routinely leaves shapes colliding on id "2".
+    reassign_shape_ids(new_slide)
 
     # For body-canonical
     # destinations, the new_slide already has layout-inherited placeholders
