@@ -1003,6 +1003,11 @@ def _load_prior_feedback_for_slide(slide_dir: Path) -> str:
     )
 
 
+# How many agents the parent session can have running at once. Dispatches past
+# this are rejected, and the rejection is quiet: on one 29-slide deck about 20
+# of them vanished and finalize exited 11 with slides 23-29 missing.
+MAX_CONCURRENT_AGENTS = 20
+
 _CHROME_SPEC_CACHE: dict = {}
 
 
@@ -1285,6 +1290,34 @@ def write_dispatch_plan(
         "for sketch-path slides (per the slide's PATTERN field). Then run "
         "`finalize_deck.py` to graft, render, and produce REVIEW.html."
     )
+
+    # Dispatch waves. Twenty agents run at once; past that the extras are
+    # rejected, and a rejected dispatch is quiet — you find out later, when
+    # finalize exits 11 with seven slides missing because their workers were
+    # never actually sent. Spell the waves out so nobody has to remember.
+    if len(slides) > MAX_CONCURRENT_AGENTS:
+        nums = [s["slide_n"] for s in slides]
+        waves = [nums[i:i + MAX_CONCURRENT_AGENTS]
+                 for i in range(0, len(nums), MAX_CONCURRENT_AGENTS)]
+        lines.append("")
+        lines.append(f"### Dispatch in {len(waves)} waves")
+        lines.append("")
+        lines.append(
+            f"At most {MAX_CONCURRENT_AGENTS} agents run at once. Dispatches "
+            f"beyond that are rejected, and a rejected dispatch is quiet — you "
+            f"find out later when `finalize_deck.py` exits 11 with slides "
+            f"missing. Send each wave, wait for it to finish, then send the next."
+        )
+        lines.append("")
+        for i, wave in enumerate(waves, start=1):
+            lines.append(f"{i}. Slides {', '.join(str(n) for n in wave)} "
+                         f"({len(wave)} agent(s))")
+        lines.append("")
+        lines.append(
+            "The same limit applies to the `slide-builder-translator` fan-out at "
+            "Stage 3.5. That one is an agent per picked slide-option, so it can "
+            "be several times this list.")
+
     plan_path.write_text("\n".join(lines), encoding="utf-8")
     return plan_path
 
