@@ -221,10 +221,20 @@ def record_vision_qc(out_dir, deck: str, slides_reviewed: int, findings: int = 0
     _write(out_dir, state)
 
 
-def record_compile(out_dir) -> None:
-    """A final deck was compiled from the approved picks."""
+def record_compile(out_dir, kind: str = "picks", output=None, slides: int = 0) -> None:
+    """A deck was compiled. Records what came out, so check_done can verify
+    the file it is shown is that file, unchanged, built from current content.
+
+    kind: 'picks' (the final deck), 'all_variations' (every option, for
+    comparison) or 'splice' (rebuilt slides put back into an external deck).
+    """
     state = read_state(out_dir)
-    state.setdefault("stages", {})["compile"] = {"at": _now()}
+    state.setdefault("stages", {})["compile"] = {
+        "at": _now(), "kind": kind,
+        "output": str(Path(output).resolve()) if output else "",
+        "digest": file_digest(output) if output else "",
+        "content_hash": state.get("content_hash"),
+        "slides": int(slides or 0)}
     _write(out_dir, state)
 
 

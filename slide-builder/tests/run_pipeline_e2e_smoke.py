@@ -69,7 +69,47 @@ def main() -> int:
         r = _compile(out, tok)
         assert r.returncode == 0, r.stdout[-2000:] + r.stderr[-2000:]
         assert (out / "final_deck.pptx").exists()
-        print("    ok: finalize status ok, two option records, compile exit 0")
+        comp = _state.read_state(out)["stages"]["compile"]
+        assert comp["kind"] == "picks" and comp["slides"] == 2 and comp["digest"], comp
+        print("    ok: finalize status ok, two option records, compile exit 0, "
+              "compile recorded with its output and slide count")
+
+        print("[1b] a partial pick is refused; --drop makes the omission explicit")
+        good_digest = _state.file_digest(out / "final_deck.pptx")
+        tok = _review_and_pick(out, {"slide_01": "A"})
+        r = _compile(out, tok)
+        assert r.returncode == 5 and "slide 2" in r.stdout, r.stdout[-800:]
+        assert _state.file_digest(out / "final_deck.pptx") == good_digest, (
+            "a refused compile touched the previous deck")
+        r = H.run("compile_picks.py", "--out", out, "--picks", out / "picks.json",
+                  "--review-token", tok, "--drop", "2")
+        assert r.returncode == 0, r.stdout[-1500:]
+        assert _state.read_state(out)["stages"]["compile"]["slides"] == 1
+        print("    ok: refused without a pick for slide 2; --drop 2 compiles a 1-slide deck")
+
+        print("[1c] a deck that fails its integrity check never replaces the good one")
+        good_digest = _state.file_digest(out / "final_deck.pptx")
+        tok = _review_and_pick(out, {"slide_01": "A", "slide_02": "A"})
+        import contextlib, io, os
+        import compile_picks
+        _orig = compile_picks._report_integrity
+        compile_picks._report_integrity = lambda p: 6   # force the failure
+        argv = sys.argv
+        sys.argv = ["compile_picks.py", "--out", str(out), "--picks",
+                    str(out / "picks.json"), "--review-token", tok]
+        os.environ["SLIDE_LAB_OPTIONS_PER_SLIDE"] = "1"
+        try:
+            with contextlib.redirect_stdout(io.StringIO()):
+                rc = compile_picks.main()
+        finally:
+            compile_picks._report_integrity = _orig
+            sys.argv = argv
+        assert rc == 6, rc
+        assert _state.file_digest(out / "final_deck.pptx") == good_digest, (
+            "the good deck was replaced by one that failed the check")
+        assert (out / "final_deck.REJECTED.pptx").exists()
+        assert not (out / "final_deck.incoming.pptx").exists()
+        print("    ok: exit 6, previous final_deck.pptx untouched, rejected file set aside")
     finally:
         H.cleanup(tmp)
 
