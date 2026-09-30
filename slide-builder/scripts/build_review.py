@@ -498,19 +498,39 @@ def render_preview_banner(slides: list) -> str:
     """
     total = sum(len(s["options"]) for s in slides)
     no_png = sum(1 for s in slides for o in s["options"] if not o["png_exists"])
-    if not no_png:
-        return ""
-    return (
-        '<div class="font-banner">'
-        '<div class="font-banner-title"><span class="font-banner-icon">&#9888;</span> '
-        f'{no_png} of {total} options have no rendered preview</div>'
-        '<div class="font-banner-body">'
-        'Those tiles show no image, so they cannot be judged on sight. Picking still '
-        'works (picks are recorded by option letter), but render the missing options '
-        'and rebuild this page if you want to see them. '
-        '<strong>Do not approve a deck you could not look at.</strong></div>'
-        '</div>'
-    )
+    pre_graft = sum(1 for s in slides for o in s["options"]
+                    if o["png_exists"] and not o["themed_exists"])
+    out = ""
+    if no_png:
+        out += (
+            '<div class="font-banner">'
+            '<div class="font-banner-title"><span class="font-banner-icon">&#9888;</span> '
+            f'{no_png} of {total} options have no rendered preview</div>'
+            '<div class="font-banner-body">'
+            'Those tiles show no image, so they cannot be judged on sight. Picking still '
+            'works (picks are recorded by option letter), but render the missing options '
+            'and rebuild this page if you want to see them. '
+            '<strong>Do not approve a deck you could not look at.</strong></div>'
+            '</div>'
+        )
+    if pre_graft:
+        # A pre-graft preview is the design as the worker drew it, before the
+        # template's title, takeaway and page number land on it. That is where
+        # collisions appear: on one deck eight slides were approved from clean
+        # previews and shipped with the takeaway buried under body content.
+        out += (
+            '<div class="font-banner">'
+            '<div class="font-banner-title"><span class="font-banner-icon">&#9888;</span> '
+            f'{pre_graft} of {total} previews are from BEFORE the template chrome '
+            f'was applied</div>'
+            '<div class="font-banner-body">'
+            'These show the design as it was drawn, not as it will look once the '
+            'title, takeaway and page number are grafted on. Collisions between the '
+            'two are invisible here. Run <code>finalize_deck.py</code> and rebuild '
+            'this page to see the real slides.</div>'
+            '</div>'
+        )
+    return out
 
 
 def render_storyline_html(storyline: dict, slides: list) -> str:
