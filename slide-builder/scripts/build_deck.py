@@ -1862,6 +1862,21 @@ def stage1_sanity_check(template_path: Path) -> int:
     Returns 0 on success; non-zero exit code on failure (caller should
     propagate). Halts at prep time, before agent compute is sunk.
     """
+    # Check (0): the agents Claude Code will dispatch are the ones in this repo.
+    # Fixes to slide-builder/agents/ do nothing until they are copied to
+    # ~/.claude/agents/; the installed copies once sat three months stale while
+    # every translator fix in between existed only in the repo.
+    import _install
+    _stale = _install.check_installed_agents()
+    if _stale:
+        sys.stderr.write(
+            "ERROR: The agents Claude Code will dispatch are not the ones in this repo.\n\n"
+            + "".join(f"  - {p}\n" for p in _stale)
+            + "\nEvery fix in slide-builder/agents/ is invisible until it is copied over.\n"
+            "Copy them, then re-run:\n\n" + _install.copy_command() + "\n\n"
+            "New Claude Code sessions pick up the copied files.\n")
+        return 7
+
     # Check (a): brand sidecar present + valid
     try:
         load_brand_sidecar(template_path)
