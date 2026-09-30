@@ -1,23 +1,27 @@
 #!/usr/bin/env python3
 """check_done.py — is this deck actually deliverable?
 
-"Done" was an orchestrator claim. The deck was declared QC'd while defects
-survived on three slides, because the deterministic self-check is structurally
-blind to the things that shipped (a rule drawn through text, large empty areas)
-and nothing forced a real page-by-page look.
+"Done" was an orchestrator claim. It has been claimed over a deck with open
+defects, over a file that would not open, over a deck that was edited after QC,
+over a deck compiled from an older brief, and over a folder with no deck in it.
+An audit on 2026-09-30 got DELIVERABLE out of this script for a text file
+containing the words "not a pptx".
 
-This turns the claim into a checkable fact. It refuses unless ALL of:
+So this checks one unbroken chain of recorded facts, each tied to the last:
 
-  1. the deck exists                                     (--deck, or in <out>)
-  2. a final deck was compiled from an approved review   (stages.compile)
-  3. finalize recorded no blocking QC findings           (qc.blocks == 0)
-  4. a VISION pass was recorded over that same deck      (vision_qc)
-     covering every slide in it, and over these exact bytes — a deck
-     hand-edited after QC is a deck nobody has reviewed
+  1. a compile SUCCEEDED and recorded what it produced (path, bytes, the content
+     it was built from, slide count)
+  2. the deck being checked IS that file, byte for byte
+  3. it was built from the CURRENT brief (nothing re-prepped since)
+  4. it opens, and has no structure PowerPoint refuses
+  5. every option in it was finalized with no blocking findings
+  6. a VISION pass was recorded over these same bytes, covering every slide
+  7. that pass left no open Critical or Major findings (only Advisory may remain)
+  8. every figure on a replicated supplied page was reconciled
 
 It is deliberately dumb: it verifies recorded facts, it does not re-run QC.
 
-Run:  py -3 scripts/check_done.py --out <out_dir>   (python3 on macOS/Linux)
+Run:  py -3 scripts/check_done.py --out <out_dir> [--deck <path>]
 Exit: 0 deliverable | 1 not deliverable | 2 bad usage
 """
 from __future__ import annotations
@@ -26,132 +30,158 @@ import argparse
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))
-import _paths as _p  # noqa: E402
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+sys.path.insert(0, str(HERE.parents[1] / "slide-qc" / "scripts"))
 import _state  # noqa: E402
 
 
-# The names compile_picks.py gives its output. --all-variations writes the
-# second one (every option for every slide, one editable deck), and that IS a
-# deliverable — it is what "put all the options in a deck" produces.
-_DECK_NAMES = ("final_deck.pptx", "final_deck_all_variations.pptx")
-
-
-def _resolve_deck(out: Path, explicit: str | None) -> Path:
-    """Find the deck to check. An explicit --deck always wins."""
-    if explicit:
-        return Path(explicit)
-    existing = [out / n for n in _DECK_NAMES if (out / n).exists()]
-    if len(existing) == 1:
-        return existing[0]
-    if len(existing) > 1:
-        # Both present: check the one the vision pass actually looked at, so a
-        # stale sibling from an earlier run cannot decide the answer.
-        recorded = (_state.read_state(out).get("vision_qc") or {}).get("deck")
-        if recorded:
-            for cand in existing:
-                try:
-                    if Path(recorded).resolve() == cand.resolve():
-                        return cand
-                except Exception:
-                    continue
-        return max(existing, key=lambda p: p.stat().st_mtime)
-    return out / _DECK_NAMES[0]
+def _same_file(a, b) -> bool:
+    try:
+        return Path(a).resolve() == Path(b).resolve()
+    except Exception:
+        return False
 
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Verify a deck is actually deliverable.")
     ap.add_argument("--out", required=True, type=Path, help="Build output dir.")
     ap.add_argument("--deck", default=None,
-                    help="Final deck path. Default: final_deck.pptx or "
-                         "final_deck_all_variations.pptx in <out>, whichever is there.")
+                    help="The file you intend to send. Default: the file the last "
+                         "successful compile recorded. A different path is accepted "
+                         "only if it is byte-identical to that file.")
     args = ap.parse_args(argv)
 
     if not args.out.exists():
         print(f"ERROR: out dir not found: {args.out}")
         return 2
 
-    deck = _resolve_deck(args.out, args.deck)
     state = _state.read_state(args.out)
     problems: list[str] = []
 
-    if not deck.exists():
-        # Without this the checks below silently degrade: the deck-identity test
-        # is skipped, the slide count reads 0, and the coverage test never fires.
-        # A build with no deck at all used to print DELIVERABLE.
-        problems.append(
-            f"no deck at {deck} — nothing to deliver. Pass --deck if the final "
-            f"file is somewhere else.")
-
-    if not state:
-        problems.append("no _state.json — this build has no recorded history at all")
-
-    if not state.get("stages", {}).get("compile"):
-        problems.append("no compile recorded — the final deck was never built "
-                        "through compile_picks.py")
-
-    blocks = int((state.get("qc") or {}).get("blocks") or 0)
-    if blocks:
-        problems.append(f"finalize recorded {blocks} blocking QC finding(s); "
-                        "fix them and re-run finalize_deck.py")
-
-    sl = state.get("source_ledger") or {}
-    if int(sl.get("unresolved") or 0) > 0:
-        problems.append(
-            f"{sl['unresolved']} figure(s) on a supplied/replicated page are "
-            "unreconciled; resolve every row in source_ledger.json")
-
-    vq = state.get("vision_qc") or {}
-    if not vq:
-        problems.append(
-            "no vision pass recorded — the deterministic self-check does NOT "
-            "count. Run slide-qc over the compiled deck; it records the pass.")
-    else:
-        if vq.get("deck") and deck.exists():
-            try:
-                same = Path(vq["deck"]).resolve() == deck.resolve()
-            except Exception:
-                same = False
-            if not same:
-                problems.append(
-                    f"the recorded vision pass was over {vq.get('deck')!r}, not "
-                    f"{str(deck)!r} — re-run slide-qc on the deck you are shipping")
-        if deck.exists():
-            recorded_digest = vq.get("digest") or ""
-            if recorded_digest and recorded_digest != _state.file_digest(deck):
-                problems.append(
-                    "the deck has changed since the vision pass — you are looking "
-                    "at a file nobody reviewed. Re-run slide-qc over the current "
-                    "deck. (Every hand-edit applied after QC last time broke "
-                    "something.)")
-            try:
-                from pptx import Presentation
-                n_deck = len(Presentation(str(deck)).slides)
-            except Exception:
-                n_deck = 0
-            seen = int(vq.get("slides_reviewed") or 0)
-            if n_deck and seen < n_deck:
-                problems.append(
-                    f"the vision pass covered {seen} of {n_deck} slides — "
-                    "a partial look is how defects shipped last time")
-
-    if problems:
+    def _refuse() -> int:
         print("NOT DELIVERABLE:")
         for p in problems:
             print(f"  - {p}")
         print("\nDo not tell the user the deck is finished until this passes.")
         return 1
 
-    print(f"DELIVERABLE: {deck}")
-    print(f"  compiled at        : {state['stages']['compile']['at']}")
-    print(f"  blocking QC        : 0")
-    print(f"  vision pass        : {vq.get('slides_reviewed')} slide(s), "
-          f"{vq.get('findings', 0)} finding(s), {vq.get('at')}")
+    # 1. A successful compile, with a record of what it produced.
+    comp = (state.get("stages") or {}).get("compile") or {}
+    if not state:
+        problems.append("no _state.json — this build has no recorded history at all")
+        return _refuse()
+    if not comp:
+        problems.append("no successful compile recorded — the deck was never built "
+                        "through compile_picks.py, or every compile failed")
+        return _refuse()
+    if not comp.get("output") or not comp.get("digest"):
+        problems.append("the compile record predates output tracking; re-run "
+                        "compile_picks.py so there is a record of what it produced")
+        return _refuse()
+
+    # 2. The deck being checked is that file.
+    recorded = Path(comp["output"])
+    deck = Path(args.deck) if args.deck else recorded
+    if not deck.exists():
+        problems.append(f"no deck at {deck} — nothing to deliver")
+        return _refuse()
+    digest = _state.file_digest(deck)
+    if digest != comp["digest"]:
+        if _same_file(deck, recorded):
+            problems.append(
+                "the deck has changed since it was compiled. Edits made to a "
+                "compiled deck are how defects shipped before; rebuild through "
+                "the pipeline and recompile.")
+        else:
+            problems.append(
+                f"{deck} is not the deck the last compile produced ({recorded}). "
+                "Check the file you are actually sending.")
+
+    # 3. Built from the current brief.
+    if comp.get("content_hash") != state.get("content_hash"):
+        problems.append(
+            "the brief or build inputs changed after this deck was compiled "
+            "(prep ran again). This deck shows the old content; recompile.")
+
+    # 4. Opens, and no structure PowerPoint refuses.
+    n_deck = 0
+    try:
+        from pptx import Presentation
+        prs = Presentation(str(deck))
+        n_deck = len(prs.slides)
+    except Exception as exc:
+        problems.append(f"the deck does not open: {type(exc).__name__}: {exc}")
+        prs = None
+    if prs is not None:
+        try:
+            from pptx_openability import check_openability
+            issues = check_openability(prs)
+            if issues:
+                problems.append(
+                    f"{len(issues)} structure(s) PowerPoint would refuse, e.g. "
+                    f"slide {issues[0]['slide']}: {issues[0]['issue'][:120]}")
+        except Exception as exc:
+            problems.append(f"could not check openability: {type(exc).__name__}: {exc}")
+        if comp.get("slides") and n_deck != int(comp["slides"]):
+            problems.append(f"the deck has {n_deck} slides; the compile produced "
+                            f"{comp['slides']}")
+
+    # 5. Every shipped option finalized clean (a re-finalize after compile can
+    # record new blocks against options already in the deck).
+    shipped = comp.get("options") or []
+    if shipped:
+        ok, why = _state.check_options_finalized(state, shipped)
+        if not ok:
+            problems.append(why)
+
+    # 6 + 7. A vision pass over these bytes, every slide, nothing open above Advisory.
+    vq = state.get("vision_qc") or {}
+    if not vq:
+        problems.append(
+            "no vision pass recorded — the deterministic self-check does NOT "
+            "count. Run slide-qc over the compiled deck; it records the pass.")
+    else:
+        if vq.get("digest") != digest:
+            problems.append(
+                "the recorded vision pass was over different bytes than this deck "
+                "(it was edited, recompiled, or the pass looked at another file). "
+                "Re-run slide-qc on the deck you are sending.")
+        seen = int(vq.get("slides_reviewed") or 0)
+        if n_deck and seen != n_deck:
+            problems.append(
+                f"the vision pass records {seen} slide(s) reviewed; the deck has "
+                f"{n_deck}. A partial look is how defects shipped last time.")
+        crit, maj = int(vq.get("criticals") or 0), int(vq.get("majors") or 0)
+        if "criticals" not in vq:
+            problems.append("the vision pass predates severity tracking; re-run "
+                            "slide-qc so Critical and Major counts are recorded")
+        elif crit or maj:
+            problems.append(
+                f"the vision pass left {crit} Critical and {maj} Major finding(s) "
+                "open. Everything above Advisory must be fixed (or corrected to "
+                "'not a defect' if the finding was wrong), then QC re-run.")
+
+    # 8. Supplied-page figures.
+    sl = state.get("source_ledger") or {}
+    if int(sl.get("unresolved") or 0) > 0:
+        problems.append(
+            f"{sl['unresolved']} figure(s) on a supplied/replicated page are "
+            "unreconciled; resolve every row in source_ledger.json")
+
+    if problems:
+        return _refuse()
+
+    kind = comp.get("kind", "picks")
+    label = {"picks": "final deck", "all_variations": "all-options comparison deck",
+             "splice": "spliced deck"}.get(kind, kind)
+    print(f"DELIVERABLE ({label}): {deck}")
+    print(f"  compiled at   : {comp.get('at')}  ({n_deck} slides)")
+    print(f"  vision pass   : {vq.get('slides_reviewed')} slide(s), "
+          f"{vq.get('advisories', 0)} Advisory open, {vq.get('at')}")
     if sl:
-        # State plainly how much was taken on trust rather than verified. These
-        # are not failures; they are the size of the unchecked surface, and they
-        # belong in front of the person shipping the deck.
-        print(f"  supplied page      : {sl.get('keep_source', 0)} figure(s) kept "
+        # State plainly how much was taken on trust rather than verified.
+        print(f"  supplied page : {sl.get('keep_source', 0)} figure(s) kept "
               f"verbatim from the source, {sl.get('unreachable', 0)} surface(s) "
               f"unreadable and covered only by the vision pass")
     return 0

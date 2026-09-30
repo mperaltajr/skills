@@ -596,7 +596,10 @@ def run_splice(out_dir: Path, meta: dict, picks: dict, template_path: Path,
     # the spliced deck is written next to the original, not in the build
     # folder, so check_done needs the path to find it.
     if ok and not failures:
-        _state.record_compile(out_dir, kind="splice", output=out, slides=final_count)
+        _state.record_compile(out_dir, kind="splice", output=out, slides=final_count,
+                              options=[_state.option_key(int(k.split("_")[1]), v)
+                                       for k, v in picks.items()
+                                       if v and str(v).lower() != "none"])
     return 0 if (ok and not failures) else 1
 
 
@@ -1026,7 +1029,7 @@ def main() -> int:
     if rc == 0:
         _state.record_compile(
             out_dir, kind="all_variations" if args.all_variations else "picks",
-            output=final_path, slides=slide_count)
+            output=final_path, slides=slide_count, options=_ship)
     return rc
 
 

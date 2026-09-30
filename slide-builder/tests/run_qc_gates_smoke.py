@@ -182,82 +182,139 @@ def main() -> int:
             f"a panel starting below the body top must NOT fire: {clean['detail']}")
         print(f"    ok: {hit['detail'][:66]}...; clean layout silent")
 
-        print("[5] check_done refuses until a FULL vision pass is recorded")
+        print("[5] check_done verifies one chain: compile -> deck -> content -> vision")
         import os
         import subprocess
-        d = tmp / "done"
-        d.mkdir()
-        deck = d / "final_deck.pptx"
-        prs3 = Presentation()
-        for _ in range(3):
-            prs3.slides.add_slide(prs3.slide_layouts[6])
-        prs3.save(str(deck))
+        K = _state.option_key
 
-        def _done() -> tuple[int, str]:
+        def _deck(path, n=3):
+            p = _P()
+            for _ in range(n):
+                p.slides.add_slide(p.slide_layouts[6])
+            p.save(str(path))
+            return path
+
+        def _build(name, n=3, kind="picks"):
+            """A build that compiled cleanly into <name>/final_deck.pptx."""
+            d = tmp / name
+            d.mkdir()
+            deck = _deck(d / "final_deck.pptx", n)
+            _state.record_prep(d, "h", d)
+            _state.begin_finalize(d)
+            opts = [K(i, "A") for i in range(1, n + 1)]
+            _state.record_option_qc(d, {k: {"blocks": 0, "reasons": []} for k in opts})
+            _state.end_finalize(d, "ok")
+            _state.record_compile(d, kind=kind, output=deck, slides=n, options=opts)
+            return d, deck
+
+        def _done(d, *extra) -> tuple[int, str]:
             r = subprocess.run(
-                [sys.executable, str(SCRIPTS / "check_done.py"), "--out", str(d)],
+                [sys.executable, str(SCRIPTS / "check_done.py"), "--out", str(d), *extra],
                 capture_output=True, text=True,
                 env={**os.environ, "PYTHONPATH": str(SCRIPTS)})
             return r.returncode, r.stdout
 
-        assert _done()[0] == 1, "an empty build must not be deliverable"
-        _state.record_prep(d, "h", d); _state.record_review(d)
-        _state.record_compile(d); _state.record_qc(d, 0, "clean")
-        rc, o = _done()
-        assert rc == 1 and "no vision pass recorded" in o, o
-        _state.record_vision_qc(d, deck, 2, 0)          # partial look
-        rc, o = _done()
-        assert rc == 1 and "covered 2 of 3" in o, o
-        _state.record_vision_qc(d, deck, 3, 1)          # every slide
-        assert _done()[0] == 0, "a compiled, clean, fully-reviewed deck IS deliverable"
-        _state.record_qc(d, 2, "2 blocking")            # a block re-opens it
-        assert _done()[0] == 1, "a blocking QC finding must re-open 'done'"
-        print("    ok: no vision pass / partial pass / QC block all refuse; full pass passes")
+        empty = tmp / "empty"
+        empty.mkdir()
+        assert _done(empty)[0] == 1, "an empty build must not be deliverable"
 
-        print("[6] a deck edited after the vision pass is not deliverable")
-        _state.record_qc(d, 0, "clean")
-        _state.record_vision_qc(d, deck, 3, 0)
-        assert _done()[0] == 0, "precondition: the reviewed deck is deliverable"
-        # The ad hoc post-compile edit that broke something every time it was used.
-        prs4 = Presentation(str(deck))
+        d, deck = _build("done")
+        rc, o = _done(d)
+        assert rc == 1 and "no vision pass recorded" in o, o
+        _state.record_vision_qc(d, deck, 2)                       # partial look
+        rc, o = _done(d)
+        assert rc == 1 and "2 slide(s) reviewed; the deck has 3" in o, o
+        _state.record_vision_qc(d, deck, 3, criticals=0, majors=1, advisories=2)
+        rc, o = _done(d)
+        assert rc == 1 and "1 Major" in o, "an open Major must refuse (decision 6)"
+        _state.record_vision_qc(d, deck, 3, criticals=0, majors=0, advisories=2)
+        rc, o = _done(d)
+        assert rc == 0, f"clean chain, only Advisory open, must be deliverable: {o}"
+        print("    ok: none / partial / open Major refuse; Advisory-only passes")
+
+        print("[6] a later finalize block on a shipped option re-opens 'done'")
+        _state.record_option_qc(d, {K(2, "A"): {"blocks": 1, "reasons": ["chrome_buried"]}})
+        rc, o = _done(d)
+        assert rc == 1 and "slide_02/A" in o, o
+        _state.record_option_qc(d, {K(2, "A"): {"blocks": 0, "reasons": []}})
+        assert _done(d)[0] == 0
+        print("    ok")
+
+        print("[7] a deck edited after compile is not deliverable")
+        prs4 = _P(str(deck))
         prs4.slides[0].shapes.add_textbox(Inches(1), Inches(1), Inches(2), Inches(1))
         prs4.save(str(deck))
-        rc, o = _done()
-        assert rc == 1 and "changed since the vision pass" in o, o
-        print("    ok: hand-editing the compiled deck re-opens 'done'")
+        rc, o = _done(d)
+        assert rc == 1 and "changed since it was compiled" in o, o
+        print("    ok: the edit that broke something every time it was used re-opens 'done'")
 
-        print("[7] a missing deck is a refusal, not a silent pass")
-        d2 = tmp / "done_nodeck"
-        d2.mkdir()
-        _state.record_prep(d2, "h", d2); _state.record_review(d2)
-        _state.record_compile(d2); _state.record_qc(d2, 0, "clean")
-        _state.record_vision_qc(d2, d2 / "final_deck.pptx", 3, 0)
-        r = subprocess.run(
-            [sys.executable, str(SCRIPTS / "check_done.py"), "--out", str(d2)],
-            capture_output=True, text=True,
-            env={**os.environ, "PYTHONPATH": str(SCRIPTS)})
-        assert r.returncode == 1 and "nothing to deliver" in r.stdout, r.stdout
-        print("    ok: no deck, no delivery")
+        print("[8] re-prepping after compile makes the deck stale")
+        d, deck = _build("reprep")
+        _state.record_vision_qc(d, deck, 3)
+        assert _done(d)[0] == 0
+        _state.record_prep(d, "h2-edited-brief", d)
+        rc, o = _done(d)
+        assert rc == 1 and "changed after this deck was compiled" in o, o
+        print("    ok")
 
-        print("[8] --all-variations output is recognized as a deliverable")
-        d3 = tmp / "done_allvar"
-        d3.mkdir()
-        allvar = d3 / "final_deck_all_variations.pptx"
-        prs5 = Presentation()
-        for _ in range(3):
-            prs5.slides.add_slide(prs5.slide_layouts[6])
-        prs5.save(str(allvar))
-        _state.record_prep(d3, "h", d3); _state.record_review(d3)
-        _state.record_compile(d3); _state.record_qc(d3, 0, "clean")
-        _state.record_vision_qc(d3, allvar, 3, 0)
+        print("[9] a hand-made deck passed with --deck is refused")
+        d, deck = _build("wrongdeck")
+        _state.record_vision_qc(d, deck, 3)
+        other = _deck(tmp / "handmade.pptx", 3)
+        hm = _P(str(other))
+        hm.slides[0].shapes.add_textbox(Inches(1), Inches(1), Inches(2), Inches(1))
+        hm.save(str(other))
+        rc, o = _done(d, "--deck", str(other))
+        assert rc == 1 and "not the deck the last compile produced" in o, o
+        # A byte-identical copy elsewhere (emailed, moved to OneDrive) is fine.
+        import shutil as _sh
+        copy = tmp / "sent_copy.pptx"
+        _sh.copy(deck, copy)
+        assert _done(d, "--deck", str(copy))[0] == 0, "an identical copy must pass"
+        print("    ok: a different file refuses; an identical copy elsewhere passes")
+
+        print("[10] a missing deck, and an unreadable one, are refusals")
+        d, deck = _build("gone")
+        deck.unlink()
+        rc, o = _done(d)
+        assert rc == 1 and "nothing to deliver" in o, o
+        d = tmp / "notpptx"
+        d.mkdir()
+        junk = d / "final_deck.pptx"
+        junk.write_text("not a pptx", encoding="utf-8")
+        _state.record_prep(d, "h", d)
+        _state.begin_finalize(d); _state.end_finalize(d, "ok")
+        _state.record_compile(d, output=junk, slides=0)
+        rc, o = _done(d)
+        assert rc == 1 and "does not open" in o, (
+            "the audit got DELIVERABLE for a file containing 'not a pptx': " + o)
+        print("    ok")
+
+        print("[11] record_vision_qc refuses a count larger than the deck")
+        d, deck = _build("overcount")
         r = subprocess.run(
-            [sys.executable, str(SCRIPTS / "check_done.py"), "--out", str(d3)],
-            capture_output=True, text=True,
-            env={**os.environ, "PYTHONPATH": str(SCRIPTS)})
-        assert r.returncode == 0, (
-            "the all-options deck is what 'put every option in one deck' "
-            f"produces; it must be checkable: {r.stdout}")
-        print("    ok: final_deck_all_variations.pptx resolves without --deck")
+            [sys.executable, str(SCRIPTS / "record_vision_qc.py"), "--out", str(d),
+             "--deck", str(deck), "--slides-reviewed", "999",
+             "--criticals", "0", "--majors", "0"],
+            capture_output=True, text=True)
+        assert r.returncode == 2, r.stdout
+        print("    ok")
+
+        print("[12] the all-options and splice decks are checkable and labeled")
+        d, deck = _build("allvar", kind="all_variations")
+        _state.record_vision_qc(d, deck, 3)
+        rc, o = _done(d)
+        assert rc == 0 and "all-options comparison deck" in o, o
+        d, _ = _build("splice", kind="splice")
+        elsewhere = _deck(tmp / "client_deck_slidelab.pptx", 3)   # next to the original
+        _state.record_compile(d, kind="splice", output=elsewhere, slides=3,
+                              options=[K(1, "A")])
+        _state.record_vision_qc(d, elsewhere, 3)
+        rc, o = _done(d)
+        assert rc == 0 and "spliced deck" in o, (
+            "the spliced deck lives next to the original; check_done must find it "
+            "from the compile record: " + o)
+        print("    ok")
 
         print("\nSMOKE PASSED.")
         return 0
