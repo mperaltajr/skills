@@ -54,6 +54,9 @@ import sys
 
 from pptx import Presentation
 
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+from pptx_openability import check_openability  # noqa: E402
+
 
 # ---------------------------------------------------------------------------
 # Detection patterns
@@ -294,6 +297,10 @@ def run_all_checks(pptx_path: pathlib.Path) -> dict:
     violations.extend(check_filename(pptx_path))
     violations.extend(check_hidden_slides(prs))
     violations.extend(check_comments(prs))
+    # Structure PowerPoint refuses to open. Everything else here reads the deck
+    # the way python-pptx and LibreOffice do, which is how a deck that would not
+    # open at all once passed this check with zero violations.
+    violations.extend(check_openability(prs, pptx_path))
 
     for i, slide in enumerate(prs.slides, start=1):
         violations.extend(check_placeholders_in_text(slide, i))

@@ -822,6 +822,48 @@ def _check_editability_structural(pptx_path: Path) -> dict:
     return {"pass": passed, "detail": detail, "counts": counts}
 
 
+def _check_no_embedded_objects(pptx_path: Path) -> dict:
+    """Refuse an embedded chart or OLE object in the translator's output.
+
+    `shapes.add_chart()` looks like the right way to build a chart, and it is the
+    wrong one here. It writes an embedded object with its own workbook part:
+    LibreOffice rendered one as a broken-object icon, PowerPoint does no better,
+    and it is not editable in the way this skill means (drawn shapes the user can
+    nudge on the canvas). One shipped as a grey placeholder square where a ring
+    chart should have been, and only human vision QC caught it.
+
+    Charts are drawn from native shapes. For a ring or doughnut the sanctioned
+    fallback is a stacked proportion bar. See the translator agent's kill-list.
+    """
+    try:
+        prs = Presentation(str(pptx_path))
+    except Exception as exc:
+        return {"pass": False, "detail": f"could not open native .pptx: {exc}"}
+
+    found: list[str] = []
+    for n, slide in enumerate(prs.slides, start=1):
+        for shp in slide.shapes:
+            try:
+                if shp.has_chart:
+                    found.append(f"slide {n}: embedded chart in '{shp.name}'")
+                    continue
+            except Exception:
+                pass
+            try:
+                if shp.shape_type == MSO_SHAPE_TYPE.EMBEDDED_OLE_OBJECT:
+                    found.append(f"slide {n}: embedded object in '{shp.name}'")
+            except Exception:
+                continue
+    if not found:
+        return {"pass": True, "detail": "no embedded charts or OLE objects"}
+    return {
+        "pass": False,
+        "detail": (f"{len(found)} embedded object(s): {'; '.join(found[:3])}. "
+                   f"Draw charts from native shapes; a ring becomes a stacked "
+                   f"proportion bar."),
+    }
+
+
 def _check_r4_rules_for_sketch(st: "OptionStatus") -> list[dict]:
     """Run R4.1-R4.8 QC checks on a sketch-path translator output.
 
@@ -990,6 +1032,18 @@ def _check_r4_rules_for_sketch(st: "OptionStatus") -> list[dict]:
         "severity": "block",
         "pass": not r48_fail,
         "detail": "catch-all decoration warning from translator" if r48_fail else "no decoration warnings",
+    })
+
+    # R4.9 No embedded charts / OLE objects (Critical, structural).
+    if st.pptx_path.exists():
+        ole = _check_no_embedded_objects(st.pptx_path)
+    else:
+        ole = {"pass": False, "detail": f"native .pptx missing at {st.pptx_path.name}"}
+    checks.append({
+        "check": "R4.9 charts drawn as shapes, not embedded",
+        "severity": "block",
+        "pass": ole["pass"],
+        "detail": ole["detail"],
     })
 
     return checks

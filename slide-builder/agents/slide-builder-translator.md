@@ -152,7 +152,16 @@ Build the brand-css-vars dict by parsing the `:root { --brand-primary: #...; }` 
 The following CSS features are FORBIDDEN in body-zone elements. If you encounter them during computed-style extraction, apply the locked fallback and append a `TRANSLATOR_WARNING` entry to the report:
 
 - **Linear/radial gradients** → use the middle color stop as solid; warn `R4.4 gradient flattened to solid`
-- **Box-shadow / drop-shadow / filter** → no shadow; warn `R4.5 CSS filter dropped`
+- **Box-shadow / drop-shadow / filter** → no shadow; warn `R4.5 CSS filter dropped`. The HTML designs are flat, but LibreOffice draws a preset shadow from the theme on any autoshape, so "no shadow" needs saying explicitly. **The only sanctioned way to say it** is to set the shape's `<a:effectRef>` to `idx="0"`:
+
+  ```python
+  from pptx.oxml.ns import qn
+  eff = shape._element.find(".//" + qn("a:effectRef"))
+  if eff is not None:
+      eff.set("idx", "0")
+  ```
+
+  `<p:style>` takes exactly four children, in this order: `lnRef`, `fillRef`, `effectRef`, `fontRef`. Removing `effectRef` (or any of the other three) leaves a file python-pptx reads, LibreOffice renders, and **PowerPoint refuses to open**. That shipped twice. Never delete a `<p:style>` child, never delete `<p:style>` itself, and do no other raw XML surgery on it. `compile_picks.py` and `check_pptx_hygiene.py` both refuse a deck whose `<p:style>` is incomplete.
 - **opacity < 1** on text → set alpha to 1.0; warn `R4.2 opacity stripped from text` (R4.2 Major)
 - **text-decoration: line-through OR underline** on body text → REMOVE the decoration in the python-pptx output unless the brief explicitly authorizes it; warn `R4.1 text-decoration stripped` (R4.1 Critical)
 
@@ -166,6 +175,8 @@ Before emitting `option_A_native.py`, scan your own generated code:
 2. **No shapes with `text_frame.text` at zero width or zero height.** Editable text positioned where it can't be edited is a violation.
 3. **No chrome-zone elements as freeform shapes.** Any shape positioned in the title/subtitle/footer y-range that's NOT routed through `data-template-field` is a violation.
 4. **No shapes outside the canvas.** `shape.left + shape.width <= Emu(px_to_emu(1280))` and `shape.top + shape.height <= Emu(px_to_emu(720))`.
+5. **No `add_chart()` and no embedded objects.** Grep your own script for `add_chart`. Charts are drawn from native shapes; a ring or doughnut becomes a stacked proportion bar. `finalize_deck.py` blocks on this too (R4.9), so emitting one only costs a round trip.
+6. **No `<p:style>` surgery.** Grep your own script for `p:style`, `effectRef`, and `remove(`. The only sanctioned edit is `effectRef.set("idx", "0")` — see Task 3. Removing a `<p:style>` child produces a file PowerPoint refuses to open.
 
 If any check fails, emit `# EDITABILITY_VIOLATION: <which check> — <detail>` as the FIRST line of `option_A_native.py` AFTER the comment header, and stop. Do not save the script as runnable.
 
@@ -292,6 +303,8 @@ When you emit a Critical marker, the script must still be syntactically valid Py
 - **Do NOT position title/subtitle/footer/page_number as freeform shapes.** Use `__template_fields__`. The graft step populates inherited placeholders.
 - **Do NOT skip the SSIM self-check.** Without it, the script may pass syntactically but render visually broken — and you won't know.
 - **Do NOT skip the editability check.** R4.7 is Critical; a build that ships with non-editable text is a quality regression.
+- **Do NOT call `shapes.add_chart()`, or embed any chart object.** A python-pptx chart is an embedded OLE object with its own workbook part. LibreOffice rendered one as a broken-object icon and PowerPoint does no better; it is also not editable in the way this skill means. Charts are **drawn from native shapes** — bars are rectangles, lines are connectors, axes are lines and text boxes. For a ring or doughnut, the sanctioned fallback is a **stacked proportion bar**: one rectangle per share, laid end to end, each labeled with its percentage. Say so in the report (`R4.6 ring rendered as proportion bar`) rather than reaching for `add_chart`.
+- **Do NOT remove a `<p:style>` child** to suppress a shadow. Set `effectRef idx="0"` — see Task 3.
 - **Do NOT use fractional EMU.** Always `int(round(...))`.
 - **Do NOT carry through `text-decoration: line-through` or `underline`** unless the brief authorizes it. R4.1 Critical.
 - **Do NOT dispatch sub-agents.** You are the leaf.
