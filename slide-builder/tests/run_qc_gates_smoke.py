@@ -128,6 +128,38 @@ def main() -> int:
         assert not _fires("underline"), "an underline inside the text bbox must NOT fire"
         print("    ok: fires on a rule through text; silent on cards and underlines")
 
+        print("[4b] the grafted takeaway buried under a body panel is BLOCKED")
+
+        def _buried(bury: bool) -> dict:
+            prs = _P(); prs.slide_width = Emu(1280 * PX); prs.slide_height = Emu(720 * PX)
+            s = prs.slides.add_slide(prs.slide_layouts[6])
+            # finalize's free-floating takeaway on a layout with no subtitle
+            # placeholder: drawn first, at title_bottom + 8.
+            sub = s.shapes.add_textbox(Emu(53*PX), Emu(133*PX), Emu(700*PX), Emu(26*PX))
+            sub.name = "subtitle"
+            sub.text_frame.text = "Secondary supply is a scheduled outcome, not a surprise."
+            # The design's own content, anchored to the top of the zone it was
+            # told was empty. Drawn after, so it covers the takeaway.
+            panel = s.shapes.add_shape(MSO_SHAPE.RECTANGLE, Emu(53*PX),
+                                       Emu((125 if bury else 220)*PX),
+                                       Emu(700*PX), Emu(180*PX))
+            panel.name = "Rectangle 1"; panel.text_frame.text = ""
+            p = tmp / f"buried_{bury}.pptx"
+            prs.save(str(p))
+            res = F.run_option_qc(p, tmp / "missing.png", set(), "", body_zone=(175.0, 640.0))
+            return [c for c in res["checks"] if c["check"] == "chrome_buried"][0]
+
+        hit = _buried(True)
+        assert not hit["pass"], "a panel covering the grafted takeaway must be caught"
+        assert hit["severity"] == "block", (
+            "this collision was a warning and warnings were read past; it shipped "
+            "on eight slides of one deck")
+        assert "subtitle" in hit["detail"], hit["detail"]
+        clean = _buried(False)
+        assert clean["pass"], (
+            f"a panel starting below the body top must NOT fire: {clean['detail']}")
+        print(f"    ok: {hit['detail'][:66]}...; clean layout silent")
+
         print("[5] check_done refuses until a FULL vision pass is recorded")
         import os
         import subprocess

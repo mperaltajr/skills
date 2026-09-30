@@ -372,13 +372,17 @@ def detect_missing_client_fonts(theme) -> list:
 
 
 def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
-                  page_type: str = "") -> dict:
+                  page_type: str = "", body_zone: tuple | None = None) -> dict:
     """Run 7 deterministic checks on a themed option.
 
     page_type (from _meta.json::slides[].page_type) lets the check exempt
     surfaces from rules that don't apply to them — most importantly, cover
     slides legitimately lack a page-number per consulting-deck convention,
     so footer_present passes by-design on `page_type == "cover"`.
+
+    body_zone is this slide's real (top_px, bottom_px) from its own layout's
+    chrome. Without it the chrome-overlap check falls back to a permissive
+    default that no real template matches; see the check itself.
     """
     checks: list = []
     png_ok = False
@@ -573,8 +577,11 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
     chrome_overlap_offenders: list = []
     _thin_rules: list = []   # untexted rules/dividers: (name, x0, y0, x1, y1)
     _text_boxes: list = []   # shapes carrying text:    (name, x0, y0, x1, y1)
+    # For chrome_buried: every shape's box plus its z-order, so the test after
+    # the walk can ask whether a body shape is drawn ON TOP of a chrome one.
+    _z_boxes: list = []      # (z, name, x0, y0, x1, y1, is_chrome, has_text)
     try:
-        for shape in shapes:
+        for _z, shape in enumerate(shapes):
             try:
                 name = (shape.name or "").strip()
             except Exception:
@@ -636,7 +643,19 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
                 _w = int(shape.width or 0) / 9525.0
                 _h = int(shape.height or 0) / 9525.0
                 if _w > 0 and _h > 0:
-                    if shape.has_text_frame and (shape.text_frame.text or "").strip():
+                    _has_text = bool(shape.has_text_frame
+                                     and (shape.text_frame.text or "").strip())
+                    try:
+                        _is_ph2 = bool(shape.is_placeholder)
+                    except Exception:
+                        _is_ph2 = False
+                    _z_boxes.append((
+                        _z, name, _l, _t, _l + _w, _t + _h,
+                        _is_ph2 or name_lower.startswith(
+                            ("page-number", "footnote", "source", "header",
+                             "chrome", "title", "subtitle")),
+                        _has_text))
+                    if _has_text:
                         _text_boxes.append((name, _l, _t, _l + _w, _t + _h))
                     elif min(_w, _h) <= 12.0 and max(_w, _h) >= 40.0:
                         # Thin + long + untexted = a rule / divider / accent bar.
@@ -644,13 +663,20 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
             except Exception:
                 pass
 
-            # (c) Chrome-zone overlap: worker shapes whose top-y sits inside
-            # the top invariant zone (< 60 px) or bottom invariant zone
-            # (> 660 px). The invariant zones are reserved for chrome
-            # (sources, footnotes, page numbers); content there collides
-            # with the chrome graft. Per feedback_invariant_zone_chrome.
+            # (c) Chrome-zone overlap: worker shapes sitting inside a zone the
+            # graft owns — the title/takeaway band at the top, the source and
+            # page-number band at the bottom. Content there collides with the
+            # chrome graft. Per feedback_invariant_zone_chrome.
+            #
+            # The zone comes from the slide's OWN layout when the caller passes
+            # it. The 40px/660px literals below are a last-resort default for a
+            # caller that has no chrome to hand; they were the only numbers this
+            # check ever used, and they are far more permissive than a real
+            # template. On the Northwind "Content" layout the graft occupies the top
+            # 175px, so a takeaway landing on body content at y=133 sat 93px
+            # inside a "clean" result. Eight slides shipped that way.
             try:
-                TOP_ZONE_PX, BOTTOM_ZONE_PX = 40.0, 660.0
+                TOP_ZONE_PX, BOTTOM_ZONE_PX = body_zone or (40.0, 660.0)
                 top_px = int(shape.top or 0) / 9525.0
                 try:
                     h_px = int(shape.height or 0) / 9525.0
@@ -667,8 +693,17 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
                     except Exception:
                         is_ph = False
                     named_chrome = name_lower.startswith(
-                        ("page-number", "footnote", "source", "header", "chrome"))
-                    if not is_ph and not named_chrome:
+                        ("page-number", "footnote", "source", "header", "chrome",
+                         "title", "subtitle", "background", "overlay"))
+                    # A shape covering essentially the whole canvas is a backdrop,
+                    # not content sitting in the chrome band. The dark-variant
+                    # overlay and full-bleed hero panels are legitimately there.
+                    try:
+                        _w_px = int(shape.width or 0) / 9525.0
+                    except Exception:
+                        _w_px = 0.0
+                    full_bleed = _w_px >= 1200.0 and top_px <= 2.0 and h_px >= 700.0
+                    if not is_ph and not named_chrome and not full_bleed:
                         if 0 < top_px < TOP_ZONE_PX:
                             chrome_overlap_ok = False
                             chrome_overlap_offenders.append(
@@ -712,6 +747,45 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
             rule_hit_ok = False
             rule_hit_offenders.append(f"{rname!r} crosses {tname!r}")
             break
+    # Chrome buried under body content. This is the collision that actually
+    # shipped: the takeaway line under the title sat inside the body zone,
+    # hidden under dark panels and bands, and on one slide the reader saw
+    # `?" is answered by three...` where a sentence should have been.
+    #
+    # It is narrow on purpose. Overlap alone is far too noisy — PowerPoint text
+    # boxes are much bigger than their glyphs and cards legitimately sit behind
+    # text. This asks the specific question: is a BODY shape drawn LATER in
+    # z-order (so, on top) covering at least 30% of a chrome TEXT shape? On the
+    # 61 options of one real deck it fires once. The band test above, by
+    # contrast, fires on 58 of them, which is why that one only warns.
+    buried_ok = True
+    buried_offenders: list = []
+    for cz, cn, cx0, cy0, cx1, cy1, c_chrome, c_text in _z_boxes:
+        if not c_chrome or not c_text:
+            continue
+        carea = (cx1 - cx0) * (cy1 - cy0)
+        if carea <= 0:
+            continue
+        for bz, bn, bx0, by0, bx1, by1, b_chrome, _bt in _z_boxes:
+            if b_chrome or bz <= cz:
+                continue
+            ox = min(cx1, bx1) - max(cx0, bx0)
+            oy = min(cy1, by1) - max(cy0, by0)
+            if ox <= 0 or oy <= 0:
+                continue
+            if (ox * oy) / carea >= 0.30:
+                buried_ok = False
+                buried_offenders.append(
+                    f"{bn!r} covers {int(100 * ox * oy / carea)}% of {cn!r}")
+                break
+    checks.append({
+        "check": "chrome_buried", "pass": buried_ok, "severity": "block",
+        "detail": ("no body shape covers the title, takeaway or page number"
+                   if buried_ok
+                   else f"{len(buried_offenders)} collision(s): "
+                        + "; ".join(buried_offenders[:3])),
+    })
+
     checks.append({
         "check": "rule_crosses_text", "pass": rule_hit_ok, "severity": "warn",
         "detail": ("no decorative rule crosses a text shape" if rule_hit_ok
@@ -732,10 +806,18 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
                         + "; ".join(clip_risk_offenders[:3])),
     })
     checks.append({
+        # warn, not block, and deliberately so. Content above the body top is a
+        # LATENT collision: it only becomes visible when this layout also grafts
+        # a free-floating takeaway. Measured against the 61 options of one real
+        # deck, blocking here would have halted 58 of them, including every one
+        # that shipped fine. `chrome_buried` below is the test for a collision
+        # that actually happened, and that one blocks.
         "check": "chrome_zone_overlap", "pass": chrome_overlap_ok, "severity": "warn",
-        "detail": ("content respects top invariant zone" if chrome_overlap_ok
-                   else f"{len(chrome_overlap_offenders)} shape(s) in chrome zone: "
-                        + ", ".join(chrome_overlap_offenders[:3])),
+        "detail": (f"content stays inside the body zone "
+                   f"{tuple(int(v) for v in (body_zone or (40.0, 660.0)))}"
+                   if chrome_overlap_ok
+                   else f"{len(chrome_overlap_offenders)} shape(s) in the zone the "
+                        f"graft owns: " + ", ".join(chrome_overlap_offenders[:3])),
     })
 
     summary = {"pass": 0, "warn": 0, "block": 0}
@@ -2843,8 +2925,13 @@ def main() -> int:
     for st in themed_statuses:
         try:
             pt = _slide_page_types.get(st.slide_n, "")
+            try:
+                from twins.helpers import body_zone_for_chrome
+                _bz = body_zone_for_chrome(_layout_chrome_for(st.slide_n))
+            except Exception:
+                _bz = None
             result = run_option_qc(st.themed_pptx_path, st.themed_png_path, expected_palette,
-                                   page_type=pt)
+                                   page_type=pt, body_zone=_bz)
             # For sketch-path picks, run R4.1-R4.8 checks against the
             # translator's report + script. Merge into the same QC JSON so
             # build_review.py renders them uniformly with the R1-R3 results.
