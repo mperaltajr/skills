@@ -154,6 +154,27 @@ def main() -> int:
     finally:
         H.cleanup(tmp)
 
+    print("[4b] a rebuild moves the old option files aside")
+    tmp, out = H.new_build(2)
+    try:
+        H.write_option(out, 1)
+        H.write_option(out, 2)
+        assert H.finalize(out).returncode == 0
+        brief = tmp / "brief.md"
+        r = H.run("build_deck.py", "--brief", brief, "--template", H.TEMPLATE,
+                  "--out", out, "--pattern", "direct", "--confirm-template", "--slide", "2")
+        assert r.returncode == 0, r.stdout[-1500:] + r.stderr[-1500:]
+        left = sorted(p.name for p in (out / "slide_02").glob("option_*"))
+        assert left == [], f"old option files left in place after a rebuild: {left}"
+        assert list((out / "slide_02" / "_prev").glob("*/option_A.py")), "not kept in _prev"
+        r = H.finalize(out, "--slide", "2")
+        assert r.returncode == 11, (
+            "with the old files gone, finalize must report slide 2 as missing, not "
+            f"quietly rebuild the old design (exit {r.returncode})")
+        print("    ok: old files in _prev/, finalize waits for the new design")
+    finally:
+        H.cleanup(tmp)
+
     print("[5] a designed-but-untranslated sketch slide points at the translator")
     tmp, out = H.new_build(2)
     try:

@@ -1483,6 +1483,29 @@ def write_meta_json(
     return meta_path
 
 
+def _retire_previous_options(slide_dir: Path) -> int:
+    """Move a slide's existing option files into slide_NN/_prev/<timestamp>/.
+
+    A rebuild used to leave them in place. finalize prefers an existing
+    option_X_native.py, so after a worker wrote new HTML, finalize quietly rebuilt
+    the OLD design; and a new sketch could sit beside an old finished file, so
+    the user approved one picture and compile shipped another. Moving them aside
+    (not deleting) keeps them for comparison. Returns how many files moved.
+    """
+    olds = [p for p in slide_dir.glob("option_*") if p.is_file()]
+    if not olds:
+        return 0
+    dest = slide_dir / "_prev" / datetime.now().strftime("%Y%m%dT%H%M%S")
+    dest.mkdir(parents=True, exist_ok=True)
+    for p in olds:
+        try:
+            p.replace(dest / p.name)
+        except OSError as exc:
+            sys.stderr.write(f"  WARN: could not move {p.name} aside: {exc}\n")
+    print(f"  moved {len(olds)} previous option file(s) to {dest}")
+    return len(olds)
+
+
 def update_meta_for_rebuild(
     out_dir: Path,
     brief: dict[str, Any],
@@ -2393,6 +2416,8 @@ def main() -> int:
         slide_n = slide["slide_n"]
         slide_dir = _p.slide_dir(args.out, slide_n)
         slide_dir.mkdir(parents=True, exist_ok=True)
+        if target_slide_n is not None:
+            _retire_previous_options(slide_dir)
         likely_prior = format_prior_patterns(slide_n, forecasts)
         # Build-path routing for this slide: sketch = HTML output,
         # direct = python-pptx. Unrouted slides default to direct.

@@ -297,7 +297,7 @@ The HTML phase is not optional: the worker MUST render their HTML and read the r
 
 Worker prompt directive (enforced in `slide-builder-worker.md`):
 
-> Before emitting `# OPTION_A_DONE`, run the HTML render pipeline (`scripts/render_html.py --in option_A.html --out option_A.png --canvas 1280x720`) and READ the rendered PNG. Describe in one sentence what you see (e.g., "Anchor row visible at row 3 with rounded card + purple stripe + checkmark icon; comparison rows below with subtler weight"). If the render doesn't match your intent, fix the HTML and re-render before emitting done.
+> Before emitting `# OPTION_A_DONE`, run the HTML render pipeline (`scripts/render_html.py --in option_A.html --out option_A.sketch.png --canvas 1280x720`) and READ the rendered PNG. Describe in one sentence what you see (e.g., "Anchor row visible at row 3 with rounded card + purple stripe + checkmark icon; comparison rows below with subtler weight"). If the render doesn't match your intent, fix the HTML and re-render before emitting done.
 
 This is enforced via `_context_ack.txt` (existing pattern from Gap 3 in prior work). The acknowledgment line cites both the constraint that informed the design AND the visual confirmation after render.
 

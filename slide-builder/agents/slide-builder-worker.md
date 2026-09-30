@@ -111,7 +111,7 @@ Follow the procedure in your `_prompt.md` verbatim:
    **Check 1 — render + read.** Render your HTML to PNG via the project's render wrapper and READ the resulting PNG before emitting your done marker:
 
    ```
-   py -3 <skill_root>/scripts/render_html.py <out_dir>/slide_NN/option_A.html <out_dir>/slide_NN/option_A.png
+   py -3 <skill_root>/scripts/render_html.py <out_dir>/slide_NN/option_A.html <out_dir>/slide_NN/option_A.sketch.png
    ```
 
    Look at the PNG. Cite what you saw in `_context_ack.txt` (per step 5). If the visual doesn't match your intent, fix the HTML and re-render.

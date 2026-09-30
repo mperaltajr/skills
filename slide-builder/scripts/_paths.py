@@ -47,6 +47,11 @@ RENDER_TMP_DIR     = "_render_tmp"
 def option_py_name(letter: str)          -> str: return f"option_{letter}.py"
 def option_pptx_name(letter: str)        -> str: return f"option_{letter}.pptx"
 def option_png_name(letter: str)         -> str: return f"option_{letter}.png"
+# The worker's HTML render. A separate name from option_X.png (the finished,
+# on-template render finalize writes) because sharing one name let a sketch
+# overwrite the finished preview, or a failed render leave the sketch standing
+# in for the finished slide, with nothing to tell them apart.
+def option_sketch_png_name(letter: str)  -> str: return f"option_{letter}.sketch.png"
 def option_mmd_name(letter: str)         -> str: return f"option_{letter}.mmd"
 def option_mermaid_png_name(letter: str) -> str: return f"option_{letter}-mermaid.png"
 def option_qc_json_name(letter: str)     -> str: return f"option_{letter}.qc.json"

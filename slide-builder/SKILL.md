@@ -208,7 +208,7 @@ STAGE 2 · PARALLEL FANOUT slide-builder-worker agents
                           inside the agent itself.
 
 STAGE 2.5 · HTML RENDER   (sketch-path only) For each option_X.html, parent
-                          session renders to option_X.png via
+                          session renders to option_X.sketch.png via
                           scripts/render_html.py (1280×720 headless
                           Chromium). Workers self-check via the same path
                           before declaring done; this stage is a safety net.
@@ -284,7 +284,7 @@ Adjacency (Hardline #3 — no 3+ consecutive same-split) is **soft-enforced at p
 4. **Stage 2 — Parallel fanout.** Dispatch one `slide-builder-worker` agent per slide IN PARALLEL from the parent session. **At most 20 agents at a time** — `dispatch_plan.md` lists the waves when the deck is bigger than that. Dispatches past the limit are rejected, and the rejection is quiet: on one 29-slide deck about 20 of them vanished and `finalize_deck.py` exited 11 with slides 23-29 missing. The same limit applies to the Stage 3.5 translator fan-out, which is one agent per picked slide-option and so can be several times the slide count. Each agent reads the rendered `_prompt.md` and branches on the PATTERN field:
    - **the sketch path** (default): worker produces the requested option HTML file(s) (`option_A.html`, plus `B`/`C` only when the count > 1), then self-checks by rendering each via `scripts/render_html.py` and reading the resulting 1280×720 PNG before declaring done.
    - **the direct path**: worker produces the requested option script(s) (`option_A.py`, plus `B`/`C` only when the count > 1).
-5. **Stage 2.5 — HTML render (sketch-path only).** For each the sketch-path slide's HTML options, the parent session renders to PNG via `py -3 scripts/render_html.py <html> <png>` so REVIEW.html has visual previews. Workers may also do this as part of their self-check; the parent renders any not-yet-rendered as a safety net.
+5. **Stage 2.5 — HTML render (sketch-path only).** For each the sketch-path slide's HTML options, the parent session renders to `option_X.sketch.png` via `py -3 scripts/render_html.py <html> <slide_NN/option_X.sketch.png>` so REVIEW.html has visual previews. Workers may also do this as part of their self-check; the parent renders any not-yet-rendered as a safety net.
 6. **Stage 3 — Review (a HUMAN gate — stop and wait).** Run `build_review.py` to build REVIEW.html (shows PNGs for both the direct and sketch path options). **The orchestrator MUST show the user the `REVIEW.html` file path and WAIT for the user's picks in chat before writing `picks.json`, finalizing, or compiling.** This is the same hard contract as the template-registration gate (see "Show + take picks"): never auto-write picks, never treat the review as a formality.
    - **`options_per_slide: 1` is NOT an auto-pick.** A single option per slide still requires the user's explicit accept — or a request for 1-3 more options on the slides where they want alternatives. Writing `picks.json` as an all-"A" foregone conclusion is the documented failure that skips the user's review entirely (it silently ships whatever the worker produced).
    - **Do not review a half-rendered deck.** `build_review.py` prints `missing PNGs` / `missing themed PPTX` counts; if any option PNG is missing, finish rendering before asking the user to look. A review the user cannot actually see (thumbnails not built) is not a review.

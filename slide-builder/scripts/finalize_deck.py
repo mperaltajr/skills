@@ -2972,6 +2972,14 @@ def _run(args) -> int:
         print("  reflects PowerPoint, not the LibreOffice preview.")
         return EXIT_TITLE_OVERLAP
 
+    # Remove the previous finished preview first. A failed render used to leave
+    # the old picture in place, and the review page showed it as the new slide.
+    for st in themed_statuses:
+        try:
+            st.themed_png_path.unlink(missing_ok=True)
+        except OSError:
+            pass
+
     if not args.skip_render:
         print(f"\n[5] Render themed .pptx -> .png (parallel x4)")
         with ThreadPoolExecutor(max_workers=4) as pool:
