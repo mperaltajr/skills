@@ -32,14 +32,18 @@ from pptx.util import Inches
 
 
 def _approve(out_dir, finalized=("slide_02/A",)):
-    """Set up the build state so compile is allowed: prep records the content-hash
-    + canonical out, finalize records a clean result for each option that will
-    ship, then build_review mints the approval token. Returns the token."""
+    """Set up the build state the way a real run leaves it: prep, a clean
+    finalize record per option, the review, the user's recorded picks, and the
+    final check over the finished files. Returns the final-check token."""
     _state.record_prep(out_dir, "testhash", out_dir)
     _state.begin_finalize(out_dir)
     _state.record_option_qc(out_dir, {k: {"blocks": 0, "reasons": []} for k in finalized})
     _state.end_finalize(out_dir, "ok")
-    return _state.record_review(out_dir)
+    _state.record_review(out_dir)
+    _state.record_picks(out_dir, {k.split("/")[0]: k.split("/")[1] for k in finalized})
+    return _state.record_final_check(out_dir, {
+        k: _state.file_digest(out_dir / k.split("/")[0] / f"option_{k.split('/')[1]}.pptx")
+        for k in finalized})
 
 
 def _titled_slide(prs, text):
@@ -90,7 +94,7 @@ def main() -> int:
         r = subprocess.run(
             [sys.executable, str(SCRIPTS / "compile_picks.py"), "--out", str(out_dir),
              "--picks", str(out_dir / "picks.json"), "--splice-into", str(original),
-             "--final", str(spliced), "--review-token", TOKEN],
+             "--final", str(spliced), "--final-token", TOKEN],
             capture_output=True, text=True)
         assert r.returncode == 0, f"splice failed:\n{r.stdout}\n{r.stderr}"
         assert spliced.exists(), "spliced deck not written"
@@ -113,14 +117,14 @@ def main() -> int:
         print("[4] guard: plain compile on an adopted deck refuses (exit 2)")
         r2 = subprocess.run(
             [sys.executable, str(SCRIPTS / "compile_picks.py"), "--out", str(out_dir),
-             "--picks", str(out_dir / "picks.json"), "--review-token", TOKEN],
+             "--picks", str(out_dir / "picks.json"), "--final-token", TOKEN],
             capture_output=True, text=True)
         assert r2.returncode == 2, f"guard should exit 2, got {r2.returncode}\n{r2.stdout}"
         assert "adopted" in r2.stdout.lower(), r2.stdout
         assert "--splice-into" in r2.stdout, r2.stdout
         print("    ok: adopted-deck guard blocks the deck-wiping compile")
 
-        print("[4b] guard: compile WITHOUT a review token refuses (exit 5)")
+        print("[4b] guard: compile WITHOUT the final-check token refuses (exit 5)")
         r3 = subprocess.run(
             [sys.executable, str(SCRIPTS / "compile_picks.py"), "--out", str(out_dir),
              "--picks", str(out_dir / "picks.json"), "--splice-into", str(original)],
@@ -129,11 +133,11 @@ def main() -> int:
         assert "REFUSED" in r3.stdout, r3.stdout
         print("    ok: no token -> compile blocked")
 
-        print("[4c] guard: a WRONG review token refuses (exit 5)")
+        print("[4c] guard: a WRONG final-check token refuses (exit 5)")
         r4 = subprocess.run(
             [sys.executable, str(SCRIPTS / "compile_picks.py"), "--out", str(out_dir),
              "--picks", str(out_dir / "picks.json"), "--splice-into", str(original),
-             "--review-token", "deadbeefdeadbeef"],
+             "--final-token", "deadbeefdeadbeef"],
             capture_output=True, text=True)
         assert r4.returncode == 5, f"wrong token should exit 5, got {r4.returncode}\n{r4.stdout}"
         print("    ok: forged token rejected")
@@ -142,7 +146,7 @@ def main() -> int:
         r5 = subprocess.run(
             [sys.executable, str(SCRIPTS / "compile_picks.py"), "--out", str(out_dir),
              "--picks", json.dumps({"slide_02": "A"}), "--splice-into", str(original),
-             "--review-token", TOKEN],
+             "--final-token", TOKEN],
             capture_output=True, text=True)
         assert r5.returncode != 0, f"inline picks should be refused, got {r5.returncode}"
         assert "picks.json" in (r5.stdout + r5.stderr), (r5.stdout + r5.stderr)
@@ -168,7 +172,7 @@ def main() -> int:
         r = subprocess.run(
             [sys.executable, str(SCRIPTS / "compile_picks.py"), "--out", str(out5),
              "--picks", str(out5 / "picks.json"),
-             "--splice-into", str(orig5), "--final", str(spliced5), "--review-token", TOKEN5],
+             "--splice-into", str(orig5), "--final", str(spliced5), "--final-token", TOKEN5],
             capture_output=True, text=True)
         assert r.returncode == 0, f"multi-splice failed:\n{r.stdout}\n{r.stderr}"
         got = [_slide_text(s) for s in Presentation(str(spliced5)).slides]

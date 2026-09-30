@@ -1,14 +1,22 @@
 #!/usr/bin/env python3
-"""Smoke test for the review-gate backbone (Rules 1 + 2): the build state
-manifest (_state.json) and the review-approval token.
+"""Smoke test for the review gate: what the user approves is exactly what ships.
 
-Verifies the mechanical chain that makes the human review un-bypassable by drift:
-  1. prep records the deck content-hash + canonical out-dir and clears any prior
-     approval; compile is refused before a review exists;
-  2. build_review.py mints a token, embeds it ONLY inside REVIEW.html, and records
-     it in _state.json bound to the current content-hash;
-  3. the right token is accepted, a wrong/forged token is refused;
-  4. a (re)build (re-prep) invalidates the token, so a stale review cannot compile.
+The order (owner's decision, 2026-09-30):
+  REVIEW.html -> record_picks.py (check-coded picks) -> translate picks ->
+  finalize -> build_review.py --final (FINAL-CHECK.html) -> compile --final-token
+
+Verifies, at the level of the recorded state:
+  1. prep records content-hash + canonical out; compile refused before review
+  2. build_review mints a token bound to the content hash, and REUSES it while
+     nothing changed (a fresh token per rebuild voided commands already copied)
+  3. record_picks accepts the page's line and refuses an edited, forged,
+     partial or stale one
+  4. the page keys picks to a per-slide stamp, offers Replace these (not the old
+     +more picker) and an All options button that warns about cost
+  5. a missing preview is called out on the page
+  6. a re-prep clears the review, the picks and the final check
+  7. the final check binds compile to the bytes the user saw, and any finalize
+     clears it
 
 Run:  py -3 slide-builder/tests/run_review_gate_smoke.py   (python3 on macOS/Linux)
 Prints "SMOKE PASSED." on success; raises AssertionError otherwise.
@@ -30,16 +38,34 @@ import _state  # noqa: E402
 
 
 def _minimal_deck(out: Path) -> None:
-    (out / "slide_01").mkdir(parents=True)
-    (out / "slide_01" / "option_A.pptx").write_bytes(b"PK demo")
-    (out / "slide_01" / "option_A.png").write_bytes(b"\x89PNG demo")
-    (out / "slide_01" / "_prompt.md").write_text("**Slide title:** Demo\n", encoding="utf-8")
+    for n in (1, 2):
+        d = out / f"slide_0{n}"
+        d.mkdir(parents=True)
+        (d / "option_A.py").write_text("# option A\n", encoding="utf-8")
+        (d / "option_B.py").write_text("# option B\n", encoding="utf-8")
+        (d / "option_A.pptx").write_bytes(b"PK demo A")
+        (d / "option_B.pptx").write_bytes(b"PK demo B")
+        (d / "option_A.png").write_bytes(b"\x89PNG demo")
+        (d / "option_B.png").write_bytes(b"\x89PNG demo")
+        (d / "_prompt.md").write_text(f"**Slide title:** Demo {n}\n", encoding="utf-8")
     (out / "_meta.json").write_text(json.dumps({
         "schema_version": 3, "template": "t.pptx", "brief": "b.md", "out": str(out),
-        "client_slug": "demo", "slide_count": 1, "generated_at": "2026-01-01T00:00:00",
-        "slides": [{"n": 1, "title": "Demo", "page_type": "Cover", "layout": "L", "options": ["A"]}],
+        "client_slug": "demo", "slide_count": 2, "generated_at": "2026-01-01T00:00:00",
+        "slides": [{"n": n, "title": f"Demo {n}", "page_type": "Content", "layout": "L",
+                    "options": ["A", "B"]} for n in (1, 2)],
         "deck_meta": {"deck_type": "x", "governing_thought": "g", "audience": "a"},
     }), encoding="utf-8")
+
+
+def _run(script, *args):
+    return subprocess.run([sys.executable, str(SCRIPTS / script), *map(str, args)],
+                          capture_output=True, text=True,
+                          env={**os.environ, "PYTHONPATH": str(SCRIPTS)})
+
+
+def _line(token, picks):
+    body = _state.canonical_picks(picks)
+    return f"PICKS {body} CHECK {_state.approval_check(token, body)}"
 
 
 def main() -> int:
@@ -51,76 +77,84 @@ def main() -> int:
         print("[1] prep records content-hash + canonical out; compile refused pre-review")
         _state.record_prep(out, "hashV1", out)
         st = _state.read_state(out)
-        assert st["content_hash"] == "hashV1", st
-        assert st.get("review") is None, "prep must not leave an approval"
+        assert st["content_hash"] == "hashV1" and st.get("review") is None, st
         assert Path(st["canonical_out"]).resolve() == out.resolve(), st
-        ok, _ = _state.check_compile_allowed(out, "anything")
-        assert not ok, "compile must refuse before any review"
+        assert not _state.check_compile_allowed(out, "anything")[0]
         print("    ok")
 
-        print("[2] build_review mints the token into REVIEW.html + _state.json")
-        r = subprocess.run(
-            [sys.executable, str(SCRIPTS / "build_review.py"), "--out", str(out)],
-            capture_output=True, text=True,
-            env={**os.environ, "PYTHONPATH": str(SCRIPTS)})
-        assert r.returncode == 0, f"build_review failed:\n{r.stderr[-600:]}"
-        st = _state.read_state(out)
-        tok = st["review"]["token"]
+        print("[2] build_review mints a token bound to the content, and reuses it")
+        r = _run("build_review.py", "--out", out)
+        assert r.returncode == 0, r.stderr[-600:]
+        tok = _state.read_state(out)["review"]["token"]
+        assert _state.read_state(out)["review"]["content_hash"] == "hashV1"
+        assert _run("build_review.py", "--out", out).returncode == 0
+        assert _state.read_state(out)["review"]["token"] == tok, (
+            "rebuilding the page with nothing changed minted a new token, which "
+            "voids a command the user already copied")
         html = (out / "REVIEW.html").read_text(encoding="utf-8")
-        assert tok in html, "token not surfaced in REVIEW.html"
-        assert "__REVIEW_TOKEN__" in html, "token JS var missing from REVIEW.html"
-        assert st["review"]["content_hash"] == "hashV1", "token not bound to content-hash"
-        print(f"    ok: token {tok[:6]}... embedded + recorded")
+        assert "--review-token" not in html, "the bare-token compile command is back"
+        print(f"    ok: token {tok[:6]}... stable across rebuilds of the page")
 
-        print("[3] right token accepted; forged token refused")
-        ok, _ = _state.check_compile_allowed(out, tok)
-        assert ok, "the minted token must be accepted"
-        ok, _ = _state.check_compile_allowed(out, "deadbeefdeadbeef")
-        assert not ok, "a forged token must be refused"
+        print("[3] record_picks: the page's line is accepted; anything else is not")
+        both = {"slide_01": "B", "slide_02": "A"}
+        assert _run("record_picks.py", "--out", out, "--approved",
+                    _line(tok, both).replace("slide_01=B", "slide_01=A")).returncode == 5, \
+            "an edited pick must be refused"
+        assert _run("record_picks.py", "--out", out, "--approved",
+                    _line("deadbeefdeadbeef", both)).returncode == 5, "forged token"
+        assert _run("record_picks.py", "--out", out, "--approved",
+                    _line(tok, {"slide_01": "B"})).returncode == 5, "partial picks"
+        assert _run("record_picks.py", "--out", out, "--approved",
+                    _line(tok, {"slide_01": "C", "slide_02": "A"})).returncode == 5, \
+            "a pick of an option that does not exist"
+        r = _run("record_picks.py", "--out", out, "--approved", _line(tok, both))
+        assert r.returncode == 0, r.stdout
+        assert _state.read_state(out)["review"]["picks"] == both
+        print("    ok: edited / forged / partial / nonexistent refused; real line recorded")
+
+        print("[4] the page: stamped picks, Replace these, All options with a warning")
+        assert "{ l: letter, s: STAMPS[sid] }" in html, "picks are not stamped"
+        assert "window.__STAMPS__" in html
+        assert "REPLACE THESE" in html and "more-opt" not in html.split("<script>")[0], \
+            "Replace these missing, or the old +more picker still rendered"
+        assert 'id="btn-all"' in html and "the conversion cost" in html, \
+            "All options button or its cost warning is missing"
         print("    ok")
-
-        print("[4] picks are slide-keyed and do NOT gate on a themed PPTX")
-        # The themed option_X.pptx is written by finalize, which runs AFTER the
-        # review. Gating picks on it left 36 of 39 buttons inert on a real build.
-        assert "picks[sid] = letter" in html, "pick store is not slide-keyed"
-        assert "has no themed PPTX" not in html, "the themed-PPTX pick gate is still present"
-        assert "loadPicks()[sid]" in html, "pickForSlide still resolves through SLIDE_MAP"
-        assert "window.__OUT_DIR__ || window.location.pathname" in html, \
-            "pick store is still namespaced per-file (shareable copy would split it)"
-        print("    ok: pick = slide id -> letter, namespaced on the out dir")
 
         print("[5] a missing preview is surfaced in the page, not just the log")
         (out / "slide_01" / "option_A.png").unlink()
-        r = subprocess.run(
-            [sys.executable, str(SCRIPTS / "build_review.py"), "--out", str(out)],
-            capture_output=True, text=True, env={**os.environ, "PYTHONPATH": str(SCRIPTS)})
-        assert r.returncode == 0, r.stderr[-400:]
+        assert _run("build_review.py", "--out", out).returncode == 0
         html2 = (out / "REVIEW.html").read_text(encoding="utf-8")
-        assert "have no rendered preview" in html2, "no in-page warning for unviewable tiles"
+        assert "have no rendered preview" in html2
         assert "Do not approve a deck you could not look at" in html2
-        print("    ok: unviewable tiles are called out in the review itself")
+        print("    ok")
 
-        print("[6] a rebuild (re-prep) invalidates the token -> stale review refused")
-        tok2 = _state.read_state(out)["review"]["token"]
-        _state.record_prep(out, "hashV2", out)   # content changed / rebuilt
-        ok, why = _state.check_compile_allowed(out, tok2)
-        assert not ok, "a stale review token must be refused after a rebuild"
-        print(f"    ok: {why[:56]}")
+        print("[6] a re-prep clears the review, the picks and the final check")
+        _state.record_final_check(out, {"slide_01/B": "x"})
+        _state.record_prep(out, "hashV2", out)
+        st = _state.read_state(out)
+        assert not st.get("review") and not st.get("final_check"), st
+        r = _run("record_picks.py", "--out", out, "--approved", _line(tok, both))
+        assert r.returncode == 5, "the old page's line must not record after a rebuild"
+        print("    ok")
 
-        print("[7] re-finalize after a compile also clears the approval")
-        _state.record_prep(out, "hashV3", out)
-        tok3 = _state.record_review(out)
-        assert _state.check_compile_allowed(out, tok3)[0]
-        assert not _state.has_compiled(out), "no compile recorded yet"
-        # First full finalize sits between the pick and the compile: exempt.
-        assert _state.invalidate_review(out, "x") is True  # (direct call drops it)
-        tok4 = _state.record_review(out)
-        _state.record_compile(out)
-        assert _state.has_compiled(out), "compile not recorded"
-        assert _state.invalidate_review(out, "re-finalized after compile") is True
-        ok, _ = _state.check_compile_allowed(out, tok4)
-        assert not ok, "an approval must not survive a rebuild of shipped content"
-        print("    ok: approval cleared once already-shipped content is rebuilt")
+        print("[7] the final check binds compile to the bytes the user saw")
+        tok = _state.record_review(out)
+        _state.record_picks(out, both)
+        themed = {k: out / k.split("/")[0] / f"option_{k.split('/')[1]}.pptx"
+                  for k in ("slide_01/B", "slide_02/A")}
+        ftok = _state.record_final_check(
+            out, {k: _state.file_digest(p) for k, p in themed.items()})
+        path_for = themed.__getitem__
+        assert _state.check_compile_allowed(out, ftok, path_for)[0]
+        assert not _state.check_compile_allowed(out, "wrong", path_for)[0]
+        themed["slide_02/A"].write_bytes(b"PK changed after the final check")
+        ok, why = _state.check_compile_allowed(out, ftok, path_for)
+        assert not ok and "changed after the final" in why, why
+        _state.begin_finalize(out)
+        assert not _state.read_state(out).get("final_check"), \
+            "a finalize must clear the final check: it writes files the user has not seen"
+        print("    ok: token + bytes both checked; finalize clears the check")
 
         print("\nSMOKE PASSED.")
         return 0

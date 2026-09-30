@@ -2718,6 +2718,30 @@ def _run(args) -> int:
             print(f"ERROR: --slide {args.slide} has no option scripts under {args.out}. "
                   f"Run build_deck.py --slide {args.slide} and dispatch a worker first.")
             return EXIT_MISSING_OUTPUT
+    # A sketch design is only translated once it is picked (owner's decision:
+    # translation is the expensive step, so it runs on picks only). So a sketch
+    # with its HTML but no native script is not "missing" when nobody has picked
+    # yet, or when it was not picked; it is simply not being converted.
+    import _state  # noqa: E402
+    _picks = ((_state.read_state(args.out).get("review") or {}).get("picks")) or {}
+
+    def _awaiting_pick(st) -> bool:
+        if st.classification != "missing":
+            return False
+        if not (_p.slide_dir(args.out, st.slide_n) / f"option_{st.letter}.html").exists():
+            return False
+        if not _picks:
+            return True
+        chosen = _picks.get(_p.slide_key(st.slide_n))
+        chosen = chosen if isinstance(chosen, list) else [chosen]
+        return st.letter not in chosen
+
+    _waiting = [s for s in statuses if _awaiting_pick(s)]
+    if _waiting:
+        statuses = [s for s in statuses if not _awaiting_pick(s)]
+        print(f"  {len(_waiting)} sketch design(s) not converted "
+              f"({'nobody has picked yet' if not _picks else 'not picked'}); "
+              "they are reviewed as sketches.")
     n_native = sum(1 for s in statuses if s.classification == "native")
     n_sketch = sum(1 for s in statuses if s.classification == "sketch_translated")
     n_rejected = sum(1 for s in statuses if s.classification == "skeleton_rejected")
@@ -3133,23 +3157,10 @@ def _run(args) -> int:
     except Exception as exc:
         print(f"  WARNING: build_gate_preview.py invocation failed: {type(exc).__name__}: {exc}")
 
-    # A rebuild must not ship on an approval the user gave for the PREVIOUS
-    # content. build_deck clears the approval when it re-preps, but a targeted
-    # re-finalize (or any re-finalize after a compile) also changes built output
-    # without going through build_deck, which is how one review token rode six
-    # rebuilds and seven compiles in the 13-slide build. A first full finalize
-    # sits legitimately between the pick and the compile, so it is exempt.
-    try:
-        import _state  # noqa: E402
-        if args.slide is not None or _state.has_compiled(args.out):
-            _why = (f"finalize --slide {args.slide}" if args.slide is not None
-                    else "deck re-finalized after a compile")
-            if _state.invalidate_review(args.out, _why):
-                print("\n  NOTE: the previous review approval was cleared "
-                      f"({_why}).\n        Re-run build_review.py and have the user "
-                      "re-pick before compiling.")
-    except Exception as exc:  # never let bookkeeping break a finished build
-        print(f"  WARNING: could not update build state: {type(exc).__name__}: {exc}")
+    # No approval bookkeeping here any more. Picks survive a re-finalize (it is
+    # how picked sketches get converted), and any finished file finalize writes
+    # is covered by the final check: begin_finalize cleared it, and compile
+    # compares every shipped file's bytes with what the user saw there.
 
     print("\n" + "=" * 72)
     print("DONE — Part B complete.")

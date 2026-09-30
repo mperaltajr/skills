@@ -66,7 +66,11 @@ def main() -> int:
         page = tmp / "one_pager.pptx"
         _supplied_page(page, tmp / "x.png")
         _state.record_prep(out, "h", out)
-        tok = _state.record_review(out)
+        _state.record_review(out)
+        # The rest of the approval chain, so the ledger is the only thing
+        # standing between this build and a compile.
+        _state.record_picks(out, {"slide_01": "A"})
+        tok = _state.record_final_check(out, {})
         env = {**os.environ, "PYTHONPATH": str(SCRIPTS)}
 
         print("[1] only figure-bearing slots are listed, incl. table cells")
