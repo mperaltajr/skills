@@ -202,7 +202,8 @@ def file_digest(path) -> str:
     return h.hexdigest()
 
 
-def record_vision_qc(out_dir, deck: str, slides_reviewed: int, findings: int = 0) -> None:
+def record_vision_qc(out_dir, deck: str, slides_reviewed: int, findings: int = 0,
+                     criticals: int = 0, majors: int = 0, advisories: int = 0) -> None:
     """Record that a real page-by-page VISION pass ran over the compiled deck.
 
     "Done" used to be an orchestrator claim backed by the deterministic
@@ -216,12 +217,15 @@ def record_vision_qc(out_dir, deck: str, slides_reviewed: int, findings: int = 0
     """
     state = read_state(out_dir)
     state["vision_qc"] = {"deck": str(deck), "slides_reviewed": int(slides_reviewed),
-                          "findings": int(findings), "at": _now(),
-                          "digest": file_digest(deck)}
+                          "findings": int(findings or (criticals + majors + advisories)),
+                          "criticals": int(criticals), "majors": int(majors),
+                          "advisories": int(advisories),
+                          "at": _now(), "digest": file_digest(deck)}
     _write(out_dir, state)
 
 
-def record_compile(out_dir, kind: str = "picks", output=None, slides: int = 0) -> None:
+def record_compile(out_dir, kind: str = "picks", output=None, slides: int = 0,
+                   options=None) -> None:
     """A deck was compiled. Records what came out, so check_done can verify
     the file it is shown is that file, unchanged, built from current content.
 
@@ -234,7 +238,8 @@ def record_compile(out_dir, kind: str = "picks", output=None, slides: int = 0) -
         "output": str(Path(output).resolve()) if output else "",
         "digest": file_digest(output) if output else "",
         "content_hash": state.get("content_hash"),
-        "slides": int(slides or 0)}
+        "slides": int(slides or 0),
+        "options": list(options or [])}
     _write(out_dir, state)
 
 

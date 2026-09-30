@@ -74,6 +74,18 @@ def main() -> int:
         print("    ok: finalize status ok, two option records, compile exit 0, "
               "compile recorded with its output and slide count")
 
+        print("[1a] vision pass + check_done over the real compiled deck")
+        deck = out / "final_deck.pptx"
+        r = H.run("check_done.py", "--out", out)
+        assert r.returncode == 1 and "no vision pass" in r.stdout, r.stdout
+        r = H.run("record_vision_qc.py", "--out", out, "--deck", deck,
+                  "--slides-reviewed", 2, "--criticals", 0, "--majors", 0,
+                  "--advisories", 1)
+        assert r.returncode == 0, r.stdout + r.stderr
+        r = H.run("check_done.py", "--out", out)
+        assert r.returncode == 0 and "DELIVERABLE (final deck)" in r.stdout, r.stdout
+        print("    ok: refused before the vision pass, deliverable after")
+
         print("[1b] a partial pick is refused; --drop makes the omission explicit")
         good_digest = _state.file_digest(out / "final_deck.pptx")
         tok = _review_and_pick(out, {"slide_01": "A"})

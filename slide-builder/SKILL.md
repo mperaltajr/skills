@@ -302,7 +302,7 @@ Adjacency (Hardline #3 — no 3+ consecutive same-split) is **soft-enforced at p
     ```powershell
     py -3 scripts/check_done.py --out <out>
     ```
-    It exits non-zero unless (a) a final deck was compiled from an approved review, (b) finalize recorded **zero** blocking QC findings, and (c) a **vision pass covering every slide** is recorded (slide-qc writes it via `record_vision_qc.py`). The deterministic self-check does not count: it is structurally blind to shapes overlapping and to large empty areas, which is exactly the class that has shipped before. Do not tell the user the deck is finished until this passes.
+    It checks one chain of recorded facts and exits non-zero if any link breaks: a compile **succeeded** and recorded its output; the deck is **that file, byte for byte** (no edits since); it was built from the **current** brief; it opens with nothing PowerPoint refuses; every option in it finalized with **zero** blocking findings; a **vision pass over those same bytes covered every slide** (slide-qc records it via `record_vision_qc.py`); and **no Critical or Major finding is open** (only Advisory may remain). The deterministic self-check does not count: it is structurally blind to shapes overlapping and to large empty areas, which is exactly the class that has shipped before. Do not tell the user the deck is finished until this passes.
 12. **Deliver.** PPTX. Output full absolute Windows path. No preview links.
 
 Rebuild individual slides with "rebuild slide N". This re-prep + re-finalize touches only slide N and grafts it back into the existing deck — every other slide's prompt, themed PPTX, and pick are left exactly as they were:
