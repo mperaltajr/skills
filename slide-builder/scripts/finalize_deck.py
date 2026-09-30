@@ -82,6 +82,7 @@ from twins.composer import (  # noqa: E402
     _find_named_layout,
     _strip_layout_placeholders,
     clone_missing_chrome_placeholders,
+    reassign_shape_ids,
     remove_empty_placeholders,
     TemplatePlaceholderEmptyError,
 )
@@ -2151,6 +2152,12 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
         # ships an off-grid size from a worker's Pt(8.2) or the translator's
         # px->pt conversion. Applies to both build paths.
         _snap_font_sizes(new_slide.shapes)
+
+        # Last, after every shape this function adds (overlay, title block,
+        # cloned chrome placeholders): the graft merges shape trees that each
+        # numbered themselves from 1, and PowerPoint refuses to open a slide
+        # whose shape ids collide. LibreOffice and python-pptx do not.
+        reassign_shape_ids(new_slide)
 
         st.themed_pptx_path.parent.mkdir(parents=True, exist_ok=True)
         prs.save(str(st.themed_pptx_path))
