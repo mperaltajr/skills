@@ -138,8 +138,8 @@ def parse_picks(arg: Optional[str], out_dir: Path) -> dict[str, str]:
         if not as_path.exists():
             raise SystemExit(
                 "--picks must be a path to a picks.json file on disk. Inline JSON is "
-                "no longer accepted: picks must be produced by the human review "
-                f"(REVIEW.html writes picks.json). No such file: {arg}")
+                "no longer accepted: picks come from the human review "
+                f"(record_picks.py writes picks.json). No such file: {arg}")
         raw = as_path.read_text(encoding="utf-8")
 
     try:
@@ -156,6 +156,9 @@ def parse_picks(arg: Optional[str], out_dir: Path) -> dict[str, str]:
         if not m:
             raise SystemExit(f"--picks: bad key {k!r}, expected like 'slide_01'")
         key = _p.slide_key(int(m.group(1)))
+        if isinstance(v, list):          # an all-options approval
+            normalized[key] = [str(x).strip().upper() for x in v]
+            continue
         letter = str(v).strip().upper()
         if not letter:
             raise SystemExit(f"--picks: empty letter for {key}")
@@ -638,19 +641,19 @@ def main() -> int:
                          "new file (never overwrites the original). Use this for a "
                          "deck adopted via adopt_deck.py — a plain compile would "
                          "drop the un-rebuilt slides.")
-    ap.add_argument("--review-token", default=None,
-                    help="REQUIRED to compile a final picked deck. The token build_review.py "
-                         "minted and displayed ONLY inside REVIEW.html (in its 'Build my deck' "
-                         "command). compile refuses unless it matches the review recorded for "
-                         "the current deck content-hash. Never invent it — it exists only after "
-                         "a real review was built for this deck. Not used with --all-variations "
-                         "(a pre-pick review artifact, guarded separately).")
+    ap.add_argument("--final-token", default=None,
+                    help="REQUIRED. The token in the Build command on FINAL-CHECK.html "
+                         "(build_review.py --final), the page where the user looks at "
+                         "every pick finished on the template. compile refuses unless it "
+                         "matches and the finished files still have the bytes the user "
+                         "saw. Never invent it.")
+    ap.add_argument("--review-token", default=None, help=argparse.SUPPRESS)
     args = ap.parse_args()
-    if args.all_variations and args.picks:
-        print("ERROR: --all-variations is mutually exclusive with --picks. "
-              "Choose one: pick-driven compile (--picks) OR all-variations "
-              "stack (--all-variations).")
-        return 2
+    if args.review_token and not args.final_token:
+        print("REFUSED: --review-token was replaced by --final-token. The user picks "
+              "in REVIEW.html, sees the finished picks in FINAL-CHECK.html, and that "
+              "page's Build command carries the token compile needs.")
+        return 5
 
     from _log import attach as _log_attach
     _log_attach(args.out, "compile_picks.py")
@@ -672,11 +675,13 @@ def main() -> int:
     # A (re)build clears the token (build_deck), so a stale review can't compile.
     # --all-variations is a pre-pick review ARTIFACT (see its own guard below), so
     # it does not carry a token.
-    if not args.all_variations:
-        ok, reason = _state.check_compile_allowed(out_dir, args.review_token)
-        if not ok:
-            print("REFUSED: will not compile a final deck.\n  " + reason)
-            return 5
+    # Approval: the picks the user made (recorded by record_picks.py from the
+    # page's check-coded line) and the final look at the finished picks. The
+    # file comparison runs further down, once the options to ship are known.
+    ok, reason = _state.check_compile_allowed(out_dir, args.final_token)
+    if not ok:
+        print("REFUSED: will not compile.\n  " + reason)
+        return 5
     # These apply to every mode. --all-variations used to skip all of them, so
     # an all-options deck shipped with recorded QC blocks and unreconciled
     # figures; both 09/29 decks went out that way.
@@ -703,60 +708,35 @@ def main() -> int:
         print(f"ERROR: template (from _meta.json) not found: {template_path}")
         return 2
 
-    # All-variations mode synthesizes a
-    # picks-like structure that carries ALL options per slide instead of
-    # one. Downstream rendering iterates the same loop; the only difference
-    # is the picks dict value is a LIST of letters instead of a single str.
-    if args.all_variations:
-        picks: dict = {}
-        for s in meta.get("slides", []):
-            n = s.get("n")
-            if isinstance(n, int):
-                sdir = out_dir / _p.slide_key(n)
-                # Iterate the options actually built on disk — the count is
-                # now settings-driven (default 1) and a reviewer may have
-                # requested extra options on specific slides, so a hardcoded
-                # A/B/C would emit FAIL rows for options that never existed.
-                letters = sorted(
-                    p.stem.split("_")[1] for p in sdir.glob("option_?.pptx")
-                )
-                picks[_p.slide_key(n)] = letters or list(_p.option_letters())
-        # Rule 2 guard: with one option per slide, --all-variations produces a
-        # full one-option deck identical to an all-"A" pick, with no review token
-        # — i.e. an unapproved final deck by another name. Refuse it and route the
-        # user to the real pick flow.
-        if picks and all(len(v) <= 1 for v in picks.values()):
-            print("REFUSED: --all-variations needs at least one slide with multiple "
-                  "options. With one option per slide it is just an unapproved final "
-                  "deck. Build REVIEW.html, have the user pick, then compile with "
-                  "--review-token.")
+    # The picks come from the approval, never from a file someone wrote. They
+    # used to be transcribed into picks.json by hand, which is how a pick of A
+    # was once recorded as B.
+    _review = _state.read_state(out_dir).get("review") or {}
+    picks = dict(_review.get("picks") or {})
+    if bool(_review.get("all_options")) != bool(args.all_variations):
+        if _review.get("all_options"):
+            print("REFUSED: the user approved ALL options in one deck; add "
+                  "--all-variations (and --badge).")
+        else:
+            print("REFUSED: --all-variations needs the user's approval for it: the "
+                  "'All options in one deck' button on REVIEW.html.")
+        return 5
+    if args.picks:
+        _given = parse_picks(args.picks, out_dir)
+        if _given != picks:
+            print("REFUSED: --picks differs from the picks the user approved. Drop "
+                  "--picks; compile uses the approved ones.")
             return 5
+    _dropped = {int(x) for x in (args.drop or "").replace(" ", "").split(",") if x}
+    if _dropped:
+        picks = {k: v for k, v in picks.items() if int(k.split("_")[1]) not in _dropped}
+        print(f"  leaving out slide(s) {sorted(_dropped)} on purpose (--drop)")
+    if args.all_variations:
         total = sum(len(v) for v in picks.values())
-        print(f"  all-variations mode: {len(picks)} slides, "
-              f"{total} options present = {total} planned outputs")
+        print(f"  all-variations mode: {len(picks)} slides, {total} options")
         final_path: Path = args.final or (out_dir / "final_deck_all_variations.pptx")
     else:
-        picks = parse_picks(args.picks, out_dir)
         final_path = args.final or (out_dir / "final_deck.pptx")
-        # Every slide in the build, or an explicit reason it is left out. A
-        # partial picks file used to compile into a shorter deck with no
-        # warning, and every later check passed because it compared the deck
-        # against itself: a 12-slide brief could ship as 10 slides.
-        _dropped = {int(x) for x in (args.drop or "").replace(" ", "").split(",") if x}
-        _expected = {s.get("n") for s in meta.get("slides", [])
-                     if isinstance(s.get("n"), int)}
-        _picked = {int(k.split("_")[1]) for k, v in picks.items()
-                   if v and str(v).strip().lower() != "none"}
-        _unpicked = sorted(_expected - _picked - _dropped)
-        # An adopted external deck only ever rebuilds some slides; it has its
-        # own guard below that routes to --splice-into.
-        if _unpicked and not args.splice_into and not meta.get("adopted_source"):
-            print(f"REFUSED: {len(_unpicked)} slide(s) have no pick: "
-                  f"{', '.join(f'slide {n}' for n in _unpicked)}.\n"
-                  "  Every slide in the build must be picked, or left out on purpose "
-                  "with --drop N[,M]. Compiling without them would ship a shorter "
-                  "deck than the brief with nothing saying so.")
-            return 5
 
     # Every option about to ship must have been finalized, and cleanly. Checked
     # per option against exactly what ships, so a blocked option nobody picked
@@ -767,6 +747,24 @@ def main() -> int:
              for L in (v if isinstance(v, list) else [v])
              if L and str(L).strip().lower() not in ("none", "")]
     ok, reason = _state.check_options_finalized(_state.read_state(out_dir), _ship)
+    if not ok:
+        print("REFUSED: will not compile.\n  " + reason)
+        return 5
+    # The finished files must be the ones the user looked at in the final check,
+    # and every shipped option must have been in it.
+    _fc = (_state.read_state(out_dir).get("final_check") or {}).get("digests") or {}
+    _unseen = [k for k in _ship if k not in _fc]
+    if _unseen:
+        print(f"REFUSED: {len(_unseen)} option(s) were not in the final check the user "
+              f"saw: {', '.join(_unseen[:6])}. Run build_review.py --final again.")
+        return 5
+
+    def _themed(key):
+        slide, letter = key.split("/")
+        return out_dir / slide / _p.option_pptx_name(letter)
+
+    ok, reason = _state.check_compile_allowed(out_dir, args.final_token,
+                                              themed_path_for=_themed)
     if not ok:
         print("REFUSED: will not compile.\n  " + reason)
         return 5

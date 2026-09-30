@@ -2,25 +2,33 @@
 """End-to-end smoke: the real scripts, run in order, on the bundled template.
 
 Every other smoke calls functions with hand-built state. This runs prep, a
-worker-shaped option script per slide, finalize, review and compile as separate
-processes, the way a build does, and checks that what each stage records is
-what actually happened.
+worker-shaped option script per slide, finalize, the review page, record_picks,
+the final check and compile as separate processes, the way a build does, and
+checks that what each stage records is what actually happened.
+
+The order it drives is the owner's decision (2026-09-30):
+  REVIEW.html -> record_picks.py -> (translate picks) -> finalize ->
+  build_review.py --final (FINAL-CHECK.html) -> compile --final-token
 
 Cases (each one shipped, or could have shipped, a wrong deck before):
-  1. clean build: finalize records every option, compile succeeds
-  2. finalize never ran: compile refuses
-  3. an option script crashes: finalize exits non-zero, records that option as
-     blocked by name, and compile refuses to ship it
-  4. finalize --slide 1 after that must NOT wipe slide 2's block
-  5. a sketch slide with HTML but no native script: exit 11 says to run the
-     translator, not the worker
+  1   clean build: every stage records what happened, compile succeeds,
+      check_done passes only after a vision pass
+  1b  partial picks and tampered picks are refused by record_picks
+  1c  a deck failing its integrity check never replaces the good one
+  1d  a finished file changed after the final check refuses compile
+  1e  the review page's JavaScript check code equals Python's
+  2   compile before finalize / before the final check is refused
+  3   a crashing option script is recorded as blocked, by name
+  4   finalize --slide 1 must not wipe slide 2's block
+  4b  a rebuild moves the old option files aside
+  5   a picked but untranslated sketch points at the translator; an unpicked
+      one is simply not converted
 
-Run:  py -3 slide-builder/tests/run_pipeline_e2e_smoke.py   (about a minute)
+Run:  py -3 slide-builder/tests/run_pipeline_e2e_smoke.py   (about two minutes)
 Prints "SMOKE PASSED." on success; raises AssertionError otherwise.
 """
 from __future__ import annotations
 
-import json
 import sys
 from pathlib import Path
 
@@ -34,45 +42,67 @@ import _state  # noqa: E402
 CRASHING_SCRIPT = "# Slide 2 option A — crashes on purpose\nraise RuntimeError('boom')\n"
 
 
-def _review_and_pick(out: Path, picks: dict) -> str:
+def _review(out: Path) -> str:
     r = H.run("build_review.py", "--out", out)
     assert r.returncode == 0, r.stdout[-1500:] + r.stderr[-1500:]
-    token = (_state.read_state(out).get("review") or {}).get("token")
-    assert token, "build_review did not mint a token"
-    (out / "picks.json").write_text(json.dumps(picks), encoding="utf-8")
-    return token
+    return _state.read_state(out)["review"]["token"]
 
 
-def _compile(out: Path, token: str):
-    return H.run("compile_picks.py", "--out", out, "--picks", out / "picks.json",
-                 "--review-token", token)
+def _line(token: str, picks) -> str:
+    """What the page's Build button puts on the picks line."""
+    body = _state.canonical_picks(picks)
+    return f"PICKS {body} CHECK {_state.approval_check(token, body)}"
+
+
+def _record(out: Path, picks) -> "subprocess.CompletedProcess":
+    token = _review(out)
+    return H.run("record_picks.py", "--out", out, "--approved", _line(token, picks))
+
+
+def _final(out: Path):
+    r = H.run("build_review.py", "--out", out, "--final")
+    tok = (_state.read_state(out).get("final_check") or {}).get("token")
+    return r, tok
+
+
+def _compile(out: Path, token, *extra):
+    args = ["--out", out, *extra]
+    if token:
+        args += ["--final-token", token]
+    return H.run("compile_picks.py", *args)
 
 
 def main() -> int:
-    print("[1] clean build compiles, and finalize records every option")
+    print("[1] clean build, in the owner's order")
     tmp, out = H.new_build(2)
     try:
-        print("[2] compile before finalize is refused")
         H.write_option(out, 1)
         H.write_option(out, 2)
-        tok = _review_and_pick(out, {"slide_01": "A", "slide_02": "A"})
-        r = _compile(out, tok)
-        assert r.returncode == 5 and "has not run" in r.stdout, r.stdout[-800:]
-        print("    ok: refused with nothing finalized")
+        both = {"slide_01": "A", "slide_02": "A"}
+
+        print("[2] compile before finalize / before the final check is refused")
+        r = _record(out, both)
+        assert r.returncode == 0, r.stdout
+        r = _compile(out, None)
+        assert r.returncode == 5 and "final look" in r.stdout, r.stdout[-600:]
+        r, _ = _final(out)
+        assert r.returncode == 5, "a final check before finalize must refuse"
+        print("    ok: no final check yet, compile refuses; final check refuses unfinalized")
 
         r = H.finalize(out)
         assert r.returncode == 0, r.stdout[-2000:] + r.stderr[-2000:]
-        st = _state.read_state(out)
-        assert st["finalize"]["status"] == "ok", st["finalize"]
-        assert set(st["qc"]["by_option"]) == {"slide_01/A", "slide_02/A"}, st["qc"]
-        tok = _review_and_pick(out, {"slide_01": "A", "slide_02": "A"})
+        assert _state.read_state(out)["review"].get("picks") == both, (
+            "a re-finalize must keep the approved picks")
+        r, tok = _final(out)
+        assert r.returncode == 0 and tok, r.stdout + r.stderr
+        assert (out / "FINAL-CHECK.html").exists()
+        r = _compile(out, "0000000000000000")
+        assert r.returncode == 5 and "does not match" in r.stdout, r.stdout[-600:]
         r = _compile(out, tok)
         assert r.returncode == 0, r.stdout[-2000:] + r.stderr[-2000:]
-        assert (out / "final_deck.pptx").exists()
         comp = _state.read_state(out)["stages"]["compile"]
-        assert comp["kind"] == "picks" and comp["slides"] == 2 and comp["digest"], comp
-        print("    ok: finalize status ok, two option records, compile exit 0, "
-              "compile recorded with its output and slide count")
+        assert comp["kind"] == "picks" and comp["slides"] == 2, comp
+        print("    ok: finalize -> final check -> compile with its token")
 
         print("[1a] vision pass + check_done over the real compiled deck")
         deck = out / "final_deck.pptx"
@@ -86,29 +116,27 @@ def main() -> int:
         assert r.returncode == 0 and "DELIVERABLE (final deck)" in r.stdout, r.stdout
         print("    ok: refused before the vision pass, deliverable after")
 
-        print("[1b] a partial pick is refused; --drop makes the omission explicit")
-        good_digest = _state.file_digest(out / "final_deck.pptx")
-        tok = _review_and_pick(out, {"slide_01": "A"})
-        r = _compile(out, tok)
-        assert r.returncode == 5 and "slide 2" in r.stdout, r.stdout[-800:]
-        assert _state.file_digest(out / "final_deck.pptx") == good_digest, (
-            "a refused compile touched the previous deck")
-        r = H.run("compile_picks.py", "--out", out, "--picks", out / "picks.json",
-                  "--review-token", tok, "--drop", "2")
-        assert r.returncode == 0, r.stdout[-1500:]
-        assert _state.read_state(out)["stages"]["compile"]["slides"] == 1
-        print("    ok: refused without a pick for slide 2; --drop 2 compiles a 1-slide deck")
+        print("[1b] partial and tampered picks are refused")
+        r = _record(out, {"slide_01": "A"})
+        assert r.returncode == 5 and "no pick" in r.stdout, r.stdout
+        token = _review(out)
+        good = _line(token, both)
+        tampered = good.replace("slide_02=A", "slide_02=B")
+        r = H.run("record_picks.py", "--out", out, "--approved", tampered)
+        assert r.returncode == 5 and "check code" in r.stdout, r.stdout
+        print("    ok: missing slide and edited pick both refused")
 
-        print("[1c] a deck that fails its integrity check never replaces the good one")
-        good_digest = _state.file_digest(out / "final_deck.pptx")
-        tok = _review_and_pick(out, {"slide_01": "A", "slide_02": "A"})
+        print("[1c] a deck failing its integrity check never replaces the good one")
+        assert _record(out, both).returncode == 0
+        r, tok = _final(out)
+        assert r.returncode == 0
+        good_digest = _state.file_digest(deck)
         import contextlib, io, os
         import compile_picks
         _orig = compile_picks._report_integrity
-        compile_picks._report_integrity = lambda p: 6   # force the failure
+        compile_picks._report_integrity = lambda p: 6
         argv = sys.argv
-        sys.argv = ["compile_picks.py", "--out", str(out), "--picks",
-                    str(out / "picks.json"), "--review-token", tok]
+        sys.argv = ["compile_picks.py", "--out", str(out), "--final-token", tok]
         os.environ["SLIDE_LAB_OPTIONS_PER_SLIDE"] = "1"
         try:
             with contextlib.redirect_stdout(io.StringIO()):
@@ -117,11 +145,72 @@ def main() -> int:
             compile_picks._report_integrity = _orig
             sys.argv = argv
         assert rc == 6, rc
-        assert _state.file_digest(out / "final_deck.pptx") == good_digest, (
-            "the good deck was replaced by one that failed the check")
+        assert _state.file_digest(deck) == good_digest, "good deck was replaced"
         assert (out / "final_deck.REJECTED.pptx").exists()
-        assert not (out / "final_deck.incoming.pptx").exists()
-        print("    ok: exit 6, previous final_deck.pptx untouched, rejected file set aside")
+        print("    ok: exit 6, previous deck untouched, rejected file set aside")
+
+        print("[1d] a finished file changed after the final check refuses compile")
+        themed = out / "slide_01" / "option_A.pptx"
+        from pptx import Presentation
+        from pptx.util import Inches
+        prs = Presentation(str(themed))
+        prs.slides[0].shapes.add_textbox(Inches(1), Inches(1), Inches(1), Inches(1))
+        prs.save(str(themed))
+        r = _compile(out, tok)
+        assert r.returncode == 5 and "changed after the final" in r.stdout, r.stdout[-800:]
+        print("    ok: the user approved different bytes; refused")
+
+        print("[1e] the page's JavaScript check code equals Python's")
+        try:
+            from playwright.sync_api import sync_playwright
+        except ImportError:
+            print("    skipped: playwright not installed")
+        else:
+            token = _review(out)
+            with sync_playwright() as pw:
+                b = pw.chromium.launch()
+                pg = b.new_page()
+                pg.goto((out / "REVIEW.html").resolve().as_uri())
+                js = pg.evaluate("() => approvalCheck(canonicalPicks("
+                                 "{slide_02: 'A', slide_01: 'A'}))")
+                js_all = pg.evaluate("() => approvalCheck('ALL')")
+                b.close()
+            assert js == _state.approval_check(token, "slide_01=A;slide_02=A"), js
+            assert js_all == _state.approval_check(token, "ALL"), js_all
+            print("    ok: identical for a pick list and for ALL")
+
+            print("[1f] the page's Build button: refuses a pending slide, then emits a")
+            print("     line record_picks accepts; a rebuilt slide loses only its own pick")
+            with sync_playwright() as pw:
+                b = pw.chromium.launch()
+                pg = b.new_page()
+                pg.goto((out / "REVIEW.html").resolve().as_uri())
+                pg.evaluate("() => { localStorage.clear(); window.__copied = null;"
+                            " navigator.clipboard.writeText = t => {"
+                            " window.__copied = t; return Promise.resolve(); }; }")
+                pg.click('#card-slide_01 .option[data-letter="A"] img, '
+                         '#card-slide_01 .option[data-letter="A"]')
+                pg.evaluate("() => buildDeck()")
+                assert pg.evaluate("() => window.__copied") is None, (
+                    "Build copied a command with slide 2 still pending")
+                pg.click('#card-slide_02 .option[data-letter="A"] img, '
+                         '#card-slide_02 .option[data-letter="A"]')
+                pg.evaluate("() => buildDeck()")
+                pg.wait_for_function("() => window.__copied")
+                cmd = pg.evaluate("() => window.__copied")
+                # A rebuilt slide 2 gets a new stamp: its pick must fall away,
+                # slide 1's must stay.
+                pg.evaluate("() => { window.__STAMPS__['slide_02'] = 'rebuilt';"
+                            " STAMPS['slide_02'] = 'rebuilt'; }")
+                kept = pg.evaluate("() => [pickForSlide('slide_01'), pickForSlide('slide_02')]")
+                b.close()
+            import re as _re
+            m = _re.search(r'--approved "([^"]+)"', cmd)
+            assert m, cmd
+            r = H.run("record_picks.py", "--out", out, "--approved", m.group(1))
+            assert r.returncode == 0, r.stdout
+            assert kept == ["A", None], kept
+            print("    ok")
     finally:
         H.cleanup(tmp)
 
@@ -135,22 +224,19 @@ def main() -> int:
         by = _state.read_state(out)["qc"]["by_option"]
         assert by["slide_02/A"]["blocks"] > 0, by
         assert "did not build" in " ".join(by["slide_02/A"]["reasons"]), by
-        assert by["slide_01/A"]["blocks"] == 0, by
-        tok = _review_and_pick(out, {"slide_01": "A", "slide_02": "A"})
-        r = _compile(out, tok)
-        assert r.returncode == 5 and "slide_02/A" in r.stdout, r.stdout[-800:]
-        print("    ok: exit 15, slide_02/A blocked, compile refuses naming it")
+        assert _record(out, {"slide_01": "A", "slide_02": "A"}).returncode == 0
+        r, _ = _final(out)
+        assert r.returncode == 5 and "slide_02/A" in r.stderr, r.stderr[-800:]
+        print("    ok: exit 15, slide_02/A blocked, the final check refuses to show it")
 
         print("[4] finalize --slide 1 must not wipe slide 2's block")
         r = H.finalize(out, "--slide", "1")
         assert r.returncode == 0, r.stdout[-1500:]
         by = _state.read_state(out)["qc"]["by_option"]
-        assert by.get("slide_02/A", {}).get("blocks", 0) > 0, (
-            f"slide 2's block vanished after finalize --slide 1: {by}")
-        tok = _review_and_pick(out, {"slide_01": "A", "slide_02": "A"})
-        r = _compile(out, tok)
-        assert r.returncode == 5 and "slide_02/A" in r.stdout, r.stdout[-800:]
-        print("    ok: slide 2 still blocked, compile still refuses")
+        assert by.get("slide_02/A", {}).get("blocks", 0) > 0, by
+        r, _ = _final(out)
+        assert r.returncode == 5, "slide 2 is still blocked"
+        print("    ok: slide 2 still blocked")
     finally:
         H.cleanup(tmp)
 
@@ -160,31 +246,33 @@ def main() -> int:
         H.write_option(out, 1)
         H.write_option(out, 2)
         assert H.finalize(out).returncode == 0
-        brief = tmp / "brief.md"
-        r = H.run("build_deck.py", "--brief", brief, "--template", H.TEMPLATE,
+        r = H.run("build_deck.py", "--brief", tmp / "brief.md", "--template", H.TEMPLATE,
                   "--out", out, "--pattern", "direct", "--confirm-template", "--slide", "2")
         assert r.returncode == 0, r.stdout[-1500:] + r.stderr[-1500:]
         left = sorted(p.name for p in (out / "slide_02").glob("option_*"))
-        assert left == [], f"old option files left in place after a rebuild: {left}"
-        assert list((out / "slide_02" / "_prev").glob("*/option_A.py")), "not kept in _prev"
+        assert left == [], f"old option files left in place: {left}"
+        assert list((out / "slide_02" / "_prev").glob("*/option_A.py"))
         r = H.finalize(out, "--slide", "2")
-        assert r.returncode == 11, (
-            "with the old files gone, finalize must report slide 2 as missing, not "
-            f"quietly rebuild the old design (exit {r.returncode})")
+        assert r.returncode == 11, f"expected 11, got {r.returncode}"
         print("    ok: old files in _prev/, finalize waits for the new design")
     finally:
         H.cleanup(tmp)
 
-    print("[5] a designed-but-untranslated sketch slide points at the translator")
+    print("[5] untranslated sketches: unpicked ones wait, a picked one needs the translator")
     tmp, out = H.new_build(2)
     try:
         H.write_option(out, 1)
         (out / "slide_02" / "option_A.html").write_text("<html></html>", encoding="utf-8")
         r = H.finalize(out)
+        assert r.returncode == 0, (
+            "before any pick, a sketch is reviewed as a sketch, not 'missing' "
+            f"(exit {r.returncode})\n{r.stdout[-800:]}")
+        assert _record(out, {"slide_01": "A", "slide_02": "A"}).returncode == 0
+        r = H.finalize(out)
         assert r.returncode == 11, r.returncode
         msg = r.stdout + r.stderr
         assert "slide-builder-translator" in msg and "slide_02/option_A" in msg, msg[-1200:]
-        print("    ok: exit 11 names the translator for slide_02/option_A")
+        print("    ok: waits before picks; after the pick, exit 11 names the translator")
     finally:
         H.cleanup(tmp)
 

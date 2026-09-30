@@ -62,19 +62,80 @@ def record_prep(out_dir, content_hash: str, canonical_out: str) -> None:
     state["content_hash"] = content_hash
     state["canonical_out"] = str(Path(canonical_out).resolve())
     state.setdefault("stages", {})["prep"] = {"at": _now()}
-    state.pop("review", None)  # any (re)prep invalidates prior approval
+    state.pop("review", None)       # any (re)prep invalidates prior approval
+    state.pop("final_check", None)  # ...and the final look at the finished picks
     _write(out_dir, state)
 
 
 def record_review(out_dir) -> str:
-    """Review page built: mint + record an approval token bound to the deck
-    content-hash recorded at prep, and return it. build_review.py shows it ONLY
-    inside REVIEW.html. On a legacy build with no prep record, content_hash is
-    None on both sides, so the token match alone gates compile."""
+    """Review page built: return the approval token for this content, minting one
+    only if there is none yet for the current content.
+
+    Reusing it matters: a fresh token on every rebuild of the page voided the
+    command the user had already copied from the previous one, and compile then
+    said "does not match" for no reason the user could see.
+    """
     state = read_state(out_dir)
+    review = state.get("review") or {}
+    if review.get("token") and review.get("content_hash") == state.get("content_hash"):
+        return review["token"]
     token = secrets.token_hex(8)
     state.setdefault("stages", {})["review"] = {"at": _now()}
     state["review"] = {"token": token, "content_hash": state.get("content_hash"), "at": _now()}
+    _write(out_dir, state)
+    return token
+
+
+# ---------------------------------------------------------------------------
+# Approval binding. The review page emits a line like
+#     PICKS slide_01=A;slide_02=C CHECK 1a2b3c4d
+# where CHECK is computed from the review token and the exact picks. The same
+# function runs in the page (JavaScript) and here. It is not cryptography: it
+# makes a mistyped or hand-edited pick list fail loudly instead of shipping the
+# wrong option. (The 09/24 build recorded slide 2 as B when A was picked.)
+# ---------------------------------------------------------------------------
+
+def fnv1a32(text: str) -> str:
+    """32-bit FNV-1a over the text's characters, as 8 hex digits. Mirrors the
+    JavaScript in build_review.py character for character (ASCII input)."""
+    h = 0x811C9DC5
+    for ch in text:
+        h ^= ord(ch)
+        h = (h * 0x01000193) & 0xFFFFFFFF
+    return f"{h:08x}"
+
+
+def canonical_picks(picks) -> str:
+    """'ALL', or 'slide_01=A;slide_02=C' sorted by slide."""
+    if picks == "ALL":
+        return "ALL"
+    return ";".join(f"{k}={picks[k]}" for k in sorted(picks))
+
+
+def approval_check(token: str, canonical: str) -> str:
+    return fnv1a32(f"{token}|{canonical}")
+
+
+def record_picks(out_dir, picks: dict, all_options: bool = False) -> None:
+    """The user's approved picks, as verified by record_picks.py. Recording new
+    picks clears any earlier final check: that look was at different slides."""
+    state = read_state(out_dir)
+    review = state.get("review") or {}
+    review.update({"picks": picks, "all_options": bool(all_options),
+                   "approved_at": _now()})
+    state["review"] = review
+    state.pop("final_check", None)
+    _write(out_dir, state)
+
+
+def record_final_check(out_dir, digests: dict) -> str:
+    """The final-check page was built over these finished files. Returns the
+    token its Build command carries; compile refuses unless the files still have
+    these exact bytes."""
+    state = read_state(out_dir)
+    token = secrets.token_hex(8)
+    state["final_check"] = {"token": token, "digests": dict(digests), "at": _now(),
+                            "content_hash": state.get("content_hash")}
     _write(out_dir, state)
     return token
 
@@ -115,6 +176,8 @@ def begin_finalize(out_dir, slide=None) -> None:
                    "blocks": sum(int(v.get("blocks") or 0) for v in by.values())}
     state["finalize"] = {"status": "running", "slide": slide, "at": _now(),
                          "content_hash": state.get("content_hash")}
+    # Anything finalize writes is something the user has not looked at yet.
+    state.pop("final_check", None)
     _write(out_dir, state)
 
 
@@ -248,63 +311,60 @@ def has_compiled(out_dir) -> bool:
     return bool(read_state(out_dir).get("stages", {}).get("compile"))
 
 
-def invalidate_review(out_dir, reason: str = "") -> bool:
-    """Drop any recorded review approval. Called when a stage REBUILDS output that
-    was already reviewed (a targeted re-finalize, or any re-finalize after a
-    compile), so a changed deck cannot ship on the approval the user gave for the
-    previous content. Returns True if an approval was actually dropped.
+def check_compile_allowed(out_dir, final_token: str, themed_path_for=None) -> tuple[bool, str]:
+    """May a deck be compiled? Returns (ok, reason).
 
-    Deliberately NOT called on the first full finalize: the documented order is
-    review -> finalize -> compile, so finalize runs once between the pick and the
-    compile, and invalidating there would make every build unshippable.
+    The order this enforces (the owner's decision, 2026-09-30):
+      1. REVIEW.html: the user picks per slide, from sketches for sketch-path
+         slides and finished renders for direct-path ones.
+      2. record_picks.py records exactly those picks, verified against the
+         page's check code.
+      3. Only the picked sketch designs are translated; finalize runs.
+      4. build_review.py --final: the user looks at every pick, finished, on
+         the template. That page's Build command carries the final token.
+      5. compile, which refuses unless the finished files still have the bytes
+         the user saw at step 4.
+
+    themed_path_for(option_key) -> Path of that option's finished .pptx. When
+    given, each shipped option's bytes are compared with the final check.
     """
     state = read_state(out_dir)
-    if not state.get("review"):
-        return False
-    state.pop("review", None)
-    state.setdefault("stages", {})["review_invalidated"] = {
-        "at": _now(), "reason": reason or "output rebuilt after approval"}
-    _write(out_dir, state)
-    return True
-
-
-def check_compile_allowed(out_dir, review_token: str) -> tuple[bool, str]:
-    """True only if a real review happened for the CURRENT content and the
-    supplied token matches. Returns (ok, reason)."""
-    state = read_state(out_dir)
     if not state:
-        return False, ("no _state.json in this out dir — prep + build_review have "
-                       "not run here (or you pointed --out at the wrong folder)")
+        return False, ("no _state.json in this out dir — prep has not run here "
+                       "(or --out points at the wrong folder)")
     review = state.get("review")
     if not review:
         return False, ("no review recorded — REVIEW.html was not built, or a "
-                       "(re)build invalidated it. Run build_review.py and have the "
-                       "user pick first.")
-    if not review_token:
-        return False, ("no --review-token supplied — copy it from REVIEW.html's "
-                       "'Build my deck' command after the user picks.")
-    if review_token != review.get("token"):
-        return False, ("--review-token does not match the current REVIEW.html. "
-                       "Rebuild the review or copy the current token; never invent one.")
+                       "(re)build cleared it. Run build_review.py and have the user pick.")
     cur = state.get("content_hash")
     if cur and review.get("content_hash") != cur:
-        return False, ("the review is stale — the deck was re-prepped/rebuilt after "
-                       "this review. Run build_review.py again and have the user re-pick.")
-    # A recorded QC block is a hard stop. Absence of a QC record is "no opinion"
-    # (finalize has not run here), never an implicit pass.
-    # A supplied page that is being replicated must have every figure-bearing
-    # slot resolved by a human first. Unresolved means nobody decided whether the
-    # page's number or the brief's number is the right one.
-    sl = state.get("source_ledger") or {}
-    if int(sl.get("unresolved") or 0) > 0:
-        return False, (f"{sl['unresolved']} figure(s) on the supplied page are "
-                       "unreconciled. Every row in source_ledger.json needs a "
-                       "resolution (bind_from_brief / keep_source / replace_with). "
-                       "Replicating a page also replicates its numbers, and that is "
-                       "how stale figures have shipped before.")
-    # QC blocks are checked per option by check_options_finalized, against the
-    # options actually being shipped. A deck-wide count here refused a compile
-    # over an option nobody picked, and was wiped by every finalize --slide.
+        return False, ("the review is stale — the deck was re-prepped after it. "
+                       "Run build_review.py again and have the user re-pick.")
+    if not review.get("picks"):
+        return False, ("no approved picks recorded. The user's 'Build my deck' "
+                       "command from REVIEW.html runs record_picks.py; nothing else "
+                       "records picks.")
+    fc = state.get("final_check")
+    if not fc:
+        return False, ("the user has not had the final look at the finished picks. "
+                       "Run finalize_deck.py, then build_review.py --final, and wait "
+                       "for the user's Build command from FINAL-CHECK.html.")
+    if not final_token:
+        return False, ("no --final-token supplied. It is in the Build command on "
+                       "FINAL-CHECK.html; never invent it.")
+    if final_token != fc.get("token"):
+        return False, ("--final-token does not match the current FINAL-CHECK.html. "
+                       "Use the command from the latest final check.")
+    if themed_path_for is not None:
+        changed = [k for k, d in (fc.get("digests") or {}).items()
+                   if file_digest(themed_path_for(k)) != d]
+        if changed:
+            return False, (f"{len(changed)} finished slide(s) changed after the final "
+                           f"check ({', '.join(changed[:4])}). The user approved "
+                           "different files. Run build_review.py --final again.")
+    ok, why = check_ledger(state)
+    if not ok:
+        return False, why
     return True, "ok"
 
 

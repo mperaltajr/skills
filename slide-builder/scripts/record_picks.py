@@ -1,0 +1,153 @@
+#!/usr/bin/env python3
+"""record_picks.py — record the user's picks exactly as they made them.
+
+REVIEW.html's "Build my deck" button copies a command that runs this script
+with a line like:
+
+    PICKS slide_01=A;slide_02=C CHECK 1a2b3c4d
+
+CHECK is computed in the page from the review token and those exact picks. This
+script recomputes it and refuses on any difference, so a pick list that was
+mistyped, hand-edited, or made up never gets recorded. Picks used to be
+transcribed into picks.json by hand, and one build recorded slide 2 as B when
+the user had picked A.
+
+It also refuses unless every slide has a pick: a partial list used to compile
+into a shorter deck with nothing saying so.
+
+"All options in one deck" sends `PICKS ALL CHECK ...` instead. That deck
+converts every option, not only the picks, so it costs several times the
+tokens; the page warns before sending it.
+
+Run (the page gives you this exact command):
+  py -3 scripts/record_picks.py --out <out_dir> --approved "PICKS ... CHECK ..."
+Exit: 0 recorded | 5 refused | 2 bad usage
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import re
+import sys
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+import _paths as _p  # noqa: E402
+import _state  # noqa: E402
+
+LINE_RE = re.compile(r"PICKS\s+(\S+)\s+CHECK\s+([0-9a-fA-F]{8})")
+
+
+def _letters_on_disk(slide_dir: Path) -> list[str]:
+    """Option letters that exist for a slide, from any of its option files."""
+    found = set()
+    for p in slide_dir.glob("option_*"):
+        m = re.match(r"option_([A-F])(?:[._])", p.name)
+        if m and p.is_file():
+            found.add(m.group(1))
+    return sorted(found)
+
+
+def main(argv=None) -> int:
+    ap = argparse.ArgumentParser(description="Record the user's approved picks.")
+    ap.add_argument("--out", required=True, type=Path)
+    ap.add_argument("--approved", required=True,
+                    help='The "PICKS ... CHECK ..." line from REVIEW.html.')
+    args = ap.parse_args(argv)
+    out = args.out
+    if not out.exists():
+        print(f"ERROR: out dir not found: {out}")
+        return 2
+
+    m = LINE_RE.search(args.approved or "")
+    if not m:
+        print("REFUSED: that is not an approval line from REVIEW.html. It looks "
+              'like "PICKS slide_01=A;slide_02=C CHECK 1a2b3c4d".')
+        return 5
+    body, check = m.group(1), m.group(2).lower()
+
+    state = _state.read_state(out)
+    review = state.get("review") or {}
+    if not review.get("token"):
+        print("REFUSED: no review recorded for this build. Run build_review.py and "
+              "have the user pick in REVIEW.html.")
+        return 5
+    if state.get("content_hash") and review.get("content_hash") != state.get("content_hash"):
+        print("REFUSED: the review page is from before the latest rebuild. Run "
+              "build_review.py again and have the user pick on the current page.")
+        return 5
+    if _state.approval_check(review["token"], body) != check:
+        print("REFUSED: the picks do not match their check code. They were changed "
+              "after the user clicked Build, or copied from a different review page. "
+              "Ask the user to click Build my deck again on the current REVIEW.html.")
+        return 5
+
+    meta = json.loads(_p.meta_json(out).read_text(encoding="utf-8"))
+    slide_ns = sorted(s["n"] for s in meta.get("slides", []) if isinstance(s.get("n"), int))
+    if meta.get("adopted_source"):
+        # An adopted external deck: only the slides being rebuilt need a pick.
+        slide_ns = [n for n in slide_ns if _letters_on_disk(_p.slide_dir(out, n))]
+
+    if body == "ALL":
+        picks = {}
+        for n in slide_ns:
+            letters = _letters_on_disk(_p.slide_dir(out, n))
+            if not letters:
+                print(f"REFUSED: slide {n} has no options to include.")
+                return 5
+            picks[_p.slide_key(n)] = letters
+        if all(len(v) <= 1 for v in picks.values()):
+            print("REFUSED: every slide has one option, so an all-options deck is just "
+                  "the final deck. Pick in REVIEW.html instead.")
+            return 5
+        all_options = True
+    else:
+        picks = {}
+        for pair in body.split(";"):
+            k, _, v = pair.partition("=")
+            if not re.fullmatch(r"slide_\d{2}", k) or not re.fullmatch(r"[A-F]", v):
+                print(f"REFUSED: malformed pick {pair!r}.")
+                return 5
+            picks[k] = v
+        missing = [n for n in slide_ns if _p.slide_key(n) not in picks]
+        if missing:
+            print(f"REFUSED: {len(missing)} slide(s) have no pick: "
+                  f"{', '.join(str(n) for n in missing)}. Every slide needs a pick "
+                  "(or 'Replace these', which rebuilds it before anything compiles).")
+            return 5
+        for k, v in picks.items():
+            if v not in _letters_on_disk(out / k):
+                print(f"REFUSED: {k} has no option {v}.")
+                return 5
+        all_options = False
+
+    (out / "picks.json").write_text(json.dumps(picks, indent=2), encoding="utf-8")
+    _state.record_picks(out, picks, all_options=all_options)
+
+    # What happens next. Only picked sketch designs are translated.
+    to_translate = []
+    for k, v in picks.items():
+        for L in (v if isinstance(v, list) else [v]):
+            sd = out / k
+            if (sd / f"option_{L}.html").exists() and not (sd / f"option_{L}_native.py").exists():
+                to_translate.append(f"{k}/option_{L}.html")
+    n_opts = sum(len(v) if isinstance(v, list) else 1 for v in picks.values())
+    print(f"[ok] recorded {'ALL options' if all_options else 'picks'}: "
+          f"{n_opts} option(s) across {len(picks)} slide(s).")
+    print("\nNext:")
+    step = 1
+    if to_translate:
+        print(f"  {step}. Dispatch slide-builder-translator on each of these "
+              f"({len(to_translate)}; at most 20 at a time):")
+        for t in to_translate:
+            print(f"       {out / t}")
+        step += 1
+    print(f"  {step}. py -3 scripts/finalize_deck.py --out \"{out}\" --template <template>")
+    print(f"  {step + 1}. py -3 scripts/build_review.py --out \"{out}\" --final")
+    print("     Show the user FINAL-CHECK.html and wait for its Build command.")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

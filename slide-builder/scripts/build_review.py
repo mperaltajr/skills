@@ -324,11 +324,9 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
         page_type = page_type.split("\n")[0].strip()
 
     options = []
-    # Only render tiles for options that were ACTUALLY built for this slide.
-    # OPTIONS is the settings-driven maximum (e.g. 3). A slide built with a
-    # single option must show ONE tile, not one tile plus empty B/C "missing"
-    # slots. The "Want more options? +1/+2/+3" control in render_card stays
-    # available regardless, so the reviewer can still request B/C on demand.
+    # Only render tiles for options that were ACTUALLY built for this slide. A
+    # slide built with a single option must show ONE tile, not one tile plus
+    # empty B/C "missing" slots.
     def _option_built(letter: str) -> bool:
         return (
             (src_dir / _p.option_py_name(letter)).exists()
@@ -341,6 +339,17 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
     built_letters = [l for l in OPTIONS if _option_built(l)]
     if not built_letters:
         built_letters = list(_p.option_letters())  # nothing built yet: fall back
+    # A fingerprint of this slide's option files. The page keeps a pick only
+    # while the stamp it was made against still matches, so rebuilding slide 3
+    # clears slide 3's pick and leaves every other slide's alone. Picks used to
+    # carry over onto a rebuilt slide (one click, no looking), and after an
+    # insert they landed on the wrong slide.
+    _h = __import__("hashlib").md5()
+    for f in sorted(src_dir.glob("option_*")):
+        if f.is_file() and f.suffix in (".py", ".html"):
+            st_ = f.stat()
+            _h.update(f"{f.name}:{st_.st_size}:{int(st_.st_mtime)}".encode())
+    slide_stamp = _h.hexdigest()[:10]
     for letter in built_letters:
         # The finished, on-template render when finalize has made one; the
         # worker's sketch otherwise. The page says which it is showing.
@@ -488,6 +497,7 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
         "prompt_path": src_dir / _p.PROMPT_MD,
         "prompt_found": prompt.get("found", False),
         "options": options,
+        "stamp": slide_stamp,
         "context_present": context_present,
         "context_has_reference": context_has_reference,
         "context_ack_present": ack_present,
@@ -938,25 +948,16 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
         f'onclick="pickOption(\'{sid}\', \'{letter}\')">PICK {letter}</button>'
         for letter in letters
     )
+    # "Replace these" throws this slide's options away and designs new ones
+    # (owner's decision, 2026-09-30). It replaced a "+1/+2/+3 more" picker that
+    # had nothing behind it: no step added options to one slide, and the page
+    # then hid whatever did get built.
     none_btn = (
-        f'<button class="none" onclick="pickNone(\'{sid}\')">'
-        '&#10007; NONE &mdash; TRY AGAIN</button>'
+        f'<button class="none" onclick="pickNone(\'{sid}\')" '
+        f'title="Discard these options and design new ones for this slide">'
+        '&#8635; REPLACE THESE</button>'
     )
-    more_picker = (
-        f'<div class="more-picker" role="group" aria-label="Request more design options for slide {n}">'
-        f'<span class="more-picker-label">Want more options?</span>'
-        f'<div class="more-seg">'
-        + "".join(
-            f'<button type="button" class="more-opt" data-n="{k}" aria-pressed="false" '
-            f'onclick="requestMore(\'{sid}\', {k})" '
-            f'title="Keep the current option(s) and generate {k} more design '
-            f'{"option" if k == 1 else "options"} for this slide">+{k}</button>'
-            for k in (1, 2, 3)
-        )
-        + f'</div>'
-        f'<span class="more-picker-hint" id="more-hint-{sid}"></span>'
-        f'</div>'
-    )
+    more_picker = ""
     n_opts = len(slide["options"])
     layout = "solo" if n_opts == 1 else "multi"
     # per-card inline rule: multi mode uses one column per option
@@ -975,7 +976,7 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
         for (key, label, placeholder) in FEEDBACK_FIELDS
     )
     return f"""
-<div class="card" id="card-{sid}" data-slide="{sid}" data-layout="{layout}" data-count="{n_opts}">
+<div class="card" id="card-{sid}" data-slide="{sid}" data-stamp="{slide.get('stamp', '')}" data-layout="{layout}" data-count="{n_opts}">
   <div class="card-header-row">
     <div style="flex:1;">
       <div class="card-num">SLIDE {n}</div>
@@ -1001,12 +1002,12 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
         {pick_buttons}
         {none_btn}
       </div>
-      <div class="hint-text">Pick an option, click NONE to redo it, or ask for more designs below.</div>
+      <div class="hint-text">Pick an option, or Replace these to get new designs for this slide.</div>
       {more_picker}
 
       <div class="redo-note" id="regen-{sid}" style="display:none;">
-        &#8635; Marked to redo. No extra copy needed — it's included automatically when you click
-        <strong>&#10003; Build my deck</strong> at the bottom, along with any feedback you leave here.
+        &#8635; Marked to replace. Say what you want different in the notes below; it goes
+        with the request when you click <strong>&#10003; Build my deck</strong>.
       </div>
     </div>
 
@@ -1253,16 +1254,6 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
 .chip { font-size: 11px; font-weight: 600; padding: 6px 11px; border-radius: 999px; border: 1.5px solid var(--panel-2); background: var(--panel-2); color: var(--text-dim); cursor: pointer; font-family: inherit; transition: all 0.14s; }
 .chip:hover { border-color: var(--accent); color: var(--accent); }
 .chip.selected { background: var(--accent); border-color: var(--accent); color: #fff; }
-
-/* "Want more options?" — 1/2/3 segmented picker (Stage 5b) */
-.more-picker { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
-.more-picker-label { font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; }
-.more-seg { display: inline-flex; border: 1.5px solid var(--border); border-radius: 8px; overflow: hidden; background: var(--panel); }
-.more-opt { padding: 7px 16px; font-size: 13px; font-weight: 700; font-family: inherit; background: transparent; color: var(--text-dim); border: none; border-right: 1.5px solid var(--border); cursor: pointer; transition: all 0.14s; }
-.more-opt:last-child { border-right: none; }
-.more-opt:hover { background: rgba(161,0,255,0.08); color: var(--accent); }
-.more-opt.active { background: var(--accent); color: #fff; }
-.more-picker-hint { font-size: 11px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
 """
 
 
@@ -1277,10 +1268,26 @@ JS = r"""
 // other — a silent way to lose or transpose a decision. Version bumped to v2
 // because the pick store schema changed from {pptxPath: letter} to {sid: letter}.
 const PICK_NS   = "::" + (window.__OUT_DIR__ || window.location.pathname);
-const PICKS_KEY = "slidelab_picks_v2" + PICK_NS;
+// v3: a pick is stored with the stamp of the slide it was made on, and only
+// counts while that stamp still matches (see pickForSlide).
+const PICKS_KEY = "slidelab_picks_v3" + PICK_NS;
 const FB_KEY    = "slidelab_feedback_v2" + PICK_NS;
-const REGEN_KEY = "slidelab_regen_v2"    + PICK_NS;
-const MORE_KEY  = "slidelab_more_v2"     + PICK_NS;
+const REGEN_KEY = "slidelab_regen_v3"    + PICK_NS;
+const STAMPS = window.__STAMPS__ || {};
+
+// Must match _state.fnv1a32 / approval_check character for character.
+function fnv1a32(str) {
+    let h = 0x811c9dc5;
+    for (let i = 0; i < str.length; i++) {
+        h ^= str.charCodeAt(i);
+        h = Math.imul(h, 0x01000193) >>> 0;
+    }
+    return ("00000000" + h.toString(16)).slice(-8);
+}
+function canonicalPicks(picks) {
+    return Object.keys(picks).sort().map(k => k + "=" + picks[k]).join(";");
+}
+function approvalCheck(canonical) { return fnv1a32(window.__REVIEW_TOKEN__ + "|" + canonical); }
 const TOTAL_SLIDES = window.__TOTAL_SLIDES__;
 const SLIDE_IDS = window.__SLIDE_IDS__;
 const SLIDE_MAP = window.__SLIDE_MAP__;
@@ -1293,23 +1300,22 @@ function loadRegens() { return loadJson(REGEN_KEY); }
 function saveRegens(r){ saveJson(REGEN_KEY, r); }
 function loadFb()     { return loadJson(FB_KEY); }
 function saveFb(f)    { saveJson(FB_KEY, f); }
-function loadMore()   { return loadJson(MORE_KEY); }
-function saveMore(m)  { saveJson(MORE_KEY, m); }
 
 function pickForSlide(sid) {
-    // Picks are keyed by slide id -> option letter. They used to be keyed by the
-    // themed PPTX path, which meant a slide with no themed file yet could not
-    // hold a pick at all.
+    // A pick counts only while the slide still has the options it was made on.
+    // A rebuilt slide gets a new stamp, so its old pick falls away and the
+    // reviewer has to look at the new design; every other slide keeps its pick.
     const v = loadPicks()[sid];
-    return (typeof v === "string" && v) ? v : null;
+    if (!v || typeof v !== "object") return null;
+    return (v.s === STAMPS[sid] && v.l) ? v.l : null;
 }
+function isReplace(sid) { return loadRegens()[sid] === STAMPS[sid]; }
 
 function renderSlideState(sid) {
     const card = document.getElementById("card-" + sid);
     if (!card) return;
     const letter = pickForSlide(sid);
-    const regens = loadRegens();
-    const isNone = !!regens[sid];
+    const isNone = isReplace(sid);
 
     card.querySelectorAll(".option").forEach(opt => {
         opt.classList.toggle("picked", opt.dataset.letter === letter);
@@ -1329,17 +1335,8 @@ function renderSlideState(sid) {
     const badge = document.getElementById("badge-" + sid);
     badge.classList.remove("pending", "picked", "none");
     if (letter) { badge.classList.add("picked"); badge.textContent = "DECIDED " + letter; }
-    else if (isNone) { badge.classList.add("none"); badge.textContent = "REGEN REQUESTED"; }
+    else if (isNone) { badge.classList.add("none"); badge.textContent = "REPLACE REQUESTED"; }
     else { badge.classList.add("pending"); badge.textContent = "PENDING"; }
-
-    const moreN = loadMore()[sid] || 0;
-    card.querySelectorAll(".more-opt").forEach(b => {
-        const on = Number(b.dataset.n) === moreN;
-        b.classList.toggle("active", on);
-        b.setAttribute("aria-pressed", on ? "true" : "false");
-    });
-    const moreHint = document.getElementById("more-hint-" + sid);
-    if (moreHint) moreHint.textContent = moreN ? ("+" + moreN + " requested") : "";
 
     const regenPanel = document.getElementById("regen-" + sid);
     if (regenPanel) regenPanel.style.display = isNone ? "block" : "none";
@@ -1349,7 +1346,7 @@ function updateCounts() {
     let picked = 0, none = 0;
     SLIDE_IDS.forEach(sid => {
         if (pickForSlide(sid)) picked++;
-        else if (loadRegens()[sid]) none++;
+        else if (isReplace(sid)) none++;
     });
     document.getElementById("count-picked").textContent = picked;
     document.getElementById("count-none").textContent = none;
@@ -1401,8 +1398,8 @@ function pickOption(sid, letter) {
     // review, so gating here left every button inert on a first-pass build.
     // compile_picks resolves <out>/<slide>/option_<letter>.pptx from the letter.
     const picks = loadPicks();
-    if (picks[sid] === letter) delete picks[sid];   // clicking the pick again clears it
-    else picks[sid] = letter;
+    if (pickForSlide(sid) === letter) delete picks[sid];   // clicking the pick again clears it
+    else picks[sid] = { l: letter, s: STAMPS[sid] };
     savePicks(picks);
     const regens = loadRegens();
     if (regens[sid]) { delete regens[sid]; saveRegens(regens); }
@@ -1411,9 +1408,9 @@ function pickOption(sid, letter) {
 
 function pickNone(sid) {
     const regens = loadRegens();
-    if (regens[sid]) { delete regens[sid]; }
+    if (isReplace(sid)) { delete regens[sid]; }
     else {
-        regens[sid] = true;
+        regens[sid] = STAMPS[sid];
         const picks = loadPicks();
         delete picks[sid];
         savePicks(picks);
@@ -1448,77 +1445,100 @@ function toggleChip(btn) {
     saveFb(fb);
 }
 
-// "Want more options?" picker: the reviewer chooses HOW MANY more designs to
-// add (1/2/3), keeping whatever exists. MORE_KEY stores a per-slide count, not
-// a boolean. Clicking the already-selected count clears the request. Like NONE,
-// this only FLAGS the slide — no separate copy — so all requests batch into the
-// single "Build my deck" command (one paste, not one per slide).
-function requestMore(sid, n) {
-    const more = loadMore();
-    if (more[sid] === n) {            // click the active count -> cancel
-        delete more[sid]; saveMore(more); renderSlideState(sid);
-        showToast("More-options request cleared for " + sid + ".");
-        return;
-    }
-    more[sid] = n; saveMore(more); renderSlideState(sid);
-    const word = n === 1 ? "option" : "options";
-    showToast(n + " more " + word + " queued for " + sid + " — included when you click Build my deck.");
+function feedbackText() {
+    const fb = loadFb();
+    const bySlide = {};
+    Object.keys(fb).forEach(k => {
+        const m = k.match(/^(slide_\d+)_(.+)$/);
+        if (m && fb[k] && fb[k].trim()) {
+            if (!bySlide[m[1]]) bySlide[m[1]] = {};
+            bySlide[m[1]][m[2]] = fb[k];
+        }
+    });
+    if (!Object.keys(bySlide).length) return "";
+    let t = "Feedback:\n";
+    Object.keys(bySlide).sort().forEach(sid => {
+        t += "  " + sid + ":\n";
+        Object.keys(bySlide[sid]).forEach(k => {
+            t += "    " + k + ": " + bySlide[sid][k].replace(/\n/g, " ") + "\n";
+        });
+    });
+    return t;
+}
+
+function recordCommand(body) {
+    return "  py -3 \"" + window.__SCRIPTS_DIR__ + "\\record_picks.py\" --out \"" +
+        window.__OUT_DIR__ + "\" --approved \"PICKS " + body + " CHECK " +
+        approvalCheck(body) + "\"\n";
+}
+
+async function copyOut(cmd, label, heading) {
+    try { await navigator.clipboard.writeText(cmd); showToast(label); }
+    catch (e) { showDialog(cmd, heading); }
 }
 
 async function buildDeck() {
     const picks = {};
     SLIDE_IDS.forEach(sid => { const l = pickForSlide(sid); if (l) picks[sid] = l; });
-    const fb = loadFb();
-    const fbBySlide = {};
-    Object.keys(fb).forEach(k => {
-        const m = k.match(/^(slide_\d+)_(.+)$/);
-        if (m && fb[k] && fb[k].trim()) {
-            if (!fbBySlide[m[1]]) fbBySlide[m[1]] = {};
-            fbBySlide[m[1]][m[2]] = fb[k];
-        }
-    });
-    const regens = loadRegens();
-    const regenSlides = Object.keys(regens).filter(s => regens[s]);
-    const more = loadMore();
-    const moreSlides = Object.keys(more).filter(s => more[s] > 0).sort();
+    const replace = SLIDE_IDS.filter(isReplace);
+    const pending = SLIDE_IDS.filter(sid => !picks[sid] && !isReplace(sid));
 
-    // Build from whatever the reviewer left — picks, NONE (regen), or more-
-    // options requests. Only truly-empty state is a no-op.
-    if (Object.keys(picks).length === 0 && regenSlides.length === 0 && moreSlides.length === 0) {
-        showToast("Nothing to send yet — pick a slide, mark NONE, or request more options.");
+    // Every slide needs a decision. A partial pick list used to compile into a
+    // shorter deck with nothing saying so.
+    if (pending.length) {
+        showToast(pending.length + " slide(s) still need a pick or Replace these: " +
+                  pending.join(", "));
         return;
     }
 
-    // When any slide needs regeneration or more options, this is an ITERATE
-    // instruction (regenerate, then rebuild REVIEW for another look), not a
-    // final compile. Frame the header so the paste is unambiguous.
-    const iterate = regenSlides.length > 0 || moreSlides.length > 0;
-    let cmd = iterate
-        ? "Update my slide-lab deck as follows, then rebuild REVIEW.html so I can review again.\n"
-        : "Compile my slide-lab deck.\n";
+    // Any Replace request means another design round, not a build.
+    if (replace.length) {
+        let cmd = "Update my slide-lab deck, then rebuild REVIEW.html so I can review again.\n";
+        cmd += "Out dir: " + window.__OUT_DIR__ + "\n";
+        cmd += "Replace the options on these slides with new designs " +
+               "(build_deck.py --slide N moves the old ones aside): " + replace.join(", ") + "\n";
+        if (Object.keys(picks).length) cmd += "Keep these picks: " + canonicalPicks(picks) + "\n";
+        cmd += feedbackText();
+        return copyOut(cmd, "Update command copied. Paste into Claude Code.",
+                       "Update command (Ctrl+C to copy)");
+    }
+
+    // Every slide picked: record exactly these picks, check-coded, then convert
+    // only the picked sketches and show the finished slides for a final look.
+    const body = canonicalPicks(picks);
+    let cmd = "Build my slide-lab deck from these picks.\n";
     cmd += "Out dir: " + window.__OUT_DIR__ + "\n";
-    if (Object.keys(picks).length) cmd += (iterate ? "Picks so far: " : "Picks: ") + JSON.stringify(picks) + "\n";
-    if (regenSlides.length) cmd += "Redo from scratch (reject the current option, generate a fresh one): " + regenSlides.join(", ") + "\n";
-    if (moreSlides.length) cmd += "Add more options (keep the existing one, add N more each): " + moreSlides.map(s => s + " (+" + more[s] + ")").join(", ") + "\n";
-    if (Object.keys(fbBySlide).length) {
-        cmd += "Feedback:\n";
-        Object.keys(fbBySlide).sort().forEach(sid => {
-            const f = fbBySlide[sid];
-            cmd += "  " + sid + ":\n";
-            Object.keys(f).forEach(k => { cmd += "    " + k + ": " + f[k].replace(/\n/g, " ") + "\n"; });
-        });
-    }
-    if (!iterate && window.__REVIEW_TOKEN__) {
-        cmd += "Approved by reviewer. Compile with: compile_picks.py --out <out> --review-token " + window.__REVIEW_TOKEN__ + "\n";
-    }
-    const label = iterate ? "Update command copied. Paste into Claude Code." : "Compile command copied. Paste into Claude Code.";
-    try { await navigator.clipboard.writeText(cmd); showToast(label); }
-    catch (e) { showDialog(cmd, iterate ? "Update command (Ctrl+C to copy)" : "Compile command (Ctrl+C to copy)"); }
+    cmd += "Record them exactly as written (do not retype them):\n" + recordCommand(body);
+    cmd += "Then follow the steps it prints, and show me FINAL-CHECK.html before compiling.\n";
+    cmd += feedbackText();
+    return copyOut(cmd, "Build command copied. Paste into Claude Code.",
+                   "Build command (Ctrl+C to copy)");
+}
+
+async function buildAllOptions() {
+    // Every option converted and stacked in one deck, for side-by-side
+    // comparison. Converting is the expensive step, so say what it costs first.
+    let nOpts = 0;
+    SLIDE_IDS.forEach(sid => { nOpts += Object.keys(SLIDE_MAP[sid] || {}).length; });
+    const nSlides = SLIDE_IDS.length;
+    const ratio = nSlides ? (nOpts / nSlides).toFixed(1) : "1";
+    const msg = "All options in one deck converts EVERY option: " + nOpts +
+        " of them, against " + nSlides + " for a normal build of your picks " +
+        "(about " + ratio + "x the conversion cost).\n\n" +
+        "Use it only when you need to compare every design side by side.\n\nContinue?";
+    if (!confirm(msg)) return;
+    let cmd = "Build ALL options in one slide-lab deck (every option, labeled).\n";
+    cmd += "Out dir: " + window.__OUT_DIR__ + "\n";
+    cmd += "Record the approval exactly as written:\n" + recordCommand("ALL");
+    cmd += "Then follow the steps it prints, and show me FINAL-CHECK.html before compiling.\n";
+    cmd += feedbackText();
+    return copyOut(cmd, "All-options command copied. Paste into Claude Code.",
+                   "All-options command (Ctrl+C to copy)");
 }
 
 function clearAll() {
-    if (!confirm("Clear all picks, regens, and feedback?")) return;
-    savePicks({}); saveRegens({}); saveFb({}); saveMore({});
+    if (!confirm("Clear all picks, replace requests, and feedback?")) return;
+    savePicks({}); saveRegens({}); saveFb({});
     document.querySelectorAll("textarea[data-slide][data-field]").forEach(ta => ta.value = "");
     document.querySelectorAll(".chip.selected").forEach(c => c.classList.remove("selected"));
     renderAll(); showToast("Cleared.");
@@ -1548,6 +1568,7 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     });
     document.getElementById("btn-build").addEventListener("click", buildDeck);
+    document.getElementById("btn-all").addEventListener("click", buildAllOptions);
     document.getElementById("btn-clear").addEventListener("click", clearAll);
     document.getElementById("btn-dlg-copy").addEventListener("click", async () => {
         const txt = document.getElementById("picks-dlg-body").textContent;
@@ -1615,7 +1636,7 @@ def build_html(out_dir: Path, meta: Optional[dict], slides: list, storyline: dic
 <div class="topbar">
   <div>
     <div class="title">{html.escape(deck_topic)} &middot; OPTIONS REVIEW &middot; {slide_count} slides</div>
-    <div class="title-sub">{html.escape(deck_type)} &middot; Pick an option per slide, mark NONE, or ask for more.</div>
+    <div class="title-sub">{html.escape(deck_type)} &middot; Pick an option for every slide, or Replace these to get new designs.</div>
     <div class="topbar-meta">
       <div class="k">Generated</div><div class="v">{html.escape(generated)}</div>
       <div class="k">Brief</div><div class="v"><code>{html.escape(brief_path)}</code></div>
@@ -1637,6 +1658,7 @@ def build_html(out_dir: Path, meta: Optional[dict], slides: list, storyline: dic
   <div class="count"><span class="num" id="pick-count">0</span> / <span id="total-slides">0</span> picked &middot; <span style="color:#64748B;font-weight:400;font-size:12px;">picks auto-save in this browser</span></div>
   <div class="btns">
     <button class="btn ghost small" id="btn-clear">&#x1F5D1; Clear</button>
+    <button class="btn ghost small" id="btn-all" title="Converts every option, not just your picks: several times the tokens. Use sparingly.">All options in one deck &#9888;</button>
     <button class="btn primary big" id="btn-build">&#10003; Build my deck</button>
   </div>
 </footer>
@@ -1651,15 +1673,17 @@ def build_html(out_dir: Path, meta: Optional[dict], slides: list, storyline: dic
 </dialog>
 """
 
-    # Rule 2: mint the review-approval token here (only build_review does this),
-    # bound to the deck content-hash recorded at prep, and surface it ONLY inside
-    # REVIEW.html's "Build my deck" command. compile_picks refuses without it.
+    # The review token (only build_review mints it, bound to the content hash
+    # recorded at prep). The page never shows it bare: it is folded into the
+    # check code on the picks line, which record_picks.py verifies.
     review_token = _state.record_review(out_dir)
     js_setup = (
         f"window.__TOTAL_SLIDES__ = {len(slides)};\n"
         f"window.__SLIDE_IDS__ = {json.dumps(slide_ids)};\n"
         f"window.__SLIDE_MAP__ = {json.dumps(slide_map)};\n"
+        f"window.__STAMPS__ = {json.dumps({s['slide_id']: s.get('stamp', '') for s in slides})};\n"
         f"window.__OUT_DIR__ = {json.dumps(str(out_dir.resolve()))};\n"
+        f"window.__SCRIPTS_DIR__ = {json.dumps(str(Path(__file__).resolve().parent))};\n"
         f"window.__REVIEW_TOKEN__ = {json.dumps(review_token)};\n"
     )
 
@@ -1681,12 +1705,144 @@ def build_html(out_dir: Path, meta: Optional[dict], slides: list, storyline: dic
 
 
 # ---------------------------------------------------------------------------
+# Final check (build_review.py --final)
+# ---------------------------------------------------------------------------
+
+FINAL_CSS = """
+:root { --accent:#A100FF; --text:#0F172A; --dim:#64748B; --border:#E2E8F0; --bg:#F8FAFC; }
+* { box-sizing: border-box; }
+body { margin:0; font-family: "Segoe UI", Arial, sans-serif; color: var(--text); background: var(--bg); padding-bottom: 150px; }
+header { background:#fff; border-bottom:1px solid var(--border); padding:22px 32px; }
+h1 { margin:0 0 6px; font-size:22px; }
+header p { margin:0; color: var(--dim); font-size:14px; max-width: 900px; line-height:1.5; }
+.grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(460px, 1fr)); gap:22px; padding:26px 32px; }
+.tile { background:#fff; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
+.tile img { width:100%; display:block; border-bottom:1px solid var(--border); }
+.cap { padding:10px 14px; font-size:13px; }
+.cap b { color: var(--accent); }
+.cap .t { color: var(--dim); display:block; margin-top:3px; }
+footer { position:fixed; left:0; right:0; bottom:0; background:#fff; border-top:1px solid var(--border); padding:14px 32px; display:flex; gap:16px; align-items:flex-end; }
+textarea { flex:1; min-height:56px; font:inherit; font-size:13px; padding:8px; border:1px solid var(--border); border-radius:6px; }
+button { font:inherit; font-weight:700; border-radius:6px; padding:12px 20px; cursor:pointer; border:1.5px solid var(--accent); }
+.go { background: var(--accent); color:#fff; }
+.fix { background:#fff; color: var(--accent); }
+#toast { position:fixed; bottom:110px; left:50%; transform:translateX(-50%); background:#fff; border:1px solid var(--accent); padding:8px 14px; border-radius:6px; opacity:0; transition:opacity .2s; }
+#toast.show { opacity:1; }
+"""
+
+
+def build_final_check(out_dir: Path, meta: Optional[dict]) -> int:
+    """The last look before compile: every pick, finished, on the template.
+
+    Owner's decision (2026-09-30): review the sketches, convert only the picks,
+    then a short required look at the finished picks before anything is built.
+    A sketch shows the design before the template's own title, takeaway and page
+    number land on it, which is exactly where collisions live; this page is
+    where they become visible. Its Build command carries the token compile needs,
+    bound to the bytes of every file shown here.
+    """
+    state = _state.read_state(out_dir)
+    review = state.get("review") or {}
+    picks = review.get("picks") or {}
+    if not picks:
+        print("REFUSED: no approved picks recorded. The user picks in REVIEW.html; "
+              "its Build command runs record_picks.py.", file=sys.stderr)
+        return 5
+    ship = [(k, L) for k, v in sorted(picks.items())
+            for L in (v if isinstance(v, list) else [v])]
+    keys = [_state.option_key(int(k.split("_")[1]), L) for k, L in ship]
+    problems: list[str] = []
+    ok, why = _state.check_options_finalized(state, keys)
+    if not ok:
+        problems.append(why)
+    for k, L in ship:
+        for name in (_p.option_pptx_name(L), _p.option_png_name(L)):
+            if not (out_dir / k / name).exists():
+                problems.append(f"{k}/{name} is missing")
+    if problems:
+        print("NOT READY for the final check:", file=sys.stderr)
+        for p in problems[:12]:
+            print(f"  - {p}", file=sys.stderr)
+        print("Translate any picked sketches, run finalize_deck.py, then try again.",
+              file=sys.stderr)
+        return 5
+
+    digests = {key: _state.file_digest(out_dir / k / _p.option_pptx_name(L))
+               for key, (k, L) in zip(keys, ship)}
+    token = _state.record_final_check(out_dir, digests)
+
+    titles = {_p.slide_key(int(s["n"])): (s.get("title") or "")
+              for s in (meta or {}).get("slides", []) if isinstance(s.get("n"), int)}
+    tiles = "".join(
+        f'<div class="tile"><img src="{html.escape(k)}/{html.escape(_p.option_png_name(L))}" '
+        f'alt="{html.escape(k)} option {html.escape(L)}">'
+        f'<div class="cap"><b>{html.escape(k.replace("_", " ").title())} &middot; '
+        f'option {html.escape(L)}</b>'
+        f'<span class="t">{html.escape(titles.get(k, ""))}</span></div></div>'
+        for k, L in ship)
+
+    all_options = bool(review.get("all_options"))
+    flags = ""
+    if all_options:
+        flags += " --all-variations --badge"
+    if (meta or {}).get("adopted_source"):
+        flags += f' --splice-into "{meta["adopted_source"]}"'
+    scripts = str(Path(__file__).resolve().parent)
+    compile_cmd = (f'py -3 "{scripts}\\compile_picks.py" --out "{out_dir}" '
+                   f'--final-token {token}{flags}')
+    what = (f"all {len(ship)} options" if all_options
+            else f"{len(ship)} slide(s)")
+    page = f"""<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
+<title>Final check</title><style>{FINAL_CSS}</style></head><body>
+<header><h1>Final check: this is exactly what will be built</h1>
+<p>Every pick below is finished and on your template ({what}): the real title,
+takeaway and page number, which the sketches did not have. Look for anything
+overlapping, cut off or crowded. If it is right, click <b>Build it</b>. If not,
+say what is wrong in the box instead.</p></header>
+<div class="grid">{tiles}</div>
+<footer>
+<textarea id="fix" placeholder="Something needs fixing? Say which slide and what."></textarea>
+<button class="fix" id="btn-fix">Send fixes</button>
+<button class="go" id="btn-go">&#10003; Build it</button>
+</footer><div id="toast"></div>
+<script>
+const OUT = {json.dumps(str(out_dir))};
+const CMD = {json.dumps(compile_cmd)};
+function toast(m) {{ const t = document.getElementById("toast"); t.textContent = m;
+  t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 1800); }}
+async function copy(text, label) {{
+  try {{ await navigator.clipboard.writeText(text); toast(label); }}
+  catch (e) {{ prompt("Copy this:", text); }} }}
+document.getElementById("btn-go").onclick = () => copy(
+  "Compile my slide-lab deck. I checked the finished slides.\\nOut dir: " + OUT +
+  "\\n  " + CMD + "\\nThen run slide-qc on the deck and check_done.py before telling me it is done.\\n",
+  "Build command copied. Paste into Claude Code.");
+document.getElementById("btn-fix").onclick = () => {{
+  const t = document.getElementById("fix").value.trim();
+  if (!t) {{ toast("Say what needs fixing first."); return; }}
+  copy("Fix my slide-lab deck before building it.\\nOut dir: " + OUT +
+       "\\nWhat is wrong: " + t + "\\nRebuild the affected slide(s) through the pipeline, " +
+       "then show me a new FINAL-CHECK.html.\\n", "Fix request copied. Paste into Claude Code.");
+}};
+</script></body></html>"""
+    dest = out_dir / "FINAL-CHECK.html"
+    dest.write_text(page, encoding="utf-8")
+    print(f"FINAL-CHECK.html written: {dest}")
+    print(f"  {len(ship)} finished option(s). Show it to the user and wait for the "
+          "Build command it copies; that command is the only way to compile.")
+    return 0
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
 def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description="Build REVIEW.html for slide-builder output.")
     ap.add_argument("--out", required=True, help="Orchestrator output directory.")
+    ap.add_argument("--final", action="store_true",
+                    help="Build FINAL-CHECK.html instead: every approved pick, finished "
+                         "on the template, for the user's last look before compile.")
     ap.add_argument("--template", default=None,
                     help="Client template path. Accepted for CLI consistency with "
                          "the other stages; build_review reads everything it needs "
@@ -1722,7 +1878,15 @@ def main(argv: list[str]) -> int:
             print(f"[error] no slide_NN directories in {out_dir}", file=sys.stderr)
             return 3
 
+    if args.final:
+        return build_final_check(out_dir, meta)
+
     slides = [scan_slide(out_dir, n, slide_metas.get(n)) for n in slide_nums]
+    # An adopted external deck rebuilds only some of its slides; the rest stay
+    # as they are in the original and are not up for review.
+    if meta and meta.get("adopted_source"):
+        slides = [s for s in slides
+                  if any(p.is_file() for p in (out_dir / s["slide_id"]).glob("option_*"))]
 
     storyline = {"slides": [], "found": False}
     if meta and meta.get("brief"):

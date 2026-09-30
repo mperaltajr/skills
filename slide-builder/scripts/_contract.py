@@ -404,7 +404,7 @@ _RUNTIME_ARTIFACTS = {
 # failures on 2026-09-30 were these names, all of them legitimate.
 import re as _re_rt
 _RUNTIME_NAME_RE = _re_rt.compile(
-    r"^option_[A-FX](_native)?\.(html|py|pptx|png|mmd|qc\.json)$"
+    r"^option_[A-FX](_native)?\.(html|py|pptx|png|sketch\.png|mmd|qc\.json)$"
     r"|^option_[A-FX]_translation_report\.json$")
 
 # Per-client runtime theme files (mermaid-<slug>.json). The slug
