@@ -820,6 +820,20 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
                         f"graft owns: " + ", ".join(chrome_overlap_offenders[:3])),
     })
 
+    # Will PowerPoint open this option? Checked here, per option, rather than
+    # only at compile: at compile it surfaces after the user has already picked,
+    # and the fix then costs a re-translate, a re-finalize and a re-review.
+    try:
+        from pptx_openability import check_openability
+        _open_issues = check_openability(Presentation(str(themed_pptx_path)))
+    except Exception as _exc:
+        _open_issues = [{"issue": f"could not check: {type(_exc).__name__}: {_exc}"}]
+    checks.append({
+        "check": "powerpoint_openability", "pass": not _open_issues, "severity": "block",
+        "detail": ("no structure PowerPoint would refuse" if not _open_issues
+                   else "; ".join(i["issue"] for i in _open_issues[:2])),
+    })
+
     summary = {"pass": 0, "warn": 0, "block": 0}
     for c in checks:
         if c["pass"]:
@@ -2504,6 +2518,48 @@ def main() -> int:
         print(f"ERROR: template not found: {args.template}")
         return 2
 
+    return _run_and_record(args)
+
+
+# Exit codes. Each refusal has its own, so a script or a person can tell them
+# apart; 8 used to mean four different things across prep and finalize.
+EXIT_TITLE_OVERLAP = 8        # a title wraps into the heading band / body
+EXIT_MISSING_OUTPUT = 11      # expected worker/translator output absent
+EXIT_BRAND_COLLISION = 12     # primary and accent colors nearly identical
+EXIT_GRAFT_HALTED = 13        # title/subtitle would drop, or the layout drifted
+EXIT_DARK_COLLISION = 14      # content invisible on the dark background
+EXIT_OPTIONS_FAILED = 15      # an option failed to build, theme or render
+EXIT_LAYOUT_MISSING = 16      # a slide names a layout chrome.yml does not have
+
+
+def _run_and_record(args) -> int:
+    """Run finalize and record how it ended, whatever happens.
+
+    begin_finalize drops the records this run replaces, so an option that never
+    finishes has no record and compile refuses it. Before this, a refused or
+    crashed finalize left its half-written output looking finished.
+    """
+    import _state  # noqa: E402
+    _state.begin_finalize(args.out, slide=args.slide)
+    try:
+        rc = _run(args)
+    except DarkVariantCollisionError as exc:
+        _state.end_finalize(args.out, "failed", f"dark-variant collision: {exc}")
+        print(f"\nERROR: build refused.\n{exc}", file=sys.stderr)
+        return EXIT_DARK_COLLISION
+    except ChromeLayoutMissingError as exc:
+        _state.end_finalize(args.out, "failed", "slide names a layout chrome.yml lacks")
+        print(f"\nERROR: {exc}", file=sys.stderr)
+        return EXIT_LAYOUT_MISSING
+    except BaseException as exc:
+        _state.end_finalize(args.out, "failed", f"{type(exc).__name__}: {exc}"[:300])
+        raise
+    _state.end_finalize(args.out, "ok" if rc == 0 else "failed",
+                        "" if rc == 0 else f"exit {rc}")
+    return rc
+
+
+def _run(args) -> int:
     # Open the normalized build copy when registration made one; every sidecar
     # lookup below stays keyed off the ORIGINAL args.template.
     build_template = resolve_build_template(args.template)
@@ -2661,7 +2717,7 @@ def main() -> int:
         if not statuses:
             print(f"ERROR: --slide {args.slide} has no option scripts under {args.out}. "
                   f"Run build_deck.py --slide {args.slide} and dispatch a worker first.")
-            return 11
+            return EXIT_MISSING_OUTPUT
     n_native = sum(1 for s in statuses if s.classification == "native")
     n_sketch = sum(1 for s in statuses if s.classification == "sketch_translated")
     n_rejected = sum(1 for s in statuses if s.classification == "skeleton_rejected")
@@ -2679,27 +2735,40 @@ def main() -> int:
             if s.classification == "missing":
                 missing_groups.setdefault(s.slide_n, []).append(s.letter)
         if not args.allow_missing:
-            sys.stderr.write(
-                f"\nERROR: {n_missing} expected worker output(s) absent. "
-                f"finalize would crash mid-build.\n\n"
-                f"Slides needing re-dispatch:\n"
-            )
+            # Say WHICH step is missing. A sketch slide with its HTML but no
+            # native script needs the translator, not the worker; this message
+            # used to say "re-dispatch the worker" for both, which wasted a run
+            # and overwrote HTML the user may already have reviewed.
+            needs_translate: list[str] = []
+            needs_worker: list[str] = []
             for slide_n in sorted(missing_groups):
-                letters = ", ".join(sorted(missing_groups[slide_n]))
                 slide_dir = _p.slide_dir(args.out, slide_n)
-                prompt_path = _p.prompt_md(args.out, slide_n)
-                sys.stderr.write(
-                    f"  slide_{slide_n:02d}  (missing option(s): {letters})\n"
-                    f"    prompt:  {prompt_path}\n"
-                    f"    out dir: {slide_dir}\n"
-                )
+                for letter in sorted(missing_groups[slide_n]):
+                    tag = f"slide_{slide_n:02d}/option_{letter}"
+                    if (slide_dir / f"option_{letter}.html").exists():
+                        needs_translate.append(tag)
+                    else:
+                        needs_worker.append(tag)
             sys.stderr.write(
-                f"\nRe-dispatch the worker agent for each slide above using "
-                f"the prompt file, then re-run finalize_deck.py.\n"
-                f"Override with --allow-missing to proceed with gaps "
-                f"(surfaced as classification=missing in RESULT.md).\n"
-            )
-            return 11
+                f"\nERROR: {n_missing} expected option output(s) absent. "
+                f"finalize would crash mid-build.\n")
+            if needs_translate:
+                sys.stderr.write(
+                    "\nDesigned but not yet translated (the HTML is there, the "
+                    "native script is not) — dispatch slide-builder-translator on:\n"
+                    + "".join(f"  {t}.html\n" for t in needs_translate))
+            if needs_worker:
+                sys.stderr.write(
+                    "\nNo design output at all — the worker was never sent, is still "
+                    "running, or failed. If it is still running, wait for it; "
+                    "otherwise re-dispatch slide-builder-worker with that slide's "
+                    "_prompt.md:\n"
+                    + "".join(f"  {t}\n" for t in needs_worker))
+            sys.stderr.write(
+                f"\nThen re-run finalize_deck.py. Override with --allow-missing to "
+                f"proceed with gaps (those options are recorded as blocked, and "
+                f"compile will refuse to ship them).\n")
+            return EXIT_MISSING_OUTPUT
         print(f"  [missing] {n_missing} worker output(s) absent — proceeding "
               f"under --allow-missing (will be surfaced in RESULT.md / REVIEW.html)")
     print(f"  found {len(statuses)} option scripts across "
@@ -2783,7 +2852,7 @@ def main() -> int:
         # Surface the operator-facing message cleanly with non-zero exit,
         # not a raw stack trace.
         print(f"\nERROR: brand color collision.\n{exc}", file=sys.stderr)
-        return 8
+        return EXIT_BRAND_COLLISION
 
     print("\n[3.1] Detect client-template fonts on local machine")
     font_missing = detect_missing_client_fonts(theme)
@@ -2834,7 +2903,7 @@ def main() -> int:
             print(f"\nERROR: build halted — {type(_exc).__name__} on "
                   f"slide {st.slide_n} option {st.letter}.\n{_exc}",
                   file=sys.stderr)
-            return 8
+            return EXIT_GRAFT_HALTED
         flag = f"ok (shapes={st.n_shapes} subs={st.n_subs})" if st.themed else f"FAIL ({st.error[:50]})"
         print(f"  [{i:>3}/{len(built_statuses)}] slide_{st.slide_n:02d}/option_{st.letter}  {flag}")
 
@@ -2848,6 +2917,14 @@ def main() -> int:
     for s in themed_statuses:
         _all_dark_issues.extend(s.dark_collisions)
     if _all_dark_issues:
+        # Record the refusal against the options that caused it before raising,
+        # so a later compile cannot ship them on a stale clean record.
+        import _state  # noqa: E402
+        _state.record_option_qc(args.out, {
+            _state.option_key(s.slide_n, s.letter): {
+                "blocks": len(s.dark_collisions),
+                "reasons": ["content invisible on the dark background"]}
+            for s in themed_statuses if s.dark_collisions})
         print("\n[4b] DARK-VARIANT COLLISION CHECK — BUILD REFUSED")
         print(f"  Found {len(_all_dark_issues)} content color(s) that collide "
               f"with brand dark_bg_hex.")
@@ -2875,6 +2952,12 @@ def main() -> int:
     for s in themed_statuses:
         _all_title_overlaps.extend(getattr(s, "title_overlaps", []) or [])
     if _all_title_overlaps:
+        import _state  # noqa: E402
+        _state.record_option_qc(args.out, {
+            _state.option_key(s.slide_n, s.letter): {
+                "blocks": len(s.title_overlaps),
+                "reasons": ["title wraps into the heading band / body"]}
+            for s in themed_statuses if getattr(s, "title_overlaps", None)})
         print("\n[4c] TITLE / BAND OVERLAP CHECK — BUILD REFUSED")
         print(f"  {len(_all_title_overlaps)} slide title(s) wrap to more lines "
               f"than the title box holds and would overlap the heading band / body:\n")
@@ -2887,7 +2970,7 @@ def main() -> int:
         print("  data-template-field=\"title\" text in the worker HTML). Or rebuild the")
         print("  slide on a taller-title layout. Measured with the brand font, so this")
         print("  reflects PowerPoint, not the LibreOffice preview.")
-        return 8
+        return EXIT_TITLE_OVERLAP
 
     if not args.skip_render:
         print(f"\n[5] Render themed .pptx -> .png (parallel x4)")
@@ -2922,7 +3005,33 @@ def main() -> int:
         pass
 
     qc_counts = {"all_ok": 0, "warn_only": 0, "block": 0}
+    import _state  # noqa: E402
+    # One record per option in this run. An option that never got as far as QC
+    # (worker refused, script crashed, graft failed, render failed) is recorded
+    # as blocked with the reason, not left out: left out used to read as clean.
+    option_results: dict = {}
+    _themed_ids = {id(s) for s in themed_statuses}
+    for st in statuses:
+        if id(st) in _themed_ids:
+            continue
+        if st.classification == "missing":
+            why = "no worker/translator output"
+        elif st.classification == "skeleton_rejected":
+            why = f"worker refused: {st.classification_reason[:80]}"
+        elif not st.built:
+            why = f"did not build: {st.error[:80]}"
+        else:
+            why = f"did not graft onto the template: {st.error[:80]}"
+        option_results[_state.option_key(st.slide_n, st.letter)] = {
+            "blocks": 1, "reasons": [why]}
     for st in themed_statuses:
+        _okey = _state.option_key(st.slide_n, st.letter)
+        if not args.skip_render and not st.rendered:
+            option_results[_okey] = {"blocks": 1, "reasons": [
+                f"did not render: {st.error[:80]}"]}
+            qc_counts["block"] += 1
+            print(f"  slide_{st.slide_n:02d}/option_{st.letter}  BLOCK (not rendered)")
+            continue
         try:
             pt = _slide_page_types.get(st.slide_n, "")
             try:
@@ -2959,6 +3068,10 @@ def main() -> int:
                 for c in result.get("checks", [])
                 if not c.get("pass", False)
             ]
+            option_results[_okey] = {
+                "blocks": int(summ["block"]),
+                "reasons": [c.get("check", "?") for c in result.get("checks", [])
+                            if not c.get("pass", False) and c.get("severity") == "block"]}
             if summ["block"] > 0:
                 qc_counts["block"] += 1
                 flag = f"BLOCK ({summ['block']}b/{summ['warn']}w)"
@@ -2970,21 +3083,21 @@ def main() -> int:
                 flag = "ok"
             print(f"  slide_{st.slide_n:02d}/option_{st.letter}  {flag}")
         except Exception as e:
-            print(f"  slide_{st.slide_n:02d}/option_{st.letter}  qc-FAIL ({type(e).__name__}: {e})")
+            # A QC check that crashed checked nothing. Counting it as a pass is
+            # how an unchecked option used to reach compile.
+            option_results[_okey] = {"blocks": 1, "reasons": [
+                f"QC check crashed: {type(e).__name__}"]}
+            qc_counts["block"] += 1
+            print(f"  slide_{st.slide_n:02d}/option_{st.letter}  qc-FAIL, counted as a block "
+                  f"({type(e).__name__}: {e})")
     print(f"  QC totals: all-ok={qc_counts['all_ok']}  warn-only={qc_counts['warn_only']}  block={qc_counts['block']}")
-    # Record the QC outcome so 'block' severity finally means something. Until
-    # now finalize counted blocks, printed this line, and returned 0, and nothing
-    # downstream read it, so a deck with blocking defects reported DONE.
-    try:
-        import _state  # noqa: E402
-        _state.record_qc(
-            args.out, qc_counts["block"],
-            f"{qc_counts['block']} option(s) with blocking QC findings")
-        if qc_counts["block"]:
-            print(f"  NOTE: {qc_counts['block']} blocking QC finding(s) recorded — "
-                  "compile_picks.py will refuse until these are fixed.")
-    except Exception as exc:
-        print(f"  WARNING: could not record QC state: {type(exc).__name__}: {exc}")
+    # Record per option. compile refuses any option it is about to ship that has
+    # blocks, or has no record at all.
+    _state.record_option_qc(args.out, option_results)
+    n_blocked_opts = sum(1 for v in option_results.values() if v["blocks"])
+    if n_blocked_opts:
+        print(f"  NOTE: {n_blocked_opts} option(s) blocked — compile_picks.py will "
+              "refuse to ship any of them until they are fixed and re-finalized.")
 
     print("\n[6] Write RESULT.md")
     result_path = write_result(args.out, args.template, statuses, slide_n=args.slide)
@@ -3040,6 +3153,15 @@ def main() -> int:
     print(f"  Rendered : {sum(1 for s in statuses if s.rendered)} / {len(statuses)}")
     print(f"  Report   : {result_path}")
     print("=" * 72)
+    # Some options did not make it through. They are recorded as blocked; say
+    # so in the exit code too, rather than returning 0 over a partial build.
+    _not_through = [s for s in statuses
+                    if not s.themed or (not args.skip_render and not s.rendered)]
+    if _not_through:
+        print(f"\nFINALIZE INCOMPLETE: {len(_not_through)} option(s) did not make it "
+              "through build/graft/render: "
+              + ", ".join(f"slide_{s.slide_n:02d}/{s.letter}" for s in _not_through[:8]))
+        return EXIT_OPTIONS_FAILED
     return 0
 
 

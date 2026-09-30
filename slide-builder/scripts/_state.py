@@ -88,6 +88,88 @@ def record_qc(out_dir, blocks: int, detail: str = "") -> None:
     _write(out_dir, state)
 
 
+def option_key(slide_n: int, letter: str) -> str:
+    """Stable key for one design option, e.g. 'slide_05/A'."""
+    return f"slide_{int(slide_n):02d}/{letter}"
+
+
+def begin_finalize(out_dir, slide=None) -> None:
+    """Finalize is starting. Drop the per-option QC records it is about to
+    replace, and mark the run as in progress.
+
+    Dropping them first is what makes a crash or an early refusal honest: an
+    option finalize never finished has NO record, and compile refuses an option
+    with no record. Before this, a refused finalize left its already-saved
+    output looking finished and the last clean QC count in place, so the deck
+    shipped anyway.
+    """
+    state = read_state(out_dir)
+    qc = state.get("qc") or {}
+    by = dict(qc.get("by_option") or {})
+    if slide is None:
+        by = {}
+    else:
+        prefix = f"slide_{int(slide):02d}/"
+        by = {k: v for k, v in by.items() if not k.startswith(prefix)}
+    state["qc"] = {**qc, "by_option": by,
+                   "blocks": sum(int(v.get("blocks") or 0) for v in by.values())}
+    state["finalize"] = {"status": "running", "slide": slide, "at": _now(),
+                         "content_hash": state.get("content_hash")}
+    _write(out_dir, state)
+
+
+def record_option_qc(out_dir, results: dict) -> None:
+    """Merge per-option QC results: {option_key: {"blocks": n, "reasons": [...]}}.
+
+    Per option, not per deck. A deck-wide count was overwritten by every
+    `finalize --slide N`, so fixing slide 3 erased the blocks on slides 5 and 7.
+    """
+    state = read_state(out_dir)
+    qc = state.get("qc") or {}
+    by = dict(qc.get("by_option") or {})
+    by.update(results)
+    blocked = sorted(k for k, v in by.items() if int(v.get("blocks") or 0) > 0)
+    state["qc"] = {"by_option": by,
+                   "blocks": sum(int(v.get("blocks") or 0) for v in by.values()),
+                   "detail": (f"blocked: {', '.join(blocked[:6])}"
+                              + (" ..." if len(blocked) > 6 else "")) if blocked else "",
+                   "at": _now()}
+    _write(out_dir, state)
+
+
+def end_finalize(out_dir, status: str, reason: str = "") -> None:
+    """Record how the finalize run ended: 'ok' or 'failed'."""
+    state = read_state(out_dir)
+    fin = state.get("finalize") or {}
+    fin.update({"status": status, "reason": reason, "ended": _now()})
+    state["finalize"] = fin
+    _write(out_dir, state)
+
+
+def check_options_finalized(state: dict, option_keys) -> tuple[bool, str]:
+    """Every option about to ship has a finished, unblocked finalize record."""
+    fin = state.get("finalize") or {}
+    if not fin:
+        return False, ("finalize_deck.py has not run for this build, so nothing "
+                       "has been put on the template or checked. Run it first.")
+    if fin.get("status") == "running":
+        return False, ("the last finalize_deck.py run did not finish (it crashed or "
+                       "was interrupted). Re-run it.")
+    by = (state.get("qc") or {}).get("by_option") or {}
+    missing = [k for k in option_keys if k not in by]
+    if missing:
+        return False, (f"{len(missing)} option(s) about to ship were never finalized "
+                       f"or their finalize did not finish: {', '.join(missing[:6])}. "
+                       "Re-run finalize_deck.py for those slides.")
+    blocked = [k for k in option_keys if int(by[k].get("blocks") or 0) > 0]
+    if blocked:
+        why = "; ".join(f"{k}: {', '.join(by[k].get('reasons') or [])[:120]}"
+                        for k in blocked[:4])
+        return False, (f"{len(blocked)} option(s) about to ship have blocking QC "
+                       f"findings. {why}. Fix them and re-run finalize_deck.py.")
+    return True, "ok"
+
+
 def record_source_ledger(out_dir, unresolved: int, keep_source: int = 0,
                          unreachable: int = 0) -> None:
     """Record reconciliation state for a SUPPLIED page that is being replicated.
@@ -205,12 +287,19 @@ def check_compile_allowed(out_dir, review_token: str) -> tuple[bool, str]:
                        "resolution (bind_from_brief / keep_source / replace_with). "
                        "Replicating a page also replicates its numbers, and that is "
                        "how stale figures have shipped before.")
-    qc = state.get("qc") or {}
-    if int(qc.get("blocks") or 0) > 0:
-        return False, (f"QC recorded {qc['blocks']} blocking issue(s) for this build"
-                       + (f": {qc.get('detail')}" if qc.get("detail") else "")
-                       + ". Fix them and re-run finalize_deck.py; 'block' severity "
-                         "now actually blocks the compile.")
+    # QC blocks are checked per option by check_options_finalized, against the
+    # options actually being shipped. A deck-wide count here refused a compile
+    # over an option nobody picked, and was wiped by every finalize --slide.
+    return True, "ok"
+
+
+def check_ledger(state: dict) -> tuple[bool, str]:
+    """A replicated supplied page has every figure-bearing slot resolved."""
+    sl = state.get("source_ledger") or {}
+    if int(sl.get("unresolved") or 0) > 0:
+        return False, (f"{sl['unresolved']} figure(s) on the supplied page are "
+                       "unreconciled. Every row in source_ledger.json needs a "
+                       "resolution (bind_from_brief / keep_source / replace_with).")
     return True, "ok"
 
 
