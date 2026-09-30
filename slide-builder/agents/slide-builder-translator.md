@@ -64,6 +64,14 @@ Procedure:
 
 If a chrome zone has text in the HTML but no `data-template-field` attribute, that's an editability violation (caught in Task 4) — emit `# EDITABILITY_VIOLATION` and stop.
 
+**When the layout has no subtitle placeholder** (`subtitle_placeholder_idx: null` in `chrome.yml` for this slide's layout — check it), the rule above inverts for `subtitle` only:
+
+- **Do NOT put `subtitle` in `__template_fields__`.** There is no placeholder to receive it, so finalize drops the takeaway at a default position near the top of the body and it lands on whatever your design put there.
+- **DO emit the takeaway as a body shape named exactly `subtitle`**, at the geometry the HTML's `data-template-field="subtitle"` element occupies. finalize looks for a free-floating shape with that name and suppresses its own fallback when it finds one (`_has_free_floating_subtitle`).
+- Title, footer and page_number still go through `__template_fields__` as normal.
+
+This is not a style preference. On one 20-slide deck the translators split roughly evenly between the two behaviors and eight slides shipped with the takeaway buried under body content. The ones that came out clean did so by accident. `finalize_deck.py` now blocks on the collision (`chrome_buried`), so getting this wrong costs a round trip.
+
 ### Task 2 — Translate body-zone shapes (Spec 4 §6)
 
 For every HTML element with attribute `data-shape-id` that sits in the body zone (between `body_top_y_px` and `body_bottom_y_px` from chrome.yml), generate a native python-pptx shape.

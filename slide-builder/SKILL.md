@@ -276,7 +276,7 @@ Adjacency (Hardline #3 — no 3+ consecutive same-split) is **soft-enforced at p
 1. **Setup.** Confirm the client template path with the user. Read the brief and explicitly read the `## Deck-level design notes` section before proceeding; those constraints are binding.
 2. **Narrative + content gates.** Verify governing thoughts are specific and assertive; verify enough raw content per slide. Skip if storyline-helper already gated this session.
 3. **Stage 1 — Prep.** Run `build_deck.py` to render one self-contained `_prompt.md` per slide. Each prompt is `prompt.md` with brief content interpolated, layouts/anti-patterns reference paths injected, the rotation seed computed, and the per-slide pattern routing (`PATTERN: sketch|direct`) from the classifier.
-4. **Stage 2 — Parallel fanout.** Dispatch one `slide-builder-worker` agent per slide IN PARALLEL from the parent session. Each agent reads the rendered `_prompt.md` and branches on the PATTERN field:
+4. **Stage 2 — Parallel fanout.** Dispatch one `slide-builder-worker` agent per slide IN PARALLEL from the parent session. **At most 20 agents at a time** — `dispatch_plan.md` lists the waves when the deck is bigger than that. Dispatches past the limit are rejected, and the rejection is quiet: on one 29-slide deck about 20 of them vanished and `finalize_deck.py` exited 11 with slides 23-29 missing. The same limit applies to the Stage 3.5 translator fan-out, which is one agent per picked slide-option and so can be several times the slide count. Each agent reads the rendered `_prompt.md` and branches on the PATTERN field:
    - **the sketch path** (default): worker produces the requested option HTML file(s) (`option_A.html`, plus `B`/`C` only when the count > 1), then self-checks by rendering each via `scripts/render_html.py` and reading the resulting 1280×720 PNG before declaring done.
    - **the direct path**: worker produces the requested option script(s) (`option_A.py`, plus `B`/`C` only when the count > 1).
 5. **Stage 2.5 — HTML render (sketch-path only).** For each the sketch-path slide's HTML options, the parent session renders to PNG via `py -3 scripts/render_html.py <html> <png>` so REVIEW.html has visual previews. Workers may also do this as part of their self-check; the parent renders any not-yet-rendered as a safety net.
@@ -384,6 +384,14 @@ py -3 scripts/build_deck.py --brief ... --template ... --out ... --pattern direc
 py -3 scripts/build_deck.py --brief ... --template ... --out ... --pattern legacy
 #   ↑ python-pptx-direct pipeline with no per-slide classification
 ```
+
+**Running prep from a script or a non-interactive shell:** add `--confirm-template`. Prep asks *"Proceed with this template? [y/N]"* and a shell with no one to answer it reads EOF and aborts with exit 8, which looks like a failure rather than a question. The flag answers the question up front; it does not skip registration, which is a separate gate.
+
+```powershell
+py -3 scripts/build_deck.py --brief ... --template ... --out ... --confirm-template
+```
+
+A brief authored in-session rather than by storyline-helper's emitter also needs `storyline_gate_passed: true` (or a `mode:` line) in its front matter. Both are deliberate gates; both read as surprise failures mid-run if you meet them for the first time at prep.
 
 Master switch is `settings.json::enable_sketch` (shipped `true`). Set it to `false` to disable the sketch path entirely: `auto` and `sketch` are then downgraded to `legacy` with a stderr warning, and no slide renders through Chromium. The sketch path requires the Playwright Chromium binary (see INSTALL.md Step 1.5).
 
