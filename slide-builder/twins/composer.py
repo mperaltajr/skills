@@ -514,28 +514,6 @@ def reassign_shape_ids(slide) -> int:
     return changed
 
 
-def find_duplicate_shape_ids(prs) -> list[str]:
-    """Report slides carrying more than one shape with the same id.
-
-    The defect reassign_shape_ids prevents, checked on the saved package so a
-    hand-edit made after compile (stamping badges, patching a label) cannot ship
-    a deck PowerPoint will refuse. See reassign_shape_ids for why this is fatal
-    there and invisible everywhere else.
-    """
-    problems: list[str] = []
-    for n, slide in enumerate(prs.slides, start=1):
-        seen: dict[str, int] = {}
-        for cNvPr in slide.shapes._spTree.iter(qn("p:cNvPr")):
-            sid = cNvPr.get("id")
-            if sid:
-                seen[sid] = seen.get(sid, 0) + 1
-        dupes = sorted(sid for sid, c in seen.items() if c > 1)
-        if dupes:
-            problems.append(
-                f"slide {n}: shape id(s) {', '.join(dupes[:4])} used more than once")
-    return problems
-
-
 def _clear_existing_slides(prs):
     """Remove any slides already present in the presentation (client
     templates often ship with sample slides we don't want) AND remove

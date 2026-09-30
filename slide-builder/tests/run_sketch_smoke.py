@@ -246,19 +246,21 @@ def phase_5_r4_checks(tmp: Path, py_path: Path) -> None:
         classification="sketch_translated", classification_reason="",
     )
     checks = finalize_deck._check_r4_rules_for_sketch(st)
-    _check("emits exactly 8 R4 checks", len(checks) == 8, f"got {len(checks)}")
+    _check("emits exactly 9 R4 checks", len(checks) == 9, f"got {len(checks)}")
 
-    # Severity counts per Spec 6: 3 Critical / 4 Major / 1 Advisory
+    # Severity counts per Spec 6, plus R4.9 (no embedded charts / OLE),
+    # added after a translator shipped a doughnut as a broken-object icon:
+    # 4 Critical / 4 Major / 1 Advisory
     block_n = sum(1 for c in checks if c.get("severity") == "block")
     warn_n  = sum(1 for c in checks if c.get("severity") == "warn")
     info_n  = sum(1 for c in checks if c.get("severity") == "info")
-    _check("3 Critical (severity=block)", block_n == 3, f"got {block_n}")
+    _check("4 Critical (severity=block)", block_n == 4, f"got {block_n}")
     _check("4 Major (severity=warn)",     warn_n  == 4, f"got {warn_n}")
     _check("1 Advisory (severity=info)",  info_n  == 1, f"got {info_n}")
 
     # Every rule passes on the clean smoke fixture
     fails = [c for c in checks if not c.get("pass")]
-    _check("all 8 checks pass on a clean fixture",
+    _check("all 9 checks pass on a clean fixture",
            not fails, f"failing checks: {[c.get('check') for c in fails]}")
 
     # Pattern C / legacy classification returns empty

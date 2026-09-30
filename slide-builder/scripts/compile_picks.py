@@ -55,10 +55,10 @@ from twins.composer import (  # noqa: E402
     _find_blank_layout,
     _find_named_layout,
     _strip_layout_placeholders,
-    find_duplicate_shape_ids,
     reassign_shape_ids,
     remove_empty_placeholders,
 )
+from pptx_openability import check_openability  # noqa: E402  (sibling slide-qc)
 
 
 # ---------------------------------------------------------------------------
@@ -75,10 +75,11 @@ def assert_package_integrity(path: Path) -> list[str]:
     _dedupe_zip_entries only collapses duplicate NAMES and is structurally blind
     to this, so it needs its own check.
 
-    Also catches duplicate shape ids, the other defect that reads clean offline
-    and makes PowerPoint refuse the file. The graft paths now prevent it, but a
-    hand-edit after compile (stamping option badges, patching one label) can
-    still introduce it, which is exactly how it shipped once.
+    Also runs the openability checks (see slide-qc/scripts/pptx_openability.py)
+    for the other defects that read clean offline and still make PowerPoint refuse
+    the file. The graft paths prevent those now, but a hand-edit after compile
+    (stamping option badges, patching one label) can reintroduce them, which is
+    exactly how one shipped.
     """
     problems: list[str] = []
     import zipfile as _zf
@@ -90,7 +91,9 @@ def assert_package_integrity(path: Path) -> list[str]:
         for n in names:
             (dupes.add(n) if n in seen else seen.add(n))
         prs = Presentation(str(path))
-        problems.extend(find_duplicate_shape_ids(prs))
+        problems.extend(p["issue"] if p["slide"] is None
+                        else f"slide {p['slide']}: {p['issue']}"
+                        for p in check_openability(prs, path))
         listed = len(prs.slides)
         if len(parts) != listed:
             problems.append(
@@ -111,9 +114,10 @@ def _report_integrity(path: Path) -> int:
     print("\nREFUSED: the saved deck failed the package-integrity check.")
     for p in problems:
         print(f"  - {p}")
-    print("  This usually means a slide was added or replaced outside the pipeline.\n"
-          "  Rebuild through compile_picks/--splice-into rather than editing the\n"
-          "  package by hand; those paths keep the slide list and parts in sync.")
+    print("  PowerPoint would refuse to open this deck even though python-pptx and\n"
+          "  LibreOffice read it. It usually means the package was edited outside\n"
+          "  the pipeline. Rebuild through compile_picks/--splice-into rather than\n"
+          "  patching the saved file; those paths keep the structure valid.")
     return 6
 
 
