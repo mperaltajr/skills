@@ -149,7 +149,31 @@ def main() -> int:
         tmp.unlink(missing_ok=True)
     print(f"    ok: {res['detail'][:76]}...")
 
-    print("8. both gates run the checks")
+    print("8. the option badge lands clear of the page number")
+    from compile_picks import _stamp_option_badge
+    from pptx.util import Emu
+    PX = 9525
+    prs = Presentation()
+    prs.slide_width, prs.slide_height = Emu(1280 * PX), Emu(720 * PX)
+    slide = prs.slides.add_slide(prs.slide_layouts[6])
+    pn = slide.shapes.add_textbox(Emu(1180*PX), Emu(680*PX), Emu(50*PX), Emu(22*PX))
+    pn.name = "Slide Number"; pn.text_frame.text = "7"
+    assert _stamp_option_badge(slide, prs, "Option B"), "the badge was not placed"
+    badge = [s for s in slide.shapes if s.name == "chrome-option-badge"][0]
+
+    def _box(sh):
+        return (int(sh.left), int(sh.top), int(sh.left) + int(sh.width),
+                int(sh.top) + int(sh.height))
+
+    bx0, by0, bx1, by1 = _box(badge)
+    px0, py0, px1, py1 = _box(pn)
+    assert not (bx0 < px1 and bx1 > px0 and by0 < py1 and by1 > py0), (
+        "the badge is on the page number — the defect that shipped on all 87 "
+        "slides of one deck")
+    assert bx0 >= 0 and bx1 <= int(prs.slide_width), "the badge ran off the canvas"
+    print(f"    ok: badge at x={bx0//PX}-{bx1//PX}px, page number at x={px0//PX}px")
+
+    print("9. both gates run the checks")
     assert "check_openability" in inspect.getsource(
         compile_picks.assert_package_integrity), (
         "the compile gate no longer checks openability; a post-compile hand-edit "
