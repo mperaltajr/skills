@@ -33,6 +33,12 @@ def main(argv=None) -> int:
     if not args.out.exists():
         print(f"ERROR: out dir not found: {args.out}")
         return 2
+    if not Path(args.deck).exists():
+        # The record is evidence about a specific file. Recording a pass over a
+        # deck that is not there would leave check_done unable to verify anything.
+        print(f"ERROR: no deck at {args.deck} — record the pass over the file you "
+              f"actually looked at.")
+        return 2
     _state.record_vision_qc(args.out, args.deck, args.slides_reviewed, args.findings)
     print(f"[ok] recorded vision pass: {args.slides_reviewed} slide(s), "
           f"{args.findings} finding(s) over {args.deck}")

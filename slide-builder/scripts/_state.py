@@ -107,16 +107,35 @@ def record_source_ledger(out_dir, unresolved: int, keep_source: int = 0,
     _write(out_dir, state)
 
 
+def file_digest(path) -> str:
+    """Hash a file's bytes. Empty string when it cannot be read."""
+    p = Path(path)
+    h = hashlib.md5()
+    try:
+        with p.open("rb") as fh:
+            for chunk in iter(lambda: fh.read(1 << 20), b""):
+                h.update(chunk)
+    except Exception:
+        return ""
+    return h.hexdigest()
+
+
 def record_vision_qc(out_dir, deck: str, slides_reviewed: int, findings: int = 0) -> None:
     """Record that a real page-by-page VISION pass ran over the compiled deck.
 
     "Done" used to be an orchestrator claim backed by the deterministic
     self-check, which is structurally blind to overlaps and whitespace. This
     turns the claim into a fact another step can verify. slide-qc writes it.
+
+    The deck's bytes are hashed into the record, because the pass is only
+    evidence about the file that was actually looked at. Every ad hoc fix applied
+    to a compiled deck after QC (badges, a label patch, a collision fix) produced
+    a file nobody had reviewed, and each one broke something.
     """
     state = read_state(out_dir)
     state["vision_qc"] = {"deck": str(deck), "slides_reviewed": int(slides_reviewed),
-                          "findings": int(findings), "at": _now()}
+                          "findings": int(findings), "at": _now(),
+                          "digest": file_digest(deck)}
     _write(out_dir, state)
 
 
