@@ -20,7 +20,7 @@ The parent session passes the absolute paths in the dispatch message:
 SLIDE: N
 PICKED_OPTION: A   (or B, or C)
 HTML_PATH:        <out_dir>/slide_NN/option_A.html
-PNG_PATH:         <out_dir>/slide_NN/option_A.png
+PNG_PATH:         <out_dir>/slide_NN/option_A.sketch.png
 BRIEF_PATH:       <out_dir>/_brief.md
 CONTEXT_PATH:     <out_dir>/slide_NN/_context.md
 BRAND_YML:        <template-stem>/brand.yml
@@ -38,7 +38,7 @@ Read these files in order before writing anything:
 1. **`_context.md`** — canonical reference + design rules + constraint set for this slide
 2. **`_brief.md`** — deck and slide context (governing thought, so-what, evidence)
 3. **`option_A.html`** — the picked HTML; this IS what you translate
-4. **`option_A.png`** — the rendered visual target; your output PPTX must match this when rendered
+4. **`option_A.sketch.png`** — the rendered visual target; your output PPTX must match this when rendered
 5. **`brand.css`** — CSS variable resolution table (`--brand-primary: #...`, etc.)
 6. **`chrome.yml`** — layout geometry (body_top_y_px, body_bottom_y_px, placeholder geometry)
 
@@ -254,7 +254,7 @@ After Task 1-4 produce a valid `option_A_native.py`:
        option_A_native.pptx . --engine libre --dpi 96
    ```
    Resulting file: `slide_01.png` (rename to `option_A_native.png` to match the contract).
-3. Compute per-zone SSIM between `option_A.png` (HTML render = target) and `option_A_native.png` (your output). Zones from chrome.yml:
+3. Compute per-zone SSIM between `option_A.sketch.png` (HTML render = target) and `option_A_native.png` (your output). Zones from chrome.yml:
    - Title zone: y=0 to title_box bottom
    - Subtitle zone: title_box bottom to subtitle_box bottom (if subtitle placeholder)
    - Body zone: subtitle_box bottom (or title bottom) to body_bottom_y_px
@@ -278,7 +278,7 @@ After Task 1-4 produce a valid `option_A_native.py`:
 # CONTEXT_READ: <one-sentence citation from _context.md showing you read it>
 # BRIEF_IS_AUTHORITATIVE: True
 # HTML_SOURCE: option_A.html (sha256: <16-char-prefix>)
-# PNG_TARGET: option_A.png (sha256: <16-char-prefix>)
+# PNG_TARGET: option_A.sketch.png (sha256: <16-char-prefix>)
 # __template_fields__ = {
 #     "title": "<extracted title text>",
 #     "subtitle": "<extracted subtitle text>",
@@ -318,7 +318,7 @@ if __name__ == "__main__":
   "slide_n": 16,
   "option_letter": "A",
   "html_source": "option_A.html",
-  "png_target": "option_A.png",
+  "png_target": "option_A.sketch.png",
   "html_sha256": "...",
   "png_sha256": "...",
   "template_fields": {

@@ -295,7 +295,10 @@ def parse_prompt(prompt_path: Path) -> dict:
 # Slide scan — pattern capture per option
 # ---------------------------------------------------------------------------
 
-OPTIONS = _p.option_letters()  # settings-driven count (default 1); iterate, don't assume 3
+# Every letter an option can have, not the settings count. Reading the setting
+# here hid options that were built: with the setting at 1 and A/B/C on disk, the
+# page showed only A, while --all-variations still shipped all three.
+OPTIONS = _p._ALL_OPTION_LETTERS
 
 
 def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dict:
@@ -333,12 +336,22 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
             or (src_dir / f"option_{letter}_native.py").exists()
             or (themed_dir / _p.option_pptx_name(letter)).exists()
             or (themed_dir / _p.option_png_name(letter)).exists()
+            or (themed_dir / _p.option_sketch_png_name(letter)).exists()
         )
     built_letters = [l for l in OPTIONS if _option_built(l)]
     if not built_letters:
-        built_letters = list(OPTIONS)  # nothing built yet (fresh prep): fall back
+        built_letters = list(_p.option_letters())  # nothing built yet: fall back
     for letter in built_letters:
-        png = themed_dir / _p.option_png_name(letter)
+        # The finished, on-template render when finalize has made one; the
+        # worker's sketch otherwise. The page says which it is showing.
+        finished_png = themed_dir / _p.option_png_name(letter)
+        sketch_png = themed_dir / _p.option_sketch_png_name(letter)
+        if finished_png.exists():
+            png, png_kind = finished_png, "finished"
+        elif sketch_png.exists():
+            png, png_kind = sketch_png, "sketch"
+        else:
+            png, png_kind = finished_png, "none"
         themed_pptx = themed_dir / _p.option_pptx_name(letter)
         src_pptx = src_dir / _p.option_pptx_name(letter)
         src_py = src_dir / _p.option_py_name(letter)
@@ -379,8 +392,16 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
                 # advisory mappings are inferred by code prefix. The translator
                 # report's warnings array carries {code, detail} dicts.
                 for w in tr.get("warnings", []) or []:
-                    code = (w.get("code") or "").upper()
-                    detail = w.get("detail") or ""
+                    # Most real reports write warnings as plain strings. The
+                    # dict-only parse raised on the first one, the except below
+                    # swallowed it, and every translator warning vanished from
+                    # the page.
+                    if isinstance(w, str):
+                        w = {"code": "", "detail": w}
+                    elif not isinstance(w, dict):
+                        continue
+                    code = (w.get("code") or w.get("id") or "").upper()
+                    detail = w.get("detail") or w.get("message") or ""
                     if "CRITICAL" in code or code in ("EDITABILITY_VIOLATION", "TRANSLATOR_BLOCKED"):
                         sev = "Critical"
                     elif "MAJOR" in code or "MISMATCH" in code or "BELOW_MAJOR" in code:
@@ -396,6 +417,7 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
             "letter": letter,
             "png": png,
             "png_exists": png.exists(),
+            "png_kind": png_kind,
             "themed_pptx": themed_pptx,
             "themed_exists": themed_exists,
             "src_pptx": src_pptx,
@@ -499,7 +521,7 @@ def render_preview_banner(slides: list) -> str:
     total = sum(len(s["options"]) for s in slides)
     no_png = sum(1 for s in slides for o in s["options"] if not o["png_exists"])
     pre_graft = sum(1 for s in slides for o in s["options"]
-                    if o["png_exists"] and not o["themed_exists"])
+                    if o.get("png_kind") == "sketch")
     out = ""
     if no_png:
         out += (
@@ -521,13 +543,13 @@ def render_preview_banner(slides: list) -> str:
         out += (
             '<div class="font-banner">'
             '<div class="font-banner-title"><span class="font-banner-icon">&#9888;</span> '
-            f'{pre_graft} of {total} previews are from BEFORE the template chrome '
-            f'was applied</div>'
+            f'{pre_graft} of {total} previews are sketches</div>'
             '<div class="font-banner-body">'
-            'These show the design as it was drawn, not as it will look once the '
-            'title, takeaway and page number are grafted on. Collisions between the '
-            'two are invisible here. Run <code>finalize_deck.py</code> and rebuild '
-            'this page to see the real slides.</div>'
+            'These show the design as it was drawn, before the template\'s title, '
+            'takeaway and page number are put on it. Only the options you pick are '
+            'converted, and you will see each one finished, on the template, in a '
+            '<strong>final check</strong> before anything is built. That is where '
+            'a collision with the template shows up.</div>'
             '</div>'
         )
     return out
