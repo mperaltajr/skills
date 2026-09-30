@@ -217,6 +217,11 @@ STAGE 3 · REVIEW          build_review.py + REVIEW.html
    (HUMAN GATE)           Builds REVIEW.html with each slide's option(s) (PNG
                           thumbnails for both the direct and sketch paths); the
                           reviewer can request 1-3 more per slide.
+                          RUN STAGES 3.5 + 4 FIRST, over every option, so the
+                          thumbnails are the GRAFTED slides. A pre-graft preview
+                          hides every collision between the design and the
+                          template's own title/takeaway/page number. REVIEW.html
+                          banners when it is showing pre-graft previews.
                           MUST show the user REVIEW.html and WAIT for their picks
                           in chat before writing picks.json / finalizing /
                           compiling. options_per_slide=1 is NOT an auto-pick.
@@ -283,6 +288,7 @@ Adjacency (Hardline #3 — no 3+ consecutive same-split) is **soft-enforced at p
 6. **Stage 3 — Review (a HUMAN gate — stop and wait).** Run `build_review.py` to build REVIEW.html (shows PNGs for both the direct and sketch path options). **The orchestrator MUST show the user the `REVIEW.html` file path and WAIT for the user's picks in chat before writing `picks.json`, finalizing, or compiling.** This is the same hard contract as the template-registration gate (see "Show + take picks"): never auto-write picks, never treat the review as a formality.
    - **`options_per_slide: 1` is NOT an auto-pick.** A single option per slide still requires the user's explicit accept — or a request for 1-3 more options on the slides where they want alternatives. Writing `picks.json` as an all-"A" foregone conclusion is the documented failure that skips the user's review entirely (it silently ships whatever the worker produced).
    - **Do not review a half-rendered deck.** `build_review.py` prints `missing PNGs` / `missing themed PPTX` counts; if any option PNG is missing, finish rendering before asking the user to look. A review the user cannot actually see (thumbnails not built) is not a review.
+   - **Review the real slide, not the sketch.** Run translate + `finalize_deck.py` over every option BEFORE building REVIEW.html, so the thumbnails are the grafted slides the user will actually get. A pre-graft preview is the design as the worker drew it, before the template's title, takeaway and page number land on it — which is exactly where the collisions are. On one deck eight slides were approved from clean-looking previews and shipped with the takeaway buried under body content. The full `finalize_deck.py` pass themes every option present, not only picks, so this is one pass and not three. REVIEW.html says so in a banner when it is showing pre-graft previews.
    - **Only after the user picks/accepts:** write `picks.json`, then proceed to finalize + compile. `compile_picks.py` REFUSES to build a final deck unless you pass `--review-token <token>`, the token build_review.py shows ONLY inside REVIEW.html's 'Build my deck' command (it exits 5 otherwise). You get the token only from a real review; never invent it. A (re)build clears the token, so a rebuilt deck must be re-reviewed before it can compile.
 7. **Stage 3.5 — Translate (sketch-path only).** For each picked sketch-path slide, the parent session dispatches a `slide-builder-translator` agent. The translator reads the picked `option_X.html` + its rendered PNG + brief + brand context, produces `option_X_native.py` (native python-pptx script with editable text frames) + `option_X_translation_report.json` (SSIM zone scores + R4 QC findings).
 8. **Stage 4 — Finalize.** Run `finalize_deck.py`:
