@@ -74,7 +74,7 @@ This is not a style preference. On one 20-slide deck the translators split rough
 
 ### Task 2 — Translate body-zone shapes (Spec 4 §6)
 
-For every HTML element with attribute `data-shape-id` that sits in the body zone (between `body_top_y_px` and `body_bottom_y_px` from chrome.yml), generate a native python-pptx shape.
+For every HTML element with attribute `data-shape-id` that sits in the body zone, generate a native python-pptx shape. **Read the body zone from the slide's `_context.md`** (`--body-top` / `--body-bottom`), not from the raw `body_top_y_px` in chrome.yml: the `_context.md` value already reserves the band the grafted title and takeaway occupy, and the raw chrome.yml value does not.
 
 **Graceful fallback for under-tagged HTML:**
 Workers are asked to put `data-shape-id` on every body element they want translated, but in practice they under-tag a meaningful share of elements even when the HTML renders cleanly. To avoid hard-blocking a deck on worker compliance, fall back as follows when fewer than 3 elements carry `data-shape-id` in the body zone (or none at all):
@@ -104,6 +104,13 @@ const cs = getComputedStyle(el);
   border_radius: cs.borderRadius,
   border_color: cs.borderColor,
   border_width: cs.borderWidth,
+  // Per side: a border on one side only (an accent bar, a divider) reads as
+  // uniform through borderWidth/borderColor alone. Read all four.
+  border_top:    [cs.borderTopWidth,    cs.borderTopStyle,    cs.borderTopColor],
+  border_right:  [cs.borderRightWidth,  cs.borderRightStyle,  cs.borderRightColor],
+  border_bottom: [cs.borderBottomWidth, cs.borderBottomStyle, cs.borderBottomColor],
+  border_left:   [cs.borderLeftWidth,   cs.borderLeftStyle,   cs.borderLeftColor],
+  line_height: cs.lineHeight,
   color: cs.color,
   font_family: cs.fontFamily,
   font_size: parseFloat(cs.fontSize),
@@ -133,16 +140,20 @@ Map CSS properties to python-pptx per this table:
 | `getBoundingClientRect` x/y/w/h  | `shape.left/top/width/height = Emu(px_to_emu(N))`       |
 | `backgroundColor` (rgb/rgba/hex) | `shape.fill.solid(); shape.fill.fore_color.rgb = ...`   |
 | `borderRadius`                   | `MSO_SHAPE.ROUNDED_RECTANGLE`, `adjustments[0] = ratio` |
-| `borderColor` + `borderWidth`    | `shape.line.color.rgb`, `shape.line.width = Emu(...)`   |
+| `borderColor` + `borderWidth` (same on all four sides) | `shape.line.color.rgb`, `shape.line.width = Emu(...)` |
+| border on some sides only (e.g. `border-left: 4px solid`) | a separate thin filled rectangle per bordered side, at that edge of the box; the box itself gets no outline. python-pptx outlines are all-or-nothing. |
+| `borderStyle: dashed` / `dotted` | `shape.line.dash_style = MSO_LINE_DASH_STYLE.DASH` / `ROUND_DOT` — do not draw it solid |
 | `borderStyle: none` or width 0   | `shape.line.fill.background()`                          |
 | `color`                          | `run.font.color.rgb = ...`                              |
 | `fontFamily`                     | `run.font.name = "..."`                                 |
 | `fontSize` (px)                  | `run.font.size = Pt(snap_font_pt(px * 72/96))` — import `from twins.helpers import snap_font_pt`; snaps to PowerPoint's default grid, floor 8pt (the finalize step also enforces this) |
 | `fontWeight` >= 600              | `run.font.bold = True`                                  |
 | `fontStyle: italic`              | `run.font.italic = True`                                |
-| `textTransform: uppercase`       | uppercase the text BEFORE setting; do NOT use a CSS proxy |
+| `textTransform: uppercase`       | uppercase the text BEFORE setting; do NOT use a CSS proxy. **Protected terms keep their casing**: "TaaS" stays "TaaS" (not "TAAS"), and so does any term the brief's content rules name. Uppercase around them. |
 | `textAlign`                      | `paragraph.alignment = PP_ALIGN.{LEFT,CENTER,RIGHT}`    |
-| `letterSpacing` (px)             | `run.font.spc = int(px * 50)`  (100ths of pt)           |
+| `letterSpacing` (px)             | `run.font._rPr.set("spc", str(int(round(px * 75))))` — raw attribute, hundredths of a point. See "Calibration" below: `run.font.spc` does NOT exist. |
+| `lineHeight` (px)                | `paragraph.line_spacing = Pt(px * 0.75)` — an exact point value, not a multiple. `normal` → leave unset. |
+| inline `<strong>`/`<b>`/`<em>`/colored `<span>` inside a text element | one run per styled span, each with its own bold/italic/color. Do not flatten the element to `textContent`; that silently drops the emphasis. |
 | `white-space: nowrap`, or any single-line label | `shape.text_frame.word_wrap = False` |
 
 **Single-line labels must set `word_wrap = False`.** You size a box from Chrome's
@@ -153,6 +164,40 @@ Axis labels, legend keys, units, pills, eyebrows and any other one-line label ge
 `word_wrap = False`, which lets the text overhang the box rather than break. Do NOT
 pad the box width to compensate — widening a box while holding its left edge moves
 centered and right-aligned text, which is its own defect.
+
+#### Calibration: where LibreOffice/PowerPoint differ from Chrome
+
+These are measured constants, not per-slide judgment. Every session used to
+rediscover them by eye, and the sessions that didn't came out visibly worse: on one
+deck that carried these as a deck-wide note, 0 of 84 slides had text sitting low;
+on the three decks that didn't, 25 of 95 did. Apply all of them on every slide.
+
+1. **Letter spacing: `px × 75`, written as a raw attribute.**
+   `run.font._rPr.set("spc", str(int(round(px * 75))))`. The unit is hundredths of
+   a point and 1px = 0.75pt, so the factor is 75, not 50. Do NOT write
+   `run.font.spc = ...`: python-pptx has no such property, the assignment raises no
+   error, and nothing reaches the file. On one deck 43 of 60 slides shipped with no
+   letter spacing at all that way, and nobody noticed.
+2. **Line spacing: exact points from the computed `line-height`.**
+   `paragraph.line_spacing = Pt(line_height_px * 0.75)` on every paragraph. A
+   proportional multiple, or leaving it unset, lets the renderer pick its own
+   leading and text drifts 7-9px low and overflows cards.
+3. **First-baseline nudge: lift each text box 3px.** With exact line spacing,
+   LibreOffice and PowerPoint set the first baseline about 3px lower than Chrome.
+   Subtract 3px from the text box's top. This is calibrated for body and label
+   text; for large display numerals (roughly 32px and up) check the render, since
+   the offset grows with the font's ascent.
+4. **One-sided borders are separate bars** (see the table above).
+5. **No shadow is `effectRef idx="0"`** (Task 3). Never delete it.
+6. **Text that sits on the edge of its filled box in the HTML needs room.** If a
+   text block's bottom or right edge is within about 4px of the filled shape behind
+   it, grow that shape by the difference plus 4px: the 3px baseline shift above is
+   enough to push the last line past the edge of a dark band. Leave deliberately
+   overhanging numerals alone.
+
+Import `snap_font_pt` from `twins.helpers` rather than rewriting it, and prefer the
+other `twins.helpers` builders where they fit. Hand-rolled helpers are how the
+same rule ended up implemented six different ways across one deck.
 
 For colors, use the public helpers in `twins/client_theme.py`:
 
