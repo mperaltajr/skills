@@ -321,7 +321,7 @@ But replicating a page faithfully also replicates its **numbers**, and that is t
 
 The flow:
 
-1. **Pin it** so it cannot be quietly dropped: record `pinned_source_page` in `_meta.json`; the page is always built as a required option on its slide.
+1. **Pin it** so it cannot be quietly dropped: in the brief's slide block, add `**Pinned source page:** <path to the supplied file> slide N`. Prep records it in `_meta.json`, the worker is told that **option A reproduces that page** (structure, sections, wording, on the client template), and the review page labels the slide. Compile refuses until step 2 has been run.
 2. **Enumerate its figures:**
    ```powershell
    py -3 scripts/source_ledger.py build --out <out> --deck "<supplied.pptx>" --slide N

@@ -276,6 +276,43 @@ def main() -> int:
     finally:
         H.cleanup(tmp)
 
+    print("[6] a pinned supplied page is carried through, and gates compile")
+    import tempfile
+    tmp = Path(tempfile.mkdtemp(prefix="slidelab_e2e_pin_"))
+    try:
+        brief = tmp / "brief.md"
+        slides = H.SLIDE.format(n=1).replace(
+            "**Slide type:** Content",
+            "**Slide type:** Content\n**Pinned source page:** client_onepager.pptx slide 1")
+        brief.write_text(H.BRIEF.format(slides=slides), encoding="utf-8")
+        assert H.run("seal_brief.py", "--brief", brief).returncode == 0
+        out = tmp / "out"
+        r = H.run("build_deck.py", "--brief", brief, "--template", H.TEMPLATE,
+                  "--out", out, "--pattern", "direct")
+        assert r.returncode == 0, r.stderr[-800:]
+        import json as _json
+        meta = _json.loads((out / "_meta.json").read_text(encoding="utf-8"))
+        assert meta["slides"][0].get("pinned_source_page", "").startswith("client_onepager"), \
+            meta["slides"][0]
+        prompt = (out / "slide_01" / "_prompt.md").read_text(encoding="utf-8")
+        assert "option A reproduces that page" in prompt, "the worker is not told to reproduce it"
+        H.write_option(out, 1)
+        assert H.finalize(out).returncode == 0
+        html = _review(out) and (out / "REVIEW.html").read_text(encoding="utf-8")
+        assert "reproduces the page you supplied" in html
+        assert _record(out, {"slide_01": "A"}).returncode == 0
+        assert H.finalize(out).returncode == 0
+        r, tok = _final(out)
+        assert r.returncode == 0, r.stderr
+        r = _compile(out, tok)
+        assert r.returncode == 5 and "never reconciled" in r.stdout, r.stdout[-600:]
+        _state.record_source_ledger(out, unresolved=0, keep_source=1)
+        r = _compile(out, tok)
+        assert r.returncode == 0, r.stdout[-1200:]
+        print("    ok: in _meta, in the prompt, on the review page; compile waits for the ledger")
+    finally:
+        H.cleanup(tmp)
+
     print("\nSMOKE PASSED.")
     return 0
 

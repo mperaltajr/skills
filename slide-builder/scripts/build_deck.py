@@ -156,6 +156,10 @@ FIELD_LABELS = {
     "mandatory_shape":     ("mandatory shape",),
     "forbidden_patterns":  ("forbidden patterns",),
     "accent_placement":    ("accent placement",),
+    # A page the user handed over to be KEPT (a one-pager, a mockup). Recorded
+    # in _meta.json so it cannot be quietly replaced by a summary of it, which
+    # is how a supplied one-pager once became an exec summary nobody asked for.
+    "pinned_source_page":  ("pinned source page", "supplied page"),
 }
 
 
@@ -557,6 +561,7 @@ def parse_brief(brief_path: Path, bypass_gate: bool = False) -> dict[str, Any]:
             "mandatory_shape": extract_field(block, FIELD_LABELS["mandatory_shape"]),
             "forbidden_patterns": extract_field(block, FIELD_LABELS["forbidden_patterns"]),
             "accent_placement": extract_field(block, FIELD_LABELS["accent_placement"]),
+            "pinned_source_page": extract_field(block, FIELD_LABELS["pinned_source_page"]),
         }
         slides.append(slide)
 
@@ -1208,6 +1213,7 @@ def build_placeholders(
         "NOT_THIS_SLIDE":          slide.get("not_this_slide", "") or "(none)",
         "VISUAL_RHYTHM":           slide.get("visual_rhythm", "") or "(worker's judgment)",
         "MANDATORY_SHAPE":         slide.get("mandatory_shape", "") or "(none — worker's judgment)",
+        "PINNED_SOURCE_PAGE":      slide.get("pinned_source_page", "") or "(none)",
         "FORBIDDEN_PATTERNS":      slide.get("forbidden_patterns", "") or "(none)",
         "ACCENT_PLACEMENT":        slide.get("accent_placement", "") or "(worker's judgment)",
         "DECK_LEVEL_DESIGN_NOTES": deck_notes or "(no deck-level design notes)",
@@ -1434,6 +1440,9 @@ def _build_slide_meta_entry(slide: dict[str, Any], forecast: str,
         # would break if settings changed between build and finalize).
         "options":            list(_p.option_letters()),
     }
+    _pin = (slide.get("pinned_source_page") or "").strip()
+    if _pin:
+        entry["pinned_source_page"] = _pin
     # Only populate build-path fields when the classifier produced routing for
     # this slide. Empty pattern_per_slide (legacy mode) leaves the shape unchanged.
     if str(slide_n) in pattern_per_slide:

@@ -88,6 +88,10 @@ class SlideMeta(BaseModel):
     # options that were never dispatched. None on legacy metas → reader falls
     # back to the live option_letters().
     options: Optional[list[str]] = None
+    # A page the user handed over to be reproduced on this slide (from the
+    # brief's **Pinned source page:** line). Option A reproduces it, and
+    # compile refuses until its figures are reconciled (source_ledger.py).
+    pinned_source_page: Optional[str] = None
 
 
 class DeckMeta(BaseModel):

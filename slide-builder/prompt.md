@@ -17,6 +17,7 @@ Placeholders rendered by `build_deck.py`:
 | `{{CHART_DATA}}` | Chart data block from brief (inline table, CSV/Excel path, or `TBD — placeholder`). Build the chart from this when `{{CHART_TYPE}}` is not `none`. |
 | `{{NOT_THIS_SLIDE}}` | "What this slide is NOT" block (may be empty) |
 | `{{VISUAL_RHYTHM}}` | Optional steering: the dominance pattern the brief wants (e.g. `conclusion-dominant`, `contrast-dominant`). Honor it when set; else use your judgment. |
+| `{{PINNED_SOURCE_PAGE}}` | A page the user supplied to be reproduced on this slide, or `(none)`. When set, option A must reproduce it. |
 | `{{MANDATORY_SHAPE}}` | Optional steering: a layout shape the brief requires (e.g. `two-column`, `three-column`). When set, the picked pattern MUST satisfy it. |
 | `{{FORBIDDEN_PATTERNS}}` | Optional steering: pattern stems the brief excludes. Do NOT pick any pattern named here. |
 | `{{ACCENT_PLACEMENT}}` | Optional steering: where the accent color should land on this slide. Honor it when set. |
@@ -79,6 +80,7 @@ You are one of {{SLIDE_TOTAL}} parallel agents dispatched from the same parent s
 
 - **Visual rhythm:** {{VISUAL_RHYTHM}}
 - **Mandatory shape:** {{MANDATORY_SHAPE}} — when this names a shape, the pattern you pick MUST satisfy it.
+- **Supplied page to reproduce:** {{PINNED_SOURCE_PAGE}} — when this names a page, **option A reproduces that page**: its structure, sections and wording, rebuilt on the client template. Do not summarize it or replace it with your own design; any other options may reinterpret it. Its figures are reconciled against the brief separately (the source ledger), so where the brief gives a number, use the brief's.
 - **Forbidden patterns:** {{FORBIDDEN_PATTERNS}} — never pick a pattern named here.
 - **Accent placement:** {{ACCENT_PLACEMENT}}
 
