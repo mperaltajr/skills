@@ -8,6 +8,9 @@
   "options_per_slide": 3,
   "_doc_options_per_slide": "How many design options each slide's worker produces up front (1-3). Ships at 3 so every slide has alternatives to compare. Cost: three options run roughly 1.3-1.5x the tokens of one, because the worker's setup is shared and only the picked option is converted to PowerPoint (unmeasured estimate). Set to 1 to minimize tokens. Read via _paths.option_letters(). NOTE: a single option is still NOT an auto-pick. REVIEW.html remains a human gate: the user picks every slide (recorded by record_picks.py), then looks at the finished picks in FINAL-CHECK.html, whose Build command carries the --final-token compile requires.",
 
+  "translator": "agent",
+  "_doc_translator": "How picked sketch designs become native PowerPoint. 'script' = scripts/translate_html.py (deterministic, seconds per slide; it renders its own result and hands any element it cannot draw, or that came out looking different, to the agent in fallback mode). 'agent' = the slide-builder-translator agent translates every picked option. Switch to 'script' only after tests/translate_gonogo.py and a blind comparison pass on recent sessions.",
+
   "enable_sketch": true,
   "_doc_enable_sketch": "Master switch for the sketch (HTML-first) path. When false, default_pattern is forced to 'legacy' regardless of its value, and --pattern auto|sketch is downgraded.",
 

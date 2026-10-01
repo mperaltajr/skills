@@ -95,6 +95,22 @@ def options_per_slide(default: int = 1) -> int:
         return default
 
 
+def translator_mode() -> str:
+    """'script' or 'agent' from settings.json::translator (SLIDE_LAB_TRANSLATOR
+    overrides, for tests). Unknown or missing values mean 'agent'."""
+    import os
+    env = (os.environ.get("SLIDE_LAB_TRANSLATOR") or "").strip().lower()
+    if env in ("script", "agent"):
+        return env
+    try:
+        import json
+        settings = Path(__file__).resolve().parents[1] / "settings.json"
+        v = str(json.loads(settings.read_text(encoding="utf-8")).get("translator", "agent")).lower()
+        return v if v in ("script", "agent") else "agent"
+    except Exception:
+        return "agent"
+
+
 def option_letters(n: int | None = None) -> tuple[str, ...]:
     """The option letters to build for one slide. Defaults to
     settings.json::options_per_slide (default 1); max 3 (A/B/C). Callers iterate

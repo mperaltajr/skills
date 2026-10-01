@@ -194,6 +194,15 @@ def _classify_option(py_path: Path) -> tuple[str, str]:
         if len(parts) >= 3:
             letter = parts[1]
             report = py_path.parent / f"option_{letter}_translation_report.json"
+            # The translate_html.py script draws everything it can and marks the
+            # elements it can't (curved drawings, rotation, images) for the agent.
+            # Until the agent has drawn them, the slide is incomplete; building it
+            # would ship a slide with holes in it.
+            m = re.search(r"^# FALLBACK_PENDING: (\d+)", text, re.MULTILINE)
+            if m:
+                return "missing", (
+                    f"{py_path.name}: {m.group(1)} element(s) still need the "
+                    f"slide-builder-translator agent (fallback mode)")
             if report.exists():
                 return "sketch_translated", "translator output (sibling report present)"
             return "missing", (
@@ -2764,12 +2773,17 @@ def _run(args) -> int:
             # used to say "re-dispatch the worker" for both, which wasted a run
             # and overwrote HTML the user may already have reviewed.
             needs_translate: list[str] = []
+            needs_fallback: list[str] = []
             needs_worker: list[str] = []
             for slide_n in sorted(missing_groups):
                 slide_dir = _p.slide_dir(args.out, slide_n)
                 for letter in sorted(missing_groups[slide_n]):
                     tag = f"slide_{slide_n:02d}/option_{letter}"
-                    if (slide_dir / f"option_{letter}.html").exists():
+                    native = slide_dir / f"option_{letter}_native.py"
+                    if native.exists() and "# FALLBACK_PENDING:" in native.read_text(
+                            encoding="utf-8", errors="replace"):
+                        needs_fallback.append(tag)
+                    elif (slide_dir / f"option_{letter}.html").exists():
                         needs_translate.append(tag)
                     else:
                         needs_worker.append(tag)
@@ -2777,10 +2791,23 @@ def _run(args) -> int:
                 f"\nERROR: {n_missing} expected option output(s) absent. "
                 f"finalize would crash mid-build.\n")
             if needs_translate:
+                # The fix depends on who translates (settings.json::translator).
+                if _p.translator_mode() == "script":
+                    how = "Translate:\n" + "".join(
+                        f"  py -3 scripts/translate_html.py --out \"{args.out}\" --slide "
+                        f"{int(t[6:8])} --letter {t[-1]}\n" for t in needs_translate)
+                else:
+                    how = ("Dispatch slide-builder-translator on each (at most 20 at a "
+                           "time):\n" + "".join(f"  {t}.html\n" for t in needs_translate))
                 sys.stderr.write(
                     "\nDesigned but not yet translated (the HTML is there, the "
-                    "native script is not) — dispatch slide-builder-translator on:\n"
-                    + "".join(f"  {t}.html\n" for t in needs_translate))
+                    "native script is not). " + how)
+            if needs_fallback:
+                sys.stderr.write(
+                    "\nTranslated except for elements the script can't draw (see each "
+                    "option's translation report). Dispatch slide-builder-translator "
+                    "in FALLBACK MODE on:\n"
+                    + "".join(f"  {t}_native.py\n" for t in needs_fallback))
             if needs_worker:
                 sys.stderr.write(
                     "\nNo design output at all — the worker was never sent, is still "

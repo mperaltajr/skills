@@ -233,11 +233,19 @@ STAGE 3 · REVIEW          build_review.py -> REVIEW.html
                           records picks. A Replace request is a new design
                           round: build_deck.py --slide N, then review again.
 
-STAGE 3.5 · TRANSLATE     (picked sketch options only) One slide-builder-
-                          translator agent per PICKED sketch option, at most 20
-                          at a time. record_picks.py prints the list. Unpicked
-                          sketches are never converted: that is where the
-                          token saving is.
+STAGE 3.5 · TRANSLATE     (picked sketch options only) Unpicked sketches are
+                          never converted: that is where the token saving is.
+                          settings.json "translator" decides who converts:
+                          "agent": one slide-builder-translator per PICKED
+                            sketch option, at most 20 at a time;
+                            record_picks.py prints the list.
+                          "script": record_picks.py runs translate_html.py on
+                            every pick itself (seconds, no agent), renders the
+                            result once and compares each element with the
+                            design. Only what it can't draw (curves, images,
+                            rotated text) or what came out looking different
+                            goes to the agent in FALLBACK MODE; record_picks
+                            lists those, usually none.
 
 STAGE 4 · FINALIZE        finalize_deck.py again. Executes option_X.py (direct)
                           and option_X_native.py (translated sketches), grafts
@@ -296,7 +304,9 @@ Adjacency (Hardline #3 — no 3+ consecutive same-split) is **soft-enforced at p
    - **The user's Build command runs `record_picks.py`.** Run it exactly as pasted. It verifies the picks against a check code computed in the page and refuses an edited, partial or stale list. It is the only way picks get recorded; do not write `picks.json` by hand.
    - **Replace these** means a new design round for that slide: `build_deck.py --slide N` (the old options move to `slide_NN/_prev/`), dispatch its worker, finalize, and build the review again. The page keeps every other slide's pick.
    - **"All options in one deck"** is a separate button on the page. It converts every option, not just the picks, so it costs several times the tokens; the page says so before sending. If the user asks for this in chat ("accept all", "put them all in a deck"), ask first: *"All options in one deck, or option A for every slide?"* Reading it the wrong way once cost 58 extra worker runs.
-7. **Stage 3.5 — Translate the picked sketches only.** `record_picks.py` prints the list. Dispatch one `slide-builder-translator` per picked sketch option (at most 20 at a time). It reads `option_X.html` + `option_X.sketch.png` + brief + brand context and writes `option_X_native.py` + `option_X_translation_report.json`. Unpicked sketches are never converted.
+7. **Stage 3.5 — Translate the picked sketches only.** Unpicked sketches are never converted. Who converts depends on `settings.json::translator`:
+   - `"agent"`: `record_picks.py` prints the list. Dispatch one `slide-builder-translator` per picked sketch option (at most 20 at a time). It reads `option_X.html` + `option_X.sketch.png` + brief + brand context and writes `option_X_native.py` + `option_X_translation_report.json`.
+   - `"script"`: `record_picks.py` has already run `scripts/translate_html.py` on every pick and written the same files (plus `option_X_native.plan.json`, the drawing plan). It then rendered the result and compared every element with the design (`scripts/translate_alarm.py`). Elements it can't draw, and elements that came out looking different, are listed in the report's `fallback` and in `record_picks`' output; dispatch the translator in **FALLBACK MODE** on just those options. It draws only the listed elements. Finalize refuses an option whose `option_X_native.py` still starts with `# FALLBACK_PENDING`.
 8. **Stage 4 — Finalize again.** `finalize_deck.py` executes `option_X.py` (direct) and `option_X_native.py` (translated sketches), grafts each onto its layout, themes, renders, and records a QC result per option. Recorded picks survive it.
 9. **Stage 4.5 — Final check (a HUMAN gate — stop and wait).** `build_review.py --out <out> --final` writes `FINAL-CHECK.html`: every pick, finished, on the template, with the real title, takeaway and page number the sketches did not have. This is where a collision with the template becomes visible. It refuses if any pick is unfinished or blocked. **Show it and WAIT** for the Build command it copies.
 10. **Stage 5 — Compile.** Run the command from FINAL-CHECK.html: `compile_picks.py --out <out> --final-token <token>` (plus `--all-variations --badge` for an all-options deck, `--splice-into` for an adopted deck; the page adds these). Picks come from the recorded approval. It refuses if any file shown in the final check has changed since, if any slide has no pick, or if any shipped option has a blocking finding. Never invent the token.
