@@ -46,7 +46,8 @@ def main() -> int:
         proj.mkdir(parents=True)
         tpl = proj / fixture.FIXTURE_PPTX.name
         shutil.copy2(fixture.FIXTURE_PPTX, tpl)
-        fixture.register_fixture(tpl)  # writes brand.yml + theme.json + chrome.yml
+        # Unconfirmed on purpose: this test exercises the confirm step itself.
+        fixture.register_fixture(tpl, confirm=False)  # brand.yml + theme.json + chrome.yml
         key = str(tpl.resolve()).casefold()
 
         print("[1] Missing registry reads as an empty skeleton")

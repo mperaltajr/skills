@@ -89,6 +89,9 @@ def new_build(n_slides: int = 2) -> tuple[Path, Path]:
     brief = tmp / "brief.md"
     brief.write_text(BRIEF.format(slides="".join(
         SLIDE.format(n=i) for i in range(1, n_slides + 1))), encoding="utf-8")
+    # The gate passed (this is a test brief); seal it the way storyline-helper does.
+    r = run("seal_brief.py", "--brief", brief)
+    assert r.returncode == 0, r.stdout + r.stderr
     out = tmp / "out"
     r = run("build_deck.py", "--brief", brief, "--template", TEMPLATE,
             "--out", out, "--pattern", "direct", "--confirm-template")

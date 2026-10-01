@@ -148,7 +148,7 @@ def _sha8_of(path: Path) -> str:
     return h.hexdigest()[:8]
 
 
-def register_fixture(fixture_pptx: Path) -> Path:
+def register_fixture(fixture_pptx: Path, confirm: bool = True) -> Path:
     """Register the fixture via register_template's commit path with explicit
     classification overrides. Returns the chrome.yml path.
     """
@@ -183,6 +183,19 @@ def register_fixture(fixture_pptx: Path) -> Path:
     spec = rt.extract_chrome_spec(prs, sha8=sha8, classifications_override=overrides)
     chrome_yml_path = _p.chrome_yml(fixture_pptx)
     dump_chrome_yml(spec, chrome_yml_path)
+
+    # The human confirm step, as register_template.py confirm records it. Done
+    # directly because the real command also adds the template to the user's
+    # template registry, which a test must not touch. Prep refuses to build on
+    # an unconfirmed template (owner's decision, 2026-09-30).
+    if not confirm:
+        return chrome_yml_path
+    import json as _json
+    _tj = _p.theme_json(fixture_pptx)
+    _d = _json.loads(_tj.read_text(encoding="utf-8"))
+    _d["confirmed"] = True
+    _d["confirmed_at"] = "2026-09-30T00:00:00+00:00"
+    _tj.write_text(_json.dumps(_d, indent=2), encoding="utf-8")
     return chrome_yml_path
 
 

@@ -38,12 +38,14 @@ Exit codes:
        The client template is not registered (BrandSidecarMissing — run
        slide-builder/scripts/register_template.py). Halts at prep time
        before agent dispatch costs are sunk.
-    8  Template-choice confirmation aborted (the operator declined the
-       confirm-template gate).
+    8  (retired) Was the interactive template prompt, which nobody could
+       answer from inside Claude Code; it always aborted.
     9  Layout resolution failed — a slide's layout could not be resolved
        against the template's registered layouts (emit_layout_resolution_error).
    10  Storyline gate failed — the narrative brief did not pass the quality
        gate (bypassed by mode: template-fill / rebuild-slice / rfp).
+   12  The template has not been confirmed by a human (register_template.py
+       confirm). Override, logged in _state.json: --allow-unconfirmed.
 
 Cross-platform note: invoke this script with sys.executable from other scripts.
 """
@@ -355,16 +357,44 @@ def _enforce_storyline_gate(front_matter: dict[str, str], body: str,
         return
 
     passed_raw = (front_matter.get("storyline_gate_passed") or "").strip().lower()
+    if passed_raw in ("true", "yes", "1"):
+        # Owner's decision (2026-09-30): the marker must be proven, not typed.
+        # seal_brief.py writes a fingerprint of the brief's text when the gate
+        # passes; a typed marker has none, and an edited brief no longer matches.
+        from seal_brief import body_fingerprint
+        sealed = (front_matter.get("storyline_gate_sha") or "").strip()
+        if not sealed:
+            sys.stderr.write(
+                "ERROR: the brief says it passed the storyline gate, but it was never "
+                "sealed, so nothing shows the gate actually ran.\n\n"
+                f"  Brief: {brief_path}\n\n"
+                "  If it came through storyline-helper's gate, seal it:\n"
+                f"    py -3 scripts/seal_brief.py --brief \"{brief_path}\"\n"
+                "  If it was written in this session without the gate, build it with\n"
+                "  build_deck.py --assume-gated (recorded in the build's _state.json).\n")
+            sys.exit(10)
+        if sealed != body_fingerprint(body):
+            sys.stderr.write(
+                "ERROR: the brief changed after it passed the storyline gate.\n\n"
+                f"  Brief: {brief_path}\n\n"
+                "  Re-run the gate on the edited brief (storyline-helper), then seal it\n"
+                f"  again: py -3 scripts/seal_brief.py --brief \"{brief_path}\"\n"
+                "  Or, for a deliberate in-session edit, build with --assume-gated\n"
+                "  (recorded in the build's _state.json).\n")
+            sys.exit(10)
+        return
     if passed_raw not in ("true", "yes", "1"):
         sys.stderr.write(
             "ERROR: brief is missing the storyline-helper gate marker.\n\n"
             f"  Brief: {brief_path}\n\n"
             "Slide-builder requires briefs to be produced by storyline-helper\n"
             "and pass its quality gate. To fix, one of:\n\n"
-            "  (1) Run storyline-helper on this brief. On a clean gate-pass it\n"
-            "      writes the required front-matter field:\n"
-            "        storyline_gate_passed: true\n\n"
-            "  (2) If this is a legitimate non-narrative flow (PMO recurring\n"
+            "  (1) Run storyline-helper's gate on this brief. When it passes,\n"
+            "      seal it (do not type the marker by hand; it will not be accepted):\n"
+            f"        py -3 scripts/seal_brief.py --brief \"{brief_path}\"\n\n"
+            "  (2) If it was written in this session without the gate, build it\n"
+            "      with --assume-gated (recorded in the build's _state.json).\n\n"
+            "  (3) If this is a legitimate non-narrative flow (PMO recurring\n"
             "      report, single-slide rebuild, or RFP response), add to the\n"
             "      front-matter:\n"
             "        mode: template-fill      # for PMO / template fill mode\n"
@@ -1879,7 +1909,7 @@ def emit_layout_resolution_error(
     )
 
 
-def stage1_sanity_check(template_path: Path) -> int:
+def stage1_sanity_check(template_path: Path, allow_unconfirmed: bool = False) -> int:
     """Verify shared-infra prerequisites BEFORE agent dispatch.
 
     Returns 0 on success; non-zero exit code on failure (caller should
@@ -1975,10 +2005,15 @@ def stage1_sanity_check(template_path: Path) -> int:
                 f"  py -3 scripts/register_template.py commit  \"{template_path}\" --picks <picks.json>\n"
             )
         if not _theme_data.get("confirmed", False):
+            # Owner's decision (2026-09-30): stop, don't warn. The warning was
+            # printed and the build went ahead, while the docs said it stopped;
+            # building on a template nobody checked is how a deck comes out in
+            # inverted colors with every slide wrong.
             _mock = _p.selftest_pptx(template_path)
+            _label = "NOTE (--allow-unconfirmed)" if allow_unconfirmed else "ERROR"
             if _mock.exists():
                 sys.stderr.write(
-                    "WARNING: this template hasn't been confirmed by a human yet.\n"
+                    f"{_label}: this template hasn't been confirmed by a human yet.\n"
                     "  Registration's automated self-test can miss things, so open the "
                     "mock slide in PowerPoint and confirm before relying on this template:\n"
                     f"  {_mock}\n"
@@ -1986,7 +2021,7 @@ def stage1_sanity_check(template_path: Path) -> int:
                 )
             else:
                 sys.stderr.write(
-                    "WARNING: this template hasn't been confirmed by a human yet, and no "
+                    f"{_label}: this template hasn't been confirmed by a human yet, and no "
                     "mock slide was produced (registered via the legacy interactive flow, "
                     "or the render was skipped).\n"
                     "  Re-register via commit/commit-cli to get a mock slide to review, "
@@ -1994,6 +2029,12 @@ def stage1_sanity_check(template_path: Path) -> int:
                     f"  py -3 scripts/register_template.py commit \"{template_path}\" --picks <picks.json>\n"
                     f"  py -3 scripts/register_template.py confirm \"{template_path}\"\n"
                 )
+            if not allow_unconfirmed:
+                sys.stderr.write(
+                    "\nBuild stopped. Confirm the template (after a person has looked at "
+                    "the mock slide), or re-run with --allow-unconfirmed to build anyway; "
+                    "the override is recorded in the build's _state.json.\n")
+                return 12
     except (OSError, ValueError):
         pass  # theme.json already validated above via load_brand_sidecar
 
@@ -2077,27 +2118,12 @@ def confirm_template_choice(template_path: Path, auto_confirm: bool) -> int:
     print(f"  Registered     : {registered_at}")
     print("=" * 72)
 
-    if auto_confirm:
-        print("  [--confirm-template] auto-confirmed, proceeding.")
-        print()
-        return 0
-
-    if not sys.stdin.isatty():
-        sys.stderr.write(
-            "ERROR: template confirmation required but stdin is not a TTY.\n"
-            "       Re-run with --confirm-template to acknowledge this is the "
-            "intended template.\n"
-        )
-        return 8
-
-    try:
-        ans = input("  Proceed with this template? [y/N]: ").strip().lower()
-    except (EOFError, KeyboardInterrupt):
-        sys.stderr.write("\nERROR: confirmation aborted by user.\n")
-        return 8
-    if ans not in ("y", "yes"):
-        sys.stderr.write("Aborted: template not confirmed. Re-run with the correct --template.\n")
-        return 8
+    # No yes/no prompt. Claude Code runs this without a terminal anyone can
+    # type into, so the prompt always aborted, and the orchestrator learned to
+    # pass --confirm-template by reflex: a gate that certified nothing. The
+    # summary is printed for the transcript; the protection that matters is that
+    # a person confirmed the template at registration (enforced in the sanity
+    # check above).
     print()
     return 0
 
@@ -2146,9 +2172,22 @@ def main() -> int:
     parser.add_argument(
         "--confirm-template",
         action="store_true",
-        help="Skip the interactive 'is this the right template?' prompt. Use for scripted/CI runs. "
-             "When omitted, build_deck halts and asks for Y/N confirmation showing the resolved template name, "
-             "brand colors, layout count, and registration timestamp.",
+        help="No longer needed; accepted so older commands still run. The template "
+             "summary is always printed and there is no prompt.",
+    )
+    parser.add_argument(
+        "--assume-gated",
+        action="store_true",
+        help="Build a brief that did not come through storyline-helper's quality "
+             "gate (for example one written in this session). Recorded in the "
+             "build's _state.json. Briefs that did pass the gate are sealed with "
+             "seal_brief.py instead.",
+    )
+    parser.add_argument(
+        "--allow-unconfirmed",
+        action="store_true",
+        help="Build on a template no person has confirmed yet (register_template.py "
+             "confirm). Recorded in the build's _state.json.",
     )
     # Build-path routing override. Per-build override of
     # settings.json::default_pattern. Default None = use settings.json (which
@@ -2235,7 +2274,7 @@ def main() -> int:
     # 0. STAGE-1 SANITY CHECK — proactive prerequisite verification, BEFORE
     # output dir creation. Reviewer-B catch: if sanity check fails, we should
     # NOT leave breadcrumb output dirs on disk from a failed prep.
-    sanity_rc = stage1_sanity_check(args.template)
+    sanity_rc = stage1_sanity_check(args.template, allow_unconfirmed=args.allow_unconfirmed)
     if sanity_rc != 0:
         return sanity_rc
 
@@ -2255,9 +2294,15 @@ def main() -> int:
     except OSError as exc:
         sys.stderr.write(f"ERROR: cannot create output directory {args.out}: {exc}\n")
         return 5
+    if args.allow_unconfirmed:
+        _state.record_override(args.out, "allow_unconfirmed",
+                               f"built on unconfirmed template {args.template}")
+    if args.assume_gated and not single_slide_mode:
+        _state.record_override(args.out, "assume_gated",
+                               f"brief built without a sealed storyline gate: {args.brief}")
 
     # 1. Read brief
-    brief = parse_brief(args.brief, bypass_gate=single_slide_mode)
+    brief = parse_brief(args.brief, bypass_gate=single_slide_mode or args.assume_gated)
     slides = brief["slides"]
     slide_total = brief["slide_total"]
     deck_notes = brief["deck_notes"]
