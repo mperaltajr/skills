@@ -37,10 +37,8 @@ You are the QC reviewer. You look at every slide. You report what is wrong. The 
 ## Step 1 — Locate files
 
 Identify two things:
-1. **PPTX path** — the built deck. If ambiguous, ask the user for the full Windows path.
-2. **Mockup path** — `_session/mockups.html` in the same session folder. If missing, note it and proceed without it (you lose the "did it match the design" check but can still catch structural issues).
-
-Confirm both paths before proceeding.
+1. **PPTX path** — the built deck. When it was passed to you (slide-builder passes it), use it; don't ask. If it is ambiguous, ask the user for the full Windows path.
+2. **Design reference** — for a Slide Lab build, each picked option's design is in its build folder: `slide_NN/option_<pick>.sketch.png` (the worker's sketch) for sketch-path slides, and `FINAL-CHECK.html` shows every pick as the user approved it. Use them for the "does it match what was approved" check. If neither exists (a deck built elsewhere), proceed without; you can still catch structural issues.
 
 ---
 
@@ -263,7 +261,7 @@ If the user signs off on fixes (or after handling all Majors via the conversatio
 Order of operations:
 
 1. Compile the list of all approved fixes across all slides.
-2. Apply them via targeted python-pptx patches (preferred), or by re-running specific slides through the slide-builder pipeline (re-dispatch the worker for that slide, then `finalize_deck.py` + `compile_picks.py`) if the fix requires regeneration.
+2. Fix them **through the pipeline**, not by patching the compiled deck: rebuild the slide (`build_deck.py --slide N`, worker, `finalize_deck.py --slide N`), then the review sequence and a recompile. Patching the compiled file with python-pptx is what broke the 09/29 deck four separate ways (a badge on every page number, deleted lead text, shifted labels, a file PowerPoint refused), and a later compile silently overwrites patches anyway. `check_done.py` refuses a deck whose bytes changed after compile. The one exception is a deck Slide Lab did not build (option 6a); there, patch text runs only, then re-QC.
 3. Re-render to PNG.
 4. Re-QC the full deck (hygiene pre-pass + visual pass).
 5. Produce a new report. Repeat until clean or until the user accepts remaining items via override-with-reason.

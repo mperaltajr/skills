@@ -135,7 +135,9 @@ def review_html(out_dir: Path) -> Path:
 
 
 def picks_json(out_dir: Path) -> Path:
-    """<out>/picks.json — user-authored option picks. Writer: chat orchestrator."""
+    """<out>/picks.json — the user's approved picks, for reading. Writer:
+    record_picks.py only (verified against the review page's check code). The
+    recorded approval in _state.json is what compile actually uses."""
     return out_dir / "picks.json"
 
 

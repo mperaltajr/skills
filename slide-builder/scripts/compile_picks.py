@@ -4,11 +4,12 @@ The sys.path setup points at slide-builder/'s shared infrastructure explicitly
 since this script does not carry its own twins/ module.
 
 Inputs:
-  --out PATH    Orchestrator output dir (the one that has _meta.json, slide_NN/ dirs, etc.)
-  --picks       Either a JSON file path OR a JSON string mapping slide_NN -> letter.
-                Example string: {"slide_01":"A","slide_02":"C",...}
-                If omitted, reads <out>/picks.json if present.
-  --final PATH  Final deck path (default: <out>/final_deck.pptx)
+  --out PATH          Orchestrator output dir (the one that has _meta.json, slide_NN/ dirs, etc.)
+  --final-token TOK   From the Build command on FINAL-CHECK.html. Required.
+  --final PATH        Final deck path (default: <out>/final_deck.pptx)
+
+The picks come from the user's recorded approval (record_picks.py), not from a
+file passed in. --picks is accepted only to double-check: it must match.
 
 What it does:
   1. Open the client template (path from <out>/_meta.json).
@@ -47,7 +48,7 @@ sys.path.insert(0, str(SKILL_ROOT))
 sys.path.insert(0, str(QC_SCRIPTS))
 
 import _paths as _p  # noqa: E402
-import _state  # noqa: E402  (build state manifest: review-token approval gate)
+import _state  # noqa: E402  (build state: recorded picks + final-check approval)
 
 from pptx import Presentation  # noqa: E402
 from twins.composer import (  # noqa: E402
@@ -612,7 +613,9 @@ def run_splice(out_dir: Path, meta: dict, picks: dict, template_path: Path,
 def main() -> int:
     ap = argparse.ArgumentParser(description="Compile picked themed slides into a final deck.")
     ap.add_argument("--out", required=True, type=Path, help="Orchestrator output dir")
-    ap.add_argument("--picks", default=None, help="picks.json path OR JSON string")
+    ap.add_argument("--picks", default=None,
+                    help="Optional. A picks.json file to cross-check against the "
+                         "recorded approval; compile refuses if they differ.")
     ap.add_argument("--final", default=None, type=Path,
                     help="Final deck path (default: <out>/final_deck.pptx)")
     ap.add_argument("--all-variations", action="store_true",

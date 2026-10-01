@@ -213,44 +213,47 @@ STAGE 2.5 · HTML RENDER   (sketch-path only) For each option_X.html, parent
                           Chromium). Workers self-check via the same path
                           before declaring done; this stage is a safety net.
 
-STAGE 3 · REVIEW          build_review.py + REVIEW.html
-   (HUMAN GATE)           Builds REVIEW.html with each slide's option(s) (PNG
-                          thumbnails for both the direct and sketch paths); the
-                          reviewer can request 1-3 more per slide.
-                          RUN STAGES 3.5 + 4 FIRST, over every option, so the
-                          thumbnails are the GRAFTED slides. A pre-graft preview
-                          hides every collision between the design and the
-                          template's own title/takeaway/page number. REVIEW.html
-                          banners when it is showing pre-graft previews.
-                          MUST show the user REVIEW.html and WAIT for their picks
-                          in chat before writing picks.json / finalizing /
-                          compiling. options_per_slide=1 is NOT an auto-pick.
-                          User picks per-slide -> picks.json.
+STAGE 2.6 · FINALIZE      finalize_deck.py, before the review. Puts the
+   (direct path)          direct-path options on the template so the review
+                          shows them finished. Cheap: a script, no agents.
+                          Sketch options are not converted yet; finalize says
+                          they are waiting for a pick, not missing.
 
-STAGE 3.5 · TRANSLATE     (sketch-path only) For each picked sketch-path slide,
-                          parent session dispatches one slide-builder-
-                          translator agent per pick. Translator reads the
-                          picked option_X.html + its rendered PNG + brief
-                          + brand context; emits option_X_native.py
-                          (native python-pptx with editable text frames)
-                          + option_X_translation_report.json (SSIM + QC).
+STAGE 3 · REVIEW          build_review.py -> REVIEW.html
+   (HUMAN GATE)           Sketch options show as sketches (labeled), direct
+                          options as finished slides. The user picks an option
+                          for EVERY slide, or marks it "Replace these" for new
+                          designs. Build my deck stays inert until every slide
+                          is decided. SHOW the user REVIEW.html and WAIT.
+                          The command it copies runs record_picks.py, which
+                          records exactly the user's picks (check-coded; an
+                          edited or partial list is refused). Nothing else
+                          records picks. A Replace request is a new design
+                          round: build_deck.py --slide N, then review again.
 
-STAGE 4 · FINALIZE        finalize_deck.py
-                          direct-path picks: execute option_X.py as before,
-                            graft body, populate placeholders from brief
-                            title/subtitle (legacy behavior).
-                          sketch-path picks: execute option_X_native.py
-                            (translator output), graft body, parse the
-                            script's __template_fields__ header, populate
-                            placeholders from THOSE values (extracted from
-                            the HTML's data-template-field attributes,
-                            takes priority over brief fallback).
-                          Renders PNGs via LibreOffice headless.
+STAGE 3.5 · TRANSLATE     (picked sketch options only) One slide-builder-
+                          translator agent per PICKED sketch option, at most 20
+                          at a time. record_picks.py prints the list. Unpicked
+                          sketches are never converted: that is where the
+                          token saving is.
 
-STAGE 5 · COMPILE         compile_picks.py --review-token <t> stitches the chosen
-                          option per slide into the final deck.pptx grafted onto
-                          the client template. REFUSES (exit 5) without the flag
-                          — Stage 3's human pick must have happened first.
+STAGE 4 · FINALIZE        finalize_deck.py again. Executes option_X.py (direct)
+                          and option_X_native.py (translated sketches), grafts
+                          each onto its layout, themes, renders, and records a
+                          QC result per option. Picks survive a re-finalize.
+
+STAGE 4.5 · FINAL CHECK   build_review.py --final -> FINAL-CHECK.html
+   (HUMAN GATE)           Every pick, finished, on the template: the real
+                          title, takeaway and page number the sketches did not
+                          have. SHOW it and WAIT. Its "Build it" command carries
+                          the final token, bound to the bytes of every file
+                          shown. Any later finalize clears it.
+
+STAGE 5 · COMPILE         compile_picks.py --out <out> --final-token <t>
+                          Picks come from the recorded approval, never a file.
+                          REFUSES (exit 5) without the token, if any shown file
+                          changed, if any slide is unpicked, or if any shipped
+                          option has a blocking QC finding.
 ```
 
 ### Classifier — not a classifier, just a hint + tiebreaker
@@ -285,33 +288,30 @@ Adjacency (Hardline #3 — no 3+ consecutive same-split) is **soft-enforced at p
    - **the sketch path** (default): worker produces the requested option HTML file(s) (`option_A.html`, plus `B`/`C` only when the count > 1), then self-checks by rendering each via `scripts/render_html.py` and reading the resulting 1280×720 PNG before declaring done.
    - **the direct path**: worker produces the requested option script(s) (`option_A.py`, plus `B`/`C` only when the count > 1).
 5. **Stage 2.5 — HTML render (sketch-path only).** For each the sketch-path slide's HTML options, the parent session renders to `option_X.sketch.png` via `py -3 scripts/render_html.py <html> <slide_NN/option_X.sketch.png>` so REVIEW.html has visual previews. Workers may also do this as part of their self-check; the parent renders any not-yet-rendered as a safety net.
-6. **Stage 3 — Review (a HUMAN gate — stop and wait).** Run `build_review.py` to build REVIEW.html (shows PNGs for both the direct and sketch path options). **The orchestrator MUST show the user the `REVIEW.html` file path and WAIT for the user's picks in chat before writing `picks.json`, finalizing, or compiling.** This is the same hard contract as the template-registration gate (see "Show + take picks"): never auto-write picks, never treat the review as a formality.
-   - **`options_per_slide: 1` is NOT an auto-pick.** A single option per slide still requires the user's explicit accept — or a request for 1-3 more options on the slides where they want alternatives. Writing `picks.json` as an all-"A" foregone conclusion is the documented failure that skips the user's review entirely (it silently ships whatever the worker produced).
-   - **Do not review a half-rendered deck.** `build_review.py` prints `missing PNGs` / `missing themed PPTX` counts; if any option PNG is missing, finish rendering before asking the user to look. A review the user cannot actually see (thumbnails not built) is not a review.
-   - **Review the real slide, not the sketch.** Run translate + `finalize_deck.py` over every option BEFORE building REVIEW.html, so the thumbnails are the grafted slides the user will actually get. A pre-graft preview is the design as the worker drew it, before the template's title, takeaway and page number land on it — which is exactly where the collisions are. On one deck eight slides were approved from clean-looking previews and shipped with the takeaway buried under body content. The full `finalize_deck.py` pass themes every option present, not only picks, so this is one pass and not three. REVIEW.html says so in a banner when it is showing pre-graft previews.
-   - **Only after the user picks/accepts:** write `picks.json`, then proceed to finalize + compile. `compile_picks.py` REFUSES to build a final deck unless you pass `--review-token <token>`, the token build_review.py shows ONLY inside REVIEW.html's 'Build my deck' command (it exits 5 otherwise). You get the token only from a real review; never invent it. A (re)build clears the token, so a rebuilt deck must be re-reviewed before it can compile.
-7. **Stage 3.5 — Translate (sketch-path only).** For each picked sketch-path slide, the parent session dispatches a `slide-builder-translator` agent. The translator reads the picked `option_X.html` + its rendered PNG + brief + brand context, produces `option_X_native.py` (native python-pptx script with editable text frames) + `option_X_translation_report.json` (SSIM zone scores + R4 QC findings).
-8. **Stage 4 — Finalize.** Run `finalize_deck.py`:
-   - For direct-path picks: execute `option_X.py` as before, graft body onto template, populate placeholders from brief title/subtitle.
-   - For sketch-path picks: execute `option_X_native.py`, graft body, parse the script's `__template_fields__` header, populate placeholders from THOSE values (translator-extracted from the HTML's `data-template-field` attributes, takes priority over brief fallback).
-   - **"Accept all" is ambiguous — ask which one.** It means either *option A for every slide* or *every option in one deck, so I can compare them*. Those produce completely different artifacts, and reading it the wrong way once cost 58 extra worker runs. Ask: *"All options in one deck, or option A for every slide?"* For the first, `compile_picks.py --all-variations --badge` builds an editable deck with every option in place, each labeled. That is a real deliverable, not a scratch file, so it still gets a full QC pass.
-
-9. **Stage 5 — Compile.** `compile_picks.py --out <out> --review-token <token>` stitches the final deck. The token comes from REVIEW.html's 'Build my deck' command (Stage 3), bound to the current deck content. Without a valid token, compile refuses (exit 5). Never invent it; inline `--picks` JSON is also refused.
-10. **QC — mandatory, not optional.** Invoke slide-qc with an explicit Skill call, passing the compiled deck path so it doesn't re-discover it — `Skill tool call: skill="slide-qc", args="<absolute path to final_deck.pptx>"`. This is the definition of done: do not tell the user the deck is finished or "QC'd" until slide-qc has run and produced its report. A PDF you rendered and eyeballed is not QC — the agent that built the deck cannot grade its own output. (compile_picks.py also prints this reminder when it finishes.)
-11. **Prove it's done — `check_done.py`.** "Done" is no longer something the orchestrator may assert. Run:
+6. **Stage 2.6 + 3 — Finalize, then review (a HUMAN gate — stop and wait).** Run `finalize_deck.py` (puts direct-path options on the template; sketch options wait for a pick), then `build_review.py`. **Show the user the `REVIEW.html` path and WAIT.** Never write picks yourself and never treat the review as a formality.
+   - **Every slide needs a decision.** The page's Build my deck button does nothing until each slide is picked or marked **Replace these**. One option per slide is still not an auto-pick.
+   - **Do not review a half-rendered deck.** If the page says options have no preview, finish rendering first. A review the user cannot see is not a review.
+   - **The user's Build command runs `record_picks.py`.** Run it exactly as pasted. It verifies the picks against a check code computed in the page and refuses an edited, partial or stale list. It is the only way picks get recorded; do not write `picks.json` by hand.
+   - **Replace these** means a new design round for that slide: `build_deck.py --slide N` (the old options move to `slide_NN/_prev/`), dispatch its worker, finalize, and build the review again. The page keeps every other slide's pick.
+   - **"All options in one deck"** is a separate button on the page. It converts every option, not just the picks, so it costs several times the tokens; the page says so before sending. If the user asks for this in chat ("accept all", "put them all in a deck"), ask first: *"All options in one deck, or option A for every slide?"* Reading it the wrong way once cost 58 extra worker runs.
+7. **Stage 3.5 — Translate the picked sketches only.** `record_picks.py` prints the list. Dispatch one `slide-builder-translator` per picked sketch option (at most 20 at a time). It reads `option_X.html` + `option_X.sketch.png` + brief + brand context and writes `option_X_native.py` + `option_X_translation_report.json`. Unpicked sketches are never converted.
+8. **Stage 4 — Finalize again.** `finalize_deck.py` executes `option_X.py` (direct) and `option_X_native.py` (translated sketches), grafts each onto its layout, themes, renders, and records a QC result per option. Recorded picks survive it.
+9. **Stage 4.5 — Final check (a HUMAN gate — stop and wait).** `build_review.py --out <out> --final` writes `FINAL-CHECK.html`: every pick, finished, on the template, with the real title, takeaway and page number the sketches did not have. This is where a collision with the template becomes visible. It refuses if any pick is unfinished or blocked. **Show it and WAIT** for the Build command it copies.
+10. **Stage 5 — Compile.** Run the command from FINAL-CHECK.html: `compile_picks.py --out <out> --final-token <token>` (plus `--all-variations --badge` for an all-options deck, `--splice-into` for an adopted deck; the page adds these). Picks come from the recorded approval. It refuses if any file shown in the final check has changed since, if any slide has no pick, or if any shipped option has a blocking finding. Never invent the token.
+11. **QC — mandatory, not optional.** Invoke slide-qc with an explicit Skill call, passing the compiled deck path so it doesn't re-discover it — `Skill tool call: skill="slide-qc", args="<absolute path to final_deck.pptx>"`. This is the definition of done: do not tell the user the deck is finished or "QC'd" until slide-qc has run and produced its report. A PDF you rendered and eyeballed is not QC — the agent that built the deck cannot grade its own output. (compile_picks.py also prints this reminder when it finishes.)
+12. **Prove it's done — `check_done.py`.** "Done" is no longer something the orchestrator may assert. Run:
     ```powershell
     py -3 scripts/check_done.py --out <out>
     ```
     It checks one chain of recorded facts and exits non-zero if any link breaks: a compile **succeeded** and recorded its output; the deck is **that file, byte for byte** (no edits since); it was built from the **current** brief; it opens with nothing PowerPoint refuses; every option in it finalized with **zero** blocking findings; a **vision pass over those same bytes covered every slide** (slide-qc records it via `record_vision_qc.py`); and **no Critical or Major finding is open** (only Advisory may remain). The deterministic self-check does not count: it is structurally blind to shapes overlapping and to large empty areas, which is exactly the class that has shipped before. Do not tell the user the deck is finished until this passes.
-12. **Deliver.** PPTX. Output full absolute Windows path. No preview links.
+13. **Deliver.** PPTX. Output full absolute Windows path. No preview links.
 
 Rebuild individual slides with "rebuild slide N". This re-prep + re-finalize touches only slide N and grafts it back into the existing deck — every other slide's prompt, themed PPTX, and pick are left exactly as they were:
 
-1. `build_deck.py --slide N --out <existing-out> --template <template>` — re-preps only slide N, merging into the existing `_meta.json` (reuses the brief recorded in `_meta.json`; pass `--brief` to rebuild from edited content). Other slides are untouched. **If the user says "make slide N look like slide M,"** add `--like-slide M`: it pins slide N to slide M's recorded build path (sketch/direct) instead of re-classifying — the reference slide's cleaner look usually comes from its path, and re-classifying would silently re-route N.
-2. Dispatch one `slide-builder-worker` for slide N (reads `slide_NN/_context.md` then `_prompt.md`).
+1. `build_deck.py --slide N --out <existing-out> --template <template>` — re-preps only slide N, merging into the existing `_meta.json` (reuses the brief recorded in `_meta.json`; pass `--brief` to rebuild from edited content). Slide N's old option files move to `slide_NN/_prev/`, so nothing stale can be picked up. Other slides are untouched. **If the user says "make slide N look like slide M,"** add `--like-slide M`: it pins slide N to slide M's recorded build path (sketch/direct) instead of re-classifying — the reference slide's cleaner look usually comes from its path, and re-classifying would silently re-route N.
+2. Dispatch one `slide-builder-worker` for slide N (reads `slide_NN/_context.md` then `_prompt.md`). Render its sketches if it built on the sketch path.
 3. `finalize_deck.py --slide N --out <out> --template <template>` — re-themes/renders/QCs only slide N; writes `RESULT-slide-NN.md` so the deck `RESULT.md` is preserved.
-4. Take the user's new pick for slide N; update `picks.json`.
-5. Re-run `build_review.py --out <out>` (the rebuild invalidated the old token; the user re-picks and gets a fresh token), then `compile_picks.py --out <out> --review-token <token>` rebuilds `final_deck.pptx`, grafting the rebuilt slide N into place. A rebuild can NOT ride the old approval.
+4. Then the same review sequence as a full build (steps 6-10 above): `build_review.py`, the user decides every slide (the page has kept every other slide's pick; slide N needs a new one), `record_picks.py`, translate slide N if it is a picked sketch, finalize, `build_review.py --final`, and compile with the final token. Prep cleared the old approval, so a rebuild cannot ride it.
 
 ### Replicating a supplied page
 
@@ -334,7 +334,7 @@ The flow:
 
 > **If the supplied page is a PDF, a Word page or a screenshot** there is no shape tree to read. Pin it as a visual reference and rebuild through the sketch path instead. In that mode every slot is bound from the brief by construction and `keep_source` is not offered, which is the safest configuration available.
 
-**Insert a new slide** at position N with `build_deck.py --insert N`. First add the new slide to the brief at position N and renumber the later slide headers (the brief must have exactly one more slide than the current build). `--insert N` then shifts slides ≥ N up by one — their `slide_NN/` dirs, `_meta.json` entries, and `picks.json` keys — and preps only the new slide N; the shifted slides keep their built output under their new numbers. Then dispatch one worker for slide N, run `finalize_deck.py --slide N`, re-run `build_review.py` so the user re-picks (fresh token), and compile with `compile_picks.py --out <out> --review-token <token>`. (Adding a page to an *external* `.pptx` Slide Lab didn't build is an existing-file edit — see "Edit an existing PowerPoint" below — not this flow; `--insert`/`--slide` only work on decks with the pipeline's `_meta.json`.)
+**Insert a new slide** at position N with `build_deck.py --insert N`. First add the new slide to the brief at position N and renumber the later slide headers (the brief must have exactly one more slide than the current build). `--insert N` then shifts slides ≥ N up by one — their `slide_NN/` dirs, `_meta.json` entries, and `picks.json` keys — and preps only the new slide N; the shifted slides keep their built output under their new numbers. Then dispatch one worker for slide N, run `finalize_deck.py --slide N`, and go through the same review sequence as a full build (steps 6-10): the shifted slides need a fresh look in the review page too, since their numbers changed. (Adding a page to an *external* `.pptx` Slide Lab didn't build is an existing-file edit — see "Edit an existing PowerPoint" below — not this flow; `--insert`/`--slide` only work on decks with the pipeline's `_meta.json`.)
 
 **If a build fails or the output is wrong:** tell the user they can type `/feedback` to capture a structured session report (the `slidelab-log` skill writes the technical detail; the user just submits the GitHub link). Offer this whenever a stage exits non-zero or the user says something looks broken.
 
@@ -352,8 +352,8 @@ An external `.pptx` has none of the pipeline's metadata (`_meta.json`, a brief, 
 **6b — Redesign a slide (or a few) at full quality, then splice it back.** Rebuilds specific slides on the deck's own template and drops them back into the original, leaving every other slide untouched.
 1. **Register the deck as its OWN template** first (option 7 — standalone, never inline). This makes the rebuilt slide match its neighbors' masters/layouts/brand.
 2. `py -3 scripts/adopt_deck.py <deck.pptx> --slides N[,M] --out <out>` — extracts each slide's text into a `mode: rebuild-slice` brief, reads each slide's real layout, and writes `_meta.json` (marked `adopted_source`) + a copy of the original at `<out>/adopted_source.pptx`. Enrich the target slide's Evidence in `adopted_brief.md` if the extract is thin (charts/images/SmartArt don't extract).
-3. `py -3 scripts/build_deck.py --slide N --out <out> --template <deck.pptx>` → dispatch the **worker** for slide N. **If that slide built on the sketch path** (the worker wrote `option_A.html`, the default), also dispatch the **`slide-builder-translator`** on the picked option to produce `option_A_native.py` — finalize needs the native script for sketch slides (a direct-path slide already has `option_A.py`). Then `py -3 scripts/finalize_deck.py --slide N --out <out> --template <deck.pptx>` → pick in REVIEW.html. (If the deck was registered but not yet confirmed, `build_deck` will stop and ask you to confirm it first.)
-4. `py -3 scripts/compile_picks.py --out <out> --splice-into "<deck.pptx>" --review-token <token>` — replaces slide N **in place** in a copy of the original (via `_sldIdLst` surgery), keeping every other slide. `--review-token` is required (as for any compile — the user must have picked the redesign in REVIEW.html first; the token comes from its "Build my deck" command). The `adopted_source` marker makes a plain `compile_picks` refuse (it would drop the un-rebuilt slides). Then **slide-qc**.
+3. `py -3 scripts/build_deck.py --slide N --out <out> --template <deck.pptx>` → dispatch the **worker** for slide N → `finalize_deck.py --slide N` → the same review sequence as a full build (steps 6-10): the review page shows only the slides being rebuilt; `record_picks.py`; translate the pick if it is a sketch; finalize; `build_review.py --final`. (The deck must be confirmed as a template first; `build_deck` stops with exit 12 otherwise.)
+4. Run the Build command from FINAL-CHECK.html. For an adopted deck it already includes `--splice-into "<deck.pptx>"`: compile replaces slide N **in place** in a copy of the original (via `_sldIdLst` surgery), keeping every other slide, and writes it next to the original as `<name>_slidelab.pptx`. The `adopted_source` marker makes a plain compile refuse (it would drop the un-rebuilt slides). Then **slide-qc**; `check_done.py` finds the spliced deck from the compile record.
 
 **6c — Refresh a recurring / PMO deck (content only, design frozen).** For a status/PMO deck on a fixed template re-issued each cycle with new numbers, same look.
 1. `py -3 scripts/refresh_deck.py spec <deck.pptx>` — dumps every **text box / placeholder** field into an editable `*_refresh_spec.json`. **Limitation:** table cells, chart data, and SmartArt are NOT captured (they aren't text frames) — update those by hand, or route the slide to 6b. Say this to the user up front for a status deck with RAG tables.
@@ -393,13 +393,14 @@ py -3 scripts/build_deck.py --brief ... --template ... --out ... --pattern legac
 #   ↑ python-pptx-direct pipeline with no per-slide classification
 ```
 
-**Running prep from a script or a non-interactive shell:** add `--confirm-template`. Prep asks *"Proceed with this template? [y/N]"* and a shell with no one to answer it reads EOF and aborts with exit 8, which looks like a failure rather than a question. The flag answers the question up front; it does not skip registration, which is a separate gate.
+**Two gates prep enforces, and what to do about each:**
 
-```powershell
-py -3 scripts/build_deck.py --brief ... --template ... --out ... --confirm-template
-```
-
-A brief authored in-session rather than by storyline-helper's emitter also needs `storyline_gate_passed: true` (or a `mode:` line) in its front matter. Both are deliberate gates; both read as surprise failures mid-run if you meet them for the first time at prep.
+- **The template must be confirmed by a person** (`register_template.py confirm`, after looking at the mock slide). An unconfirmed template stops prep with **exit 12**. `--allow-unconfirmed` builds anyway and is written into the build's `_state.json`. There is no yes/no prompt any more; `--confirm-template` is accepted but does nothing.
+- **The brief must be sealed after it passes storyline-helper's quality gate:**
+  ```powershell
+  py -3 scripts/seal_brief.py --brief <brief.md>
+  ```
+  This writes `storyline_gate_passed`, a timestamp, and a fingerprint of the brief's text. Prep checks the fingerprint, so **typing the marker by hand does not work**, and editing the brief after the gate stops prep with **exit 10** until the gate is re-run and the brief re-sealed. A brief written in this session without the gate is built with `--assume-gated`, which is also written into `_state.json`. Non-narrative flows still use `mode: template-fill | rebuild-slice | rfp`.
 
 Master switch is `settings.json::enable_sketch` (shipped `true`). Set it to `false` to disable the sketch path entirely: `auto` and `sketch` are then downgraded to `legacy` with a stderr warning, and no slide renders through Chromium. The sketch path requires the Playwright Chromium binary (see INSTALL.md Step 1.5).
 

@@ -1,10 +1,10 @@
-﻿# Running the quickstart
+# Running the quickstart
 
 This example uses `quickstart-brief.md` (4 slides) and any registered client PPTX template you have on hand.
 
 ## What you need
 
-- A registered client template — a `.pptx` file with a `<stem>/` template-settings subfolder next to it (containing `brand.yml` and `theme.json`).
+- A registered **and confirmed** client template — a `.pptx` file with a `<stem>/` template-settings subfolder next to it (containing `brand.yml` and `theme.json`).
 - The verification step from INSTALL.md passing.
 
 ## If you don't have a registered template yet (do this first)
@@ -34,76 +34,66 @@ py -3 "$env:USERPROFILE\.claude\skills\slide-builder\scripts\register_template.p
     --picks "<path to picks.json>"
 ```
 
-That's it — your template is now registered. The template-settings files (`brand.yml`, `theme.json`, `chrome.yml`) sit in a `<stem>/` subfolder next to the `.pptx`. You only need to repeat this if the template's master/layouts change.
+Then **confirm** it. Registration builds a mock slide (`<stem>/selftest/mock.pptx`); open it in PowerPoint and check that the title, takeaway, footnote and source land where they should. Once a person has looked:
 
-For the full registration flow with diagrams, see SKILL.md § "Register a new client template."
+```powershell
+py -3 "$env:USERPROFILE\.claude\skills\slide-builder\scripts\register_template.py" confirm `
+    "<path to your template.pptx>"
+```
+
+Prep refuses to build on an unconfirmed template (exit 12). The template-settings files sit in a `<stem>/` subfolder next to the `.pptx`; you only repeat this if the template's master or layouts change.
+
+For the full registration flow, see SKILL.md § "Register a new client template."
 
 ## The full sequence
 
-```powershell
-$skill   = "$env:USERPROFILE\.claude\skills\slide-builder"
-$session = "$env:USERPROFILE\Documents\slide-lab-quickstart"
-$template = "<path to your registered template.pptx>"
-
-New-Item -ItemType Directory -Force -Path "$session\out" | Out-Null
-
-# Phase 1 — prep
-py -3 "$skill\scripts\build_deck.py" `
-    --brief "$skill\examples\quickstart-brief.md" `
-    --template "$template" `
-    --out "$session\out"
-```
-
-Phase 1 should print the Stage-1 sanity check (brand settings + slide-qc sibling), then write `slide_01/_prompt.md` through `slide_04/_prompt.md` plus `_meta.json` and `dispatch_plan.md` to `$session\out\`.
-
-## Phase 2 — dispatch agents (the part Claude does)
-
-Phase 1 wrote one `_prompt.md` per slide. The parent chat session reads `dispatch_plan.md` and dispatches **one worker agent per slide in parallel**. Each agent reads its `_prompt.md` and writes `option_A.py`, `option_B.py`, `option_C.py` into its `slide_NN/` directory.
-
-In a real run, your chat orchestrator (Claude Code session) handles this step. To exercise it manually here, you can open `$session\out\dispatch_plan.md` and ask Claude in your current chat to dispatch the 4 worker agents per the plan.
-
-## Phase 3 — finalize
-
-After all 4 slides have option scripts:
+Every step below either runs a script or waits for you. The two waits are real: nothing compiles until you have picked on the review page and looked at the finished slides on the final check page.
 
 ```powershell
-py -3 "$skill\scripts\finalize_deck.py" `
-    --out "$session\out" `
-    --template "$template"
+$skill    = "$env:USERPROFILE\.claude\skills\slide-builder"
+$session  = "$env:USERPROFILE\Documents\slide-lab-quickstart"
+$template = "<path to your registered, confirmed template.pptx>"
+New-Item -ItemType Directory -Force -Path "$session" | Out-Null
+
+# 1. Your own copy of the brief, sealed. In a real build storyline-helper
+#    does this when the brief passes its quality gate; a typed marker is refused.
+Copy-Item "$skill\examples\quickstart-brief.md" "$session\brief.md"
+py -3 "$skill\scripts\seal_brief.py" --brief "$session\brief.md"
+
+# 2. Prep: one prompt per slide, plus dispatch_plan.md
+py -3 "$skill\scripts\build_deck.py" --brief "$session\brief.md" `
+    --template "$template" --out "$session\out"
 ```
 
-This executes each `option_X.py`, grafts the produced slide onto your template, and renders the per-option PNGs.
-
-## Phase 4 — visual gate
+**3. Designs (Claude does this).** Ask Claude to dispatch one `slide-builder-worker` per slide from `dispatch_plan.md` (at most 20 at a time). Each writes its option(s): `.py` for direct-path slides, `.html` for sketch-path slides (rendered to `option_X.sketch.png`).
 
 ```powershell
-py -3 "$skill\scripts\build_gate_preview.py" --out "$session\out"
-```
+# 4. Put the direct-path options on the template, so the review shows them finished
+py -3 "$skill\scripts\finalize_deck.py" --out "$session\out" --template "$template"
 
-Open `$session\out\GATE3-PREVIEW.html` in a browser. Each of the 4 slides should appear with 3 option tiles side by side. The brand colors (from your registered template's `brand.yml`) drive the chrome.
-
-## Phase 5 — pick + compile (the real-deck step)
-
-Pick winners by writing a `picks.json`:
-
-```json
-{ "slide_01": "A", "slide_02": "B", "slide_03": "A", "slide_04": "C" }
-```
-
-Then:
-
-```powershell
-py -3 "$skill\scripts\compile_picks.py" `
-    --out "$session\out" `
-    --picks "$session\picks.json" `
-    --final "$session\final.pptx" `
-    --review-token TOKEN   # REQUIRED: the token from REVIEW.html's 'Build my deck' command
-
+# 5. The review page
 py -3 "$skill\scripts\build_review.py" --out "$session\out"
 ```
 
-`final.pptx` is your deliverable. `REVIEW.html` is the picking + QC record.
+**6. You pick.** Open `$session\out\REVIEW.html`. Pick an option on every slide (or **Replace these** to get new designs), then click **Build my deck** and paste what it copies into Claude. That command runs `record_picks.py`, which records exactly your picks.
+
+**7. Claude converts only your picked sketches** (one `slide-builder-translator` each), then runs:
+
+```powershell
+py -3 "$skill\scripts\finalize_deck.py" --out "$session\out" --template "$template"
+py -3 "$skill\scripts\build_review.py" --out "$session\out" --final
+```
+
+**8. You look at the finished slides.** Open `$session\out\FINAL-CHECK.html`: every pick, on your template, with its real title and page number. If it is right, click **Build it** and paste the command into Claude. It compiles `$session\out\final_deck.pptx`.
+
+**9. QC, then done.** Claude runs slide-qc on the deck, records the pass, and runs:
+
+```powershell
+py -3 "$skill\scripts\check_done.py" --out "$session\out"
+```
+
+The deck is done only when that prints DELIVERABLE.
 
 ## Expected total time
 
-A 4-slide deck on a modern laptop: ~3–5 minutes for Phases 1, 3, 4. Phase 2 (agent dispatch) depends on Claude latency — usually 30–90 seconds for 4 parallel agents.
+A 4-slide deck: a few minutes of scripts, plus agent time for the designs (usually under two minutes for 4 in parallel) and the translation of any picked sketches, plus however long you take on the two review pages.

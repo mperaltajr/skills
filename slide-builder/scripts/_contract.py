@@ -350,6 +350,7 @@ _DIR_USER_CONTEXT_PREFIXES = (
 _DIR_TEMPLATE_REFS = {
     "slide_NN/", "out/", "dont/", "exemplars/",
     "_templates/", "_session/",
+    "slide_NN/_prev/",  # where a rebuild moves a slide's old options
 }
 
 # Directories legitimately cited in deletion-context entries
@@ -396,6 +397,9 @@ _RUNTIME_ARTIFACTS = {
     "slide_01.png", "RESULT-slide-NN.md", "adopted_brief.md",
     "SLIDE_LAB_FEEDBACK_LOG.md",  # per-user feedback log, outside the repo
     "_state.json", "source_ledger.json",
+    # Review and compile outputs
+    "FINAL-CHECK.html", "final_deck_all_variations.pptx",
+    "final_deck.incoming.pptx", "final_deck.REJECTED.pptx",
 }
 
 # Per-option files follow one naming scheme (option_<letter>[_native].<ext>,

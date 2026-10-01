@@ -19,8 +19,8 @@
     "major": 0.85,
     "pass": 0.90
   },
-  "_doc_ssim_thresholds": "Per Decision 5 + Spec 5 §3. Critical < 0.70 halts the build; Major < 0.85 surfaces in REVIEW.html; Pass >= 0.90 ships clean.",
+  "_doc_ssim_thresholds": "NOT ENFORCED by any script today. Intended: Critical < 0.70 halts, Major < 0.85 surfaces in REVIEW.html. In practice translator similarity scores are font-rendering noise on most slides (112 of 151 real ones scored under 0.90, and the real defects were caught by looking), so they are informational only.",
 
   "translator_timeout_seconds": 120,
-  "_doc_translator_timeout_seconds": "Per-slide timeout for the slide-builder-translator agent dispatch. Exceeded → translator subprocess killed and slide marked as TRANSLATOR_BLOCKED."
+  "_doc_translator_timeout_seconds": "NOT ENFORCED by any script today: translator agents are dispatched by the chat session, which has no per-agent timeout. Kept for when translation moves to a script."
 }
