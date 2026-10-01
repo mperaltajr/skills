@@ -361,51 +361,38 @@ def _enforce_storyline_gate(front_matter: dict[str, str], body: str,
         return
 
     passed_raw = (front_matter.get("storyline_gate_passed") or "").strip().lower()
+    # These messages deliberately do NOT print a command that gets past the gate.
+    # They used to print the seal command and the mode: lines, and an orchestrator
+    # in a hurry followed them, which turned the gate into a different command to
+    # type. The way past is the user: they run the gate, or they say to build
+    # without it, which is --assume-gated and is shown at delivery.
+    _ask = ("  What to do: run storyline-helper's quality gate on the brief; it seals\n"
+            "  the brief when the gate passes. If the user wrote this brief in this\n"
+            "  session and tells you to build it without the gate, use --assume-gated:\n"
+            "  it is recorded and shown to the user when the deck is delivered.\n"
+            "  Do not seal the brief yourself without running the gate.\n")
     if passed_raw in ("true", "yes", "1"):
         # Owner's decision (2026-09-30): the marker must be proven, not typed.
-        # seal_brief.py writes a fingerprint of the brief's text when the gate
-        # passes; a typed marker has none, and an edited brief no longer matches.
-        from seal_brief import body_fingerprint
+        # seal_brief.py writes a fingerprint of the brief (front matter and text)
+        # when the gate passes; a typed marker has none, and any edit breaks it.
+        from seal_brief import brief_fingerprint
         sealed = (front_matter.get("storyline_gate_sha") or "").strip()
         if not sealed:
             sys.stderr.write(
                 "ERROR: the brief says it passed the storyline gate, but it was never "
                 "sealed, so nothing shows the gate actually ran.\n\n"
-                f"  Brief: {brief_path}\n\n"
-                "  If it came through storyline-helper's gate, seal it:\n"
-                f"    py -3 scripts/seal_brief.py --brief \"{brief_path}\"\n"
-                "  If it was written in this session without the gate, build it with\n"
-                "  build_deck.py --assume-gated (recorded in the build's _state.json).\n")
+                f"  Brief: {brief_path}\n\n" + _ask)
             sys.exit(10)
-        if sealed != body_fingerprint(body):
+        if sealed != brief_fingerprint(front_matter, body):
             sys.stderr.write(
                 "ERROR: the brief changed after it passed the storyline gate.\n\n"
-                f"  Brief: {brief_path}\n\n"
-                "  Re-run the gate on the edited brief (storyline-helper), then seal it\n"
-                f"  again: py -3 scripts/seal_brief.py --brief \"{brief_path}\"\n"
-                "  Or, for a deliberate in-session edit, build with --assume-gated\n"
-                "  (recorded in the build's _state.json).\n")
+                f"  Brief: {brief_path}\n\n" + _ask)
             sys.exit(10)
         return
-    if passed_raw not in ("true", "yes", "1"):
-        sys.stderr.write(
-            "ERROR: brief is missing the storyline-helper gate marker.\n\n"
-            f"  Brief: {brief_path}\n\n"
-            "Slide-builder requires briefs to be produced by storyline-helper\n"
-            "and pass its quality gate. To fix, one of:\n\n"
-            "  (1) Run storyline-helper's gate on this brief. When it passes,\n"
-            "      seal it (do not type the marker by hand; it will not be accepted):\n"
-            f"        py -3 scripts/seal_brief.py --brief \"{brief_path}\"\n\n"
-            "  (2) If it was written in this session without the gate, build it\n"
-            "      with --assume-gated (recorded in the build's _state.json).\n\n"
-            "  (3) If this is a legitimate non-narrative flow (PMO recurring\n"
-            "      report, single-slide rebuild, or RFP response), add to the\n"
-            "      front-matter:\n"
-            "        mode: template-fill      # for PMO / template fill mode\n"
-            "        mode: rebuild-slice      # for single-slide rebuild\n"
-            "        mode: rfp                # for rfp-helper proposal briefs\n"
-        )
-        sys.exit(10)
+    sys.stderr.write(
+        "ERROR: the brief has not been through storyline-helper's quality gate.\n\n"
+        f"  Brief: {brief_path}\n\n" + _ask)
+    sys.exit(10)
 
 
 def parse_yaml_simple(yaml_text: str) -> dict[str, str]:
@@ -1544,7 +1531,10 @@ def review_sequence_lines(out_dir, template, slide_n=None) -> list[str]:
         "     these). Their Build command runs record_picks.py; run it as pasted.",
         "  d. Dispatch slide-builder-translator on each PICKED sketch that",
         "     record_picks.py lists. Unpicked sketches are never converted.",
-        f"  e. py -3 scripts/finalize_deck.py --out {o} --template {t}",
+        # Same scope as step b. A full finalize here broke the 6b flow: an
+        # adopted deck's other slides have no options, so it exited 11 and
+        # advised redesigning slides the user never asked to touch.
+        f"  e. py -3 scripts/finalize_deck.py --out {o} --template {t}{scope}",
         f"  f. py -3 scripts/build_review.py --out {o} --final",
         "     SHOW the user FINAL-CHECK.html and WAIT for its Build command",
         "     (compile_picks.py ... --final-token <t>). Run it as pasted.",
@@ -1677,6 +1667,11 @@ def _shift_build_for_insert(out_dir: Path, insert_n: int, old_count: int) -> Non
                     else:
                         shifted[key] = val
                 picks_path.write_text(json.dumps(shifted, indent=2), encoding="utf-8")
+        # The per-option QC records describe the files in each folder, so they
+        # move with the folders. Left unshifted, a slide inherited its
+        # neighbor's record: a slide blocked for placeholder text moved up one
+        # and picked up a clean record, and a verifier shipped it as DELIVERABLE.
+        _state.shift_option_records(out_dir, insert_n)
     except OSError:
         # Undo the dir renames we managed so the build isn't half-shifted.
         for current, original in reversed(renamed):
@@ -2070,9 +2065,12 @@ def stage1_sanity_check(template_path: Path, allow_unconfirmed: bool = False) ->
                 )
             if not allow_unconfirmed:
                 sys.stderr.write(
-                    "\nBuild stopped. Confirm the template (after a person has looked at "
-                    "the mock slide), or re-run with --allow-unconfirmed to build anyway; "
-                    "the override is recorded in the build's _state.json.\n")
+                    "\nBuild stopped. Ask the user to open the mock slide above in "
+                    "PowerPoint. Record the confirmation only after they say the "
+                    "title, takeaway, footnote and source look right; never confirm "
+                    "it yourself to get past this. If the user tells you to build "
+                    "anyway, use --allow-unconfirmed: it is recorded and shown to "
+                    "them when the deck is delivered.\n")
                 return 12
     except (OSError, ValueError):
         pass  # theme.json already validated above via load_brand_sidecar
@@ -2335,6 +2333,12 @@ def main() -> int:
 
     # 1. Read brief
     brief = parse_brief(args.brief, bypass_gate=single_slide_mode or args.assume_gated)
+    # A mode: line (template-fill / rebuild-slice / rfp) skips the storyline
+    # gate. Legitimate for the flows that write it, but on a full build it was
+    # also a silent way past the gate, so it is recorded like any override.
+    _mode = (brief.get("front_matter", {}).get("mode") or "").strip().lower()
+    if _mode in GATE_BYPASS_MODES and not single_slide_mode:
+        _state.record_override(args.out, "storyline_gate_skipped_by_mode", f"mode: {_mode}")
     slides = brief["slides"]
     slide_total = brief["slide_total"]
     deck_notes = brief["deck_notes"]

@@ -72,7 +72,9 @@ if __name__ == "__main__":
 
 def env(**extra) -> dict:
     e = {**os.environ, "PYTHONIOENCODING": "utf-8",
-         "SLIDE_LAB_OPTIONS_PER_SLIDE": "1"}
+         "SLIDE_LAB_OPTIONS_PER_SLIDE": "1",
+         # Never let a test write into the user's real template pick-list.
+         "SLIDE_LAB_REGISTRY": str(Path(tempfile.gettempdir()) / "slidelab_test_registry.json")}
     e.update({k: str(v) for k, v in extra.items()})
     return e
 

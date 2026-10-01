@@ -126,7 +126,6 @@ def parse_picks(arg: Optional[str], out_dir: Path) -> dict[str, str]:
     """Resolve --picks. Accepts:
       - None             -> read <out>/picks.json
       - existing file    -> json.load
-      - JSON string      -> json.loads
     Normalizes keys to 'slide_NN' (zero-padded) and uppercases letters.
     """
     if arg is None:
@@ -633,10 +632,7 @@ def main() -> int:
                          "badging the compiled deck by hand is what put a badge "
                          "on top of the page number on all 87 slides of one "
                          "deck.")
-    ap.add_argument("--drop", default=None,
-                    help="Slide numbers to leave out of the final deck on purpose "
-                         "(comma-separated, e.g. 4,7). Without this, compile refuses "
-                         "when any slide in the build has no pick.")
+    ap.add_argument("--drop", default=None, help=argparse.SUPPRESS)
     ap.add_argument("--splice-into", default=None, type=Path,
                     help="Option 6b (external-deck redesign): splice the picked, "
                          "rebuilt slide(s) back into THIS original .pptx at their "
@@ -745,10 +741,19 @@ def main() -> int:
             print("REFUSED: --picks differs from the picks the user approved. Drop "
                   "--picks; compile uses the approved ones.")
             return 5
-    _dropped = {int(x) for x in (args.drop or "").replace(" ", "").split(",") if x}
-    if _dropped:
-        picks = {k: v for k, v in picks.items() if int(k.split("_")[1]) not in _dropped}
-        print(f"  leaving out slide(s) {sorted(_dropped)} on purpose (--drop)")
+    if args.drop:
+        print("REFUSED: --drop was retired. Leaving a slide out is the user's call: "
+              "they mark it Leave out on REVIEW.html, and it is recorded with their "
+              "picks. --drop let a slide be dropped with no approval at all.")
+        return 5
+    # Slides the user marked Leave out on the review page.
+    _left_out = sorted(int(k.split("_")[1]) for k, v in picks.items() if v == "-")
+    picks = {k: v for k, v in picks.items() if v != "-"}
+    if _left_out:
+        print(f"  leaving out slide(s) {_left_out}, as the user chose on REVIEW.html")
+    if not picks:
+        print("REFUSED: nothing to build; every slide was left out.")
+        return 5
     if args.all_variations:
         total = sum(len(v) for v in picks.values())
         print(f"  all-variations mode: {len(picks)} slides, {total} options")

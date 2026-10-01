@@ -222,7 +222,9 @@ STAGE 2.6 · FINALIZE      finalize_deck.py, before the review. Puts the
 STAGE 3 · REVIEW          build_review.py -> REVIEW.html
    (HUMAN GATE)           Sketch options show as sketches (labeled), direct
                           options as finished slides. The user picks an option
-                          for EVERY slide, or marks it "Replace these" for new
+                          for EVERY slide, marks it "Replace these" for new
+                          designs, or "Leave out" to drop it from the deck (the
+                          only way a slide is left out; compile --drop is gone).
                           designs. Build my deck stays inert until every slide
                           is decided. SHOW the user REVIEW.html and WAIT.
                           The command it copies runs record_picks.py, which
@@ -289,7 +291,7 @@ Adjacency (Hardline #3 — no 3+ consecutive same-split) is **soft-enforced at p
    - **the direct path**: worker produces the requested option script(s) (`option_A.py`, plus `B`/`C` only when the count > 1).
 5. **Stage 2.5 — HTML render (sketch-path only).** For each the sketch-path slide's HTML options, the parent session renders to `option_X.sketch.png` via `py -3 scripts/render_html.py <html> <slide_NN/option_X.sketch.png>` so REVIEW.html has visual previews. Workers may also do this as part of their self-check; the parent renders any not-yet-rendered as a safety net.
 6. **Stage 2.6 + 3 — Finalize, then review (a HUMAN gate — stop and wait).** Run `finalize_deck.py` (puts direct-path options on the template; sketch options wait for a pick), then `build_review.py`. **Show the user the `REVIEW.html` path and WAIT.** Never write picks yourself and never treat the review as a formality.
-   - **Every slide needs a decision.** The page's Build my deck button does nothing until each slide is picked or marked **Replace these**. One option per slide is still not an auto-pick.
+   - **Every slide needs a decision.** The page's Build my deck button does nothing until each slide is picked, marked **Replace these**, or marked **Leave out**. Leaving a slide out is only ever the user's choice on this page; compile no longer has a flag for it. One option per slide is still not an auto-pick.
    - **Do not review a half-rendered deck.** If the page says options have no preview, finish rendering first. A review the user cannot see is not a review.
    - **The user's Build command runs `record_picks.py`.** Run it exactly as pasted. It verifies the picks against a check code computed in the page and refuses an edited, partial or stale list. It is the only way picks get recorded; do not write `picks.json` by hand.
    - **Replace these** means a new design round for that slide: `build_deck.py --slide N` (the old options move to `slide_NN/_prev/`), dispatch its worker, finalize, and build the review again. The page keeps every other slide's pick.
@@ -304,7 +306,8 @@ Adjacency (Hardline #3 — no 3+ consecutive same-split) is **soft-enforced at p
     py -3 scripts/check_done.py --out <out>
     ```
     It checks one chain of recorded facts and exits non-zero if any link breaks: a compile **succeeded** and recorded its output; the deck is **that file, byte for byte** (no edits since); it was built from the **current** brief; it opens with nothing PowerPoint refuses; every option in it finalized with **zero** blocking findings; a **vision pass over those same bytes covered every slide** (slide-qc records it via `record_vision_qc.py`); and **no Critical or Major finding is open** (only Advisory may remain). The deterministic self-check does not count: it is structurally blind to shapes overlapping and to large empty areas, which is exactly the class that has shipped before. Do not tell the user the deck is finished until this passes.
-13. **Deliver.** PPTX. Output full absolute Windows path. No preview links.
+    It also lists every gate passed over in the build (`--assume-gated`, `--allow-unconfirmed`, `--allow-missing`, a `mode:` line that skipped the storyline gate). **Tell the user about each one when you deliver.** It refuses a deck that is older than the latest rebuild or finalize.
+13. **Deliver.** PPTX. Output full absolute Windows path. No preview links, plus any overrides `check_done.py` listed.
 
 Rebuild individual slides with "rebuild slide N". This re-prep + re-finalize touches only slide N and grafts it back into the existing deck — every other slide's prompt, themed PPTX, and pick are left exactly as they were:
 

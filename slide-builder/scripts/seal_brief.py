@@ -6,17 +6,19 @@ It writes three lines into the brief's front matter:
 
     storyline_gate_passed: true
     storyline_gate_at: <UTC timestamp>
-    storyline_gate_sha: <fingerprint of the brief's text>
+    storyline_gate_sha: <fingerprint of the brief>
 
-build_deck.py checks the fingerprint against the brief it is given. Before
-this, the marker was a line anyone could type: the orchestrator was told to
-add it by hand to get past the gate, so it certified nothing. Now a brief
-edited after the gate, or a marker typed without running the gate, stops prep
-with exit 10 and says which.
+The fingerprint covers the whole brief: the front matter (audience, governing
+thought, layout...) and the text below it. build_deck.py checks it against the
+brief it is given. Before this, the marker was a line anyone could type, so it
+certified nothing. Now a typed marker, or any edit after the gate, stops prep
+with exit 10.
 
-A brief written in the middle of a session, without storyline-helper, can
-still be built with build_deck.py --assume-gated. That is visible and recorded
-in the build's _state.json; it is not a quiet bypass.
+This script does not run the gate; it records that the gate ran. Running it on
+a brief that never went through the gate defeats the point, and the refusal
+messages in build_deck.py deliberately do not suggest it. A brief the user
+wrote in this session and wants built as-is goes through build_deck.py
+--assume-gated instead, which is recorded and shown at delivery.
 
 Run:  py -3 scripts/seal_brief.py --brief <brief.md>
 """
@@ -33,16 +35,20 @@ FM_RE = re.compile(r"\A(﻿?---\s*\r?\n)(.*?)(\r?\n---\s*\r?\n)", re.S)
 GATE_KEYS = ("storyline_gate_passed", "storyline_gate_at", "storyline_gate_sha")
 
 
-def body_fingerprint(body: str) -> str:
-    """Fingerprint of the brief's text below the front matter.
+def brief_fingerprint(front_matter: dict, body: str) -> str:
+    """Fingerprint of a brief: every front-matter field except the gate's own,
+    plus the text below it.
 
-    Normalized so that line endings and trailing spaces (which editors change
-    without anyone meaning to) do not count as an edit; any change a person
-    would call an edit does.
+    The front matter must be the dict build_deck.extract_front_matter returns,
+    so prep and this script read the brief the same way. Line endings and
+    trailing spaces, which editors change without anyone meaning to, do not
+    count as edits; any change a person would call an edit does.
     """
+    fm = "\n".join(f"{k}={str(v).strip()}" for k, v in sorted(front_matter.items())
+                   if k not in GATE_KEYS)
     lines = [ln.rstrip() for ln in body.replace("\r\n", "\n").split("\n")]
     text = "\n".join(lines).strip("\n")
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:16]
+    return hashlib.sha256(f"{fm}\n\x00\n{text}".encode("utf-8")).hexdigest()[:16]
 
 
 def split(text: str) -> tuple[str, str, str, str]:
@@ -51,6 +57,14 @@ def split(text: str) -> tuple[str, str, str, str]:
     if not m:
         raise ValueError("the brief has no YAML front matter (--- ... ---) at the top")
     return m.group(1), m.group(2), m.group(3), text[m.end():]
+
+
+def _fingerprint_as_prep_reads(text: str) -> str:
+    """Fingerprint the brief exactly as build_deck.py will parse it."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    from build_deck import extract_front_matter
+    fm, body = extract_front_matter(text.replace("\r\n", "\n").lstrip("﻿"))
+    return brief_fingerprint(fm, body)
 
 
 def main(argv=None) -> int:
@@ -71,13 +85,19 @@ def main(argv=None) -> int:
     kept = [ln for ln in fm.replace("\r\n", "\n").split("\n")
             if ln.split(":", 1)[0].strip() not in GATE_KEYS]
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
-    kept += [f"storyline_gate_passed: true",
-             f"storyline_gate_at: {now}",
-             f"storyline_gate_sha: {body_fingerprint(body)}"]
-    out = open_f + nl.join(kept) + close_f + body
-    p.write_bytes(out.encode("utf-8"))
-    print(f"[ok] sealed {p.name}: storyline_gate_sha {body_fingerprint(body)}")
-    print("     Any edit to the brief below the front matter now needs the gate "
+
+    def _compose(sha: str) -> str:
+        lines = kept + ["storyline_gate_passed: true",
+                        f"storyline_gate_at: {now}",
+                        f"storyline_gate_sha: {sha}"]
+        return open_f + nl.join(lines) + close_f + body
+
+    # The gate keys are excluded from the fingerprint, so compose once with a
+    # placeholder, fingerprint that as prep will read it, then write the real one.
+    sha = _fingerprint_as_prep_reads(_compose("pending"))
+    p.write_bytes(_compose(sha).encode("utf-8"))
+    print(f"[ok] sealed {p.name}: storyline_gate_sha {sha}")
+    print("     Any edit to the brief, front matter included, now needs the gate "
           "re-run and the brief re-sealed before build_deck.py will build it.")
     return 0
 

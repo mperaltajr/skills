@@ -116,6 +116,25 @@ def main() -> int:
         assert r.returncode == 0 and "DELIVERABLE (final deck)" in r.stdout, r.stdout
         print("    ok: refused before the vision pass, deliverable after")
 
+        print("[1a2] overrides used in the build are shown at delivery")
+        _state.record_override(out, "assume_gated", "test")
+        r = H.run("check_done.py", "--out", out)
+        assert r.returncode == 0 and "passed over" in r.stdout and "assume_gated" in r.stdout, r.stdout
+        print("    ok")
+
+        print("[1a3] a single-slide rebuild after compile makes the deck stale")
+        r = H.run("build_deck.py", "--brief", tmp / "brief.md", "--template", H.TEMPLATE,
+                  "--out", out, "--pattern", "direct", "--slide", "2")
+        assert r.returncode == 0, r.stderr[-800:]
+        r = H.run("check_done.py", "--out", out)
+        assert r.returncode == 1 and "rebuilt or inserted after" in r.stdout, (
+            "same brief, so the content hash alone missed this; the old deck must "
+            "not stay DELIVERABLE: " + r.stdout)
+        print("    ok")
+        # put slide 2 back so the rest of this build can continue
+        H.write_option(out, 2)
+        assert H.finalize(out, "--slide", "2").returncode == 0
+
         print("[1b] partial and tampered picks are refused")
         r = _record(out, {"slide_01": "A"})
         assert r.returncode == 5 and "no pick" in r.stdout, r.stdout
@@ -312,6 +331,56 @@ def main() -> int:
         print("    ok: in _meta, in the prompt, on the review page; compile waits for the ledger")
     finally:
         H.cleanup(tmp)
+
+    print("[7] Leave out: the user's choice, not a compile flag")
+    tmp, out = H.new_build(2)
+    try:
+        H.write_option(out, 1)
+        H.write_option(out, 2)
+        assert H.finalize(out).returncode == 0
+        r = _record(out, {"slide_01": "-", "slide_02": "-"})
+        assert r.returncode == 5 and "nothing to build" in r.stdout, r.stdout
+        assert _record(out, {"slide_01": "A", "slide_02": "-"}).returncode == 0
+        assert H.finalize(out).returncode == 0
+        r, tok = _final(out)
+        assert r.returncode == 0, r.stderr
+        r = _compile(out, tok, "--drop", "1")
+        assert r.returncode == 5 and "retired" in r.stdout, "--drop must not work any more"
+        r = _compile(out, tok)
+        assert r.returncode == 0, r.stdout[-800:]
+        assert _state.read_state(out)["stages"]["compile"]["slides"] == 1
+        print("    ok: left-out slide omitted; --drop refused; all-left-out refused")
+    finally:
+        H.cleanup(tmp)
+
+    print("[8] --insert moves the per-option records with the folders")
+    tmp, out = H.new_build(2)
+    try:
+        H.write_option(out, 1)
+        H.write_option(out, 2, body=CRASHING_SCRIPT)       # slide 2 blocked
+        assert H.finalize(out).returncode == 15
+        brief = tmp / "brief.md"
+        brief.write_text(H.BRIEF.format(slides="".join(
+            H.SLIDE.format(n=i) for i in (1, 2, 3))), encoding="utf-8")
+        assert H.run("seal_brief.py", "--brief", brief).returncode == 0
+        r = H.run("build_deck.py", "--brief", brief, "--template", H.TEMPLATE,
+                  "--out", out, "--pattern", "direct", "--insert", "2")
+        assert r.returncode == 0, r.stderr[-800:]
+        by = _state.read_state(out)["qc"]["by_option"]
+        assert by.get("slide_03/A", {}).get("blocks", 0) > 0, (
+            f"the blocked slide moved to 3 but its record did not: {by}")
+        assert "slide_02/A" not in by, f"the new slide 2 inherited a record: {by}"
+        print("    ok: the block moved to slide 3; the new slide 2 has no record")
+    finally:
+        H.cleanup(tmp)
+
+    print("[9] the printed steps for a slide rebuild stay scoped to that slide")
+    import build_deck
+    lines = "\n".join(build_deck.review_sequence_lines("OUT", "TPL", 4))
+    assert lines.count("--slide 4") == 2, (
+        "both finalize steps must be scoped to the rebuilt slide; a full finalize "
+        "breaks the 6b flow:\n" + lines)
+    print("    ok")
 
     print("\nSMOKE PASSED.")
     return 0

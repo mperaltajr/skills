@@ -40,6 +40,13 @@ def _now() -> str:
     return datetime.now().isoformat(timespec="seconds")
 
 
+def _bump(state: dict) -> int:
+    """Next value of the build's event counter. Timestamps are to the second,
+    so "did the compile come after the last prep/finalize?" needs a counter."""
+    state["rev"] = int(state.get("rev") or 0) + 1
+    return state["rev"]
+
+
 def _write(out_dir, state: dict) -> None:
     state["schema"] = SCHEMA
     state_path(out_dir).write_text(json.dumps(state, indent=2), encoding="utf-8")
@@ -61,7 +68,7 @@ def record_prep(out_dir, content_hash: str, canonical_out: str) -> None:
     state = read_state(out_dir)
     state["content_hash"] = content_hash
     state["canonical_out"] = str(Path(canonical_out).resolve())
-    state.setdefault("stages", {})["prep"] = {"at": _now()}
+    state.setdefault("stages", {})["prep"] = {"at": _now(), "rev": _bump(state)}
     state.pop("review", None)       # any (re)prep invalidates prior approval
     state.pop("final_check", None)  # ...and the final look at the finished picks
     _write(out_dir, state)
@@ -133,6 +140,12 @@ def record_final_check(out_dir, digests: dict) -> str:
     token its Build command carries; compile refuses unless the files still have
     these exact bytes."""
     state = read_state(out_dir)
+    fc = state.get("final_check") or {}
+    # Same files, same content: keep the token, so rebuilding the page does not
+    # void a Build command the user already copied.
+    if (fc.get("token") and fc.get("digests") == dict(digests)
+            and fc.get("content_hash") == state.get("content_hash")):
+        return fc["token"]
     token = secrets.token_hex(8)
     state["final_check"] = {"token": token, "digests": dict(digests), "at": _now(),
                             "content_hash": state.get("content_hash")}
@@ -190,6 +203,29 @@ def begin_finalize(out_dir, slide=None) -> None:
     _write(out_dir, state)
 
 
+def shift_option_records(out_dir, insert_n: int) -> None:
+    """An insert at N moved slide folders >= N up by one; move their records too.
+
+    The new slide N has no record (nothing has been finalized for it), so it
+    cannot be shipped until it is.
+    """
+    state = read_state(out_dir)
+    qc = state.get("qc") or {}
+    by = qc.get("by_option") or {}
+    shifted = {}
+    for key, val in by.items():
+        try:
+            slide, letter = key.split("/")
+            n = int(slide.split("_")[1])
+        except (ValueError, IndexError):
+            shifted[key] = val
+            continue
+        shifted[option_key(n + 1, letter) if n >= insert_n else key] = val
+    qc["by_option"] = shifted
+    state["qc"] = qc
+    _write(out_dir, state)
+
+
 def record_option_qc(out_dir, results: dict) -> None:
     """Merge per-option QC results: {option_key: {"blocks": n, "reasons": [...]}}.
 
@@ -213,7 +249,7 @@ def end_finalize(out_dir, status: str, reason: str = "") -> None:
     """Record how the finalize run ended: 'ok' or 'failed'."""
     state = read_state(out_dir)
     fin = state.get("finalize") or {}
-    fin.update({"status": status, "reason": reason, "ended": _now()})
+    fin.update({"status": status, "reason": reason, "ended": _now(), "rev": _bump(state)})
     state["finalize"] = fin
     _write(out_dir, state)
 
@@ -306,7 +342,7 @@ def record_compile(out_dir, kind: str = "picks", output=None, slides: int = 0,
     """
     state = read_state(out_dir)
     state.setdefault("stages", {})["compile"] = {
-        "at": _now(), "kind": kind,
+        "at": _now(), "kind": kind, "rev": _bump(state),
         "output": str(Path(output).resolve()) if output else "",
         "digest": file_digest(output) if output else "",
         "content_hash": state.get("content_hash"),
