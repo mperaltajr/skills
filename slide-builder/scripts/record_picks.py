@@ -146,7 +146,31 @@ def main(argv=None) -> int:
           + (f"; {n_out} slide(s) left out by the user." if n_out else "."))
     print("\nNext:")
     step = 1
-    if to_translate:
+    if to_translate and _p.translator_mode() == "script":
+        # Translate the picked sketches right here: a script, seconds each, no
+        # agents. Only elements it can't draw go to the agent (fallback mode).
+        import translate_html
+        jobs = []
+        for t in to_translate:
+            slide_key, html_name = t.split("/")
+            n = int(slide_key.split("_")[1])
+            letter = html_name.split("_")[1].split(".")[0]
+            jobs.append((out / t, out / slide_key, letter,
+                         translate_html._subtitle_as_shape(out, n)))
+        reports = translate_html.translate_many(jobs)
+        pending = [r for r in reports if r["needs_agent"]]
+        print(f"  translated {len(reports)} picked sketch design(s) with translate_html.py"
+              + (f"; {len(pending)} still need the agent for some elements" if pending else ""))
+        if pending:
+            print(f"  {step}. Dispatch slide-builder-translator in FALLBACK MODE on each of "
+                  f"these (it draws only the listed elements; at most 20 at a time):")
+            for r in pending:
+                html = Path(r["html"])
+                print(f"       {html.with_name(html.stem + '_native.py')}  "
+                      f"({len(r['fallback'])} element(s): "
+                      + "; ".join(f["reason"] for f in r["fallback"][:3]) + ")")
+            step += 1
+    elif to_translate:
         print(f"  {step}. Dispatch slide-builder-translator on each of these "
               f"({len(to_translate)}; at most 20 at a time):")
         for t in to_translate:

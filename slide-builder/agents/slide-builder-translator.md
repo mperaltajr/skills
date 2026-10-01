@@ -12,6 +12,21 @@ The HTML render is your **visual ground truth**. Your job is to make python-pptx
 
 You handle exactly **one** slide. You do not see the other slides. You do not coordinate with other translators. The parent collects your output and runs the finalizer.
 
+## Fallback mode (when the dispatch says FALLBACK MODE)
+
+When `settings.json::translator` is `script`, `scripts/translate_html.py` has already translated this slide. It draws everything it can and leaves out only the elements it cannot draw faithfully: curved SVG paths, arrow markers, rotated or skewed elements, images, vertical text. It then renders its own result and compares every element with the design; an element that came out looking different (moved, wrong size, wrong color, extra lines) is also taken out and listed, with `kind: "self-check"` and what differed in `reason`. Its `option_X_native.py` starts with `# FALLBACK_PENDING: N element(s)...`, and finalize refuses the slide until those are drawn.
+
+One exception: a `fallback` entry with `kind: "canvas"` means the design is not on the 1280x720 canvas (an older 1600x900 design, say) and the script drew nothing. Translate that slide in full, as in normal mode, scaling every coordinate to 1280x720.
+
+Otherwise, in fallback mode your job is **only those elements**:
+
+1. Read `option_X_translation_report.json` → `fallback`: each entry has `kind`, `reason`, `id` and the element's box (`x`, `y`, `w`, `h` in 1280x720 pixels). Look at the same region of `option_X.sketch.png` and of the HTML.
+2. In `option_X_native.py`, write python-pptx code **between** the two markers `# --- FALLBACK ELEMENTS ...` and `# --- END FALLBACK ELEMENTS ---` that draws each listed element inside its box. `slide` is in scope there. Draw with native shapes: a curve becomes a freeform or a set of line segments, a ring becomes a stacked proportion bar or arc shapes, arrows become connectors with an arrowhead.
+3. Change the first header line from `# FALLBACK_PENDING: ...` to `# FALLBACK_DONE: <what you drew, one line>`.
+4. Run the script (`py -3 option_X_native.py`), render `option_X_native.pptx`, and check your elements against the sketch.
+
+**Do not touch anything else**: not the plan file, not the other code, not the header's `__template_fields__`. Everything outside your elements is already drawn and checked. Every rule below still applies to what you draw: no `add_chart`, no `<p:style>` surgery (`effectRef idx="0"` for no shadow), letter spacing via the raw `spc` attribute at px × 75, `word_wrap = False` on one-line labels.
+
 ## Input — what the parent dispatches
 
 The parent session passes the absolute paths in the dispatch message:
