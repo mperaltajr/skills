@@ -588,7 +588,35 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
     _text_boxes: list = []   # shapes carrying text:    (name, x0, y0, x1, y1)
     # For chrome_buried: every shape's box plus its z-order, so the test after
     # the walk can ask whether a body shape is drawn ON TOP of a chrome one.
-    _z_boxes: list = []      # (z, name, x0, y0, x1, y1, is_chrome, has_text)
+    _z_boxes: list = []      # (z, name, x0, y0, x1, y1, is_chrome, has_text, paints)
+
+    def _paints(sh) -> bool:
+        """Does this shape paint over what is under it? A fill (solid,
+        gradient, picture, pattern), a picture, a table or chart, or a group
+        (not looked into). An outline-only or text-only box does not."""
+        try:
+            from pptx.enum.shapes import MSO_SHAPE_TYPE
+            if sh.shape_type in (MSO_SHAPE_TYPE.PICTURE, MSO_SHAPE_TYPE.GROUP,
+                                 MSO_SHAPE_TYPE.TABLE, MSO_SHAPE_TYPE.CHART):
+                return True
+        except Exception:
+            pass
+        if getattr(sh, "has_graphic_frame", False) or sh.__class__.__name__ == "GraphicFrame":
+            return True
+        try:
+            ft = sh.fill.type
+        except Exception:
+            return True
+        if ft is not None:
+            return int(ft) != 5                    # 5 = background (no fill)
+        # No fill of its own: the theme style's fill applies (an autoshape
+        # with fillRef idx > 0 is drawn filled); a text box has no style.
+        try:
+            from pptx.oxml.ns import qn
+            ref = sh._element.find(".//" + qn("p:style") + "/" + qn("a:fillRef"))
+            return ref is not None and ref.get("idx", "0") != "0"
+        except Exception:
+            return True
     try:
         for _z, shape in enumerate(shapes):
             try:
@@ -663,7 +691,7 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
                         _is_ph2 or name_lower.startswith(
                             ("page-number", "footnote", "source", "header",
                              "chrome", "title", "subtitle")),
-                        _has_text))
+                        _has_text, _paints(shape)))
                     if _has_text:
                         _text_boxes.append((name, _l, _t, _l + _w, _t + _h))
                     elif min(_w, _h) <= 12.0 and max(_w, _h) >= 40.0:
@@ -769,14 +797,16 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
     # contrast, fires on 58 of them, which is why that one only warns.
     buried_ok = True
     buried_offenders: list = []
-    for cz, cn, cx0, cy0, cx1, cy1, c_chrome, c_text in _z_boxes:
+    for cz, cn, cx0, cy0, cx1, cy1, c_chrome, c_text, _cp in _z_boxes:
         if not c_chrome or not c_text:
             continue
         carea = (cx1 - cx0) * (cy1 - cy0)
         if carea <= 0:
             continue
-        for bz, bn, bx0, by0, bx1, by1, b_chrome, _bt in _z_boxes:
-            if b_chrome or bz <= cz:
+        for bz, bn, bx0, by0, bx1, by1, b_chrome, _bt, b_paints in _z_boxes:
+            # only something that paints can bury text: an outline-only frame
+            # drawn over a table header hides nothing
+            if b_chrome or bz <= cz or not b_paints:
                 continue
             ox = min(cx1, bx1) - max(cx0, bx0)
             oy = min(cy1, by1) - max(cy0, by0)
