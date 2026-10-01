@@ -21,10 +21,11 @@ The tables below list the exit codes each script returns. If you see a code in a
 | 3  | `--template` doesn't exist | Verify the `--template` path. Templates typically live under `OneDrive\Claude Projects\_templates\` or `<Client>\_templates\`. |
 | 4  | `prompt.md` template missing from the skill | The skill directory is incomplete. Re-clone or re-extract the skill. |
 | 5  | Brief load error (filesystem / encoding) | Check the brief file is readable + UTF-8 encoded. |
-| 7  | Stage-1 sanity check failed — brand sidecar missing/stale, malformed `brand.yml`, `chrome.yml` missing or unloadable, or the `slide-qc` sibling skill isn't installed | Re-register the template via the chat-driven `propose` → `commit` flow (sidecar/chrome errors), or install the `slide-qc` skill at the expected path (see INSTALL.md Step 5). The error message names which one fired. |
-| 8  | Template confirmation aborted — user answered "n" at the Y/N prompt, or stdin is not a TTY and `--confirm-template` was not passed | Re-run with the correct `--template`, or add `--confirm-template` for scripted/CI runs. |
+| 7  | Stage-1 sanity check failed — the installed worker/translator agents differ from the repo's, brand sidecar missing/stale, malformed `brand.yml`, `chrome.yml` missing or unloadable, or the `slide-qc` sibling skill isn't installed | For the agents: copy `slide-builder/agents/*.md` to `~/.claude/agents/` (the message prints the exact commands), then start a new session. Otherwise re-register the template via `propose` → `commit`, or install `slide-qc` (INSTALL.md Step 5). The message names which one fired. |
+| 8  | (retired) was the yes/no template prompt, which could never be answered from inside Claude Code | `--confirm-template` is still accepted and does nothing. |
 | 9  | Layout resolution failed — no per-slide `Layout:` AND no front-matter `default_layout:` AND chrome.yml has zero or multiple body-canonical layouts | Add `default_layout: <name>` to the brief's YAML front-matter (or `Layout:` per slide). See the error message for the list of available layouts. |
-| 10 | Storyline gate marker missing — the brief has no `storyline_gate_passed: true` | Re-run storyline-helper on the brief to emit `storyline_gate_passed: true`. Or add `mode: template-fill` / `mode: rebuild-slice` / `mode: rfp` to the front-matter for legitimate non-narrative flows. |
+| 10 | Storyline gate: the brief is not sealed, its seal does not match its text (edited after the gate), or it has no marker | Run storyline-helper's gate, then `py -3 scripts/seal_brief.py --brief <brief>`. Typing the marker by hand is refused. A brief written in-session: `--assume-gated` (recorded in `_state.json`). Non-narrative flows: `mode: template-fill` / `rebuild-slice` / `rfp`. |
+| 12 | The template has not been confirmed by a person | Have the user open the mock slide (`<stem>/selftest/mock.pptx`), then `register_template.py confirm <template>`. Or, on the user's say-so, `--allow-unconfirmed` (recorded in `_state.json`). |
 
 ### `finalize_deck.py`
 
@@ -32,17 +33,29 @@ The tables below list the exit codes each script returns. If you see a code in a
 |---|---|---|
 | 2  | `--out` missing or not a directory, OR `_meta.json` missing under `--out` | Pass the same `--out` you gave `build_deck.py`. If `_meta.json` is missing, run `build_deck.py` first. |
 | 7  | Chrome sidecar missing or stale — `chrome.yml` for the template is absent or no longer matches the registered template | Re-register the template via the chat-driven `propose` → `commit` flow to regenerate `chrome.yml`. |
-| 11 | Pre-flight gate — one or more expected `option_X.py` files are absent (interrupted worker) | The error message lists which slides need re-dispatch and prints the `_prompt.md` path for each. Re-dispatch the slide-builder-worker agent for those slides, then re-run `finalize_deck.py`. Override with `--allow-missing` to proceed with gaps (slides surface as `[MISSING]` in RESULT.md). |
+| 8  | A slide title wraps into the heading band / body (`[4c] TITLE / BAND OVERLAP`) | Shorten the flagged titles (brief header for direct-path slides; `data-template-field="title"` in the HTML for sketch slides), then re-run. |
+| 11 | Expected option output is missing | The message says which step: **"designed but not yet translated"** → dispatch `slide-builder-translator` on the listed HTML; **"no design output"** → the worker was never sent, is still running, or failed (wait, or re-dispatch). Unpicked sketch options are not missing; they are simply not converted. `--allow-missing` proceeds and records the gaps as blocked. |
+| 12 | Brand primary and accent colors nearly identical | Re-register and pick visibly different swatches. |
+| 13 | Graft halted: a title or takeaway would be silently dropped, or the layout drifted from registration | The message names the slide and option. Pick a layout with the needed placeholder, or re-register the template. |
+| 14 | Dark-variant collision: content would be invisible on the dark background | Change the colliding colors in the option, or the template's `dark_bg_hex`. The offending options are recorded as blocked. |
+| 15 | An option failed to build, graft or render | `RESULT.md` lists them; each is recorded as blocked with the reason, and compile will refuse to ship it. Fix the option and re-run. |
+| 16 | A slide names a layout `chrome.yml` does not have | Fix the slide's `layout` in `_meta.json`, or re-register the template. |
 
 ### `compile_picks.py`
 
 | Code | Meaning | Fix |
 |---|---|---|
-| 5  | Refused: no valid `--review-token` (or a stale/mismatched one, or `--out` not the canonical dir), **or** finalize recorded blocking QC findings. The final deck is HUMAN-gated: the token is minted by `build_review.py` and shown only inside `REVIEW.html`. | Build `REVIEW.html`, have the user pick, copy the token from its 'Build my deck' command, then compile with `--review-token <token>`. A (re)build invalidates the old token, so re-review first. If the message cites QC blocks, fix them and re-run `finalize_deck.py` (which re-records a clean result). |
-| 6  | Refused: the saved deck failed the **package-integrity** check — orphaned/unlisted slide parts or duplicate zip entries. Usually caused by adding or replacing a slide outside the pipeline. LibreOffice reports this class as "source file could not be loaded". | Rebuild through `compile_picks.py` (or `--splice-into` for an external deck) instead of editing the package by hand; those paths keep the slide list and the parts in sync. |
+| 5  | Refused. The message says which: no recorded picks (the user's Build command from REVIEW.html runs `record_picks.py`); no final check, or a wrong `--final-token`; a file shown in FINAL-CHECK.html changed since; a slide with no pick; an option never finalized or with a blocking finding; unreconciled figures on a supplied page; or `--out` not the build's folder. `--review-token` is retired. | Follow the order: REVIEW.html → `record_picks.py` → translate picked sketches → `finalize_deck.py` → `build_review.py --final` → the Build command from FINAL-CHECK.html. Never invent a token. |
+| 6  | Refused: the deck failed the **package-integrity** check (orphaned slide parts, duplicate zip entries, or structure PowerPoint refuses: an incomplete `<p:style>`, duplicate shape ids, a missing relationship) | Nothing was replaced: the previous `final_deck.pptx` is untouched and the rejected file is kept as `final_deck.REJECTED.pptx`. Fix the option through the pipeline (usually a re-translate), never by editing the package. |
 | 2  | `--out` invalid, `_meta.json` missing, OR `--template` from `_meta.json` doesn't exist | Pass the build's output dir. Verify the template path stored in `_meta.json`. |
-| 3  | Could not write `final_deck.pptx` — destination locked (PowerPoint has it open, or antivirus mid-scan) | Close PowerPoint, pause AV on the build dir if needed, and re-run `compile_picks.py`. The prior deck was preserved via the timestamped backup. |
-| 1  | Compile finished but final deck doesn't open cleanly, OR per-option copy failures occurred | Check `COMPILED.md` for per-option failure rows. Open the produced final deck in PowerPoint to confirm. |
+| 3  | Could not write or swap in `final_deck.pptx` — usually the old copy is open in PowerPoint, or OneDrive/antivirus holds the folder | Close PowerPoint and re-run. The new deck is left as `final_deck.incoming.pptx`; the old one is untouched. |
+| 1  | A picked option could not be copied (no deck was written), or the deck does not reopen or render | The message lists the failing options. Nothing was replaced. |
+
+### `check_done.py`
+
+| Code | Meaning | Fix |
+|---|---|---|
+| 1  | Not deliverable. It lists every broken link: no successful compile; the deck is not the compiled file or changed since; the brief changed after compile; the deck does not open or has structure PowerPoint refuses; a shipped option is blocked; no vision pass, a partial one, or one over different bytes; an open Critical or Major finding; unreconciled figures | Fix what it lists. Defects are fixed by rebuilding through the pipeline and recompiling, then re-running slide-qc. Only Advisory findings may remain open. |
 
 ### `build_review.py`
 

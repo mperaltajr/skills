@@ -213,10 +213,10 @@ Template: _templates/client-template.pptx
 
 Claude will:
 1. Coach you through the deck narrative one slide at a time
-2. Show you **one design option per slide** as a visual preview
-3. Let you pick it, request more options (up to 3), or leave quick feedback on any slide
-4. Build the full `.pptx` with your client's branding
-5. Give you the exact file path to open it
+2. Show you **three design options per slide** on a review page (set `options_per_slide` to 1 in `slide-builder/settings.json` to save tokens)
+3. Let you pick one for every slide, ask for new designs on any slide ("Replace these"), or leave quick feedback
+4. Show you every pick finished on your template for a final look before anything is built
+5. Build the full `.pptx` with your client's branding, QC it, and give you the exact file path
 
 ### Reviewing the built deck
 After a build completes, run QC before opening the file:

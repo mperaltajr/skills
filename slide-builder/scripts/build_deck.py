@@ -1317,8 +1317,10 @@ def write_dispatch_plan(
         "IN PARALLEL. Each worker reads its `_context.md` first, then "
         f"`_prompt.md`, and writes its {_opt_word} into its own `slide_NN/` "
         f"directory — {_files} as `.py` for direct-path slides, or as `.html` "
-        "for sketch-path slides (per the slide's PATTERN field). Then run "
-        "`finalize_deck.py` to graft, render, and produce REVIEW.html."
+        "for sketch-path slides (per the slide's PATTERN field). After the "
+        "workers, follow the steps prep printed (finalize, REVIEW.html, "
+        "record_picks.py, translate picked sketches, finalize, FINAL-CHECK.html, "
+        "compile); SKILL.md steps 6-10 describe the same order."
     )
 
     # Dispatch waves. Twenty agents run at once; past that the extras are
@@ -1511,6 +1513,34 @@ def write_meta_json(
     meta_path = _p.meta_json(out_dir)
     meta_path.write_text(json.dumps(meta, indent=2), encoding="utf-8")
     return meta_path
+
+
+def review_sequence_lines(out_dir, template, slide_n=None) -> list[str]:
+    """The steps after the workers, in order. ONE copy, printed by every exit of
+    prep and pointed at by the docs. Rebuild, insert, full build and 6b each used
+    to print their own version, and most of them skipped a step: no translator,
+    picks before the review, a compile with no review at all.
+
+    The order is the owner's decision (2026-09-30).
+    """
+    o, t = f'"{out_dir}"', f'"{template}"'
+    scope = f" --slide {slide_n}" if slide_n is not None else ""
+    return [
+        "  a. Dispatch the slide-builder-worker(s) (at most 20 at a time; waves are",
+        "     in dispatch_plan.md). Sketch designs render to option_X.sketch.png.",
+        f"  b. py -3 scripts/finalize_deck.py --out {o} --template {t}{scope}",
+        "     (puts direct-path options on the template; sketches wait for a pick)",
+        f"  c. py -3 scripts/build_review.py --out {o}",
+        "     SHOW the user REVIEW.html and WAIT. They pick every slide (or Replace",
+        "     these). Their Build command runs record_picks.py; run it as pasted.",
+        "  d. Dispatch slide-builder-translator on each PICKED sketch that",
+        "     record_picks.py lists. Unpicked sketches are never converted.",
+        f"  e. py -3 scripts/finalize_deck.py --out {o} --template {t}",
+        f"  f. py -3 scripts/build_review.py --out {o} --final",
+        "     SHOW the user FINAL-CHECK.html and WAIT for its Build command",
+        "     (compile_picks.py ... --final-token <t>). Run it as pasted.",
+        "  g. slide-qc on the deck, record_vision_qc.py, then check_done.py.",
+    ]
 
 
 def _retire_previous_options(slide_dir: Path) -> int:
@@ -2075,13 +2105,9 @@ def stage1_sanity_check(template_path: Path, allow_unconfirmed: bool = False) ->
 
 def confirm_template_choice(template_path: Path, auto_confirm: bool) -> int:
     """Print a summary of the chosen template (name, brand colors, layout
-    count, registration timestamp) and require explicit Y/N confirmation.
-
-    Returns 0 to proceed, non-zero to abort.
-
-    --confirm-template (auto_confirm=True) skips the prompt for scripted runs.
-    Non-TTY stdin without --confirm-template also aborts loudly: orchestrators
-    that pipe input must opt in to the flag rather than silently bypass.
+    count, registration timestamp) for the transcript. No prompt: see the note
+    at the end. Returns non-zero only if the template's settings can't be read.
+    auto_confirm is the retired --confirm-template flag, ignored.
     """
     # Load brand + chrome sidecars to surface the facts the operator needs.
     # Both already pass sanity check, so they're guaranteed loadable here.
@@ -2278,12 +2304,9 @@ def main() -> int:
     if sanity_rc != 0:
         return sanity_rc
 
-    # 0.5. TEMPLATE CONFIRMATION GATE — surface what template will drive the
-    # build BEFORE any agent dispatch. Wrong-template builds are silent + slow
-    # to catch otherwise: every page comes out off-brand and only the operator's
-    # eye in REVIEW.html spots it. Show the resolved name + colors + registration
-    # timestamp and require explicit OK (--confirm-template flag for scripted
-    # runs, or Y/N when stdin is a TTY).
+    # 0.5. Template summary — what template will drive the build, printed BEFORE
+    # any agent dispatch so a wrong pick is visible in the transcript. Whether a
+    # person has checked the template is enforced in the sanity check (exit 12).
     confirm_rc = confirm_template_choice(args.template, args.confirm_template)
     if confirm_rc != 0:
         return confirm_rc
@@ -2513,13 +2536,10 @@ def main() -> int:
         print(f"Updated deck manifest:")
         print(f"  {meta_path.resolve()}")
         print()
-        print(f"Next, to rebuild slide {rebuild_slide_n} end to end:")
-        print(f"  1. Dispatch ONE slide-builder-worker for slide {rebuild_slide_n} "
-              f"(reads {rb_dir / '_context.md'} then {rb_dir / '_prompt.md'}).")
-        print(f"  2. py -3 finalize_deck.py --out <out> --template <template> --slide {rebuild_slide_n}")
-        print(f"  3. Re-run build_review.py --out <out>; the user re-picks in REVIEW.html")
-        print(f"     (this (re)build invalidated the prior approval; a fresh review mints a new token).")
-        print(f"  4. py -3 compile_picks.py --out <out> --review-token <token-from-REVIEW.html>   # grafts the rebuilt slide in")
+        print(f"Next, to rebuild slide {rebuild_slide_n} (its worker reads "
+              f"{rb_dir / '_context.md'} then {rb_dir / '_prompt.md'}):")
+        for _ln in review_sequence_lines(args.out, args.template, rebuild_slide_n):
+            print(_ln)
         _state.record_prep(args.out, _deck_hash, args.out)
         return 0
 
@@ -2550,16 +2570,14 @@ def main() -> int:
             print(f"Renumbered dispatch plan:")
             print(f"  {plan_path.resolve()}")
         print()
-        print(f"Next, to build the inserted slide {insert_slide_n} end to end:")
-        print(f"  1. Dispatch ONE slide-builder-worker for slide {insert_slide_n} "
-              f"(reads {ins_dir / '_context.md'} then {ins_dir / '_prompt.md'}).")
-        print(f"  2. py -3 finalize_deck.py --out <out> --template <template> --slide {insert_slide_n}")
-        print(f"  3. Take the user's pick for slide {insert_slide_n}; add it to picks.json.")
-        print(f"  4. Re-run build_review.py, the user picks, then py -3 compile_picks.py --out <out> --review-token <token>   # grafts the renumbered deck")
+        print(f"Next, to build the inserted slide {insert_slide_n} (its worker reads "
+              f"{ins_dir / '_context.md'} then {ins_dir / '_prompt.md'}):")
+        for _ln in review_sequence_lines(args.out, args.template, insert_slide_n):
+            print(_ln)
         print()
         print(f"  Note: the deck-level RESULT.md still shows the pre-insert numbering — it")
         print(f"  refreshes on the next FULL finalize (finalize_deck.py --out <out> with no")
-        print(f"  --slide). The single-slide finalize in step 2 writes RESULT-slide-{insert_slide_n:02d}.md.")
+        print(f"  --slide). The single-slide finalize in step b writes RESULT-slide-{insert_slide_n:02d}.md.")
         _state.record_prep(args.out, _deck_hash, args.out)
         return 0
 
@@ -2607,9 +2625,9 @@ def main() -> int:
     print(f"Dispatch plan:")
     print(f"  {plan_path}")
     print()
-    print("Next: dispatch one slide-builder-worker agent per slide in parallel.")
-    print("Each worker reads _context.md first, then _prompt.md in its slide_NN/")
-    print("directory. Then run finalize_deck.py.")
+    print("Next (each worker reads _context.md first, then _prompt.md, in its slide_NN/):")
+    for _ln in review_sequence_lines(args.out, args.template):
+        print(_ln)
     _state.record_prep(args.out, _deck_hash, args.out)
     return 0
 

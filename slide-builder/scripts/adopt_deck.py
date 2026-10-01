@@ -231,12 +231,10 @@ def main(argv) -> int:
           + (", ".join(str(t) for t in targets) if targets else "N") + "):")
     print(f"  1. Enrich that slide's Evidence in {brief_path.name} if the extract is thin.")
     print(f"  2. py -3 build_deck.py --slide N --out {out_dir} --template \"{deck}\"")
-    print(f"  3. dispatch the slide-builder-worker for slide N. If it writes option_A.html")
-    print(f"     (sketch path, the default), also dispatch slide-builder-translator on the")
-    print(f"     pick to make option_A_native.py. Then:")
-    print(f"       py -3 finalize_deck.py --slide N --out {out_dir} --template \"{deck}\"")
-    print(f"  4. pick in REVIEW.html, then splice back (keeps every other slide):")
-    print(f"       py -3 compile_picks.py --out {out_dir} --splice-into \"{deck}\" --review-token <token-from-REVIEW.html>")
+    print(f"  3. then follow the steps build_deck prints: worker, finalize, REVIEW.html,")
+    print(f"     record_picks.py, translate a picked sketch, finalize, FINAL-CHECK.html.")
+    print(f"  4. the Build command from FINAL-CHECK.html splices the rebuilt slide(s) back")
+    print(f"     into a copy of \"{deck}\" (--splice-into), keeping every other slide.")
     return 0
 
 

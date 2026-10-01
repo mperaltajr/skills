@@ -796,14 +796,13 @@ If `theme.json` is missing OR `default_content_layout` is empty: HALT. Do not sa
 
 The brief save is the LAST possible moment to catch this gap cleanly. Catching it here means the user fixes the gap before any build_deck.py compute is sunk.
 
-**Gate marker (required).** Slide-builder hard-fails any brief without the storyline-helper quality-gate marker. After all Criticals are resolved and Majors are handled, write the gate marker into the YAML front-matter before saving:
+**Gate seal (required).** Slide-builder refuses any brief that was not sealed after passing this quality gate. After all Criticals are resolved and Majors are handled, save the brief, then seal it:
 
-```yaml
-storyline_gate_passed: true
-storyline_gate_at: <ISO-8601 timestamp in UTC, e.g. 2026-06-02T14:00:00Z>
+```powershell
+py -3 <skills>\slide-builder\scripts\seal_brief.py --brief <path to the saved brief>
 ```
 
-This marker certifies the brief came through the quality gate. Slide-builder reads it and proceeds; without it, the build is refused (unless a carve-out mode is set — see below).
+That writes `storyline_gate_passed: true`, `storyline_gate_at` and `storyline_gate_sha` (a fingerprint of the brief's text) into the front matter. **Do not type these by hand:** a marker without the fingerprint is refused, because it shows nothing about whether the gate ran. If the brief is edited afterwards, re-run the gate on the edit and seal it again; prep refuses a brief whose text no longer matches its seal (exit 10).
 
 **Carve-out modes** that legitimately skip the gate (don't have a narrative to gate):
 - `mode: template-fill` — PMO recurring report / template fill flow
@@ -887,8 +886,9 @@ client_template: <absolute path to .pptx>     # required — slide-builder error
 deck_type: <one of the 7 canonical types (or Training edge)>    # required — drives selector deck_types match
 default_layout: <layout name from theme.json>  # required — storyline-helper the review-and-save section auto-injects from theme.json::default_content_layout; build_deck.py errors mid-build if missing
 session_folder: <absolute path to _session>    # optional — helps slide-builder anchor outputs
-storyline_gate_passed: true                   # required — slide-builder hard-fails without this
-storyline_gate_at: 2026-06-02T14:00:00Z       # required — ISO-8601 UTC timestamp of the gate pass
+storyline_gate_passed: true                   # written by seal_brief.py — never typed by hand
+storyline_gate_at: 2026-06-02T14:00:00Z       # written by seal_brief.py
+storyline_gate_sha: 3f9a0c1d2b4e5f60          # written by seal_brief.py — fingerprint of the brief text
 # density: executive                          # OPTIONAL opt-out — headline-led/sparse deck; relaxes the content-floor gate. Omit for the dense default (pages useful on their own).
 # mode: template-fill                          # OR set mode: to skip the gate (PMO / rebuild flows)
 ---
@@ -1117,7 +1117,7 @@ Do not hand off. Say: "I need to finish the brief first — the slide builder ne
 
 If the user picks Edit, ask what they want to change. If the user picks Review, run the full nine-part gate + cross-cutting rules sweep against the existing brief and produce the review-and-save section Review output (table + conversational Major prompts). No new file is written until the user resolves Criticals and chooses fix-or-override on Majors. Once they do, save the brief and re-run `emit_dot_dash.py`.
 
-**User wants to add a slide to an existing deck Slide Lab built.** Don't rebuild the whole narrative. Read the existing brief, insert the new slide (governing thought + takeaway + evidence) at the right position and **renumber the later slide headers** so the brief has exactly one more slide, re-run the gate, save the updated brief. Then slide-builder inserts it for real: `build_deck.py --insert N` shifts slides ≥ N (dirs, `_meta`, picks) up by one and preps only the new slide N; dispatch one worker for slide N, run `finalize_deck.py --slide N`, take the pick, and re-run `compile_picks.py` to graft the renumbered deck. (Adding a page to an *external* `.pptx` Slide Lab didn't build is a `pptx`-skill edit, not this flow.)
+**User wants to add a slide to an existing deck Slide Lab built.** Don't rebuild the whole narrative. Read the existing brief, insert the new slide (governing thought + takeaway + evidence) at the right position and **renumber the later slide headers** so the brief has exactly one more slide, re-run the gate, save the updated brief, and re-seal it (`seal_brief.py`). Then slide-builder inserts it for real: `build_deck.py --insert N` shifts slides ≥ N (dirs, `_meta`, picks) up by one and preps only the new slide N; dispatch one worker for slide N, run `finalize_deck.py --slide N`, then the same review sequence as any build (REVIEW.html → `record_picks.py` → translate a picked sketch → finalize → FINAL-CHECK.html → compile with its token). (Adding a page to an *external* `.pptx` Slide Lab didn't build is a `pptx`-skill edit, not this flow.)
 
 **User's answer to "what's the argument?" is a topic.** Foundation Check. Don't proceed to sequencing until the governing thought is a declarative sentence.
 
