@@ -29,6 +29,7 @@ Prints "SMOKE PASSED." on success; raises AssertionError otherwise.
 """
 from __future__ import annotations
 
+import os
 import sys
 from pathlib import Path
 
@@ -279,6 +280,8 @@ def main() -> int:
 
     print("[5] untranslated sketches: unpicked ones wait, a picked one needs the translator")
     tmp, out = H.new_build(2)
+    saved = os.environ.get("SLIDE_LAB_TRANSLATOR")
+    os.environ["SLIDE_LAB_TRANSLATOR"] = "agent"
     try:
         H.write_option(out, 1)
         (out / "slide_02" / "option_A.html").write_text("<html></html>", encoding="utf-8")
@@ -291,8 +294,41 @@ def main() -> int:
         assert r.returncode == 11, r.returncode
         msg = r.stdout + r.stderr
         assert "slide-builder-translator" in msg and "slide_02/option_A" in msg, msg[-1200:]
-        print("    ok: waits before picks; after the pick, exit 11 names the translator")
+        print("    ok (agent mode): waits before picks; after the pick, exit 11 names the translator")
     finally:
+        if saved is None:
+            os.environ.pop("SLIDE_LAB_TRANSLATOR", None)
+        else:
+            os.environ["SLIDE_LAB_TRANSLATOR"] = saved
+        H.cleanup(tmp)
+
+    print("[5b] script mode: recording the picks translates the picked sketch on the spot")
+    tmp, out = H.new_build(2)
+    saved = os.environ.get("SLIDE_LAB_TRANSLATOR")
+    os.environ["SLIDE_LAB_TRANSLATOR"] = "script"
+    try:
+        H.write_option(out, 1)
+        (out / "slide_02" / "option_A.html").write_text(
+            '<html><body style="margin:0"><div class="slide-canvas" style="position:relative;'
+            'width:1280px;height:720px"><div data-shape-id="box" style="position:absolute;'
+            'left:100px;top:200px;width:300px;height:120px;background:#1f4e79"></div>'
+            '<p data-shape-id="note" style="position:absolute;left:100px;top:360px;margin:0;'
+            'font:16px Arial">A short note under the box.</p></div></body></html>',
+            encoding="utf-8")
+        r = _record(out, {"slide_01": "A", "slide_02": "A"})
+        assert r.returncode == 0, r.stdout[-800:]
+        sd = out / "slide_02"
+        for f in ("option_A_native.py", "option_A_native.plan.json", "option_A_translation_report.json"):
+            assert (sd / f).exists(), f"record_picks did not translate: {f} missing"
+        assert "translated 1 picked sketch" in r.stdout, r.stdout[-800:]
+        r = H.finalize(out)
+        assert r.returncode == 0, f"finalize after script translation: exit {r.returncode}\n{r.stdout[-800:]}"
+        print("    ok: native script, plan and report written at pick time; finalize builds it")
+    finally:
+        if saved is None:
+            os.environ.pop("SLIDE_LAB_TRANSLATOR", None)
+        else:
+            os.environ["SLIDE_LAB_TRANSLATOR"] = saved
         H.cleanup(tmp)
 
     print("[6] a pinned supplied page is carried through, and gates compile")
