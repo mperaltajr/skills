@@ -698,6 +698,21 @@ def main() -> int:
     if not ok:
         print("REFUSED: will not compile.\n  " + reason)
         return 5
+    # A pinned supplied page must have had its figures enumerated. Without this,
+    # skipping source_ledger.py meant the reconciliation gate never existed, and
+    # a replica could ship the supplied page's stale numbers.
+    try:
+        _meta_pins = [s for s in json.loads(_p.meta_json(out_dir).read_text(
+            encoding="utf-8")).get("slides", []) if s.get("pinned_source_page")]
+    except Exception:
+        _meta_pins = []
+    if _meta_pins and not _state.read_state(out_dir).get("source_ledger"):
+        print("REFUSED: will not compile.\n  "
+              f"{len(_meta_pins)} slide(s) reproduce a supplied page (slide "
+              f"{', '.join(str(s.get('n')) for s in _meta_pins)}), and its figures "
+              "were never reconciled. Run source_ledger.py build on the supplied page "
+              "and resolve every row with the user first.")
+        return 5
 
     meta_path = _p.meta_json(out_dir)
     if not meta_path.exists():

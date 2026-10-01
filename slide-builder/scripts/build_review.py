@@ -498,6 +498,7 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
         "prompt_found": prompt.get("found", False),
         "options": options,
         "stamp": slide_stamp,
+        "pinned": (slide_meta or {}).get("pinned_source_page") or "",
         "context_present": context_present,
         "context_has_reference": context_has_reference,
         "context_ack_present": ack_present,
@@ -987,6 +988,7 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
 
   {adjacency_banner}
   {context_chip}
+  {('<div class="redo-note" style="display:block;">&#128204; <strong>Option A reproduces the page you supplied</strong> (' + html.escape(slide["pinned"]) + '). Its figures are checked against the brief before anything compiles.</div>') if slide.get("pinned") else ""}
 
   <div class="card-body">
   <div class="options-row" data-count="{n_opts}"{row_style}>
