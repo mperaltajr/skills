@@ -229,7 +229,8 @@ Build the brand-css-vars dict by parsing the `:root { --brand-primary: #...; }` 
 
 The following CSS features are FORBIDDEN in body-zone elements. If you encounter them during computed-style extraction, apply the locked fallback and append a `TRANSLATOR_WARNING` entry to the report:
 
-- **Linear/radial gradients** → use the middle color stop as solid; warn `R4.4 gradient flattened to solid`
+- **Linear gradients** → draw a native gradient fill, the same stops and direction: `twins.html_emit._gradient(shape, {"angle": <css deg>, "stops": [[0..1, "RRGGBB", alpha], ...]})` (it sets `a:gradFill` with `a:lin ang` = CSS angle − 90°). Not a warning.
+- **Radial, conic or layered gradients** → use the middle color stop as solid; warn `R4.4 gradient flattened to solid`
 - **Box-shadow / drop-shadow / filter** → no shadow; warn `R4.5 CSS filter dropped`. The HTML designs are flat, but LibreOffice draws a preset shadow from the theme on any autoshape, so "no shadow" needs saying explicitly. **The only sanctioned way to say it** is to set the shape's `<a:effectRef>` to `idx="0"`:
 
   ```python

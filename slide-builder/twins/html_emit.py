@@ -65,6 +65,33 @@ def _fill(shape, color, alpha: float = 1.0) -> None:
         srgb.append(srgb.makeelement(qn("a:alpha"), {"val": str(int(round(alpha * 100000)))}))
 
 
+def _gradient(shape, grad: dict, alpha: float = 1.0) -> None:
+    """A CSS linear gradient as a native gradient fill.
+
+    CSS measures the angle clockwise from "up" (180deg = top to bottom);
+    DrawingML measures it clockwise from "left to right", so subtract 90.
+    Each stop keeps its own transparency.
+    """
+    shape.fill.gradient()
+    grad_fill = shape._element.spPr.find(qn("a:gradFill"))
+    gs_lst = grad_fill.find(qn("a:gsLst"))
+    for child in list(gs_lst):
+        gs_lst.remove(child)
+    for pos, color, a in grad["stops"]:
+        gs = gs_lst.makeelement(qn("a:gs"), {"pos": str(int(round(pos * 100000)))})
+        clr = gs.makeelement(qn("a:srgbClr"), {"val": color})
+        a = a * alpha
+        if a < 0.999:
+            clr.append(clr.makeelement(qn("a:alpha"), {"val": str(int(round(a * 100000)))}))
+        gs.append(clr)
+        gs_lst.append(gs)
+    for old in grad_fill.findall(qn("a:lin")) + grad_fill.findall(qn("a:path")):
+        grad_fill.remove(old)
+    ang = (grad["angle"] - 90) % 360
+    lin = grad_fill.makeelement(qn("a:lin"), {"ang": str(int(round(ang * 60000))), "scaled": "0"})
+    gs_lst.addnext(lin)
+
+
 def _line(shape, line) -> None:
     if not line:
         shape.line.fill.background()
@@ -82,7 +109,10 @@ def _shape(slide, op) -> None:
         sp.adjustments[0] = op["radius_ratio"]
     if op.get("rotation"):
         sp.rotation = op["rotation"]
-    _fill(sp, op.get("fill"), op.get("alpha", 1.0))
+    if op.get("gradient"):
+        _gradient(sp, op["gradient"], op.get("alpha", 1.0))
+    else:
+        _fill(sp, op.get("fill"), op.get("alpha", 1.0))
     _line(sp, op.get("line"))
     _no_shadow(sp)
     if op.get("name"):

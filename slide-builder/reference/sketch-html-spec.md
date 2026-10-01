@@ -202,7 +202,7 @@ These CSS features DO NOT translate cleanly to python-pptx. The worker MUST NOT 
 
 | Feature | Why forbidden |
 |---|---|
-| `linear-gradient`, `radial-gradient`, any `<gradient-image>` | python-pptx has no native gradient fill on shapes. Translator would have to render the gradient region as image — loss of editability. |
+| `radial-gradient`, `conic-gradient`, layered or repeating gradients | No faithful native equivalent; the translator flattens them to one color (QC R4.4, Major). A single `linear-gradient` does translate, to a native gradient fill with the same stops and direction, but keep body fills flat unless the design calls for one. |
 | `box-shadow` (drop shadows on shapes) | python-pptx shadow API is partial; visual fidelity not preserved. |
 | `text-shadow` | Not supported in python-pptx text runs. |
 | `filter: blur()`, `filter: drop-shadow()`, any CSS filter | Not supported in python-pptx. |
