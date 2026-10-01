@@ -149,6 +149,15 @@ def record_qc(out_dir, blocks: int, detail: str = "") -> None:
     _write(out_dir, state)
 
 
+def record_override(out_dir, name: str, detail: str = "") -> None:
+    """A gate was deliberately overridden. Kept in the build's record so a deck
+    built past a check says so, rather than looking like it passed it."""
+    state = read_state(out_dir)
+    state.setdefault("overrides", []).append(
+        {"override": name, "detail": detail, "at": _now()})
+    _write(out_dir, state)
+
+
 def option_key(slide_n: int, letter: str) -> str:
     """Stable key for one design option, e.g. 'slide_05/A'."""
     return f"slide_{int(slide_n):02d}/{letter}"

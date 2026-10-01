@@ -34,5 +34,8 @@
     "master_count": 1,
     "layout_count": 6
   },
-  "brand_yml_path": "C:\\Users\\m.a.peralta\\.claude\\skills\\slide-builder\\tests\\fixtures\\layout_diverse_template\\brand.yml"
+  "brand_yml_path": "C:\\Users\\m.a.peralta\\.claude\\skills\\slide-builder\\tests\\fixtures\\layout_diverse_template\\brand.yml",
+  "confirmed": true,
+  "confirmed_at": "2026-09-30T00:00:00+00:00",
+  "_doc_confirmed": "Test fixture: confirmed so the pipeline tests exercise a build on a confirmed template, as a real one would be."
 }
