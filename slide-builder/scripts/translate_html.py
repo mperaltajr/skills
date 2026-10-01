@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import re
 import sys
 from pathlib import Path
@@ -361,6 +362,103 @@ def _gradient_mid(bgimg):
     return parse_color(cols[len(cols) // 2]) if cols else None
 
 
+def _split_top(s: str) -> list[str]:
+    """Split on commas that are not inside parentheses."""
+    out, depth, cur = [], 0, ""
+    for ch in s:
+        if ch == "(":
+            depth += 1
+        elif ch == ")":
+            depth -= 1
+        if ch == "," and depth == 0:
+            out.append(cur.strip())
+            cur = ""
+        else:
+            cur += ch
+    if cur.strip():
+        out.append(cur.strip())
+    return out
+
+
+_SIDES = {"to top": 0, "to right": 90, "to bottom": 180, "to left": 270,
+          "to top right": 45, "to right top": 45, "to bottom right": 135, "to right bottom": 135,
+          "to bottom left": 225, "to left bottom": 225, "to top left": 315, "to left top": 315}
+
+
+def _linear_gradient(bgimg: str, w: float, h: float) -> dict | None:
+    """A single CSS linear-gradient as {"angle": css degrees, "stops": [[0..1,
+    hex, alpha], ...]}; None for anything else (radial, conic, repeating,
+    several layers), which is flattened to one color instead."""
+    layers = _split_top(bgimg or "")
+    if len(layers) != 1:
+        return None
+    m = re.match(r"^linear-gradient\((.*)\)$", layers[0].strip(), re.S)
+    if not m:
+        return None
+    parts = _split_top(m.group(1))
+    angle = 180.0
+    first = parts[0].strip().lower()
+    if first.startswith("to "):
+        if first not in _SIDES:
+            return None
+        angle = float(_SIDES[first])
+        if " " in first[3:] and w > 0 and h > 0:
+            # corner directions follow the box's own diagonal
+            # (the gradient runs perpendicular to the other diagonal)
+            a = math.degrees(math.atan2(h, w))
+            angle = {45: a, 135: 180 - a, 225: 180 + a, 315: 360 - a}[_SIDES[first]] % 360
+        parts = parts[1:]
+    elif re.match(r"^-?[\d.]+(deg|turn|rad|grad)$", first):
+        v, unit = re.match(r"^(-?[\d.]+)(\w+)$", first).groups()
+        angle = float(v) * {"deg": 1, "turn": 360, "rad": 57.29578, "grad": 0.9}[unit]
+        parts = parts[1:]
+    stops = []
+    length = abs(w * math.sin(math.radians(angle))) + abs(h * math.cos(math.radians(angle))) \
+        if (w and h) else 0
+    for p in parts:
+        cm = re.match(r"^(rgba?\([^)]*\)|#[0-9a-fA-F]{3,8}|[a-z]+)\s*(.*)$", p.strip())
+        if not cm:
+            return None
+        col = parse_color(cm.group(1))
+        if col is None:
+            col = (None, 0.0)              # transparent: fades its neighbor's color
+        pos = None
+        rest = cm.group(2).strip().split()
+        if rest:
+            r = rest[0]
+            if r.endswith("%"):
+                pos = float(r[:-1]) / 100
+            elif r.endswith("px") and length:
+                pos = float(r[:-2]) / length
+        stops.append([pos, col[0], col[1]])
+    if len(stops) < 2:
+        return None
+    # missing positions: first 0, last 1, the rest spread evenly between known ones
+    if stops[0][0] is None:
+        stops[0][0] = 0.0
+    if stops[-1][0] is None:
+        stops[-1][0] = 1.0
+    i = 0
+    while i < len(stops):
+        if stops[i][0] is None:
+            j = i
+            while stops[j][0] is None:
+                j += 1
+            a, b = stops[i - 1][0], stops[j][0]
+            for k in range(i, j):
+                stops[k][0] = a + (b - a) * (k - i + 1) / (j - i + 1)
+            i = j
+        i += 1
+    for k, s_ in enumerate(stops):
+        s_[0] = min(1.0, max(0.0, s_[0]))
+        if s_[1] is None:
+            near = [q for q in stops[k + 1:] + stops[:k][::-1] if q[1]]
+            if not near:
+                return None
+            s_[1] = near[0][1]
+    return {"angle": angle % 360, "stops": stops}
+
+
 GENERIC_FAMILIES = {"sans-serif": "Arial", "serif": "Times New Roman", "monospace": "Consolas",
                     "system-ui": "Segoe UI", "-apple-system": "Segoe UI", "ui-sans-serif": "Arial"}
 
@@ -445,10 +543,15 @@ def _plan_box(plan: Plan, b: dict, order_key) -> None:
             return
     col = parse_color(b["bg"])
     flattened = False
-    if not col and b.get("bgimg") and "gradient" in b["bgimg"]:
-        col = _gradient_mid(b["bgimg"])
-        plan.kill["gradients_flattened"] += 1
-        flattened = True
+    gradient = None
+    if b.get("bgimg") and "gradient" in b["bgimg"]:
+        # A gradient paints over the background color. A single linear one
+        # is drawn natively; radial, conic or layered ones become one color.
+        gradient = _linear_gradient(b["bgimg"], w, h)
+        col = _gradient_mid(b["bgimg"]) or col
+        if gradient is None:
+            plan.kill["gradients_flattened"] += 1
+            flattened = True
     if w < 0.5 or h < 0.5:
         return
     uniform = len(live) == 4 and len({(round(s["w"], 1), s["c"], s["s"]) for s in live}) == 1
@@ -474,6 +577,8 @@ def _plan_box(plan: Plan, b: dict, order_key) -> None:
                          "alpha": (col[1] if col else 1.0) * b["opacity"],
                          "line": line, "name": b.get("id") or None, "_order": order_key,
                          "_box": (x, y, w, h), "_filled": bool(col), "_flattened": flattened})
+        if gradient:
+            plan.ops[-1]["gradient"] = gradient
         plan.counts["shapes"] += 1
     if live and not uniform:
         # One-sided borders: python-pptx outlines are all-or-nothing, so each

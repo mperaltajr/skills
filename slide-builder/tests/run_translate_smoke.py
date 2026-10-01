@@ -10,6 +10,8 @@ One small design exercises the rules that went wrong in real decks:
   - text hidden behind a band in the design is not drawn; text that is merely
     under a transparent container is drawn (it used to be skipped)
   - lines and connectors carry no theme shadow (effectRef idx="0")
+  - a linear gradient is drawn as a native gradient (stops and direction);
+    a radial one is flattened to one color
   - a curved SVG path is left for the agent (FALLBACK_PENDING), not guessed
   - the report has its fixed schema, the self-check ran and found nothing on
     this clean design, and a deliberately broken plan does trip it
@@ -59,6 +61,10 @@ body { margin: 0; }
 .overlay { position: absolute; left: 500px; top: 340px; width: 700px; height: 80px; }
 .under { position: absolute; left: 520px; top: 360px; font-size: 16px; }
 svg { position: absolute; left: 53px; top: 460px; }
+.gbar { position: absolute; left: 700px; top: 450px; width: 400px; height: 20px;
+  background: linear-gradient(90deg, rgb(91, 45, 144) 0%, rgb(255, 102, 0) 100%); }
+.rbar { position: absolute; left: 700px; top: 490px; width: 400px; height: 20px;
+  background: radial-gradient(rgb(91, 45, 144), rgb(255, 102, 0)); }
 </style></head><body><div class="slide-canvas">
 <div class="title" data-template-field="title">Smoke title</div>
 <div class="num" data-shape-id="num-01">01</div>
@@ -69,6 +75,8 @@ svg { position: absolute; left: 53px; top: 460px; }
 <div class="band-text" data-shape-id="band-text">Shown on the band</div>
 <div class="under" data-shape-id="under-text">Visible under a clear container</div>
 <div class="overlay" data-shape-id="overlay"></div>
+<div class="gbar" data-shape-id="gbar"></div>
+<div class="rbar" data-shape-id="rbar"></div>
 <svg width="600" height="40" viewBox="0 0 600 40">
   <line x1="0" y1="20" x2="580" y2="20" stroke="#1f4e79" stroke-width="2"/>
 </svg>
@@ -105,6 +113,13 @@ def main() -> int:
         assert "hidden-text" not in texts, "text hidden behind the band was drawn"
         assert any(w["code"] == "TEXT_HIDDEN_IN_DESIGN" for w in rep["warnings"])
         assert "under-text" in texts, "text under a transparent container was skipped"
+        # linear gradient drawn natively, radial flattened
+        gbar = next(o for o in ops if o.get("name") == "gbar")
+        assert gbar.get("gradient") and gbar["gradient"]["angle"] == 90.0, gbar
+        assert [s_[1] for s_ in gbar["gradient"]["stops"]] == ["5B2D90", "FF6600"], gbar
+        rbar = next(o for o in ops if o.get("name") == "rbar")
+        assert not rbar.get("gradient") and rbar["fill"], rbar
+        assert rep["css_kill_list_applied"]["gradients_flattened"] == 1, rep["css_kill_list_applied"]
         # the curve goes to the agent, the straight line is drawn
         assert any(f["kind"] == "svg" or "curve" in (f.get("reason") or "") for f in rep["fallback"]), \
             rep["fallback"]
@@ -125,6 +140,10 @@ def main() -> int:
         from pptx_openability import check_openability
         prs = Presentation(str(td / "option_A_native.pptx"))
         assert not check_openability(prs), check_openability(prs)
+        g_sh = next(sh for sh in prs.slides[0].shapes if sh.name == "gbar")
+        gf = g_sh._element.spPr.find(qn("a:gradFill"))
+        assert gf is not None and len(gf.find(qn("a:gsLst"))) == 2, "gradient not native"
+        assert gf.find(qn("a:lin")).get("ang") == "0", "90deg (left to right) must be ang 0"
         for sh in prs.slides[0].shapes:
             eff = sh._element.find(".//" + qn("a:effectRef"))
             assert eff is None or eff.get("idx") == "0", f"{sh.name} keeps the theme shadow"
