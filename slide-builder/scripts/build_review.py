@@ -957,6 +957,12 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
         f'<button class="none" onclick="pickNone(\'{sid}\')" '
         f'title="Discard these options and design new ones for this slide">'
         '&#8635; REPLACE THESE</button>'
+        # Leaving a slide out is the user's call, recorded with their picks.
+        # It replaced compile --drop, which let a slide be dropped with no
+        # approval at all, down to an empty deck reported as deliverable.
+        f'<button class="pick leave" data-letter="-" '
+        f'onclick="pickOption(\'{sid}\', \'-\')" '
+        f'title="Leave this slide out of the deck">LEAVE OUT</button>'
     )
     more_picker = ""
     n_opts = len(slide["options"])
@@ -1336,7 +1342,7 @@ function renderSlideState(sid) {
 
     const badge = document.getElementById("badge-" + sid);
     badge.classList.remove("pending", "picked", "none");
-    if (letter) { badge.classList.add("picked"); badge.textContent = "DECIDED " + letter; }
+    if (letter) { badge.classList.add("picked"); badge.textContent = letter === "-" ? "LEFT OUT" : "DECIDED " + letter; }
     else if (isNone) { badge.classList.add("none"); badge.textContent = "REPLACE REQUESTED"; }
     else { badge.classList.add("pending"); badge.textContent = "PENDING"; }
 
@@ -1490,6 +1496,11 @@ async function buildDeck() {
     if (pending.length) {
         showToast(pending.length + " slide(s) still need a pick or Replace these: " +
                   pending.join(", "));
+        return;
+    }
+
+    if (!replace.length && SLIDE_IDS.every(sid => picks[sid] === "-")) {
+        showToast("Every slide is marked Leave out; there would be nothing to build.");
         return;
     }
 
@@ -1751,7 +1762,7 @@ def build_final_check(out_dir: Path, meta: Optional[dict]) -> int:
               "its Build command runs record_picks.py.", file=sys.stderr)
         return 5
     ship = [(k, L) for k, v in sorted(picks.items())
-            for L in (v if isinstance(v, list) else [v])]
+            for L in (v if isinstance(v, list) else [v]) if L != "-"]
     keys = [_state.option_key(int(k.split("_")[1]), L) for k, L in ship]
     problems: list[str] = []
     ok, why = _state.check_options_finalized(state, keys)

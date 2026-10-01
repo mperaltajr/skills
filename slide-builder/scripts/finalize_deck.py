@@ -2795,6 +2795,8 @@ def _run(args) -> int:
             return EXIT_MISSING_OUTPUT
         print(f"  [missing] {n_missing} worker output(s) absent — proceeding "
               f"under --allow-missing (will be surfaced in RESULT.md / REVIEW.html)")
+        _state.record_override(args.out, "allow_missing",
+                               f"finalize ran with {n_missing} option(s) missing")
     print(f"  found {len(statuses)} option scripts across "
           f"{len({s.slide_n for s in statuses})} slides")
     print(f"  classification: native={n_native}  sketch={n_sketch}  rejected={n_rejected}")
@@ -3176,6 +3178,14 @@ def _run(args) -> int:
     # so in the exit code too, rather than returning 0 over a partial build.
     _not_through = [s for s in statuses
                     if not s.themed or (not args.skip_render and not s.rendered)]
+    if _picks:
+        # Once the user has picked, only the picks decide whether this run
+        # failed. An unpicked option that failed is still recorded as blocked,
+        # but exiting 15 over it signalled failure when the deck was fine.
+        def _picked(st):
+            v = _picks.get(_p.slide_key(st.slide_n))
+            return st.letter in (v if isinstance(v, list) else [v])
+        _not_through = [s for s in _not_through if _picked(s)]
     if _not_through:
         print(f"\nFINALIZE INCOMPLETE: {len(_not_through)} option(s) did not make it "
               "through build/graft/render: "

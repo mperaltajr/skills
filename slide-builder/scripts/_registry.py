@@ -56,7 +56,11 @@ from typing import Any, Optional
 
 import _paths as _p
 
-REGISTRY_PATH: Path = Path.home() / ".claude" / "slide_lab_registry.json"
+# SLIDE_LAB_REGISTRY redirects it. Tests and audits register temporary copies of
+# templates; without a way to point them elsewhere, three verifier runs on
+# 2026-10-01 wrote their temp templates into the user's real pick-list.
+REGISTRY_PATH: Path = Path(os.environ.get("SLIDE_LAB_REGISTRY")
+                           or Path.home() / ".claude" / "slide_lab_registry.json")
 REGISTRY_SCHEMA_VERSION = 1
 
 

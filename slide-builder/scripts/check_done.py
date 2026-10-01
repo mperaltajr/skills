@@ -98,11 +98,25 @@ def main(argv=None) -> int:
                 f"{deck} is not the deck the last compile produced ({recorded}). "
                 "Check the file you are actually sending.")
 
-    # 3. Built from the current brief.
+    # 3. Built from the current brief, and nothing rebuilt since.
     if comp.get("content_hash") != state.get("content_hash"):
         problems.append(
             "the brief or build inputs changed after this deck was compiled "
             "(prep ran again). This deck shows the old content; recompile.")
+    # A single-slide rebuild keeps the same brief, so the content hash alone
+    # missed it: the old deck stayed DELIVERABLE after slide 2 was redesigned.
+    # The build's event counter says what happened after the compile.
+    _crev = int(comp.get("rev") or 0)
+    _prep_rev = int(((state.get("stages") or {}).get("prep") or {}).get("rev") or 0)
+    _fin_rev = int((state.get("finalize") or {}).get("rev") or 0)
+    if _crev and _prep_rev > _crev:
+        problems.append(
+            "a slide was rebuilt or inserted after this deck was compiled, so the "
+            "deck does not contain it. Finish the review sequence and recompile.")
+    elif _crev and _fin_rev > _crev:
+        problems.append(
+            "finalize ran again after this deck was compiled, so the deck may not "
+            "match the current slides. Finish the review sequence and recompile.")
 
     # 4. Opens, and no structure PowerPoint refuses.
     n_deck = 0
@@ -179,6 +193,16 @@ def main(argv=None) -> int:
     print(f"  compiled at   : {comp.get('at')}  ({n_deck} slides)")
     print(f"  vision pass   : {vq.get('slides_reviewed')} slide(s), "
           f"{vq.get('advisories', 0)} Advisory open, {vq.get('at')}")
+    # Every gate that was deliberately passed over in this build. They were
+    # recorded and then never shown to anyone; delivery is where the user sees
+    # what the deck did NOT go through.
+    overrides = state.get("overrides") or []
+    if overrides:
+        print(f"  overrides     : {len(overrides)} gate(s) passed over in this build:")
+        for o in overrides:
+            print(f"                  - {o.get('override')}: {o.get('detail', '')} "
+                  f"({o.get('at', '')})")
+        print("                  Tell the user about these when you deliver.")
     if sl:
         # State plainly how much was taken on trust rather than verified.
         print(f"  supplied page : {sl.get('keep_source', 0)} figure(s) kept "

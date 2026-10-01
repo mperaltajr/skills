@@ -119,7 +119,7 @@ An older `scripts/export_slides.py` (COM-only, uses `DispatchEx` to spawn its ow
 
 Use the Read tool to load each PNG file. Read them all before writing your report — do not report slide by slide as you go; review everything first so you can catch cross-slide consistency issues.
 
-Also read `mockups.html` if it exists — you need to know what was intended for each slide to judge whether content is missing.
+Also look at the design reference from Step 1 (`FINAL-CHECK.html`, or each pick's `option_<pick>.sketch.png`) if it exists — you need to know what was intended for each slide to judge whether content is missing.
 
 ---
 

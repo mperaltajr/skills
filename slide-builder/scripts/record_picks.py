@@ -106,7 +106,8 @@ def main(argv=None) -> int:
         picks = {}
         for pair in body.split(";"):
             k, _, v = pair.partition("=")
-            if not re.fullmatch(r"slide_\d{2}", k) or not re.fullmatch(r"[A-F]", v):
+            # "-" means the user chose Leave out for this slide.
+            if not re.fullmatch(r"slide_\d{2}", k) or not re.fullmatch(r"[A-F]|-", v):
                 print(f"REFUSED: malformed pick {pair!r}.")
                 return 5
             picks[k] = v
@@ -117,9 +118,12 @@ def main(argv=None) -> int:
                   "(or 'Replace these', which rebuilds it before anything compiles).")
             return 5
         for k, v in picks.items():
-            if v not in _letters_on_disk(out / k):
+            if v != "-" and v not in _letters_on_disk(out / k):
                 print(f"REFUSED: {k} has no option {v}.")
                 return 5
+        if all(v == "-" for v in picks.values()):
+            print("REFUSED: every slide is marked Leave out; there is nothing to build.")
+            return 5
         all_options = False
 
     (out / "picks.json").write_text(json.dumps(picks, indent=2), encoding="utf-8")
@@ -129,12 +133,17 @@ def main(argv=None) -> int:
     to_translate = []
     for k, v in picks.items():
         for L in (v if isinstance(v, list) else [v]):
+            if L == "-":
+                continue
             sd = out / k
             if (sd / f"option_{L}.html").exists() and not (sd / f"option_{L}_native.py").exists():
                 to_translate.append(f"{k}/option_{L}.html")
-    n_opts = sum(len(v) if isinstance(v, list) else 1 for v in picks.values())
+    n_opts = sum(len(v) if isinstance(v, list) else (0 if v == "-" else 1)
+                 for v in picks.values())
+    n_out = sum(1 for v in picks.values() if v == "-")
     print(f"[ok] recorded {'ALL options' if all_options else 'picks'}: "
-          f"{n_opts} option(s) across {len(picks)} slide(s).")
+          f"{n_opts} option(s) across {len(picks) - n_out} slide(s)"
+          + (f"; {n_out} slide(s) left out by the user." if n_out else "."))
     print("\nNext:")
     step = 1
     if to_translate:
@@ -143,7 +152,15 @@ def main(argv=None) -> int:
         for t in to_translate:
             print(f"       {out / t}")
         step += 1
-    print(f"  {step}. py -3 scripts/finalize_deck.py --out \"{out}\" --template <template>")
+    tpl = meta.get("template") or "<template>"
+    if meta.get("adopted_source"):
+        # An adopted deck: finalize only the slides being rebuilt. A full
+        # finalize exits 11 there, because the other slides have no options.
+        for k in sorted(k for k, v in picks.items() if v != "-"):
+            print(f"  {step}. py -3 scripts/finalize_deck.py --out \"{out}\" "
+                  f"--template \"{tpl}\" --slide {int(k.split('_')[1])}")
+    else:
+        print(f"  {step}. py -3 scripts/finalize_deck.py --out \"{out}\" --template \"{tpl}\"")
     print(f"  {step + 1}. py -3 scripts/build_review.py --out \"{out}\" --final")
     print("     Show the user FINAL-CHECK.html and wait for its Build command.")
     return 0

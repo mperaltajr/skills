@@ -75,7 +75,7 @@ py -3 "$skill\scripts\finalize_deck.py" --out "$session\out" --template "$templa
 py -3 "$skill\scripts\build_review.py" --out "$session\out"
 ```
 
-**6. You pick.** Open `$session\out\REVIEW.html`. Pick an option on every slide (or **Replace these** to get new designs), then click **Build my deck** and paste what it copies into Claude. That command runs `record_picks.py`, which records exactly your picks.
+**6. You pick.** Open `$session\out\REVIEW.html`. Pick an option on every slide (or **Replace these** to get new designs, or **Leave out** to drop it), then click **Build my deck** and paste what it copies into Claude. That command runs `record_picks.py`, which records exactly your picks.
 
 **7. Claude converts only your picked sketches** (one `slide-builder-translator` each), then runs:
 
