@@ -34,3 +34,4 @@ pywin32>=306 ; platform_system == "Windows"
 # renders a Chromium screenshot of pattern HTML. Most Slide Lab flows do
 # not need it. Comment out if you don't run the HTML preview.
 # playwright>=1.40
+fonttools>=4.40       # font metrics for the script translator (translate_html.py)
