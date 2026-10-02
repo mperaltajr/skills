@@ -66,13 +66,13 @@ desktop.ini
 .vscode/
 *.swp
 
-# ── Standalone onboarding deliverables (personal, distributed by hand) ──
-Slide-Lab-Tutorial.html
-Slide-Lab-Install-Guide.docx
+# Onboarding files (tutorial, install guide, examples) are tracked so every
+# install gets current copies; the examples are regenerated with
+# slide-builder/examples/showcase/make_showcase.py, never hand-edited.
 Slide-Lab-Example-Registration.html
-Slide-Lab-Example-Review.html
-Slide-Lab-Example-Storyline.html
-Slide-Lab-Example-Deck.pptx
+!Slide-Lab-Example-Deck.pptx
+!Slide-Lab-Install-Guide.docx
+!docs/tutorial/*.png
 
 # Personal, engagement-specific skill (not part of the shared repo)
 financial-session-deck/
