@@ -457,6 +457,46 @@ def remove_empty_placeholders(slide) -> int:
     return removed
 
 
+def remove_duplicate_chrome_text(slide) -> int:
+    """Remove slide text boxes that repeat text the layout or master already draws.
+
+    Designers see the template's decorations in their preview and sometimes
+    redraw them (a brand line, a confidentiality tag). On the template the
+    master draws them too, so the deck shows the text twice, slightly offset.
+    A free-floating text shape whose text matches a master/layout shape's text
+    (ignoring spacing) is that copy. Placeholders are never touched. Returns
+    the count removed.
+    """
+    import re as _re
+
+    def _norm(s: str) -> str:
+        return _re.sub(r"\s+", " ", s or "").strip()
+
+    chrome: set[str] = set()
+    try:
+        layout = slide.slide_layout
+        sources = [layout]
+        if layout._element.get("showMasterSp") != "0":
+            sources.append(layout.slide_master)
+        for src in sources:
+            for sh in src.shapes:
+                if getattr(sh, "is_placeholder", False) or not getattr(sh, "has_text_frame", False):
+                    continue
+                t = _norm(sh.text_frame.text)
+                if t:
+                    chrome.add(t)
+    except Exception:
+        return 0
+    removed = 0
+    for sh in list(slide.shapes):
+        if getattr(sh, "is_placeholder", False) or not getattr(sh, "has_text_frame", False):
+            continue
+        if _norm(sh.text_frame.text) in chrome:
+            sh._element.getparent().remove(sh._element)
+            removed += 1
+    return removed
+
+
 def reassign_shape_ids(slide) -> int:
     """Give every shape on the slide a unique, sequential id. Returns the count changed.
 

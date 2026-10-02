@@ -58,6 +58,7 @@ from twins.composer import (  # noqa: E402
     _strip_layout_placeholders,
     reassign_shape_ids,
     remove_empty_placeholders,
+    remove_duplicate_chrome_text,
 )
 from pptx_openability import check_openability  # noqa: E402  (sibling slide-qc)
 
@@ -241,6 +242,7 @@ def copy_picked_slide_into(dst_prs, src_pptx: Path,
         # doesn't show its 'Click to add text' prompt in edit mode. Runs AFTER
         # dedupe so the populated title/slide-number survive.
         remove_empty_placeholders(new_slide)
+        remove_duplicate_chrome_text(new_slide)
     if page_position is not None:
         _restamp_page_number(new_slide, page_position)
     return count

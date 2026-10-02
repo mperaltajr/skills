@@ -84,6 +84,7 @@ from twins.composer import (  # noqa: E402
     clone_missing_chrome_placeholders,
     reassign_shape_ids,
     remove_empty_placeholders,
+    remove_duplicate_chrome_text,
     TemplatePlaceholderEmptyError,
 )
 from _chrome_schema import (  # noqa: E402
@@ -1899,6 +1900,9 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
     # layout's content placeholder — the body is drawn as free-floating shapes),
     # so PowerPoint doesn't show a 'Click to add text' prompt in edit mode.
     remove_empty_placeholders(new_slide)
+    # Drop text the designer copied from the template's own decorations (a
+    # brand line); the master draws it already, so it would show twice.
+    remove_duplicate_chrome_text(new_slide)
 
     # Title/band overlap issues collected above — graft records these on
     # st.title_overlaps; main() refuses the build after all options finish.
