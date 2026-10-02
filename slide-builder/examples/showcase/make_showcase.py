@@ -117,6 +117,15 @@ def build_review(session: Path, dest: Path) -> Path:
                 f.unlink()
             for f in prev.iterdir():
                 shutil.copy2(f, slide_dir / f.name)
+        # Round one, before any pick: a sketch option shows as its sketch, not
+        # as the finished slide it became after it was picked and converted.
+        for html_opt in tmp.glob("slide_*/option_?.html"):
+            stem = html_opt.stem
+            for suffix in (".png", ".pptx", ".qc.json", "_native.py",
+                           "_native.plan.json", "_translation_report.json"):
+                f = html_opt.with_name(stem + suffix)
+                if f.exists():
+                    f.unlink()
         r = subprocess.run([sys.executable, str(SCRIPTS / "build_review.py"), "--out", str(tmp)],
                            capture_output=True, text=True, encoding="utf-8", errors="replace")
         if r.returncode != 0:
