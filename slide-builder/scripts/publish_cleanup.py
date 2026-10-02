@@ -20,7 +20,7 @@ DELETED:
   - options the user did not pick (all their files)
   - the picked option's page images and per-option PowerPoint files: finalize
     regenerates them from the kept design if the deck is ever edited
-  - _session/_qc* folders (quality-check renders), final_pngs/, _raw/,
+  - _session/_qc* render images (written notes in them are kept), final_pngs/, _raw/,
     _render_tmp/, slide_NN/_prev/ (replaced options), REVIEW.html and
     GATE3-PREVIEW.html (picks are recorded), __pycache__/
 
@@ -28,6 +28,7 @@ Editing the deck later still works: rebuild or insert a slide as usual; the
 next finalize rebuilds the images and PowerPoint files from the kept designs.
 
 Run:  py -3 scripts/publish_cleanup.py --out <session folder> [--dry-run]
+      py -3 scripts/publish_cleanup.py --scan <folder>    (list finished decks; deletes nothing)
 Exit: 0 cleaned (or dry run) | 2 not a session folder | 5 nothing published yet
 """
 from __future__ import annotations
@@ -86,7 +87,14 @@ def plan(out: Path) -> tuple[list[Path], dict]:
             victims.append(out / f)
     sess = out / "_session"
     if sess.is_dir():
-        victims += [p for p in sess.iterdir() if p.is_dir() and p.name.startswith("_qc")]
+        for qc in (p for p in sess.iterdir() if p.is_dir() and p.name.startswith("_qc")):
+            # renders go; written notes (e.g. qc-flags-*.md, the user's reasons
+            # for overriding a finding) stay
+            notes_inside = [f for f in qc.rglob("*") if f.is_file() and f.suffix.lower() in (".md", ".txt", ".json")]
+            if notes_inside:
+                victims += [f for f in qc.rglob("*") if f.is_file() and f not in notes_inside]
+            else:
+                victims.append(qc)
     for sd in sorted(out.glob("slide_[0-9][0-9]")):
         if not sd.is_dir():
             continue
@@ -106,11 +114,49 @@ def plan(out: Path) -> tuple[list[Path], dict]:
     return victims, {"picks_known": kept is not None, "kept": kept}
 
 
+def scan(root: Path) -> int:
+    """List every finished deck (a session folder with a .pptx at its top)
+    under root, with what a cleanup would free. Deletes nothing: the user
+    chooses which decks are final, then each gets --out."""
+    rows = []
+    for meta in root.rglob("_meta.json"):
+        sess = meta.parent
+        if "slide_" in sess.name or not list(sess.glob("*.pptx")):
+            continue
+        if ((_state.read_state(sess).get("published_cleanup")) or {}).get("at"):
+            continue                                     # already cleaned
+        victims, _n = plan(sess)
+        latest = max((f.stat().st_mtime for f in sess.rglob("*") if f.is_file()), default=0)
+        compiled = bool((_state.read_state(sess).get("stages") or {}).get("compile"))
+        rows.append((sum(_size(v) for v in victims), _size(sess), sess, latest, compiled))
+    if not rows:
+        print(f"No finished, uncleaned decks under {root}.")
+        return 0
+    rows.sort(key=lambda r: -r[0])
+    print(f"{len(rows)} finished deck(s) under {root} (largest saving first):")
+    import time
+    now = time.time()
+    for freed, total, sess, latest, compiled in rows:
+        age = now - latest
+        when = (f"changed {int(age // 3600)}h ago, MAY BE IN PROGRESS" if age < 86400
+                else f"last changed {datetime.fromtimestamp(latest).strftime('%Y-%m-%d')}")
+        status = "compiled" if compiled else "deck file present"
+        print(f"  {freed / 1e6:7.1f} MB of {total / 1e6:7.1f} MB  {sess}  ({status}; {when})")
+    print(f"Total that could be freed: {sum(r[0] for r in rows) / 1e6:.1f} MB. Ask the user which "
+          "decks are final, then run --out on each.")
+    return 0
+
+
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Free the space a published deck no longer needs.")
-    ap.add_argument("--out", required=True, type=Path, help="The deck's session folder.")
+    ap.add_argument("--out", type=Path, help="The deck's session folder.")
+    ap.add_argument("--scan", type=Path, help="List finished decks under this folder; delete nothing.")
     ap.add_argument("--dry-run", action="store_true", help="Show what would go; delete nothing.")
     args = ap.parse_args(argv)
+    if args.scan:
+        return scan(args.scan.resolve())
+    if not args.out:
+        ap.error("give --out <session folder> or --scan <folder>")
     out = args.out.resolve()
 
     if not out.is_dir() or not (out / "_meta.json").exists():

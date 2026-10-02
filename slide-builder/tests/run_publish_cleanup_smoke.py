@@ -4,9 +4,11 @@ deck stays editable.
 
   - refuses a folder that is not a session (exit 2) and one with no published
     deck yet (exit 5)
+  - --scan lists finished decks (flagging recent ones) and deletes nothing
   - a dry run deletes nothing
   - deletes unpicked options, the picked option's images and per-option
-    PowerPoint files, _session/_qc* renders, final_pngs/, _prev/, REVIEW.html
+    PowerPoint files, _session/_qc* renders (keeping notes such as
+    qc-flags-*.md), final_pngs/, _prev/, REVIEW.html
   - keeps the deck, the brief and decisions, the records, and the picked
     option's design/script
   - records only the picked letters in _meta.json, and finalize then rebuilds
@@ -54,11 +56,21 @@ def main() -> int:
         (out / "_session" / "narrative-brief-x.md").write_text("brief", encoding="utf-8")
         (out / "_session" / "_qc2").mkdir()
         (out / "_session" / "_qc2" / "slide_01.png").write_bytes(b"x" * 1000)
+        (out / "_session" / "_qc").mkdir()
+        (out / "_session" / "_qc" / "slide_01.png").write_bytes(b"x" * 1000)
+        (out / "_session" / "_qc" / "qc-flags-2026-10-02.md").write_text("reason", encoding="utf-8")
         (out / "final_pngs").mkdir()
         (out / "final_pngs" / "p1.png").write_bytes(b"x" * 1000)
         (out / "slide_01" / "_prev").mkdir(exist_ok=True)
         (out / "slide_01" / "_prev" / "old.py").write_text("old", encoding="utf-8")
         (out / "REVIEW.html").write_text("<html></html>", encoding="utf-8")
+
+        print("[1b] --scan lists the finished deck and deletes nothing")
+        before_scan = sorted(str(p) for p in out.rglob("*"))
+        r = H.run("publish_cleanup.py", "--scan", tmp)
+        assert r.returncode == 0 and tmp.name in r.stdout and "MAY BE IN PROGRESS" in r.stdout, r.stdout
+        assert sorted(str(p) for p in out.rglob("*")) == before_scan
+        print("    ok")
 
         print("[2] a dry run deletes nothing")
         before = sorted(str(p) for p in out.rglob("*"))
@@ -74,6 +86,8 @@ def main() -> int:
         assert not list(s1.glob("option_B*")), "the unpicked option is still there"
         assert (s1 / "option_A.py").exists(), "the picked option's script was deleted"
         assert not (s1 / "option_A.pptx").exists() and not list(s1.glob("option_A*.png"))
+        assert (out / "_session" / "_qc" / "qc-flags-2026-10-02.md").exists(), "QC notes were deleted"
+        assert not (out / "_session" / "_qc" / "slide_01.png").exists()
         for gone in ("_session/_qc2", "final_pngs", "slide_01/_prev", "REVIEW.html"):
             assert not (out / gone).exists(), gone
         for kept in ("Client Deck.pptx", "_session/narrative-brief-x.md", "_meta.json",

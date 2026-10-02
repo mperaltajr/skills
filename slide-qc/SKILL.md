@@ -93,6 +93,8 @@ py -3 <SKILL_DIR>/scripts/render_slides.py "<pptx_path>" "<session_folder>/_qc/"
 
 By default this uses **LibreOffice headless in an isolated process** — it never touches the user's running PowerPoint, never opens visible windows, never asks for permission, and works whether or not PowerPoint is open. Output lands in `_session/_qc/slide_01.png`, `slide_02.png`, etc.
 
+**Always the same `_qc` folder.** A re-run replaces the previous images there. Never create `_qc2`, `_qc3`, `_qc_editable`, … for a new round: each copy is another full set of slide images (one session piled up six of them, about 110 MB), and nothing reads the old ones.
+
 - LibreOffice opens the actual PPTX (same XML, same master inheritance, same layout resolution). It is a **real renderer**, not an HTML approximation. Layout overflow, master inheritance, text overlap, color, and structural issues all render faithfully.
 - The font fidelity gap: if a slide uses a font that LibreOffice doesn't have installed (e.g. a proprietary brand typeface), LibreOffice substitutes a similar sans-serif. Letter shapes differ; **letter widths are close but not identical**, which can mask 2-3 character title-overflow cases.
 
