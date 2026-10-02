@@ -2350,6 +2350,36 @@ def _write_chrome_yml_for(tpl: Path, *, sha8: str,
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+def _slide_size_gate(tpl: Path) -> int | None:
+    """Exit code 4 (with how to fix it) when the template is not 1280x720.
+
+    Every measurement Slide Lab takes assumes 13.333 x 7.5 in (9525 EMU per px
+    at 1280 wide). A 960x540 template registered and passed its self-test, and a
+    full round of pages was built against it and thrown away."""
+    try:
+        from rescale_template import is_canvas_size
+        prs = Presentation(str(tpl))
+        w, h = int(prs.slide_width), int(prs.slide_height)
+    except Exception:
+        return None                      # unreadable files are reported elsewhere
+    if is_canvas_size(w, h):
+        return None
+    ratio_ok = abs(w / h - 16 / 9) <= 0.01
+    print(f"REFUSED: this template is {w / 914400:.3g} x {h / 914400:.3g} in "
+          f"({round(w / 9525)} x {round(h / 9525)} px), not 13.333 x 7.5 in (1280 x 720). "
+          f"Every page would be "
+          "measured wrong.")
+    if ratio_ok:
+        print("  It is 16:9, so it can be resized cleanly:")
+        print(f"    py -3 scripts/rescale_template.py \"{tpl}\"")
+        print("  then register the '... 1280x720.pptx' copy it writes.")
+    else:
+        print("  It is not 16:9, so resizing would distort it. Change the slide size in "
+              "PowerPoint (Design > Slide Size > Widescreen 16:9), check the masters, "
+              "save, and register that file.")
+    return 4
+
+
 def _main_interactive(args) -> int:
     sys.stdout.reconfigure(encoding="utf-8")
 
@@ -2357,6 +2387,9 @@ def _main_interactive(args) -> int:
     if not tpl.exists():
         print(f"ERROR: template not found: {tpl}")
         return 2
+    _gate = _slide_size_gate(tpl)
+    if _gate is not None:
+        return _gate
 
     # ---- Phase 1: auto-extract ----
     print("=" * 72)
@@ -3283,12 +3316,14 @@ def _extract_body_zone_for_canonical(layout) -> dict:
        subtitle-type inherited placeholder (None if no subtitle placeholder).
        Without it, the subtitle rendered at a hardcoded
        canonical position because finalize_deck had no idx to write into.
-    body_top_y_px: bottom of the title placeholder in px (or 110 fallback).
+    body_top_y_px: below the title placeholder, or below the subtitle
+       placeholder (+12px) when one sits lower (110 fallback).
     body_bottom_y_px: top of the footer placeholder in px (or 660 fallback).
     """
     title_idx = None
     subtitle_idx = None
     title_bottom_px = None
+    subtitle_bottom_px = None
     footer_top_px = None
     title_box = None  # (x, y, w, h) px of the title placeholder, when available
     for ph in layout.placeholders:
@@ -3318,6 +3353,10 @@ def _extract_body_zone_for_canonical(layout) -> dict:
                 title_box = None
         if t == 4 and subtitle_idx is None:
             subtitle_idx = idx
+            try:
+                subtitle_bottom_px = _emu_to_px(int(ph.top) + int(ph.height))
+            except Exception:
+                pass
         if t == 15 and footer_top_px is None:
             try:
                 footer_top_px = _emu_to_px(int(ph.top))
@@ -3325,12 +3364,19 @@ def _extract_body_zone_for_canonical(layout) -> dict:
                 pass
     if title_bottom_px is None:
         title_bottom_px = CANONICAL_BODY_TOP_Y
+    # The body starts below whichever heading sits lower. A subtitle placeholder
+    # under the title used to be ignored: body_top came out at 102px on a
+    # template whose subtitle ran to 148px, and a round of pages was laid out
+    # under it. The 12px gap keeps body content off the subtitle's last line.
+    body_top_px = title_bottom_px
+    if subtitle_bottom_px is not None and subtitle_bottom_px > title_bottom_px:
+        body_top_px = subtitle_bottom_px + 12
     if footer_top_px is None:
         footer_top_px = CANONICAL_BODY_BOTTOM_Y
     fields = {
         "title_placeholder_idx": title_idx,
         "subtitle_placeholder_idx": subtitle_idx,
-        "body_top_y_px": int(title_bottom_px),
+        "body_top_y_px": int(body_top_px),
         "body_bottom_y_px": int(footer_top_px),
         # Controlled title size for body-canonical content slides — every deck's
         # titles render at a consistent 28pt regardless of the master's inherited
@@ -3679,6 +3725,9 @@ def _main_propose(args) -> int:
     if not tpl.exists():
         print(f"ERROR: template not found: {tpl}")
         return 2
+    _gate = _slide_size_gate(tpl)
+    if _gate is not None:
+        return _gate
 
     # Audit blocker: block propose when LibreOffice is missing.
     # Without it, render_libre returns empty, thumbnail dicts are empty, and
@@ -4345,6 +4394,9 @@ def _main_commit(args) -> int:
     if not tpl.exists():
         print(f"ERROR: template not found: {tpl}")
         return 2
+    _gate = _slide_size_gate(tpl)
+    if _gate is not None:
+        return _gate
 
     picks_path = args.picks.resolve()
     if not picks_path.exists():
@@ -4390,6 +4442,9 @@ def _main_commit_cli(args) -> int:
     if not tpl.exists():
         print(f"ERROR: template not found: {tpl}")
         return 2
+    _gate = _slide_size_gate(tpl)
+    if _gate is not None:
+        return _gate
 
     # Build the same dict shape _commit_from_picks_dict expects.
     picks: dict = {}

@@ -6,6 +6,8 @@
   "_doc_default_pattern": "One of: legacy | auto | sketch | direct. 'legacy' = pptx-direct-only pipeline verbatim (the safe fallback). 'auto' = per-slide routing via _classify_all_slides. 'sketch' = force all slides through the HTML-first path. 'direct' = force all slides through the pptx-direct path (native, no HTML stage). Per-build override: build_deck.py --pattern <value>.",
 
   "options_per_slide": 3,
+  "options_per_slide_revision": 1,
+  "_doc_options_per_slide_revision": "Options built when a slide is rebuilt after the user's feedback (build_deck.py --slide N, also what REVIEW.html's Replace these runs). The user has already said what to change, so one focused option is enough and about three times faster than three. A full build and a newly inserted slide still use options_per_slide. build_deck.py --options N overrides either.",
   "_doc_options_per_slide": "How many design options each slide's worker produces up front (1-3). Ships at 3 so every slide has alternatives to compare. Cost: three options run roughly 1.3-1.5x the tokens of one, because the worker's setup is shared and only the picked option is converted to PowerPoint (unmeasured estimate). Set to 1 to minimize tokens. Read via _paths.option_letters(). NOTE: a single option is still NOT an auto-pick. REVIEW.html remains a human gate: the user picks every slide (recorded by record_picks.py), then looks at the finished picks in FINAL-CHECK.html, whose Build command carries the --final-token compile requires.",
 
   "translator": "script",

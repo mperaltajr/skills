@@ -55,6 +55,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import sys
 from datetime import datetime, timezone
@@ -995,6 +996,33 @@ def _format_reference_block_for_context(brand: dict) -> str:
     return "\n".join(lines)
 
 
+def _style_refs_block(template_path) -> str:
+    """Pictures of real pages from the client's own deck, when the template has
+    them (<template stem>/style_refs/*.png, added with add_style_refs.py).
+
+    Without them, designers had only colors and box positions to go on and fell
+    back to generic cards and tables; the client's response to one round was
+    "definitely look Claude generated" and "generic cards"."""
+    try:
+        refs = sorted(_p.style_refs_dir(Path(template_path)).glob("*.png")) if template_path else []
+    except Exception:
+        refs = []
+    if not refs:
+        return ("\n\n_No client style references for this template. If the template "
+                "came from a real client deck, add 3-4 of its best pages with "
+                "`scripts/add_style_refs.py` so designs match the client's look._")
+    lines = ["", "", "**Client style references (look at these images first):**", ""]
+    lines += [f"- `{r}`" for r in refs[:6]]
+    lines += ["",
+              "These are real pages from the client's own deck. Open each image before "
+              "designing and match their visual language: how they number steps, use "
+              "icons, draw charts and diagrams, label things, how dense a page is, and "
+              "where color goes. Do NOT copy their text, numbers or layout one-to-one; "
+              "the content comes only from the brief. A design that could belong to any "
+              "company is the failure to avoid."]
+    return "\n".join(lines)
+
+
 def _load_prior_feedback_for_slide(slide_dir: Path) -> str:
     """Hydrate the prior-feedback section from an on-disk file when one exists.
 
@@ -1081,7 +1109,8 @@ def write_slide_context_md(slide: dict, brand: dict, slide_dir: Path,
     layout = (slide.get("layout") or "").strip()
     content = CONTEXT_TEMPLATE.format(
         slide_n=slide_n,
-        reference_block=_format_reference_block_for_context(brand),
+        reference_block=(_format_reference_block_for_context(brand)
+                         + _style_refs_block(template_path)),
         title=title,
         title_len=len(title),
         so_what=so_what,
@@ -2189,6 +2218,11 @@ def main() -> int:
                              "instead of re-classifying it. Use when the user says 'make slide N "
                              "look like slide M' — the reference slide's cleaner look often comes "
                              "from its build path, and re-classifying would silently re-route N.")
+    parser.add_argument("--options",  required=False, type=int, default=None,
+                        help="How many design options to build per slide (1-3), overriding "
+                             "settings.json. Default: options_per_slide for a full build or an "
+                             "insert; options_per_slide_revision (1) for a --slide rebuild, "
+                             "where the user has already said what they want changed.")
     parser.add_argument("--insert",   required=False, type=int, default=None,
                         help="Insert a NEW slide at position N into an existing build: shift "
                              "slides >= N (dirs, _meta entries, picks) up by one, prep only the "
@@ -2259,6 +2293,17 @@ def main() -> int:
         sys.stderr.write("ERROR: use --slide OR --insert, not both.\n")
         return 1
     single_slide_mode = rebuild_slide_n is not None or insert_slide_n is not None
+    # How many options this run builds. A rebuild follows the user's feedback, so
+    # one option is enough and three times faster; a first look (full build or a
+    # new inserted slide) gets the full spread. --options overrides both; a value
+    # already pinned in the environment (tests) is left alone.
+    if args.options is not None:
+        if not 1 <= args.options <= 3:
+            sys.stderr.write("ERROR: --options must be 1, 2 or 3.\n")
+            return 1
+        os.environ["SLIDE_LAB_OPTIONS_PER_SLIDE"] = str(args.options)
+    elif rebuild_slide_n is not None and not os.environ.get("SLIDE_LAB_OPTIONS_PER_SLIDE"):
+        os.environ["SLIDE_LAB_OPTIONS_PER_SLIDE"] = str(_p.options_per_slide_revision())
     # The current on-disk slide count (needed by --insert to shift slides); read
     # from the existing manifest below.
     existing_slide_count = 0

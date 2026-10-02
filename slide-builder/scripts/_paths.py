@@ -111,6 +111,21 @@ def translator_mode() -> str:
         return "agent"
 
 
+def options_per_slide_revision(default: int = 1) -> int:
+    """Options to build when a slide is rebuilt after the user's feedback
+    (build_deck.py --slide N), from settings.json::options_per_slide_revision.
+    The user has already said what to change, so one focused option is enough;
+    three tripled the wait on every revision round (9-20 min a page)."""
+    try:
+        import json
+        settings = Path(__file__).resolve().parents[1] / "settings.json"
+        v = int(json.loads(settings.read_text(encoding="utf-8")).get(
+            "options_per_slide_revision", default))
+        return v if 1 <= v <= len(_ALL_OPTION_LETTERS) else default
+    except Exception:
+        return default
+
+
 def option_letters(n: int | None = None) -> tuple[str, ...]:
     """The option letters to build for one slide. Defaults to
     settings.json::options_per_slide (default 1); max 3 (A/B/C). Callers iterate
@@ -260,6 +275,12 @@ def render_tmp_dir(pptx: Path) -> Path:
 def template_sidecar_dir(template_pptx: Path) -> Path:
     """<template.parent>/<stem>/ — per-template sidecar subfolder."""
     return template_pptx.parent / template_pptx.stem
+
+
+def style_refs_dir(template_pptx: Path) -> Path:
+    """<sidecar-dir>/style_refs/ — pictures of real pages from the client's own
+    deck (add_style_refs.py). build_deck lists them in every worker's context."""
+    return template_sidecar_dir(template_pptx) / "style_refs"
 
 
 def brand_yml(template_pptx: Path) -> Path:
