@@ -1,490 +1,312 @@
-"""Generate Slide-Lab-Install-Guide.docx, the short Word guide consultants forward.
+"""Build Slide-Lab-Install-Guide.docx (2 pages: page 1 the install, page 2 everything after).
 
-Regenerate whenever the install steps change:
+  py -3 docs/make_install_guide.py
 
-    py -3 docs/make_install_guide.py
-
-The README install section is the single source of truth for commands. This
-script copies the paste-in request straight out of README.md ("Step 2" code
-block), so the two can never drift. Everything else in the guide is plain
-prose; it deliberately contains no other command blocks.
-
-Style rules for this document (keep them when editing):
-  - plain American English, no jargon, no em-dashes (U+2014)
-  - Calibri, one accent color (#0B3C49), no clip art, no emoji
-  - never claim Slide Lab "updates itself" or that there are "no pop-ups"
-  - no client names, no firm names
+The paste-in request is copied from README.md "Step 2" on every run, so the two
+cannot drift; the build fails if it is not one plain ASCII line. Layout follows
+the 2026-10-02 design ruling: 11 pt body on 15 pt leading, about 88-character
+lines, bold accent headers over thin rules (prints cleanly), two callouts.
 """
-from __future__ import annotations
-
-import re
-import sys
+import re, sys
 from pathlib import Path
-
 from docx import Document
-from docx.enum.section import WD_ORIENT
 from docx.enum.table import WD_TABLE_ALIGNMENT
-from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK, WD_LINE_SPACING
 from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Inches, Pt, RGBColor
 
-REPO = Path(__file__).resolve().parent.parent
-README = REPO / "README.md"
-OUT = REPO / "Slide-Lab-Install-Guide.docx"
-
+REPO = Path(__file__).resolve().parents[1]
+OUT = Path(__file__).resolve().parents[1] / "Slide-Lab-Install-Guide.docx"
+OUT.parent.mkdir(exist_ok=True)
 AS_OF = "Accurate as of 2 October 2026"
 REPO_URL = "https://github.com/mperaltajr/skills"
+ACC = "0B3C49"; ACCENT = RGBColor(0x0B, 0x3C, 0x49)
+TEXT = RGBColor(0x22, 0x22, 0x22); MUTED = RGBColor(0x5A, 0x5A, 0x5A)
+RULE = "C9D1D4"; TINT = "EEF2F3"; PASTE_FILL = "F5F7F8"
+FONT, MONO = "Calibri", "Consolas"
 
-ACCENT = RGBColor(0x0B, 0x3C, 0x49)
-ACCENT_HEX = "0B3C49"
-TEXT = RGBColor(0x22, 0x22, 0x22)
-MUTED = RGBColor(0x5A, 0x5A, 0x5A)
-FONT = "Calibri"
-MONO = "Consolas"
-BODY_PT = 10.5
+def req():
+    t = (REPO / "README.md").read_text(encoding="utf-8")
+    m = re.search(r"^### Step 2\..*?^```[^\n]*\n(.*?)\n```", t, re.S | re.M)
+    r = m.group(1).strip("\n")
+    assert "\n" not in r and "\t" not in r and all(32 <= ord(c) <= 126 for c in r)
+    return r
 
+def exact(pf, pts):
+    pf.line_spacing_rule = WD_LINE_SPACING.EXACTLY
+    pf.line_spacing = Pt(pts)
 
-# ---------------------------------------------------------------- README ---
+def pborder(p, sides, sz, color, space):
+    ppr = p._p.get_or_add_pPr()
+    b = OxmlElement("w:pBdr")
+    for s in ("top", "left", "bottom", "right"):
+        if s in sides:
+            e = OxmlElement(f"w:{s}")
+            e.set(qn("w:val"), "single"); e.set(qn("w:sz"), str(sides[s] if isinstance(sides, dict) else sz))
+            e.set(qn("w:space"), str(space[s] if isinstance(space, dict) else space)); e.set(qn("w:color"), color)
+            b.append(e)
+    ppr.append(b)
 
-def paste_request_from_readme() -> str:
-    """Return the exact paste-in request from README 'Step 2', verbatim."""
-    text = README.read_text(encoding="utf-8")
-    m = re.search(r"^### Step 2\..*?^```[^\n]*\n(.*?)\n```", text, re.S | re.M)
-    if not m:
-        sys.exit("Could not find the Step 2 paste-in request in README.md")
-    req = m.group(1).strip("\n")
-    if "Install Slide Lab" not in req:
-        sys.exit("README Step 2 code block no longer looks like the paste-in request")
-    return req
+def pshade(p, fill):
+    ppr = p._p.get_or_add_pPr()
+    s = OxmlElement("w:shd"); s.set(qn("w:val"), "clear"); s.set(qn("w:color"), "auto"); s.set(qn("w:fill"), fill)
+    ppr.append(s)
 
+def link(p, url, text, size):
+    rid = p.part.relate_to(url, "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink", is_external=True)
+    h = OxmlElement("w:hyperlink"); h.set(qn("r:id"), rid)
+    r = OxmlElement("w:r"); rpr = OxmlElement("w:rPr")
+    f = OxmlElement("w:rFonts"); f.set(qn("w:ascii"), FONT); f.set(qn("w:hAnsi"), FONT); rpr.append(f)
+    c = OxmlElement("w:color"); c.set(qn("w:val"), ACC); rpr.append(c)
+    u = OxmlElement("w:u"); u.set(qn("w:val"), "single"); rpr.append(u)
+    sz = OxmlElement("w:sz"); sz.set(qn("w:val"), str(int(size * 2))); rpr.append(sz)
+    r.append(rpr); t = OxmlElement("w:t"); t.text = text; t.set(qn("xml:space"), "preserve"); r.append(t)
+    h.append(r); p._p.append(h)
 
-# --------------------------------------------------------------- helpers ---
-
-def set_cell_shading(cell, hex_fill: str) -> None:
-    tc_pr = cell._tc.get_or_add_tcPr()
-    shd = OxmlElement("w:shd")
-    shd.set(qn("w:val"), "clear")
-    shd.set(qn("w:color"), "auto")
-    shd.set(qn("w:fill"), hex_fill)
-    tc_pr.append(shd)
-
-
-def set_cell_margins(cell, top=60, bottom=60, left=100, right=100) -> None:
-    tc_pr = cell._tc.get_or_add_tcPr()
-    mar = OxmlElement("w:tcMar")
-    for side, val in (("top", top), ("bottom", bottom), ("start", left), ("end", right)):
-        el = OxmlElement(f"w:{side}")
-        el.set(qn("w:w"), str(val))
-        el.set(qn("w:type"), "dxa")
-        mar.append(el)
-    tc_pr.append(mar)
-
-
-def set_table_borders(table, color="BFC7CA", size=4, left_accent=False) -> None:
-    tbl_pr = table._tbl.tblPr
-    borders = OxmlElement("w:tblBorders")
-    for side in ("top", "left", "bottom", "right", "insideH", "insideV"):
-        el = OxmlElement(f"w:{side}")
-        if left_accent and side == "left":
-            el.set(qn("w:val"), "single")
-            el.set(qn("w:sz"), "24")
-            el.set(qn("w:color"), ACCENT_HEX)
-        elif left_accent:
-            el.set(qn("w:val"), "nil")
-        else:
-            el.set(qn("w:val"), "single")
-            el.set(qn("w:sz"), str(size))
-            el.set(qn("w:color"), color)
-        el.set(qn("w:space"), "0")
-        borders.append(el)
-    tbl_pr.append(borders)
-
-
-def set_col_widths(table, widths_in) -> None:
-    """Fixed column widths that both Word and LibreOffice respect."""
-    table.autofit = False
-    tbl = table._tbl
-    tbl_pr = tbl.tblPr
-    tbl_w = tbl_pr.find(qn("w:tblW"))
-    if tbl_w is None:
-        tbl_w = OxmlElement("w:tblW")
-        tbl_pr.append(tbl_w)
-    tbl_w.set(qn("w:w"), str(int(sum(widths_in) * 1440)))
-    tbl_w.set(qn("w:type"), "dxa")
-    layout = OxmlElement("w:tblLayout")
-    layout.set(qn("w:type"), "fixed")
-    tbl_pr.append(layout)
-    grid = tbl.tblGrid
-    for gc, w in zip(grid.findall(qn("w:gridCol")), widths_in):
-        gc.set(qn("w:w"), str(int(w * 1440)))
-    for row in table.rows:
-        for cell, w in zip(row.cells, widths_in):
-            cell.width = Inches(w)
-
-
-def keep_row_together(row) -> None:
-    tr_pr = row._tr.get_or_add_trPr()
-    cant = OxmlElement("w:cantSplit")
-    tr_pr.append(cant)
-
-
-def add_hyperlink(paragraph, url: str, text: str, bold=False):
-    part = paragraph.part
-    r_id = part.relate_to(
-        url,
-        "http://schemas.openxmlformats.org/officeDocument/2006/relationships/hyperlink",
-        is_external=True,
-    )
-    link = OxmlElement("w:hyperlink")
-    link.set(qn("r:id"), r_id)
-    run = OxmlElement("w:r")
-    rpr = OxmlElement("w:rPr")
-    fonts = OxmlElement("w:rFonts")
-    fonts.set(qn("w:ascii"), FONT)
-    fonts.set(qn("w:hAnsi"), FONT)
-    rpr.append(fonts)
-    color = OxmlElement("w:color")
-    color.set(qn("w:val"), ACCENT_HEX)
-    rpr.append(color)
-    u = OxmlElement("w:u")
-    u.set(qn("w:val"), "single")
-    rpr.append(u)
-    if bold:
-        rpr.append(OxmlElement("w:b"))
-    run.append(rpr)
-    t = OxmlElement("w:t")
-    t.text = text
-    t.set(qn("xml:space"), "preserve")
-    run.append(t)
-    link.append(run)
-    paragraph._p.append(link)
-
-
-def add_rich(paragraph, parts, size=BODY_PT, color=TEXT):
-    """parts: list of str or (text, style) where style in {'b','i','link:URL'}."""
+def rich(p, parts, size, color=TEXT):
     for part in parts:
-        if isinstance(part, str):
-            r = paragraph.add_run(part)
-            r.font.size = Pt(size)
-            r.font.color.rgb = color
-            continue
-        txt, style = part
-        if style.startswith("link:"):
-            add_hyperlink(paragraph, style[5:], txt)
-            continue
-        r = paragraph.add_run(txt)
-        r.font.size = Pt(size)
-        r.font.color.rgb = color
-        r.bold = "b" in style
-        r.italic = "i" in style
-    return paragraph
+        if isinstance(part, str): part = (part, "")
+        txt, st = part
+        if st.startswith("link:"):
+            link(p, st[5:], txt, size); continue
+        r = p.add_run(txt); r.font.size = Pt(size); r.font.color.rgb = color
+        r.bold = "b" in st; r.italic = "i" in st
 
-
-def para(doc_or_cell, parts, size=BODY_PT, after=4, before=0, color=TEXT, align=None):
-    p = doc_or_cell.add_paragraph()
-    pf = p.paragraph_format
-    pf.space_after = Pt(after)
-    pf.space_before = Pt(before)
-    pf.line_spacing = 1.08
-    if align:
-        p.alignment = align
-    add_rich(p, parts if isinstance(parts, list) else [parts], size=size, color=color)
+def para(c, parts, size=11, lead=15, before=0, after=6, color=TEXT, kwn=False):
+    p = c.add_paragraph(); pf = p.paragraph_format
+    pf.space_before = Pt(before); pf.space_after = Pt(after); exact(pf, lead)
+    pf.keep_with_next = kwn; pf.widow_control = True
+    rich(p, parts if isinstance(parts, list) else [parts], size, color)
     return p
 
-
-def bullet(doc, parts, after=2):
-    p = doc.add_paragraph(style="List Bullet")
-    pf = p.paragraph_format
-    pf.space_after = Pt(after)
-    pf.line_spacing = 1.08
-    add_rich(p, parts if isinstance(parts, list) else [parts])
+def heading(doc, text, before=12):
+    p = doc.add_paragraph(style="Heading 1"); pf = p.paragraph_format
+    pf.space_before = Pt(before); pf.space_after = Pt(6); exact(pf, 18); pf.keep_with_next = True
+    r = p.add_run(text); r.bold = True; r.font.size = Pt(14); r.font.color.rgb = ACCENT; r.font.name = FONT
+    rpr = r._element.get_or_add_rPr(); rpr.rFonts.set(qn("w:eastAsia"), FONT)
     return p
 
-
-def numbered(doc, parts, after=2):
-    p = doc.add_paragraph(style="List Number")
-    pf = p.paragraph_format
-    pf.space_after = Pt(after)
-    pf.line_spacing = 1.08
-    add_rich(p, parts if isinstance(parts, list) else [parts])
+def callout(doc, parts, after=8):
+    t = doc.add_table(rows=1, cols=1); t.alignment = WD_TABLE_ALIGNMENT.LEFT
+    pr = t._tbl.tblPr; b = OxmlElement("w:tblBorders")
+    for sd in ("top", "left", "bottom", "right", "insideH", "insideV"):
+        e = OxmlElement(f"w:{sd}")
+        if sd == "left":
+            e.set(qn("w:val"), "single"); e.set(qn("w:sz"), "24"); e.set(qn("w:color"), ACC)
+        else:
+            e.set(qn("w:val"), "nil")
+        e.set(qn("w:space"), "0"); b.append(e)
+    pr.append(b)
+    c = t.rows[0].cells[0]
+    tcpr = c._tc.get_or_add_tcPr(); sh = OxmlElement("w:shd"); sh.set(qn("w:val"), "clear"); sh.set(qn("w:color"), "auto"); sh.set(qn("w:fill"), TINT); tcpr.append(sh)
+    cmar(c, t=80, b=80, l=180, r=144)
+    t.rows[0]._tr.get_or_add_trPr().append(OxmlElement("w:cantSplit"))
+    p = c.paragraphs[0]; p.paragraph_format.space_after = Pt(0); exact(p.paragraph_format, 15)
+    rich(p, parts, 11)
+    widths(t, [5.7])
+    t._tbl.tblPr.find(qn("w:tblInd")).set(qn("w:w"), "180")
+    g = doc.add_paragraph(); g.paragraph_format.space_after = Pt(0); exact(g.paragraph_format, after)
     return p
 
+def pborder_extra(p):
+    b = p._p.pPr.find(qn("w:pBdr"))
+    for s, sp in (("top", 4), ("bottom", 4)):
+        e = OxmlElement(f"w:{s}"); e.set(qn("w:val"), "single"); e.set(qn("w:sz"), "4")
+        e.set(qn("w:space"), str(sp)); e.set(qn("w:color"), TINT)
+        b.insert(0 if s == "top" else len(b), e)
+    # reorder to schema order top,left,bottom,right
+    order = {"top": 0, "left": 1, "bottom": 2, "right": 3}
+    kids = sorted(list(b), key=lambda e: order[e.tag.split("}")[1]])
+    for k in list(b): b.remove(k)
+    for k in kids: b.append(k)
+    e = OxmlElement("w:right"); e.set(qn("w:val"), "single"); e.set(qn("w:sz"), "4")
+    e.set(qn("w:space"), "4"); e.set(qn("w:color"), TINT); b.append(e)
 
-def heading(doc, text):
-    p = doc.add_paragraph()
-    pf = p.paragraph_format
-    pf.space_before = Pt(10)
-    pf.space_after = Pt(3)
-    pf.keep_with_next = True
-    r = p.add_run(text)
-    r.bold = True
-    r.font.size = Pt(13)
-    r.font.color.rgb = ACCENT
-    return p
+def paste(doc, text):
+    lab = para(doc, [("Copy all of this into Claude (it is one long line)", "b")], size=10, lead=13, after=3, color=ACCENT, kwn=True)
+    p = doc.add_paragraph(); pf = p.paragraph_format
+    pf.space_before = Pt(0); pf.space_after = Pt(8); exact(pf, 14)
+    pf.left_indent = Pt(9); pf.right_indent = Pt(9); pf.keep_together = True
+    pborder(p, ("top", "left", "bottom", "right"), 6, ACC, {"top": 6, "bottom": 6, "left": 8, "right": 8})
+    pshade(p, PASTE_FILL)
+    r = p.add_run(text); r.font.name = MONO; r.font.size = Pt(10); r.font.color.rgb = TEXT
+    r._element.rPr.rFonts.set(qn("w:eastAsia"), MONO); r._element.rPr.rFonts.set(qn("w:hAnsi"), MONO)
 
+def tborders(t):
+    pr = t._tbl.tblPr; b = OxmlElement("w:tblBorders")
+    for s in ("top", "left", "bottom", "right", "insideH", "insideV"):
+        e = OxmlElement(f"w:{s}")
+        if s in ("bottom", "insideH"):
+            e.set(qn("w:val"), "single"); e.set(qn("w:sz"), "4"); e.set(qn("w:color"), RULE)
+        else:
+            e.set(qn("w:val"), "nil")
+        e.set(qn("w:space"), "0"); b.append(e)
+    pr.append(b)
 
-def table(doc, header, rows, widths):
-    t = doc.add_table(rows=1 + len(rows), cols=len(header))
-    t.alignment = WD_TABLE_ALIGNMENT.LEFT
-    set_table_borders(t)
-    for i, h in enumerate(header):
-        c = t.rows[0].cells[i]
-        set_cell_shading(c, ACCENT_HEX)
-        set_cell_margins(c)
-        p = c.paragraphs[0]
-        p.paragraph_format.space_after = Pt(0)
-        r = p.add_run(h)
-        r.bold = True
-        r.font.size = Pt(10)
-        r.font.color.rgb = RGBColor(0xFF, 0xFF, 0xFF)
-    for ri, row in enumerate(rows, start=1):
-        keep_row_together(t.rows[ri])
+def cell_bottom(cell, sz, color):
+    tcpr = cell._tc.get_or_add_tcPr(); b = OxmlElement("w:tcBorders")
+    e = OxmlElement("w:bottom"); e.set(qn("w:val"), "single"); e.set(qn("w:sz"), str(sz)); e.set(qn("w:color"), color); e.set(qn("w:space"), "0")
+    b.append(e); tcpr.append(b)
+
+def cmar(cell, t=50, b=50, l=0, r=144):
+    tcpr = cell._tc.get_or_add_tcPr(); m = OxmlElement("w:tcMar")
+    for s, v in (("top", t), ("start", l), ("bottom", b), ("end", r)):
+        e = OxmlElement(f"w:{s}"); e.set(qn("w:w"), str(v)); e.set(qn("w:type"), "dxa"); m.append(e)
+    tcpr.append(m)
+
+def widths(t, ws):
+    t.autofit = False; pr = t._tbl.tblPr
+    w = pr.find(qn("w:tblW"))
+    w.set(qn("w:w"), str(int(sum(ws) * 1440))); w.set(qn("w:type"), "dxa")
+    lay = OxmlElement("w:tblLayout"); lay.set(qn("w:type"), "fixed"); pr.append(lay)
+    ind = OxmlElement("w:tblInd"); ind.set(qn("w:w"), "0"); ind.set(qn("w:type"), "dxa"); pr.append(ind)
+    for gc, x in zip(t._tbl.tblGrid.findall(qn("w:gridCol")), ws): gc.set(qn("w:w"), str(int(x * 1440)))
+    for row in t.rows:
+        for c, x in zip(row.cells, ws): c.width = Inches(x)
+
+def table(doc, header, rows, ws, after_gap=True):
+    n = len(rows) + (1 if header else 0)
+    t = doc.add_table(rows=n, cols=len(ws)); t.alignment = WD_TABLE_ALIGNMENT.LEFT
+    tborders(t)
+    ri0 = 0
+    if header:
+        tr = t.rows[0]._tr.get_or_add_trPr(); tr.append(OxmlElement("w:tblHeader")); tr.append(OxmlElement("w:cantSplit"))
+        for i, h in enumerate(header):
+            c = t.rows[0].cells[i]; cmar(c, t=40, b=60); cell_bottom(c, 8, ACC)
+            p = c.paragraphs[0]; p.paragraph_format.space_after = Pt(0); exact(p.paragraph_format, 13)
+            p.paragraph_format.keep_with_next = True
+            rich(p, [(h, "b")], 10, ACCENT)
+        ri0 = 1
+    for ri, row in enumerate(rows, start=ri0):
+        t.rows[ri]._tr.get_or_add_trPr().append(OxmlElement("w:cantSplit"))
         for ci, val in enumerate(row):
-            c = t.rows[ri].cells[ci]
-            set_cell_margins(c)
-            p = c.paragraphs[0]
-            p.paragraph_format.space_after = Pt(0)
-            p.paragraph_format.line_spacing = 1.05
-            parts = val if isinstance(val, list) else [val]
-            if ci == 0:
-                parts = [(x, "b") if isinstance(x, str) else x for x in parts]
-            add_rich(p, parts, size=10)
-    set_col_widths(t, widths)
-    # small gap after the table
-    gap = doc.add_paragraph()
-    gap.paragraph_format.space_after = Pt(0)
-    gap.paragraph_format.line_spacing = Pt(6)
+            c = t.rows[ri].cells[ci]; cmar(c)
+            paras = val if (isinstance(val, list) and val and isinstance(val[0], list)) else [val]
+            for k, pv in enumerate(paras):
+                p = c.paragraphs[0] if k == 0 else c.add_paragraph()
+                p.paragraph_format.space_after = Pt(4 if k < len(paras) - 1 else 0); exact(p.paragraph_format, 13)
+                parts = pv if isinstance(pv, list) else [pv]
+                if ci == 0: parts = [(x, "b") if isinstance(x, str) else x for x in parts]
+                rich(p, parts, 10)
+    widths(t, ws)
+    g = doc.add_paragraph(); g.paragraph_format.space_after = Pt(0); exact(g.paragraph_format, 6)
     return t
 
-
-def paste_box(doc, text):
-    t = doc.add_table(rows=1, cols=1)
-    set_table_borders(t, left_accent=True)
-    c = t.rows[0].cells[0]
-    set_cell_shading(c, "EEF2F3")
-    set_cell_margins(c, top=100, bottom=100, left=160, right=160)
-    p = c.paragraphs[0]
-    p.paragraph_format.space_after = Pt(0)
-    p.paragraph_format.line_spacing = 1.1
-    r = p.add_run(text)
-    r.font.name = MONO
-    r._element.rPr.rFonts.set(qn("w:eastAsia"), MONO)
-    r.font.size = Pt(9.5)
-    r.font.color.rgb = TEXT
-    set_col_widths(t, [6.5])
-    gap = doc.add_paragraph()
-    gap.paragraph_format.space_after = Pt(0)
-    gap.paragraph_format.line_spacing = Pt(6)
-
-
-def add_page_number(paragraph):
-    # One run per field piece, each carrying the small footer size, so the
-    # page number renders at the same size as the rest of the footer.
-    for kind, val in (("begin", None), ("instr", " PAGE "), ("separate", None),
-                      ("text", "1"), ("end", None)):
-        run = paragraph.add_run()
-        run.font.size = Pt(8.5)
-        run.font.color.rgb = MUTED
+def page_field(p, instr):
+    for kind, val in (("begin", None), ("instr", f" {instr} "), ("separate", None), ("text", "1"), ("end", None)):
+        r = p.add_run(); r.font.size = Pt(8.5); r.font.color.rgb = MUTED
         if kind == "instr":
-            el = OxmlElement("w:instrText")
-            el.set(qn("xml:space"), "preserve")
-            el.text = val
+            e = OxmlElement("w:instrText"); e.set(qn("xml:space"), "preserve"); e.text = val
         elif kind == "text":
-            el = OxmlElement("w:t")
-            el.text = val
+            e = OxmlElement("w:t"); e.text = val
         else:
-            el = OxmlElement("w:fldChar")
-            el.set(qn("w:fldCharType"), kind)
-        run._r.append(el)
+            e = OxmlElement("w:fldChar"); e.set(qn("w:fldCharType"), kind)
+        r._r.append(e)
 
-
-# ------------------------------------------------------------------ build ---
-
-def build() -> Path:
-    request = paste_request_from_readme()
-
-    doc = Document()
-    sec = doc.sections[0]
-    sec.orientation = WD_ORIENT.PORTRAIT
+def build():
+    request = req()
+    doc = Document(); sec = doc.sections[0]
     sec.page_width, sec.page_height = Inches(8.5), Inches(11)
-    sec.left_margin = sec.right_margin = Inches(1)
-    sec.top_margin = Inches(0.8)
-    sec.bottom_margin = Inches(0.8)
+    sec.left_margin = sec.right_margin = Inches(1.4)
+    sec.top_margin = Inches(0.7); sec.bottom_margin = Inches(0.7)
+    sec.header_distance = Inches(0.4); sec.footer_distance = Inches(0.35)
+    n = doc.styles["Normal"]; n.font.name = FONT; n.element.rPr.rFonts.set(qn("w:eastAsia"), FONT)
+    n.font.size = Pt(11); n.font.color.rgb = TEXT
+    h1 = doc.styles["Heading 1"]; h1.font.name = FONT; h1.font.size = Pt(14); h1.font.color.rgb = ACCENT; h1.font.bold = True
+    rf = h1.element.rPr.rFonts
+    for a in ("w:asciiTheme", "w:hAnsiTheme", "w:eastAsiaTheme", "w:cstheme"):
+        if rf.get(qn(a)) is not None: del rf.attrib[qn(a)]
+    rf.set(qn("w:ascii"), FONT); rf.set(qn("w:hAnsi"), FONT); rf.set(qn("w:eastAsia"), FONT)
+    doc.core_properties.title = "Slide Lab install guide"; doc.core_properties.author = "Slide Lab"; doc.core_properties.comments = AS_OF
 
-    normal = doc.styles["Normal"]
-    normal.font.name = FONT
-    normal.element.rPr.rFonts.set(qn("w:eastAsia"), FONT)
-    normal.font.size = Pt(BODY_PT)
-    normal.font.color.rgb = TEXT
-    for sname in ("List Bullet", "List Number"):
-        st = doc.styles[sname]
-        st.font.name = FONT
-        st.font.size = Pt(BODY_PT)
-
-    core = doc.core_properties
-    core.title = "Slide Lab install guide"
-    core.author = "Slide Lab"
-    core.comments = AS_OF
-
-    # Footer: as-of stamp + page number
-    fstyle = doc.styles["Footer"]
-    fstyle.font.size = Pt(8.5)
-    fstyle.font.color.rgb = MUTED
     fp = sec.footer.paragraphs[0]
-    fp.alignment = WD_ALIGN_PARAGRAPH.LEFT
-    r = fp.add_run(f"Slide Lab install guide  |  {AS_OF}  |  Page ")
-    r.font.size = Pt(8.5)
-    r.font.color.rgb = MUTED
-    add_page_number(fp)
+    r = fp.add_run(f"Slide Lab install guide  |  {AS_OF}  |  Page "); r.font.size = Pt(8.5); r.font.color.rgb = MUTED
+    page_field(fp, "PAGE")
+    r = fp.add_run(" of "); r.font.size = Pt(8.5); r.font.color.rgb = MUTED
+    page_field(fp, "NUMPAGES")
 
     # Title block
-    p = doc.add_paragraph()
-    p.paragraph_format.space_after = Pt(0)
-    r = p.add_run("Slide Lab install guide")
-    r.bold = True
-    r.font.size = Pt(22)
-    r.font.color.rgb = ACCENT
-    para(doc, [("Set up Slide Lab on your computer and build your first deck. ", ""),
-               (AS_OF + ".", "i")],
-         size=10.5, color=MUTED, after=2)
-    rule = doc.add_paragraph()
-    rule.paragraph_format.space_after = Pt(4)
-    p_pr = rule._p.get_or_add_pPr()
-    bdr = OxmlElement("w:pBdr")
-    bottom = OxmlElement("w:bottom")
-    bottom.set(qn("w:val"), "single")
-    bottom.set(qn("w:sz"), "8")
-    bottom.set(qn("w:space"), "1")
-    bottom.set(qn("w:color"), ACCENT_HEX)
-    bdr.append(bottom)
-    p_pr.append(bdr)
+    p = doc.add_paragraph(style="Title") if False else doc.add_paragraph()
+    pf = p.paragraph_format; pf.space_after = Pt(4); exact(pf, 28)
+    r = p.add_run("Slide Lab install guide"); r.bold = True; r.font.size = Pt(24); r.font.color.rgb = ACCENT
+    p = para(doc, ["Three steps, about 20 to 45 minutes the first time, plus however long your "
+                   "software portal takes to approve and install LibreOffice."], size=12, lead=16, after=10, color=MUTED)
+    p = para(doc, ["Slide Lab is an add-on for Claude that turns your message, notes and numbers "
+                   "into a finished PowerPoint deck on your client's own template, with their "
+                   "colors, fonts and layouts. It helps you shape the storyline, shows you three "
+                   "designs for each slide to pick from, then builds the deck and checks every "
+                   "slide before you open it."], after=0)
+    pborder(p, {"bottom": 8}, 8, ACC, {"bottom": 10})
 
-    # 1. What Slide Lab is
-    heading(doc, "1. What Slide Lab is")
-    para(doc, ["Slide Lab is an add-on for Claude that turns your message, notes and numbers "
-               "into a finished PowerPoint deck on your client's own template, with their "
-               "colors, fonts and layouts. It helps you shape the storyline, shows you three "
-               "designs for each slide to pick from, then builds the deck and checks every "
-               "slide before you open it."])
-
-    # 2. Before you start
-    heading(doc, "2. Before you start: install three programs")
+    heading(doc, "Step 1. Install three programs yourself", before=10)
+    callout(doc, [("Request LibreOffice on day one. ", "b"), "On company computers it can need approval."])
     para(doc, ["Install these yourself from your company's software portal (Software Center, "
-               "Self Service or similar). If you are not on a company computer, use the "
-               "official sites."], after=5)
-    table(
-        doc,
-        ["Program", "Why Slide Lab needs it", "Where to get it"],
-        [
-            ["Claude (desktop app or Claude Code)", "Runs Slide Lab",
-             ["However your company provides Claude; otherwise ",
-              ("claude.ai/code", "link:https://claude.ai/code")]],
-            ["Python 3.10 or newer", "Runs the build steps behind the scenes",
-             ["Software portal, or ",
-              ("python.org", "link:https://www.python.org/downloads/")]],
-            ["LibreOffice", "Required. Draws slide previews during template registration, "
-             "the final check page and the quality check",
-             ["Software portal, or ",
-              ("libreoffice.org", "link:https://www.libreoffice.org/download/"),
-              ". ", ("Request it on day one:", "b"),
-              " on company computers it can need approval"]],
-        ],
-        widths=[1.7, 2.45, 2.35],
-    )
-    para(doc, ["Git (a download tool Slide Lab uses) is usually already there, because Claude "
-               "Code on Windows uses it. If the setup check later says it is missing, get it "
-               "from the portal or ", ("git-scm.com", "link:https://git-scm.com"), "."],
-         after=2)
+               "Self Service or similar). If you are not on a company computer, use the official sites."], after=6, kwn=True)
+    table(doc, ["Program", "Why Slide Lab needs it", "Where to get it"], [
+        ["Claude (desktop app or Claude Code)", "Runs Slide Lab",
+         ["However your company provides Claude; otherwise ", ("claude.ai/code", "link:https://claude.ai/code")]],
+        ["Python 3.10 or newer", "Runs the build steps behind the scenes",
+         ["Software portal, or ", ("python.org", "link:https://www.python.org/downloads/")]],
+        ["LibreOffice", "Required. Draws slide previews during template registration, the final check page and the quality check",
+         ["Software portal, or ", ("libreoffice.org", "link:https://www.libreoffice.org/download/")]],
+    ], [1.45, 2.15, 2.1])
 
-    # 3. Let Claude do the rest
-    heading(doc, "3. Let Claude do the rest")
-    numbered(doc, ["Open Claude and paste this request exactly as written:"], after=4)
-    paste_box(doc, request)
-    numbered(doc, ["Claude asks before each download or install (your company's settings may "
-                   "require that). Click ", ("Allow", "b"), " each time."])
-    numbered(doc, ["At the end Claude shows a setup table listing each piece as OK or not. "
-                   "Any row that is not OK says exactly what to do."])
-    numbered(doc, [("Restart Claude", "b"), " (close it and open it again) so it loads Slide "
-                   "Lab. Then type /slide-lab or just ask for a deck."], after=4)
-    para(doc, [("Prefer to type the commands yourself? ", "b"),
+    heading(doc, "Step 2. Let Claude do the rest")
+    para(doc, ["Open Claude (desktop app or Claude Code) and paste this request exactly as written."], kwn=True)
+    paste(doc, request)
+    para(doc, ["Claude asks before each download or install (your company's settings may "
+               "require that). Click ", ("Allow", "b"), " each time."])
+    para(doc, ["At the end Claude shows a setup table. If every piece is OK, the last line "
+               "reads \"Slide Lab is ready.\" Any row that is not OK says exactly what to do."], after=0)
+
+    heading(doc, "Step 3. Restart Claude")
+    para(doc, ["Close and reopen Claude so it loads Slide Lab. Then type ",
+               ("/slide-lab", "b"), " or just ask for a deck."], after=0)
+
+    # Page 2
+    h = heading(doc, "Your first deck", before=0); h.paragraph_format.page_break_before = True
+    cp = callout(doc, [("Keep your work out of OneDrive. ", "b"), "Work in this folder on your own drive:"])
+    cp.add_run().add_break()
+    rr = cp.add_run("C:\\Users\\<you>\\Slide Lab\\sessions\\<Client>\\"); rr.bold = True; rr.font.size = Pt(11); rr.font.color.rgb = TEXT
+    cp.add_run().add_break()
+    rich(cp, ["The setup creates it, with a Desktop shortcut. Syncing hundreds of working files slowed builds from about 4 minutes per page to 9 to 20 and made previews time out. Copy finished decks to OneDrive or SharePoint."], 11)
+    table(doc, None, [
+        ["Your client's template", ["It can live anywhere, but must be 16:9 at 13.333 x 7.5 inches (PowerPoint's standard widescreen). Register each template once, about 5 to 10 minutes. Claude asks which colors are the main, "
+                                     "highlight and cover colors and which layouts to use, then you open one sample slide in "
+                                     "PowerPoint and confirm it looks right. Your original file is never changed."]],
+        ["Start small", ["Start with 5 to 8 slides. Bring the main message, the audience, and your numbers or notes."]],
+        ["How long a deck takes", ["A typical 10 to 15 slide deck takes 1 to 2 hours end to end, including your review time."]],
+        ["When you are done", ["Say ", ("the deck is good", "b"), ". Slide Lab deletes the working files it no longer needs "
+                               "and keeps the deck and everything needed to edit it later."]],
+    ], [1.45, 4.25])
+
+    heading(doc, "Getting updates")
+    para(doc, ["Slide Lab checks for updates once a day when you start using it, and asks before "
+               "installing. Say yes, and restart Claude if it asks you to. To check any time, say ",
+               ("update Slide Lab", "b"), "."])
+
+    heading(doc, "If something goes wrong")
+    table(doc, ["If this happens", "Do this"], [
+        ["Something in the setup is not working", ["Tell Claude ", ("check my Slide Lab setup", "b"),
+                                                   ". It runs a checker, changes nothing, and shows what to fix."]],
+        ["The setup check says Git is missing", ["Git is a download tool Slide Lab uses. It is usually already there, because "
+                                                 "Claude Code on Windows uses it. Get it from your software portal or ",
+                                                 ("git-scm.com", "link:https://git-scm.com"), "."]],
+        ["A \"certificate\" error during setup", ["Try again first; it usually clears on its own. If it keeps happening, "
+                                                  "tell Claude, or see the Install section of README.md."]],
+        ["Anything else, or a deck did not come out right", ["Type ", ("/slidelab-log", "b"),
+                                                             " in Claude. It writes the problem report for you and gives you a link to send it."]],
+    ], [1.9, 3.8])
+
+    heading(doc, "Where to learn more")
+    para(doc, ["Open ", ("Slide-Lab-Tutorial.html", "b"), " in the Slide Lab folder for a step-by-step "
+               "walkthrough with timings. The example files next to it (Slide-Lab-Example-Storyline.html, "
+               "Slide-Lab-Example-Review.html and Slide-Lab-Example-Deck.pptx) show what each stage looks like."])
+    para(doc, [("Prefer to type the install commands yourself? ", "b"),
                "See the Install section of README.md in the Slide Lab folder or at ",
-               (REPO_URL, "link:" + REPO_URL), "."], after=2)
-
-    # 4. How long
-    heading(doc, "4. How long it takes")
-    para(doc, ["About 20 to 45 minutes the first time, plus however long the software portal "
-               "takes to approve and install LibreOffice."])
-
-    # 5. Getting up and running
-    heading(doc, "5. Getting up and running")
-    table(
-        doc,
-        ["Topic", "What to know"],
-        [
-            ["Where to keep your work",
-             ["Work in a folder on your own drive, ",
-              ("C:\\Users\\<you>\\Slide Lab\\sessions\\<Client>\\", "b"),
-              " (the setup creates it, with a Desktop shortcut). ",
-              ("Not in OneDrive:", "b"),
-              " syncing hundreds of working files slowed builds from about 4 minutes per "
-              "page to 9 to 20 and made previews time out. Copy finished decks to OneDrive "
-              "or SharePoint."]],
-            ["Your client's template",
-             ["It can live anywhere, but must be 16:9 at 13.333 x 7.5 inches (PowerPoint's "
-              "standard widescreen). Register each template once, about 5 to 10 minutes: "
-              "Claude asks which colors are the main, highlight and cover colors and which "
-              "layouts to use, then you open one sample slide in PowerPoint and confirm it "
-              "looks right. Your original file is never changed."]],
-            ["Your first deck",
-             ["Start with 5 to 8 slides. Bring the main message, the audience, and your "
-              "numbers or notes."]],
-            ["How long a deck takes",
-             ["A typical 10 to 15 slide deck takes 1 to 2 hours end to end, including your "
-              "review time."]],
-            ["When you are done",
-             ["Say ", ("\"the deck is good\"", "b"), ". Slide Lab deletes the working files "
-              "it no longer needs and keeps the deck and everything needed to edit it later."]],
-        ],
-        widths=[1.7, 4.8],
-    )
-
-    # 6. Updates
-    heading(doc, "6. Getting updates")
-    para(doc, ["Slide Lab checks for updates once a day when you start using it, and asks "
-               "before installing. Say yes, and restart Claude if it asks you to. To check "
-               "any time, say ", ("\"update Slide Lab\"", "b"), "."])
-
-    # 7. If something goes wrong
-    heading(doc, "7. If something goes wrong")
-    table(
-        doc,
-        ["If this happens", "Do this"],
-        [
-            ["Something in the setup is not working",
-             ["Tell Claude ", ("\"check my Slide Lab setup\"", "b"),
-              ". It runs a checker, changes nothing, and shows what to fix."]],
-            ["A \"certificate\" error during setup",
-             ["Try again first; it usually clears on its own. If it keeps happening, tell "
-              "Claude, or see the Install section of README.md."]],
-            ["Anything else, or a deck did not come out right",
-             ["Type ", ("/slidelab-log", "b"), " in Claude. It writes the problem report "
-              "for you and gives you a link to send it."]],
-        ],
-        widths=[2.2, 4.3],
-    )
-
-    # 8. Learn more
-    heading(doc, "8. Where to learn more")
-    para(doc, ["Open ", ("Slide-Lab-Tutorial.html", "b"), " in the Slide Lab folder for a "
-               "step-by-step walkthrough with timings. The example files next to it "
-               "(Slide-Lab-Example-Storyline.html, Slide-Lab-Example-Review.html and "
-               "Slide-Lab-Example-Deck.pptx) show what each stage looks like."])
-
-    doc.save(OUT)
-    return OUT
-
+               (REPO_URL, "link:" + REPO_URL), "."], size=10, lead=13, color=MUTED, after=0)
+    doc.save(OUT); return OUT
 
 if __name__ == "__main__":
-    out = build()
-    print(f"Wrote {out}")
+    print(build())
