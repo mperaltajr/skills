@@ -622,22 +622,12 @@ def render_storyline_html(storyline: dict, slides: list) -> str:
 # QC banner stub (humanizer + render trimmed)
 # ---------------------------------------------------------------------------
 
-def _render_qc_info_stub() -> str:
-    return (
-        '<div class="qc-brief-banner">'
-        '<div class="qc-brief-banner-title">Brief-time QC report</div>'
-        '<details class="qc-brief-section qc-brief-info">'
-        '<summary><span class="qc-brief-icon">i</span>INFO &middot; brief_qc.json not found</summary>'
-        '<ul><li>No <code>brief_qc.json</code> in this output directory. '
-        'build_deck.py does not yet produce one — wire later if needed.</li></ul>'
-        '</details></div>'
-    )
-
-
 def render_qc_banner(out_dir: Path) -> str:
     qc_path = _p.brief_qc_json(out_dir)
     if not qc_path.exists():
-        return _render_qc_info_stub()
+        # Nothing writes brief_qc.json any more (the storyline gate replaced it),
+        # so the old "not found" box showed on every review page as noise.
+        return ""
     try:
         payload = json.loads(read_text(qc_path))
     except Exception as exc:
