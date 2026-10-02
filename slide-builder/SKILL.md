@@ -322,6 +322,11 @@ Adjacency (Hardline #3 — no 3+ consecutive same-split) is **soft-enforced at p
     It checks one chain of recorded facts and exits non-zero if any link breaks: a compile **succeeded** and recorded its output; the deck is **that file, byte for byte** (no edits since); it was built from the **current** brief; it opens with nothing PowerPoint refuses; every option in it finalized with **zero** blocking findings; a **vision pass over those same bytes covered every slide** (slide-qc records it via `record_vision_qc.py`); and **no Critical or Major finding is open** (only Advisory may remain). The deterministic self-check does not count: it is structurally blind to shapes overlapping and to large empty areas, which is exactly the class that has shipped before. Do not tell the user the deck is finished until this passes.
     It also lists every gate passed over in the build (`--assume-gated`, `--allow-unconfirmed`, `--allow-missing`, a `mode:` line that skipped the storyline gate). **Tell the user about each one when you deliver.** It refuses a deck that is older than the latest rebuild or finalize.
 13. **Deliver.** PPTX. Output full absolute Windows path. No preview links, plus any overrides `check_done.py` listed.
+14. **When the user says the deck is good** ("looks good", "approved", "final", "ship it", "publish it"), free the build files it no longer needs:
+    ```powershell
+    py -3 scripts/publish_cleanup.py --out <out>
+    ```
+    It keeps the deck, the final-check page, the storyline, the brief and decisions, the deck's records and the picked slides' designs, and deletes unpicked options, every option's images and per-option PowerPoint files, the quality-check render folders, final page images and replaced options (typically about 90% of the folder). Tell the user how much it freed. The deck can still be edited later: a rebuild or insert works as usual, and the next finalize regenerates the images and files from the kept designs. Run it only on that say-so, never on your own judgment that the deck is finished; `--dry-run` shows what would go without deleting.
 
 Rebuild individual slides with "rebuild slide N". This re-prep + re-finalize touches only slide N and grafts it back into the existing deck — every other slide's prompt, themed PPTX, and pick are left exactly as they were:
 

@@ -37,6 +37,7 @@ If the request is already specific ("build me a 5-slide steering deck from this 
 - **Registration is a standalone step, never inline in a build.** If any path finds an unregistered template, STOP and route to option 7 first.
 - **A deck is not "done" until `slide-qc` has run and produced a report.** A PDF you rendered yourself is not QC. (Applies to any built or rebuilt deck — options 1/2/3/5, and 6b/6c. A **6a** text-only tweak is exempt, but run QC anyway if the edit changed text length, since a longer run can overflow its box.)
 - **Font sizes** stay on PowerPoint's default grid, 8pt floor; body ~11–14pt.
+- **When the user says a Slide Lab deck is good** ("looks good", "approved", "final"), run `slide-builder/scripts/publish_cleanup.py --out <session folder>` and say how much space it freed. It keeps the deck and everything needed to edit it later; it removes unpicked options, renders and per-option files. Only on the user's say-so.
 
 ## Routing — what each choice invokes
 
