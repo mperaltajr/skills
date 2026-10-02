@@ -4199,6 +4199,11 @@ def _render_mock_page_selftest(tpl: Path) -> tuple[list[str], list[str]]:
         if not found.get("subtitle") and subtitle_idx is None:
             add_title_block(slide, "", SUB, chrome=lc)
         add_footer(slide, page_num="7", source=SOURCE, footnote=FOOTNOTE, chrome=lc)
+    # A real build deletes inherited placeholders left empty (finalize_deck's
+    # body finishing), so do the same: otherwise the mock shows an empty
+    # 'Click to add text' box over the takeaway that no built slide has.
+    from twins.composer import remove_empty_placeholders
+    remove_empty_placeholders(slide)
 
     def _has_shape(prefix: str) -> bool:
         return any((getattr(sh, "name", "") or "").lower().startswith(prefix)
