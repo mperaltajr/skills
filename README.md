@@ -235,6 +235,16 @@ Tell Claude what's missing — it will build the slide with clearly labeled plac
 
 ---
 
+## Disk space
+
+Building a deck creates a lot of working files: a PowerPoint file and a preview image for every design option of every slide, plus quality-check images. The finished deck is usually under a tenth of the folder. When you're happy with a deck, just tell Claude **"the deck is good"** (or "approved", "final"): Slide Lab deletes what it no longer needs and tells you how much it freed. It keeps the deck and everything needed to edit it later.
+
+For decks you finished before, say **"clean up my finished decks"**. Claude lists each one with how much space it would free and when it last changed, and you choose which to clean.
+
+Tip: keep your session folders in a local folder rather than a synced cloud folder (OneDrive, Dropbox). Syncing hundreds of working files slows builds down; copy the finished deck somewhere backed up.
+
+---
+
 ## Getting Updates
 
 If you set up the SessionStart hook during install, updates pull automatically each time Claude Code starts. To update by hand:

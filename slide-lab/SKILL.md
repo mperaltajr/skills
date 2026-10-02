@@ -38,6 +38,7 @@ If the request is already specific ("build me a 5-slide steering deck from this 
 - **A deck is not "done" until `slide-qc` has run and produced a report.** A PDF you rendered yourself is not QC. (Applies to any built or rebuilt deck — options 1/2/3/5, and 6b/6c. A **6a** text-only tweak is exempt, but run QC anyway if the edit changed text length, since a longer run can overflow its box.)
 - **Font sizes** stay on PowerPoint's default grid, 8pt floor; body ~11–14pt.
 - **When the user says a Slide Lab deck is good** ("looks good", "approved", "final"), run `slide-builder/scripts/publish_cleanup.py --out <session folder>` and say how much space it freed. It keeps the deck and everything needed to edit it later; it removes unpicked options, renders and per-option files. Only on the user's say-so.
+- **"Clean up my old / finished decks" or "free up space"**: run `publish_cleanup.py --scan <the user's sessions folder>`, which lists each finished deck, how much it would free, and when it last changed (flagging any changed in the last day as possibly in progress). Show that list as a table, let the user say which decks are final, then run `--out` on each one they name. Never clean a deck the user did not name.
 
 ## Routing — what each choice invokes
 
