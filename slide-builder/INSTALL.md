@@ -1,5 +1,12 @@
 ﻿# Install — Slide Lab
 
+> **Installing Slide Lab? Follow the [README](../README.md#install-about-20-to-45-minutes-the-first-time)
+> instead.** It is the one maintained walkthrough, and
+> `slide-builder/scripts/doctor.py` checks every step below for you. This page
+> is technical detail for maintainers. Note: the start-up `git pull` hook does
+> not run on company-managed Claude Code; updates now come from
+> `scripts/update.py` (the front door asks once a day).
+
 Works on Windows, macOS, and Linux. The steps below show Windows (PowerShell)
 commands; **on macOS/Linux, translate each command with the mapping below** —
 the scripts, flags, and arguments are identical across all three.

@@ -2,6 +2,43 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## 2026-10-02: install, updates, chat registration
+
+### Fixed
+- `requirements.txt` was missing `pydantic`, `playwright` (commented out) and
+  `python-docx`, so a by-the-book install crashed on the first registration or
+  build. Added them plus `defusedxml`; verified in a clean virtual environment.
+- Registration: `commit-cli` now takes `--cover-layout NAME` (written to
+  theme.json as `cover_layout`, which SKILL.md asked for but nothing stored)
+  and `--reference-slide N`. New smoke `tests/run_commit_cli_smoke.py`.
+- `tests/run_sketch_smoke.py` runs with the current Python (was `py -3`
+  only, so it failed on Mac).
+
+### Added
+- `scripts/_browser.py`: design sketches render with Playwright's Chromium,
+  falling back to Microsoft Edge, then Google Chrome, when the Chromium
+  download is blocked (it times out on the Accenture network). Edge gave
+  identical translator go/no-go results on all 207 replayed options.
+- `scripts/doctor.py`: setup check (Python, packages, browser, LibreOffice
+  converting a test slide, agent files, settings, local work folder) with a
+  plain table; `fix` copies agents, merges permissions into settings.json
+  (backup kept) and creates `~/Slide Lab/sessions` + a Desktop shortcut. It
+  never installs software.
+- `scripts/update.py`: once-a-day update check run by the slide-lab front
+  door, which asks before pulling; `after-pull` re-copies agents and says when
+  a restart is needed. Replaces the start-up git-pull hook, which
+  company-managed Claude Code ignores (`allowManagedHooksOnly`).
+
+### Changed
+- Template registration is chat-first: Claude asks for the main, highlight and
+  cover colors separately with no pre-picked answer (the automatic guess was
+  wrong on 5 of 5 templates), plus the content and cover layouts.
+  `register.html` is still written but no longer offered.
+- README install rewritten: three programs by hand, one paste-in request to
+  Claude, `doctor.py` instead of hand-edited settings, LibreOffice listed as
+  required, a "Your first deck" section with timings and the local work
+  folder. storyline-helper defaults new session folders to the local drive.
+
 ## [Unreleased] — production naming + pipeline completion
 
 ### Changed — build paths renamed to production names

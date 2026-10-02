@@ -477,7 +477,7 @@ The named sub-passes below — quality gate, language pass, pushback, save, hand
 
 **Four things to confirm at the Commit & emit stage** (combine into one message; get explicit confirmation on each):
 
-1. **Session folder root** — the parent directory where the dated session folder will be created. Convention: `<Client>/sessions/YYYY-MM-DD Topic Name/`.
+1. **Session folder root** — the parent directory where the dated session folder will be created. Convention: `<Client>/sessions/YYYY-MM-DD Topic Name/`. **Default to the local drive:** `<home>/Slide Lab/sessions/<Client>/` (Windows `C:\Users\<you>\Slide Lab\sessions\<Client>\`). If the user names a folder inside OneDrive, Dropbox or another synced folder, say once, plainly, that builds run much slower there (OneDrive turned about 4 minutes per page into 9 to 20 and made renders time out) and offer the local folder; finished decks can be copied to OneDrive or SharePoint afterwards. Their choice stands.
 2. **Client name and topic** — drives the dated subfolder name and the brief filename (e.g., `Acme / Cost Baseline` → `Acme/sessions/2026-05-06 Cost Baseline/`).
 3. **Client template** — the `.pptx` that carries the client's brand. **Pick it from the list, don't guess a path:** run `py -3 slide-builder/scripts/register_template.py list` and present the registered templates as a **numbered pick-list**; the user picks one and you use its `template_path` (the original `.pptx` — pass that as `client_template:`; the pipeline opens the normalized build copy automatically). If the template they want isn't listed (or the list is empty), **stop and route the user to register it first** (the standalone Register action / `slide-lab` option 7) — registration is its own step, not something to run inline in the middle of the deck flow — then re-run `list` and pick it.
 4. **Default content layout** — take it from the picked list entry's `default_content_layout` (or read `<stem>/theme.json::default_content_layout`). If empty, the template needs (re-)registration to capture it. Never let `build_deck.py` run with an empty default layout — that's a hard mid-build failure.
@@ -498,7 +498,7 @@ Wait for explicit confirmation. `looks good` / `yes` without naming the values i
 Once confirmed, state all four resolved values:
 
 ```
-Session folder:  C:\…\Claude Projects\Acme\sessions\2026-05-06 Cost Baseline\
+Session folder:  C:\Users\<you>\Slide Lab\sessions\Acme\2026-05-06 Cost Baseline\
 Dot-dash will save:
                  …\2026-05-06 Cost Baseline\dot-dash-cost-baseline.docx
                  …\2026-05-06 Cost Baseline\dot-dash-cost-baseline.md

@@ -2916,14 +2916,14 @@ def _run(args) -> int:
                 f"every accent stripe, callout, and emphasis color on every "
                 f"slide will be invisible against the primary fill — the deck "
                 f"will look flat and chromatically wrong.\n\n"
-                f"  Most common cause: when you registered the template, the "
-                f"primary and accent swatches in register.html were the same "
-                f"color (or two near-identical swatches).\n\n"
-                f"  What to do: re-register the template and pick visibly "
-                f"distinct primary and accent colors:\n"
+                f"  Most common cause: when the template was registered, the "
+                f"main and highlight colors chosen were the same or nearly "
+                f"the same.\n\n"
+                f"  What to do: re-register the template and choose two "
+                f"clearly different colors:\n"
                 f"    py -3 scripts/register_template.py propose <your-template.pptx>\n"
-                f"  Then open register.html and pick TWO different swatches for "
-                f"primary and accent."
+                f"  Then answer Claude's color questions with a different main "
+                f"and highlight color."
             )
         if _pa_dist < 60.0:
             print(

@@ -118,7 +118,7 @@ def phase_2_render_html(tmp: Path) -> Path:
           <div class="box" data-shape-id="card">Body card</div>
         </body></html>"""), encoding="utf-8")
     r = subprocess.run(
-        ["py", "-3", str(SLIDE_BUILDER / "scripts" / "render_html.py"),
+        [sys.executable, str(SLIDE_BUILDER / "scripts" / "render_html.py"),
          str(html_path), str(png_path)],
         capture_output=True, text=True, timeout=90,
     )
@@ -234,7 +234,7 @@ def phase_5_r4_checks(tmp: Path, py_path: Path) -> None:
     # the clean-fixture assertion below sees an actual editable .pptx.
     pptx_path = py_path.with_suffix(".pptx")
     if not pptx_path.exists():
-        subprocess.run(["py", "-3", str(py_path)], check=False, timeout=60,
+        subprocess.run([sys.executable, str(py_path)], check=False, timeout=60,
                        cwd=str(py_path.parent), capture_output=True)
 
     st = OptionStatus(
@@ -275,7 +275,7 @@ def phase_5_r4_checks(tmp: Path, py_path: Path) -> None:
 # ---------------------------------------------------------------------------
 def phase_6_execute_and_assert_editable(tmp: Path, py_path: Path) -> None:
     print("\n[P6] native script executes; resulting PPTX is editable (R4.7)")
-    r = subprocess.run(["py", "-3", str(py_path)],
+    r = subprocess.run([sys.executable, str(py_path)],
                        capture_output=True, text=True, timeout=60,
                        cwd=str(py_path.parent))
     _check("native script exits 0", r.returncode == 0,

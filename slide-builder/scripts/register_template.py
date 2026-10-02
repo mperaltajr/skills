@@ -29,9 +29,11 @@ Six CLI subcommands:
       preview PPTX (3 surfaces). Renders to PNG. Writes a proposal JSON +
       preview + palette + register.html into <stem>/. NO interactive
       prompts, NO TTY gate, NO writes to brand.yml/theme.json.
-      The orchestrator (chat layer) reads the proposal JSON, shows the
-      register.html to the user, takes picks in chat, then invokes
-      `commit` (browser available) or `commit-cli` (chat-only).
+      The orchestrator (chat layer) reads the proposal JSON, shows
+      palette.png and preview.png in chat, asks the user for the main,
+      highlight and cover colors and the layouts, then runs `commit-cli`.
+      (register.html is still written as an optional click-through page;
+      it is no longer offered by default.)
 
   commit       (chat-driven flow, picks via JSON file)
   -----------------------------------------------------------------------
@@ -42,17 +44,17 @@ Six CLI subcommands:
       Use this when register.html is openable in a real browser and the
       chat can receive the live-edited picks JSON back.
 
-  commit-cli   (chat-driven flow, picks via CLI flags — CLI fallback)
+  commit-cli   (chat-driven flow, picks via CLI flags — the default)
   -----------------------------------------------------------------------
   py -3 scripts/register_template.py commit-cli <template.pptx> \\
       --primary-slot dk2 --primary-hex 4D148C \\
-      --accent-slot lt2  --accent-hex FF6600
+      --accent-slot lt2  --accent-hex FF6600 \\
+      --default-content-layout "Title and Content" --cover-layout "Cover"
       Same write side as `commit`, but takes picks from CLI flags instead
-      of a JSON file. Use when the chat cannot render register.html with
-      live JS (e.g., chat-only preview panels). The orchestrator shows
-      palette.png in chat, takes user picks conversationally, then runs
-      this. Optional flags: --cover-bg-slot/--cover-bg-hex,
-      --dark-bg-slot/--dark-bg-hex, --strip-master-backgrounds,
+      of a JSON file. The orchestrator shows palette.png in chat, takes
+      the user's picks conversationally, then runs this. Optional flags:
+      --cover-bg-slot/--cover-bg-hex, --dark-bg-slot/--dark-bg-hex,
+      --cover-layout NAME, --reference-slide N, --strip-master-backgrounds,
       repeatable --layout-class "NAME=body-canonical|bespoke", --accept.
 
   interactive  (PowerShell flow, power users with a real TTY)
@@ -2172,6 +2174,7 @@ def write_theme_json(path: Path, *, template_path: Path, sha: str,
                      master_count: int, layout_count: int,
                      brand_yml_path: Path,
                      default_content_layout: str = "",
+                     cover_layout: str = "",
                      build_template_path: str = "",
                      build_template_sha: str = "",
                      theme_parts: Optional[dict] = None) -> None:
@@ -2193,6 +2196,7 @@ def write_theme_json(path: Path, *, template_path: Path, sha: str,
         "registered_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "registered_by": os.environ.get("USERNAME") or os.environ.get("USER") or "",
         "default_content_layout": default_content_layout or "",
+        "cover_layout": cover_layout or "",
         "brand": brand_dict,
         "extracted": {
             "all_colors": all_colors,
@@ -2655,6 +2659,7 @@ def _write_outputs(tpl: Path, sha: str, sha8: str,
                    strip_master_backgrounds: bool,
                    colors: dict, n_master: int, n_layout: int,
                    default_content_layout: str = "",
+                   cover_layout: str = "",
                    reference_slide_spec: dict | None = None) -> None:
     _p.template_sidecar_dir(tpl).mkdir(parents=True, exist_ok=True)
     brand_yml = _p.brand_yml(tpl)
@@ -2744,6 +2749,7 @@ def _write_outputs(tpl: Path, sha: str, sha8: str,
         master_count=n_master, layout_count=n_layout,
         brand_yml_path=brand_yml,
         default_content_layout=default_content_layout,
+        cover_layout=cover_layout,
         build_template_path=str(build_tpl.resolve()),
         build_template_sha=build_sha,
         theme_parts=theme_parts,
@@ -3702,8 +3708,8 @@ def _check_libreoffice_available() -> tuple[bool, str]:
         pass
     msg = (
         "LibreOffice was not found. Slide Lab needs it to render the preview, "
-        "the layout thumbnails, and the per-slide thumbnails shown in "
-        "register.html.\n\n"
+        "the layout thumbnails, and the per-slide thumbnails shown "
+        "during registration.\n\n"
         "  Install LibreOffice (free): https://www.libreoffice.org/download/\n\n"
         "  Default locations Slide Lab checks automatically:\n"
         "    Windows  C:\\Program Files\\LibreOffice\\program\\soffice.exe\n"
@@ -3774,10 +3780,13 @@ def _main_propose(args) -> int:
         print(f"  register page: {proposal['register_html']}")
     print(f"  proposal:      {proposal_path}")
     print()
-    print(f"  Next step: open register.html in the chat preview panel. The user clicks")
-    print(f"  swatches to pick primary/accent/cover-bg, toggles strip-master-backgrounds,")
-    print(f"  and copies the live-updated picks JSON. The orchestrator saves it and runs:")
-    print(f"    py -3 register_template.py commit {tpl} --picks <picks.json>")
+    print(f"  Next step: show palette.png and preview.png in chat. Ask the user, one")
+    print(f"  question each, for the main brand color, the highlight color and the cover")
+    print(f"  background (no pre-picked answer), plus the default content layout and the")
+    print(f"  cover layout. Then run:")
+    print(f"    py -3 register_template.py commit-cli {tpl} --primary-slot ... "
+          f"--primary-hex ... --accent-slot ... --accent-hex ... "
+          f"--default-content-layout \"...\" --cover-layout \"...\"")
     return 0
 
 
@@ -3866,6 +3875,10 @@ def _commit_from_picks_dict(tpl: Path, picks: dict, *, source: str) -> int:
     # Validated against the template's actual layout names below (after
     # chrome.yml lands) so we never persist a phantom name.
     default_content_layout = (picks.get("default_content_layout") or "").strip()
+    # cover_layout: the layout slide 1 (the cover) is built on. Optional;
+    # without it build_deck.py falls back to an unambiguous "Cover"/"Title"
+    # name match. Validated against the layout names below, like the default.
+    cover_layout = (picks.get("cover_layout") or "").strip()
 
     # Hard-fail — refuse to commit when default_content_layout
     # is empty in the explicit-picks path. The accept-mode shortcut handles
@@ -3883,9 +3896,9 @@ def _commit_from_picks_dict(tpl: Path, picks: dict, *, source: str) -> int:
             "every slide unless the brief overrides per-slide. Without this, "
             "build_deck.py fails mid-build with no clean recovery.\n\n"
             "  Fix one of:\n"
-            "    1. Open register.html again, click 'Use for body' on the layout "
+            "    1. Use `commit-cli` with `--default-content-layout \"<layout name>\"`.\n"
+            "    2. Open register.html, click 'Use for body' on the layout "
             "you want as the default, copy the picks JSON, retry commit.\n"
-            "    2. Use `commit-cli` with `--default-content-layout \"<layout name>\"`.\n"
             "    3. Use `accept: true` in picks.json to fall back to Slide Lab's "
             "best-guess (autoBodyGuess picks the layout named "
             "`Use as default slide template` exact-match first, then substring "
@@ -3928,6 +3941,7 @@ def _commit_from_picks_dict(tpl: Path, picks: dict, *, source: str) -> int:
         colors=proposal["colors"],
         n_master=proposal["n_master"], n_layout=proposal["n_layout"],
         default_content_layout=default_content_layout,
+        cover_layout=cover_layout,
         reference_slide_spec=reference_slide_spec,
     )
 
@@ -4015,6 +4029,23 @@ def _commit_from_picks_dict(tpl: Path, picks: dict, *, source: str) -> int:
         except Exception as _exc:
             print(f"  WARNING: could not validate default_content_layout "
                   f"against chrome.yml: {type(_exc).__name__}: {_exc}")
+
+    if cover_layout:
+        try:
+            _cover_names = load_chrome_yml(_p.chrome_yml(tpl)).layouts
+        except Exception as _exc:
+            _cover_names = None
+            print(f"  WARNING: could not validate cover_layout against "
+                  f"chrome.yml: {type(_exc).__name__}: {_exc}")
+        if _cover_names is not None and cover_layout not in _cover_names:
+            print(
+                f"  ERROR: cover_layout {cover_layout!r} is not a layout in "
+                f"{tpl.name}.\n"
+                f"  available layouts: "
+                f"{', '.join(sorted(_cover_names.keys())) or '(none)'}"
+            )
+            return 2
+        print(f"  cover_layout: {cover_layout!r}")
 
     brand_yml  = _p.brand_yml(tpl)
     theme_json = _p.theme_json(tpl)
@@ -4429,8 +4460,7 @@ def _main_commit(args) -> int:
 
 def _main_commit_cli(args) -> int:
     """Phase 4 variant: build picks from CLI flags. No picks JSON, no
-    register.html required — for chat orchestrators that can't render local
-    HTML with live JS.
+    register.html. The default registration path.
 
     The orchestrator reads `palette.png` in chat, decides colors with the
     user, then invokes this subcommand with the slot + hex flags. Bypasses
@@ -4489,6 +4519,10 @@ def _main_commit_cli(args) -> int:
 
     if args.default_content_layout:
         picks["default_content_layout"] = args.default_content_layout
+    if args.cover_layout:
+        picks["cover_layout"] = args.cover_layout
+    if args.reference_slide:
+        picks["reference_slide_n"] = args.reference_slide
 
     picks["commit_method"] = "cli_flags"
 
@@ -4569,7 +4603,7 @@ def main() -> int:
     # with the slot + hex flags directly. No picks.json round-trip needed.
     p_cli = sub.add_parser("commit-cli",
         help="Take picks from CLI flags (no picks.json, no register.html). "
-             "Use when the chat cannot open register.html with live JS.")
+             "The default: Claude asks the user in chat, then runs this.")
     p_cli.add_argument("template", type=Path, help="Path to .pptx/.potx")
     p_cli.add_argument("--accept", action="store_true",
         help="Accept Phase-1 best-guess colors unchanged. When set, every other "
@@ -4606,6 +4640,16 @@ def main() -> int:
              "per-slide Layout: or front-matter default_layout:. Validated "
              "against the template's registered layouts at commit time. "
              "Example: --default-content-layout \"2_Title & Text 01\"")
+    p_cli.add_argument("--cover-layout", type=str, default="",
+        metavar="NAME",
+        help="The layout the user picked for the cover (slide 1). Stored in "
+             "theme.json and validated against the template's layouts. "
+             "Example: --cover-layout \"Cover\"")
+    p_cli.add_argument("--reference-slide", type=int, default=0,
+        metavar="N",
+        help="Optional. 1-based number of a slide in the template file that "
+             "shows the client's typical content page; its title and body "
+             "placement become the reference for every build.")
 
     p_int = sub.add_parser("interactive",
         help="Legacy 4-phase interactive flow with TTY confirmation gate.")
