@@ -9,30 +9,20 @@ This example uses `quickstart-brief.md` (4 slides) and any registered client PPT
 
 ## If you don't have a registered template yet (do this first)
 
-Slide Lab can't build against a raw `.pptx`; it builds against a *registered* template (one with `brand.yml` + `theme.json` + `chrome.yml` template-settings files capturing the client's colors, fonts, layouts). Registration is a one-time chat-driven flow per template:
+Slide Lab can't build against a raw `.pptx`; it builds against a *registered* template (one with `brand.yml` + `theme.json` + `chrome.yml` template-settings files capturing the client's colors, fonts, layouts). Registration is a one-time chat step per template. In Claude, say:
 
-```powershell
-# Phase 1 — propose (no writes to brand.yml yet)
-py -3 "$env:USERPROFILE\.claude\skills\slide-builder\scripts\register_template.py" propose `
-    "<path to your raw template.pptx>"
-```
+> Register this template: <path to your template.pptx>
 
-This produces a `register.html` page next to your template. Open it. The page asks you to:
+Claude shows you the colors it found (with a plain name, the color code, and where each one appears) and asks, one question at a time:
 
-1. **Pick a primary brand color** — click a swatch (no hex typing).
-2. **Pick an accent color** — click a swatch.
-3. **Pick the default content layout** — the layout your slides should use 95% of the time.
-4. **Optionally pick a reference slide** — point at one slide in your template that defines how every output should look (title position, subtitle box, accent placement, footer chrome). Recommended when your template has specific chrome geometry. Skip if your template is only covers/dividers.
-5. **Strip-master-backgrounds toggle** — usually leave unchecked.
+1. **Which is the main brand color?**
+2. **Which is the highlight color?**
+3. **What should the cover background be?**
+4. **Which layout should content slides use by default?** (it shows you the layouts as pictures)
+5. **Which layout is the cover?**
+6. **Optionally, which slide in the template is the best example of a content page?** Recommended when your template has specific title and footer placement.
 
-Copy the picks JSON from register.html, save it as `picks.json` next to the template, then commit:
-
-```powershell
-# Phase 2 — commit (writes brand.yml + theme.json + chrome.yml)
-py -3 "$env:USERPROFILE\.claude\skills\slide-builder\scripts\register_template.py" commit `
-    "<path to your template.pptx>" `
-    --picks "<path to picks.json>"
-```
+Claude never pre-picks the colors: the automatic guess was wrong on every template registered so far (often the main and highlight colors swapped).
 
 Then **confirm** it. Registration builds a mock slide (`<stem>/selftest/mock.pptx`); open it in PowerPoint and check that the title, takeaway, footnote and source land where they should. Once a person has looked:
 

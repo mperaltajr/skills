@@ -61,7 +61,8 @@ def main(argv=None) -> int:
 
     items = []
     with sync_playwright() as pw:
-        br = pw.chromium.launch()
+        from _browser import launch
+        br = launch(pw)
         page = br.new_page(viewport={"width": 1280, "height": 720})
         for w in args.work:
             for od in sorted(p for p in (w / "opts").iterdir() if p.is_dir()):

@@ -86,10 +86,13 @@ def render_html_to_png(
 
     with sync_playwright() as pw:
         try:
-            browser = pw.chromium.launch(headless=True)
+            from _browser import launch
+            browser = launch(pw, headless=True)
         except Exception as exc:
             sys.stderr.write(
-                "Chromium not installed for Playwright. Install with:\n"
+                "No browser to render with: Playwright's Chromium is not installed\n"
+                "and neither Microsoft Edge nor Google Chrome could be started.\n"
+                "Install Chromium with:\n"
                 "    py -3 -m playwright install chromium\n"
                 f"underlying error: {exc}\n"
             )

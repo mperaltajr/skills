@@ -1260,7 +1260,8 @@ def translate_many(jobs: list[tuple[Path, Path, str, bool]], check: bool = True)
     from playwright.sync_api import sync_playwright
     done = []
     with sync_playwright() as pw:
-        browser = pw.chromium.launch()
+        from _browser import launch
+        browser = launch(pw)
         page = browser.new_page(viewport={"width": CANVAS_W, "height": CANVAS_H})
         for html, emit_dir, letter, sas in jobs:
             data = extract(page, html, sas)

@@ -112,43 +112,40 @@ The chat-driven flow replaces the legacy PowerShell TTY flow (still available as
 
    **Client style references (recommended when the template came from a real client deck).** Pick 3-4 of the deck's best content pages (a process page, a chart page, a dense page; not covers or dividers) and run `py -3 scripts/add_style_refs.py --template <registered template.pptx> --from <client deck.pptx> --pages 4,5,33,37`. Every build on that template then lists those pictures in each designer's context, with instructions to match the client's visual language (numbering, icons, chart style, density) without copying content. Without them, designers have only colors and box positions, and pages come back looking generic.
 
-2. **Show + take picks.** The orchestrator **MUST display the `<stem>/register.html` file path to the user and wait** for the user to respond before writing `picks.json`. That page embeds the preview composite PNG + clickable palette swatches + the strip-master-backgrounds checkbox + a live picks-JSON payload. The user clicks swatches to pick primary / accent / cover-bg by visible color (no hex typing), toggles strip-bg, copies the picks JSON to clipboard, and pastes back to the chat.
+2. **Show + ask in chat.** Show the user `<stem>/palette.png` (numbered swatches) and `<stem>/preview.png` in chat; if the chat cannot show images, give the file paths to open. Then ask, and wait for the answers:
+   - **Name every candidate color plainly:** a plain name, the hex code, and where it appears in the template ("dark purple, 460073, title bars on most content slides").
+   - **Ask for each role separately:** the main brand color, the highlight color, and the cover background (and the dark background if different). Do not mark the automatic guess as "Recommended" or pre-pick it. It was wrong on 5 of 5 registered templates (often main and highlight swapped); you may mention it only as "what the file's color settings suggest".
+   - **Check for colors that live on shapes.** If the theme colors look like Office defaults (gold FFC000, blue 4472C4) or do not match what the slides visibly use, say so and offer the colors actually seen on the slides.
+   - **Ask the layout questions in the same pass:** the default content layout and the cover layout (show `<stem>/thumbnails/*.png`), and optionally a reference slide (below).
 
    > **⛔ Hard rule — no auto-accept.**
    >
-   > - Reading `<stem>/preview.png` or `<stem>/palette.png` does **not** substitute for the user opening `register.html`. Those artifacts confirm that colors EXIST, not that the role ASSIGNMENT (primary vs accent vs cover-bg) is correct. Auto-pick has historically inverted on most client templates — the chat-driven flow exists precisely to catch that.
-   > - The `{"accept": true}` flag is a **user-issued shortcut**, not an orchestrator default. It may only be written when the user explicitly types "accept" or equivalent in chat. If the user has not responded to the register.html prompt, the picks JSON has not been written.
-   > - Halt and ask, even if the auto-best-guess in `register.proposal.json` looks plausible. Defensible-default bias causes orange/purple swaps to be committed without user review. For design decisions like brand-slot assignment, the AI's "defensible default" is not a substitute for the user's tacit knowledge — halt and ask, every time.
+   > - Showing `palette.png` does **not** substitute for the user's answer. The pictures confirm that colors EXIST, not that the role ASSIGNMENT (main vs highlight vs cover) is correct.
+   > - `--accept` (take the automatic guess) is a **user-issued shortcut**, not an orchestrator default. Use it only when the user explicitly types "accept" or equivalent.
+   > - Halt and ask, even if the automatic guess looks plausible. For brand-color roles the AI's "defensible default" is not a substitute for the user's knowledge of the brand. Halt and ask, every time.
 
-3. **Commit.** The orchestrator writes a `picks.json` capturing the user's choices and runs:
+3. **Commit.** Run `commit-cli` with the user's answers:
    ```powershell
-   py -3 scripts/register_template.py commit <path-to-template.pptx> --picks <picks.json>
+   py -3 scripts/register_template.py commit-cli <path-to-template.pptx> `
+      --primary-slot dk2 --primary-hex 4D148C `
+      --accent-slot lt2  --accent-hex FF6600 `
+      --default-content-layout "Title and Content" --cover-layout "Cover"
    ```
-   This writes `<stem>/brand.yml` + `<stem>/theme.json` + `<stem>/chrome.yml`. Template is now registered.
+   This writes `<stem>/brand.yml` + `<stem>/theme.json` + `<stem>/chrome.yml`. Optional flags: `--cover-bg-slot`, `--cover-bg-hex`, `--dark-bg-slot`, `--dark-bg-hex`, `--cover-layout NAME`, `--reference-slide N`, `--strip-master-backgrounds`, and repeatable `--layout-class "NAME=body-canonical|bespoke"`. Layout names are checked against the template; a wrong name stops the commit with the list of real names.
 
-The picks JSON shape and full subcommand documentation lives at the top of `scripts/register_template.py` (run with `--help`).
+4. **The sample slide is the final check.** Tell the user that the sample slide (`<stem>/selftest/mock.pptx`) is where a swapped main and highlight color would show, have them open it, and run `confirm` only when they say it looks right. Builds refuse unconfirmed templates.
 
-**Fallback for chat-only environments (`commit-cli`).** When the chat cannot open `register.html` (no local browser, JS-restricted preview panel, etc.), use the `commit-cli` subcommand instead. The orchestrator shows the user `palette.png` directly in chat, takes color picks conversationally, then invokes:
+The full subcommand documentation lives at the top of `scripts/register_template.py` (run with `--help`). `propose` still writes `register.html`, an older click-through color page; it is no longer offered. Do not point the user at it unless they ask for a page to click instead of answering in chat (then `commit --picks <picks.json>` takes its output).
 
-```powershell
-py -3 scripts/register_template.py commit-cli <path-to-template.pptx> `
-   --primary-slot dk2 --primary-hex 4D148C `
-   --accent-slot lt2  --accent-hex FF6600
-```
+**Capture the default content layout at registration.** Distinct from per-layout classifications, the orchestrator MUST also ask the user: *"Which layout do you want your content slides to use by default?"* — and pass the answer through as `--default-content-layout NAME` on `commit-cli`. This is stored in `theme.json` and read by `build_deck.py` as the template-level layout fallback. Without it, every fresh brief that lacks a per-slide `Layout:` either auto-falls to the sole body-canonical layout (when unambiguous) or hard-fails — both leave the user picking layouts mid-build instead of once at registration.
 
-Optional flags: `--cover-bg-slot`, `--cover-bg-hex`, `--dark-bg-slot`, `--dark-bg-hex`, `--strip-master-backgrounds`, and repeatable `--layout-class "NAME=body-canonical|bespoke"`. Use `--accept` to take the Phase-1 best-guess verbatim (still requires explicit user opt-in per the no-auto-accept rule above).
-
-The same hard rule applies: the orchestrator MUST take picks from the user in chat first; never invent slot assignments. Use `commit-cli` only when `register.html` cannot be displayed — the HTML picker is still the preferred path because it shows live swatch updates.
-
-**Capture the default content layout at registration.** Distinct from per-layout classifications, the orchestrator MUST also ask the user: *"Which layout do you want your content slides to use by default?"* — and pass the answer through as `default_content_layout` (in the picks JSON or via `--default-content-layout NAME` on `commit-cli`). This is stored in `theme.json` and read by `build_deck.py` as the template-level layout fallback. Without it, every fresh brief that lacks a per-slide `Layout:` either auto-falls to the sole body-canonical layout (when unambiguous) or hard-fails — both leave the user picking layouts mid-build instead of once at registration.
-
-**Capture the cover layout too.** Also ask: *"Which layout should cover / title slides use?"* and store it as `cover_layout` in `theme.json`. Any slide whose `page_type` resolves to `cover` (from the brief's `**Slide type:** Cover`) is then routed to that layout automatically, ahead of the deck default. Without it the pipeline falls back to an **unambiguous** name match (a single layout literally named "Cover" / "Title" / "Title Slide") and, failing that, treats the cover like any other slide — which is how a branded cover ends up on the content layout and gets hand-built outside the pipeline. A per-slide `**Layout:**` still overrides the routing.
+**Capture the cover layout too.** Also ask: *"Which layout should cover / title slides use?"* and pass it as `--cover-layout NAME` on `commit-cli` (stored as `cover_layout` in `theme.json`). Any slide whose `page_type` resolves to `cover` (from the brief's `**Slide type:** Cover`) is then routed to that layout automatically, ahead of the deck default. Without it the pipeline falls back to an **unambiguous** name match (a single layout literally named "Cover" / "Title" / "Title Slide") and, failing that, treats the cover like any other slide — which is how a branded cover ends up on the content layout and gets hand-built outside the pipeline. A per-slide `**Layout:**` still overrides the routing.
 
 **Why a reference slide matters.** When the user gives Slide Lab a reference slide at registration, every worker agent that builds a slide gets that slide's spec as part of its context bundle — title position, subtitle box, accent placement, footer chrome, observed brand colors. The worker reasons against that spec as a visual anchor, so output stays consistent with the user's canonical example of "how the template should look." Without a reference slide, workers fall back to Slide Lab's 5 generic hardline rules, which are correct but not template-specific — output may drift in subtle ways (subtitle position, accent placement, chrome alignment) that the user notices and the tool can't explain. **Strongly recommended when the template has specific chrome geometry the user wants every output slide to honor.**
 
 **Optional: capture a reference slide.** The reference slide is ONE slide in the registered template that defines how every output slide should look — title position, subtitle box, accent placement, footer chrome. When the user designates a reference slide, every per-slide worker agent receives that slide's spec as part of its `_context.md` bundle, and the build can validate output against it.
 
-The orchestrator should ask: *"Is there a slide in this template that's the canonical example of how output should look? Tell me the slide number."* Pass the answer through as `reference_slide_n` (integer, 1-indexed) in the picks JSON. At commit time, register_template extracts the layout name, placeholder geometries (title/subtitle boxes), and observed colors from that slide, and appends a `reference_slide:` block to `brand.yml`. Skipping this step is supported — builds still work, but workers reason against the skill's 5 hardline rules + anti-pattern library alone, without a per-template geometric anchor.
+The orchestrator should ask: *"Is there a slide in this template that's the canonical example of how output should look? Tell me the slide number."* Pass the answer through as `--reference-slide N` (1-based) on `commit-cli`. At commit time, register_template extracts the layout name, placeholder geometries (title/subtitle boxes), and observed colors from that slide, and appends a `reference_slide:` block to `brand.yml`. Skipping this step is supported — builds still work, but workers reason against the skill's 5 hardline rules + anti-pattern library alone, without a per-template geometric anchor.
 
 > **Never expose architectural vocabulary to the user.** The terms `body-canonical` and `bespoke` are implementation details for chrome resolution. When asking the user to pick a layout, always show layout thumbnails (`<sidecar-dir>/thumbnails/*.png`) and ask *"which one should the slide look like?"* — never *"which body-canonical layout do you want?"* If you show the user only an internal classification name, they may think they picked a visible layout when the system recorded only metadata.
 
