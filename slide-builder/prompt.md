@@ -195,7 +195,7 @@ PATTERN PICK — Slide {{SLIDE_N}}
 
 Produce **{{OPTIONS_COUNT}} option(s)** ({{OPTION_LETTERS}}) for the SAME picked pattern.
 - **When exactly one** (the default), make it the single strongest execution of the pattern — one that clearly honors the directive verb (§4 step 1.5). Don't hedge toward a neutral default; commit to the best design.
-- **When more than one**, the options must be **structurally distinct** executions of that one pattern — differing on typography weight, accent placement, icon vs. none, numeral vs. none, eyebrow vs. none, light vs. dark canvas where allowed, anchor side. Genuinely different, not near-clones; a reasonable person would pick differently on aesthetic preference. Offer a spread — one safer + the rest bolder (dark canvas, hero metric, oversized type) — so the reviewer has a real choice.
+- **When more than one**, the options must be **structurally distinct** executions of that one pattern — differing on typography weight, accent placement, the style of the structure markers (numerals in circles vs. large numerals vs. icon shapes; see "Make the structure visible" below), eyebrow vs. none, light vs. dark canvas where allowed, anchor side. Genuinely different, not near-clones; a reasonable person would pick differently on aesthetic preference. Offer a spread — one safer + the rest bolder (dark canvas, hero metric, oversized type) — so the reviewer has a real choice.
 
 **Variant rules:**
 
@@ -204,6 +204,14 @@ Produce **{{OPTIONS_COUNT}} option(s)** ({{OPTION_LETTERS}}) for the SAME picked
 {{VARIANT_SEEDS}}
   - Tiebreak within variants: first hex character mod the number of eligible variants, sorted alphabetically by variant name.
 - **Every option MUST use at least one brand token on a load-bearing element** (hero text, accent rule, divider, anchor, fill — NOT placeholders like `[Date]` or `[Presenter]`). A "safe default" is *quieter typography or composition* — not the absence of brand identity. Every option includes `BRAND_PRIMARY`, `BRAND_ACCENT`, `BRAND_PRIMARY_MID`, or `BRAND_ACCENT_SOFT` somewhere visible; a variant rendering only in TEXT_DARK / TEXT_MID / TEXT_FAINT is a brand-fidelity failure. When you produce multiple options, vary which element carries the brand.
+
+**Make the structure visible (default, every option).** When the slide's content is a sequence or a set of parallel items (steps, phases, stages, levers, pillars, options, sources, criteria, workstreams), show that structure, don't just list it:
+- **Number the items** (01, 02, 03, or numbers in circles or rounded squares), in reading order.
+- **Give each item a simple marker** drawn with native shapes: a circle, chevron, small rounded square or a simple icon built from shapes. No emoji, no clip art, no image files.
+- **When the items happen in order**, connect them with arrows, chevrons or a line, so the sequence reads at a glance.
+- **Skip it only when it would be false or noise:** a single claim, a quote, a chart that already carries the structure, or items with no order or grouping.
+
+Users had to ask for this in words every round ("how come we aren't using process icons/numbers"). Doing it unasked is the default now; the review page's "Add process structure" button exists for the cases you miss.
 
 **All options use the SAME pattern** — only the variants differ. Don't spread options across different patterns.
 

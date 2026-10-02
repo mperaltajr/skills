@@ -2,7 +2,7 @@
 
 The authoritative catalog for `slide-builder`. Every per-slide agent reads this file at prompt time and picks **exactly one** pattern per slide.
 
-The pattern is the spec. Within a chosen pattern, the agent has variant autonomy (typography weight, accent placement, icon vs. no-icon, eyebrow vs. no-eyebrow, light vs. dark canvas where applicable). Two seeds drive determinism, both stamped per slide by `build_deck.py`:
+The pattern is the spec. Within a chosen pattern, the agent has variant autonomy (typography weight, accent placement, the style of step numbers and shape markers, eyebrow vs. no-eyebrow, light vs. dark canvas where applicable). Sequences and parallel items are numbered and marked by default; see the prompt's "Make the structure visible". Two seeds drive determinism, both stamped per slide by `build_deck.py`:
 
 - `pattern_pick_seed = md5(content_hash + slide_n)` — breaks ties when multiple patterns score equally for a slide.
 - `variant_seed = md5(content_hash + slide_n + option_letter)` — drives variant choices within the picked pattern, distinct per requested option.
