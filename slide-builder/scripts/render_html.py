@@ -40,6 +40,20 @@ DEFAULT_W = 1280
 DEFAULT_H = 720
 
 
+def _copy_into_place(src: Path, dst: Path, tries: int = 6) -> None:
+    """Copy a finished file to its destination, waiting out a short sync lock."""
+    import shutil
+    import time
+    for i in range(tries):
+        try:
+            shutil.copyfile(src, dst)
+            return
+        except PermissionError:
+            if i == tries - 1:
+                raise
+            time.sleep(0.5 * (i + 1))
+
+
 def render_html_to_png(
     html_path: Path,
     png_path: Path,
@@ -94,11 +108,18 @@ def render_html_to_png(
                 # box regardless of HTML overflow. `full_page=False` is the
                 # default but make it explicit so a future refactor can't
                 # silently flip it.
-                page.screenshot(
-                    path=str(png_path),
-                    full_page=False,
-                    clip={"x": 0, "y": 0, "width": width, "height": height},
-                )
+                # Screenshot to a local temp file, then copy into place. Writing
+                # straight into a OneDrive folder timed out while OneDrive held
+                # the new file, and workers retried renders over and over.
+                import tempfile
+                with tempfile.TemporaryDirectory() as td:
+                    tmp_png = Path(td) / "render.png"
+                    page.screenshot(
+                        path=str(tmp_png),
+                        full_page=False,
+                        clip={"x": 0, "y": 0, "width": width, "height": height},
+                    )
+                    _copy_into_place(tmp_png, png_path)
             except Exception as exc:
                 sys.stderr.write(f"render failed: {exc}\n")
                 sys.exit(4)

@@ -76,6 +76,7 @@ The tables below list the exit codes each script returns. If you see a code in a
 | Code | Meaning | Fix |
 |---|---|---|
 | 2  | Template path missing, picks.json missing/unreadable, OR picks.json malformed | The `commit` subcommand requires `--picks <path>` pointing at a valid picks JSON. See the script's `--help` for the JSON shape. |
+| 4  | The template is not 13.333 × 7.5 in (1280 × 720) | If it is 16:9: `py -3 scripts/rescale_template.py <template.pptx>`, then register the `... 1280x720.pptx` copy it writes. If not (4:3), change the slide size in PowerPoint (Design > Slide Size > Widescreen) and register that. |
 
 ### `clean.py`
 
