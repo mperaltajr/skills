@@ -2675,6 +2675,18 @@ def main() -> int:
     print(f"Prepped {slide_total} slides at:")
     print(f"  {args.out.resolve()}")
     print()
+    # Takeaways over ~130 characters wrap to a second line under the title and
+    # crowd the body; designers then squeeze around them. Say so now, while the
+    # brief is still cheap to edit.
+    _long = [(s.get("slide_n"), len((s.get("so_what") or "").strip()))
+             for s in slides
+             if "cover" not in (s.get("archetype") or "").lower()
+             and len((s.get("so_what") or "").strip()) > 130]
+    if _long:
+        print("Takeaway lines over 130 characters (they will wrap to two lines): "
+              + ", ".join(f"slide {n} ({k})" for n, k in _long))
+        print("  Tighten them in the brief and re-seal it, or accept the wrap.")
+        print()
     if theme_warnings:
         print()
         print(f"Theme validation warnings: {len(theme_warnings)} (see dispatch_plan.md § 'Theme validation warnings')")

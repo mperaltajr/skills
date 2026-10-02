@@ -3431,6 +3431,11 @@ def _propose_layout_chromes(prs, classifications_override: dict[str, str] | None
                 if _placeholder_role(shape) == "page_number":
                     has_pn = True
                     break
+            # A cover is never numbered (PowerPoint's "Don't show on title
+            # slide"), even though most cover layouts carry a slide-number
+            # placeholder. add_footer relies on has_page_number=False here.
+            if (layout._element.get("type") or "") == "title":
+                has_pn = False
 
             position_fields: dict[str, BoxPx | None] = {
                 "title": None, "subtitle": None,

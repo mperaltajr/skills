@@ -673,6 +673,8 @@ Test each slide's governing thought against three checks:
 
 3. **Concision test.** Is it under 12 words? If not, can it be tightened without losing the claim? Long governing thoughts usually contain two claims — split them if so.
 
+4. **Takeaway fit test.** The takeaway prints as the one line under the slide title, and about 130 characters fit on that line. A longer takeaway wraps to a second line and crowds the top of the body, which designers then have to squeeze around. If a takeaway is over 130 characters, show a tightened version (keep the belief shift, drop the restated detail) and ask the user to confirm. Cover slides are exempt.
+
 For each headline that fails: show a before/after rewrite. Ask the user to confirm or redirect. **Override is not offered here as a peer option** — keeping a failing headline requires going through the constructive-pushback protocol in the pushback protocol (name the weakness, offer concrete alternatives, ask explicitly). Do not proceed to the next slide's check until the user responds.
 
 #### Body content quality (supporting bullets and evidence)
