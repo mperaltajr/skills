@@ -719,7 +719,24 @@ QUICK_FEEDBACK = [
     "Title too long — reword",
     "Fix a number / wording",
     "More visual, less text",
+    "Add process structure — numbers, icons",
 ]
+
+# What a chip asks the designer to do, spelled out in the copied feedback. The
+# label stays short on the page; the worker gets an instruction it can act on.
+# Pages rarely numbered their steps or used shape markers unless told to in
+# words every time, so that chip carries the full direction.
+QUICK_FEEDBACK_EXPANDED = {
+    "Add process structure — numbers, icons": (
+        "Make the structure visible: number the steps or items (01, 02, 03 or "
+        "numbers in circles), give each one a simple shape marker or icon drawn "
+        "with native shapes (circle, chevron, small rounded square, not emoji or "
+        "clip art), and where the items happen in order, connect them with "
+        "arrows, chevrons or a line so the sequence reads at a glance."),
+    "More visual, less text": (
+        "Turn sentences into a visual: a diagram, a chart, numbered steps or "
+        "icon-led rows; keep only the words that carry the point."),
+}
 
 
 def render_option_tile(slide: dict, opt: dict, themed_path_str: str) -> str:
@@ -1468,7 +1485,13 @@ function feedbackText() {
     Object.keys(bySlide).sort().forEach(sid => {
         t += "  " + sid + ":\n";
         Object.keys(bySlide[sid]).forEach(k => {
-            t += "    " + k + ": " + bySlide[sid][k].replace(/\n/g, " ") + "\n";
+            let v = bySlide[sid][k];
+            if (k === "quick") {
+                // spell out what each clicked chip asks the designer to do
+                const X = window.__QUICK_EXPANDED__ || {};
+                v = v.split("; ").map(c => X[c] ? c + " (" + X[c] + ")" : c).join("; ");
+            }
+            t += "    " + k + ": " + v.replace(/\n/g, " ") + "\n";
         });
     });
     return t;
@@ -1693,6 +1716,7 @@ def build_html(out_dir: Path, meta: Optional[dict], slides: list, storyline: dic
     js_setup = (
         f"window.__TOTAL_SLIDES__ = {len(slides)};\n"
         f"window.__SLIDE_IDS__ = {json.dumps(slide_ids)};\n"
+        f"window.__QUICK_EXPANDED__ = {json.dumps(QUICK_FEEDBACK_EXPANDED, ensure_ascii=False)};\n"
         f"window.__SLIDE_MAP__ = {json.dumps(slide_map)};\n"
         f"window.__STAMPS__ = {json.dumps({s['slide_id']: s.get('stamp', '') for s in slides})};\n"
         f"window.__OUT_DIR__ = {json.dumps(str(out_dir.resolve()))};\n"
