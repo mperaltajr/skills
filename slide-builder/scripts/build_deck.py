@@ -479,10 +479,16 @@ def extract_field(block: str, labels: tuple[str, ...]) -> str:
         value paragraph (may span multiple lines until the next **Label:** or blank-then-bold)
 
     Case-insensitive on the label. Returns empty string if not found.
+
+    A value also ends at a `---` divider line or a markdown heading. Without
+    that, the LAST field of a slide (usually **Chart type:** none) swallowed
+    the divider, and on the last slide the brief's Flags section too, so
+    "none" never matched and every slide was forecast as a chart.
     """
     for label in labels:
         pattern = re.compile(
-            rf"\*\*{re.escape(label)}\s*:?\s*\*\*\s*(.*?)(?=\n\s*\*\*[A-Za-z]|\Z)",
+            rf"\*\*{re.escape(label)}\s*:?\s*\*\*\s*(.*?)"
+            rf"(?=\n\s*\*\*[A-Za-z]|\n[ \t]*-{{3,}}[ \t]*(?:\n|\Z)|\n#{{1,6}}\s|\Z)",
             re.IGNORECASE | re.DOTALL,
         )
         match = pattern.search(block)
