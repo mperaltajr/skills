@@ -76,3 +76,19 @@ Slide-Lab-Example-Registration.html
 
 # Personal, engagement-specific skill (not part of the shared repo)
 financial-session-deck/
+
+# Never publish: internal decision notes (they name client work), the licensed
+# reference template pack, and other engagements' material kept in this folder.
+slide-builder/_decisions/
+storyline-helper/_decisions/
+references/
+project-northwind/
+project-northwind-skill.zip
+northwind-release-check/
+northwind_prep_assets/
+excel-model/
+financial-session-deck/
+northwind-status/
+blk2.js
+err.txt
+docx/gen_jv.js

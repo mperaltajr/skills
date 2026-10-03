@@ -636,7 +636,7 @@ def _chrome_box_for(chrome: LayoutChrome, role: str):
         elements that virtually every template reserves space for at the
         bottom of every slide. When a bespoke layout's chrome.yml entry
         for one of these three is null (because the layout itself has no
-        such placeholder to extract a position from — e.g. Acme workhorse
+        such placeholder to extract a position from — e.g. a client's workhorse
         layouts with only title + body placeholders), fall back to the
         canonical position at the bottom of the slide. The fallback is
         silent by design (per Mario's call 2026-06-02) — it's the safe

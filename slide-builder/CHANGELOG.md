@@ -70,7 +70,7 @@ All notable changes to this skill. Versioning follows [Semantic Versioning](http
   forbidden patterns, accent placement) parsed and threaded to the worker prompt.
 - storyline-helper: `evidence_type` / `source` micro-fields implemented +
   open-gaps punch list emitted in the dot-dash.
-- Mermaid fully retired; Acme-specific brand guard removed; scar tissue
+- Mermaid fully retired; client-specific brand guard removed; scar tissue
   (milestone tags, version markers, dated parentheticals) stripped across all skills.
 
 ## [Prior] — Pattern B refactor (M1 – M7, 2026-06-16 → 2026-06-17)
@@ -97,7 +97,7 @@ All notable changes to this skill. Versioning follows [Semantic Versioning](http
 Stale builds that carry `# FALLBACK_MERMAID:` line-1 markers will now fall through to the `native` classifier and crash at execution. The operator re-builds; no production decks contained Mermaid artifacts at retirement time.
 
 ### Resolved — Slide 16 strikethrough (2026-06-17)
-The OTC slide 16 strikethrough defect (forensic entry in private `SLIDE_LAB_FEEDBACK_LOG.md` 2026-06-16) is closed as `resolved-by-pattern-b-superseding`. M4 demonstrated Pattern B rebuilds slide 16 cleanly. The actual root cause was confirmed in PowerPoint: overlapping textbox content from undersized description boxes — a geometry-cascade in the python-pptx layer, not a font-decoration bug. No inline patch to `option_A_native.py` is required because Pattern B replaces the rendering path wholesale.
+A client deck's slide 16 strikethrough defect (forensic entry in private `SLIDE_LAB_FEEDBACK_LOG.md` 2026-06-16) is closed as `resolved-by-pattern-b-superseding`. M4 demonstrated Pattern B rebuilds slide 16 cleanly. The actual root cause was confirmed in PowerPoint: overlapping textbox content from undersized description boxes — a geometry-cascade in the python-pptx layer, not a font-decoration bug. No inline patch to `option_A_native.py` is required because Pattern B replaces the rendering path wholesale.
 
 ### Deferred (M7 scope, not flipped)
 Production defaults remain `enable_pattern_b: false` + `default_pattern: legacy`. Flipping the master switch requires a separate gating task — Mario validates Pattern B end-to-end on a real (non-test) deck before cutover. See plan at `C:\Users\m.a.peralta\.claude\plans\stop-telling-me-to-indexed-puzzle.md`.
@@ -195,7 +195,7 @@ First release after the Path D consolidation (v1 retired, v2 wins). See `_decisi
 
 - **Geometric-pattern build pipeline** — 9 splits + 3 diagram primitives + 2 special objects + 1 Mermaid fallback (14 patterns) governed by 5 hardline rules. The pattern is the spec.
 - **Chat-driven `register_template.py`** — three subcommands (`propose` / `commit` / `interactive`). Replaces the PowerShell TTY-gated flow for coworker setup. Safety property preserved via explicit `picks.json`.
-- **Pydantic-validated `_meta.json`** at schema version 2 — adds `brand_primary` + `brand_accent` fields driven from `brand.yml` so no Acme-defaults leak into non-Acme decks.
+- **Pydantic-validated `_meta.json`** at schema version 2 — adds `brand_primary` + `brand_accent` fields driven from `brand.yml` so no one client's defaults leak into other decks.
 - **`_paths.py` registry** — single source of truth for ~35 pipeline artifact filenames across 5 scripts. Filename helpers + uppercase constants for both absolute-path and slide-relative call sites.
 - **`_contract.py` module-load contract test** — verifies paths registry, meta-JSON schema round-trip, and handoff coverage at the manifest level. Required to pass before any release tag.
 - **`_log.py` build.log tee** — every pipeline-script run appends timestamped stdout + stderr to `<out>/build.log`.
@@ -203,7 +203,7 @@ First release after the Path D consolidation (v1 retired, v2 wins). See `_decisi
 - **`diagnostic.py`** — bundles `_meta.json` + all `_prompt.md` + `*.qc.json` + `build.log` into a zip for bug reports.
 - **Onboarding docs** — `README.md`, `INSTALL.md`, `examples/quickstart-brief.md`, `examples/RUN.md`, `TROUBLESHOOTING.md`.
 - **9 Tier-1 anti-exemplars** ported from v1 corpus into `reference/anti-patterns/<slug>/` with PNG + WHY.md.
-- **Brand-display polish in `REVIEW.html`** — `acme` → `Acme`, `accenture` → `Accenture`, etc., via per-brand override table.
+- **Brand-display polish in `REVIEW.html`** — `acme` → `ACME`, etc., via per-brand override table.
 
 ### Changed
 
@@ -214,7 +214,7 @@ First release after the Path D consolidation (v1 retired, v2 wins). See `_decisi
 - **`reference/fallback.md` brand mapping section** — rewritten for the `brand.yml`-canonical world; the slot-position mapping table is replaced with the canonical `brand.yml` field mapping from `build_deck.py::_compute_theme_variables`.
 - **`page_type` lookup in build_review.py** — now reads only from `_meta.json` (canonical). The dead `**Page type (heuristic):**` regex against `_prompt.md` is removed.
 - **PNG-too-small QC floor** — lowered from 50KB to 12KB so sparse/cover slides don't false-positive.
-- **`render_mermaid.py --theme`** — now required (no Acme-shaped default).
+- **`render_mermaid.py --theme`** — now required (no client-shaped default).
 
 ### Removed
 

@@ -2,7 +2,7 @@
 """run_title_subtitle_loud_fail_smoke.py — smoke for SLIDE_LAB_FEEDBACK_LOG #1-5
 fixes (2026-06-05).
 
-Covers the loud-fail conversions added after the Acme OTC silent-subtitle-drop
+Covers the loud-fail conversions added after a client deck's silent-subtitle-drop
 bug shipped:
 
   P1 — autoBodyGuess prefers exact-name match (Python validator backstop is

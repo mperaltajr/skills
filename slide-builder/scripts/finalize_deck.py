@@ -710,7 +710,7 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
             # it. The 40px/660px literals below are a last-resort default for a
             # caller that has no chrome to hand; they were the only numbers this
             # check ever used, and they are far more permissive than a real
-            # template. On the Northwind "Content" layout the graft occupies the top
+            # template. On one client's "Content" layout the graft occupies the top
             # 175px, so a takeaway landing on body content at y=133 sat 93px
             # inside a "clean" result. Eight slides shipped that way.
             try:

@@ -296,7 +296,7 @@ def build():
         ["A \"certificate\" error during setup", ["Try again first; it usually clears on its own. If it keeps happening, "
                                                   "tell Claude, or see the Install section of README.md."]],
         ["Anything else, or a deck did not come out right", ["Type ", ("/slidelab-log", "b"),
-                                                             " in Claude. It writes the problem report for you and gives you a link to send it."]],
+                                                             " in Claude. It writes the problem report for you; send the file to Mario Peralta on Teams or by email, never anywhere public."]],
     ], [1.9, 3.8])
 
     heading(doc, "Where to learn more")

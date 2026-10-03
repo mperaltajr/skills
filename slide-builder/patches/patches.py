@@ -81,7 +81,7 @@ PML = "http://schemas.openxmlformats.org/presentationml/2006/main"
 # ---------------------------------------------------------------------------
 #
 # CRITICAL: python-pptx's `prs.slide_layouts` only exposes layouts on slide
-# master 0. Corporate templates routinely have multiple masters — the Acme
+# master 0. Corporate templates routinely have multiple masters — a client
 # "Moving Forward" template has 12 masters and 178 layouts; its actual "1_Blank"
 # layout is at prs.slide_masters[11].slide_layouts[0], invisible to the shortcut.
 #
@@ -119,7 +119,7 @@ def _has_picture(shapes_iter):
 def _layout_or_master_has_picture(layout):
     """True if a layout OR its master carries decorative picture content.
 
-    Acme puts the cover photo on the MASTER, not on individual layouts —
+    One client template puts the cover photo on the MASTER, not on individual layouts —
     so checking layout.shapes alone misses it. Walk the master too.
     """
     if _has_picture(layout.shapes):
@@ -191,7 +191,7 @@ def get_named_layout(prs, layout_name: str):
       3. Falls back to get_blank_layout() if not found
 
     Iterates every master so corporate templates with multi-master designs
-    (Acme 'Moving Forward', many BCG/MBB decks) are handled correctly.
+    (several client templates and many consulting-style decks) are handled correctly.
     """
     name_lower = layout_name.strip().lower()
     candidates = list(_iter_all_layouts(prs))

@@ -22,7 +22,7 @@ font_body:       "Arial"
 
 # Background handling
 # Default false — KEEP the master decoration. For most client templates
-# (Acme, Accenture, etc.) the master IS the brand chrome and stripping
+# (most corporate templates) the master IS the brand chrome and stripping
 # makes every slide look off-spec. Set true ONLY when the master ships
 # unwanted photographic decoration (stadium photos, watermarks) that you
 # do NOT want behind every slide.

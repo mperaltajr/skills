@@ -178,6 +178,8 @@ Slide Lab checks for updates once a day when you start using it, and asks before
 
 ## Need help?
 
-- **Installation problem:** run the setup check (above) and [open an issue](https://github.com/mperaltajr/skills/issues/new/choose) with its table
-- **Something went wrong mid-session:** type `/slidelab-log` in Claude. It writes the bug report for you
-- **Suggestion:** [open an improvement suggestion](https://github.com/mperaltajr/skills/issues/new?template=improvement-suggestion.md)
+- **Installation problem:** run the setup check (above) and send its table to Mario Peralta on Teams
+- **Something went wrong mid-session:** type `/slidelab-log` in Claude. It writes the report for you; send the file to Mario Peralta on Teams or by email
+- **Suggestion:** tell Mario Peralta on Teams
+
+Never post session reports, slide content or client names on GitHub: this repository is public.

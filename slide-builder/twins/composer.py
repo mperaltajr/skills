@@ -8,7 +8,7 @@ for slide grafting:
     template + strip stale section groupings from the slide-panel sidebar.
   - `_find_blank_layout(prs)` — locate a 'Blank' slide layout across all
     masters (client templates often put the blank layout on a non-zero
-    master; Acme puts it on master 11).
+    master; one client template puts it on master 11).
   - `_strip_layout_placeholders(slide)` — remove inherited layout
     placeholders AND set `showMasterSp="0"` so master shapes don't bleed
     through onto the grafted content.
@@ -112,7 +112,7 @@ def _find_blank_layout(prs):
     Looks for a layout whose name (case-insensitive, after stripping
     whitespace and leading numeric prefixes like '1_') is exactly 'blank'.
     Scans every slide master because client templates often put their
-    blank layout on a non-zero master (Acme puts it on master 11).
+    blank layout on a non-zero master (one client template puts it on master 11).
     Falls back to the first master's first layout if no 'blank' is found.
     """
     for master in prs.slide_masters:
@@ -133,7 +133,7 @@ def _strip_layout_placeholders(slide, *, keep_master_shapes: bool = False) -> in
     behavior for templates whose masters carried only placeholder leakage.
 
     When ``keep_master_shapes=True``: only the slide-level shape strip runs;
-    master shapes (Acme purple bars, header rules, OTC top/bottom bands)
+    master shapes (colored bars, header rules, top/bottom bands)
     remain visible. Use this for bespoke layouts on templates where the
     master IS the brand chrome — i.e., brand.yml has
     ``strip_master_backgrounds: false``.
@@ -175,7 +175,7 @@ def _populate_layout_placeholders(slide, *, title=None, subtitle=None,
 
     title_idx / subtitle_idx (v2.2, SLIDE_LAB_FEEDBACK_LOG #2 follow-up):
     when chrome.yml registers a specific placeholder idx for title or
-    subtitle (e.g., Acme layouts where the "subtitle" slot is actually a
+    subtitle (e.g., client layouts where the "subtitle" slot is actually a
     BODY-type placeholder at idx=10, not a SUBTITLE-type placeholder),
     pass that idx in. The function will then match by idx FIRST and fall
     back to type-based matching only if idx-based lookup fails. This
@@ -264,7 +264,7 @@ def _populate_layout_placeholders(slide, *, title=None, subtitle=None,
                 pass
 
     # First pass: idx-based matching for any role that supplied an idx.
-    # This honors chrome.yml's registered placeholder ids (e.g., Acme
+    # This honors chrome.yml's registered placeholder ids (e.g., a client template's
     # template's subtitle is at idx=10 as a BODY-type placeholder — strict
     # type matching would silently miss it).
     if title is not None and title_idx is not None:

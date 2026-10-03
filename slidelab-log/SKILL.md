@@ -1,6 +1,6 @@
 ---
 name: slidelab-log
-description: "Generates a structured session failure or improvement report by reviewing what happened in the current session. Claude writes the report — not the user. Invoke when something went wrong mid-session, when the output wasn't right, or at the end of any session worth logging. Saves report to _session/feedback-YYYY-MM-DD.md and gives the user a GitHub link to submit it."
+description: "Generates a structured session failure or improvement report by reviewing what happened in the current session. Claude writes the report — not the user. Invoke when something went wrong mid-session, when the output wasn't right, or at the end of any session worth logging. Saves report to _session/feedback-YYYY-MM-DD.md and tells the user to send it privately to the Slide Lab owner (never to GitHub: the repo is public)."
 ---
 
 # Feedback — Session Report Generator
@@ -85,7 +85,7 @@ Reference specific skill rules, constraint numbers, or document structure if rel
 wrong section order — describe the fix. Reference the specific section.]
 ```
 
-### Step 3 — Save and give the user a submission link
+### Step 3 — Save it and tell the user how to send it privately
 
 Save the report to the session folder:
 ```
@@ -94,6 +94,8 @@ _session/feedback-YYYY-MM-DD.md
 
 Output the full absolute Windows path.
 
+> **⛔ Never send a report to GitHub, and never suggest it.** The Slide Lab repository is public. Reports quote slide content, file paths and client names, so posting one publishes client work. Reports go privately to the Slide Lab owner.
+
 Then output this block:
 
 ```
@@ -101,14 +103,9 @@ FEEDBACK REPORT SAVED
 =====================
 File: C:\path\to\_session\feedback-YYYY-MM-DD.md
 
-To submit:
-1. Open this link → https://github.com/mperaltajr/skills/issues/new?template=session-failure.md
-2. Paste the contents of the file above into the issue body
-3. Edit the title to summarize the problem in one line
-4. Click Submit
-
-Or for a general improvement suggestion:
-→ https://github.com/mperaltajr/skills/issues/new?template=improvement-suggestion.md
+To send it: attach this file in a Teams chat or email to Mario Peralta
+(Slide Lab owner). Do not post it anywhere public: it can contain client
+names and slide content.
 =====================
 ```
 

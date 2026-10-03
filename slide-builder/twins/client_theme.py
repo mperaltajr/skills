@@ -6,7 +6,7 @@ Theme detection used to live here as a stack of HSV-saturation heuristics
 slot-position fallbacks). Those were retired in the 2026-05 rewrite because
 they produced wrong colors on real templates — most visible: NFL stadium
 photos bleeding through finalized decks, ACN deep purple being passed over
-in favor of bright purple, Acme orange/purple swap.
+in favor of bright purple, an orange/purple swap on one client template.
 
 The new contract:
 
@@ -410,8 +410,8 @@ def load_brand_sidecar(template_path: Path) -> dict:
         "font_heading": str(brand_raw.get("font_heading", "") or ""),
         "font_body": str(brand_raw.get("font_body", "") or ""),
         # Default false — KEEP the master decoration. The master IS the
-        # brand chrome for most templates (Acme purple bars, Accenture
-        # rules, OTC top/bottom bands). Stripping makes every slide look
+        # brand chrome for most templates (colored bars, header
+        # rules, top/bottom bands). Stripping makes every slide look
         # off-spec. Set true ONLY for legacy templates with photographic
         # decoration that shouldn't bleed behind every slide.
         # (Matches register_template.py commit a8a79e2 and brand.yml docs.)
@@ -614,10 +614,10 @@ def _canonical_theme_part_name(template_path: Path) -> Optional[str]:
     brand-color extraction.
 
     Without this, callers that iterate the zip's parts get a non-deterministic
-    "first hit" (depends on storage order in the zip). The OTC template was
+    "first hit" (depends on storage order in the zip). One client template was
     authored with an orphan ``theme4.xml`` carrying Microsoft Office defaults
     (accent1=156082); zip-order luck made the loader pick that part instead
-    of the Acme-correct ``theme1.xml``. This function fixes that by reading
+    of the correct ``theme1.xml``. This function fixes that by reading
     the OOXML relationship graph the way PowerPoint itself does.
     """
     import zipfile

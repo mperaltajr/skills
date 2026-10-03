@@ -2674,7 +2674,7 @@ def _write_outputs(tpl: Path, sha: str, sha8: str,
         # RELATIVE path (just the filename). finalize resolves it against
         # brand.yml's dir, so it stays valid when the sidecar syncs to another
         # machine (OneDrive) that doesn't have the brand font installed — the
-        # exact Acme setup. Otherwise the title/band overlap gate (issue #2)
+        # exact setup of one client template. Otherwise the title/band overlap gate (issue #2)
         # would silently skip precisely when a custom brand font is in play.
         try:
             import shutil as _shutil
