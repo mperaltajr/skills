@@ -20,7 +20,8 @@ converts every option, not only the picks, so it costs several times the
 tokens; the page warns before sending it.
 
 Run (the page gives you this exact command):
-  py -3 scripts/record_picks.py --out <out_dir> --approved "PICKS ... CHECK ..."
+  py -3 scripts/record_picks.py --out <out_dir> --approved "Picks: 1B 2C ... (check 1a2b3c4d)"
+  (the older "PICKS slide_01=B;... CHECK ..." form is still accepted)
 Exit: 0 recorded | 5 refused | 2 bad usage
 """
 from __future__ import annotations
@@ -37,6 +38,27 @@ import _paths as _p  # noqa: E402
 import _state  # noqa: E402
 
 LINE_RE = re.compile(r"PICKS\s+(\S+)\s+CHECK\s+([0-9a-fA-F]{8})")
+# The plain line the review page copies now: "Picks: 1B 2C 3- 4A (check 1a2b3c4d)"
+# ("3-" = left out) or "Picks: all options (check ...)". Same check code.
+PLAIN_RE = re.compile(r"Picks:\s*(.+?)\s*\(check\s+([0-9a-fA-F]{8})\)", re.I)
+
+
+def _from_plain(text: str):
+    """(canonical body, check) from the plain line, or None."""
+    m = PLAIN_RE.search(text or "")
+    if not m:
+        return None
+    raw, check = m.group(1).strip(), m.group(2)
+    if raw.lower().startswith("all"):
+        return "ALL", check
+    pairs = []
+    for tok in raw.replace(",", " ").split():
+        mm = re.fullmatch(r"(\d{1,3})([A-Fa-f]|-)", tok)
+        if not mm:
+            return ("BAD:" + tok), check
+        pairs.append((int(mm.group(1)), mm.group(2).upper()))
+    body = ";".join(f"slide_{n:02d}={L}" for n, L in sorted(pairs))
+    return body, check
 
 
 def _letters_on_disk(slide_dir: Path) -> list[str]:
@@ -61,11 +83,18 @@ def main(argv=None) -> int:
         return 2
 
     m = LINE_RE.search(args.approved or "")
-    if not m:
+    plain = None if m else _from_plain(args.approved)
+    if not m and not plain:
         print("REFUSED: that is not an approval line from REVIEW.html. It looks "
-              'like "PICKS slide_01=A;slide_02=C CHECK 1a2b3c4d".')
+              'like "Picks: 1A 2C 3B (check 1a2b3c4d)".')
         return 5
-    body, check = m.group(1), m.group(2).lower()
+    if m:
+        body, check = m.group(1), m.group(2).lower()
+    else:
+        body, check = plain[0], plain[1].lower()
+        if body.startswith("BAD:"):
+            print(f"REFUSED: malformed pick {body[4:]!r}.")
+            return 5
 
     state = _state.read_state(out)
     review = state.get("review") or {}

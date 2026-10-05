@@ -225,8 +225,10 @@ def main() -> int:
                 kept = pg.evaluate("() => [pickForSlide('slide_01'), pickForSlide('slide_02')]")
                 b.close()
             import re as _re
-            m = _re.search(r'--approved "([^"]+)"', cmd)
-            assert m, cmd
+            # The page copies a plain message now; its Picks line is what
+            # record_picks.py receives (check-coded, verified there).
+            m = _re.search(r"^(Picks: .+\(check [0-9a-f]{8}\))$", cmd, _re.M)
+            assert m and "py -3" not in cmd, cmd
             r = H.run("record_picks.py", "--out", out, "--approved", m.group(1))
             assert r.returncode == 0, r.stdout
             assert kept == ["A", None], kept

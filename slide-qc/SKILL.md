@@ -228,13 +228,14 @@ Want me to fix all of these in one pass?
 **If no Criticals but at least one Major exists:**
 
 ```
-[Slide N] has a Major issue. Do you want to fix it or move on?
+[N] Major issues. Each has a proposed fix in the table above.
 
-[Each Major addressed in turn — same conversational prompt, with one or two concrete fix suggestions. Example:]
-
-Slide 4 — title is 28pt but Slide 1 (same slide type) is 32pt.
-Suggestions: resize Slide 4 to 32pt, or resize Slide 1 to match Slide 4. Or tell me why you want to ship it as-is and I'll record your reason.
+Reply **fix** to fix all of them (I redesign those slides and rebuild the deck
+without sending you back to the review pages), or name any you want to keep
+and say why; I'll record your reason.
 ```
+
+Put every Major in the one table, each with a concrete fix, and ask once. Do not walk the user through them one message at a time.
 
 **Override path for Major issues:** A user can ship a Major as-is, but only by writing a reason in their own words (no shortcut keyword). If the reply doesn't include a reason ("skip," "override," "ignore" alone), ask once:
 

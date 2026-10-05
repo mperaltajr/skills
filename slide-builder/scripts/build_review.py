@@ -598,7 +598,7 @@ def render_storyline_html(storyline: dict, slides: list) -> str:
     sback = html.escape(storyline.get("say_back") or "—")
     return f"""
 <details class="storyline-section">
-<summary><span class="storyline-summary-text">▶ Storyline (dot-dash) — click to expand</span></summary>
+<summary><span class="storyline-summary-text">▶ The storyline (one line per slide): click to open</span></summary>
 <div class="storyline-body">
   <div class="dd-container">
     <h1 class="dd-title">Dot-dash storyline: {topic}</h1>
@@ -610,7 +610,7 @@ def render_storyline_html(storyline: dict, slides: list) -> str:
       <div class="lbl">Belief to leave with</div><div class="val">{bleave}</div>
       <div class="lbl">Room should say back</div><div class="val">{sback}</div>
     </div>
-    <div class="dd-callout">Read the dots top-to-bottom — they should form the deck's argument as a single coherent story.</div>
+    <div class="dd-callout">Read the slide headlines top to bottom: they should tell the deck's whole argument.</div>
     {blocks}
   </div>
 </div>
@@ -691,25 +691,25 @@ def render_font_banner(out_dir: Path) -> str:
 
 FEEDBACK_FIELDS = [
     ("headline",   "Headline / title",         "Anything to change about the action title?"),
-    ("layout",     "Layout / structure",       "Spacing, hierarchy, layout choice — what to nudge?"),
-    ("content",    "Content / data accuracy",  "Wrong number, missing nuance, wording issue — what to fix?"),
-    ("visual",     "Visual polish",            "Colors, alignment, type — anything off?"),
-    ("other",      "Other notes",              "Anything else worth capturing for the regen?"),
+    ("layout",     "Layout / structure",       "Spacing, hierarchy, layout choice: what to change?"),
+    ("content",    "Content / data accuracy",  "Wrong number, missing nuance, wording: what to fix?"),
+    ("visual",     "Visual polish",            "Colors, alignment, type: anything off?"),
+    ("other",      "Other notes",              "Anything else for the redesign?"),
 ]
 
 # One-click feedback so the reviewer doesn't have to type the common notes.
 # A clicked chip is stored in the same feedback store (a synthetic "quick"
 # field), so it flows into the copied compile command with no extra plumbing.
 QUICK_FEEDBACK = [
-    "Too sparse — add detail",
-    "Too dense — simplify",
+    "Too sparse, add detail",
+    "Too dense, simplify",
     "Content overlaps / cut off",
     "Wrong layout / structure",
     "Change the accent color",
-    "Title too long — reword",
+    "Title too long, reword",
     "Fix a number / wording",
     "More visual, less text",
-    "Add process structure — numbers, icons",
+    "Add process structure: numbers, icons",
 ]
 
 # What a chip asks the designer to do, spelled out in the copied feedback. The
@@ -717,7 +717,7 @@ QUICK_FEEDBACK = [
 # Pages rarely numbered their steps or used shape markers unless told to in
 # words every time, so that chip carries the full direction.
 QUICK_FEEDBACK_EXPANDED = {
-    "Add process structure — numbers, icons": (
+    "Add process structure: numbers, icons": (
         "Make the structure visible: number the steps or items (01, 02, 03 or "
         "numbers in circles), give each one a simple shape marker or icon drawn "
         "with native shapes (circle, chevron, small rounded square, not emoji or "
@@ -750,12 +750,12 @@ def render_option_tile(slide: dict, opt: dict, themed_path_str: str) -> str:
         qc_badge = ""
     elif n_block > 0:
         tooltip = " | ".join(qc_failed[:6]) or "blocking issue"
-        qc_badge = f'<div class="qc-badge block" title="{html.escape(tooltip)}">BLOCK</div>'
+        qc_badge = f'<div class="qc-badge block" title="{html.escape(tooltip)}">Needs a fix</div>'
     elif n_warn > 0:
         tooltip = " | ".join(qc_failed[:6]) or f"{n_warn} warning(s)"
-        qc_badge = f'<div class="qc-badge warn" title="{html.escape(tooltip)}">~ {n_warn}</div>'
+        qc_badge = f'<div class="qc-badge warn" title="{html.escape(tooltip)}">{n_warn} to check</div>'
     else:
-        qc_badge = '<div class="qc-badge ok" title="all QC checks passed">OK QC</div>'
+        qc_badge = ""  # a clean option needs no badge
 
     # classification badge — bottom-right of frame
     classification = opt.get("classification", "native")
@@ -763,29 +763,19 @@ def render_option_tile(slide: dict, opt: dict, themed_path_str: str) -> str:
     if classification == "fallback_mermaid":
         class_badge_html = '<div class="class-badge fallback" title="Mermaid fallback render">MERMAID</div>'
     elif classification == "skeleton_rejected":
-        class_badge_html = '<div class="class-badge rejected" title="SKELETON_REJECTED — no PPTX produced">REJECTED</div>'
+        class_badge_html = '<div class="class-badge rejected" title="The designer could not build this layout from the brief">Not built</div>'
 
-    vqc_btn = (
-        f'<button class="vision-qc-btn" '
-        f'onclick="copyVisionQcPrompt(this, \'{html.escape(themed_path_str)}\')" '
-        f'title="Copy a paste-ready Claude prompt to run slide-qc vision review">'
-        f'Vision QC &rarr;</button>'
-        if themed_path_str else ''
-    )
+    vqc_btn = ""  # the quality check runs on the finished deck, not per option
 
     # pattern label under the option-meta line
     pattern = opt.get("pattern")
-    pattern_html = (
-        f'<div class="option-pattern">{html.escape(pattern)}</div>'
-        if pattern else ""
-    )
+    pattern_html = ""  # internal layout names mean nothing to the reviewer
 
     return f"""
 <div class="option" data-slide="{sid}" data-letter="{letter}" data-pptx="{html.escape(themed_path_str)}">
   <div class="option-frame">{thumb}{qc_badge}{class_badge_html}</div>
   <div class="option-meta">
     <span class="option-letter">Option {letter}</span>
-    <div class="option-taxon">{html.escape(page_type)}</div>
     {pattern_html}
     {vqc_btn}
   </div>
@@ -996,7 +986,7 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
       <div class="card-num">SLIDE {n}</div>
       <div class="card-name">{title}</div>
     </div>
-    <div class="status-badge pending" id="badge-{sid}">PENDING</div>
+    <div class="status-badge pending" id="badge-{sid}">Not decided yet</div>
   </div>
 
   {adjacency_banner}
@@ -1008,7 +998,6 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
     {option_tiles}
   </div>
 
-  {render_sketch_qc_section(slide)}
 
   <div class="card-controls">
     <div>
@@ -1029,7 +1018,7 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
     <div>
       <div class="quick-fb">
         <div class="field-label">Quick feedback</div>
-        <div class="hint-text">Click any that apply — no typing needed.</div>
+        <div class="hint-text">Click any that apply. No typing needed.</div>
         <div class="chip-row">
           {chips_html}
         </div>
@@ -1349,9 +1338,9 @@ function renderSlideState(sid) {
 
     const badge = document.getElementById("badge-" + sid);
     badge.classList.remove("pending", "picked", "none");
-    if (letter) { badge.classList.add("picked"); badge.textContent = letter === "-" ? "LEFT OUT" : "DECIDED " + letter; }
-    else if (isNone) { badge.classList.add("none"); badge.textContent = "REPLACE REQUESTED"; }
-    else { badge.classList.add("pending"); badge.textContent = "PENDING"; }
+    if (letter) { badge.classList.add("picked"); badge.textContent = letter === "-" ? "Left out" : "Picked " + letter; }
+    else if (isNone) { badge.classList.add("none"); badge.textContent = "New designs requested"; }
+    else { badge.classList.add("pending"); badge.textContent = "Not decided yet"; }
 
     const regenPanel = document.getElementById("regen-" + sid);
     if (regenPanel) regenPanel.style.display = isNone ? "block" : "none";
@@ -1487,10 +1476,15 @@ function feedbackText() {
     return t;
 }
 
-function recordCommand(body) {
-    return "  py -3 \"" + window.__SCRIPTS_DIR__ + "\\record_picks.py\" --out \"" +
-        window.__OUT_DIR__ + "\" --approved \"PICKS " + body + " CHECK " +
-        approvalCheck(body) + "\"\n";
+// The approval in plain words: "Picks: 1B 2C 3- (check 1a2b3c4d)". record_picks.py
+// turns it back into the canonical list and verifies the same check code.
+function plainPicks(body) {
+    if (body === "ALL") return "Picks: all options (check " + approvalCheck(body) + ")";
+    const parts = body.split(";").map(p => {
+        const [k, v] = p.split("=");
+        return String(parseInt(k.replace("slide_", ""), 10)) + v;
+    });
+    return "Picks: " + parts.join(" ") + " (check " + approvalCheck(body) + ")";
 }
 
 async function copyOut(cmd, label, heading) {
@@ -1519,11 +1513,13 @@ async function buildDeck() {
 
     // Any Replace request means another design round, not a build.
     if (replace.length) {
-        let cmd = "Update my slide-lab deck, then rebuild REVIEW.html so I can review again.\n";
-        cmd += "Out dir: " + window.__OUT_DIR__ + "\n";
-        cmd += "Replace the options on these slides with new designs " +
-               "(build_deck.py --slide N moves the old ones aside): " + replace.join(", ") + "\n";
-        if (Object.keys(picks).length) cmd += "Keep these picks: " + canonicalPicks(picks) + "\n";
+        let cmd = "Redesign some slides in my Slide Lab deck.\n";
+        cmd += "Folder: " + window.__OUT_DIR__ + "\n";
+        cmd += "New designs for: " + replace.map(s => "slide " + parseInt(s.replace("slide_", ""), 10)).join(", ") + "\n";
+        // Check-coded like the build line, so redesign_round.py can record
+        // them before the redesign and skip a second picking page.
+        if (Object.keys(picks).length)
+            cmd += plainPicks(canonicalPicks(picks)).replace(/^Picks:/, "Keep:") + "\n";
         cmd += feedbackText();
         return copyOut(cmd, "Update command copied. Paste into Claude Code.",
                        "Update command (Ctrl+C to copy)");
@@ -1532,13 +1528,12 @@ async function buildDeck() {
     // Every slide picked: record exactly these picks, check-coded, then convert
     // only the picked sketches and show the finished slides for a final look.
     const body = canonicalPicks(picks);
-    let cmd = "Build my slide-lab deck from these picks.\n";
-    cmd += "Out dir: " + window.__OUT_DIR__ + "\n";
-    cmd += "Record them exactly as written (do not retype them):\n" + recordCommand(body);
-    cmd += "Then follow the steps it prints, and show me FINAL-CHECK.html before compiling.\n";
+    let cmd = "Build my Slide Lab deck.\n";
+    cmd += "Folder: " + window.__OUT_DIR__ + "\n";
+    cmd += plainPicks(body) + "\n";
     cmd += feedbackText();
-    return copyOut(cmd, "Build command copied. Paste into Claude Code.",
-                   "Build command (Ctrl+C to copy)");
+    return copyOut(cmd, "Copied. Paste it into Claude.",
+                   "Copy this into Claude (Ctrl+C)");
 }
 
 async function buildAllOptions() {
@@ -1553,10 +1548,9 @@ async function buildAllOptions() {
         "(about " + ratio + "x the conversion cost).\n\n" +
         "Use it only when you need to compare every design side by side.\n\nContinue?";
     if (!confirm(msg)) return;
-    let cmd = "Build ALL options in one slide-lab deck (every option, labeled).\n";
-    cmd += "Out dir: " + window.__OUT_DIR__ + "\n";
-    cmd += "Record the approval exactly as written:\n" + recordCommand("ALL");
-    cmd += "Then follow the steps it prints, and show me FINAL-CHECK.html before compiling.\n";
+    let cmd = "Build all options in one Slide Lab deck (every option, labeled).\n";
+    cmd += "Folder: " + window.__OUT_DIR__ + "\n";
+    cmd += plainPicks("ALL") + "\n";
     cmd += feedbackText();
     return copyOut(cmd, "All-options command copied. Paste into Claude Code.",
                    "All-options command (Ctrl+C to copy)");
@@ -1661,7 +1655,7 @@ def build_html(out_dir: Path, meta: Optional[dict], slides: list, storyline: dic
     topbar_html = f"""
 <div class="topbar">
   <div>
-    <div class="title">{html.escape(deck_topic)} &middot; OPTIONS REVIEW &middot; {slide_count} slides</div>
+    <div class="title">{html.escape(deck_topic)}: pick a design for each slide ({slide_count} slides)</div>
     <div class="title-sub">{html.escape(deck_type)} &middot; Pick an option for every slide, or Replace these to get new designs.</div>
     <div class="topbar-meta">
       <div class="k">Generated</div><div class="v">{html.escape(generated)}</div>
@@ -1823,6 +1817,12 @@ def build_final_check(out_dir: Path, meta: Optional[dict]) -> int:
                    f'--final-token {token}{flags}')
     what = (f"all {len(ship)} options" if all_options
             else f"{len(ship)} slide(s)")
+    # Plain lines the Build it message carries so Claude adds the right options.
+    extra_lines = ""
+    if all_options:
+        extra_lines += "Deck: all options, labeled\n"
+    if (meta or {}).get("adopted_source"):
+        extra_lines += f"Put back into: {meta['adopted_source']}\n"
     # Numbers and labels on the picks that the brief does not contain, and
     # figures written two ways: the person approving sees what to verify.
     try:
@@ -1847,22 +1847,22 @@ say what is wrong in the box instead.</p></header>
 </footer><div id="toast"></div>
 <script>
 const OUT = {json.dumps(str(out_dir))};
-const CMD = {json.dumps(compile_cmd)};
+const TOKEN = {json.dumps(token)};
+const EXTRA = {json.dumps(extra_lines)};
 function toast(m) {{ const t = document.getElementById("toast"); t.textContent = m;
   t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 1800); }}
 async function copy(text, label) {{
   try {{ await navigator.clipboard.writeText(text); toast(label); }}
   catch (e) {{ prompt("Copy this:", text); }} }}
 document.getElementById("btn-go").onclick = () => copy(
-  "Compile my slide-lab deck. I checked the finished slides.\\nOut dir: " + OUT +
-  "\\n  " + CMD + "\\nThen run slide-qc on the deck and check_done.py before telling me it is done.\\n",
-  "Build command copied. Paste into Claude Code.");
+  "Build it: I checked the finished slides.\\nFolder: " + OUT +
+  "\\nFinal check: " + TOKEN + "\\n" + EXTRA,
+  "Copied. Paste it into Claude.");
 document.getElementById("btn-fix").onclick = () => {{
   const t = document.getElementById("fix").value.trim();
   if (!t) {{ toast("Say what needs fixing first."); return; }}
-  copy("Fix my slide-lab deck before building it.\\nOut dir: " + OUT +
-       "\\nWhat is wrong: " + t + "\\nRebuild the affected slide(s) through the pipeline, " +
-       "then show me a new FINAL-CHECK.html.\\n", "Fix request copied. Paste into Claude Code.");
+  copy("Fix these before building my Slide Lab deck.\\nFolder: " + OUT +
+       "\\nWhat is wrong: " + t + "\\n", "Copied. Paste it into Claude.");
 }};
 </script></body></html>"""
     dest = out_dir / "FINAL-CHECK.html"
@@ -1887,6 +1887,9 @@ def main(argv: list[str]) -> int:
                     help="Client template path. Accepted for CLI consistency with "
                          "the other stages; build_review reads everything it needs "
                          "from --out and does not use it.")
+    ap.add_argument("--open", action="store_true",
+                    help="Open the page in the default browser after writing it "
+                         "(Claude passes this so the user does not have to find the file).")
     args = ap.parse_args(argv)
 
     from _log import attach as _log_attach
@@ -1919,7 +1922,10 @@ def main(argv: list[str]) -> int:
             return 3
 
     if args.final:
-        return build_final_check(out_dir, meta)
+        rc = build_final_check(out_dir, meta)
+        if rc == 0 and args.open:
+            _open_page(out_dir / "FINAL-CHECK.html")
+        return rc
 
     slides = [scan_slide(out_dir, n, slide_metas.get(n)) for n in slide_nums]
     # An adopted external deck rebuilds only some of its slides; the rest stay
@@ -1955,7 +1961,27 @@ def main(argv: list[str]) -> int:
     print(f"     missing PNGs: {missing_png}, missing themed PPTX: {missing_themed}")
     print(f"     storyline parsed from brief: {storyline.get('found')}")
     print(f"     size: {fmt_bytes(review_path.stat().st_size)}")
+    if args.open:
+        _open_page(review_path)
     return 0
+
+
+def _open_page(path: Path) -> None:
+    """Open a page in the user's browser; never fail the build over it.
+    SLIDE_LAB_NO_OPEN=1 (set by the tests) prints the path instead."""
+    import os
+    if os.environ.get("SLIDE_LAB_NO_OPEN"):
+        print(f"     (not opened: SLIDE_LAB_NO_OPEN) {path}")
+        return
+    try:
+        if os.name == "nt":
+            os.startfile(str(path))  # noqa: S606 (local file the build just wrote)
+        else:
+            import webbrowser
+            webbrowser.open(path.resolve().as_uri())
+        print(f"     opened in your browser: {path}")
+    except Exception as exc:
+        print(f"     (could not open it automatically: {type(exc).__name__}; open {path})")
 
 
 if __name__ == "__main__":

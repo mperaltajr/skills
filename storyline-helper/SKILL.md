@@ -478,7 +478,7 @@ The named sub-passes below — quality gate, language pass, pushback, save, hand
 
 1. **Session folder root** — the parent directory where the dated session folder will be created. Convention: `<Client>/sessions/YYYY-MM-DD Topic Name/`. **Default to the local drive:** `<home>/Slide Lab/sessions/<Client>/` (Windows `C:\Users\<you>\Slide Lab\sessions\<Client>\`). If the user names a folder inside OneDrive, Dropbox or another synced folder, say once, plainly, that builds run much slower there (OneDrive turned about 4 minutes per page into 9 to 20 and made renders time out) and offer the local folder; finished decks can be copied to OneDrive or SharePoint afterwards. Their choice stands.
 2. **Client name and topic** — drives the dated subfolder name and the brief filename (e.g., `Acme / Cost Baseline` → `Acme/sessions/2026-05-06 Cost Baseline/`).
-3. **Client template** — the `.pptx` that carries the client's brand. **Pick it from the list, don't guess a path:** run `py -3 slide-builder/scripts/register_template.py list` and present the registered templates as a **numbered pick-list**; the user picks one and you use its `template_path` (the original `.pptx` — pass that as `client_template:`; the pipeline opens the normalized build copy automatically). If the template they want isn't listed (or the list is empty), **stop and route the user to register it first** (the standalone Register action / `slide-lab` option 7) — registration is its own step, not something to run inline in the middle of the deck flow — then re-run `list` and pick it.
+3. **Client template** — the `.pptx` that carries the client's brand. **If it was already picked at the start (the front door asks first), show that choice as the value; do not show the list again.** Otherwise pick it from the list, don't guess a path: run `py -3 slide-builder/scripts/register_template.py list` and present the registered templates as a **numbered pick-list**; the user picks one and you use its `template_path` (the original `.pptx` — pass that as `client_template:`; the pipeline opens the normalized build copy automatically). If the template they want isn't listed (or the list is empty), **stop and route the user to register it first** (the standalone Register action / `slide-lab` option 7) — registration is its own step, not something to run inline in the middle of the deck flow — then re-run `list` and pick it.
 4. **Default content layout** — take it from the picked list entry's `default_content_layout` (or read `<stem>/theme.json::default_content_layout`). If empty, the template needs (re-)registration to capture it. Never let `build_deck.py` run with an empty default layout — that's a hard mid-build failure.
 
 **Combine the asks** — one message, four lines:
@@ -492,7 +492,9 @@ The named sub-passes below — quality gate, language pass, pushback, save, hand
 >
 > *Reply with any corrections, or `confirm` to lock all four."*
 
-Wait for explicit confirmation. `looks good` / `yes` without naming the values isn't sufficient — restate the four values and ask which need changing.
+Wait for the user's reply. Because the four values are written out in the same message, a plain "yes", "build" or "confirm" confirms them; only a reply that ignores them entirely (an answer to something else) needs the values restated.
+
+**One message, one reply.** At the end of the storyline, send ONE message with three parts: (1) the four setup values, (2) the review table (gate findings plus `brief_check.py` rows, each with a proposed rewrite), and (3) the ask: *"Reply **build** to use these rewrites and build the slides, **save only** to keep the storyline without building, or tell me what to change."* That single reply confirms the values, acknowledges the review, and answers build-or-stop. Do not split these into three stops (on a real run they took three to fifteen turns).
 
 Once confirmed, state all four resolved values:
 
@@ -682,7 +684,7 @@ Test each slide's governing thought against three checks:
 
 6. **Measured or expected.** A headline that states a result in past or present tense needs the measurement on the page. When there is none, it says its basis ("We expect...", "Based on 12 interviews...", "no data yet"). Fail: "Local partners make each next market cheaper" when the brief marks it qualitative. Pass: "We expect partners to lower Indonesia's entry cost; no data yet".
 
-**Show every failing headline and takeaway at once**, in one table (slide, problem, proposed rewrite), and ask once: *"Use all of these, all but some (tell me which), or edit?"* Do not walk the user through them one message at a time. **Override is not offered here as a peer option** — keeping a failing headline requires going through the constructive-pushback protocol in the pushback protocol (name the weakness, offer concrete alternatives, ask explicitly). Do not proceed to the next slide's check until the user responds.
+**Show every failing headline and takeaway at once**, in one table (slide, problem, proposed rewrite), and ask once: *"Use all of these, all but some (tell me which), or edit?"* Do not walk the user through them one message at a time. Keeping a failing headline needs the user's reason in their own words (it is recorded with `seal_brief.py --accepted`); a bare "skip" is not a reason.
 
 #### Body content quality (supporting bullets and evidence)
 
@@ -738,7 +740,7 @@ If the user insists on proceeding despite a flagged issue, do not just acquiesce
 
 After the nine-part gate, the cross-cutting rules sweep, the language pass language pass, and the brief completeness check have all run, produce the **Review output**. This is the structured report the user reads to decide what to fix and what to ship.
 
-> **⛔ Hard rule — review must be acknowledged.** The brief is NOT saved until the user has **explicitly acknowledged** the Review output table — including when the table contains only Advisories. **Self-passing the quality gate is not a pass.** The exact words "produce the brief," "ship it," "looks good — save," or equivalent must come from the user. If you ran the gate against your own brief and graded it yourself, surface the table and wait. Do not write the brief file before the user responds.
+> **⛔ Hard rule — review must be acknowledged.** The brief is NOT saved until the user has **explicitly acknowledged** the Review output table — including when the table contains only Advisories. **Self-passing the quality gate is not a pass.** The user's reply to the one combined message ("build", "save only", "ship it", or their changes) is that acknowledgment. If you ran the gate against your own brief and graded it yourself, surface the table and wait. Do not write the brief file before the user responds.
 >
 > **Defensible-default trap.** When the gate produces zero Criticals + zero Majors + N Advisories, the tempting move is to call it a pass and save the brief. Don't. Advisories are *advisory to the user*, not *clearance for Claude*. The user might look at advisory #3 and say "actually, that's a Critical for this audience — let me fix it." That option vanishes the moment the brief is on disk.
 
@@ -774,7 +776,7 @@ After the user resolves the Critical, re-run the gate from the affected Part and
 Suggestions: [two concrete fix options — be specific, e.g., "add no-path bullets to Slide 3" or "add a 4th slide showing the no-path consequences"]. Or tell me why you want to ship it as-is and I'll record your reason in the brief.
 ```
 
-If there are multiple Majors, address each in turn — same conversational prompt for each.
+If there are several Majors, put them all in the one review table with a fix each, and ask once; the user answers for all of them in one reply.
 
 **Override path for Major issues:** The user can ship a Major as-is, but only by writing a reason in their own words (no shortcut keyword). If the user replies with anything that does not include a reason (e.g., just "skip" or "override"), respond:
 
@@ -848,9 +850,11 @@ Storyline saved:
   Brief (for building):     <absolute path to _session/narrative-brief-[topic].md>
 ```
 
-**Then STOP and ask — do NOT auto-build.** The storyline (dot-dash) is a deliverable in its own right: many users want just the storyline and will build later, hand it to someone else, or not build at all. Ask exactly:
+**Build or stop: already answered.** The user answered this in the one combined message ("build" or "save only"). Do not ask again. If, unusually, they have not (for example they only edited the storyline), ask exactly once:
 
-> *"That's the storyline. Is this what you needed, or should I build it into slides now? I can also just stop here — the dot-dash and the brief are both saved."*
+> *"That's the storyline. Build it into slides now, or stop here? Both files are saved."*
+
+Never auto-build without that answer: the storyline is a deliverable in its own right.
 
 - **Build now** → go to the handoff section below (verify the template is registered, then invoke slide-builder).
 - **Just the storyline / not yet** → **STOP.** Restate the two saved paths and end cleanly. The brief is already on disk, so building later is a plain "build the deck from `<brief path>`" — resume the handoff then; nothing needs redoing.
