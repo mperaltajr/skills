@@ -39,6 +39,14 @@ From a three-auditor review of download, install, operation and output.
 - Storyline files use plain labels ("Main message", "What the audience
   believes now").
 
+### Tutorial
+- Redesigned from tables into 8 numbered steps (your turn vs Claude working
+  shown on each step), with reference and help after the steps.
+- Works as one emailed file: the install guide, example storyline, review
+  page and deck are built in (`docs/tutorial/assemble.py`).
+- Review pages keep choices in memory when the browser refuses to save them,
+  instead of the buttons failing.
+
 ### Install and security
 - `doctor.py fix` grants only Slide Lab's own commands and folders, not
   blanket shell access. LibreOffice can be replaced by PowerPoint on Windows.

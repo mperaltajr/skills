@@ -1121,8 +1121,20 @@ const TOTAL_SLIDES = window.__TOTAL_SLIDES__;
 const SLIDE_IDS = window.__SLIDE_IDS__;
 const SLIDE_MAP = window.__SLIDE_MAP__;
 
-function loadJson(key) { try { return JSON.parse(localStorage.getItem(key) || "{}"); } catch (e) { return {}; } }
-function saveJson(key, obj) { localStorage.setItem(key, JSON.stringify(obj)); }
+// Saved in the browser so choices survive closing the page. Where the browser
+// refuses (a page opened from inside another file, strict company settings)
+// choices are kept in memory for this visit instead of breaking the buttons.
+var memStore = {};
+function loadJson(key) {
+  var raw = null;
+  try { raw = localStorage.getItem(key); } catch (e) { raw = memStore[key] || null; }
+  try { return JSON.parse(raw || "{}"); } catch (e) { return {}; }
+}
+function saveJson(key, obj) {
+  var raw = JSON.stringify(obj);
+  memStore[key] = raw;
+  try { localStorage.setItem(key, raw); } catch (e) {}
+}
 function loadPicks()  { return loadJson(PICKS_KEY); }
 function savePicks(p) { saveJson(PICKS_KEY, p); }
 function loadRegens() { return loadJson(REGEN_KEY); }

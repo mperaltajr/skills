@@ -8,7 +8,11 @@
      output so check_tutorial.py can compare them.
   3. Embeds review.png and final.png (beside this script) as JPEG, at most
      1200 px wide, quality 82.
-  4. Writes <skills folder>/Slide-Lab-Tutorial.html and runs check_tutorial.py.
+  4. Embeds the four files the guide links to (install guide, example
+     storyline, review page and deck, from the skills folder), so the guide
+     still works when it is emailed on its own. Each link gets data-att; the
+     page script opens or downloads the embedded copy.
+  5. Writes <skills folder>/Slide-Lab-Tutorial.html and runs check_tutorial.py.
 
 Run:  py -3 docs/tutorial/assemble.py
 Exit: 0 written and check passed | 1 check failed or a fact is missing
@@ -32,6 +36,14 @@ SRC = HERE / "tutorial_src.html"
 OUT = ROOT / "Slide-Lab-Tutorial.html"
 CHECK = ROOT / "slide-builder" / "scripts" / "check_tutorial.py"
 IMAGES = {"{{IMG_REVIEW}}": HERE / "review.png", "{{IMG_FINAL}}": HERE / "final.png"}
+ATTACH = {
+    "Slide-Lab-Install-Guide.docx":
+        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "Slide-Lab-Example-Storyline.html": "text/html",
+    "Slide-Lab-Example-Review.html": "text/html",
+    "Slide-Lab-Example-Deck.pptx":
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+}
 
 FACTS_RE = re.compile(r'<script[^>]*id="slidelab-facts"[^>]*>(.*?)</script>', re.S)
 # an element carrying data-f, with no child elements (facts are plain text)
@@ -83,6 +95,22 @@ def main() -> int:
     if "{{" in page:
         print("An image placeholder was not replaced")
         return 1
+
+    blocks = []
+    for i, (name, mime) in enumerate(ATTACH.items()):
+        f = ROOT / name
+        link = f'<a href="{name}"'
+        if link not in page:
+            continue
+        if not f.exists():
+            print(f"Linked file missing: {f}")
+            return 1
+        page = page.replace(link, f'{link} data-att="{i}"')
+        # A data: URI, so check_tutorial.py skips it like the pictures.
+        data = base64.b64encode(f.read_bytes()).decode("ascii")
+        blocks.append(f'<script type="text/plain" id="att-{i}" data-name="{name}" '
+                      f'data-type="{mime}">data:{mime};base64,{data}</script>')
+    page = page.replace("</body>", "\n".join(blocks) + "\n</body>", 1)
 
     OUT.write_text(page, encoding="utf-8", newline="\n")
     print(f"Written: {OUT}")
