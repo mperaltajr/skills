@@ -80,7 +80,7 @@ def main() -> int:
 
         brief = tmp / "brief.md"
         brief.write_text(BRIEF.format(tpl=tpl), encoding="utf-8")
-        subprocess.run([sys.executable, str(SCRIPTS / "seal_brief.py"), "--brief", str(brief)],
+        subprocess.run([sys.executable, str(SCRIPTS / "seal_brief.py"), "--brief", str(brief), "--accepted", "test brief"],
                        check=True, capture_output=True)
 
         print("[1] ambiguous cover names are NOT guessed")
@@ -121,7 +121,7 @@ def main() -> int:
             BRIEF.format(tpl=tpl).replace(
                 "**Slide type:** Cover",
                 "**Slide type:** Cover\n**Layout:** body_canonical_light"), encoding="utf-8")
-        subprocess.run([sys.executable, str(SCRIPTS / "seal_brief.py"), "--brief", str(brief2)],
+        subprocess.run([sys.executable, str(SCRIPTS / "seal_brief.py"), "--brief", str(brief2), "--accepted", "test brief"],
                        check=True, capture_output=True)
         out2 = tmp / "b2"
         r = subprocess.run(

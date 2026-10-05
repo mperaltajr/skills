@@ -315,14 +315,13 @@ When a bullet or takeaway is soft and the user doesn't have a fact, follow this 
 2. **Probe for gaps, don't generate to fill them.** When the user can't supply a fact, the slide ships as qualitative — not as Claude-generated prose pretending to be a fact.
 3. **One message per slide ask.** Don't fragment the gaps across multiple turns. State what's known, name the gaps, ask once. The user's reply locks the slide.
 4. **Two probes max per gap.** Past two, accept qualitative and move on.
-5. **Governing thought ≤ 100 characters / ~15 words.** If the user (or your the Diagnosis stage draft) produces one longer, push back inline — see the dot-length enforcement section below.
+5. **Governing thought fits one line of the template.** The one-line budget is measured from the registered template's title box and font (about 62 characters on a typical 28 pt title); `seal_brief.py` checks it. If a draft is longer, push back inline — see the dot-length enforcement section below.
 
 #### Dot length — hard ceiling, enforced inline
 
 The governing thought  becomes the slide headline AND the dot in the dot-dash. Both need to be short.
 
-- **Hard ceiling:** ≤ 100 characters / ~15 words.
-- **Soft target:** 10–15 words.
+- **Target:** one line of the template's title box (measured; about 62 characters, 9 to 11 words, on a 28 pt title). Two lines is the hard ceiling, and a second line holding one or two words reads as a mistake.
 - **What to do if a candidate dot is too long:** before locking, push back with a specific compression option. *"This dot has 27 words: 'Customer experience, revenue capture, and cost-to-serve all break in the same place — across the seams between functions — which is exactly where no single P&L can fix them.' That won't fit on a slide. Two options: (a) compress to 'The biggest problems sit between functions, where no single P&L can reach them' — 13 words, same meaning, with the nuance moving to the dashes and Takeaway. (b) split into two slides if you want both halves to land separately. (a) or (b)?"*
 - **Where the nuance goes when you compress:** the dashes (supporting facts) and the Takeaway (the belief shift). Both already exist for the slide — they absorb the lost detail naturally.
 
@@ -339,7 +338,7 @@ The user decides. If cut, remove from the structure and re-number. If kept, ask 
 Each slide locks with these fields. Slide-builder downstream reads them to construct the slide. The dot-dash emitter strips the schema and ships prose for the human-facing document — see Brief vs dot-dash later in this file.
 
 - **Slide type** — classifies what kind of work the slide does (catalog below). Drives the quality check .
-- **Governing thought** — the slide's declarative claim. ≤ 100 chars. Becomes the slide headline and the dot-dash dot.
+- **Governing thought** — the slide's declarative claim, one line of the template (measured). Becomes the slide headline and the dot-dash dot.
 - **The takeaway** — the belief shift the audience should leave with. Becomes the `Takeaway –` line in the dot-dash.
 - **Editorial emphasis** — what dominates the slide visually. One of: the conclusion / the evidence / the contrast / the data / the ask / the numbers.
 - **What this slide is NOT** — explicit scope exclusion. Prevents the builder from creeping into adjacent detail.
@@ -551,13 +550,15 @@ If you can turn the slide into a declarative sentence with subject + verb + clai
 
 **Part 2: takeaway test.**
 
-For each slide, the takeaway must be *different from* the governing thought and must name a *belief shift*. Failure modes:
+For each slide, the takeaway must be *different from* the governing thought and must state **what the page's facts mean for the audience's decision, carrying one number or named fact that appears on the page.** Facts carry the argument; the takeaway is not a slogan. Failure modes:
 
-- Fail: takeaway is a restatement ("Three patterns explain the drift" → takeaway: "There are three patterns that explain the drift"). That's the claim again, not a takeaway.
-- Fail: takeaway is a generic motherhood statement ("we need to take action," "this is important"). Not actionable, not specific.
-- Pass: takeaway names a specific belief the audience should now hold that they didn't before. For example: "This is not a compliance problem, it's an information problem — don't fire managers, give them data."
+- Fail: a restatement ("Three patterns explain the drift" → "There are three patterns that explain the drift"). That's the claim again.
+- Fail: a slogan or motherhood line with no fact ("The committee keeps control", "we need to take action").
+- Fail: a "not X, it's Y" reframe, unless X is the belief recorded in the brief's *Audience assumption to break*, and then on one slide only. Reframes everywhere read as point-of-view filler.
+- Pass: "Vietnam and Indonesia grow 18% and 15% a year and make up $2.5B of the $4.2B 2030 market" (what the chart means, with its numbers).
+- Pass: "The committee can stop at month 6 if pilot sales miss target (to be set) or at month 12 if margin is under 15%" (a decision consequence, with its thresholds).
 
-If a takeaway fails, push back: *"That's the claim again. What belief should the audience now hold that they didn't before reading this slide?"*
+If a takeaway fails, push back with a rewrite built from the slide's own facts: *"That reads as an opinion. Using the page's numbers: '...'. Use this, or what does the page prove for the decision?"*
 
 **Part 3: editorial emphasis test.**
 
@@ -665,21 +666,27 @@ Run this after the nine-part gate completes and any Critical issues have been fi
 
 #### Headline quality (governing thoughts)
 
+Start by running `py -3 <skills>\slide-builder\scripts\brief_check.py --brief <draft brief>`: it measures every title and takeaway against the registered template (no guessing at character counts) and flags buzzwords, takeaways with no number and vague thresholds. Fold its rows into the review table below.
+
 Test each slide's governing thought against three checks:
 
 1. **Verb test.** Does it use an active verb that implies a direction or a finding? Fail: "Revenue overview." Pass: "Revenue grew 20% but margin eroded — the mix shift is the story." If it fails, write a rewrite and ask the user to confirm or redirect.
 
 2. **Specificity test.** Does it include at least one concrete anchor — a number, a named driver, a named action, a named entity? Fail: "Performance was mixed across regions." Pass: "EMEA grew 15%; APAC declined 8% due to regulatory delays in Singapore." If it fails, ask: *"What's the most specific thing you can say here — what number, what name, what decision?"*
 
-3. **Concision test.** Is it under 12 words? If not, can it be tightened without losing the claim? Long governing thoughts usually contain two claims — split them if so.
+3. **Concision test.** Does it fit one line of the template (the measured budget `seal_brief.py` reports)? If not, tighten it without losing the claim. Long governing thoughts usually contain two claims; split them if so.
 
-4. **Takeaway fit test.** The takeaway prints as the one line under the slide title, and about 130 characters fit on that line. A longer takeaway wraps to a second line and crowds the top of the body, which designers then have to squeeze around. If a takeaway is over 130 characters, show a tightened version (keep the belief shift, drop the restated detail) and ask the user to confirm. Cover slides are exempt.
+4. **Takeaway fit test.** The takeaway prints as the one line under the slide title. The one-line budget is measured from the template (about 130 characters at 16 pt on a full-width box); `seal_brief.py` checks it. A longer takeaway wraps and crowds the top of the body. Show a tightened version (keep the fact, drop restated detail). Cover slides are exempt.
 
-For each headline that fails: show a before/after rewrite. Ask the user to confirm or redirect. **Override is not offered here as a peer option** — keeping a failing headline requires going through the constructive-pushback protocol in the pushback protocol (name the weakness, offer concrete alternatives, ask explicitly). Do not proceed to the next slide's check until the user responds.
+5. **No buzzwords.** Check every headline, takeaway and bullet against `slide-builder/reference/banned-words.md` (robust, seamless, leverage, synergies, best-in-class, transformational, unlock value, holistic and the rest). Replace each with the number or named fact it stands for. Never name McKinsey, BCG, Bain or "MBB".
+
+6. **Measured or expected.** A headline that states a result in past or present tense needs the measurement on the page. When there is none, it says its basis ("We expect...", "Based on 12 interviews...", "no data yet"). Fail: "Local partners make each next market cheaper" when the brief marks it qualitative. Pass: "We expect partners to lower Indonesia's entry cost; no data yet".
+
+**Show every failing headline and takeaway at once**, in one table (slide, problem, proposed rewrite), and ask once: *"Use all of these, all but some (tell me which), or edit?"* Do not walk the user through them one message at a time. **Override is not offered here as a peer option** — keeping a failing headline requires going through the constructive-pushback protocol in the pushback protocol (name the weakness, offer concrete alternatives, ask explicitly). Do not proceed to the next slide's check until the user responds.
 
 #### Body content quality (supporting bullets and evidence)
 
-Test each slide's evidence bullets against five checks:
+Test each slide's evidence bullets against these checks:
 
 1. **Supports-the-claim test.** Does every bullet directly prove or illustrate the governing thought? If a bullet is true but doesn't connect to the claim, it belongs on a different slide or gets cut. Fail: governing thought = "Margin eroded due to product mix shift" → bullet: "The team delivered 12 projects this quarter." Pass: same headline → bullet: "SMB deals grew 40% but carry 18pp lower margin than enterprise deals."
 
@@ -687,7 +694,7 @@ Test each slide's evidence bullets against five checks:
 
 3. **No-filler test.** Cut anything that restates the headline, summarizes what the audience already knows, or hedges without adding substance ("it is important to note that," "there are several factors contributing to," "as mentioned above"). Fail: "As noted above, there are multiple factors contributing to the margin decline." Pass: Remove it entirely — if it needs to be said, it should be a concrete point, not a bridge sentence.
 
-4. **Specificity ratio test.** At least 60% of the content in each bullet should be concrete — numbers, names, timeframes, decisions, sources. Fail: "Performance was mixed across regions with some areas doing better than others." Pass: "EMEA grew 15%; APAC declined 8% driven by a single delayed contract in Singapore worth $4M."
+4. **Fact test.** Each bullet carries at least one number, date, named entity or named source, or is marked `evidence_type: qualitative` in the brief and worded as an expectation or judgment with its basis. Any target, threshold or "significant" is a number or a visible "to be set". Fail: "Performance was mixed across regions." Fail: "Continue only if sell-through is at or above target" (no target). Pass: "EMEA grew 15%; APAC declined 8% driven by one delayed $4M contract in Singapore."
 
 5. **Content-floor test (a slide must be useful on its own — DEFAULT for ALL decks).** Each **content** slide must carry enough substance to stand alone when read later without a presenter: several substantive points, each a full explained statement — not one-liners, not a single sentence, not 2–3 word stubs. A content slide whose evidence is too thin **FAILS this gate**; enrich it (concrete points, examples, "what this means") before locking. Do not lock sparse pages — near-empty slides were the #1 complaint. This is a hard check, not advisory.
    - **Exemptions:** Cover / Title, Section divider, and single-hero-stat slides are meant to be spare — the floor does not apply to them (judge by the slide's **slide type**).
@@ -804,7 +811,9 @@ The brief save is the LAST possible moment to catch this gap cleanly. Catching i
 py -3 <skills>\slide-builder\scripts\seal_brief.py --brief <path to the saved brief>
 ```
 
-That writes `storyline_gate_passed: true`, `storyline_gate_at` and `storyline_gate_sha` (a fingerprint of the brief's text) into the front matter. **Do not type these by hand:** a marker without the fingerprint is refused, because it shows nothing about whether the gate ran. If the brief is edited afterwards, re-run the gate on the edit and seal it again; prep refuses a brief whose text no longer matches its seal (exit 10).
+Sealing runs the mechanical check first (`slide-builder/scripts/brief_check.py`: every title and takeaway measured against the template's real box and font, buzzwords, takeaways with no number, thresholds with no number) and **refuses (exit 3) while issues remain**. Run `py -3 <skills>\slide-builder\scripts\brief_check.py --brief <draft>` during the language pass so its table is part of the one review table the user answers. If the user keeps an issue, pass their own words: `seal_brief.py --brief <brief> --accepted "<their reasons>"`; that is recorded in the brief. Never pass a reason the user did not give.
+
+Sealing writes `storyline_gate_passed: true`, `storyline_gate_at` and `storyline_gate_sha` (a fingerprint of the brief's text) into the front matter. **Do not type these by hand:** a marker without the fingerprint is refused, because it shows nothing about whether the gate ran. If the brief is edited afterwards, re-run the gate on the edit and seal it again; prep refuses a brief whose text no longer matches its seal (exit 10).
 
 **Carve-out modes** that legitimately skip the gate (don't have a narrative to gate):
 - `mode: template-fill` — PMO recurring report / template fill flow

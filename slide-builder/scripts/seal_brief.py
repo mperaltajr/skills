@@ -20,7 +20,13 @@ messages in build_deck.py deliberately do not suggest it. A brief the user
 wrote in this session and wants built as-is goes through build_deck.py
 --assume-gated instead, which is recorded and shown at delivery.
 
-Run:  py -3 scripts/seal_brief.py --brief <brief.md>
+It also runs brief_check.py (titles and takeaways measured against the
+template, buzzwords, takeaways without a number, vague thresholds) and refuses
+to seal while any issue is open, unless the user's reasons are passed with
+--accepted "<their words>"; those are written into the front matter as
+storyline_gate_accepted, so the build record shows what was waved through.
+
+Run:  py -3 scripts/seal_brief.py --brief <brief.md> [--accepted "<reasons>"]
 """
 from __future__ import annotations
 
@@ -32,7 +38,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 FM_RE = re.compile(r"\A(﻿?---\s*\r?\n)(.*?)(\r?\n---\s*\r?\n)", re.S)
-GATE_KEYS = ("storyline_gate_passed", "storyline_gate_at", "storyline_gate_sha")
+GATE_KEYS = ("storyline_gate_passed", "storyline_gate_at", "storyline_gate_sha",
+             "storyline_gate_accepted")
 
 
 def brief_fingerprint(front_matter: dict, body: str) -> str:
@@ -70,6 +77,8 @@ def _fingerprint_as_prep_reads(text: str) -> str:
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Seal a brief that passed the storyline gate.")
     ap.add_argument("--brief", required=True, type=Path)
+    ap.add_argument("--accepted", default="",
+                    help="The user's reasons for keeping the issues brief_check lists.")
     args = ap.parse_args(argv)
     p = args.brief
     if not p.exists():
@@ -82,8 +91,23 @@ def main(argv=None) -> int:
     except ValueError as exc:
         print(f"ERROR: {exc}")
         return 2
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import brief_check
+        issues = brief_check.check(p)
+    except Exception as exc:  # the check must never stop a seal by crashing
+        issues = []
+        print(f"  (brief check skipped: {type(exc).__name__}: {exc})")
+    if issues and not args.accepted.strip():
+        print("NOT SEALED: the brief check found issues. Fix them in the brief, or "
+              "record the user's reasons with --accepted \"<their words>\":")
+        print(brief_check.table(issues))
+        return 3
     kept = [ln for ln in fm.replace("\r\n", "\n").split("\n")
             if ln.split(":", 1)[0].strip() not in GATE_KEYS]
+    if issues:
+        reason = " ".join(args.accepted.split()).replace('"', "'")
+        kept.append(f'storyline_gate_accepted: "{len(issues)} issue(s) kept: {reason}"')
     now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
     def _compose(sha: str) -> str:

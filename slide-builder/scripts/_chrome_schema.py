@@ -261,6 +261,50 @@ def _find_brand_ttf(font_name: str | None = None) -> str | None:
     return _font_index().get(font_name.lower())
 
 
+def bold_ttf_for(ttf: str | None) -> str | None:
+    """The bold face of the same family as `ttf` (a filename or a path), or
+    None. Titles are usually bold, and measuring them with the regular face
+    under-counted wraps: on the 10/02 showcase 5 titles wrapped that the
+    regular-face count said fit."""
+    if not ttf:
+        return None
+    import os
+    idx = _font_index()
+    name = os.path.basename(str(ttf)).lower()
+    stem, ext = os.path.splitext(name)
+    cands = [stem + "bd", stem + "b", stem + "-bold", stem.replace("-regular", "-bold"),
+             stem.replace("regular", "bold"), stem + "bold"]
+    for c in cands:
+        hit = idx.get(c + (ext or ".ttf"))
+        if hit and c != stem:
+            return hit
+    return None
+
+
+def template_title_is_bold(template_path) -> bool:
+    """True when the template's master title style (or its first layout's
+    title placeholder) is bold."""
+    try:
+        from pptx import Presentation
+        prs = Presentation(str(template_path))
+    except Exception:
+        return False
+    return presentation_title_is_bold(prs)
+
+
+def presentation_title_is_bold(prs) -> bool:
+    """template_title_is_bold for an already-open Presentation."""
+    try:
+        from pptx.oxml.ns import qn
+        master = prs.slide_masters[0]._element
+        ts = master.find(qn("p:txStyles"))
+        lvl = ts.find(qn("p:titleStyle")).find(qn("a:lvl1pPr")) if ts is not None else None
+        rpr = lvl.find(qn("a:defRPr")) if lvl is not None else None
+        return bool(rpr is not None and rpr.get("b") in ("1", "true"))
+    except Exception:
+        return False
+
+
 def count_wrapped_lines(text: str, ttf_path: str | None,
                          size_pt: int, box_width_px: int) -> int:
     """Return the number of visual lines `text` wraps to in a box of width

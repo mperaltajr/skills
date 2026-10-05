@@ -52,7 +52,7 @@ def main() -> int:
         print("    ok: exit 10, 'never sealed'")
 
         print("[D4] a sealed brief builds; the old --confirm-template still works")
-        assert H.run("seal_brief.py", "--brief", brief).returncode == 0
+        assert H.run("seal_brief.py", "--brief", brief, "--accepted", "test brief").returncode == 0
         r = _prep(brief, H.TEMPLATE, tmp / "o2", "--confirm-template")
         assert r.returncode == 0, r.stderr[-800:]
         print("    ok")
@@ -78,7 +78,7 @@ def main() -> int:
         print("    ok")
 
         print("[D3] an unconfirmed template stops the build")
-        assert H.run("seal_brief.py", "--brief", brief).returncode == 0
+        assert H.run("seal_brief.py", "--brief", brief, "--accepted", "test brief").returncode == 0
         tpl = tmp / "unconfirmed.pptx"
         shutil.copy2(fixture.FIXTURE_PPTX, tpl)
         fixture.register_fixture(tpl, confirm=False)

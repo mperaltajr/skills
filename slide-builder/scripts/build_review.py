@@ -1742,6 +1742,10 @@ body { margin:0; font-family: "Segoe UI", Arial, sans-serif; color: var(--text);
 header { background:#fff; border-bottom:1px solid var(--border); padding:22px 32px; }
 h1 { margin:0 0 6px; font-size:22px; }
 header p { margin:0; color: var(--dim); font-size:14px; max-width: 900px; line-height:1.5; }
+.srccheck { margin:18px 32px 0; padding:14px 18px; background:#FFF8E6; border-left:4px solid #E0A100; font-size:14px; line-height:1.5; }
+.srccheck.ok { background:#EEF7EE; border-left-color:#2E7D32; }
+.srccheck table { margin-top:8px; border-collapse:collapse; }
+.srccheck td { padding:4px 14px 4px 0; vertical-align:top; }
 .grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(460px, 1fr)); gap:22px; padding:26px 32px; }
 .tile { background:#fff; border:1px solid var(--border); border-radius:8px; overflow:hidden; }
 .tile img { width:100%; display:block; border-bottom:1px solid var(--border); }
@@ -1819,6 +1823,14 @@ def build_final_check(out_dir: Path, meta: Optional[dict]) -> int:
                    f'--final-token {token}{flags}')
     what = (f"all {len(ship)} options" if all_options
             else f"{len(ship)} slide(s)")
+    # Numbers and labels on the picks that the brief does not contain, and
+    # figures written two ways: the person approving sees what to verify.
+    try:
+        import source_check
+        src_block = source_check.html_block(source_check.check(
+            out_dir, [(k, out_dir / k / _p.option_pptx_name(L)) for k, L in ship]))
+    except Exception:
+        src_block = ""
     page = f"""<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
 <title>Final check</title><style>{FINAL_CSS}</style></head><body>
 <header><h1>Final check: this is exactly what will be built</h1>
@@ -1826,6 +1838,7 @@ def build_final_check(out_dir: Path, meta: Optional[dict]) -> int:
 takeaway and page number, which the sketches did not have. Look for anything
 overlapping, cut off or crowded. If it is right, click <b>Build it</b>. If not,
 say what is wrong in the box instead.</p></header>
+{src_block}
 <div class="grid">{tiles}</div>
 <footer>
 <textarea id="fix" placeholder="Something needs fixing? Say which slide and what."></textarea>

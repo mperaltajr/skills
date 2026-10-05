@@ -201,19 +201,18 @@ def check_placeholders_in_text(slide, slide_num: int) -> list[dict]:
     if not text:
         return violations
 
-    # Intentional presenter prompts emitted by
-    # slide-builder/twins/helpers.py add_footer() get an Advisory note,
-    # not a Critical. They're the cross-skill convention: presenter is
-    # expected to fill or delete in PowerPoint before showing the deck.
+    # The old presenter prompts ("[add source here or delete]"). Designers
+    # are told never to write them now (2026-10-02), so one on a finished
+    # slide is a leak a reader would see: Major, not Advisory.
     if _is_intentional_placeholder(text):
         violations.append({
             "slide": slide_num,
-            "severity": "Advisory",
-            "category": "intentional-placeholder",
+            "severity": "Major",
+            "category": "placeholder-prompt",
             "issue": (
-                f"Slide {slide_num} renders a slide-builder intentional "
-                f"presenter prompt (e.g., '[add footnote here or delete]'). "
-                f"Fill or delete in PowerPoint before showing the deck."
+                f"Slide {slide_num} shows a placeholder prompt "
+                f"('[add source here or delete]' or similar). Put the real "
+                f"source or footnote in, or remove the line."
             ),
         })
         # Strip the intentional placeholder strings before the Critical
@@ -233,6 +232,41 @@ def check_placeholders_in_text(slide, slide_num: int) -> list[dict]:
                 "issue": f"Placeholder text detected on Slide {slide_num}: {label}.",
             })
     return violations
+
+
+def _banned_terms() -> list[tuple[str, "re.Pattern"]]:
+    """The shared list in slide-builder/reference/banned-words.md."""
+    md = (pathlib.Path(__file__).resolve().parents[2] / "slide-builder" / "reference"
+          / "banned-words.md")
+    try:
+        text = md.read_text(encoding="utf-8")
+    except OSError:
+        return []
+    m = re.search(r"<!-- banned:start -->(.*?)<!-- banned:end -->", text, re.S)
+    terms = [ln.strip() for ln in (m.group(1) if m else "").splitlines() if ln.strip()]
+    terms += ["McKinsey", "BCG", "Bain", "MBB"]
+    out = []
+    for term in terms:
+        if term.endswith("*"):
+            out.append((term, re.compile(r"\b" + re.escape(term[:-1]) + r"\w*", re.I)))
+        else:
+            out.append((term, re.compile(r"\b" + re.escape(term) + r"\b", re.I)))
+    return out
+
+
+def check_banned_words(slide, slide_num: int) -> list[dict]:
+    """Buzzwords and competitor names: Major, with the fix."""
+    text = _gather_slide_text(slide) or ""
+    hits = sorted({m.group(0) for _, rx in _banned_terms() for m in [rx.search(text)] if m})
+    if not hits:
+        return []
+    return [{
+        "slide": slide_num,
+        "severity": "Major",
+        "category": "buzzword",
+        "issue": (f"Slide {slide_num} uses {', '.join(repr(h) for h in hits)}: replace "
+                  f"each with the number or named fact it stands for."),
+    }]
 
 
 def check_hidden_slides(prs) -> list[dict]:
@@ -304,6 +338,7 @@ def run_all_checks(pptx_path: pathlib.Path) -> dict:
 
     for i, slide in enumerate(prs.slides, start=1):
         violations.extend(check_placeholders_in_text(slide, i))
+        violations.extend(check_banned_words(slide, i))
         violations.extend(check_speaker_notes(slide, i))
 
     # Sort: Critical first, then Major, then Advisory; within severity by slide number

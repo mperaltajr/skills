@@ -67,7 +67,8 @@ Parse this and hold the violations in memory. They will be merged with the visua
 
 **What this script catches (deterministic, no vision needed):**
 - Lorem ipsum / placeholder residue (`[Insert ...]`, "Subtitle goes here", TODO/FIXME/XXX) → Critical
-- **Slide-builder intentional presenter prompts** (`[add footnote here or delete]`, `[add source here or delete]`) → Advisory (NOT Critical). These are a deliberate cross-skill convention emitted by `slide-builder/twins/helpers.py add_footer()` when the caller passes `footnote=None` or `source=None`. The presenter is expected to fill or delete in PowerPoint before showing the deck. See `INTENTIONAL_PLACEHOLDER_STRINGS` in `check_pptx_hygiene.py` for the identity-matched contract.
+- **Placeholder prompts** (`[add footnote here or delete]`, `[add source here or delete]`) → Major. Designers no longer write them, so one on a finished slide is a leak.
+- **Buzzwords and competitor names** from `slide-builder/reference/banned-words.md` → Major, one finding per slide listing the words.
 - Hidden slides leaking into the file → Major
 - Comments left attached to slides → Major
 - Speaker notes containing scratch content (TODO / asdf / WIP / etc.) → Major
@@ -158,7 +159,7 @@ For each slide, in addition to the per-zone walkthrough, evaluate these categori
 
 | Category | Severity | What to flag |
 |---|---|---|
-| **Intentional presenter prompt** | Advisory (NOT Critical) | The exact strings `[add footnote here or delete]` and `[add source here or delete]` are slide-builder's deliberate cross-skill convention emitted by `helpers.py add_footer()` when the caller doesn't supply text. Flag as Advisory with the note "intentional presenter prompt — fill or delete in PowerPoint before showing the deck." Do NOT escalate to Critical even though it looks like placeholder residue. Other bracketed text (`[Kickoff activities — fill from ...]`, `[your_company]`, etc.) is NOT this convention and stays Critical. |
+| **Placeholder prompt left on a slide** | Major | The strings `[add footnote here or delete]` and `[add source here or delete]`. Designers are told never to write them, so one on a finished slide is a leak the audience would see: put the real source or footnote in, or remove the line. Other bracketed text (`[Kickoff activities - fill from ...]`, `[your_company]`, etc.) stays Critical. |
 | **Overflow / clipping** | Critical if text/data clipped; Major if shape bleeds past boundary without losing content | Text or shapes bleeding past the slide boundary; clipped numerals or descenders; chart axis labels cut off |
 | **Blank chart / broken visual** | Critical | A blank white rectangle where the mockup had a chart; missing image placeholder; broken icon |
 | **Unreadable overlap** | Critical | Text obscured by another element so it cannot be read |
@@ -168,7 +169,7 @@ For each slide, in addition to the per-zone walkthrough, evaluate these categori
 | **Missing footer / page number** | Major | No footer or page number on a non-cover slide (the visual pass catches this because rendered output resolves master inheritance) |
 | **Chart axis missing unit** | Major | Y-axis labeled "Value" / "Amount" with no unit — is it $M, count, percent? |
 | **Mixed icon styles within deck** | Major | Flat icons on some slides, outline on others, emoji elsewhere |
-| **Hedged or weasel language** | Major | "Robust," "scalable," "best-in-class," "world-class," "seamless" without substantiation; "could potentially consider" type hedging |
+| **Buzzwords and hedging** | Major | Any word on `slide-builder/reference/banned-words.md` (robust, seamless, leverage, synergies, best-in-class, transformational, unlock value, holistic and the rest; the hygiene script flags them) and hedges like "could potentially". The fix is the number or named fact the word stands for. A competitor firm's name (McKinsey, BCG, Bain, MBB) on a slide is Major too. |
 | **Bullets not parallel** | Major | One slide's bullets mix sentence structures (some verb phrases, some noun phrases, some full sentences) |
 | **Chart Y-axis truncation** | Major | Y-axis starts above zero in a way that exaggerates differences without disclosure |
 | **Chart aspect ratio dishonesty** | Major | Squashed or stretched axes that distort the visual message |
@@ -187,7 +188,7 @@ After all per-slide checks, scan for consistency issues that only appear when co
 | **Typography drift across deck** | Major | Title sizes vary across slides of the same slide type; body text sizes drift |
 | **Footer drift** | Major | Same confidentiality / client name should appear on all non-cover slides; if it changes, flag |
 | **Color palette drift** | Major | A slide uses an off-brand color without semantic reason |
-| **Layout drift for same slide type** | Major | Two Analytical slides have noticeably different layouts; two Risk slides structured differently |
+| **Chrome drift for same slide type** | Major | Title, takeaway or footer sit in different positions on two slides of the same type. Different body layouts are not drift: the build deliberately varies them (no three slides in a row share a layout). |
 
 Cross-slide findings get tagged to the slide(s) where they appear in the final table — not as a separate "cross-deck" section.
 

@@ -340,7 +340,7 @@ def main() -> int:
             "**Slide type:** Content",
             "**Slide type:** Content\n**Pinned source page:** client_onepager.pptx slide 1")
         brief.write_text(H.BRIEF.format(slides=slides), encoding="utf-8")
-        assert H.run("seal_brief.py", "--brief", brief).returncode == 0
+        assert H.run("seal_brief.py", "--brief", brief, "--accepted", "test brief").returncode == 0
         out = tmp / "out"
         r = H.run("build_deck.py", "--brief", brief, "--template", H.TEMPLATE,
                   "--out", out, "--pattern", "direct")
@@ -398,7 +398,7 @@ def main() -> int:
         brief = tmp / "brief.md"
         brief.write_text(H.BRIEF.format(slides="".join(
             H.SLIDE.format(n=i) for i in (1, 2, 3))), encoding="utf-8")
-        assert H.run("seal_brief.py", "--brief", brief).returncode == 0
+        assert H.run("seal_brief.py", "--brief", brief, "--accepted", "test brief").returncode == 0
         r = H.run("build_deck.py", "--brief", brief, "--template", H.TEMPLATE,
                   "--out", out, "--pattern", "direct", "--insert", "2")
         assert r.returncode == 0, r.stderr[-800:]

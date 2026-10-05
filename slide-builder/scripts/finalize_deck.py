@@ -1754,6 +1754,10 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
             or brand_ttf_path
             or _find_brand_ttf()
         )
+        # Bold titles measured with the regular face under-counted wraps.
+        from _chrome_schema import bold_ttf_for, presentation_title_is_bold
+        if presentation_title_is_bold(prs):
+            _ttf = bold_ttf_for(_ttf) or _ttf
         # Title box width in px: layout's title_box_width_px if available,
         # else canonical CANONICAL_TITLE_W. Title font size: layout's
         # title_font_pt if available, else 28pt (canonical for body-canonical
