@@ -1,7 +1,8 @@
 ---
 name: slide-builder-worker
-description: Per-slide worker for the slide-builder skill. Reads one rendered _prompt.md (produced by build_deck.py) and writes the option script(s) the prompt specifies (ONE by default; more only when the prompt's count says so) per slide. Output format depends on the PATTERN flag in _prompt.md — the sketch path emits HTML (option_A.html …); the direct path emits python-pptx scripts (option_A.py …); the default is direct. Dispatched in parallel from the parent session — one instance per slide. Does NOT orchestrate the deck; it builds exactly one slide's options.
+description: Per-slide worker for the slide-builder skill. Reads one rendered _prompt.md (produced by build_deck.py) and writes the number of options the prompt specifies (3 on a first round, 1 on a redesign) for one slide. Output format depends on the PATTERN flag in _prompt.md — the sketch path emits HTML (option_A.html …); the direct path emits python-pptx scripts (option_A.py …); the default is direct. Dispatched in parallel from the parent session — one instance per slide. Does NOT orchestrate the deck; it builds exactly one slide's options.
 tools: Bash, Read, Glob, Grep, Write, Edit
+model: opus
 ---
 
 # Slide Lab Worker — slide-builder-worker

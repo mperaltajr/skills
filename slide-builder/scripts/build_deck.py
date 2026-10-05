@@ -130,7 +130,9 @@ SLIDE_HEADER_RE = re.compile(r"^#{2,3}\s+Slide\s+(\d+)\s*(?:[—\-:]\s*(.+?)\s*)
 # Briefs with `### Appendix A — ...` after deck notes were silently swallowing
 # the appendix into the deck-notes capture. `^#{1,3}\s` covers H1/H2/H3.
 DECK_NOTES_RE = re.compile(
-    r"^##\s+Deck[\s\-]?level\s+design\s+notes\s*\n(.*?)(?=^#{1,3}\s|\Z)",
+    # storyline-helper writes "## Deck-level design notes (optional)"; the old
+    # pattern needed the line to end at "notes", so every deck lost its notes.
+    r"^##\s+Deck[\s\-]?level\s+design\s+notes\b[^\n]*\n(.*?)(?=^#{1,3}\s|\Z)",
     re.MULTILINE | re.IGNORECASE | re.DOTALL,
 )
 
@@ -439,7 +441,7 @@ def extract_deck_section(body: str, *heading_aliases: str) -> str:
     """
     for alias in heading_aliases:
         pat = re.compile(
-            r"^##\s+" + re.escape(alias) + r"\s*\n(.*?)(?=^#{1,3}\s|\Z)",
+            r"^##\s+" + re.escape(alias) + r"(?:\s*\([^\n]*\))?\s*\n(.*?)(?=^#{1,3}\s|\Z)",
             re.MULTILINE | re.IGNORECASE | re.DOTALL,
         )
         m = pat.search(body)
@@ -920,6 +922,17 @@ CONTEXT_TEMPLATE = """# Slide {slide_n} — Worker context bundle
 > it has a good reason. Hard rules are surfaced in `_prompt.md` and the
 > skill's hardline rules — not here.
 
+## 0. The deck this slide belongs to
+
+- **Main message of the deck:** {deck_message}
+- **Audience:** {deck_audience}
+- **Every slide in the deck** (yours is marked):
+{deck_titles}
+
+Make this slide's own point; do not repeat another slide's point. Keep tables,
+charts, numbering and labels in the same style as the rest of the deck would
+expect (one way of writing each kind of number across all slides).
+
 ## 1. Canonical reference (from brand.yml)
 
 {reference_block}
@@ -943,6 +956,14 @@ CONTEXT_TEMPLATE = """# Slide {slide_n} — Worker context bundle
 - **No inline run formatting on placeholders.** Title/subtitle inherit
   fonts and colors from the master theme. Workers should not bake in
   hardcoded colors.
+- **Charts tell the truth (QC flags these as Major):** bars and areas start at
+  zero; every value axis has a title with its unit; a number called out in the
+  title or a callout appears on the chart itself; one unit per kind of figure
+  across the deck ($1.2B on every slide, never $1,200M on the next one).
+- **Facts, not adjectives:** write only words and numbers from the brief.
+  Labels, eyebrows and callouts reuse the brief's wording; no new claims, no
+  buzzwords (see `reference/banned-words.md`). No trailing period on headings,
+  labels or one-sentence text boxes.
 
 ## 3. This slide's brief metadata
 
@@ -956,10 +977,9 @@ CONTEXT_TEMPLATE = """# Slide {slide_n} — Worker context bundle
 ## 4. QC anchor
 
 The compiled deck will be QC'd by the `slide-qc` skill, which does
-zone-by-zone vision review of every rendered slide. The reference-slide
-spec above is the visual anchor — every output slide should match its
-chrome (top/bottom bands, footer geometry, title/subtitle position) and
-respect the canonical palette ({primary_hex} / {accent_hex}).
+zone-by-zone vision review of every rendered slide. Every output slide should
+match the template's chrome (top/bottom bands, footer geometry, title/subtitle
+position) and respect the canonical palette ({primary_hex} / {accent_hex}).
 
 ## 5. Feedback ledger (prior rejections for this slide)
 
@@ -971,10 +991,9 @@ def _format_reference_block_for_context(brand: dict) -> str:
     ref = brand.get("reference_slide") if isinstance(brand, dict) else None
     if not ref or not isinstance(ref, dict):
         return (
-            "_No reference slide was captured at registration. The worker has "
-            "no canonical anchor for this template — fall back to the skill's "
-            "5 hardline rules + anti-pattern library. Re-register with "
-            "`reference_slide_n` in picks.json to enable richer context._"
+            "_No reference slide was captured at registration. Follow the "
+            "template's own layout (geometry below) and the skill's hardline "
+            "rules and anti-pattern library._"
         )
     lines = [
         f"- **Reference slide:** {ref.get('slide_n', '?')} in the registered "
@@ -1104,17 +1123,35 @@ def _body_geometry_block(template_path, layout_name: str) -> str:
     )
 
 
+def _deck_titles_block(deck: dict | None, slide_n: int) -> str:
+    rows = []
+    for s in (deck or {}).get("slides") or []:
+        n = s.get("slide_n")
+        mark = "  <- this slide" if n == slide_n else ""
+        rows.append(f"  {n}. {(s.get('title') or '').strip()}{mark}")
+    return "\n".join(rows) or "  (not available)"
+
+
 def write_slide_context_md(slide: dict, brand: dict, slide_dir: Path,
-                            slide_n: int, template_path=None) -> Path:
+                            slide_n: int, template_path=None,
+                            deck: dict | None = None) -> Path:
     """Write `_context.md` next to `_prompt.md` for the per-slide worker
-    agent, hydrating any recorded prior feedback for the slide."""
+    agent, hydrating any recorded prior feedback for the slide. `deck` is the
+    parsed brief: designers used to see only their own slide, with no main
+    message, audience or neighbours."""
     title = (slide.get("title") or "").strip()
     so_what = (slide.get("so_what") or "").strip()
     archetype = (slide.get("archetype") or "").strip()
     emphasis = (slide.get("editorial_emphasis") or "").strip()
     layout = (slide.get("layout") or "").strip()
+    fm = (deck or {}).get("front_matter") or {}
     content = CONTEXT_TEMPLATE.format(
         slide_n=slide_n,
+        deck_message=(((deck or {}).get("deck_governing_thought") or fm.get("governing_thought")
+                       or "(not given)").strip().strip('"')),
+        deck_audience=(" ".join(((deck or {}).get("deck_audience") or fm.get("audience")
+                                 or "(not given)").replace("**", "").split())[:400]),
+        deck_titles=_deck_titles_block(deck, slide_n),
         reference_block=(_format_reference_block_for_context(brand)
                          + _style_refs_block(template_path)),
         title=title,
@@ -1157,6 +1194,13 @@ def render_prompt(template_text: str, placeholders: dict[str, str]) -> str:
         )
         sys.exit(4)
     body = template_text[idx:]
+    # Keep only the instructions for this slide's build path. Each designer
+    # used to read both paths' rules (about 29 KB), half of them irrelevant.
+    path = str(placeholders.get("PATTERN") or "").strip().lower()
+    if path in ("direct", "sketch"):
+        other = "sketch" if path == "direct" else "direct"
+        body = re.sub(r"<!-- only:%s -->.*?<!-- /only -->\n?" % other, "", body, flags=re.S)
+        body = re.sub(r"<!-- /?only(?::%s)? -->\n?" % path, "", body)
     for token, value in placeholders.items():
         body = body.replace("{{" + token + "}}", str(value))
     return body
@@ -1229,7 +1273,11 @@ def build_placeholders(
         "GOVERNING_THOUGHT":       slide.get("governing_thought", "") or "(no governing thought in brief)",
         "SO_WHAT":                 slide.get("so_what", "") or "(no so-what in brief)",
         "EDITORIAL_EMPHASIS":      slide.get("editorial_emphasis", "") or "(none specified)",
-        "EVIDENCE_CONTENT":        slide.get("evidence_content", "") or "(no evidence specified)",
+        # evidence_type: lines are storyline bookkeeping, not slide content;
+        # designers were copying them. Source lines stay (they feed the footer).
+        "EVIDENCE_CONTENT":        (re.sub(r"(?m)^[ \t]*evidence_type:.*\n?", "",
+                                           slide.get("evidence_content", "") or "")
+                                    or "(no evidence specified)"),
         "CHART_TYPE":              slide.get("chart_type", "none"),
         "CHART_DATA":              slide.get("chart_data", "") or "(no chart data provided)",
         "NOT_THIS_SLIDE":          slide.get("not_this_slide", "") or "(none)",
@@ -2571,7 +2619,8 @@ def main() -> int:
         # design rules, brief metadata, and feedback ledger for the
         # per-slide worker agent to reason against.
         try:
-            write_slide_context_md(slide, brand, slide_dir, slide_n, args.template)
+            write_slide_context_md(slide, brand, slide_dir, slide_n, args.template,
+                                   deck=brief)
         except Exception as _exc:
             sys.stderr.write(
                 f"  WARN: could not write slide {slide_n} _context.md: "

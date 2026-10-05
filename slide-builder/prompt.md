@@ -29,7 +29,6 @@ Placeholders rendered by `build_deck.py`:
 | `{{VARIANT_SEED_A}}` | md5 hex digest of `content_hash + slide_n + "A"` — variant tiebreaker for option A |
 | `{{VARIANT_SEED_B}}` | md5 hex digest of `content_hash + slide_n + "B"` — variant tiebreaker for option B |
 | `{{VARIANT_SEED_C}}` | md5 hex digest of `content_hash + slide_n + "C"` — variant tiebreaker for option C |
-| `{{LIKELY_PRIOR_PATTERNS}}` | Forecasted patterns for slides N-1 and N-2 from the prep-time pattern-hint pass — **context, not constraint**. The agent can override if its brief read differs from the forecast. |
 | `{{LAYOUTS_MD_PATH}}` | Absolute path to `reference/layouts.md` |
 | `{{ANTI_PATTERNS_MD_PATH}}` | Absolute path to `reference/anti-patterns.md` |
 | `{{SKILL_MD_PATH}}` | Absolute path to `SKILL.md` |
@@ -134,15 +133,19 @@ There is no pre-classifier. You pick the pattern from the 14 in `layouts.md` bas
    recommend | warn | diagnose | show urgency | show progress | compare neutrally | summarize
    ```
 
-   If the brief signal does not clearly map to one of these 7, **stop and emit SKELETON_REJECTED**:
+   storyline-helper writes the emphasis as one of six words. Map it, then read the governing thought to settle the verb:
 
-   ```
-   # SKELETON_REJECTED: ambiguous editorial intent — brief does not map to {recommend, warn, diagnose, show urgency, show progress, compare neutrally, summarize}
-   ```
+   | Brief says the emphasis is | Verb |
+   |---|---|
+   | the conclusion | recommend (summarize if the slide restates the deck's answer) |
+   | the ask | recommend |
+   | the contrast | compare neutrally, or recommend when the brief favors one side |
+   | the evidence | diagnose |
+   | the data / the numbers | diagnose, or show progress for results against a plan, show urgency for a deadline or a falling metric |
 
-   Do **not** invent an 8th verb. Do **not** default to "compare neutrally" when the brief is actually arguing a position — that's the failure mode this step exists to prevent. The closed vocabulary is deliberately small so it never regrows into an open-ended, hard-to-maintain set of named intents.
+   Do **not** invent an 8th verb. Do **not** default to "compare neutrally" when the brief is actually arguing a position. Never reject a slide over the verb: if the emphasis is missing or unclear, pick the verb the governing thought leads with and say why in the PATTERN PICK block.
 
-   **Rule of one.** Exactly one verb per slide. If two seem to apply, pick the one the brief leads with. If you cannot decide between two, that's a brief problem — emit SKELETON_REJECTED rather than picking both.
+   **Rule of one.** Exactly one verb per slide. If two seem to apply, pick the one the brief leads with.
 
    State your verb in the PATTERN PICK output block (added below) AND in the SLIDE BUILD REPORT (§ 10).
 
@@ -152,21 +155,17 @@ There is no pre-classifier. You pick the pattern from the 14 in `layouts.md` bas
    - Tiebreak rule: interpret the first hex character of the seed as a number (0–15). Modulo the number of tied patterns. Pick that index from the sorted-alphabetical list of tied pattern names.
    - Example: if "50/50 vertical" and "Top band + body" tie and the seed starts with `7`, then `7 mod 2 = 1`, sorted alphabetically: `["50/50 vertical", "Top band + body"]`, index 1 = "Top band + body."
 
-3. **Adjacency context (Hardline #3 — soft-enforced here, hard-enforced at the gate-preview + review steps via `build_gate_preview.py` + `build_review.py`).** Likely prior patterns from the prep-time hint pass:
-   ```
-   {{LIKELY_PRIOR_PATTERNS}}
-   ```
-   **This is a forecast, not a constraint.** The prep-time pattern-hint pass ran the same signals table you are running now, but it does not know what you will actually pick. Override the hint if your brief signal clearly points at a different pattern.
-
-   **Soft rule:** if your top-scoring pattern would create a third consecutive same-split run **and** your scoring confidence is low (multiple patterns within ~1 signal of each other), prefer the next-best pattern that breaks the run. If your top-scoring pattern is the clear winner, keep it — `build_gate_preview.py` and `build_review.py` run a post-build adjacency scan that surfaces 3+ same-split runs as an advisory in `GATE3-PREVIEW.html` and `REVIEW.html` for the user to resolve at pick time.
-
-   Do not bend brief fidelity (Hardline #4) to satisfy adjacency. Brief fidelity wins; adjacency is the lower-priority concern that gets resolved at the gate-preview + review steps.
+3. **Adjacency (Hardline #3).** You do not know what the designers of the neighboring slides will pick, so do not guess. Pick the best pattern for this slide's brief; the review page flags any run of 3 same-split slides for the user to resolve at pick time. Do not bend brief fidelity (Hardline #4) to avoid a run.
 
 4. **Check the curved-container trigger.** If the slide concept implies a curved-container diagram (hub-spoke, Porter's Five Forces, ecosystem map, fishbone, concentric rings, free-form network), the routing depends on `{{PATTERN}}` from the dispatch:
 
+<!-- only:direct -->
    **Direct path (python-pptx, no native curve primitives):** For each option the prompt lists (§8), write `option_X.py` with line 1 = `# SKELETON_REJECTED: curved-container diagram — not supported in the direct path; re-route through the sketch path for HTML+SVG`. The script body has `import sys; sys.exit(0)`. The rejection surfaces in REVIEW.html and the user re-routes the slide through the sketch path.
+<!-- /only -->
 
+<!-- only:sketch -->
    **Sketch path (HTML-first):** Author the curved diagram natively in HTML/SVG within the body zone. Use `data-shape-id` to mark elements the translator should convert to native shapes; use `<img>` or inline `<svg>` for genuinely curve-shaped paths. The sketch path is the modern replacement for the retired Mermaid fallback.
+<!-- /only -->
 
    Do **not** substitute a different pattern just to avoid the trigger. Silent substitution is the failure mode this protocol exists to prevent.
 
@@ -185,7 +184,6 @@ PATTERN PICK — Slide {{SLIDE_N}}
   Directive verb: <one of: recommend | warn | diagnose | show urgency | show progress | compare neutrally | summarize>
   Variant tilt  : <one-line description of how the verb shapes the option(s) — with one option, how that single option honors the verb; with more, which option carries the strongest tilt, e.g., "asymmetric weight toward the recommended item, accent stripe">
   Seed used?    : <yes/no — yes if you tiebroke with {{PATTERN_PICK_SEED}}>
-  Adjacency     : <one of: matches hint / overrides hint / no prior context / would-be-3-in-a-row, kept anyway because top scorer>
   Curved-container? : <no | yes-rejected-routed-to-sketch-path | yes-authored-in-sketch-HTML>
 ```
 
@@ -206,10 +204,11 @@ Produce **{{OPTIONS_COUNT}} option(s)** ({{OPTION_LETTERS}}) for the SAME picked
 - **Every option MUST use at least one brand token on a load-bearing element** (hero text, accent rule, divider, anchor, fill — NOT placeholders like `[Date]` or `[Presenter]`). A "safe default" is *quieter typography or composition* — not the absence of brand identity. Every option includes `BRAND_PRIMARY`, `BRAND_ACCENT`, `BRAND_PRIMARY_MID`, or `BRAND_ACCENT_SOFT` somewhere visible; a variant rendering only in TEXT_DARK / TEXT_MID / TEXT_FAINT is a brand-fidelity failure. When you produce multiple options, vary which element carries the brand.
 
 **Make the structure visible (default, every option).** When the slide's content is a sequence or a set of parallel items (steps, phases, stages, levers, pillars, options, sources, criteria, workstreams), show that structure, don't just list it:
-- **Number the items** (01, 02, 03, or numbers in circles or rounded squares), in reading order.
+- **Number only real sequences:** steps, phases, stages, dated plans, or items the deck refers to by number. A set with no order (levers, pillars, options, criteria, sources) gets a marker but no numbers, because a number implies an order that isn't there.
 - **Give each item a simple marker** drawn with native shapes: a circle, chevron, small rounded square or a simple icon built from shapes. No emoji, no clip art, no image files.
 - **When the items happen in order**, connect them with arrows, chevrons or a line, so the sequence reads at a glance.
 - **Skip it only when it would be false or noise:** a single claim, a quote, a chart that already carries the structure, or items with no order or grouping.
+- **No trailing periods** on headings, labels, callouts or one-sentence text boxes. Multi-sentence paragraphs keep normal punctuation.
 
 Users had to ask for this in words every round ("how come we aren't using process icons/numbers"). Doing it unasked is the default now; the review page's "Add process structure" button exists for the cases you miss.
 
@@ -262,18 +261,23 @@ Produce **{{OPTIONS_COUNT}} option(s)** ({{OPTION_LETTERS}}) — no more, no few
 - **Direct path** (default; python-pptx direct): write the option(s) as `.py` script(s) — the exact file(s) listed below.
 - **Sketch path** (HTML-first): write the option(s) as `.html` instead (the sketch file list below); do NOT also write `.py`. Conventions in `slide-builder/reference/sketch-html-spec.md`. Chrome text on elements with `data-template-field`; body shapes on elements with `data-shape-id`. Self-check by rendering each HTML via `scripts/render_html.py option_X.html option_X.sketch.png` and reading the resulting 1280×720 PNG before declaring done. Use exactly that output name: the review page shows `option_X.sketch.png`, and `option_X.png` is the name finalize gives the finished slide, so a render saved there is wasted and can be mistaken for a finished slide. The picked HTML is converted to native python-pptx by the translator at Stage 3.5.
 
+<!-- only:direct -->
 Direct-path file(s) to write:
 
 ```
 {{OPTION_FILES_DIRECT}}
 ```
+<!-- /only -->
 
+<!-- only:sketch -->
 Sketch-path file(s) to write instead:
 
 ```
 {{OPTION_FILES_SKETCH}}
 ```
+<!-- /only -->
 
+<!-- only:direct -->
 Each `option_X.py` is a **standalone runnable Python script** that:
 
 1. Imports from `slide-builder\twins\helpers.py` — the shared chrome helpers (title block, footer, brand colors, primitives). Add the absolute path to `sys.path` at the top of each script:
@@ -336,6 +340,10 @@ sys.exit(0)
 
 finalize_deck.py reads line 1. Token prefix decides routing:
 - `# SKELETON_REJECTED:` → rejection surfaces in REVIEW.html for user resolution (brief/pattern disagreement OR unsupported curved-container under the direct path).
+<!-- /only -->
+<!-- only:sketch -->
+**Source and footnote (sketch path).** Put the brief's source line in the element with `data-template-field="footer"`. If the brief's deck-level notes set one source line for every slide (for example "Illustrative data, not real"), use it. If the brief gives no source, leave the footer element out. **Never write `[add source here or delete]` or `[add footnote here or delete]`.** If the brief and the pattern fundamentally disagree (Hardline #5), write no HTML for that option; write `option_X.py` whose line 1 is `# SKELETON_REJECTED: <reason>` and whose body is `import sys; sys.exit(0)`, and stop.
+<!-- /only -->
 
 ---
 
@@ -348,8 +356,12 @@ finalize_deck.py reads line 1. Token prefix decides routing:
 - **No external assets.** No PIL, no PNG embedding for native patterns, no chart image generation. Bars, waterfalls, KPI tiles — all drawn with `add_rect` + `add_text`. (Curved diagrams that historically used the Mermaid fallback now route to the sketch path's HTML+SVG; see § 4 step 4.)
 - **Use the brand palette constants only.** Never raw `RGBColor(...)` literals. The named constants from `twins.helpers` are: `BRAND_PRIMARY`, `BRAND_PRIMARY_MID`, `BRAND_ACCENT`, `BRAND_ACCENT_SOFT`, `TEXT_DARK`, `TEXT_MID`, `TEXT_FAINT`, `CARD_BG`, `CARD_BORDER`, `WHITE`.
 - **Font sizes are locked to PowerPoint's default grid (floor 8pt).** Every visible text size must be one of: **8, 9, 10, 10.5, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 44, 48, 54, 60, 66, 72, 80, 88, 96** (pt) — never an off-grid value like 7.3 or 8.2, and never below 8pt. The finalize step snaps any straggler to the nearest grid size, but author on the grid so what you design is what ships.
+<!-- only:direct -->
   - **Direct path (.py):** set `font_size_pt=` to a grid value (use `font_size_pt`, not raw `Pt(...)` arithmetic that lands off-grid).
+<!-- /only -->
+<!-- only:sketch -->
   - **Sketch path (HTML):** CSS uses px; px = pt × 4⁄3. Size text so it maps to the grid — e.g. **8pt→10.67px, 9pt→12px, 10.5pt→14px, 12pt→16px, 14pt→18.67px, 18pt→24px, 24pt→32px, 32pt→42.67px**. Body claims/bullets ≥ 10.5pt (14px); eyebrows/labels may go down to 8pt (10.67px) but no smaller. See `reference/sketch-html-spec.md` § "Font-size grid".
+<!-- /only -->
 - **Insertion order = paint order.** Background fills first, foreground/text last.
 
 ---

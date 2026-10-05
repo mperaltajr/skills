@@ -63,6 +63,12 @@ def main() -> int:
     assert b.extract_field(BLOCK_1, b.FIELD_LABELS["chart_type"]) == "bar"
     assert b.forecast_pattern({"chart_type": "none", "title": "Approve"}) != b.PATTERNS["chart"]
     print("    ok: last field stops at the divider; table rows inside chart data kept")
+    # storyline-helper's template writes "(optional)" after the heading; that
+    # used to make every deck's design notes vanish.
+    notes = b.extract_deck_notes(
+        "## Deck-level design notes (optional)\n- No card grids\n- Source: Illustrative\n\n## Flags\nx\n")
+    assert notes.startswith("- No card grids") and "Flags" not in notes, repr(notes)
+    print("    ok: deck notes read under a heading with trailing text")
     print("SMOKE PASSED.")
     return 0
 
