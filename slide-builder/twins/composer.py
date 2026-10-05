@@ -427,7 +427,7 @@ def clone_missing_chrome_placeholders(slide, layout):
             idx = int(ph.placeholder_format.idx)
         except Exception:
             continue
-        if t == 13 and idx not in have:  # SLIDE_NUMBER
+        if t in (13, 15) and idx not in have:  # SLIDE_NUMBER, FOOTER (source line)
             sp_tree.append(deepcopy(ph._element))
             cloned += 1
     return cloned

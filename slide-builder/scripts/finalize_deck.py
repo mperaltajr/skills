@@ -1847,7 +1847,10 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
         new_slide,
         title=src_title or None,
         subtitle=src_subtitle or None,
-        footer=None,
+        # The sketch path captures the source line as template field 'footer';
+        # write it into the layout's FOOTER placeholder when one exists
+        # (it was previously dropped, so source lines vanished from the deck).
+        footer=((template_fields_override or {}).get("footer") or None),
         page_num=str(slide_n),
         title_idx=_title_idx,
         subtitle_idx=_subtitle_idx,
