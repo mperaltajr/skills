@@ -236,6 +236,9 @@ def build(out_dir: Path) -> Path:
             idx = ph.placeholder_format.idx
             if idx == 0:
                 _set_xfrm(ph, 0.45, 0.45, 12.43, 0.95)
+                # No inner left margin, so the title's text lines up with the
+                # takeaway and body (registration flags a 10 px offset otherwise).
+                ph._element.find(qn("p:txBody")).find(qn("a:bodyPr")).set("lIns", "0")
             elif name == "Title and Content" and idx == 1:
                 _set_xfrm(ph, 0.45, 1.6, 12.43, 5.1)
             elif name == "Two Content" and idx == 1:

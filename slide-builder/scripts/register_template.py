@@ -4230,6 +4230,39 @@ def _render_mock_page_selftest(tpl: Path) -> tuple[list[str], list[str]]:
     if _slide_has_prompt_text(slide):
         fails.append(f"placeholder prompt text ('Click to add…') is still visible "
                      f"on layout {layout_name!r} after populating.")
+    # Left edges: the title's text should start where the takeaway's does. A
+    # title placeholder with PowerPoint's default inner margin starts about
+    # 10 px further right than Slide Lab's takeaway line (seen on the showcase
+    # template). Tell the user so they can judge it on the sample slide.
+    try:
+        from pptx.oxml.ns import qn as _qn
+
+        def _text_left(sh):
+            bp = sh._element.find(".//" + _qn("a:bodyPr"))
+            ins = int(bp.get("lIns")) if bp is not None and bp.get("lIns") else None
+            if ins is None and getattr(sh, "is_placeholder", False):
+                try:
+                    lp = sh._base_placeholder
+                    lb = lp._element.find(".//" + _qn("a:bodyPr")) if lp is not None else None
+                    ins = int(lb.get("lIns")) if lb is not None and lb.get("lIns") else None
+                except Exception:
+                    ins = None
+            return int(sh.left or 0) + (91440 if ins is None else ins)
+        _title = next((sh for sh in slide.placeholders
+                       if sh.placeholder_format.type is not None
+                       and int(sh.placeholder_format.type) in (1, 3)), None)
+        _sub = next((sh for sh in slide.shapes
+                     if (getattr(sh, "name", "") or "").lower().startswith("subtitle")), None)
+        if _title is not None and _sub is not None:
+            _dpx = round((_text_left(_title) - _text_left(_sub)) / 9525)
+            if abs(_dpx) >= 6:
+                infos.append(
+                    f"title text starts {abs(_dpx)} px {'right' if _dpx > 0 else 'left'} of the "
+                    f"takeaway line on {layout_name!r}. Check the left edges on the sample "
+                    f"slide; if they should line up, set the title box's left margin to 0 "
+                    f"in the template's layout and register it again.")
+    except Exception:
+        pass
 
     # Save the mock slide as a REAL .pptx in the sidecar so the user can open it
     # in PowerPoint and confirm — the automated checks above can miss things, so
