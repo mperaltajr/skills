@@ -1,35 +1,6 @@
-# Slide Lab — Python runtime dependencies. Pinned for reproducibility.
-# Install: py -3 -m pip install -r requirements.txt
-# Verify:  py -3 -c "import pptx, PIL, yaml, lxml, pydantic, pypdfium2, skimage; print('python deps OK')"
+# Slide Lab: install from the top-level requirements.txt.
+# This file used to pin exact versions that cannot install on Python 3.14.
+-r ../requirements.txt
 
-python-pptx==1.0.2
-Pillow==11.0.0
-PyYAML==6.0.2
-lxml==5.3.0
-pydantic==2.13.4
-
-# Used by slide-qc/scripts/render_slides.py for PDF -> PNG conversion in the
-# default (LibreOffice headless) render path. Pinning to 4.30.x to match the
-# tested ABI; auto-install on first render was removed 2026-06-02 in favor of
-# a documented requirements.txt entry.
-pypdfium2==4.30.0
-
-# Optional: needed only for the pixel-perfect `--engine ppt` render path
-# (PowerPoint COM automation). Windows-only — installs as `pywin32`, imports
-# as `win32com`. Skipped automatically on non-Windows platforms via the
-# environment marker. Safe to skip if you only use LibreOffice rendering.
-pywin32==308; sys_platform == "win32"
-
-# Pattern B refactor. Used by tests/capture_baseline.py
-# and tests/regression_check.py for SSIM-based fidelity measurement (the
-# regression-no-silent-drift guarantee). ~30 MB install. Pinned per
-# Spec 5 §1 (`structural_similarity` from skimage.metrics).
-scikit-image>=0.21,<1.0
-
-# Pattern B refactor. Used by scripts/render_html.py to
-# convert worker-authored HTML into the 1280×720 PNG that gets reviewed
-# and (M4+) translated back to native python-pptx. After `pip install`,
-# also run `py -3 -m playwright install chromium` to download the headless
-# Chromium binary (~170 MB; one-time). See INSTALL.md Step 1.5.
-playwright>=1.40,<2.0
-fonttools>=4.40,<5.0
+# Only the image-similarity regression tests (tests/regression_check.py) need this:
+# scikit-image>=0.21,<1.0

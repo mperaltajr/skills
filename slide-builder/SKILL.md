@@ -22,7 +22,7 @@ The build layer of Slide Lab. The split is the spec.
 
 If you have never run this skill before, read these in order before anything else:
 
-1. **[INSTALL.md](INSTALL.md)** — pinned Python deps, Playwright + headless Chromium (sketch-path render), LibreOffice, sibling `slide-qc` skill, worker + translator agent install. End with the verification step printing `install OK`.
+1. **Install from the [README](../README.md)** (the one maintained walkthrough), then run `py -3 scripts/doctor.py`: its table says what is missing and how to fix it. [INSTALL.md](INSTALL.md) is maintainer detail.
 2. **[examples/RUN.md](examples/RUN.md)** — the canonical end-to-end walkthrough (prep → agent dispatch → finalize → gate → compile → review) against the bundled example brief + your registered template. Ends with a `REVIEW.html` you can open in a browser.
 
 After that, the input contract for real briefs is documented below in § "Input contract — narrative brief", and registering a new client template is below in § "Register a new client template."

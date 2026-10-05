@@ -70,10 +70,58 @@ _PDFIUM_LOCK = threading.Lock()
 # ---------------------------------------------------------------------------
 # LibreOffice path (silent, default)
 # ---------------------------------------------------------------------------
+def powerpoint_available() -> bool:
+    """True on Windows when PowerPoint can be driven (pywin32 + PowerPoint)."""
+    if sys.platform != "win32":
+        return False
+    try:
+        import winreg
+        winreg.CloseKey(winreg.OpenKey(winreg.HKEY_CLASSES_ROOT, r"PowerPoint.Application"))
+        import win32com.client  # noqa: F401
+        return True
+    except Exception:
+        return False
+
+
+def render_ppt_fallback(pptx: pathlib.Path, out_dir: pathlib.Path, width_px: int):
+    """Draw slides with PowerPoint when LibreOffice is not installed.
+
+    Unlike --engine ppt this does not refuse when PowerPoint is open: it opens
+    the deck read-only without a window, exports, closes only that deck, and
+    quits PowerPoint only if it started it. Same slide_NN.png names as
+    render_libre, so every caller works unchanged.
+    """
+    import win32com.client
+    out_dir.mkdir(parents=True, exist_ok=True)
+    for p in out_dir.glob("slide_*.png"):
+        p.unlink()
+    was_running = _powerpoint_already_running()
+    height_px = int(width_px * 9 / 16)
+    app = win32com.client.Dispatch("PowerPoint.Application")
+    n = 0
+    try:
+        pres = app.Presentations.Open(str(pptx), True, False, False)  # read-only, no window
+        try:
+            for i, slide in enumerate(pres.Slides, start=1):
+                slide.Export(str(out_dir / f"slide_{i:02d}.png"), "PNG", width_px, height_px)
+                n = i
+        finally:
+            pres.Close()
+    finally:
+        if not was_running:
+            app.Quit()
+    print(f"Rendered {n} slides to {out_dir} (PowerPoint, because LibreOffice is not installed)")
+
+
 def render_libre(pptx: pathlib.Path, out_dir: pathlib.Path, dpi: int):
     global SOFFICE
     if SOFFICE is None:
-        SOFFICE = _resolve_soffice()
+        try:
+            SOFFICE = _resolve_soffice()
+        except RuntimeError:
+            if powerpoint_available():
+                return render_ppt_fallback(pptx, out_dir, int(round(dpi * 13.333)))
+            raise
     out_dir.mkdir(parents=True, exist_ok=True)
     # Wipe stale slide_*.png so old files don't linger if the deck shrank
     for p in out_dir.glob("slide_*.png"):

@@ -3711,6 +3711,13 @@ def _check_libreoffice_available() -> tuple[bool, str]:
         return True, ""
     except Exception:
         pass
+    try:
+        from render_slides import powerpoint_available
+        if powerpoint_available():
+            print("  LibreOffice not found: drawing previews with PowerPoint instead.")
+            return True, ""
+    except Exception:
+        pass
     msg = (
         "LibreOffice was not found. Slide Lab needs it to render the preview, "
         "the layout thumbnails, and the per-slide thumbnails shown "

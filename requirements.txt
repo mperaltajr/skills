@@ -20,8 +20,7 @@ pypdfium2>=4.0
 # Imaging (thumbnail generation, icon extraction)
 Pillow>=10.0
 
-# Charting (chart-generating builders)
-matplotlib>=3.7
+# Numbers for the translator's self-check
 numpy>=1.24
 
 # XLSX read/write (xlsx skill + chart-data ingestion)

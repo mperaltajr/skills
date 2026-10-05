@@ -19,7 +19,7 @@ from docx.shared import Inches, Pt, RGBColor
 REPO = Path(__file__).resolve().parents[1]
 OUT = Path(__file__).resolve().parents[1] / "Slide-Lab-Install-Guide.docx"
 OUT.parent.mkdir(exist_ok=True)
-AS_OF = "Accurate as of 2 October 2026"
+AS_OF = "Accurate as of 5 October 2026"
 REPO_URL = "https://github.com/mperaltajr/skills"
 ACC = "0B3C49"; ACCENT = RGBColor(0x0B, 0x3C, 0x49)
 TEXT = RGBColor(0x22, 0x22, 0x22); MUTED = RGBColor(0x5A, 0x5A, 0x5A)

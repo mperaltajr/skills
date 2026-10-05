@@ -51,7 +51,7 @@ Git is usually already there, because Claude Code on Windows uses it. If the set
 Open Claude and paste this:
 
 ```
-Install Slide Lab for me. Clone https://github.com/mperaltajr/skills into my .claude\skills folder (~/.claude/skills on a Mac), then follow the "Doing it by hand" steps in its README.md for my computer. Run each command on its own so I can approve it, and finish by running doctor.py and showing me its table.
+Install Slide Lab for me: clone https://github.com/mperaltajr/skills into my .claude\skills folder (~/.claude/skills on a Mac), or git pull if it is already there. Then follow the "Doing it by hand" steps in its README.md, one command at a time so I can approve each, and finish by running doctor.py and showing me its table.
 ```
 
 Claude asks before each download or install (your company's settings may require that). Click **Allow** each time. At the end it shows a table like this:
@@ -79,20 +79,20 @@ Close and reopen Claude so it loads Slide Lab. Then type `/slide-lab` or just as
 Run these one at a time. Always use `py -3`, never bare `python` or `pip` (on many PCs `python` runs LibreOffice's private copy of Python).
 
 ```powershell
-git clone https://github.com/mperaltajr/skills "$env:USERPROFILE\.claude\skills"
+git clone --depth 1 https://github.com/mperaltajr/skills "$env:USERPROFILE\.claude\skills"
 py -3 -m pip install --user -r "$env:USERPROFILE\.claude\skills\requirements.txt"
 py -3 -m playwright install chromium
 py -3 "$env:USERPROFILE\.claude\skills\slide-builder\scripts\doctor.py" fix
 ```
 
 - The third line downloads a browser used to draw design sketches. If your network blocks it, skip it: Slide Lab uses Microsoft Edge instead (tested to give the same results).
-- The last line copies Slide Lab's two helper agents into `.claude\agents`, adds Slide Lab's permissions to `.claude\settings.json` (it adds to the file and keeps a backup, never replaces it), creates your local work folder `C:\Users\<you>\Slide Lab\sessions` with a Desktop shortcut, and prints the setup table. It never installs software.
+- The last line copies Slide Lab's two helper agents into `.claude\agents`, lets Claude run Slide Lab's own scripts and write in your Slide Lab folders without asking each time, and nothing more (anything else still asks; it adds to `.claude\settings.json` and keeps a backup, never replaces it), creates your local work folder `C:\Users\<you>\Slide Lab\sessions` with a Desktop shortcut, and prints the setup table. It never installs software.
 - Restart Claude when done.
 
 ### Doing it by hand (Mac)
 
 ```bash
-git clone https://github.com/mperaltajr/skills ~/.claude/skills
+git clone --depth 1 https://github.com/mperaltajr/skills ~/.claude/skills
 python3 -m pip install --user -r ~/.claude/skills/requirements.txt
 python3 -m playwright install chromium
 python3 ~/.claude/skills/slide-builder/scripts/doctor.py fix

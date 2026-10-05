@@ -45,7 +45,6 @@ PACKAGES = [
     ("pydantic", "pydantic", "checks build and template data"),
     ("pypdfium2", "pypdfium2", "turns rendered slides into pictures"),
     ("PIL", "Pillow", "pictures"),
-    ("matplotlib", "matplotlib", "charts"),
     ("numpy", "numpy", "charts and checks"),
     ("openpyxl", "openpyxl", "Excel chart data"),
     ("fontTools", "fonttools", "measures text for the translator"),
@@ -54,8 +53,12 @@ PACKAGES = [
 ]
 
 AGENT_ALLOWS = ["Agent(slide-builder-worker)", "Agent(slide-builder-translator)"]
-BASE_ALLOWS = ["Bash", "PowerShell", "Read", "Write", "Edit", "Glob", "Grep",
-               "WebFetch", "Agent(Explore)", "Agent(Plan)"] + AGENT_ALLOWS
+# Only what Slide Lab runs, not every command in every project (approved
+# 2026-10-05): its Python scripts, reading files, and writing in the Slide Lab
+# work folders. Anything else still asks.
+BASE_ALLOWS = ["Bash(py -3 *)", "PowerShell(py -3 *)", "Bash(python3 *)",
+               "Read", "Glob", "Grep",
+               "Edit(~/Slide Lab/**)", "Edit(~/.claude/skills/**)"] + AGENT_ALLOWS
 
 WORK_DIR = Path.home() / "Slide Lab" / "sessions"
 SYNC_WORDS = ("onedrive", "dropbox", "google drive", "icloud", "box sync")
@@ -127,6 +130,16 @@ def check_libreoffice(rows):
         from render_slides import _resolve_soffice, render_libre
         _resolve_soffice()
     except Exception:
+        try:
+            from render_slides import powerpoint_available
+            if powerpoint_available():
+                _row(rows, "LibreOffice", True,
+                     "Not installed; Slide Lab draws previews with PowerPoint instead "
+                     "(save your open decks before a build). Installing LibreOffice "
+                     "from the software portal is still recommended.")
+                return
+        except Exception:
+            pass
         _row(rows, "LibreOffice", False,
              "Install LibreOffice from the company software portal (or "
              "libreoffice.org). It is required: template registration, the "
@@ -237,7 +250,9 @@ def fix_settings() -> str:
     data, bom = _load_settings()
     perms = data.setdefault("permissions", {})
     allow = perms.setdefault("allow", [])
-    added = [a for a in BASE_ALLOWS if a not in allow and (WINDOWS or a != "PowerShell")]
+    added = [a for a in BASE_ALLOWS if a not in allow
+             and (WINDOWS or not a.startswith("PowerShell"))
+             and (not WINDOWS or a != "Bash(python3 *)")]
     if not added:
         return ""
     allow.extend(added)
