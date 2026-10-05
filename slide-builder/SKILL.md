@@ -280,7 +280,7 @@ The agent picks the split per slide directly from the brief content. There is no
    ```
    `content_hash` is locked in `build_deck.py` at prep time. Per-option variant seeds (one per requested `option_letter`) ensure sibling options — when more than one is generated — pick different variants within the chosen pattern. Without `option_letter` in the seed, all siblings would pick the same variant — that was a real bug caught by the architecture review.
 
-Adjacency (Hardline #3 — no 3+ consecutive same-split) is **soft-enforced at pick time** (agent uses the prep-time hint as adjacency context) and **surfaced post-build** by `build_gate_preview.py` (advisory banner in `GATE3-PREVIEW.html`) + `build_review.py` (advisory section in `REVIEW.html`). The user resolves the run by picking a different option for one of the offending slides at compile time, or by re-dispatching the slide with a different forecasted pattern. Brief fidelity (Hardline #4) wins over adjacency at pick time — the agent does not bend its pattern pick to satisfy adjacency.
+Adjacency (Hardline #3 — no 3+ consecutive same-split) is **soft-enforced at pick time** (agent uses the prep-time hint as adjacency context) and **surfaced post-build** by `build_review.py` (advisory section in `REVIEW.html`). The user resolves the run by picking a different option for one of the offending slides at compile time, or by re-dispatching the slide with a different forecasted pattern. Brief fidelity (Hardline #4) wins over adjacency at pick time — the agent does not bend its pattern pick to satisfy adjacency.
 
 ### Why this flow wins
 
@@ -319,7 +319,7 @@ Adjacency (Hardline #3 — no 3+ consecutive same-split) is **soft-enforced at p
     ```
     It checks one chain of recorded facts and exits non-zero if any link breaks: a compile **succeeded** and recorded its output; the deck is **that file, byte for byte** (no edits since); it was built from the **current** brief; it opens with nothing PowerPoint refuses; every option in it finalized with **zero** blocking findings; a **vision pass over those same bytes covered every slide** (slide-qc records it via `record_vision_qc.py`); and **no Critical or Major finding is open** (only Advisory may remain). The deterministic self-check does not count: it is structurally blind to shapes overlapping and to large empty areas, which is exactly the class that has shipped before. Do not tell the user the deck is finished until this passes.
     It also lists every gate passed over in the build (`--assume-gated`, `--allow-unconfirmed`, `--allow-missing`, a `mode:` line that skipped the storyline gate). **Tell the user about each one when you deliver.** It refuses a deck that is older than the latest rebuild or finalize.
-13. **Deliver.** PPTX. Output full absolute Windows path. No preview links, plus any overrides `check_done.py` listed.
+13. **Deliver.** Give the full path of the deck named after its topic (compile prints it as `deck to share:`; `final_deck.pptx` beside it is the same file under the build's own name). No preview links. Add any overrides `check_done.py` listed, in plain words.
 14. **When the user says the deck is good** ("looks good", "approved", "final", "ship it", "publish it"), free the build files it no longer needs:
     ```powershell
     py -3 scripts/publish_cleanup.py --out <out>
@@ -328,10 +328,11 @@ Adjacency (Hardline #3 — no 3+ consecutive same-split) is **soft-enforced at p
 
 Rebuild individual slides with "rebuild slide N". This re-prep + re-finalize touches only slide N and grafts it back into the existing deck — every other slide's prompt, themed PPTX, and pick are left exactly as they were:
 
+0. **One design (the default): first** `py -3 scripts/redesign_round.py start --out <out> --slides N --keep-previous` (before prep, which clears the old approval). It keeps every other slide's pick from the last build.
 1. `build_deck.py --slide N --out <existing-out> --template <template>` — re-preps only slide N, merging into the existing `_meta.json` (reuses the brief recorded in `_meta.json`; pass `--brief` to rebuild from edited content). Slide N's old option files move to `slide_NN/_prev/`, so nothing stale can be picked up. Other slides are untouched. **If the user says "make slide N look like slide M,"** add `--like-slide M`: it pins slide N to slide M's recorded build path (sketch/direct) instead of re-classifying — the reference slide's cleaner look usually comes from its path, and re-classifying would silently re-route N.
 2. Dispatch one `slide-builder-worker` for slide N (reads `slide_NN/_context.md` then `_prompt.md`). Render its sketches if it built on the sketch path.
 3. `finalize_deck.py --slide N --out <out> --template <template>` — re-themes/renders/QCs only slide N; writes `RESULT-slide-NN.md` so the deck `RESULT.md` is preserved.
-4. Then the same review sequence as a full build (steps 6-10 above): `build_review.py`, the user decides every slide (the page has kept every other slide's pick; slide N needs a new one), `record_picks.py`, translate slide N if it is a picked sketch, finalize, `build_review.py --final`, and compile with the final token. Prep cleared the old approval, so a rebuild cannot ride it.
+4. **One design:** `py -3 scripts/redesign_round.py finish --out <out>`. It picks the new design, converts and finalizes it, and opens FINAL-CHECK.html; continue at step 10 (the user's Build it message). There is no second picking page for a single option. **With alternatives ("with 3 options"):** skip step 0 and finish with the same review sequence as a full build (steps 6-10 above): `build_review.py`, the user decides every slide (the page has kept every other slide's pick; slide N needs a new one), `record_picks.py`, translate slide N if it is a picked sketch, finalize, `build_review.py --final`, and compile with the final token. Prep cleared the old approval, so a rebuild cannot ride it.
 
 ### Replicating a supplied page
 

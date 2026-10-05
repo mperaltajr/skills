@@ -15,7 +15,7 @@ Storyline Helper produces a **narrative brief**: a sequenced outline where each 
 
 ## Hard constraints
 
-1. **Do not produce a narrative brief until the quality gate passes.** Nine-part test plus cross-cutting rules: every slide has a declarative governing thought; a takeaway that shifts a belief (not a restatement); a single editorial emphasis consistent with the takeaway; the title-only coherence test passes across the sequence; deck-type-specific governing-thought tests pass; internal consistency holds; brief completeness check passes. Fail any part → back to conversation. Full machinery in the Quality gate section.
+1. **Do not produce a narrative brief until the quality gate passes.** Nine-part test plus cross-cutting rules: every slide has a declarative governing thought; a takeaway that states what the page's facts mean, with one of its numbers (not a restatement or a slogan); a single editorial emphasis consistent with the takeaway; the title-only coherence test passes across the sequence; deck-type-specific governing-thought tests pass; internal consistency holds; brief completeness check passes. Fail any part → back to conversation. Full machinery in the Quality gate section.
 
 2. **Do not invent arguments the user has not made.** Storyline Helper sharpens the user's thinking; it does not replace it. If thinking is weak or absent, surface that and ask what they believe. Never fabricate. This applies across the whole flow: in the Intake stage you mirror what the user gave you and ask for what they didn't; in the Diagnosis stage you propose one narrative spine with reasoning (the spine choice is informed by the user's actual content, never invented to fit a template); in the Slide probing stage you probe for facts when claims are soft and accept qualitative when the user genuinely has nothing — never generate plausible-sounding prose to fill a gap, never present "three drafts to pick from" as a substitute for the user's own framing. See the Slide probing stage for the operational probing pattern.
 
@@ -52,7 +52,7 @@ Default to high coaching intensity. If the user demonstrates they already know t
 
 **Signs of a fluent user** (dial back):
 - Leads with their recommendation without being asked
-- Uses MBB vocabulary naturally (governing thought, takeaway, load-bearing, MECE)
+- Uses storyline vocabulary naturally (governing thought, takeaway, load-bearing, mutually exclusive and collectively exhaustive)
 - Structures their own answer before you ask
 
 **Signs of a user who needs more coaching** (stay at full intensity):
@@ -65,7 +65,7 @@ Default to high coaching intensity. If the user demonstrates they already know t
 - Skip framework explanations (SCR, Pyramid) — offer the name, don't walk through it
 - Shorten pushback — name the problem and ask one question; skip the "here's what good looks like" beat if the user will know immediately
 - Don't re-explain why structure matters — they know; move straight to the structural move
-- Still run the gate at full strictness — fluency doesn't exempt the brief from the five-part test
+- Still run the gate at full strictness — fluency doesn't exempt the brief from the nine-part test
 
 ---
 
@@ -829,7 +829,7 @@ Then immediately generate the companion dot-dash storyline file by running:
 py -3 skills/storyline-helper/scripts/emit_dot_dash.py "<absolute path to _session/narrative-brief-[topic].md>"
 ```
 
-This produces **two** files at the session root — a McKinsey-style projection of the brief (one dot per slide = the governing thought; dashes = evidence + exhibit callouts):
+This produces **two** files at the session root — a one-line-per-slide projection of the brief (one dot per slide = the governing thought; dashes = evidence + exhibit callouts):
 - `dot-dash-[topic].md` — markdown form, good for version control + editor view
 - `dot-dash-[topic].html` — rendered form, good for screen-share + sending to reviewers
 
@@ -970,7 +970,7 @@ dot-dash and is listed in the Open-gaps section); `evidence_type: fact` with a
 
 For pillar / column / option structures, prefix the bold heading with a label segment in CAPS if the slide will show one:
 
-- **TRAINING GAP · The rigor was never taught** — Most consultants never learned it. McKinsey built it in. Most firms don't.
+- **TRAINING GAP · The method was never taught** — 3 of the 12 people on the team had formal storyline training (team survey, May 2026).
 
 For cover slides (slide 1), the brief MUST include these fields in the content block:
 
@@ -1018,84 +1018,16 @@ These are not historical risks. They are unresolved gaps the user chose to ship 
 
 The expanded format makes the brief longer than v1's version — typically 20-30 lines per slide instead of 2-3. That is intentional. The extra content is what lets the slide-builder's intake stage (design thinking) do real work instead of template-filling. A thin brief produces thin slides; the gate enforces richness.
 
-### Brief-time quality gate (automated)
+### Brief-time check (automated)
 
-Before the brief is handed off to slide-builder, slide-builder's
-`twins.brief_qc.check_brief` runs and surfaces issues in two severities:
+`slide-builder/scripts/brief_check.py` is the mechanical half of the gate. It reads the brief and the registered template and lists, in one table:
 
-- **Blocking** — must be fixed before the brief proceeds. Includes:
-  - Title length predicted to wrap to 3+ lines (>100 chars)
-  - Forbidden placeholders (`TBD`, `Lorem`, `[Client Name]`, `xxxx`, `Click to edit`, `placeholder`, `[insert ...]`)
-  - Cover slide missing `title` / `tagline` / `presenter`
-  - Closing-CTA slide missing `primary_ask` or fewer than 3 `sub_asks`
-- **Warning** — the user should acknowledge but can ship. Includes:
-  - Title length >80 chars (A1) or predicted to wrap to >2 lines (A2)
-  - Card body >200 chars (A3)
-  - Card heading >40 chars (A4)
-  - `editorial_emphasis` with 4+ items (should be 1–3)
+- titles that wrap to two or more lines on the template, and takeaways that wrap under the title (measured with the template's own font and box width);
+- words from `slide-builder/reference/banned-words.md`, and judgment words ("significant", "scalable") with no number next to them;
+- takeaways with no number, and "not X, it's Y" reframes;
+- thresholds ("target", "significant") with no number or "(to be set)".
 
-When the user opens the per-deck REVIEW.html, blocking + warning issues are
-surfaced in a banner at the top of the page, color-coded red (blocking) and
-amber (warning). Storyline-helper does NOT auto-fix any of these — it
-surfaces them and asks the user to revise.
-
-**A6 + A8 (language quality and truncation)** are now covered by a
-heuristic pass:
-- Run-on sentences (>35 words or >260 chars between terminator punctuation)
-  fire a warning.
-- Trailing ellipsis `...` on a non-title field fires a truncation warning
-  at any length.
-- Dangling comma / em-dash at end of a body-length field fires a
-  truncation warning.
-- Body-length text without terminal `.!?` fires a truncation warning.
-
-For deeper grammar / tone / coherence analysis, slide-builder accepts an
-optional `language_callback` argument to `check_brief`. The orchestrator
-(Claude in the chat) is the natural place to run this — it has model
-access, runs the callback per prose field on a slide, and returns severity-
-tagged issues that merge with the heuristic findings. Slide-builder's
-pure-Python module cannot do nuanced linguistic work alone.
-
-**When and how to call the language callback (orchestrator instructions):**
-
-When the user reaches the handoff section (handoff to slide-builder) and the brief
-passed the structural gate, optionally invoke the language callback as
-follows BEFORE writing the brief to disk:
-
-```python
-from twins.brief_qc import check_brief
-
-def claude_language_judge(location_label: str, text: str) -> list:
-    """Called once per long-form prose field in the narrative. Should return
-    a list of dicts: [{"severity": "warning"|"blocking", "msg": "<issue>"}].
-    Empty list = clean.
-    Use the model to check for: awkward construction, tone mismatch, jargon
-    that won't survive the room, hedging language that undermines the
-    governing thought, sentences whose subject and verb don't agree.
-    """
-    # Claude calls itself here — the body is up to the orchestrator.
-    ...
-
-result = check_brief(narrative, language_callback=claude_language_judge)
-```
-
-Only invoke the callback if (a) the user has indicated they want a final
-language pass, OR (b) the brief contains client-facing copy that will be
-read verbatim by an executive. Skip it for working / internal briefs
-where the user is iterating fast — the heuristic pass is enough.
-
-Each callback invocation costs one model call per long-form field; for a
-10-slide brief with cards, expect ~30-50 calls. Batch them with prompt
-caching if the orchestrator supports it.
-
-**Render-time QC (`twins/render_qc.py`)** also runs after each option's
-PPTX is composed — it inspects shape positions and text content for:
-forbidden placeholder leaks ("Click to edit Master title style", etc.),
-content shapes that ended up empty (brief didn't supply override),
-invariant-zone violations (shape extends below y=672), and body content
-outside the safe vertical band (y=220-630). Each option in the REVIEW.html
-shows a clean / warning / critical badge with hover-tooltip issue list;
-critical-verdict options are blocked from selection.
+Run it during the language pass and fold its rows into the review table. `seal_brief.py` runs it again and refuses to seal while any row is open, unless the user's own reasons are passed with `--accepted`. It does not judge the argument; the nine-part gate above does that.
 
 ### Optional per-slide steering fields (P1 enrichment)
 
@@ -1172,7 +1104,7 @@ When the deck type is **Workshop Design**, replace the standard the Intake stage
 
 > *"What's the one sentence that tells a participant why this workshop is worth their full day? Not the agenda — the reason."*
 
-This becomes the purpose statement on the opening slide, not a governing thought. The standard five-part gate does not apply. Instead, before producing the brief, run a four-part workshop gate. **Fail any part → return to the affected section and ask the specific question listed. Do not produce the brief until all four parts pass.**
+This becomes the purpose statement on the opening slide, not a governing thought. The standard nine-part gate does not apply. Instead, before producing the brief, run a four-part workshop gate. **Fail any part → return to the affected section and ask the specific question listed. Do not produce the brief until all four parts pass.**
 
 1. **Decisions test:** Does each session block have a named decision or output — not just a topic?
 2. **Participant readiness test:** Does the pre-work ask give participants what they need to contribute meaningfully in session 1?

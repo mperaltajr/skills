@@ -244,16 +244,16 @@ First-class helpers with their own plumbing. Hardline Rule #1: charts and tables
 
 ![Chart with quadrant mode](../_decisions/gallery/gallery10-chart-quadrant.png)
 
-Axes plus items in 2D space plus a takeaway. The `chart_type` parameter governs the variant: `scatter`, `line`, `bar`, `waterfall`, `donut`, `quadrant`. **Quadrant mode absorbs the old 2×2 matrix** — BCG, Magic Quadrant, Eisenhower, all render here via `quadrants: [name×4]`. The example PNG shows BCG: brand-primary axes, quadrant labels in the four corners, product bubbles at correct fractional coordinates, right-side "Recommended moves" legend.
+Axes plus items in 2D space plus a takeaway. The `chart_type` parameter governs the variant: `scatter`, `line`, `bar`, `waterfall`, `donut`, `quadrant`. **Quadrant mode absorbs the old 2×2 matrix** — growth-share matrix, Magic Quadrant, Eisenhower, all render here via `quadrants: [name×4]`. The example PNG shows a growth-share matrix: brand-primary axes, quadrant labels in the four corners, product bubbles at correct fractional coordinates, right-side "Recommended moves" legend.
 
-**Use when:** any 2-axis chart (scatter, line, bar, waterfall, donut) · 2×2 matrix frameworks (BCG, Magic Quadrant, Eisenhower, prioritization matrices) · charts where the data is the slide's center of gravity.
+**Use when:** any 2-axis chart (scatter, line, bar, waterfall, donut) · 2×2 matrix frameworks (growth-share matrix, Magic Quadrant, Eisenhower, prioritization matrices) · charts where the data is the slide's center of gravity.
 
 **Variants:** `chart_type` (scatter, line, bar, waterfall, donut, quadrant) · axis labels yes/no · legend position (right, bottom, top-right under sub-headline) · per-item callout pills yes/no · recommended-item emphasis (size, fill, halo).
 
 **Do not use for:** comparison tables (use Table) · pure category lists without 2D positioning · cases where the chart would be invented because the brief has no quantitative data.
 
 **Convention rules:**
-- For BCG-style quadrants: STARS top-right, CASH COWS bottom-right, QUESTION MARKS top-left, DOGS bottom-left. Never swap these positions.
+- For growth-share matrix quadrants: STARS top-right, CASH COWS bottom-right, QUESTION MARKS top-left, DOGS bottom-left. Never swap these positions.
 - Legends go below the sub-headline (right-aligned) by default; top-right of the chart only when the right side is occupied by a callout.
 
 ---

@@ -3202,27 +3202,9 @@ def _run(args) -> int:
     result_path = write_result(args.out, args.template, statuses, slide_n=args.slide)
     print(f"  {result_path}")
 
-    print("\n[7] Generate Gate 3 visual preview (GATE3-PREVIEW.html)")
-    preview_script = Path(__file__).resolve().parent / "build_gate_preview.py"
-    try:
-        result = subprocess.run(
-            [sys.executable, str(preview_script), "--out", str(args.out)],
-            capture_output=True, text=True, timeout=60,
-        )
-        if result.returncode == 0:
-            # Echo the script's output (it prints path + slide count)
-            for line in (result.stdout or "").splitlines():
-                if line.strip():
-                    print(f"  {line}")
-        else:
-            print(f"  WARNING: build_gate_preview.py exited {result.returncode}")
-            for line in (result.stderr or "").splitlines():
-                if line.strip():
-                    print(f"  {line}")
-    except subprocess.TimeoutExpired:
-        print(f"  WARNING: build_gate_preview.py timed out (60s)")
-    except Exception as exc:
-        print(f"  WARNING: build_gate_preview.py invocation failed: {type(exc).__name__}: {exc}")
+    # GATE3-PREVIEW.html is no longer written: REVIEW.html and FINAL-CHECK.html
+    # are the two pages the user looks at, and the extra file only cluttered
+    # the session folder (build_gate_preview.py still runs on its own if needed).
 
     # No approval bookkeeping here any more. Picks survive a re-finalize (it is
     # how picked sketches get converted), and any finished file finalize writes

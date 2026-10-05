@@ -4,7 +4,7 @@ emit_dot_dash.py — Project a narrative brief into a dot-dash storyline file
 
 Reads a `narrative-brief-<topic>.md` and writes companion
 `dot-dash-<topic>.docx`, `dot-dash-<topic>.md`, and `dot-dash-<topic>.html`
-files that lay out the deck's argument in McKinsey-style dot-dash format:
+files that lay out the deck's argument in one-line-per-slide (dot-dash) format:
 
     • Slide governing thought (the action title)
       – Evidence sentence as prose (no labels, no ALL-CAPS prefixes)
@@ -214,7 +214,7 @@ def _extract_evidence_bullets(block: str) -> list[dict]:
         # Indented continuation (non-metadata)
         if line.startswith(("  - ", "  * ")):
             if bullets:
-                bullets[-1]["text"] = bullets[-1]["text"] + " — " + line.lstrip()[2:].strip()
+                bullets[-1]["text"] = bullets[-1]["text"] + "; " + line.lstrip()[2:].strip()
             continue
 
         # Non-bullet line — track as potential label if it ends with ":"
@@ -241,7 +241,7 @@ def _exhibit_line(block: str) -> str | None:
             chart_summary = "(data TBD)"
         else:
             chart_summary = first_line[:120]
-    return f"Exhibit: {chart_type} chart — {chart_summary}".rstrip(" —")
+    return f"Exhibit: {chart_type} chart: {chart_summary}".rstrip(" :")
 
 
 # ---------------------------------------------------------------------------
@@ -268,7 +268,9 @@ def _split_slides(brief_text: str) -> list[str]:
 def _slide_title(block: str) -> str:
     """Return the slide header text (e.g. 'Slide 1 — Overall Program Status')."""
     first_line = block.splitlines()[0]
-    return first_line.lstrip("# ").strip()
+    # The brief separates number and title with an em-dash (a parser convention);
+    # the shared storyline file shows "Slide 1: Title".
+    return re.sub(r"^(Slide\s+\d+)\s*[—–]\s*", r"\1: ", first_line.lstrip("# ").strip())
 
 
 def _parse_deck_header(brief_text: str) -> dict[str, str]:
@@ -364,7 +366,7 @@ def _collect_open_gaps(slides: List[Dict[str, Any]]) -> list[str]:
         title = s.get("title", "(untitled)")
         for b in s.get("bullets", []):
             if bullet_is_qualitative(b):
-                gaps.append(f"{title}: qualitative claim (no data anchor) — \"{bullet_text(b)}\"")
+                gaps.append(f"{title}: no data behind this claim yet: \"{bullet_text(b)}\"")
         if s.get("chart_tbd"):
             gaps.append(f"{title}: chart data is TBD / placeholder")
     return gaps
@@ -440,25 +442,25 @@ def render_dot_dash_md(data: Dict[str, Any]) -> str:
     slides = data["slides"]
 
     lines: list[str] = []
-    lines.append(f"# Dot-dash storyline: {header['topic']}")
+    lines.append(f"# Storyline: {header['topic']}")
     lines.append("")
     if header["deck_type"]:
-        lines.append(f"**Deck type:** {header['deck_type']}")
+        lines.append(f"**Type of deck:** {header['deck_type']}")
     if header["governing"]:
-        lines.append(f"**Governing thought (whole deck):** {header['governing']}")
+        lines.append(f"**Main message:** {header['governing']}")
     if header["audience"]:
         audience_first_line = header["audience"].splitlines()[0]
         lines.append(f"**Audience:** {audience_first_line}")
     if header["belief_break"]:
-        lines.append(f"**Belief to break:** {header['belief_break']}")
+        lines.append(f"**What the audience believes now:** {header['belief_break']}")
     if header["belief_leave"]:
-        lines.append(f"**Belief to leave with:** {header['belief_leave']}")
+        lines.append(f"**What they should believe after:** {header['belief_leave']}")
     if header["say_back"]:
-        lines.append(f"**The room should say back:** {header['say_back']}")
+        lines.append(f"**What the room should say back:** {header['say_back']}")
     lines.append("")
     lines.append("---")
     lines.append("")
-    lines.append("> Read the dots top-to-bottom — they should form the deck's argument as a single coherent story. If the dots-alone don't make sense, the storyline is broken.")
+    lines.append("> Read the headlines (the dots) top to bottom: on their own they should tell the deck's whole argument. If they don't, the storyline is broken.")
     lines.append("")
     lines.append("---")
     lines.append("")
@@ -475,7 +477,7 @@ def render_dot_dash_md(data: Dict[str, Any]) -> str:
         else:
             # Cover / transition placeholder text — no governing thought
             # by design. Mark explicitly so the read-down test ignores it.
-            lines.append(f"**• _(cover / transition — no governing thought)_**")
+            lines.append(f"**• _(cover or divider: no headline claim)_**")
         # Covers and transitions ship no narrative dashes — the title and
         # any key-value metadata live on the slide itself.
         if not s.get("no_narrative"):
@@ -572,21 +574,21 @@ def render_dot_dash_html(data: Dict[str, Any], *, standalone: bool = True) -> st
 
     parts: list[str] = []
     parts.append('<div class="dd-container">')
-    parts.append(f'<h1 class="dd-title">Dot-dash storyline: {_h(header.get("topic", ""))}</h1>')
+    parts.append(f'<h1 class="dd-title">Storyline: {_h(header.get("topic", ""))}</h1>')
 
     meta_rows: list[tuple[str, str, str]] = []  # (label, value, css_class)
     if header.get("deck_type"):
-        meta_rows.append(("Deck type", header["deck_type"], ""))
+        meta_rows.append(("Type of deck", header["deck_type"], ""))
     if header.get("governing"):
-        meta_rows.append(("Governing thought", header["governing"], "gov"))
+        meta_rows.append(("Main message", header["governing"], "gov"))
     if header.get("audience"):
         meta_rows.append(("Audience", header["audience"].splitlines()[0], ""))
     if header.get("belief_break"):
-        meta_rows.append(("Belief to break", header["belief_break"], ""))
+        meta_rows.append(("What the audience believes now", header["belief_break"], ""))
     if header.get("belief_leave"):
-        meta_rows.append(("Belief to leave with", header["belief_leave"], ""))
+        meta_rows.append(("What they should believe after", header["belief_leave"], ""))
     if header.get("say_back"):
-        meta_rows.append(("Room should say back", header["say_back"], ""))
+        meta_rows.append(("What the room should say back", header["say_back"], ""))
 
     if meta_rows:
         parts.append('<div class="dd-deck-meta">')
@@ -596,9 +598,8 @@ def render_dot_dash_html(data: Dict[str, Any], *, standalone: bool = True) -> st
         parts.append('</div>')
 
     parts.append(
-        '<div class="dd-callout">Read the dots top-to-bottom — they should form the '
-        "deck's argument as a single coherent story. If the dots-alone don't make sense, "
-        'the storyline is broken.</div>'
+        '<div class="dd-callout">Read the headlines (the dots) top to bottom: on their own they should tell the '
+        "deck's whole argument. If they don't, the storyline is broken.</div>"
     )
 
     if not slides:
@@ -610,7 +611,7 @@ def render_dot_dash_html(data: Dict[str, Any], *, standalone: bool = True) -> st
             if s["governing"]:
                 parts.append(f'<div class="dd-gov">{_h(s["governing"])}</div>')
             else:
-                parts.append('<div class="dd-gov missing">(cover / transition — no governing thought)</div>')
+                parts.append('<div class="dd-gov missing">(cover or divider: no headline claim)</div>')
             if not s.get("no_narrative"):
                 items: list[str] = []
                 for b in s["bullets"]:
@@ -661,7 +662,7 @@ def render_dot_dash_html(data: Dict[str, Any], *, standalone: bool = True) -> st
     return (
         f"<!DOCTYPE html><html lang=\"en\"><head><meta charset=\"UTF-8\">"
         f"<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
-        f"<title>Dot-dash: {topic}</title>"
+        f"<title>Storyline: {topic}</title>"
         f"<style>html, body {{ margin:0; padding:0; }} "
         f"body {{ background:#0F172A; padding:40px 56px; min-height:100vh; box-sizing:border-box; }}\n"
         f"{_DOT_DASH_CSS}</style>"
@@ -700,8 +701,8 @@ def render_dot_dash_docx(data: Dict[str, Any], output_path: pathlib.Path) -> Non
     normal.font.size = Pt(11)
 
     # Title.
-    topic = header.get("topic") or "Dot-dash storyline"
-    doc.add_heading(f"Dot-dash storyline: {topic}", level=1)
+    topic = header.get("topic") or "Storyline"
+    doc.add_heading(f"Storyline: {topic}", level=1)
 
     # Deck metadata block — bold label, value on the same line.
     def _meta(label: str, value: str) -> None:
@@ -712,13 +713,13 @@ def render_dot_dash_docx(data: Dict[str, Any], output_path: pathlib.Path) -> Non
         run_l.bold = True
         p.add_run(value)
 
-    _meta("Deck type", header.get("deck_type", ""))
-    _meta("Governing thought (whole deck)", header.get("governing", ""))
+    _meta("Type of deck", header.get("deck_type", ""))
+    _meta("Main message", header.get("governing", ""))
     if header.get("audience"):
         _meta("Audience", header["audience"].splitlines()[0])
-    _meta("Belief to break", header.get("belief_break", ""))
-    _meta("Belief to leave with", header.get("belief_leave", ""))
-    _meta("The room should say back", header.get("say_back", ""))
+    _meta("What the audience believes now", header.get("belief_break", ""))
+    _meta("What they should believe after", header.get("belief_leave", ""))
+    _meta("What the room should say back", header.get("say_back", ""))
 
     # Read-down callout — italic, lighter to set it apart from content.
     callout = doc.add_paragraph()
@@ -746,7 +747,7 @@ def render_dot_dash_docx(data: Dict[str, Any], output_path: pathlib.Path) -> Non
         # The dot — bold governing thought, bulleted at level 0.
         dot_text = (
             s["governing"] if s["governing"]
-            else "(cover / transition — no governing thought)"
+            else "(cover or divider: no headline claim)"
         )
         p_dot = doc.add_paragraph(style="List Bullet")
         rd = p_dot.add_run(dot_text)
@@ -790,7 +791,7 @@ def render_dot_dash_docx(data: Dict[str, Any], output_path: pathlib.Path) -> Non
         hr.bold = True
         sub = doc.add_paragraph()
         subr = sub.add_run(
-            "What's not yet fact-anchored or fully specified — review before the build."
+            "What still has no data behind it, or is not fully specified: review before the build."
         )
         subr.italic = True
         subr.font.color.rgb = RGBColor(0x60, 0x60, 0x60)

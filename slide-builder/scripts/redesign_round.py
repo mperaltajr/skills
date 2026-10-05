@@ -7,7 +7,9 @@ Picking the only option on a second review page added nothing, so:
   1. Before redesigning, record the picks the user kept (the review page puts
      them in its message as "Keep: 1B 3A ... (check 1a2b3c4d)"):
        py -3 scripts/redesign_round.py start --out <out> --slides 2,5 --kept "<Keep line>"
-     (omit --kept when no slide was picked yet)
+     (omit --kept when no slide was picked yet). For "rebuild slide N" on a
+     deck already built, use --keep-previous instead: the other slides keep
+     the picks in picks.json from the last build.
   2. Redesign each slide as usual (build_deck.py --slide N, one worker each,
      render the sketch).
   3. Finish:
@@ -62,10 +64,20 @@ def _parse_keep(line: str):
     return picks, m.group(2).lower()
 
 
-def start(out: Path, slides: list[int], kept_line: str) -> int:
+def start(out: Path, slides: list[int], kept_line: str, keep_previous: bool = False) -> int:
     state = _state.read_state(out)
     kept: dict = {}
-    if kept_line.strip():
+    if keep_previous:
+        try:
+            prev = json.loads((out / "picks.json").read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            prev = None
+        if not isinstance(prev, dict):
+            print("REFUSED: no picks.json from an earlier build to keep the other slides' picks from.")
+            return 5
+        drop = {_p.slide_key(n) for n in slides}
+        kept = {k: v for k, v in prev.items() if k not in drop}
+    elif kept_line.strip():
         kept, check = _parse_keep(kept_line)
         if kept is None:
             print('REFUSED: the Keep line looks like "Keep: 1B 3A (check 1a2b3c4d)".')
@@ -153,6 +165,8 @@ def main(argv=None) -> int:
     s.add_argument("--out", required=True, type=Path)
     s.add_argument("--slides", required=True)
     s.add_argument("--kept", default="")
+    s.add_argument("--keep-previous", action="store_true",
+                   help="keep the other slides' picks from the last build (rebuild slide N)")
     f = sub.add_parser("finish")
     f.add_argument("--out", required=True, type=Path)
     a = ap.parse_args(argv)
@@ -162,7 +176,10 @@ def main(argv=None) -> int:
         except ValueError:
             print("ERROR: --slides takes numbers, e.g. 2,5")
             return 2
-        return start(a.out, slides, a.kept)
+        if a.kept.strip() and a.keep_previous:
+            print("ERROR: use --kept or --keep-previous, not both")
+            return 2
+        return start(a.out, slides, a.kept, a.keep_previous)
     return finish(a.out)
 
 

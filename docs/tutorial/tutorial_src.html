@@ -13,7 +13,7 @@
 -->
 <script type="application/json" id="slidelab-facts">
 {
-  "as_of": "2 Oct 2026",
+  "as_of": "5 Oct 2026",
   "version": "f818f20",
   "measured": "Timings measured on one 10-slide build, Oct 2026 (3 options per slide, session folder on the local drive, designs by Claude Opus 5.5). Rows marked Estimate were not timed on that build.",
   "options_per_slide": 3,
@@ -303,18 +303,16 @@
     <thead><tr><th>When</th><th>What Claude asks</th><th>What you answer</th><th>If you don't answer</th></tr></thead>
     <tbody>
       <tr><td>Start of a session, once a day</td><td>"A Slide Lab update is available. OK to install it now?"</td><td class="you">Yes or no. If it then says to restart, close and reopen Claude</td><td>It waits. If you say no, it goes on with your current version and does not ask again that day</td></tr>
-      <tr><td>Start, when your request is not specific</td><td>Shows the menu of 8 starting points (section 7)</td><td class="you">A number, or say what you want</td><td>It waits; it does not guess</td></tr>
-      <tr><td>Template setup: colors</td><td>Shows the colors it found and asks, one at a time, for the main brand color, the highlight color and the cover background</td><td class="you">Name each one. Claude never pre-picks them</td><td>The template is not set up</td></tr>
+      <tr><td>Start, when your request is not specific</td><td>Shows a menu of 5 choices (section 7)</td><td class="you">A number, or say what you want</td><td>It waits; it does not guess</td></tr>
+      <tr><td>Template setup: colors</td><td>Shows the colors it found and asks, one at a time, for the main brand color, the highlight color and the cover background. Also asks whether you have a real deck from the client, so the designs can match its look</td><td class="you">Name each color. For the deck: its path, or "no"</td><td>The template is not set up</td></tr>
       <tr><td>Template setup: layouts</td><td>Shows pictures of the template's layouts; asks which is the default content layout and which is the cover layout; may ask for a sample content slide</td><td class="you">Pick from the pictures</td><td>The template is not set up</td></tr>
       <tr><td>Template setup: sample slide</td><td>Asks you to open one sample slide in PowerPoint and confirm it looks right</td><td class="you">"It looks right", or what is wrong</td><td>Builds refuse a template you have not confirmed</td></tr>
       <tr><td>Storyline conversation</td><td>Questions about your message, audience and each slide</td><td class="you">Answers, pushback, rewording</td><td>The storyline is not finished</td></tr>
-      <tr><td>End of storyline: four setup values</td><td>Confirms, in one message: the session folder, client and topic, the template (from a numbered list) and the default content layout</td><td class="you">Yes to each, or a correction</td><td>Nothing is saved</td></tr>
-      <tr><td>Storyline quality check</td><td>Lists any problems with the storyline; for each serious one asks you to fix it or say why to keep it</td><td class="you">A fix, or your reason in your own words ("skip" alone is not accepted)</td><td>The storyline is not released for building</td></tr>
-      <tr><td>Storyline saved</td><td>"Build it into slides now, or stop here?"</td><td class="you">Build the slides, or stop (the storyline is a valid finish)</td><td>It stops with the storyline saved</td></tr>
-      <tr><td>Review page</td><td>Gives you the review page's path and waits</td><td class="you">A decision for every slide, then <span class="ui">Build my deck</span> and paste the copied command</td><td>Nothing is built</td></tr>
-      <tr><td>Final check page</td><td>Gives you the final check page's path and waits</td><td class="you"><span class="ui">Build it</span>, or describe a fix and <span class="ui">Send fixes</span>; paste the copied text</td><td>The deck is not built</td></tr>
-      <tr><td>Quality check findings</td><td>Shows the findings and offers to fix them</td><td class="you">"Fix it", or for a Major finding your reason to keep it</td><td>The deck is not called done</td></tr>
-      <tr><td>Deck delivered</td><td>Gives you the deck's path</td><td class="you">"The deck is good" when you are happy</td><td>The build folder is kept in full (nothing is deleted without your say-so)</td></tr>
+      <tr><td>End of storyline: one message</td><td>In one message: the session folder, client and topic, the template and the default content layout; a table of any problems in the storyline, each with a suggested rewrite; and "build, save only, or tell me what to change?"</td><td class="you"><span class="say"><code>Build</code><button type="button">Copy</button></span> to accept the rewrites and build the slides, "save only" to stop with the storyline, or what to change. To keep a flagged line as it is, give your reason in your own words</td><td>Nothing is saved or built</td></tr>
+      <tr><td>Review page</td><td>Opens the review page in your browser and waits</td><td class="you">A decision for every slide, then <span class="ui">Build my deck</span> and paste the copied message</td><td>Nothing is built</td></tr>
+      <tr><td>Final check page</td><td>Opens the final check page in your browser and waits</td><td class="you"><span class="ui">Build it</span>, or describe a fix and <span class="ui">Send fixes</span>; paste the copied text</td><td>The deck is not built</td></tr>
+      <tr><td>Quality check findings</td><td>Shows the findings in one table and offers to fix them</td><td class="you">"Fix it", or for a Major finding your reason to keep it. The fix is built straight away; no page to look at again</td><td>The deck is not called done</td></tr>
+      <tr><td>Deck delivered</td><td>Gives you the deck's path (the file is named after the deck's topic)</td><td class="you">"The deck is good" when you are happy</td><td>The build folder is kept in full (nothing is deleted without your say-so)</td></tr>
     </tbody>
   </table>
 </section>
@@ -327,8 +325,8 @@
     <tbody>
       <tr>
         <td><b>Install Slide Lab</b></td>
-        <td>Follow the <a href="Slide-Lab-Install-Guide.docx">install guide</a> (in the same folder as this page). In short: get Claude, Python and LibreOffice from your company's software portal; then paste one setup request into Claude and click <b>Allow</b> each time it asks; it ends by showing a table where every row should say OK; restart Claude. The setup request:<br>
-          <span class="say"><code>Install Slide Lab for me. Clone https://github.com/mperaltajr/skills into my .claude\skills folder (~/.claude/skills on a Mac), then follow the "Doing it by hand" steps in its README.md for my computer. Run each command on its own so I can approve it, and finish by running doctor.py and showing me its table.</code><button type="button">Copy</button></span>
+        <td>Follow the <a href="Slide-Lab-Install-Guide.docx">install guide</a> (in the same folder as this page). In short: get Claude, Python and LibreOffice from your company's software portal (on Windows, PowerPoint can stand in if LibreOffice is not approved); then paste one setup request into Claude and click <b>Allow</b> each time it asks; it ends by showing a table where every row should say OK; restart Claude. Setup allows Slide Lab's own steps to run without asking each time; it does not allow anything else. The setup request:<br>
+          <span class="say"><code>Install Slide Lab for me: clone https://github.com/mperaltajr/skills into my .claude\skills folder (~/.claude/skills on a Mac), or git pull if it is already there. Then follow the "Doing it by hand" steps in its README.md, one command at a time so I can approve each, and finish by running doctor.py and showing me its table.</code><button type="button">Copy</button></span>
         </td>
         <td data-f="t.install"></td>
       </tr>
@@ -365,7 +363,7 @@
       </tr>
       <tr>
         <td class="you">Pick a number, or describe the deck</td>
-        <td>If your request is specific, it names the route in one line and starts. If not, it shows the menu of 8 starting points (section 7)</td>
+        <td>If your request is specific, it names the route in one line and starts. If not, it shows a menu of 5 choices (section 7)</td>
         <td>The menu, in the chat</td>
         <td>Seconds</td>
         <td>Wrong route? Say so, and it shows the menu</td>
@@ -410,7 +408,7 @@
 
   <!-- 4.3 -->
   <h3 id="c3"><span class="n">4.3</span>Shape the storyline</h3>
-  <p>Before any slide exists, Claude coaches the argument. The result is a <b>dot-dash storyline</b>: one bold claim per slide (the dot) with its supporting points (the dashes). Read the dots top to bottom and they should tell the whole story. Claude also saves a <b>brief</b>, the detailed plan the slide designs are built from.</p>
+  <p>Before any slide exists, Claude coaches the argument. The result is a <b>dot-dash storyline</b>: one bold claim per slide (the dot) with its supporting points (the dashes). Read the dots top to bottom and they should tell the whole story. Claude writes each headline as a fact the audience can check, with a number where there is one ("Only Vietnam and Indonesia clear both the size and the readiness bar"), not a slogan ("Vietnam is the clear winner"). Claude also saves a <b>brief</b>, the detailed plan the slide designs are built from.</p>
   <table class="steps">
     <thead><tr><th>You type or click</th><th>Claude does and says</th><th>What appears, and where</th><th>How long</th><th>If it goes wrong</th></tr></thead>
     <tbody>
@@ -428,22 +426,16 @@
         <td>If a slide's claim is not what you mean, say so in your words; it rewrites</td>
       </tr>
       <tr>
-        <td class="you">Confirm or correct each of the four values</td>
-        <td>Asks you to confirm, in one message: the session folder (it suggests <code class="path">C:\Users\&lt;you&gt;\Slide Lab\sessions\&lt;Client&gt;\</code>), the client and topic, the template (from a numbered list of your registered templates) and the default content layout</td>
+        <td class="you">Reply once: "build", "save only", or what to change</td>
+        <td>Sends one message with three parts. (1) The setup: the session folder (it suggests <code class="path">C:\Users\&lt;you&gt;\Slide Lab\sessions\&lt;Client&gt;\</code>), the client and topic, the template and the default content layout. (2) A table of any problems in the storyline, each with a suggested rewrite: a headline that is a slogan instead of a fact, a claim with no number behind it, or a headline that will not fit on one line in the template's own font. (3) "Build, save only, or tell me what to change?"</td>
         <td>The chat</td>
-        <td>Template not in the list? Claude stops and has you register it first (4.2). A OneDrive folder? Claude warns once that builds will be slower; your choice stands</td>
+        <td>Template not in the list? Claude stops and has you register it first (4.2). Want to keep a flagged line as it is? Say why in your own words; "skip" alone is not accepted. A OneDrive folder? Claude warns once that builds will be slower</td>
       </tr>
       <tr>
-        <td class="you">Fix each problem it raises, or give your reason to keep it</td>
-        <td>Runs a quality check on the storyline. Critical problems must be fixed. For a Major problem you fix it or say why it stays. Advisory items are suggestions</td>
-        <td>A short list in the chat</td>
-        <td>"Skip" alone is not accepted; it needs a fix or a reason in your own words</td>
-      </tr>
-      <tr>
-        <td class="you">Say "build the slides", or "stop here"</td>
-        <td>Saves the storyline (as a Word file, a text file and a web page), the brief and a list of open gaps, then asks: build it into slides now, or stop here?</td>
+        <td class="you">Nothing</td>
+        <td>Saves the storyline (as a Word file, a text file and a web page), the brief and a list of open gaps; with "build", goes straight on to the slides (4.4)</td>
         <td>File paths in the chat; the files are in the session folder's <code class="path">_session</code> folder</td>
-        <td>Stopping here is a normal finish if you only needed the storyline</td>
+        <td>"Save only" is a normal finish if you only needed the storyline</td>
       </tr>
     </tbody>
   </table>
@@ -463,7 +455,7 @@
       </tr>
       <tr>
         <td class="you">Nothing yet</td>
-        <td>Draws a preview of every option and makes the <b>review page</b>, then gives you its path (a file called REVIEW.html in the session folder). Nothing opens by itself</td>
+        <td>Draws a preview of every option, makes the <b>review page</b> and opens it in your browser. It also gives you its path (a file called REVIEW.html in the session folder)</td>
         <td>A file path in the chat</td>
         <td><span data-f="t.review_prep"></span> (<span data-f="t.review_prep_b"></span>)</td>
         <td>Previews timing out usually means the session folder is in OneDrive (section 5)</td>
@@ -478,7 +470,7 @@
     <thead><tr><th>You type or click</th><th>Claude does and says</th><th>What appears, and where</th><th>How long</th><th>If it goes wrong</th></tr></thead>
     <tbody>
       <tr>
-        <td class="you">Open the review page: paste its path into your browser's address bar, or double-click the file in the session folder</td>
+        <td class="you">Look at the review page Claude opened. Closed it? Paste its path into your browser's address bar, or double-click the file in the session folder</td>
         <td>Waits</td>
         <td>One card per slide, with its <span data-f="options_per_slide"></span> options side by side</td>
         <td rowspan="3"><span data-f="t.review"></span></td>
@@ -491,19 +483,19 @@
         <td>Notes travel with your choices, so a pick plus a quick-feedback button is a way to ask for small changes without a new design</td>
       </tr>
       <tr>
-        <td class="you">Click <span class="ui">Build my deck</span>. Paste the command it copies into Claude, unchanged</td>
+        <td class="you">Click <span class="ui">Build my deck</span>. Paste the message it copies into Claude, unchanged. It reads like "Picks: 1B 2C 3A ... (check 1a2b3c4d)"</td>
         <td>Records exactly what you picked and moves on (4.6). If any slide is marked <span class="ui">REPLACE THESE</span>, the button copies a request for new designs instead (4.5b)</td>
         <td>"Build command copied" on the page</td>
-        <td>The button refuses until every slide has a decision, and lists the slides still missing one. Do not retype or edit the command: it carries a check code so your picks are recorded exactly</td>
+        <td>The button refuses until every slide has a decision, and lists the slides still missing one. Do not retype or edit the message: its check code makes sure your picks are recorded exactly</td>
       </tr>
     </tbody>
   </table>
   <p><span class="ui">All options in one deck</span> builds every option, not just your picks, into one deck for side-by-side comparison. It costs several times more than a normal build, so the page warns you and asks before it copies anything. Use it rarely.</p>
   <figure>
     <img src="data:image/jpeg;base64,{{IMG_REVIEW}}" alt="One slide on the review page: three design options side by side, the decision buttons PICK A, PICK B, PICK C, REPLACE THESE and LEAVE OUT, the quick-feedback buttons and the optional note boxes">
-    <figcaption>One slide on the review page (slide 4 of the Meridian example, first round, <span data-f="options_per_slide"></span> options). Captured 2 Oct 2026; the page may look slightly different in later versions.</figcaption>
+    <figcaption>One slide on the review page (slide 4 of the Meridian example, first round, <span data-f="options_per_slide"></span> options). Captured 5 Oct 2026; the page may look slightly different in later versions.</figcaption>
   </figure>
-  <p class="example"><b class="k">In the example</b>Open <a href="Slide-Lab-Example-Review.html">the example review page</a> to click around. The buttons work and copy a command, but there is no build behind it, so there is nothing to paste it into.</p>
+  <p class="example"><b class="k">In the example</b>Open <a href="Slide-Lab-Example-Review.html">the example review page</a> to click around. The buttons work and copy a message, but there is no build behind it, so there is nothing to paste it into.</p>
 
   <!-- 4.5b -->
   <h3 id="c5b"><span class="n">4.5b</span>A "Replace these" round (only if you asked for one)</h3>
@@ -512,14 +504,14 @@
     <tbody>
       <tr>
         <td class="you">Paste the request that <span class="ui">Build my deck</span> copied. Say what you want different in the notes, or in the chat</td>
-        <td>Redesigns only the slides you marked, <span data-f="options_per_slide_revision"></span> new design each by default, using your notes. Keeps every other pick. Makes a new review page and gives you its path</td>
-        <td>A new review page path in the chat</td>
+        <td>Redesigns only the slides you marked, <span data-f="options_per_slide_revision"></span> new design each by default, using your notes. Keeps every other pick. With one design there is nothing to pick, so it goes straight to the final check page (4.6 and 4.7)</td>
+        <td>The final check page opens in your browser</td>
         <td><span data-f="t.replace_round"></span></td>
-        <td>Want alternatives instead of one design? Say "with 3 options" when you paste</td>
+        <td>Still not right? Say so on the final check page and it redesigns again</td>
       </tr>
       <tr>
-        <td class="you">Decide on the redesigned slides, then <span class="ui">Build my deck</span> again</td>
-        <td>Same as 4.5</td>
+        <td class="you">Only if you asked for alternatives ("with 3 options"): decide on the redesigned slides, then <span class="ui">Build my deck</span> again</td>
+        <td>Makes a new review page with the options and opens it; then the same as 4.5</td>
         <td>The review page</td>
         <td>Your pace</td>
         <td>You can repeat this round as often as you like</td>
@@ -541,8 +533,8 @@
       </tr>
       <tr>
         <td class="you">Nothing</td>
-        <td>Puts every pick on your real template with its real title, takeaway and page number, and makes the <b>final check page</b>; gives you its path (FINAL-CHECK.html)</td>
-        <td>A file path in the chat</td>
+        <td>Puts every pick on your real template with its real title, takeaway and page number, and makes the <b>final check page</b> (FINAL-CHECK.html), then opens it in your browser</td>
+        <td>The final check page, in your browser</td>
         <td><span data-f="t.final_prep"></span> (<span data-f="t.final_prep_b"></span>)</td>
         <td>Covers are never numbered; that is intended</td>
       </tr>
@@ -555,11 +547,11 @@
     <thead><tr><th>You type or click</th><th>Claude does and says</th><th>What appears, and where</th><th>How long</th><th>If it goes wrong</th></tr></thead>
     <tbody>
       <tr>
-        <td class="you">Open the final check page in your browser. Look at every slide for anything overlapping, cut off or crowded</td>
+        <td class="you">Look at every slide for anything overlapping, cut off or crowded. Then check the box at the top: it lists any number or label on a slide that is not in your brief</td>
         <td>Waits</td>
-        <td>Every finished slide, exactly as it will be built</td>
+        <td>Every finished slide, exactly as it will be built, and the list of numbers to check</td>
         <td rowspan="3"><span data-f="t.final_check"></span></td>
-        <td>Not sure? Build it: the quality check runs next and catches overflowing or cut-off text</td>
+        <td>Not sure about the look? Build it: the quality check runs next and catches overflowing or cut-off text. A number in the list that you did not expect needs a fix, though: the quality check cannot tell an invented number from a real one</td>
       </tr>
       <tr>
         <td class="you">All good: click <span class="ui">Build it</span> and paste what it copies into Claude</td>
@@ -569,15 +561,15 @@
       </tr>
       <tr>
         <td class="you">Something wrong: type it in the box that reads <span class="ui wrap">Something needs fixing? Say which slide and what.</span> then click <span class="ui">Send fixes</span> and paste what it copies</td>
-        <td>Redesigns the affected slides and shows you a new final check page</td>
-        <td>A new final check page path in the chat</td>
+        <td>Redesigns the affected slides and opens a new final check page</td>
+        <td>A new final check page in your browser</td>
         <td>Name the slide and say what is wrong ("slide 4: the right column is cut off"); the more specific, the better the fix</td>
       </tr>
     </tbody>
   </table>
   <figure>
     <img src="data:image/jpeg;base64,{{IMG_FINAL}}" alt="The final check page: finished slides on the real template in a grid, a text box at the bottom for fixes, and the Send fixes and Build it buttons">
-    <figcaption>The final check page for the Meridian example (top of the page; it continues with the rest of the 10 slides). Captured 2 Oct 2026; the page may look slightly different in later versions.</figcaption>
+    <figcaption>The final check page for the Meridian example (top of the page; it continues with the rest of the 10 slides). The box at the top caught one slide writing $1,200M where the rest write $1.2B. Captured 5 Oct 2026; the page may look slightly different in later versions.</figcaption>
   </figure>
 
   <!-- 4.8 -->
@@ -589,7 +581,7 @@
       <tr>
         <td class="you">Nothing</td>
         <td>Builds the deck</td>
-        <td>A .pptx in the session folder</td>
+        <td>A .pptx in the session folder, named after the deck's topic</td>
         <td><span data-f="t.build"></span></td>
         <td>If it fails, Claude says why. If that is unclear, type /slidelab-log</td>
       </tr>
@@ -605,7 +597,7 @@
         <td>Redesigns each flagged slide (one design each) and builds the deck straight away. It does not send you back to either review page. Then it checks the new deck again</td>
         <td>The chat</td>
         <td><span data-f="t.qc_fix"></span> (<span data-f="t.qc_fix_b"></span>)</td>
-        <td>If a fix still looks wrong, say what you want; you can also ask to "rebuild slide N" to go through the review pages again (section 6)</td>
+        <td>If a fix still looks wrong, say what you want; you can also ask to "rebuild slide N" for a fresh design (section 6)</td>
       </tr>
       <tr>
         <td class="you">Open the deck</td>
@@ -659,7 +651,7 @@
       <tr><td>Three options instead of one</td><td>The first round always makes <span data-f="options_per_slide"></span> per slide; a redesign makes <span data-f="options_per_slide_revision"></span> unless you ask for more</td><td>Ask for 3 on a redesign only when you really want alternatives</td></tr>
       <tr><td>Slides with curved diagrams, rotated text or images</td><td><span data-f="t.hand_drawing"></span></td><td>Nothing; it is expected</td></tr>
       <tr><td>A template used for the first time</td><td>Adds <span data-f="t.template"></span></td><td>Register it before the day you need the deck</td></tr>
-      <tr><td>First install on a company network</td><td>Software approvals and certificate errors can stretch <span data-f="t.install"></span></td><td>Request LibreOffice from the software portal on day one; it can need approval</td></tr>
+      <tr><td>First install on a company network</td><td>Software approvals and certificate errors can stretch <span data-f="t.install"></span></td><td>Request LibreOffice from the software portal on day one; it can need approval. On Windows, PowerPoint stands in until it arrives (a little slower)</td></tr>
     </tbody>
   </table>
 </section>
@@ -670,12 +662,12 @@
   <table>
     <thead><tr><th>You say</th><th>What happens</th><th>How long</th></tr></thead>
     <tbody>
-      <tr><td><span class="say"><code>Rebuild slide 3</code><button type="button">Copy</button></span></td><td>Only that slide is redesigned (<span data-f="options_per_slide_revision"></span> design; say "with 3 options" for alternatives). It goes through the review page, the final check page and the quality check again; every other slide keeps its pick</td><td data-f="t.rebuild_one"></td></tr>
+      <tr><td><span class="say"><code>Rebuild slide 3</code><button type="button">Copy</button></span></td><td>Only that slide is redesigned (<span data-f="options_per_slide_revision"></span> design; say "with 3 options" for alternatives). With one design it goes straight to the final check page, then the quality check; with alternatives you pick on the review page first. Every other slide keeps its pick</td><td data-f="t.rebuild_one"></td></tr>
       <tr><td><span class="say"><code>Insert a slide after slide 4</code><button type="button">Copy</button></span></td><td>Tell Claude what the new slide should say. It designs <span data-f="options_per_slide"></span> options for it and takes it through the review page, the final check page and the quality check; the other slides are untouched</td><td data-f="t.not_timed"></td></tr>
       <tr><td><span class="say"><code>Export the chart data to Excel</code><button type="button">Copy</button></span></td><td>One sheet per chart slide, ready to paste into think-cell or a normal PowerPoint chart</td><td data-f="t.not_timed"></td></tr>
-      <tr><td>A deck Slide Lab did not build: "fix the text on slide 6" (6a)</td><td>Changes words or numbers, keeps the design, saves a new copy</td><td data-f="t.not_timed"></td></tr>
-      <tr><td>A deck Slide Lab did not build: "redesign slide 6" (6b)</td><td>Rebuilds that slide on the deck's own template and drops it back into a copy of your deck, every other slide untouched; then a quality check</td><td data-f="t.not_timed"></td></tr>
-      <tr><td>A recurring deck: "refresh this month's status deck" (6c)</td><td>Fills this cycle's text into the fixed design (text boxes only; tables and charts by hand); then a quality check</td><td data-f="t.not_timed"></td></tr>
+      <tr><td>A deck Slide Lab did not build: "fix the text on slide 6"</td><td>Changes words or numbers, keeps the design, saves a new copy</td><td data-f="t.not_timed"></td></tr>
+      <tr><td>A deck Slide Lab did not build: "redesign slide 6"</td><td>Rebuilds that slide on the deck's own template and drops it back into a copy of your deck, every other slide untouched; then a quality check</td><td data-f="t.not_timed"></td></tr>
+      <tr><td>A recurring deck: "refresh this month's status deck"</td><td>Fills this cycle's text into the fixed design (text boxes only; tables and charts by hand); then a quality check</td><td data-f="t.not_timed"></td></tr>
     </tbody>
   </table>
   <p class="dim">Your original files are never changed; Slide Lab always writes a new copy.</p>
@@ -684,18 +676,15 @@
 <!-- 7. Menu -->
 <section id="menu">
   <h2><span class="n">7</span>Where you start: the menu</h2>
-  <p>Type <span class="say"><code>/slide-lab</code><button type="button">Copy</button></span> and Claude shows these 8 starting points. You can also just say what you want and it picks the route.</p>
+  <p>Type <span class="say"><code>/slide-lab</code><button type="button">Copy</button></span> and Claude shows these 5 choices. You can also just say what you want and it picks the route.</p>
   <table>
-    <thead><tr><th>#</th><th>Option</th><th>When to use it</th></tr></thead>
+    <thead><tr><th>#</th><th>Choice</th><th>When to use it</th></tr></thead>
     <tbody>
-      <tr><td>1</td><td><b>Build a new deck</b></td><td>You have a topic or message but no slides yet</td></tr>
-      <tr><td>2</td><td><b>Work from material I already have</b></td><td>A storyline, outline, notes, an HTML mockup, or an existing deck used as the source for a new deck. Claude can review and refine it, build from it, or both. It builds a new deck; it does not edit your file (that is option 6)</td></tr>
-      <tr><td>3</td><td><b>RFP / proposal response</b></td><td>A proposal scored against the client's evaluation criteria</td></tr>
-      <tr><td>4</td><td><b>Quality-check a deck</b></td><td>Check a finished .pptx before you send it</td></tr>
-      <tr><td>5</td><td><b>Change a deck Slide Lab built</b></td><td>Rebuild, fix or insert a slide in a deck Slide Lab made</td></tr>
-      <tr><td>6</td><td><b>Work on a deck Slide Lab did not build</b></td><td>An existing .pptx you already have. (a) fix text or numbers, design unchanged; (b) redesign a slide or a few, rebuilt on the deck's own template and dropped back into your file; (c) refresh a recurring or status deck with this cycle's text, design unchanged (text boxes only; tables and charts by hand)</td></tr>
-      <tr><td>7</td><td><b>Register a client template</b></td><td>One-time setup of a template's colors and layouts before building (4.2)</td></tr>
-      <tr><td>8</td><td><b>Not sure</b></td><td>Claude asks a couple of questions and points you the right way</td></tr>
+      <tr><td>1</td><td><b>Make a new deck</b></td><td>From a topic, your notes, a storyline you already have, or an RFP (a proposal scored against the client's criteria). Claude asks one question to tell these apart. It always builds a new file</td></tr>
+      <tr><td>2</td><td><b>Change a deck</b></td><td>One Slide Lab built (rebuild, fix or insert a slide), or any other PowerPoint file: fix text or numbers with the design unchanged; redesign a slide or a few and drop them back into your file; or refresh a recurring status deck with this cycle's text (text boxes only; tables and charts by hand)</td></tr>
+      <tr><td>3</td><td><b>Check a deck</b></td><td>Quality-check a finished .pptx before you send it</td></tr>
+      <tr><td>4</td><td><b>Set up a client's template</b></td><td>One-time setup of a template's colors and layouts before building (4.2)</td></tr>
+      <tr><td>5</td><td><b>Not sure</b></td><td>Claude asks a couple of questions and points you the right way</td></tr>
     </tbody>
   </table>
 </section>
@@ -707,7 +696,7 @@
   <table>
     <thead><tr><th>What</th><th>What it is</th><th>Kept after "the deck is good"?</th></tr></thead>
     <tbody>
-      <tr><td>The deck (.pptx)</td><td>On the client's template, every word and shape editable</td><td>Yes</td></tr>
+      <tr><td>The deck (.pptx)</td><td>Named after the deck's topic, on the client's template, every word and shape editable. A copy called final_deck.pptx sits beside it; Claude uses that one for later rebuilds</td><td>Yes</td></tr>
       <tr><td>The storyline</td><td>The dot-dash storyline as a Word file, a text file and a web page, in the <code class="path">_session</code> folder. Good for sign-off before, or instead of, slides</td><td>Yes</td></tr>
       <tr><td>The brief and your decisions</td><td>The detailed plan the designs came from, plus your picks and notes, in the <code class="path">_session</code> folder</td><td>Yes</td></tr>
       <tr><td>The picked designs</td><td>What Claude needs to rebuild a slide later</td><td>Yes</td></tr>
@@ -749,11 +738,11 @@
   <h2><span class="n">10</span>Common questions</h2>
   <details><summary>Do I need to know how to code or design?</summary><div class="a">No. You talk to Claude in plain English and click buttons on two web pages. Claude asks before it runs anything on your computer; click Allow when it does.</div></details>
   <details><summary>What if I don't like any of the designs for a slide?</summary><div class="a">Click <span class="ui">REPLACE THESE</span> and say in the notes what you want different. You get <span data-f="options_per_slide_revision"></span> new design by default; say "with 3 options" if you want alternatives. For a small change, pick the closest option and add a quick-feedback button or a note instead.</div></details>
-  <details><summary>Why do I paste a command back into Claude?</summary><div class="a">The review pages are files on your computer and cannot talk to Claude directly. The copied command carries your exact choices with a check code, so nothing is retyped or misread. Paste it unchanged.</div></details>
+  <details><summary>Why do I paste a message back into Claude?</summary><div class="a">The review pages are files on your computer and cannot talk to Claude directly. The copied message carries your exact choices with a check code, so nothing is retyped or misread. Paste it unchanged.</div></details>
   <details><summary>Can I keep my work in OneDrive?</summary><div class="a">Keep the session folder on your computer's own drive (<code class="path">C:\Users\&lt;you&gt;\Slide Lab\sessions\</code>). In OneDrive, builds are noticeably slower and previews can time out. Copy the finished deck to OneDrive or SharePoint afterwards. The template itself can live anywhere.</div></details>
   <details><summary>Can I edit the charts afterwards?</summary><div class="a">Charts are drawn from shapes for a clean, on-brand look, so they are not linked to a datasheet. Either ask Claude to rebuild the slide with new numbers, or say "Export the chart data to Excel" and paste the sheet into think-cell or a normal PowerPoint chart.</div></details>
   <details><summary>Is my client's template safe?</summary><div class="a">Yes. Slide Lab works on its own copy and never changes your original file. Your work stays on your computer.</div></details>
-  <details><summary>Can it work on a deck I already have?</summary><div class="a">Yes, option 6 in the menu: fix text or numbers (6a), redesign a slide and drop it back into your deck (6b), or refresh a recurring deck with this cycle's text (6c). It always writes a new file.</div></details>
+  <details><summary>Can it work on a deck I already have?</summary><div class="a">Yes, "Change a deck" in the menu: fix text or numbers, redesign a slide and drop it back into your deck, or refresh a recurring deck with this cycle's text. It always writes a new file.</div></details>
   <details><summary>Does it work on a Mac?</summary><div class="a">Yes. The install guide covers Windows and Mac. Paths look different on a Mac (your home folder instead of C:\Users\&lt;you&gt;).</div></details>
 </section>
 

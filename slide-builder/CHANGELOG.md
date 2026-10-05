@@ -2,6 +2,51 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## 2026-10-05: full audit (less friction, fact-based content)
+
+From a three-auditor review of download, install, operation and output.
+
+### Content
+- Takeaways must state a fact with its number; slogans and "not X, it's Y"
+  lines are allowed only on the slide whose job is to break a belief.
+  `reference/banned-words.md` is the one list of buzzwords; slide-qc treats
+  them as Major.
+- `scripts/brief_check.py` measures each title and takeaway in the
+  template's own font and box (bold included) and reports what will not fit
+  one line; `seal_brief.py` refuses until each row is fixed or accepted with
+  a reason.
+- `scripts/source_check.py`: FINAL-CHECK.html lists numbers and labels on
+  the slides that are not in the brief, and figures written in two units.
+- Designers now see the whole deck (main message, audience, every title),
+  number only real sequences, and run on Opus.
+- Fixed: a brief with "deck notes (optional)" lost its deck notes.
+
+### Fewer stops
+- The storyline ends with one message (setup, problems with rewrites,
+  "build / save only / changes") and one reply. The template is asked once.
+- Review pages open by themselves and copy plain messages
+  ("Picks: 1B 2C (check ...)"); `record_picks.py` reads them.
+- A redesign with one design (a Replace round or "rebuild slide N") skips the
+  second picking page: `scripts/redesign_round.py` (`--keep-previous` for a
+  rebuild) goes straight to FINAL-CHECK.html.
+- Approved QC fixes compile straight through (`scripts/apply_qc_fix.py`).
+- The front door offers 5 plain choices instead of 8.
+- GATE3-PREVIEW.html is no longer written.
+
+### Output
+- The deck is also saved under its topic ("Southeast Asia Entry.pptx");
+  earlier decks move to `_session/old-decks/`.
+- Storyline files use plain labels ("Main message", "What the audience
+  believes now").
+
+### Install and security
+- `doctor.py fix` grants only Slide Lab's own commands and folders, not
+  blanket shell access. LibreOffice can be replaced by PowerPoint on Windows.
+- One install path in the README; registration asks for a client deck to
+  copy the look from every time.
+- Bug reports go privately to the maintainer, never to GitHub issues.
+  Decision notes and licensed reference packs are no longer published.
+
 ## 2026-10-02: install, updates, chat registration
 
 ### Fixed

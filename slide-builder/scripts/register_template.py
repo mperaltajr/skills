@@ -2086,7 +2086,7 @@ def write_brand_css(path: Path, *,
         f"  --brand-primary-soft:   #{primary_soft};\n"
         f"  --brand-accent-soft:    #{accent_soft};\n"
         f"\n"
-        f"  /* Neutrals (Slide Lab MBB-quality defaults) */\n"
+        f"  /* Neutrals (Slide Lab defaults) */\n"
         f"  --brand-text-primary:   #1A1A1A;\n"
         f"  --brand-text-secondary: #5F5E5A;\n"
         f"  --brand-text-tertiary:  #888780;\n"

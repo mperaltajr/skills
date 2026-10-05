@@ -27,7 +27,7 @@ The totals row at the bottom amplifies the failure: three numbers float in the m
 
 `designer-brief.md` § 4 Data Tables:
 
-> "Parallel rows of numeric values that don't strictly use `add_table` (e.g., McKinsey-style structured columns) still need labeled column headers — the rule applies to any tabular content."
+> "Parallel rows of numeric values that don't strictly use `add_table` (e.g., consulting-style structured columns) still need labeled column headers — the rule applies to any tabular content."
 
 > "Header row in BRAND_PRIMARY band with WHITE text, banded rows for legibility, right-aligned numeric columns…"
 

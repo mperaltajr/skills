@@ -248,7 +248,7 @@ def build():
          ["However your company provides Claude; otherwise ", ("claude.ai/code", "link:https://claude.ai/code")]],
         ["Python 3.10 or newer", "Runs the build steps behind the scenes",
          ["Software portal, or ", ("python.org", "link:https://www.python.org/downloads/")]],
-        ["LibreOffice", "Required. Draws slide previews during template registration, the final check page and the quality check",
+        ["LibreOffice", "Draws slide previews. Required on a Mac; on Windows, PowerPoint can stand in",
          ["Software portal, or ", ("libreoffice.org", "link:https://www.libreoffice.org/download/")]],
     ], [1.45, 2.15, 2.1])
 

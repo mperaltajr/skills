@@ -611,6 +611,34 @@ def run_splice(out_dir: Path, meta: dict, picks: dict, template_path: Path,
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
+def _topic_named_copy(out_dir: Path, final_path: Path):
+    """Also save the deck under its topic ("Southeast Asia Entry.pptx"), so the
+    file the user shares is not called final_deck.pptx. final_deck.pptx stays
+    the build's own name (checks and later rebuilds use it)."""
+    import re as _re
+    import shutil as _sh
+    if final_path.name != "final_deck.pptx" or final_path.parent != out_dir:
+        return None
+    try:
+        meta = json.loads((out_dir / "_meta.json").read_text(encoding="utf-8"))
+        brief = Path(meta.get("brief") or "")
+        text = brief.read_text(encoding="utf-8") if brief.exists() else ""
+        m = _re.search(r"^#\s+(?:Narrative brief:\s*)?(.+?)\s*$", text, _re.M)
+        topic = (m.group(1) if m else "").strip()
+    except Exception:
+        topic = ""
+    topic = _re.sub(r'[<>:"/\\|?*]+', " ", topic).strip(" .")[:80]
+    if not topic:
+        return None
+    dest = out_dir / f"{topic}.pptx"
+    try:
+        _sh.copy2(final_path, dest)
+    except OSError as exc:
+        print(f"  (could not save {dest.name}: {exc}; it is probably open in PowerPoint)")
+        return None
+    return dest
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Compile picked themed slides into a final deck.")
     ap.add_argument("--out", required=True, type=Path, help="Orchestrator output dir")
@@ -961,9 +989,12 @@ def main() -> int:
         try:
             from datetime import datetime as _dt
             ts = _dt.now().strftime("%Y%m%dT%H%M%S")
-            backup = final_path.with_name(f"{final_path.stem}.{ts}{final_path.suffix}")
+            # Old decks go into _session/old-decks, not beside the new one.
+            old_dir = final_path.parent / "_session" / "old-decks"
+            old_dir.mkdir(parents=True, exist_ok=True)
+            backup = old_dir / f"{final_path.stem}.{ts}{final_path.suffix}"
             final_path.replace(backup)
-            print(f"  backed up prior deck -> {backup.name}")
+            print(f"  previous deck kept in _session/old-decks/{backup.name}")
         except OSError as exc:
             sys.stderr.write(
                 f"\nERROR: could not move the prior {final_path.name} aside: {exc}\n"
@@ -978,6 +1009,10 @@ def main() -> int:
         print(f"  NOTE: no clear spot for a badge on {len(badge_skipped)} slide(s): "
               f"{', '.join(badge_skipped[:5])}"
               f"{' ...' if len(badge_skipped) > 5 else ''}")
+
+    named = _topic_named_copy(out_dir, final_path)
+    if named:
+        print(f"  deck to share: {named}")
 
     print("\n[4] Verify opens cleanly")
     opens = False

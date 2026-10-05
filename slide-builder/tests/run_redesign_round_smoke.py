@@ -6,6 +6,8 @@
   3. finish picks the single new design, keeps slide 1's pick, finalizes,
      writes FINAL-CHECK.html, and records the shortcut as an override
   4. finish refuses when a redesigned slide has two options
+  5. --keep-previous ("rebuild slide N" on a built deck) keeps the other
+     slides' picks from picks.json
 
 Run:  py -3 slide-builder/tests/run_redesign_round_smoke.py
 Prints "SMOKE PASSED." on success; raises AssertionError otherwise.
@@ -66,6 +68,21 @@ def main() -> int:
         assert any(o["override"] == "single_option_redesign_picked" for o in st.get("overrides", []))
         assert "redesign_round" not in st
         print("    ok: picks kept + new design picked, FINAL-CHECK.html written")
+
+        print("[5] rebuild slide N on a built deck keeps the other picks from picks.json")
+        (out / "picks.json").write_text('{"slide_01": "A", "slide_02": "A"}', encoding="utf-8")
+        r = H.run("redesign_round.py", "start", "--out", out, "--slides", "1", "--keep-previous")
+        assert r.returncode == 0, r.stdout
+        assert _state.read_state(out)["redesign_round"]["kept"] == {"slide_02": "A"}
+        r = H.run("build_deck.py", "--slide", "1", "--out", out, "--template", H.TEMPLATE,
+                  "--pattern", "direct")
+        assert r.returncode == 0, r.stdout[-1200:] + r.stderr[-600:]
+        H.write_option(out, 1, "A")
+        assert H.finalize(out, "--slide", "1").returncode == 0
+        r = H.run("redesign_round.py", "finish", "--out", out)
+        assert r.returncode == 0, r.stdout[-1500:] + r.stderr[-800:]
+        assert _state.read_state(out)["review"]["picks"] == {"slide_01": "A", "slide_02": "A"}
+        print("    ok")
     finally:
         H.cleanup(tmp)
     print("SMOKE PASSED.")

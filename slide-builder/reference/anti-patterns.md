@@ -93,7 +93,7 @@ Entry format:
 
 1. **DON'T use size-encoded visual elements (bubbles, dots, tiles) without a scale legend.** — *Why:* size-encoded elements without a legend leave the reader guessing what "big" means; the chart fails to communicate. *Do instead:* if the chart uses size as an axis (bubble size = revenue, tile size = headcount), include a scale legend that shows what each size represents.
 
-2. **DON'T swap convention positions in named frameworks.** — *Why:* BCG, Magic Quadrant, Eisenhower, and other named frameworks have established quadrant conventions; swapping positions confuses any reader who knows the framework. *Do instead:* follow the canonical positions documented in `layouts.md § Chart (with quadrant mode)`. **See that file for the full positive spec** (e.g., BCG: STARS top-right, CASH COWS bottom-right, QUESTION MARKS top-left, DOGS bottom-left).
+2. **DON'T swap convention positions in named frameworks.** — *Why:* the growth-share matrix, Magic Quadrant, Eisenhower, and other named frameworks have established quadrant conventions; swapping positions confuses any reader who knows the framework. *Do instead:* follow the canonical positions documented in `layouts.md § Chart (with quadrant mode)`. **See that file for the full positive spec** (e.g., growth-share matrix: STARS top-right, CASH COWS bottom-right, QUESTION MARKS top-left, DOGS bottom-left).
 
 ---
 
@@ -124,7 +124,7 @@ These rules have their canonical home in `layouts.md` (the "how to render" file)
 | Topic | Canonical home |
 |---|---|
 | Legend placement on charts | `layouts.md § Chart (with quadrant mode)` |
-| BCG / Magic Quadrant / Eisenhower convention positions | `layouts.md § Chart (with quadrant mode)` |
+| Growth-share / Magic Quadrant / Eisenhower convention positions | `layouts.md § Chart (with quadrant mode)` |
 | Recommended-row stripe (Table) | `layouts.md § Table` cross-refs back here for the badge-stacking rule |
 | Title bottom-anchor geometry | `layouts.md` (when documented) — for now see Chrome rule #2 above |
 

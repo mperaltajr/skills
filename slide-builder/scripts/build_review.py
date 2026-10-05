@@ -625,8 +625,9 @@ def render_storyline_html(storyline: dict, slides: list) -> str:
 def render_qc_banner(out_dir: Path) -> str:
     qc_path = _p.brief_qc_json(out_dir)
     if not qc_path.exists():
-        # Nothing writes brief_qc.json any more (the storyline gate replaced it),
-        # so the old "not found" box showed on every review page as noise.
+        # Only source_ledger.py writes brief_qc.json (for a replicated supplied
+        # page), so on most builds it is absent; the old "not found" box showed
+        # on every review page as noise.
         return ""
     try:
         payload = json.loads(read_text(qc_path))
