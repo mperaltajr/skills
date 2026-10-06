@@ -27,7 +27,7 @@ Claude Slide Lab is a collection of Claude Code skills that turn a narrative bri
 | `slide-qc` | Renders every slide to PNG (LibreOffice by default; opt-in PowerPoint COM) and reviews them with vision, then produces a per-slide Critical / Major / Advisory report before you open the deck |
 | `docx` | Word document generation: reports, memos, letters with proper formatting |
 | `xlsx` | Spreadsheet creation, editing, and cleaning for any `.xlsx` / `.csv` task |
-| `slidelab-log` | Generates a structured session report when something goes wrong: Claude writes the technical details, you submit it as a GitHub issue |
+| `slidelab-log` | Generates a structured session report when something goes wrong: Claude writes the technical details, you send the file privately to Mario Peralta (Teams or email), never to GitHub |
 | `rfp-helper` | RFP / proposal response coaching: win themes, scoring criteria, section-by-section structure; produces a proposal brief that slide-builder can build from |
 
 ---
