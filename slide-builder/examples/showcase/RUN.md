@@ -48,6 +48,23 @@ Never use a client template or client content here.
    "Leave out", the feedback chips) are present; the deck's File > Info shows
    "Slide Lab example", not a person's name.
 
+## The 2026-10-05 run, measured
+
+Rebuilt for the 12 pt type scale. The brief's titles and takeaways were rewritten
+at the storyline check (facts with numbers, one line each). The owner asked Claude
+to make the picks, which the build records as an override.
+
+| Step | Time |
+|---|---|
+| Storyline check and seal | 5 min (rewrites approved in one reply) |
+| Prep | 1 s |
+| 10 slides x 3 designs, in parallel | 8.5 min (fastest slide 3.1, slowest 8.3) |
+| Finalize + review page | 20 s |
+| Picks to editable PowerPoint | about 4 min (script, plus the drawing agent on 3 slides) |
+| Final-check page | 2 s |
+| Compile | 38 s |
+| Quality check (read all 10 slides, plus a PowerPoint render) | 0 Critical, 0 Major, 3 Advisory |
+
 ## The 2026-10-02 run, measured
 
 | Step | Time |

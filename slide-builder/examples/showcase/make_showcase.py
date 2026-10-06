@@ -36,36 +36,36 @@ HERE = Path(__file__).resolve().parent
 SCRIPTS = HERE.parents[1] / "scripts"
 
 HOW_MADE = [
-    "Made on 2 October 2026 in one real Slide Lab run, on a fictional template "
+    "Made on 5 October 2026 in one real Slide Lab run, on a fictional template "
     "(Meridian) with invented numbers. Nothing here is client material.",
-    "Storyline: written from a finished data sheet, 2 minutes. A real storyline "
-    "conversation usually takes 10 to 30 minutes.",
+    "Storyline: the 2 October storyline, with 13 titles and takeaways rewritten "
+    "at the storyline check so each states a fact with a number and fits on one "
+    "line. A real storyline conversation usually takes 10 to 30 minutes.",
     "Designs: 10 slides with 3 options each, all designed at the same time, "
-    "13 minutes.",
-    "After the picks: converting them to editable PowerPoint took 25 seconds "
-    "(no agent needed, including the growth loop); finalize and compile took "
-    "under 2 minutes.",
-    "Quality check: 1 Major finding (the slide 5 chart axis started at $300M, "
-    "which overstated the gap). Slide 5 was redesigned in 2 minutes and the "
-    "deck recompiled; 6 Advisory items remain (mostly titles that wrap).",
-    "Hand edits, all disclosed: slide 6's footer placeholder was replaced with "
-    "the deck's source line before review; slide 8's takeaway was shortened "
-    "from 131 to 98 characters before the final check. Everything else is the "
-    "pipeline's own output.",
+    "8.5 minutes. Body text is 12 pt or more on every design.",
+    "Picks: made by Claude at the owner's request (this is an example); in real "
+    "use you pick on this page.",
+    "After the picks: converting to editable PowerPoint took about 4 minutes "
+    "(3 slides needed the drawing agent for a few shapes); the final check page "
+    "and the build took under 1 minute.",
+    "Quality check: no Critical or Major findings; 3 Advisory notes. The deck "
+    "also opened cleanly in PowerPoint.",
+    "Hand edits: none. Everything is the pipeline's own output.",
 ]
 
 SLIDE_NOTES = {
-    1: "Built on the template's own cover layout. Covers are never numbered.",
+    1: "Built on the template's own cover layout, with the Vietnam-then-Indonesia "
+       "order drawn on it. Covers are never numbered.",
     2: "Executive summary as a dense question-and-answer table, the ask highlighted.",
     3: "Bar chart with one highlight (the 2030 bar) and its callout drawn on the chart.",
     4: "Scored table: five markets against two cut-offs, passing rows shaded, small "
        "bars showing how far each market is from the cut-off.",
-    5: "Line chart with the crossover marked. Redesigned after the quality check so "
-       "the axis starts at zero and the drawn gap matches the 1.5x on the slide.",
-    6: "Numbered process with icons: Slide Lab's default of making the structure visible.",
+    5: "Line chart with the crossover marked and the axis starting at zero, so the "
+       "drawn gap matches the 1.5 times on the slide.",
+    6: "Numbered steps with icons; the gate step carries the one highlight.",
     7: "Timeline with the two go/no-go gates as diamonds and what happens after each.",
-    8: "Growth loop diagram, converted to editable PowerPoint shapes by the script.",
-    9: "Waterfall that builds the $12M total from its five parts.",
+    8: "Growth loop of five boxes around the claim, all editable PowerPoint shapes.",
+    9: "Waterfall that builds the $12M total from its five parts, with the cap line.",
     10: "Decision table with owner and date, the decision being asked for highlighted.",
 }
 
@@ -82,7 +82,7 @@ def _banner() -> str:
         '<b>Pick</b> one of three designs, <b>Replace these</b> to get a new design, '
         'or <b>Leave out</b>. The one-click feedback buttons cover common asks. In '
         'this shared copy your clicks are saved only in your own browser, and '
-        '<b>Build my deck</b> copies a command that works only inside a real '
+        '<b>Build my deck</b> copies a message that works only inside a real '
         'Slide Lab session. After this page, Slide Lab shows every pick finished '
         'on the template for a final look, then builds the deck.</p>'
         '<div style="font-weight:bold;margin-top:8px">How this example was made</div>'

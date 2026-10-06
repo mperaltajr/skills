@@ -820,19 +820,15 @@ def render_context_ack_chip(slide: dict) -> str:
     if not slide.get("context_has_reference"):
         return ""
     if slide.get("context_ack_present"):
-        cite = html.escape(slide.get("context_ack_text") or "(empty citation)")
-        return (
-            '<div class="context-chip context-chip-ok">'
-            '<span class="context-chip-icon">&#10003;</span> '
-            f'<strong>Worker used your reference slide.</strong> {cite}'
-            '</div>'
-        )
+        # The designer's own note ("Body zone 184-667px ...") is working
+        # detail, not something the person picking needs: say nothing when
+        # all is well.
+        return ""
     return (
         '<div class="context-chip context-chip-warn">'
         '<span class="context-chip-icon">&#9888;</span> '
-        '<strong>Worker may not have used your reference slide.</strong> '
-        'Output could drift from your canonical example. Spot-check the slide '
-        'in PowerPoint; if it looks off-brand, re-dispatch this slide.'
+        '<strong>Check this slide matches the rest of the deck.</strong> '
+        "Its designer may not have followed the template's sample slide."
         '</div>'
     )
 

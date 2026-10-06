@@ -58,13 +58,13 @@ Meridian's investment committee. They see Southeast Asia as attractive but risky
 
 ---
 
-### Slide 2 — Leading with Vietnam reaches a $40M run-rate in 18 months for $12M
+### Slide 2 — Vietnam first: a $40M run-rate in 18 months for $12M
 
 **Slide type:** Executive Summary
 
-**Governing thought (the claim):** Leading with Vietnam reaches a $40M revenue run-rate in 18 months for $12M.
+**Governing thought (the claim):** Vietnam first: a $40M run-rate in 18 months for $12M.
 
-**The takeaway:** The committee is not being asked to bet on the region; it is being asked to fund one capped, gated test that pays back fast if it works and stops early if it does not.
+**The takeaway:** $12M funds one capped test with two stop points, at months 6 and 12.
 
 **Editorial emphasis:** the conclusion — the answer to each of the committee's questions, laid out as a two-column table (question, answer).
 
@@ -91,7 +91,7 @@ Meridian's investment committee. They see Southeast Asia as attractive but risky
 
 **Governing thought (the claim):** The Southeast Asia category market doubles to $4.2B by 2030.
 
-**The takeaway:** This is a growth market worth a dedicated entry, not an export side-line; waiting means entering later, into a market twice the size.
+**The takeaway:** The category grows 12% a year; Vietnam and Indonesia hold $2.5B of 2030.
 
 **Editorial emphasis:** the data — the seven-year bar chart with the 2030 value called out on the chart.
 
@@ -129,7 +129,7 @@ Callout on the 2030 bar: "$4.2B, double 2024". Source line: Illustrative data, n
 
 **Governing thought (the claim):** Only Vietnam and Indonesia clear both the size and the readiness bar.
 
-**The takeaway:** The choice of market is not a judgment call: two markets pass a simple, explicit screen and three fail it.
+**The takeaway:** Of five markets, only two reach $1.0B by 2030 and score 3.5 on readiness.
 
 **Editorial emphasis:** the contrast — a scored table of five markets, with the two passing rows shaded in the highlight color.
 
@@ -188,13 +188,13 @@ Mark the crossover between 2026 and 2027. Source line: Illustrative data, not re
 
 ---
 
-### Slide 6 — A five-step playbook takes each market from partner search to scale
+### Slide 6 — Five steps take each market from partner to scale
 
 **Slide type:** Framework / Conceptual
 
-**Governing thought (the claim):** A five-step playbook takes each market from partner search to scale.
+**Governing thought (the claim):** Five steps take each market from partner to scale.
 
-**The takeaway:** Entry is a repeatable process with a proof point before every big spend, so Indonesia reuses what Vietnam teaches instead of starting over.
+**The takeaway:** Step 3 is a gate before national spend; Indonesia reuses all five steps.
 
 **Editorial emphasis:** the evidence — five numbered steps left to right, each with an icon, a short name and one line on what has to be true to move on.
 
@@ -215,13 +215,13 @@ Mark the crossover between 2026 and 2027. Source line: Illustrative data, not re
 
 ---
 
-### Slide 7 — The 18-month plan has two go/no-go gates before spending scales
+### Slide 7 — Two go/no-go gates come before spending scales
 
 **Slide type:** Roadmap / Implementation
 
-**Governing thought (the claim):** The 18-month plan has two go/no-go gates before spending scales.
+**Governing thought (the claim):** Two go/no-go gates come before spending scales.
 
-**The takeaway:** The committee keeps control: there are two dated points where it can stop before most of the money is spent.
+**The takeaway:** The committee can stop at month 6 (pilot sell-through) or month 12 (15% margin).
 
 **Editorial emphasis:** the evidence — a horizontal timeline in months with the two gates marked as diamonds in the highlight color.
 
@@ -242,13 +242,13 @@ Mark the crossover between 2026 and 2027. Source line: Illustrative data, not re
 
 ---
 
-### Slide 8 — Local partners power a growth loop that makes each next market cheaper
+### Slide 8 — Each new partner makes the next market cheaper to enter
 
 **Slide type:** Framework / Conceptual
 
-**Governing thought (the claim):** Local partners power a growth loop that makes each next market cheaper.
+**Governing thought (the claim):** Each new partner makes the next market cheaper to enter.
 
-**The takeaway:** The first market is the expensive one; partners turn one success into a cheaper entry to the next.
+**The takeaway:** Vietnam carries the $12M entry cost; Indonesia starts from its proven choices.
 
 **Editorial emphasis:** the conclusion — a circular loop of five steps with arrows between them and the claim in the middle.
 
@@ -267,13 +267,13 @@ Mark the crossover between 2026 and 2027. Source line: Illustrative data, not re
 
 ---
 
-### Slide 9 — Spending stays capped at $12M until Gate 2 proves the unit economics
+### Slide 9 — Spending stays capped at $12M until Gate 2
 
 **Slide type:** Financial / Business case
 
-**Governing thought (the claim):** Spending stays capped at $12M until Gate 2 proves the unit economics.
+**Governing thought (the claim):** Spending stays capped at $12M until Gate 2.
 
-**The takeaway:** The downside is known and bounded: the most Meridian can spend before the second stop point is $12M, and every part of it is named.
+**The takeaway:** At most $12M is at risk before Gate 2; launch marketing is the largest part at $4.0M.
 
 **Editorial emphasis:** the numbers — a waterfall that builds the $12M from its five parts.
 
@@ -311,7 +311,7 @@ Source line: Illustrative data, not real.
 
 **Governing thought (the claim):** Approve $12M of Phase 1 funding by 15 November 2026.
 
-**The takeaway:** One decision today starts the clock; every later commitment comes back to the committee at a gate.
+**The takeaway:** Approval by 15 Nov 2026 starts the clock; the committee decides again at months 6, 12 and 18.
 
 **Editorial emphasis:** the ask — a table of decisions and next steps with owner and date, the first row highlighted.
 

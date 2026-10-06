@@ -15,6 +15,11 @@ All notable changes to this skill. Versioning follows [Semantic Versioning](http
 - Designer instructions and the sketch spec carry the new scale and ask for
   `chart-`, `source-` and `footnote-` shape names; text that does not fit is
   cut or split, never shrunk. New smoke `tests/run_type_scale_smoke.py`.
+- The Meridian example (deck, review page, storyline, tutorial screenshots and
+  timings) was rebuilt under the scale, with fact-based titles and takeaways.
+- Review pages no longer show the designer's working note ("Worker used your
+  reference slide. Body zone ..."); the warning when a designer skipped the
+  template's sample slide is in plain words.
 
 ## 2026-10-05: full audit (less friction, fact-based content)
 
