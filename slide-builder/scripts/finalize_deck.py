@@ -245,19 +245,9 @@ except ImportError:
     )
 _FOOTNOTE_NAME_PREFIXES = ("footnote", "source", "page-number")
 _FOOTER_NUM_RE = re.compile(r"^\d+$")
-# Two-tier font floor:
-#   - SOFT floor (10.5pt) applies to BODY-ROLE shapes only — named with
-#     body|bullet|paragraph|narrative tokens. Workers tag long-form prose
-#     this way; that's the text the floor protects.
-#   - HARD floor (8.0pt) applies to everything else NOT footnote-like:
-#     eyebrows, kickers, category labels, chart legends, axis labels,
-#     decision-tree edge labels, column headers, sparkline deltas, etc.
-#     These are *legitimately* small in client decks (8-10pt) but anything
-#     below 8pt is illegible at projection scale regardless of role.
-# This replaces a flat "everything must be >= 10.5pt unless explicitly
-# excluded" rule that produced many false positives because it had
-# no concept of small-by-design labels. See reference/anti-patterns.md
-# § Aesthetics #3.
+# The font floor now lives in type_scale.py (body 12pt+ in at most 3 sizes;
+# sources, footnotes and chart text 9pt+). The constants below are kept for
+# older callers only. See reference/anti-patterns.md § Aesthetics #3.
 _BODY_ROLE_NAME_TOKENS = ("body", "bullet", "paragraph", "narrative")
 _BODY_FONT_FLOOR_PT = 10.5
 _FONT_HARD_FLOOR_PT = 8.0
@@ -492,23 +482,6 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
                         offgrid_offenders.append(
                             f"{name or '<unnamed>'} @ {sz.pt:.2f}pt: {text[:40]!r}"
                         )
-                    if not is_footnote_like and sz is not None:
-                        # Per-role floor: body-role shapes get the 10.5pt soft
-                        # floor; everything else gets the 8.0pt hard floor.
-                        if _is_body_role_name(name):
-                            floor = _BODY_FONT_FLOOR_PT
-                        else:
-                            floor = _FONT_HARD_FLOOR_PT
-                            if sz.pt < _BODY_FONT_FLOOR_PT:
-                                # Not flagged, but counted so we don't lose
-                                # the audit signal entirely.
-                                soft_floor_suppressed += 1
-                        if sz.pt < floor:
-                            body_ok = False
-                            body_offenders.append(
-                                f"{name or '<unnamed>'} @ {sz.pt:.1f}pt"
-                                f" (floor {floor:.1f}): {text[:40]!r}"
-                            )
                     if text:
                         if not any(allowed in text for allowed in _PLACEHOLDER_ALLOWED):
                             for pat in _PLACEHOLDER_PATTERNS:
@@ -516,6 +489,18 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
                                     leak_ok = False
                                     leak_offenders.append(f"'{pat}' in {name or '<unnamed>'}: {text[:60]!r}")
                                     break
+        # The type scale (owner's rule, 2026-10-05): body text 12pt or more in
+        # at most 3 sizes; sources, footnotes and chart text not under 9pt.
+        # One rule in one place: type_scale.py, also used by FINAL-CHECK.html
+        # and slide-qc.
+        try:
+            import type_scale as _ts
+            _ts_probs = _ts.problems(_ts.check_slide(slide, prs.slide_height))
+        except Exception:
+            _ts_probs = []
+        if _ts_probs:
+            body_ok = False
+            body_offenders.extend(_ts_probs)
         if 5 <= shape_count <= 80:
             shape_count_ok = True
             shape_count_detail = f"{shape_count} shapes"
@@ -541,21 +526,10 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
     checks.append({"check": "title_present", "pass": title_ok, "severity": "warn", "detail": title_detail})
     checks.append({"check": "footer_present", "pass": footer_ok, "severity": "warn", "detail": footer_detail})
     if body_ok:
-        body_detail = (
-            f"body-role >= 10.5pt; other roles >= 8.0pt"
-            f" (excluding footnote/source/page-number)"
-        )
-        if soft_floor_suppressed:
-            body_detail += (
-                f"; {soft_floor_suppressed} non-body-role runs in 8.0-10.5pt"
-                f" band (eyebrows / labels / legends — by design)"
-            )
+        body_detail = ("body text >= 12pt in at most 3 sizes; sources, footnotes "
+                       "and chart text >= 9pt")
     else:
-        body_detail = (
-            f"{len(body_offenders)} sub-floor runs: "
-            + "; ".join(body_offenders[:4])
-            + ("" if len(body_offenders) <= 4 else f" (+{len(body_offenders) - 4} more)")
-        )
+        body_detail = "; ".join(body_offenders)
     checks.append({
         "check": "body_font_floor", "pass": body_ok, "severity": "warn",
         "detail": body_detail,

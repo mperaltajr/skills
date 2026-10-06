@@ -1844,6 +1844,18 @@ def build_final_check(out_dir: Path, meta: Optional[dict]) -> int:
             out_dir, [(k, out_dir / k / _p.option_pptx_name(L)) for k, L in ship]))
     except Exception:
         src_block = ""
+    # Body text 12 pt or more, at most 3 body sizes (type_scale.py).
+    try:
+        import type_scale
+        ts_rows = []
+        for k, L in ship:
+            f = out_dir / k / _p.option_pptx_name(L)
+            if f.exists():
+                probs = [pr for _, pr in type_scale.check_pptx(f)]
+                ts_rows.append((f"Slide {int(k.split('_')[-1])}", probs[0] if probs else []))
+        ts_block = type_scale.html_block(ts_rows)
+    except Exception:
+        ts_block = ""
     page = f"""<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
 <title>Final check</title><style>{FINAL_CSS}</style></head><body>
 <header><h1>Final check: this is exactly what will be built</h1>
@@ -1852,6 +1864,7 @@ takeaway and page number, which the sketches did not have. Look for anything
 overlapping, cut off or crowded. If it is right, click <b>Build it</b>. If not,
 say what is wrong in the box instead.</p></header>
 {src_block}
+{ts_block}
 <div class="grid">{tiles}</div>
 <footer>
 <textarea id="fix" placeholder="Something needs fixing? Say which slide and what."></textarea>

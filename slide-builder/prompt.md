@@ -355,12 +355,16 @@ finalize_deck.py reads line 1. Token prefix decides routing:
 - **Do not write summaries, plans, or design docs to disk.** Inline reasoning goes in your response, not in side-files.
 - **No external assets.** No PIL, no PNG embedding for native patterns, no chart image generation. Bars, waterfalls, KPI tiles — all drawn with `add_rect` + `add_text`. (Curved diagrams that historically used the Mermaid fallback now route to the sketch path's HTML+SVG; see § 4 step 4.)
 - **Use the brand palette constants only.** Never raw `RGBColor(...)` literals. The named constants from `twins.helpers` are: `BRAND_PRIMARY`, `BRAND_PRIMARY_MID`, `BRAND_ACCENT`, `BRAND_ACCENT_SOFT`, `TEXT_DARK`, `TEXT_MID`, `TEXT_FAINT`, `CARD_BG`, `CARD_BORDER`, `WHITE`.
-- **Font sizes are locked to PowerPoint's default grid (floor 8pt).** Every visible text size must be one of: **8, 9, 10, 10.5, 11, 12, 14, 16, 18, 20, 24, 28, 32, 36, 40, 44, 48, 54, 60, 66, 72, 80, 88, 96** (pt) — never an off-grid value like 7.3 or 8.2, and never below 8pt. The finalize step snaps any straggler to the nearest grid size, but author on the grid so what you design is what ships.
+- **Type scale (owner's rule; checked on the final check page and in QC as Major).**
+  - **Body text is 12 pt or more**: bullets, card text, table cells and headers, labels, eyebrows, step numbers, captions. Use **only 12, 14 or 16 pt**, and **at most 3 body sizes on the slide** (e.g. 16 headings, 14 key lines, 12 detail). The title and takeaway use the template's own sizes and are not counted. One large hero figure (24 pt or more) is allowed and not counted.
+  - **Exceptions, not under 9 pt:** sources, footnotes, and text that is part of a chart (axis titles, tick labels, legend, data labels on bars or lines). Name these shapes so the check recognizes them: `chart-...` for every chart piece (e.g. `chart-ylab-200`, `chart-legend-vn`, `chart-val-2030`), `source-...` and `footnote-...`. Anything else is body text.
+  - **If it does not fit at 12 pt, cut words, drop a column or split the content. Never shrink text below 12 pt to make it fit**, and never add a fourth size for one line.
+  - Every size must be on PowerPoint's default grid (9, 10, 10.5, 11 for exceptions only; 12, 14, 16, 18, 20, 24, 28, 32 ... for the rest), never off-grid like 7.3 or 8.2. The finalize step snaps stragglers to the grid, but author on it so what you design is what ships.
 <!-- only:direct -->
   - **Direct path (.py):** set `font_size_pt=` to a grid value (use `font_size_pt`, not raw `Pt(...)` arithmetic that lands off-grid).
 <!-- /only -->
 <!-- only:sketch -->
-  - **Sketch path (HTML):** CSS uses px; px = pt × 4⁄3. Size text so it maps to the grid — e.g. **8pt→10.67px, 9pt→12px, 10.5pt→14px, 12pt→16px, 14pt→18.67px, 18pt→24px, 24pt→32px, 32pt→42.67px**. Body claims/bullets ≥ 10.5pt (14px); eyebrows/labels may go down to 8pt (10.67px) but no smaller. See `reference/sketch-html-spec.md` § "Font-size grid".
+  - **Sketch path (HTML):** CSS uses px; px = pt × 4⁄3. Size text so it maps to the grid — e.g. **8pt→10.67px, 9pt→12px, 10.5pt→14px, 12pt→16px, 14pt→18.67px, 18pt→24px, 24pt→32px, 32pt→42.67px**. Body text (bullets, labels, eyebrows, table cells) is 12pt (16px) or more, in at most 3 sizes; only sources, footnotes and chart text may go down to 9pt (12px). See `reference/sketch-html-spec.md` § "Font-size grid".
 <!-- /only -->
 - **Insertion order = paint order.** Background fills first, foreground/text last.
 

@@ -69,6 +69,7 @@ Parse this and hold the violations in memory. They will be merged with the visua
 - Lorem ipsum / placeholder residue (`[Insert ...]`, "Subtitle goes here", TODO/FIXME/XXX) → Critical
 - **Placeholder prompts** (`[add footnote here or delete]`, `[add source here or delete]`) → Major. Designers no longer write them, so one on a finished slide is a leak.
 - **Buzzwords and competitor names** from `slide-builder/reference/banned-words.md` → Major, one finding per slide listing the words.
+- **Text size** (body under 12pt, more than 3 body sizes, exceptions under 9pt) → Major, one finding per problem per slide.
 - Hidden slides leaking into the file → Major
 - Comments left attached to slides → Major
 - Speaker notes containing scratch content (TODO / asdf / WIP / etc.) → Major
@@ -165,6 +166,7 @@ For each slide, in addition to the per-zone walkthrough, evaluate these categori
 | **Unreadable overlap** | Critical | Text obscured by another element so it cannot be read |
 | **Background contrast** | Critical | White text on white background; same-color-on-same-color violations that hide content |
 | **Action title content** | Major | Title missing on a non-cover slide; title is a topic label not an action title (refer to storyline brief if available) |
+| **Text size** | Major | Body text under 12pt, more than 3 body text sizes on a slide, or a source, footnote or chart label under 9pt (the hygiene script runs `slide-builder/scripts/type_scale.py`). The fix is fewer words or split content, never smaller text; the user may give a reason to keep one |
 | **Font size drift across same slide type** | Major | Slide N title is materially different size from slide M title where both are the same slide type |
 | **Missing footer / page number** | Major | No footer or page number on a non-cover slide (the visual pass catches this because rendered output resolves master inheritance) |
 | **Chart axis missing unit** | Major | Y-axis labeled "Value" / "Amount" with no unit — is it $M, count, percent? |

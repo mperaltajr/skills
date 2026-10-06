@@ -2,6 +2,18 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## 2026-10-05: type scale (12 pt body minimum)
+
+- Body text is 12 pt or more, using only 12, 14 and 16 pt, at most 3 sizes per
+  slide. Sources, footnotes and chart text may be smaller, never under 9 pt.
+  Title, takeaway, template footer and one hero figure are not counted.
+- One check, `scripts/type_scale.py`, used by finalize, FINAL-CHECK.html (a
+  "Text size" box) and slide-qc (Major: fix it or give a reason). It replaces
+  the old 10.5 pt / 8 pt floor in finalize.
+- Designer instructions and the sketch spec carry the new scale and ask for
+  `chart-`, `source-` and `footnote-` shape names; text that does not fit is
+  cut or split, never shrunk. New smoke `tests/run_type_scale_smoke.py`.
+
 ## 2026-10-05: full audit (less friction, fact-based content)
 
 From a three-auditor review of download, install, operation and output.

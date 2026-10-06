@@ -269,6 +269,25 @@ def check_banned_words(slide, slide_num: int) -> list[dict]:
     }]
 
 
+def check_type_scale(slide, slide_num: int, slide_h: int) -> list[dict]:
+    """Body text 12 pt or more, at most 3 body sizes; sources, footnotes and
+    chart labels not under 9 pt (slide-builder/scripts/type_scale.py). Major:
+    fix it, or the user gives a reason to keep it."""
+    try:
+        sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]
+                               / "slide-builder" / "scripts"))
+        import type_scale
+    except Exception:
+        return []
+    return [{
+        "slide": slide_num,
+        "severity": "Major",
+        "category": "text size",
+        "issue": (f"Slide {slide_num}: {p}. Make body text 12 pt or more by cutting "
+                  f"words or splitting the content, not by shrinking it."),
+    } for p in type_scale.problems(type_scale.check_slide(slide, slide_h))]
+
+
 def check_hidden_slides(prs) -> list[dict]:
     violations: list[dict] = []
     for i, slide in enumerate(prs.slides, start=1):
@@ -339,6 +358,7 @@ def run_all_checks(pptx_path: pathlib.Path) -> dict:
     for i, slide in enumerate(prs.slides, start=1):
         violations.extend(check_placeholders_in_text(slide, i))
         violations.extend(check_banned_words(slide, i))
+        violations.extend(check_type_scale(slide, i, prs.slide_height))
         violations.extend(check_speaker_notes(slide, i))
 
     # Sort: Critical first, then Major, then Advisory; within severity by slide number
