@@ -74,8 +74,17 @@ def check(now: bool) -> int:
     if behind == 0:
         print("UP TO DATE")
         return 0
-    log = _git("log", "--format=  - %s", f"HEAD..{upstream}", "-n", "8")
     dirty = _git("status", "--porcelain", "--untracked-files=no").stdout.strip()
+    if _git("merge-base", "HEAD", upstream).returncode != 0:
+        # The server's history was rewritten (it was cleaned of client names
+        # on 2026-10-05), so a pull can never fast-forward this copy.
+        print("UPDATE AVAILABLE: Slide Lab's history was replaced on the server, "
+              "so this copy needs a one-time reset instead of a pull.")
+        print(f'To install (after the user says yes):  git -C "{REPO}" reset --keep {upstream}')
+        print("It keeps the user's own edits where it can and refuses if one would "
+              "be overwritten; if it refuses, tell the user which files and stop.")
+        return 0
+    log = _git("log", "--format=  - %s", f"HEAD..{upstream}", "-n", "8")
     print(f"UPDATE AVAILABLE: {behind} change(s).")
     print(log.stdout.rstrip())
     if behind > 8:

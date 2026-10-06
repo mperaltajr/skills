@@ -174,6 +174,12 @@ Slide Lab checks for updates once a day when you start using it, and asks before
 
 (Older installs set up an automatic start-up update. Company-managed Claude ignores it, so do not rely on it.)
 
+**Installed before 5 October 2026?** Slide Lab's history was cleaned that day, so an older copy cannot update itself (the update stops with *"Not possible to fast-forward"* or *"unrelated histories"*). Paste this into Claude once:
+
+> Reset my Slide Lab to the latest version: in my .claude\skills folder (~/.claude/skills on a Mac) run `git fetch origin` and then `git reset --keep origin/main`, then run `py -3 slide-builder/scripts/update.py after-pull` and show me the result. If the reset refuses because I changed Slide Lab's own files, stop and tell me which files.
+
+Your decks, templates and session folders are not in that folder and are not touched.
+
 ---
 
 ## Need help?

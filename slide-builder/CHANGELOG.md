@@ -52,6 +52,9 @@ From a three-auditor review of download, install, operation and output.
   blanket shell access. LibreOffice can be replaced by PowerPoint on Windows.
 - One install path in the README; registration asks for a client deck to
   copy the look from every time.
+- Published history cleaned of client names, internal notes and the licensed
+  reference pack (commit IDs changed). `update.py` spots a replaced history
+  and offers a one-time `git reset --keep`; the README covers older installs.
 - Bug reports go privately to the maintainer, never to GitHub issues.
   Decision notes and licensed reference packs are no longer published.
 
@@ -129,12 +132,12 @@ From a three-auditor review of download, install, operation and output.
 ## [Prior] — Pattern B refactor (M1 – M7, 2026-06-16 → 2026-06-17)
 
 ### Added — Pattern B HTML-first build path (M1 – M5)
-- **M1** (`9623efb`): `--pattern {auto,B,C,legacy}` CLI flag on `build_deck.py`; per-slide classifier `_classify_slide_pattern`; `_meta.json` schema-v3 extension with optional Pattern B fields (`pattern_default`, `pattern_per_slide`, `html_render_canvas`, `translator_dispatched`, `translation_reports`, per-slide `pattern` / `artifacts`); shipped `settings.json` with `default_pattern: legacy` + `enable_pattern_b: false` master switch.
-- **M2** (`6c246a3`): SSIM regression-test harness (`tests/capture_baseline.py` + `tests/regression_check.py`); `scikit-image>=0.21,<1.0` dep.
-- **M3** (`2981661`): `scripts/render_html.py` Playwright wrapper (headless Chromium → 1280×720 PNG); public color helpers in `twins/client_theme.py` (`hex_to_rgbcolor`, `css_color_to_rgbcolor`, `resolve_css_var`, `wcag_contrast`, public `mix_hex`); `EMU_PER_PX_AT_1280` + `emu_to_px` / `px_to_emu` / `_emu_to_px_dict` in `scripts/_chrome_schema.py`; `write_brand_css()` in `register_template.py` (emits `brand.css` sidecar at registration); WCAG AA contrast warning at register time; `playwright>=1.40,<2.0` dep + INSTALL.md Step 1.5.
-- **M4** (`c16b36e`): NEW `agents/slide-builder-translator.md` (~350 lines, per Spec 4); Pattern B branch added to `agents/slide-builder-worker.md`; INSTALL.md Step 7 for translator agent install + verify.
-- **M5** (`0812fc5`): `build_deck.py` emits `PATTERN: B|C` into per-slide `_prompt.md` via `_classify_all_slides()` + `build_placeholders()`; `finalize_deck.py` discovers `option_X_native.py` (translator output), classifies it as `pattern_b_translated`, parses `__template_fields__` header for placeholder population, threads through `_apply_body_canonical_finishing()` with new `template_fields_override` kwarg.
-- **M6** (`a712129`): R4.1 – R4.8 QC rules in `finalize_deck.py::_check_r4_rules_for_pattern_b()` (3 Critical / 4 Major / 1 Advisory per Spec 6); REVIEW.html surfaces per-zone SSIM + R4 severity chips via `build_review.py::render_pattern_b_qc_section()`; new `slide-qc/VISION_QC_PROTOCOL.md` documents R1 – R8 with severity table.
+- **M1** (`3fed1ee`): `--pattern {auto,B,C,legacy}` CLI flag on `build_deck.py`; per-slide classifier `_classify_slide_pattern`; `_meta.json` schema-v3 extension with optional Pattern B fields (`pattern_default`, `pattern_per_slide`, `html_render_canvas`, `translator_dispatched`, `translation_reports`, per-slide `pattern` / `artifacts`); shipped `settings.json` with `default_pattern: legacy` + `enable_pattern_b: false` master switch.
+- **M2** (`def2a07`): SSIM regression-test harness (`tests/capture_baseline.py` + `tests/regression_check.py`); `scikit-image>=0.21,<1.0` dep.
+- **M3** (`eae0a05`): `scripts/render_html.py` Playwright wrapper (headless Chromium → 1280×720 PNG); public color helpers in `twins/client_theme.py` (`hex_to_rgbcolor`, `css_color_to_rgbcolor`, `resolve_css_var`, `wcag_contrast`, public `mix_hex`); `EMU_PER_PX_AT_1280` + `emu_to_px` / `px_to_emu` / `_emu_to_px_dict` in `scripts/_chrome_schema.py`; `write_brand_css()` in `register_template.py` (emits `brand.css` sidecar at registration); WCAG AA contrast warning at register time; `playwright>=1.40,<2.0` dep + INSTALL.md Step 1.5.
+- **M4** (`d7e8326`): NEW `agents/slide-builder-translator.md` (~350 lines, per Spec 4); Pattern B branch added to `agents/slide-builder-worker.md`; INSTALL.md Step 7 for translator agent install + verify.
+- **M5** (`72aa7d0`): `build_deck.py` emits `PATTERN: B|C` into per-slide `_prompt.md` via `_classify_all_slides()` + `build_placeholders()`; `finalize_deck.py` discovers `option_X_native.py` (translator output), classifies it as `pattern_b_translated`, parses `__template_fields__` header for placeholder population, threads through `_apply_body_canonical_finishing()` with new `template_fields_override` kwarg.
+- **M6** (`392ea2d`): R4.1 – R4.8 QC rules in `finalize_deck.py::_check_r4_rules_for_pattern_b()` (3 Critical / 4 Major / 1 Advisory per Spec 6); REVIEW.html surfaces per-zone SSIM + R4 severity chips via `build_review.py::render_pattern_b_qc_section()`; new `slide-qc/VISION_QC_PROTOCOL.md` documents R1 – R8 with severity table.
 
 ### Removed — M7 Mermaid retirement (2026-06-17, Decision 6 locked)
 - `scripts/render_mermaid.py` — Mermaid CLI wrapper deleted. Pattern B HTML→PNG replaces it for curved-container diagrams.

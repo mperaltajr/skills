@@ -414,7 +414,7 @@ def load_brand_sidecar(template_path: Path) -> dict:
         # rules, top/bottom bands). Stripping makes every slide look
         # off-spec. Set true ONLY for legacy templates with photographic
         # decoration that shouldn't bleed behind every slide.
-        # (Matches register_template.py commit a8a79e2 and brand.yml docs.)
+        # (Matches register_template.py commit 4497759 and brand.yml docs.)
         "strip_master_backgrounds": bool(
             brand_raw.get("strip_master_backgrounds", False)
         ),
