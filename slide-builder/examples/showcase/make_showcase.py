@@ -50,6 +50,9 @@ HOW_MADE = [
     "and the build took under 1 minute.",
     "Quality check: no Critical or Major findings; 3 Advisory notes. The deck "
     "also opened cleanly in PowerPoint.",
+    "6 October: slide 8's headline was reworded to say what the data supports (\"We "
+    "expect partners to lower Indonesia's entry cost; no data yet\") and that one "
+    "slide redesigned in one design, keeping the picked layout.",
     "Hand edits: none. Everything is the pipeline's own output.",
 ]
 

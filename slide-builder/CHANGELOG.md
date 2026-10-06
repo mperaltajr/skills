@@ -2,6 +2,22 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## 2026-10-06: guide in pages, storyline and slide-rules reference
+
+- Slide-Lab-Tutorial.html is now 25 pages in 6 tabs (Start here, Your first
+  deck with one page per step, Storylines, Slide rules, Reference, Help), still
+  one emailed file. "Show the whole guide on one page" keeps Ctrl+F and
+  printing; every old link still works; without scripts all pages show.
+- New Storylines pages (how Claude coaches, deck types and structures, page
+  order and page types, headlines and takeaways, what the storyline check
+  flags, the Meridian worked example) and Slide rules pages (each rule with
+  why, do and don't, and where Slide Lab checks it), sourced from the skills.
+- check_tutorial.py also compares the guide's type-scale numbers with
+  type_scale.py and its buzzword examples with banned-words.md.
+- Meridian slide 8 reworded to what the data supports ("We expect partners to
+  lower Indonesia's entry cost; no data yet") and that slide rebuilt.
+- Agents never close or kill the user's browser or PowerPoint.
+
 ## 2026-10-05: type scale (12 pt body default, 10.5 pt floor)
 
 - Body text is 12 pt by default (12, 14, 16), at most 3 sizes per slide. When

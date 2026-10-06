@@ -242,11 +242,11 @@ Mark the crossover between 2026 and 2027. Source line: Illustrative data, not re
 
 ---
 
-### Slide 8 — Each new partner makes the next market cheaper to enter
+### Slide 8 — We expect partners to lower Indonesia's entry cost; no data yet
 
 **Slide type:** Framework / Conceptual
 
-**Governing thought (the claim):** Each new partner makes the next market cheaper to enter.
+**Governing thought (the claim):** We expect partners to lower Indonesia's entry cost; no data yet.
 
 **The takeaway:** Vietnam carries the $12M entry cost; Indonesia starts from its proven choices.
 
@@ -258,7 +258,7 @@ Mark the crossover between 2026 and 2027. Source line: Illustrative data, not re
 - **WIDER DISTRIBUTION** — More outlets carry Meridian products sooner.
 - **MORE SALES DATA** — Wider distribution gives earlier, more detailed sell-through data.
 - **BETTER TARGETING** — The data shows which products, prices and channels work.
-- **CHEAPER NEXT ENTRY** — The next market starts from proven choices, so it costs less to enter, which attracts more partners.
+- **CHEAPER NEXT ENTRY** — The next market starts from proven choices, so it should cost less to enter, which attracts more partners.
   evidence_type: qualitative
 
 **What this slide is NOT:** Not a claim with a number (there is no measured saving yet); not a list; one loop diagram.

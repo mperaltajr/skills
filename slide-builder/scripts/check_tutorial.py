@@ -16,9 +16,17 @@ check fails when the tutorial and the code disagree:
   5. the page shows a fact (data-f="...") that the facts block does not have,
      or whose text differs from the facts block (the page was not rebuilt
      with docs/tutorial/assemble.py after the facts changed)
+  6. the page shows a type size (data-f="type.<key>") and the facts block's
+     "type" numbers differ from the constants in slide-builder/scripts/
+     type_scale.py (BODY_DEFAULT_PT, BODY_MIN_PT, EXCEPTION_MIN_PT,
+     MAX_BODY_SIZES, HERO_MIN_PT), or a constant cannot be found
+  7. the page shows a buzzword example (<span class="bw">) that
+     slide-builder/reference/banned-words.md no longer lists (its banned or
+     judge block)
 
 Run it whenever build_review.py, register_template.py, publish_cleanup.py,
-check_done.py or settings.json change, and before sharing the tutorial.
+check_done.py, type_scale.py, banned-words.md or settings.json change, and
+before sharing the tutorial.
 
 Run:  py -3 scripts/check_tutorial.py [--tutorial <path>]
 Exit: 0 pass | 1 problems found (listed) | 2 a file is missing or unreadable
@@ -38,6 +46,18 @@ ROOT = SKILL.parent                      # the skills folder
 DEFAULT_TUTORIAL = ROOT / "Slide-Lab-Tutorial.html"
 BUILD_REVIEW = HERE / "build_review.py"
 SETTINGS = SKILL / "settings.json"
+TYPE_SCALE = HERE / "type_scale.py"
+BANNED_WORDS = SKILL / "reference" / "banned-words.md"
+
+# facts "type" key -> constant in type_scale.py (read as text, so the check
+# does not need python-pptx)
+TYPE_KEYS = {
+    "body_pt": "BODY_DEFAULT_PT",
+    "floor_pt": "BODY_MIN_PT",
+    "small_pt": "EXCEPTION_MIN_PT",
+    "max_sizes": "MAX_BODY_SIZES",
+    "hero_pt": "HERO_MIN_PT",
+}
 
 EM_DASH = "—"
 
@@ -59,6 +79,7 @@ FACTS_RE = re.compile(
 DATA_URI_RE = re.compile(r"data:[a-z/+.-]+;base64,[A-Za-z0-9+/=]+", re.I)
 UI_RE = re.compile(r'<span class="ui(?: [^"]*)?">(.*?)</span>', re.S)
 DATA_F_RE = re.compile(r'<(\w+)\b[^>]*\sdata-f="([^"]+)"[^>]*>(.*?)</\1>', re.S)
+BW_RE = re.compile(r'<span class="bw">(.*?)</span>', re.S)
 
 
 def _norm(text: str) -> str:
@@ -143,6 +164,45 @@ def check(tutorial: Path) -> list[str]:
             problems.append(f'fact "{key}" reads "{html.unescape(shown).strip()[:60]}" on the page '
                             f'but "{str(value)[:60]}" in the facts block (re-run docs/tutorial/assemble.py)')
 
+    # 6. type sizes match type_scale.py
+    if 'data-f="type.' in text:
+        scale = TYPE_SCALE.read_text(encoding="utf-8")
+        type_facts = facts.get("type")
+        if not isinstance(type_facts, dict):
+            type_facts = {}
+            problems.append('the page shows type sizes but the facts block has no "type" object')
+        for key, const in TYPE_KEYS.items():
+            cm = re.search(rf"^{const}\s*=\s*([0-9.]+)", scale, re.M)
+            if not cm:
+                problems.append(f"type.{key}: {const} not found in type_scale.py (renamed or removed?)")
+                continue
+            if key not in type_facts:
+                problems.append(f'type.{key}: missing from the facts block "type" object')
+                continue
+            try:
+                same = float(type_facts[key]) == float(cm.group(1))
+            except (TypeError, ValueError):
+                same = False
+            if not same:
+                problems.append(f"type.{key}: tutorial says {type_facts[key]}, "
+                                f"type_scale.py says {cm.group(1)}")
+
+    # 7. every buzzword example is still on the list in banned-words.md
+    shown_bw = [html.unescape(re.sub(r"<[^>]+>", "", w)).strip().lower() for w in BW_RE.findall(text)]
+    if shown_bw:
+        bw_text = BANNED_WORDS.read_text(encoding="utf-8")
+        terms: list[str] = []
+        for name in ("banned", "judge"):
+            bm = re.search(rf"<!-- {name}:start -->(.*?)<!-- {name}:end -->", bw_text, re.S)
+            if not bm:
+                problems.append(f"banned-words.md has no {name}:start / {name}:end block")
+                continue
+            terms += [re.sub(r"\s*\(.*\)$", "", t.strip()).lower()
+                      for t in bm.group(1).splitlines() if t.strip()]
+        for word in sorted(set(shown_bw)):
+            if not (word in terms or any(t.endswith("*") and word.startswith(t[:-1]) for t in terms)):
+                problems.append(f'the page shows "{word}" as a buzzword but banned-words.md no longer lists it')
+
     return problems
 
 
@@ -150,7 +210,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--tutorial", type=Path, default=DEFAULT_TUTORIAL)
     args = ap.parse_args()
-    for f in (args.tutorial, BUILD_REVIEW, SETTINGS):
+    for f in (args.tutorial, BUILD_REVIEW, SETTINGS, TYPE_SCALE, BANNED_WORDS):
         if not f.is_file():
             print(f"MISSING: {f}")
             return 2
