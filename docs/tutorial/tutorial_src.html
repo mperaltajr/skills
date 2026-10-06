@@ -95,7 +95,7 @@
     --crit:#A40E26; --crit-soft:#FFEBE9; --crit-line:#D1242F;
     --sans:"Segoe UI",system-ui,-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;
     --mono:Consolas,"Cascadia Mono","SF Mono",Menlo,monospace;
-    --measure:720px; --wide:960px; --side:248px; --top:56px; --r:8px;
+    --col:760px; --measure:var(--col); --wide:var(--col); --side:248px; --top:56px; --r:8px;
   }
   *{box-sizing:border-box}
   [id]{scroll-margin-top:calc(var(--top) + 16px)}
@@ -112,7 +112,9 @@
   nav.tabs a{display:flex;align-items:center;padding:0 12px;font-size:15px;font-weight:600;color:var(--muted);text-decoration:none;border-bottom:2px solid transparent;white-space:nowrap}
   nav.tabs a:hover{color:var(--ink);background:var(--surface)}
   nav.tabs a[aria-current="page"]{color:var(--accent);border-bottom-color:var(--accent)}
-  header.top .stamp{margin-left:auto;display:flex;align-items:center;font-size:13px;color:var(--muted);white-space:nowrap}
+  header.top .tools{margin-left:auto;display:flex;align-items:center;gap:8px;flex:none;white-space:nowrap}
+  header.top .tools a.allink{font-size:13px;font-weight:600}
+  header.top .tools .t-short{display:none}
 
   /* contents: the pages of the current part, with the current page's sections under it */
   .layout{display:grid;grid-template-columns:var(--side) minmax(0,1fr);min-height:calc(100vh - var(--top))}
@@ -122,6 +124,7 @@
   nav.side .grp:first-child .grp-h, .js nav.side .grp.on .grp-h{margin-top:0}
   .js.all nav.side .grp .grp-h{margin-top:20px}
   .js.all nav.side .grp:first-child .grp-h{margin-top:0}
+  .js:not(.all) nav.side .grp-h{display:none}
   nav.side ol{list-style:none;margin:0;padding:0}
   nav.side ol ol{margin:2px 0 6px 18px;font-size:14px}
   nav.side a{display:flex;align-items:center;gap:8px;padding:5px 8px;border-left:2px solid transparent;border-radius:0 6px 6px 0;color:var(--ink);text-decoration:none}
@@ -130,12 +133,12 @@
   nav.side a[aria-current="page"]{font-weight:600}
   nav.side a.on{border-left-color:var(--accent);background:var(--accent-soft);color:var(--accent);font-weight:600}
   nav.side .d{flex:none;width:20px;height:20px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;line-height:1;border:1.5px solid var(--line-strong);background:#fff;color:var(--muted)}
-  nav.side .d.you{background:var(--accent);border-color:var(--accent);color:#fff}
+  nav.side a[aria-current="page"] .d{background:var(--accent);border-color:var(--accent);color:#fff}
   .js nav.side .grp{display:none}
   .js nav.side .grp.on, .js.all nav.side .grp{display:block}
   .js nav.side li:not(.open) > ol{display:none}
   .js.all nav.side li > ol{display:block}
-  nav.side .tools{margin:24px 0 0 10px;display:grid;gap:8px;justify-items:start}
+  nav.side .tools{display:none}
   .tools button, a.allink{display:none}
   .js .tools button{display:inline-block}
   .js a.allink{display:inline}
@@ -143,7 +146,7 @@
   button.plain:hover{background:var(--surface)}
 
   /* pages: with scripts on, one at a time (or all of them for #all); with scripts off, all of them */
-  main{padding:40px 56px 96px;min-width:0;max-width:calc(var(--wide) + 112px)}
+  main{padding:40px 56px 96px;min-width:0;max-width:calc(var(--col) + 112px)}
   section.page + section.page{margin-top:72px;padding-top:24px;border-top:1px solid var(--line)}
   .js section.page{display:none}
   .js section.page.on, .js.all section.page{display:block}
@@ -152,51 +155,51 @@
   .allnote, .print-note{display:none}
   .js.all .allnote{display:block;margin:0 0 32px;padding:10px 16px;border-left:4px solid var(--accent);border-radius:0 6px 6px 0;background:var(--accent-soft);font-size:15px;max-width:var(--measure)}
   h1,h2,h3{font-weight:600;line-height:1.25;letter-spacing:-.01em;margin:0}
-  h1{font-size:34px;line-height:1.2;margin:0 0 12px;max-width:var(--measure)}
+  h1{font-size:34px;line-height:1.2;margin:0 0 16px;max-width:var(--measure)}
   h1:focus{outline:none}
-  h2{font-size:24px;margin:48px 0 10px}
+  h2{font-size:24px;margin:48px 0 12px}
   h3{font-size:19px;margin:32px 0 8px}
+  h1 + h2, .step-head + h2{margin-top:32px}
+  section.page :is(h2,h3) + *{margin-top:0}
   p{margin:0 0 12px}
   main p, main ul, main dl, ol.do, .see, .asks, .callout, .example, details.more{max-width:var(--measure)}
   ul{margin:0 0 12px;padding-left:22px}
-  li{margin:2px 0}
+  li{margin:4px 0}
   .eyebrow{font-size:13px;font-weight:600;color:var(--muted);margin:0 0 4px}
-  .meta-line{font-size:13px;color:var(--muted);margin:0 0 20px}
+  .js:not(.all) section.page:not(.step) > .eyebrow{display:none}
+  .meta-line{font-size:13px;color:var(--muted);margin:0 0 24px}
   .lead{font-size:17px}
   .muted{color:var(--muted)}
 
   /* at a glance */
-  dl.glance{display:grid;grid-template-columns:max-content 1fr;gap:6px 20px;margin:20px 0;padding:14px 18px;border:1px solid var(--line);border-radius:var(--r)}
+  dl.glance{display:grid;grid-template-columns:fit-content(14em) minmax(0,1fr);gap:8px 24px;margin:16px 0;padding:14px 18px;border:1px solid var(--line);border-radius:var(--r)}
   dl.glance dt{font-weight:600}
   dl.glance dd{margin:0}
 
   /* journey map */
-  .map{max-width:var(--wide);margin:40px 0 8px}
+  .map{max-width:var(--wide);margin:48px 0 16px}
   .map-head{display:flex;justify-content:space-between;align-items:baseline;gap:16px;flex-wrap:wrap}
   .map-head h2{margin:0}
-  .legend{display:flex;gap:16px;font-size:13px;color:var(--muted)}
-  .legend span{display:inline-flex;align-items:center;gap:6px}
-  .legend span::before{content:"";width:12px;height:12px;border-radius:50%;border:1.5px solid var(--line-strong);background:#fff}
-  .legend span.you::before{background:var(--accent);border-color:var(--accent)}
   ol.route{list-style:none;margin:16px 0 0;padding:0;display:grid;grid-template-columns:repeat(8,minmax(0,1fr));position:relative}
   ol.route::before{content:"";position:absolute;left:6.25%;right:6.25%;top:15px;height:2px;background:var(--line)}
   ol.route li{position:relative;margin:0;padding:0 4px;text-align:center}
   ol.route a{display:block;color:var(--ink);text-decoration:none;font-size:13px;line-height:1.35}
   ol.route a:hover b{text-decoration:underline}
-  ol.route .n{display:flex;align-items:center;justify-content:center;width:32px;height:32px;margin:0 auto 8px;border-radius:50%;background:#fff;border:2px solid var(--line-strong);color:var(--muted);font-weight:600;font-size:15px;position:relative}
-  ol.route li.you .n{background:var(--accent);border-color:var(--accent);color:#fff}
+  ol.route .n{display:flex;align-items:center;justify-content:center;width:32px;height:32px;margin:0 auto 8px;border-radius:50%;background:var(--accent);border:2px solid var(--accent);color:#fff;font-weight:600;font-size:15px;position:relative}
   ol.route b{display:block;font-weight:600}
   ol.route .t{display:block;color:var(--muted)}
   .map-note{font-size:15px;color:var(--muted);margin:16px 0 0}
 
   /* before you start */
   ul.check{list-style:none;padding:0;margin:12px 0 0}
-  ul.check > li{position:relative;padding:0 0 18px 32px;margin:0}
+  ul.check > li{position:relative;padding:0 0 0 32px;margin:0 0 16px}
+  ul.check > li:last-child{margin-bottom:0}
+  ul.check .callout, ul.check details.more{margin:12px 0 0}
   ul.check > li::before{content:"";position:absolute;left:0;top:4px;width:18px;height:18px;border:2px solid var(--line-strong);border-radius:4px;background:#fff}
   ul.check > li > .t{display:block;font-weight:600}
 
   /* pills */
-  .meta{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
+  .meta{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 24px}
   .pill{display:inline-flex;align-items:center;gap:6px;font-size:13px;line-height:1.5;font-weight:600;padding:1px 10px;border-radius:999px;border:1px solid var(--line-strong);background:#fff;color:var(--muted);white-space:nowrap;vertical-align:baseline}
   .pill svg{width:14px;height:14px;flex:none}
   .pill.you{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent)}
@@ -205,28 +208,27 @@
   .pill.gone{border-style:dashed}
 
   /* step pages: the big circle beside the title, the strip of 8 above it */
-  .step-head{display:flex;align-items:center;gap:14px;margin:0 0 12px}
+  .step-head{display:flex;align-items:center;gap:14px;margin:0 0 16px}
   .step-head h1{margin:0}
-  .step-head .num{flex:none;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;background:#fff;border:2px solid var(--line-strong);color:var(--muted)}
-  .step.you .step-head .num{background:var(--accent);border-color:var(--accent);color:#fff}
-  ol.strip{list-style:none;display:flex;flex-wrap:wrap;gap:8px;margin:2px 0 16px;padding:0}
+  .step-head .num{flex:none;width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:600;background:var(--accent);border:2px solid var(--accent);color:#fff}
+  ol.strip{list-style:none;display:flex;flex-wrap:wrap;gap:8px;margin:4px 0 16px;padding:0}
   ol.strip li{margin:0}
   ol.strip a{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;border:1.5px solid var(--line-strong);background:#fff;color:var(--muted);font-size:13px;font-weight:600;text-decoration:none}
-  ol.strip li.you a{background:var(--accent);border-color:var(--accent);color:#fff}
-  ol.strip a[aria-current]{outline:2px solid var(--accent);outline-offset:2px}
+  ol.strip a[aria-current]{background:var(--accent);border-color:var(--accent);color:#fff}
   ol.do{margin:0 0 16px;padding-left:24px}
   ol.do > li{margin:0 0 16px;padding-left:4px}
   ol.do > li::marker{font-weight:600;color:var(--muted)}
   ol.do ol, .see ol, .see ul{margin:6px 0 0;padding-left:20px}
-  .see{margin:6px 0 0;padding:2px 0 2px 12px;border-left:3px solid var(--ok-line);font-size:15px;color:var(--muted)}
+  .see{margin:8px 0 0;padding:2px 0 2px 12px;border-left:3px solid var(--ok-line);font-size:15px;color:var(--muted)}
   .step > .see{margin:0 0 16px}
+  ol.do .callout{margin:8px 0 0}
   .see .lbl{font-weight:600;color:var(--ok);margin-right:6px}
   .asks{margin:8px 0 0;padding:8px 14px;background:var(--surface);border:1px solid var(--line);border-radius:12px 12px 12px 4px;font-size:15px}
   .asks .lbl{display:block;font-size:13px;font-weight:600;color:var(--muted)}
-  .done-box{margin:24px 0 0;padding:14px 18px;border:1px solid var(--line);border-radius:var(--r);max-width:var(--measure)}
+  .done-box{margin:16px 0 0;padding:14px 18px;border:1px solid var(--line);border-radius:var(--r);max-width:var(--measure)}
 
   /* previous / next, written by the script from the page order */
-  nav.pager{display:flex;gap:16px;max-width:var(--measure);margin:56px 0 0;padding-top:16px;border-top:1px solid var(--line)}
+  nav.pager{display:flex;gap:16px;max-width:var(--measure);margin:64px 0 0;padding-top:16px;border-top:1px solid var(--line)}
   nav.pager a{display:block;flex:1 1 0;padding:10px 14px;border:1px solid var(--line-strong);border-radius:var(--r);text-decoration:none;color:var(--ink);font-weight:600;line-height:1.35}
   nav.pager a:hover{border-color:var(--accent);background:var(--accent-soft)}
   nav.pager .k{display:block;font-size:13px;font-weight:600;color:var(--muted);margin-bottom:2px}
@@ -275,7 +277,7 @@
   .example > .lbl{font-weight:600;color:var(--ink);margin-right:6px}
 
   /* folds: side paths, "If something goes wrong", common questions */
-  details.more{margin:12px 0 0;border:1px solid var(--line);border-radius:var(--r);background:#fff}
+  details.more{margin:16px 0 0;border:1px solid var(--line);border-radius:var(--r);background:#fff}
   details.more > summary{list-style:none;cursor:pointer;display:block;position:relative;padding:10px 16px 10px 33px;font-size:15px;font-weight:600;border-radius:var(--r)}
   details.more > summary::-webkit-details-marker{display:none}
   details.more > summary::before{content:"";position:absolute;left:16px;top:19px;width:7px;height:7px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s}
@@ -288,28 +290,45 @@
   dl.fix{margin:0}
   dl.fix dt{font-weight:600;margin:10px 0 0}
   dl.fix dd{margin:2px 0 0}
+  details.more + details.more{margin-top:8px}
   .faq details.more{margin:8px 0 0}
+  .faq details.more:first-child{margin-top:0}
 
   /* reference tables */
-  .table-wrap{max-width:var(--wide);margin:12px 0 8px;overflow-x:auto}
+  .table-wrap{max-width:var(--wide);margin:16px 0;overflow-x:auto}
   table.ref{width:100%;border-collapse:collapse;font-size:15px;line-height:1.5;background:#fff}
   table.ref caption{caption-side:top;text-align:left;font-size:13px;color:var(--muted);padding:0 0 8px}
-  table.ref th,table.ref td{padding:10px 12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
-  table.ref thead th{font-size:13px;font-weight:600;color:var(--muted);border-bottom:2px solid var(--line-strong)}
+  table.ref th,table.ref td{padding:10px 12px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line);overflow-wrap:break-word}
+  table.ref thead th{font-size:13px;font-weight:600;color:var(--muted);border-bottom:2px solid var(--line-strong);vertical-align:bottom}
   table.ref tbody td:first-child{font-weight:600}
   table.ref td.basis{color:var(--muted)}
   table.ref tr.total td{border-top:2px solid var(--line-strong);font-weight:600}
   table.ref tr.group th{font-size:13px;font-weight:600;color:var(--accent);padding-top:20px;border-bottom:1px solid var(--line-strong)}
-  table.ref.phrases td:first-child{width:42%}
-  table.ref td:first-child > .say code{white-space:nowrap}
   table.ref td.plain{font-weight:400}
+  table.ref .ui{white-space:normal;max-width:100%}
+  table.ref .why{display:block;font-weight:400;color:var(--muted);margin-top:4px}
+  /* column widths, on the header row (wide screens only): tables of one kind line up */
+  @media (min-width:641px){
+    table.ref thead th:first-child{width:30%}
+    table.ref thead th:first-child:nth-last-child(3){width:24%}
+    table.ref.rules, table.ref.tests{table-layout:fixed}
+    table.ref.rules thead th:nth-child(1){width:34%}
+    table.ref.rules thead th:nth-child(2){width:38%}
+    table.ref.rules thead th:nth-child(3){width:28%}
+    table.ref.tests thead th:nth-child(1){width:34%}
+    table.ref.tests thead th:nth-child(2), table.ref.tests thead th:nth-child(3){width:33%}
+    table.ref.types thead th:nth-child(1){width:26%}
+    table.ref.types thead th:nth-child(2){width:34%}
+    table.ref.phrases thead th:first-child{width:40%}
+    table.ref.later thead th:first-child{width:46%}
+    table.ref.slides thead th:nth-child(1){width:28%}
+    table.ref.times thead th:nth-child(1){width:30%}
+    table.ref.times thead th:nth-child(3){width:16%}
+  }
 
   /* rules tables: rule and why / do and don't / where it is checked */
-  table.ref.rules td:first-child{width:34%}
-  table.ref.rules td:nth-child(3){width:28%}
-  table.ref.rules .why{display:block;font-weight:400;color:var(--muted);margin-top:4px}
   .do,.dont{display:block}
-  .do + .dont, .dont + .do{margin-top:6px}
+  .do + .dont, .dont + .do, .dont + .dont{margin-top:6px}
   .do > b:first-child{color:var(--ok)}
   .dont > b:first-child{color:var(--warn)}
   .chk{display:block}
@@ -319,7 +338,7 @@
   .sev.major{border-color:var(--warn-line);color:var(--warn);background:var(--warn-soft)}
   .sev.stop{border-color:var(--ink);color:var(--ink)}
   ol.short{max-width:var(--measure);padding-left:24px}
-  ol.short > li{margin:0 0 6px}
+  ol.short > li{margin:0 0 8px}
 
   /* one slide in the storyline: dot, dashes, takeaway */
   .dotdash{max-width:var(--measure);margin:16px 0;padding:14px 18px;border:1px solid var(--line);border-radius:var(--r)}
@@ -335,9 +354,18 @@
   dl.leads dd{margin:2px 0 0}
   footer{margin-top:48px;padding-top:12px;border-top:1px solid var(--line);font-size:13px;color:var(--muted);max-width:var(--measure)}
 
+  @media (max-width:1280px){ header.top .brand{display:none} }
+  @media (max-width:1180px){
+    header.top .tools .t-long{display:none}
+    header.top .tools .t-short{display:inline}
+    nav.tabs a{padding:0 10px}
+  }
   @media (max-width:980px){
     header.top{gap:12px;padding:0 12px}
-    header.top .stamp{display:none}
+    header.top .tools{display:none}
+    .js nav.side .tools{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:12px 0 4px;padding-top:12px;border-top:1px solid var(--line)}
+    nav.side .tools a.allink{padding:4px 0;border:0;font-size:13px;font-weight:600;color:var(--accent);text-decoration:underline}
+    nav.tabs{-webkit-mask-image:linear-gradient(to right,transparent 0,#000 16px,#000 calc(100% - 24px),transparent);mask-image:linear-gradient(to right,transparent 0,#000 16px,#000 calc(100% - 24px),transparent)}
     .layout{display:block}
     nav.side{position:sticky;top:var(--top);z-index:20;height:auto;max-height:calc(100vh - var(--top));border-right:0;border-bottom:1px solid var(--line);padding:4px 16px}
     nav.side summary{display:flex;align-items:center;gap:8px;cursor:pointer;list-style:none;font-weight:600;padding:6px 0}
@@ -358,18 +386,23 @@
   @media (max-width:640px){
     header.top .brand{display:none}
     h1{font-size:28px} h2{font-size:22px}
-    .step-head .num{width:32px;height:32px;font-size:15px}
+    .step-head{align-items:flex-start}
+    .step-head .num{width:32px;height:32px;font-size:15px;margin-top:2px}
     nav.pager{flex-direction:column}
     nav.pager .next{text-align:left}
     nav.pager .spacer{display:none}
     .ui{white-space:normal}
-    dl.glance, .dotdash dl{grid-template-columns:1fr}
+    dl.glance, .dotdash dl{grid-template-columns:1fr;gap:2px 0}
+    dl.glance dd + dt, .dotdash dd + dt{margin-top:12px}
     table.ref thead{display:none}
     table.ref,table.ref tbody,table.ref tr,table.ref td,table.ref tr.group th{display:block;width:100%}
-    table.ref tr{padding:10px 0;border-bottom:1px solid var(--line)}
+    table.ref tr{padding:12px 0;border-bottom:1px solid var(--line)}
+    table.ref tr.group{padding:0;border-bottom:0}
+    table.ref tr.group th{padding:16px 0 6px}
     table.ref td{border:0;padding:2px 0}
-    table.ref.phrases td:first-child, table.ref.rules td:first-child, table.ref.rules td:nth-child(3){width:100%}
     table.ref td[data-label]::before{content:attr(data-label);display:block;font-size:13px;font-weight:600;color:var(--muted)}
+    table.ref td:first-child[data-label]::before, table.ref.rules td:nth-child(2)[data-label]::before, table.ref.types td:nth-child(3)[data-label]::before{display:none}
+    table.ref td:first-child{padding-bottom:4px}
     table.ref tr.total td{border-top:0}
     table.ref caption{display:block}
   }
@@ -383,7 +416,7 @@
     .js.all .print-note{display:none}
     section.page + section.page, .js.all section.page + section.page{border-top:0;margin-top:28pt;padding-top:0}
     :root:not(.js) section.page.tab-start:not(:first-of-type), .js.all section.page.tab-start:not(:first-of-type){break-before:page;margin-top:0}
-    h1,h2,h3{break-after:avoid}
+    h1,h2,h3,.eyebrow,.step-head{break-after:avoid}
     figure.shot,.callout,.example,ol.do > li,tr,dl.glance,ol.route,.see,.say,.dotdash{break-inside:avoid}
     .frame{box-shadow:none}
     .say{border:1px solid var(--line-strong)}
@@ -408,7 +441,11 @@
     <a href="#times" data-tab="reference">Reference</a>
     <a href="#faq" data-tab="help">Help</a>
   </nav>
-  <span class="stamp">Accurate as of&nbsp;<span data-f="as_of"></span></span>
+  <div class="tools">
+    <button type="button" class="plain" data-print="page">Print this page</button>
+    <button type="button" class="plain" data-print="all">Print the whole guide</button>
+    <a class="allink" href="#all" title="Show the whole guide on one page"><span class="t-long">Show the whole guide on one page</span><span class="t-short">Whole guide</span></a>
+  </div>
 </header>
 
 <div class="layout">
@@ -419,7 +456,7 @@
     <div class="toc-body">
       <div class="grp" data-group="start"><p class="grp-h">Start here</p>
         <ol>
-          <li><a href="#start">About this guide</a>
+          <li><a href="#start">Overview</a>
             <ol>
               <li><a href="#map">How a deck comes together</a></li>
               <li><a href="#before">Before you start</a></li>
@@ -459,26 +496,30 @@
             <ol>
               <li><a href="#sl-anatomy">One slide in the storyline</a></li>
               <li><a href="#sl-fields">What Claude records for every slide</a></li>
-              <li><a href="#sl-headline">A good headline</a></li>
-              <li><a href="#sl-takeaway">A good takeaway</a></li>
-              <li><a href="#sl-points">Good supporting points</a></li>
+              <li><a href="#sl-headline">What makes a good headline</a></li>
+              <li><a href="#sl-takeaway">What makes a good takeaway</a></li>
+              <li><a href="#sl-points">What makes good supporting points</a></li>
             </ol></li>
           <li><a href="#storyline-check">What the storyline check flags</a>
             <ol>
               <li><a href="#sl-severity">What happens to a flagged line</a></li>
+              <li><a href="#sl-answer">How to answer</a></li>
               <li><a href="#sl-review">Claude's review of the argument</a></li>
               <li><a href="#sl-measured">The measured check</a></li>
-              <li><a href="#sl-answer">How to answer</a></li>
             </ol></li>
-          <li><a href="#storyline-example">Worked example: Meridian</a></li>
+          <li><a href="#storyline-example">Worked example: Meridian</a>
+            <ol>
+              <li><a href="#sl-ex-slides">The ten slides</a></li>
+              <li><a href="#sl-ex-notes">What to notice</a></li>
+            </ol></li>
         </ol></div>
       <div class="grp" data-group="rules"><p class="grp-h">Slide rules</p>
         <ol>
           <li><a href="#rules">How Slide Lab checks your slides</a>
             <ol>
               <li><a href="#rules-short">The short version</a></li>
-              <li><a href="#rules-where">Where each rule is checked</a></li>
               <li><a href="#rules-hardline">The five rules every design follows</a></li>
+              <li><a href="#rules-where">Where each rule is checked</a></li>
             </ol></li>
           <li><a href="#rules-message">The message</a></li>
           <li><a href="#rules-text">Text and type size</a>
@@ -493,8 +534,9 @@
             </ol></li>
           <li><a href="#rules-layout">Layout, color and the file</a>
             <ol>
-              <li><a href="#rules-file">The file itself</a></li>
+              <li><a href="#rules-look">Layout and color</a></li>
               <li><a href="#rules-layouts">The 14 layouts</a></li>
+              <li><a href="#rules-file">The file itself</a></li>
             </ol></li>
         </ol></div>
       <div class="grp" data-group="reference"><p class="grp-h">Reference</p>
@@ -509,8 +551,8 @@
         <ol>
           <li><a href="#faq">Help and common questions</a>
             <ol>
-              <li><a href="#questions">Common questions</a></li>
               <li><a href="#trouble">If something goes wrong at a step</a></li>
+              <li><a href="#questions">Common questions</a></li>
               <li><a href="#help">Updates and help</a></li>
             </ol></li>
         </ol></div>
@@ -525,7 +567,7 @@
 
 <main>
 <p class="allnote" id="all">You are looking at the whole guide on one page, so your browser's Find (Ctrl+F) searches all of it. <a id="back-one" href="#start">Back to one page at a time</a></p>
-<p class="print-note">One page of the Slide Lab guide. To print all of it, click Print the whole guide in the contents.</p>
+<p class="print-note">One page of the Slide Lab guide. To print all of it, use Print the whole guide.</p>
 
 <section class="page tab-start" id="start" data-tab="start" data-title="Start here">
   <p class="eyebrow">Start here</p>
@@ -540,15 +582,9 @@
     <dt>What you get</dt><dd>A normal, editable .pptx on the client's own template</dd>
   </dl>
 
-  <div class="example"><span class="lbl">The running example</span>Throughout this guide we follow one real Slide Lab build: a 10-slide deck called "Meridian: Southeast Asia entry". Meridian is a made-up company; its template and every number are invented. The timings in this guide were measured on that build. (For this example, Claude made the picks at the owner's request; in real use you pick.) Its files are built into this guide, so they open even if this page was emailed on its own:
-    <a href="Slide-Lab-Example-Storyline.html">the storyline</a>,
-    <a href="Slide-Lab-Example-Review.html">the review page</a> (the real first-round page, <span data-f="options_per_slide"></span> options per slide) and
-    <a href="Slide-Lab-Example-Deck.pptx">the finished deck</a>.</div>
-
   <div class="map" id="map">
     <div class="map-head">
       <h2>How a deck comes together</h2>
-      <p class="legend"><span class="you">Your turn</span><span>Claude works, you can do other work</span></p>
     </div>
     <ol class="route">
       <li class="you"><a href="#step-1"><span class="n">1</span><b>Start</b><span class="t">in the chat<br><span data-f="t.update"></span></span></a></li>
@@ -560,7 +596,7 @@
       <li><a href="#step-7"><span class="n">7</span><b>Quality check</b><span class="t">fixes included<br><span data-f="t.s_qc"></span></span></a></li>
       <li class="you"><a href="#step-8"><span class="n">8</span><b>"The deck is good"</b><span class="t">frees space<br><span data-f="t.s_cleanup"></span></span></a></li>
     </ol>
-    <p class="map-note">Claude stops and waits at every filled circle. A stop is not a bug: Claude is asking for something only you can decide, and nothing is built, saved or deleted until you answer.</p>
+    <p class="map-note">Claude stops and waits for your answer at steps 1, 2, 3, 5, 6 and 8, and at step 7 when the quality check finds something. A stop is not a bug: Claude is asking for something only you can decide, and nothing is built, saved or deleted until you answer.</p>
   </div>
 
   <h2 id="before">Before you start</h2>
@@ -595,6 +631,11 @@
     </tbody>
   </table></div>
   <p class="muted">To search all of it with your browser's Find (Ctrl+F), or to print all of it, use <a class="allink" href="#all">the whole guide on one page</a>.</p>
+
+  <div class="example"><span class="lbl">The running example</span>Throughout this guide we follow one real Slide Lab build: a 10-slide deck called "Meridian: Southeast Asia entry". Meridian is a made-up company; its template and every number are invented. The timings in this guide were measured on that build. (For this example, Claude made the picks at the owner's request; in real use you pick.) Its files are built into this guide, so they open even if this page was emailed on its own:
+    <a href="Slide-Lab-Example-Storyline.html">the storyline</a>,
+    <a href="Slide-Lab-Example-Review.html">the review page</a> (the real first-round page, <span data-f="options_per_slide"></span> options per slide) and
+    <a href="Slide-Lab-Example-Deck.pptx">the finished deck</a>.</div>
 </section>
 
     <!-- Step 1 -->
@@ -606,7 +647,7 @@
     <span class="pill"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M8 4.6V8l2.4 1.6"/></svg><span data-f="t.update"></span></span>
     <span class="pill">In the chat</span>
   </p>
-  <p class="muted">Filled circles are your turn; hollow circles are Claude working, so you can do other work. Phrases with a <b>Copy</b> button can be pasted straight into Claude.</p>
+  <p class="muted">Phrases with a <b>Copy</b> button can be pasted straight into Claude.</p>
   <ol class="do">
     <li>Open the Claude desktop app, go to the Code tab and type <span class="say"><code>/slide-lab</code><button type="button">Copy</button></span> or just ask for a deck. Once a day Claude first checks for an update; if there is one, it says in a sentence or two what changed and asks:
       <p class="asks"><span class="lbl">Claude asks</span>"A Slide Lab update is available. OK to install it now? It takes under a minute."</p>
@@ -679,7 +720,7 @@
     <span class="pill"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M8 4.6V8l2.4 1.6"/></svg><span data-f="t.s_storyline"></span></span>
     <span class="pill">A conversation in the chat</span>
   </p>
-  <p>Before any slide exists, Claude coaches the argument. The result is a <b>dot-dash storyline</b>: one bold claim per slide (the dot) with its supporting points (the dashes). Read the dots top to bottom and they should tell the whole story. How Claude coaches it, and what it checks: <a href="#storyline">How Slide Lab builds a storyline</a>.</p>
+  <p>Before any slide exists, Claude coaches the argument. The result is a <b>dot-dash storyline</b>: one bold claim per slide (the dot) with its supporting points (the dashes). Read the dots top to bottom and they should tell the whole story. How Claude coaches it, and what it checks: <a href="#storyline">How Claude coaches the storyline</a>.</p>
   <p>Claude writes each headline as a fact the audience can check, with a number where there is one ("Only Vietnam and Indonesia clear both the size and readiness bar"), not a slogan ("Vietnam is the clear winner"). Claude also saves a <b>brief</b>, the detailed plan the slide designs are built from.</p>
   <ol class="do">
     <li>Describe the deck: number of slides, main message, audience, and paste your notes or numbers. For example:
@@ -745,6 +786,14 @@
   </p>
   <p>The review page opens in your browser (Edge or Chrome). It is a file on your own computer; nothing is uploaded. The designs on it are quick drafts: the real title, takeaway and page number are added in step 6.</p>
 
+  <figure class="shot">
+    <div class="frame">
+      <div class="bar"><i></i><i></i><i></i><span class="fn">REVIEW.html</span><button type="button" class="enlarge">View full size</button></div>
+      <img src="data:image/jpeg;base64,{{IMG_REVIEW}}" alt="Screenshot of one slide on the review page: three design options side by side, the decision buttons PICK A, PICK B, PICK C, REPLACE THESE and LEAVE OUT, the quick-feedback buttons and the optional note boxes">
+    </div>
+    <figcaption>One slide on the review page (slide 4 of the Meridian example, first round, <span data-f="options_per_slide"></span> options). Captured 5 Oct 2026; the page may look slightly different in later versions. Click the picture to see it full size.</figcaption>
+  </figure>
+
   <ol class="do">
     <li>Look at the review page Claude opened. Closed it? Paste its path into your browser's address bar, or double-click REVIEW.html in the session folder.
       <div class="see"><span class="lbl">You'll see</span>One card per slide, with its <span data-f="options_per_slide"></span> options side by side.</div></li>
@@ -754,14 +803,6 @@
     <li>Click <span class="ui">Build my deck</span>, then paste the message it copies into Claude, unchanged. It reads like <code class="msg">Picks: 1B 2C 3A ... (check 1a2b3c4d)</code>.
       <div class="see"><span class="lbl">You'll see</span>"Build command copied" on the page. Claude records exactly what you picked and moves on to step 6.</div></li>
   </ol>
-
-  <figure class="shot">
-    <div class="frame">
-      <div class="bar"><i></i><i></i><i></i><span class="fn">REVIEW.html</span><button type="button" class="enlarge">View full size</button></div>
-      <img src="data:image/jpeg;base64,{{IMG_REVIEW}}" alt="Screenshot of one slide on the review page: three design options side by side, the decision buttons PICK A, PICK B, PICK C, REPLACE THESE and LEAVE OUT, the quick-feedback buttons and the optional note boxes">
-    </div>
-    <figcaption>One slide on the review page (slide 4 of the Meridian example, first round, <span data-f="options_per_slide"></span> options). Captured 5 Oct 2026; the page may look slightly different in later versions. Click the picture to see it full size.</figcaption>
-  </figure>
 
   <aside class="callout tip"><span class="lbl">Tip</span>Your choices save in this browser, so you can close the page and come back later in the same browser.</aside>
 
@@ -798,16 +839,8 @@
     <span class="pill"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M8 4.6V8l2.4 1.6"/></svg><span data-f="t.s_final"></span></span>
     <span class="pill">On the final check page</span>
   </p>
-  <p><b>While you wait</b>, Claude turns each picked design into real PowerPoint: text you can edit and shapes you can move, not pictures. Things that need drawing by hand (curved diagrams, rotated text, images) Claude draws itself. Then it puts every pick on your real template with its real title, takeaway and page number, makes the <b>final check page</b> (FINAL-CHECK.html) and opens it in your browser. Time: <span data-f="t.convert"></span>; <span data-f="t.hand_drawing"></span>. <a href="#times">Full timings</a></p>
-  <ol class="do">
-    <li>Look at every slide for anything overlapping, cut off or crowded.
-      <div class="see"><span class="lbl">You'll see</span>Every finished slide, exactly as it will be built.</div></li>
-    <li>Check the box at the top: it lists any number or label on a slide that is not in your brief (<a href="#r-no-invented">why</a>).</li>
-    <li>All good: click <span class="ui">Build it</span> and paste what it copies into Claude.
-      <div class="see"><span class="lbl">You'll see</span>"Build command copied" on the page. Claude builds the deck and runs the quality check (step 7).</div></li>
-    <li>Something wrong: type it in the box that reads <span class="ui wrap">Something needs fixing? Say which slide and what.</span> then click <span class="ui">Send fixes</span> and paste what it copies. Name the slide and say what is wrong ("slide 4: the right column is cut off"); the more specific, the better the fix.
-      <div class="see"><span class="lbl">You'll see</span>Claude redesigns the affected slides and opens a new final check page in your browser.</div></li>
-  </ol>
+  <p><b>While you wait</b>, Claude turns each picked design into real PowerPoint: text you can edit and shapes you can move, not pictures. Things that need drawing by hand (curved diagrams, rotated text, images) Claude draws itself. Then it puts every pick on your real template with its real title, takeaway and page number, makes the <b>final check page</b> (FINAL-CHECK.html) and opens it in your browser.</p>
+  <p>Time: <span data-f="t.convert"></span>; <span data-f="t.hand_drawing"></span>. <a href="#times">Full timings</a></p>
 
   <figure class="shot">
     <div class="frame">
@@ -817,7 +850,16 @@
     <figcaption>The final check page for the Meridian example (top of the page; it continues with the rest of the 10 slides). The boxes at the top caught one slide writing $1,200M where the rest write $1.2B, and confirm every slide keeps body text at 12 pt (<a href="#r-type-scale">the type-size rule</a>). Captured 5 Oct 2026; the page may look slightly different in later versions. Click the picture to see it full size.</figcaption>
   </figure>
 
-  <aside class="callout important"><span class="lbl">Important</span>A number in that list that you did not expect needs a fix: the quality check cannot tell an invented number from a real one.</aside>
+  <ol class="do">
+    <li>Look at every slide for anything overlapping, cut off or crowded.
+      <div class="see"><span class="lbl">You'll see</span>Every finished slide, exactly as it will be built.</div></li>
+    <li>Check the box at the top: it lists any number or label on a slide that is not in your brief (<a href="#r-no-invented">why</a>).
+      <aside class="callout important"><span class="lbl">Important</span>A number in that list that you did not expect needs a fix: the quality check cannot tell an invented number from a real one.</aside></li>
+    <li>All good: click <span class="ui">Build it</span> and paste what it copies into Claude.
+      <div class="see"><span class="lbl">You'll see</span>"Build command copied" on the page. Claude builds the deck and runs the quality check (step 7).</div></li>
+    <li>Something wrong: type it in the box that reads <span class="ui wrap">Something needs fixing? Say which slide and what.</span> then click <span class="ui">Send fixes</span> and paste what it copies. Name the slide and say what is wrong ("slide 4: the right column is cut off"); the more specific, the better the fix.
+      <div class="see"><span class="lbl">You'll see</span>Claude redesigns the affected slides and opens a new final check page in your browser.</div></li>
+  </ol>
 
   <details class="more trouble" id="step-6-trouble">
     <summary>If something goes wrong</summary>
@@ -884,13 +926,13 @@
     <li>Later, to free space: <span class="say"><code>Clean up my finished decks</code><button type="button">Copy</button></span>
       <div class="see"><span class="lbl">You'll see</span>A table in the chat of your older decks, with how much space each would free and when each last changed; then Claude asks which are final. It takes a minute or two, and it never cleans a deck you did not name.</div></li>
   </ol>
-  <div class="done-box"><b>You're done.</b> Next: <a href="#storyline">How Slide Lab builds a storyline</a>, <a href="#rules">Slide rules</a>, <a href="#later">Change a deck later</a>, <a href="#phrases">Phrases that work</a>, <a href="#faq">Common questions</a>, <a href="#help">Updates and help</a>.</div>
+  <div class="done-box"><b>You're done.</b> Next: <a href="#storyline">How Claude coaches the storyline</a>, <a href="#rules">Slide rules</a>, <a href="#later">Change a deck later</a>, <a href="#phrases">Phrases that work</a>, <a href="#faq">Common questions</a>, <a href="#help">Updates and help</a>.</div>
 </section>
 
-<!-- ===================== Storylines: How Slide Lab builds a storyline ===================== -->
-<section class="page tab-start" id="storyline" data-tab="storyline" data-title="How Slide Lab builds a storyline">
+<!-- ===================== Storylines: How Claude coaches the storyline ===================== -->
+<section class="page tab-start" id="storyline" data-tab="storyline" data-title="How Claude coaches the storyline">
   <p class="eyebrow">Storylines</p>
-  <h1>How Slide Lab builds a storyline</h1>
+  <h1>How Claude coaches the storyline</h1>
   <!-- src: storyline-helper/SKILL.md "Why this exists" (lines 10-14); Hard constraints 2 and 3 (lines 20-22) -->
   <p class="lead">Before any slide exists, Claude works through the argument with you in the chat (<a href="#step-3">step 3</a>). A deck with a strong argument and rough slides lands; a deck with polished slides and no argument fails. So Claude sharpens your thinking, but it does not write the argument for you: it reads what you give it, asks for what is missing and pushes back where a point is unclear. It never invents an argument or a number you did not give it.</p>
   <!-- src: tutorial facts t.storyline; SKILL.md "Conversation flow" total (line 84); step 3 "You'll see" (files saved) -->
@@ -903,13 +945,13 @@
   <h2 id="sl-stages">The five stages</h2>
   <!-- src: SKILL.md "Conversation flow" table (lines 76-84); Intake (88-170); Diagnosis (189-247); Slide probing (272-310); Deck tightening (394-452); Commit and emit, "One message, one reply" (456-497) -->
   <div class="table-wrap"><table class="ref">
-    <thead><tr><th>Stage</th><th>What you do</th><th>What Claude does</th><th>Your replies</th></tr></thead>
+    <thead><tr><th>Stage</th><th>What you do</th><th>What Claude does</th></tr></thead>
     <tbody>
-      <tr><td data-label="Stage">1. Hand over your material</td><td data-label="What you do">Paste whatever you have: notes, an outline, an old deck, a paragraph, a photo of a whiteboard, or just the idea</td><td data-label="What Claude does">Opens with one plain question about the deck and who it is for, never "what kind of deck is this?". Says back specifically what it read ("130 slides; roughly half is appendix material"), then asks at most 3 questions about the purpose, the audience or the decision</td><td data-label="Your replies">1 to 2</td></tr>
-      <tr><td data-label="Stage">2. Agree the structure</td><td data-label="What you do">Confirm it, or push back</td><td data-label="What Claude does">Picks one structure for the deck, says why and names the one it rejected. Points out specific problems ("slides 5 and 6 are the same point split in two"). Proposes a tightened slide list that shows which of your material feeds each slide</td><td data-label="Your replies">1 to 2</td></tr>
-      <tr><td data-label="Stage">3. Fill the gaps, slide by slide</td><td data-label="What you do">Give the facts and sources you have, or say you have none</td><td data-label="What Claude does">For each slide: what is settled, then the 1 to 3 gaps that matter, asked in one message. It asks for a missing fact at most twice; after that the point is kept as "qualitative" (no data behind it) and listed as an open gap</td><td data-label="Your replies">3 to 6</td></tr>
-      <tr><td data-label="Stage">4. Tighten the whole deck</td><td data-label="What you do">Accept the changes, or push back</td><td data-label="What Claude does">Reads the headlines in order, as your audience would. Flags a break in the logic, a missing turning point, a recommendation buried at the end, two slides making one point, three slides in a row where the same kind of thing dominates, and any slide the argument survives without</td><td data-label="Your replies">1 to 2</td></tr>
-      <tr><td data-label="Stage">5. Answer one summary message</td><td data-label="What you do">Reply once: <b>Build</b>, <b>save only</b>, or what to change</td><td data-label="What Claude does">Sends one message: the setup (session folder, client and topic, template, default content layout), a table of every problem it found with a proposed rewrite, and the question</td><td data-label="Your replies">1</td></tr>
+      <tr><td data-label="Stage">1. Hand over your material<span class="why">Your replies: 1 to 2</span></td><td data-label="What you do">Paste whatever you have: notes, an outline, an old deck, a paragraph, a photo of a whiteboard, or just the idea</td><td data-label="What Claude does">Opens with one plain question about the deck and who it is for, never "what kind of deck is this?". Says back specifically what it read ("130 slides; roughly half is appendix material"), then asks at most 3 questions about the purpose, the audience or the decision</td></tr>
+      <tr><td data-label="Stage">2. Agree the structure<span class="why">Your replies: 1 to 2</span></td><td data-label="What you do">Confirm it, or push back</td><td data-label="What Claude does">Picks one structure for the deck, says why and names the one it rejected. Points out specific problems ("slides 5 and 6 are the same point split in two"). Proposes a tightened slide list that shows which of your material feeds each slide</td></tr>
+      <tr><td data-label="Stage">3. Fill the gaps, slide by slide<span class="why">Your replies: 3 to 6</span></td><td data-label="What you do">Give the facts and sources you have, or say you have none</td><td data-label="What Claude does">For each slide: what is settled, then the 1 to 3 gaps that matter, asked in one message. It asks for a missing fact at most twice; after that the point is kept as "qualitative" (no data behind it) and listed as an open gap</td></tr>
+      <tr><td data-label="Stage">4. Tighten the whole deck<span class="why">Your replies: 1 to 2</span></td><td data-label="What you do">Accept the changes, or push back</td><td data-label="What Claude does">Reads the headlines in order, as your audience would. Flags a break in the logic, a missing turning point, a recommendation buried at the end, two slides making one point, three slides in a row where the same kind of thing dominates, and any slide the argument survives without</td></tr>
+      <tr><td data-label="Stage">5. Answer one summary message<span class="why">Your replies: 1</span></td><td data-label="What you do">Reply once: <b>Build</b>, <b>save only</b>, or what to change</td><td data-label="What Claude does">Sends one message: the setup (session folder, client and topic, template, default content layout), a table of every problem it found with a proposed rewrite, and the question</td></tr>
     </tbody>
   </table></div>
   <!-- src: SKILL.md "Build or stop: already answered" (lines 853-860) -->
@@ -961,17 +1003,17 @@
   <h2 id="sl-types">The deck types</h2>
   <!-- src: SKILL.md "Deck-type taxonomy" (172-185); quality gate Part 5 table and Training edge (589-605). The source labels Training with a numeric prefix; the guide writes "an edge case" (checker rule). -->
   <p>Claude matches your material to one of these. If nothing fits cleanly it picks the closest; it does not invent new types.</p>
-  <div class="table-wrap"><table class="ref">
-    <thead><tr><th>Deck type</th><th>What it is for</th><th>What its headlines must do</th><th>Fails</th><th>Passes</th></tr></thead>
+  <div class="table-wrap"><table class="ref types">
+    <thead><tr><th>Deck type, and what it is for</th><th>What its headlines must do</th><th>Example headlines</th></tr></thead>
     <tbody>
-      <tr><td data-label="Deck type">Recommendation or point of view</td><td data-label="What it is for">Argue for an action</td><td data-label="What its headlines must do">Say what to do and why now. A strategic plan also says what you are choosing not to do; an investor pitch names the use of the money; a partnership proposal commits to terms</td><td data-label="Fails">"We need to address the vendor gap"</td><td data-label="Passes">"Closing the vendor gap before Q3 protects $12M in at-risk revenue and prevents the client from sourcing direct"</td></tr>
-      <tr><td data-label="Deck type">Business case</td><td data-label="What it is for">Justify a specific investment</td><td data-label="What its headlines must do">Name the decision, the dollars and the timeline</td><td data-label="Fails">"The investment has a strong return"</td><td data-label="Passes">"The $4M platform investment pays back in 14 months and eliminates the manual reconciliation risk that is the firm's single largest audit exposure"</td></tr>
-      <tr><td data-label="Deck type">Diagnosis</td><td data-label="What it is for">Explain why something is happening</td><td data-label="What its headlines must do">State a cause or a verdict, not a symptom. A feasibility study answers yes, no or yes-if, not a balanced summary</td><td data-label="Fails">"Costs are rising"</td><td data-label="Passes">"Labor cost growth is driven by unplanned overtime, not headcount; the fix is scheduling, not a hiring freeze"</td></tr>
-      <tr><td data-label="Deck type">Operating review</td><td data-label="What it is for">Report against plan</td><td data-label="What its headlines must do">Explain the gap and what it means, and say whether it needs a decision or is for information. "For information" is fine; "align on next steps" is not</td><td data-label="Fails">"Q3 revenue was $42M, 3% below plan"</td><td data-label="Passes">"Q3 revenue missed by 3% because APAC deal slippage offset EMEA outperformance; the risk is concentrated, not systemic"</td></tr>
-      <tr><td data-label="Deck type">Capability pitch</td><td data-label="What it is for">Sell an offer the buyer cannot get elsewhere</td><td data-label="What its headlines must do">Say what we can do that others cannot, plus a concrete ask</td><td data-label="Fails">"We have deep experience in supply chain"</td><td data-label="Passes">"Our cost-benchmarking tool cuts diagnostic time from 12 weeks to 3. Proposed next step: a 90-minute working session"</td></tr>
-      <tr><td data-label="Deck type">Workshop readout</td><td data-label="What it is for">Record the decisions of a session that already happened</td><td data-label="What its headlines must do">Name the decisions reached, the open items and their owners</td><td data-label="Fails">"We had a great session"</td><td data-label="Passes">"The team converged on Option B for the platform decision, leaving data-migration sequencing as an open item owned by [name] by [date]"</td></tr>
-      <tr><td data-label="Deck type">Workshop design</td><td data-label="What it is for">Plan a session that has not happened yet</td><td data-label="What its headlines must do">Nothing is argued: each session block has a title, length, owner, objective and expected output. Its own four-part check replaces the storyline check</td><td data-label="Fails">"Align on the program roadmap"</td><td data-label="Passes">"Decide which 3 of 8 workstreams proceed to Phase 2 and who owns each"</td></tr>
-      <tr><td data-label="Deck type">Training (an edge case)</td><td data-label="What it is for">Teach</td><td data-label="What its headlines must do">Say what the learner can do afterward, not what they "know about"</td><td data-label="Fails">"Learners will understand the framework"</td><td data-label="Passes">"Learners will apply Rumelt's diagnosis, policy and action structure to one of their own client problems before the session ends"</td></tr>
+      <tr><td data-label="Deck type">Recommendation or point of view<span class="why">Argue for an action</span></td><td data-label="What its headlines must do">Say what to do and why now. A strategic plan also says what you are choosing not to do; an investor pitch names the use of the money; a partnership proposal commits to terms</td><td data-label="Example headlines"><span class="dont"><b>Fails:</b> "We need to address the vendor gap"</span><span class="do"><b>Passes:</b> "Closing the vendor gap before Q3 protects $12M in at-risk revenue and prevents the client from sourcing direct"</span></td></tr>
+      <tr><td data-label="Deck type">Business case<span class="why">Justify a specific investment</span></td><td data-label="What its headlines must do">Name the decision, the dollars and the timeline</td><td data-label="Example headlines"><span class="dont"><b>Fails:</b> "The investment has a strong return"</span><span class="do"><b>Passes:</b> "The $4M platform investment pays back in 14 months and eliminates the manual reconciliation risk that is the firm's single largest audit exposure"</span></td></tr>
+      <tr><td data-label="Deck type">Diagnosis<span class="why">Explain why something is happening</span></td><td data-label="What its headlines must do">State a cause or a verdict, not a symptom. A feasibility study answers yes, no or yes-if, not a balanced summary</td><td data-label="Example headlines"><span class="dont"><b>Fails:</b> "Costs are rising"</span><span class="do"><b>Passes:</b> "Labor cost growth is driven by unplanned overtime, not headcount; the fix is scheduling, not a hiring freeze"</span></td></tr>
+      <tr><td data-label="Deck type">Operating review<span class="why">Report against plan</span></td><td data-label="What its headlines must do">Explain the gap and what it means, and say whether it needs a decision or is for information. "For information" is fine; "align on next steps" is not</td><td data-label="Example headlines"><span class="dont"><b>Fails:</b> "Q3 revenue was $42M, 3% below plan"</span><span class="do"><b>Passes:</b> "Q3 revenue missed by 3% because APAC deal slippage offset EMEA outperformance; the risk is concentrated, not systemic"</span></td></tr>
+      <tr><td data-label="Deck type">Capability pitch<span class="why">Sell an offer the buyer cannot get elsewhere</span></td><td data-label="What its headlines must do">Say what we can do that others cannot, plus a concrete ask</td><td data-label="Example headlines"><span class="dont"><b>Fails:</b> "We have deep experience in supply chain"</span><span class="do"><b>Passes:</b> "Our cost-benchmarking tool cuts diagnostic time from 12 weeks to 3. Proposed next step: a 90-minute working session"</span></td></tr>
+      <tr><td data-label="Deck type">Workshop readout<span class="why">Record the decisions of a session that already happened</span></td><td data-label="What its headlines must do">Name the decisions reached, the open items and their owners</td><td data-label="Example headlines"><span class="dont"><b>Fails:</b> "We had a great session"</span><span class="do"><b>Passes:</b> "The team converged on Option B for the platform decision, leaving data-migration sequencing as an open item owned by [name] by [date]"</span></td></tr>
+      <tr><td data-label="Deck type">Workshop design<span class="why">Plan a session that has not happened yet</span></td><td data-label="What its headlines must do">Nothing is argued: each session block has a title, length, owner, objective and expected output. Its own four-part check replaces the storyline check</td><td data-label="Example headlines"><span class="dont"><b>Fails:</b> "Align on the program roadmap"</span><span class="do"><b>Passes:</b> "Decide which 3 of 8 workstreams proceed to Phase 2 and who owns each"</span></td></tr>
+      <tr><td data-label="Deck type">Training (an edge case)<span class="why">Teach</span></td><td data-label="What its headlines must do">Say what the learner can do afterward, not what they "know about"</td><td data-label="Example headlines"><span class="dont"><b>Fails:</b> "Learners will understand the framework"</span><span class="do"><b>Passes:</b> "Learners will apply Rumelt's diagnosis, policy and action structure to one of their own client problems before the session ends"</span></td></tr>
     </tbody>
   </table></div>
 
@@ -998,9 +1040,10 @@
 <section class="page" id="storyline-order" data-tab="storyline" data-title="Page order and page types">
   <p class="eyebrow">Storylines</p>
   <h1>Page order and page types</h1>
+  <p class="lead">Slide Lab has no fixed page order for each deck type. Claude builds the order from your material, using the <a href="#sl-structures">structure it picked</a>, and then checks it.</p>
   <h2 id="sl-order">Page order</h2>
   <!-- src: absence: storyline-helper has no page sequence per deck type; Diagnosis "Propose the tightened structure" (226-239). Fixed items: Part 8 (628-636), Part 9 (638-645), Part 5 Operating Review (598), Parts 4 and 7 and cross-cutting rule 1 (571-587, 619-626, 651), Workshop Design spine (1093-1101), brief format cover and closing fields (975-988) -->
-  <aside class="callout"><span class="lbl">Note</span>Slide Lab has no fixed page order for each deck type. Claude builds the order from your material, using the <a href="#sl-structures">structure it picked</a>, and then checks it. These are the only parts of the order Slide Lab fixes.</aside>
+  <p>These are the only parts of the order Slide Lab fixes:</p>
   <ul>
     <li><b>Recommendation and business case decks</b> need a page that names the decision and a date, and a place for the obvious objections: a risk page, or the alternatives considered and rejected.</li>
     <li><b>Operating reviews</b> may end "for information"; they do not need a decision page.</li>
@@ -1037,6 +1080,7 @@
 <section class="page" id="storyline-headlines" data-tab="storyline" data-title="Headlines, supporting points and takeaways">
   <p class="eyebrow">Storylines</p>
   <h1>Headlines, supporting points and takeaways</h1>
+  <p class="lead">Every slide in the storyline has a headline, supporting points and a takeaway. This page shows what Claude records for each slide and the tests each part must pass, with examples that fail and pass.</p>
 
   <h2 id="sl-anatomy">One slide in the storyline</h2>
   <!-- src: SKILL.md "The slide schema" (336-348); emit_dot_dash (826-836); meridian-brief.md slide 4 (header title, takeaway, evidence bullets) -->
@@ -1071,7 +1115,7 @@
 
   <h2 id="sl-headline">What makes a good headline</h2>
   <!-- src: SKILL.md quality gate Part 1 (544-551); language pass headline tests 1, 2, 3, 5, 6 (673-685); "Dot length" (320-326); Part 7 (619-626) -->
-  <div class="table-wrap"><table class="ref">
+  <div class="table-wrap"><table class="ref tests">
     <thead><tr><th>Test</th><th>Fails</th><th>Passes</th></tr></thead>
     <tbody>
       <tr><td data-label="Test">A claim, not a topic: a subject, a verb and a point</td><td data-label="Fails">"Q3 revenue overview"</td><td data-label="Passes">"Q3 revenue grew 23% but margin contracted due to mix shift"</td></tr>
@@ -1086,7 +1130,7 @@
 
   <h2 id="sl-takeaway">What makes a good takeaway</h2>
   <!-- src: SKILL.md quality gate Part 2 (553-563); language pass takeaway fit test 4 (681); brief_check.py cover exemption (lines 112, 116, 137) -->
-  <div class="table-wrap"><table class="ref">
+  <div class="table-wrap"><table class="ref tests">
     <thead><tr><th>Test</th><th>Fails</th><th>Passes</th></tr></thead>
     <tbody>
       <tr><td data-label="Test">Says something the headline does not</td><td data-label="Fails">"There are three patterns that explain the drift", under the headline "Three patterns explain the drift"</td><td data-label="Passes">What those patterns mean for the decision, with one of the page's numbers</td></tr>
@@ -1100,7 +1144,7 @@
 
   <h2 id="sl-points">What makes good supporting points</h2>
   <!-- src: SKILL.md language pass, body content checks 1-5 (689-707); build_deck.py density_directive (1209-1232) -->
-  <div class="table-wrap"><table class="ref">
+  <div class="table-wrap"><table class="ref tests">
     <thead><tr><th>Test</th><th>Fails</th><th>Passes</th></tr></thead>
     <tbody>
       <tr><td data-label="Test">Each point proves or illustrates the headline</td><td data-label="Fails">Under "Margin eroded due to product mix shift": "The team delivered 12 projects this quarter"</td><td data-label="Passes">"Small-business deals grew 40% but carry 18 points less margin than enterprise deals"</td></tr>
@@ -1130,6 +1174,11 @@
   </ul>
   <p>Nothing is saved until you answer, even when the table holds only Advisory rows. Once you answer, the storyline is sealed; if the brief is edited later, the check runs again before anything is built.</p>
 
+  <h2 id="sl-answer">How to answer</h2>
+  <!-- src: SKILL.md "Show every failing headline and takeaway at once" (687); "One message, one reply" (497); "What lands in the open-gaps punch list" (525-534) -->
+  <p>Reply once for the whole table. <span class="say"><code>Build</code><button type="button">Copy</button></span> accepts every rewrite and builds the slides. To keep a line as it is, say why in your own words; "skip" alone is not accepted. See <a href="#step-3">step 3</a>.</p>
+  <p>Saved with the storyline is a list of open gaps: qualitative points, chart data still to come, issues you kept with a reason, and decisions you marked to revisit. It is what a senior reviewer should read before sitting through the deck with you.</p>
+
   <h2 id="sl-review">Claude's review of the argument</h2>
   <!-- src: SKILL.md quality gate Parts 1-9 (544-645); cross-cutting rules (647-653); brief completeness check (657); language pass body checks and test 6 (685-707); Part 3 rhythm note (567) -->
   <div class="table-wrap"><table class="ref">
@@ -1141,11 +1190,11 @@
       <tr><td data-label="Check">Headlines alone</td><td data-label="What it asks">Read in order, do the headlines tell the story: no gap in the logic, a turning point, the recommendation not buried at the end?</td><td data-label="If it fails">Back to the slides involved</td></tr>
       <tr><td data-label="Check">Deck type</td><td data-label="What it asks">Does each headline do what its <a href="#sl-types">deck type</a> needs?</td><td data-label="If it fails">Back to the slides involved</td></tr>
       <tr><td data-label="Check">No contradictions</td><td data-label="What it asks">Can every pair of claims be true at once? Does each measure have only one number?</td><td data-label="If it fails">Must be fixed; no reason is accepted</td></tr>
-      <tr><td data-label="Check">30-second answer</td><td data-label="What it asks">Can the deck's answer be said in 30 seconds?</td><td data-label="If it fails"><span class="sev major">Major</span></td></tr>
-      <tr><td data-label="Check">A decision with a date</td><td data-label="What it asks">Does the deck name the decision and a deadline? (An operating review may be for information.)</td><td data-label="If it fails"><span class="sev major">Major</span></td></tr>
-      <tr><td data-label="Check">Objections</td><td data-label="What it asks">Recommendation and business case decks only: is there a risk page, or a list of alternatives considered and rejected?</td><td data-label="If it fails"><span class="sev major">Major</span></td></tr>
-      <tr><td data-label="Check">Every page has a point</td><td data-label="What it asks">Would the argument survive without this slide?</td><td data-label="If it fails"><span class="sev major">Major</span></td></tr>
-      <tr><td data-label="Check">Every claim has a source</td><td data-label="What it asks">Does every outside number, quote, market figure or benchmark name its source?</td><td data-label="If it fails"><span class="sev major">Major</span></td></tr>
+      <tr><td data-label="Check">30-second answer</td><td data-label="What it asks">Can the deck's answer be said in 30 seconds?</td><td data-label="If it fails"><span class="sev major">Major</span> Fix it, or keep it with your reason</td></tr>
+      <tr><td data-label="Check">A decision with a date</td><td data-label="What it asks">Does the deck name the decision and a deadline? (An operating review may be for information.)</td><td data-label="If it fails"><span class="sev major">Major</span> Fix it, or keep it with your reason</td></tr>
+      <tr><td data-label="Check">Objections</td><td data-label="What it asks">Recommendation and business case decks only: is there a risk page, or a list of alternatives considered and rejected?</td><td data-label="If it fails"><span class="sev major">Major</span> Fix it, or keep it with your reason</td></tr>
+      <tr><td data-label="Check">Every page has a point</td><td data-label="What it asks">Would the argument survive without this slide?</td><td data-label="If it fails"><span class="sev major">Major</span> Fix it, or keep it with your reason</td></tr>
+      <tr><td data-label="Check">Every claim has a source</td><td data-label="What it asks">Does every outside number, quote, market figure or benchmark name its source?</td><td data-label="If it fails"><span class="sev major">Major</span> Fix it, or keep it with your reason</td></tr>
       <tr><td data-label="Check">What this slide is not</td><td data-label="What it asks">Is it filled in for every slide?</td><td data-label="If it fails">Must be filled before saving</td></tr>
       <tr><td data-label="Check">A full page</td><td data-label="What it asks">Can each content slide stand on its own?</td><td data-label="If it fails">Must be filled out before saving, unless it is an executive deck</td></tr>
       <tr><td data-label="Check">Wording</td><td data-label="What it asks">Supporting points that do not support the headline, hold two ideas, are filler or carry no fact; a result stated as fact with no measurement</td><td data-label="If it fails">Shown with a rewrite</td></tr>
@@ -1170,11 +1219,6 @@
     </tbody>
   </table></div>
   <p>The storyline cannot be sealed for building while a row is open: fix it, or give your reason, which is recorded in the brief. The check exists because on a test build on 2 October 2026, 5 of 10 titles wrapped with one word on line 2, and only 2 of 10 takeaways carried a number.</p>
-
-  <h2 id="sl-answer">How to answer</h2>
-  <!-- src: SKILL.md "Show every failing headline and takeaway at once" (687); "One message, one reply" (497); "What lands in the open-gaps punch list" (525-534) -->
-  <p>Reply once for the whole table. <span class="say"><code>Build</code><button type="button">Copy</button></span> accepts every rewrite and builds the slides. To keep a line as it is, say why in your own words; "skip" alone is not accepted. See <a href="#step-3">step 3</a>.</p>
-  <p>Saved with the storyline is a list of open gaps: qualitative points, chart data still to come, issues you kept with a reason, and decisions you marked to revisit. It is what a senior reviewer should read before sitting through the deck with you.</p>
 </section>
 
 <!-- ===================== Storylines: Worked example, Meridian ===================== -->
@@ -1196,19 +1240,19 @@
 
   <h2 id="sl-ex-slides">The ten slides</h2>
   <!-- src: meridian-brief.md slides 1-10: header titles, "The takeaway", "Slide type", "Editorial emphasis" (first words) -->
-  <div class="table-wrap"><table class="ref">
-    <thead><tr><th>#</th><th>Page type</th><th>Headline (the dot)</th><th>Takeaway</th><th>What dominates</th></tr></thead>
+  <div class="table-wrap"><table class="ref slides">
+    <thead><tr><th>Slide, and what dominates it</th><th>Headline (the dot)</th><th>Takeaway</th></tr></thead>
     <tbody>
-      <tr><td data-label="#">1</td><td data-label="Page type">Cover</td><td data-label="Headline">Southeast Asia entry: Vietnam first</td><td data-label="Takeaway">The committee knows from the cover that this is a specific, staged recommendation, not a market survey</td><td data-label="What dominates">The conclusion</td></tr>
-      <tr><td data-label="#">2</td><td data-label="Page type">Executive summary</td><td data-label="Headline">Vietnam first: a $40M run-rate in 18 months for $12M</td><td data-label="Takeaway">$12M funds one capped test with two stop points, at months 6 and 12</td><td data-label="What dominates">The conclusion</td></tr>
-      <tr><td data-label="#">3</td><td data-label="Page type">Analysis</td><td data-label="Headline">The Southeast Asia market doubles to $4.2B by 2030</td><td data-label="Takeaway">The category grows 12% a year; Vietnam and Indonesia hold $2.5B of 2030</td><td data-label="What dominates">The data</td></tr>
-      <tr><td data-label="#">4</td><td data-label="Page type">Analysis</td><td data-label="Headline">Only Vietnam and Indonesia clear both the size and readiness bar</td><td data-label="Takeaway">Of five markets, only two reach $1.0B by 2030 and score 3.5 on readiness</td><td data-label="What dominates">The contrast</td></tr>
-      <tr><td data-label="#">5</td><td data-label="Page type">Analysis</td><td data-label="Headline">Vietnam passes Thailand in 2027 and the gap keeps widening</td><td data-label="Takeaway">Choosing by today's market size picks the wrong country; by 2030 Vietnam is 1.5 times Thailand</td><td data-label="What dominates">The data</td></tr>
-      <tr><td data-label="#">6</td><td data-label="Page type">Framework</td><td data-label="Headline">Five steps take each market from partner to scale</td><td data-label="Takeaway">Step 3 is a gate before national spend; Indonesia reuses all five steps</td><td data-label="What dominates">The evidence</td></tr>
-      <tr><td data-label="#">7</td><td data-label="Page type">Roadmap</td><td data-label="Headline">Two go/no-go gates come before spending scales</td><td data-label="Takeaway">The committee can stop at month 6 (pilot sell-through) or month 12 (15% margin)</td><td data-label="What dominates">The evidence</td></tr>
-      <tr><td data-label="#">8</td><td data-label="Page type">Framework</td><td data-label="Headline">We expect partners to lower Indonesia's entry cost; no data yet</td><td data-label="Takeaway">Vietnam carries the $12M entry cost; Indonesia starts from its proven choices</td><td data-label="What dominates">The conclusion</td></tr>
-      <tr><td data-label="#">9</td><td data-label="Page type">Financials</td><td data-label="Headline">Spending stays capped at $12M until Gate 2</td><td data-label="Takeaway">At most $12M is at risk before Gate 2; launch marketing is the largest part at $4.0M</td><td data-label="What dominates">The numbers</td></tr>
-      <tr><td data-label="#">10</td><td data-label="Page type">Decision or ask</td><td data-label="Headline">Approve $12M of Phase 1 funding by 15 November 2026</td><td data-label="Takeaway">Approval by 15 Nov 2026 starts the clock; the committee decides again at months 6, 12 and 18</td><td data-label="What dominates">The ask</td></tr>
+      <tr><td data-label="Slide">1. Cover<span class="why">Dominates: the conclusion</span></td><td data-label="Headline">Southeast Asia entry: Vietnam first</td><td data-label="Takeaway">The committee knows from the cover that this is a specific, staged recommendation, not a market survey</td></tr>
+      <tr><td data-label="Slide">2. Executive summary<span class="why">Dominates: the conclusion</span></td><td data-label="Headline">Vietnam first: a $40M run-rate in 18 months for $12M</td><td data-label="Takeaway">$12M funds one capped test with two stop points, at months 6 and 12</td></tr>
+      <tr><td data-label="Slide">3. Analysis<span class="why">Dominates: the data</span></td><td data-label="Headline">The Southeast Asia market doubles to $4.2B by 2030</td><td data-label="Takeaway">The category grows 12% a year; Vietnam and Indonesia hold $2.5B of 2030</td></tr>
+      <tr><td data-label="Slide">4. Analysis<span class="why">Dominates: the contrast</span></td><td data-label="Headline">Only Vietnam and Indonesia clear both the size and readiness bar</td><td data-label="Takeaway">Of five markets, only two reach $1.0B by 2030 and score 3.5 on readiness</td></tr>
+      <tr><td data-label="Slide">5. Analysis<span class="why">Dominates: the data</span></td><td data-label="Headline">Vietnam passes Thailand in 2027 and the gap keeps widening</td><td data-label="Takeaway">Choosing by today's market size picks the wrong country; by 2030 Vietnam is 1.5 times Thailand</td></tr>
+      <tr><td data-label="Slide">6. Framework<span class="why">Dominates: the evidence</span></td><td data-label="Headline">Five steps take each market from partner to scale</td><td data-label="Takeaway">Step 3 is a gate before national spend; Indonesia reuses all five steps</td></tr>
+      <tr><td data-label="Slide">7. Roadmap<span class="why">Dominates: the evidence</span></td><td data-label="Headline">Two go/no-go gates come before spending scales</td><td data-label="Takeaway">The committee can stop at month 6 (pilot sell-through) or month 12 (15% margin)</td></tr>
+      <tr><td data-label="Slide">8. Framework<span class="why">Dominates: the conclusion</span></td><td data-label="Headline">We expect partners to lower Indonesia's entry cost; no data yet</td><td data-label="Takeaway">Vietnam carries the $12M entry cost; Indonesia starts from its proven choices</td></tr>
+      <tr><td data-label="Slide">9. Financials<span class="why">Dominates: the numbers</span></td><td data-label="Headline">Spending stays capped at $12M until Gate 2</td><td data-label="Takeaway">At most $12M is at risk before Gate 2; launch marketing is the largest part at $4.0M</td></tr>
+      <tr><td data-label="Slide">10. Decision or ask<span class="why">Dominates: the ask</span></td><td data-label="Headline">Approve $12M of Phase 1 funding by 15 November 2026</td><td data-label="Takeaway">Approval by 15 Nov 2026 starts the clock; the committee decides again at months 6, 12 and 18</td></tr>
     </tbody>
   </table></div>
 
@@ -1244,23 +1288,6 @@
     <li>Every outside number names its source, and no source line is made up (<a href="#rules-sources">more</a>)</li>
   </ol>
 
-  <h2 id="rules-where">Where each rule is checked</h2>
-  <!-- src: storyline-helper/SKILL.md quality gate and brief_check.py; prompt.md; build_review.py adjacency warning (lines 128-172), "Not built" badge (767), quick-feedback list (703-713); source_check.py docstring; type_scale.py html_block; slide-builder/SKILL.md line 362 (title stop), 345-352 (source ledger); slide-qc/SKILL.md Steps 2 and 5 -->
-  <p>The last column of every rules table uses these names.</p>
-  <div class="table-wrap"><table class="ref">
-    <thead><tr><th>Name</th><th>What it is</th><th>When</th><th>What it can do</th></tr></thead>
-    <tbody>
-      <tr><td data-label="Name">Storyline check</td><td data-label="What it is">Claude's review of the argument plus the measured check</td><td data-label="When"><a href="#step-3">Step 3</a>, before any design</td><td data-label="What it can do">Lists problems with rewrites; nothing is saved until you answer (<a href="#storyline-check">details</a>)</td></tr>
-      <tr><td data-label="Name">Designers</td><td data-label="What it is">The instructions every slide's designer works from</td><td data-label="When"><a href="#step-4">Step 4</a></td><td data-label="What it can do">Prevents problems. A rule marked "Designers only" is not checked again afterward: your look at the review pages is the check</td></tr>
-      <tr><td data-label="Name">Review page</td><td data-label="What it is">REVIEW.html</td><td data-label="When"><a href="#step-5">Step 5</a></td><td data-label="What it can do">Warns when 3 slides in a row share a layout; marks a design the designer refused as "Not built"; offers quick-feedback buttons</td></tr>
-      <tr><td data-label="Name">Final check page</td><td data-label="What it is">The boxes at the top of FINAL-CHECK.html</td><td data-label="When"><a href="#step-6">Step 6</a></td><td data-label="What it can do">Lists numbers and capital-letter labels that are not in your brief, figures written two ways, and text-size problems. It never blocks: you decide</td></tr>
-      <tr><td data-label="Name">Build stops</td><td data-label="What it is">The build itself</td><td data-label="When">Step 6, while the final check page is made</td><td data-label="What it can do">Refuses to go on, for example when a title will not fit its box</td></tr>
-      <tr><td data-label="Name">Quality check</td><td data-label="What it is">Reads a picture of every slide, area by area</td><td data-label="When"><a href="#step-7">Step 7</a></td><td data-label="What it can do">Reports each finding as Critical, Major or Advisory</td></tr>
-    </tbody>
-  </table></div>
-  <!-- src: slide-qc/SKILL.md "Severity discipline" (289), record_vision_qc note (31); tutorial step 7 -->
-  <p><span class="sev crit">Critical</span> must be fixed. <span class="sev major">Major</span>: fix it, or keep it with your reason in your own words. <span class="sev">Advisory</span> is a suggestion and never blocks. Claude does not call a deck done while a Critical or Major finding is open (<a href="#step-7">step 7</a>).</p>
-
   <h2 id="rules-hardline">The five rules every design follows</h2>
   <!-- src: slide-builder/SKILL.md "Hardline rules (5)" (430-444); prompt.md section 6 -->
   <ol class="short">
@@ -1270,40 +1297,61 @@
     <li><b>Every visible word comes from the brief</b> or the template's own furniture (footer, page number, section label).</li>
     <li><b>If the brief and the layout disagree, the designer refuses that layout</b> and the review page says so, instead of forcing the content to fit.</li>
   </ol>
+
+  <h2 id="rules-where">Where each rule is checked</h2>
+  <!-- src: storyline-helper/SKILL.md quality gate and brief_check.py; prompt.md; build_review.py adjacency warning (lines 128-172), "Not built" badge (767), quick-feedback list (703-713); source_check.py docstring; type_scale.py html_block; slide-builder/SKILL.md line 362 (title stop), 345-352 (source ledger); slide-qc/SKILL.md Steps 2 and 5 -->
+  <p>The last column of every rules table uses these names.</p>
+  <div class="table-wrap"><table class="ref">
+    <thead><tr><th>Name, and when it runs</th><th>What it is</th><th>What it can do</th></tr></thead>
+    <tbody>
+      <tr><td data-label="Name">Storyline check<span class="why"><a href="#step-3">Step 3</a>, before any design</span></td><td data-label="What it is">Claude's review of the argument plus the measured check</td><td data-label="What it can do">Lists problems with rewrites; nothing is saved until you answer (<a href="#storyline-check">details</a>)</td></tr>
+      <tr><td data-label="Name">Designers<span class="why"><a href="#step-4">Step 4</a></span></td><td data-label="What it is">The instructions every slide's designer works from</td><td data-label="What it can do">Prevents problems. A rule marked "Designers only" is not checked again afterward: your look at the review pages is the check</td></tr>
+      <tr><td data-label="Name">Review page<span class="why"><a href="#step-5">Step 5</a></span></td><td data-label="What it is">REVIEW.html</td><td data-label="What it can do">Warns when 3 slides in a row share a layout; marks a design the designer refused as "Not built"; offers quick-feedback buttons</td></tr>
+      <tr><td data-label="Name">Final check page<span class="why"><a href="#step-6">Step 6</a></span></td><td data-label="What it is">The boxes at the top of FINAL-CHECK.html</td><td data-label="What it can do">Lists numbers and capital-letter labels that are not in your brief, figures written two ways, and text-size problems. It never blocks: you decide</td></tr>
+      <tr><td data-label="Name">Build stops<span class="why">Step 6, while the final check page is made</span></td><td data-label="What it is">The build itself</td><td data-label="What it can do">Refuses to go on, for example when a title will not fit its box</td></tr>
+      <tr><td data-label="Name">Quality check<span class="why"><a href="#step-7">Step 7</a></span></td><td data-label="What it is">Reads a picture of every slide, area by area</td><td data-label="What it can do">Reports each finding as Critical, Major or Advisory</td></tr>
+    </tbody>
+  </table></div>
+  <!-- src: slide-qc/SKILL.md "Severity discipline" (289), record_vision_qc note (31); tutorial step 7 -->
+  <p><span class="sev crit">Critical</span> must be fixed. <span class="sev major">Major</span>: fix it, or keep it with your reason in your own words. <span class="sev">Advisory</span> is a suggestion and never blocks. Claude does not call a deck done while a Critical or Major finding is open (<a href="#step-7">step 7</a>).</p>
 </section>
 
 <!-- ===================== Slide rules: the message ===================== -->
 <section class="page" id="rules-message" data-tab="rules" data-title="Rules for the message">
   <p class="eyebrow">Slide rules</p>
   <h1>Rules for the message</h1>
-  <p>More examples: <a href="#storyline-headlines">Headlines, supporting points and takeaways</a>.</p>
+  <p class="lead">These rules cover what a slide says: its headline, its takeaway and the argument across the deck. More examples: <a href="#storyline-headlines">Headlines, supporting points and takeaways</a>.</p>
   <div class="table-wrap"><table class="ref rules">
     <thead><tr><th>Rule, and why</th><th>Do and don't</th><th>Where Slide Lab checks it</th></tr></thead>
     <tbody>
+      <tr class="group"><th colspan="3">The headline</th></tr>
       <!-- src: storyline-helper/SKILL.md Part 1 (544-551); slide-qc/SKILL.md 5b "Action title content" (168) -->
       <tr id="r-headline"><td data-label="Rule, and why">The headline is a claim, written as a full sentence<span class="why">Someone who reads only the titles should still get the story</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> "Only Vietnam and Indonesia clear both the size and readiness bar"</span><span class="dont"><b>Don't:</b> "Market screening results"</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Storyline check</span><span class="chk">Quality check <span class="sev major">Major</span> (title missing, or a topic label)</span></td></tr>
       <!-- src: SKILL.md language pass, specificity test (677) -->
       <tr id="r-anchor"><td data-label="Rule, and why">The headline carries a specific anchor: a number, or a named driver, action or entity<span class="why">A specific claim can be checked; a vague one cannot</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> "EMEA grew 15%; APAC declined 8% due to regulatory delays in Singapore"</span><span class="dont"><b>Don't:</b> "Performance was mixed across regions"</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Storyline check</span></td></tr>
       <!-- src: SKILL.md "Dot length" (320-326); brief_check.py title wrap (118-123); slide-builder/SKILL.md finalize [4c] stop (362) -->
       <tr id="r-one-line"><td data-label="Rule, and why">The headline fits one line of the client's title box; two lines at most<span class="why">A lone word on line 2 looks like a mistake, and a title that runs into the body breaks the slide</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> cut to about 9 to 11 words and move the detail to the supporting points</span><span class="dont"><b>Don't:</b> a 27-word headline</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Storyline check (measured with the template's own font)</span><span class="chk"><span class="sev stop">Build stops</span> if a title will not fit its box</span></td></tr>
-      <!-- src: SKILL.md Part 2 (553-563); language pass takeaway fit (681); brief_check.py takeaway wrap and no-number rows (124-139) -->
-      <tr id="r-takeaway"><td data-label="Rule, and why">The line under the title says what the page's facts mean, with one of its numbers, on one line<span class="why">Facts carry the argument; a slogan does not</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> "Of five markets, only two reach $1.0B by 2030 and score 3.5 on readiness"</span><span class="dont"><b>Don't:</b> "The committee keeps control"</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Storyline check (review and measured)</span></td></tr>
       <!-- src: SKILL.md language pass test 6 (685) -->
       <tr id="r-measured"><td data-label="Rule, and why">Say how you know: a result stated as fact needs its measurement on the page; otherwise state the basis<span class="why">The audience will ask "how do you know?"</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> "We expect partners to lower Indonesia's entry cost; no data yet"</span><span class="dont"><b>Don't:</b> "Local partners make each next market cheaper", with no data</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Storyline check</span></td></tr>
+      <tr class="group"><th colspan="3">The takeaway</th></tr>
+      <!-- src: SKILL.md Part 2 (553-563); language pass takeaway fit (681); brief_check.py takeaway wrap and no-number rows (124-139) -->
+      <tr id="r-takeaway"><td data-label="Rule, and why">The line under the title says what the page's facts mean, with one of its numbers, on one line<span class="why">Facts carry the argument; a slogan does not</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> "Of five markets, only two reach $1.0B by 2030 and score 3.5 on readiness"</span><span class="dont"><b>Don't:</b> "The committee keeps control"</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Storyline check (review and measured)</span></td></tr>
       <!-- src: SKILL.md Part 2 reframe rule (559); brief_check.py reframe row (140-143) -->
       <tr id="r-reframe"><td data-label="Rule, and why">"Not X, it's Y" at most once, on the slide that names the belief the deck sets out to change<span class="why">Used on every slide, it reads as filler</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> state the fact the page proves</span><span class="dont"><b>Don't:</b> "This is not a compliance problem, it's an information problem" on an ordinary slide</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Storyline check (measured)</span></td></tr>
-      <!-- src: SKILL.md cross-cutting rule 1 (651); Deck tightening read-down and cut-the-slide check (409-445) -->
-      <tr id="r-one-point"><td data-label="Rule, and why">One slide, one point; every slide earns its place<span class="why">A slide the argument survives without is decoration</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> merge two slides that make the same point, and use the freed slot</span><span class="dont"><b>Don't:</b> slides 5 and 6 making the same claim split in two</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Storyline check <span class="sev major">Major</span></span></td></tr>
+      <tr class="group"><th colspan="3">Each slide</th></tr>
       <!-- src: SKILL.md Part 3 (565-569); layouts.md "Directive verb vocabulary" (41-61); anti-patterns.md Content 6, Aesthetics 7, "six-panel-no-hierarchy"; prompt.md section 5 -->
       <tr id="r-dominant"><td data-label="Rule, and why">One thing dominates each slide, and the layout takes the slide's side<span class="why">When everything has equal weight nothing lands, and a recommendation drawn evenly reads like a status update</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> give the recommended option more weight, or a highlight stripe on its table row; give a warning strong contrast on the threat</span><span class="dont"><b>Don't:</b> two options in identical boxes when the slide recommends one; six equal panels</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Storyline check (one dominant element)</span><span class="chk">Designers</span></td></tr>
-      <!-- src: SKILL.md Part 6 internal consistency (607-617) -->
-      <tr id="r-no-contradiction"><td data-label="Rule, and why">No two slides contradict each other or give two numbers for the same thing<span class="why">One contradiction breaks trust in the whole deck</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> one root cause, stated the same way on every slide</span><span class="dont"><b>Don't:</b> slide 3 says data quality is the root cause and slide 5 says the system is</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Storyline check: must be fixed, no reason accepted</span></td></tr>
-      <!-- src: SKILL.md Part 8 (628-636), Part 9 (638-645) -->
-      <tr id="r-decision"><td data-label="Rule, and why">A deck that asks for something names the decision and a date, and answers the obvious objections<span class="why">Executives fill a silence with their own objections</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> "Approve $12M of Phase 1 funding by 15 November 2026", plus a risk page or the alternatives rejected</span><span class="dont"><b>Don't:</b> "Align on next steps"</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Storyline check <span class="sev major">Major</span></span></td></tr>
       <!-- src: SKILL.md content-floor test (701-707); build_deck.py density_directive (1209-1232); build_review.py quick feedback (705) -->
       <tr id="r-full-page"><td data-label="Rule, and why">A content slide stands on its own<span class="why">Decks are read later without the presenter, and near-empty slides were the top complaint</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> several full, explained points. Covers, section dividers and single big-number slides are exempt, and an executive deck can opt out</span><span class="dont"><b>Don't:</b> three 2-word labels on a full slide</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Storyline check: must be filled out</span><span class="chk">Designers</span><span class="chk">Review page button <span class="ui">Too sparse, add detail</span></span></td></tr>
       <!-- src: anti-patterns.md anti-exemplar "reading-order-bottom-up" -->
       <tr id="r-top"><td data-label="Rule, and why">The main point sits at the top<span class="why">Readers scan down and may never reach the bottom</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> the key line directly under the title</span><span class="dont"><b>Don't:</b> the key finding in a box at the bottom of the slide</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Designers only</span></td></tr>
+      <tr class="group"><th colspan="3">The whole deck</th></tr>
+      <!-- src: SKILL.md cross-cutting rule 1 (651); Deck tightening read-down and cut-the-slide check (409-445) -->
+      <tr id="r-one-point"><td data-label="Rule, and why">One slide, one point; every slide earns its place<span class="why">A slide the argument survives without is decoration</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> merge two slides that make the same point, and use the freed slot</span><span class="dont"><b>Don't:</b> slides 5 and 6 making the same claim split in two</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Storyline check <span class="sev major">Major</span></span></td></tr>
+      <!-- src: SKILL.md Part 6 internal consistency (607-617) -->
+      <tr id="r-no-contradiction"><td data-label="Rule, and why">No two slides contradict each other or give two numbers for the same thing<span class="why">One contradiction breaks trust in the whole deck</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> one root cause, stated the same way on every slide</span><span class="dont"><b>Don't:</b> slide 3 says data quality is the root cause and slide 5 says the system is</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Storyline check: must be fixed, no reason accepted</span></td></tr>
+      <!-- src: SKILL.md Part 8 (628-636), Part 9 (638-645) -->
+      <tr id="r-decision"><td data-label="Rule, and why">A deck that asks for something names the decision and a date, and answers the obvious objections<span class="why">Executives fill a silence with their own objections</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> "Approve $12M of Phase 1 funding by 15 November 2026", plus a risk page or the alternatives rejected</span><span class="dont"><b>Don't:</b> "Align on next steps"</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Storyline check <span class="sev major">Major</span></span></td></tr>
     </tbody>
   </table></div>
 </section>
@@ -1312,15 +1360,16 @@
 <section class="page" id="rules-text" data-tab="rules" data-title="Rules for text and type size">
   <p class="eyebrow">Slide rules</p>
   <h1>Rules for text and type size</h1>
+  <p class="lead">These rules cover the words on a slide and the size of the type.</p>
 
   <h2 id="rules-words">Words</h2>
   <div class="table-wrap"><table class="ref rules">
     <thead><tr><th>Rule, and why</th><th>Do and don't</th><th>Where Slide Lab checks it</th></tr></thead>
     <tbody>
       <!-- src: slide-builder/reference/banned-words.md (banned block, lines 16-44); brief_check.py; slide-qc/SKILL.md Step 2 and 5b "Buzzwords and hedging" (71, 174). Each span.bw word is checked against banned-words.md by check_tutorial.py (check 7) -->
-      <tr id="r-buzzwords"><td data-label="Rule, and why">No buzzwords: write the number or fact the word stands for<span class="why">They sound like a point of view without stating one</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> "$4M a year"; "three checks before release"</span><span class="dont"><b>Don't:</b> "significant savings"; "a robust process". On the list: <span class="bw">robust</span>, <span class="bw">seamless</span>, <span class="bw">leverage</span>, <span class="bw">synergies</span>, <span class="bw">best-in-class</span>, <span class="bw">world-class</span>, <span class="bw">cutting-edge</span>, <span class="bw">game-changer</span>, <span class="bw">paradigm shift</span>, <span class="bw">mission-critical</span>, <span class="bw">holistic</span>, <span class="bw">transformational</span>, <span class="bw">unlock value</span>, <span class="bw">empower</span>, <span class="bw">strategic imperative</span>, <span class="bw">could potentially</span> and a few more (the full list is banned-words.md in the Slide Lab folder, under slide-builder\reference)</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Storyline check</span><span class="chk">Designers</span><span class="chk">Quality check <span class="sev major">Major</span></span></td></tr>
+      <tr id="r-buzzwords"><td data-label="Rule, and why">No buzzwords: write the number or fact the word stands for<span class="why">They sound like a point of view without stating one</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> "$4M a year"; "three checks before release"</span><span class="dont"><b>Don't:</b> "significant savings"; "a robust process"</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Storyline check</span><span class="chk">Designers</span><span class="chk">Quality check <span class="sev major">Major</span></span></td></tr>
       <!-- src: banned-words.md judge block (46-58); brief_check.py judge rows (132-136) -->
-      <tr id="r-judgment"><td data-label="Rule, and why">Judgment words need a number: <span class="bw">significant</span>, <span class="bw">substantial</span>, <span class="bw">meaningful</span>, <span class="bw">scalable</span>, <span class="bw">drive value</span>, <span class="bw">drive growth</span>; "power" and "fuel" as verbs for results; "journey" and "ecosystem" unless literal; "end-to-end" unless the scope is stated<span class="why">"Significant" means nothing without how much</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> "savings of $4M a year"; "scalable to 40 sites"</span><span class="dont"><b>Don't:</b> "significant savings"; "scalable" on its own</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Storyline check (flagged: fix it or give your reason)</span></td></tr>
+      <tr id="r-judgment"><td data-label="Rule, and why">Judgment words need a number<span class="why">"Significant" means nothing without how much</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> "savings of $4M a year"; "scalable to 40 sites"</span><span class="dont"><b>Don't:</b> "significant savings"; "scalable" on its own</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Storyline check (flagged: fix it or give your reason)</span></td></tr>
       <!-- src: banned-words.md "Names" (60-64); brief_check.py (103); slide-qc/SKILL.md 5b (174) -->
       <tr id="r-firms"><td data-label="Rule, and why">Never name other consulting firms; describe the method instead<span class="why">Slide Lab's rule for anything a reader sees</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> "growth-share matrix"; "one claim per slide"</span><span class="dont"><b>Don't:</b> a firm's name on a slide, or as the name of a method</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Storyline check</span><span class="chk">Quality check <span class="sev major">Major</span></span></td></tr>
       <!-- src: SKILL.md language pass body checks 2-3 (695-697); slide-qc/SKILL.md 5b "Bullets not parallel" (175) -->
@@ -1335,6 +1384,8 @@
       <tr id="r-bold"><td data-label="Rule, and why">Bold sparingly, and curly quotation marks<span class="why">If half the slide is bold, nothing stands out</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> bold one phrase</span><span class="dont"><b>Don't:</b> half the slide in bold; straight quotation marks</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Quality check <span class="sev">Advisory</span></span></td></tr>
     </tbody>
   </table></div>
+  <p class="muted">Buzzwords on the list include <span class="bw">robust</span>, <span class="bw">seamless</span>, <span class="bw">leverage</span>, <span class="bw">synergies</span>, <span class="bw">best-in-class</span>, <span class="bw">world-class</span>, <span class="bw">cutting-edge</span>, <span class="bw">game-changer</span>, <span class="bw">paradigm shift</span>, <span class="bw">mission-critical</span>, <span class="bw">holistic</span>, <span class="bw">transformational</span>, <span class="bw">unlock value</span>, <span class="bw">empower</span>, <span class="bw">strategic imperative</span>, <span class="bw">could potentially</span> and a few more (the full list is banned-words.md in the Slide Lab folder, under slide-builder\reference).</p>
+  <p class="muted">Judgment words that need a number: <span class="bw">significant</span>, <span class="bw">substantial</span>, <span class="bw">meaningful</span>, <span class="bw">scalable</span>, <span class="bw">drive value</span>, <span class="bw">drive growth</span>; "power" and "fuel" as verbs for results; "journey" and "ecosystem" unless literal; "end-to-end" unless the scope is stated.</p>
 
   <h2 id="rules-type">Type size</h2>
   <!-- src: slide-builder/scripts/type_scale.py (docstring lines 4-11; BODY_DEFAULT_PT, BODY_MIN_PT, EXCEPTION_MIN_PT, MAX_BODY_SIZES, HERO_MIN_PT, lines 32-36; problems() and notes()); prompt.md section 9 (359-363); slide-qc/SKILL.md Step 2 (72) and 5b "Text size" (169), 5c (190). Numbers in data-f spans are compared with type_scale.py by check_tutorial.py (check 6) -->
@@ -1354,17 +1405,20 @@
 <section class="page" id="rules-numbers" data-tab="rules" data-title="Rules for numbers, charts and sources">
   <p class="eyebrow">Slide rules</p>
   <h1>Rules for numbers, charts and sources</h1>
+  <p class="lead">These rules cover the numbers on a slide, the charts and tables that show them, and their sources.</p>
 
   <h2 id="rules-charts">Numbers and charts</h2>
   <div class="table-wrap"><table class="ref rules">
     <thead><tr><th>Rule, and why</th><th>Do and don't</th><th>Where Slide Lab checks it</th></tr></thead>
     <tbody>
+      <tr class="group"><th colspan="3">Numbers</th></tr>
       <!-- src: SKILL.md "Never invent a number" (310); slide-builder/SKILL.md hardline rules 2 and 4; source_check.py docstring; tutorial step 6 Important callout -->
       <tr id="r-no-invented"><td data-label="Rule, and why">No number that is not in your brief<span class="why">The quality check cannot tell an invented number from a real one</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> check every number the final check page lists; a total you can work out from the brief is fine</span><span class="dont"><b>Don't:</b> approve a number you do not recognize</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Storyline check (Claude never invents one)</span><span class="chk">Designers</span><span class="chk">Final check page (lists every number not in the brief; never blocks)</span></td></tr>
       <!-- src: build_deck.py designer context (932-934, 962); source_check.py "figures written two ways"; tutorial step 6 caption -->
       <tr id="r-one-form"><td data-label="Rule, and why">Write each kind of figure one way across the deck<span class="why">$1.2B on one slide and $1,200M on the next looks like two different numbers</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> $1.2B on every slide</span><span class="dont"><b>Don't:</b> mix the two (the Meridian final check caught exactly this)</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Designers</span><span class="chk">Final check page</span></td></tr>
       <!-- src: SKILL.md language pass fact test (699); brief_check.py THRESHOLD_WORDS (31-32, 144-150) -->
       <tr id="r-threshold"><td data-label="Rule, and why">Every target or threshold has a number, or says "&#8288;(to be set)"<span class="why">"At or above target" says nothing until the target exists</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> "continue if margin is at least 15%"; "pilot sales target (to be set)"</span><span class="dont"><b>Don't:</b> "continue if sell-through is at or above target"</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Storyline check</span></td></tr>
+      <tr class="group"><th colspan="3">Charts</th></tr>
       <!-- src: slide-builder/SKILL.md hardline rule 1 (434); layouts.md "Special objects" (241) -->
       <tr id="r-real-charts"><td data-label="Rule, and why">Charts and tables only as real charts and tables<span class="why">Boxes shaped like bars cannot be read as a chart</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> a real bar chart; a small sparkline inside a card is fine</span><span class="dont"><b>Don't:</b> colored blocks of different heights in a card grid</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Designers</span></td></tr>
       <!-- src: layouts.md Chart "Do not use for" (253) -->
@@ -1373,22 +1427,24 @@
       <tr id="r-simplest"><td data-label="Rule, and why">The simplest chart that proves the point, with an honest time window<span class="why">A window chosen to flatter is the first thing a skeptic checks</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> a window that also shows the years that argue against you</span><span class="dont"><b>Don't:</b> a chart chosen to impress rather than to prove</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Storyline check (asked of every analysis page)</span></td></tr>
       <!-- src: build_deck.py "Charts tell the truth" (960); slide-qc/SKILL.md 5b "Chart Y-axis truncation" (176) -->
       <tr id="r-zero"><td data-label="Rule, and why">Bars and areas start at zero<span class="why">A cut axis exaggerates the differences</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> an axis from 0, or a clear note when it does not start there</span><span class="dont"><b>Don't:</b> bars starting at 80 with no note</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Designers</span><span class="chk">Quality check <span class="sev major">Major</span></span></td></tr>
-      <!-- src: build_deck.py (961); slide-qc/SKILL.md 5b "Chart axis missing unit" (172) -->
-      <tr id="r-units"><td data-label="Rule, and why">Every value axis has a title with its unit<span class="why">"Value" could be dollars, a count or a percentage</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> "Market ($B)"</span><span class="dont"><b>Don't:</b> "Value" or "Amount"</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Designers</span><span class="chk">Quality check <span class="sev major">Major</span></span></td></tr>
       <!-- src: slide-qc/SKILL.md 5b "Chart aspect ratio dishonesty" (177) -->
       <tr id="r-shape"><td data-label="Rule, and why">No squashed or stretched charts<span class="why">A flattened line hides a fall</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> normal proportions</span><span class="dont"><b>Don't:</b> a chart squeezed into a thin strip</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Quality check <span class="sev major">Major</span></span></td></tr>
+      <!-- src: slide-qc/SKILL.md 5b "Blank chart / broken visual" (165) -->
+      <tr id="r-blank-chart"><td data-label="Rule, and why">A blank or broken chart is never shipped<span class="why">An empty box where the evidence should be sinks the slide</span></td><td data-label="Do and don't"><span class="dont"><b>Don't:</b> a white rectangle where the chart should be</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Quality check <span class="sev crit">Critical</span></span></td></tr>
+      <tr class="group"><th colspan="3">Labels and legends</th></tr>
+      <!-- src: build_deck.py (961); slide-qc/SKILL.md 5b "Chart axis missing unit" (172) -->
+      <tr id="r-units"><td data-label="Rule, and why">Every value axis has a title with its unit<span class="why">"Value" could be dollars, a count or a percentage</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> "Market ($B)"</span><span class="dont"><b>Don't:</b> "Value" or "Amount"</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Designers</span><span class="chk">Quality check <span class="sev major">Major</span></span></td></tr>
       <!-- src: build_deck.py (961) -->
       <tr id="r-on-chart"><td data-label="Rule, and why">A number called out in the headline or a callout also appears on the chart<span class="why">The reader looks for it there</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> the 2030 bar labeled "$4.2B"</span><span class="dont"><b>Don't:</b> "$4.2B" in the headline with no label on the chart</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Designers only</span></td></tr>
       <!-- src: anti-patterns.md Encoding 1 (94) -->
       <tr id="r-bubble"><td data-label="Rule, and why">Bubbles or tiles sized by a value get a legend for size<span class="why">Without it, "big" means nothing</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> a legend that shows what each size stands for</span><span class="dont"><b>Don't:</b> bubbles sized by revenue with no scale</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Designers only</span></td></tr>
-      <!-- src: layouts.md Chart "Convention rules" (255-257); anti-patterns.md Encoding 2 (96) -->
-      <tr id="r-frameworks"><td data-label="Rule, and why">Named frameworks keep their standard positions<span class="why">Anyone who knows the framework is confused by a swap</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> growth-share matrix with stars top right, cash cows bottom right, question marks top left, dogs bottom left</span><span class="dont"><b>Don't:</b> swap the quadrants</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Designers</span></td></tr>
       <!-- src: layouts.md Chart convention rules (257); anti-patterns.md Chrome 3 (86); build_deck.py "Accent placement" (948-950) -->
       <tr id="r-legend"><td data-label="Rule, and why">The legend sits at the right, just under the takeaway line; at the chart's top right only when a callout fills the right side<span class="why">A legend under the chart takes the chart's height</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> legend at the right, under the takeaway</span><span class="dont"><b>Don't:</b> a legend under the chart by default</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Designers only</span></td></tr>
+      <tr class="group"><th colspan="3">Tables and frameworks</th></tr>
+      <!-- src: layouts.md Chart "Convention rules" (255-257); anti-patterns.md Encoding 2 (96) -->
+      <tr id="r-frameworks"><td data-label="Rule, and why">Named frameworks keep their standard positions<span class="why">Anyone who knows the framework is confused by a swap</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> growth-share matrix with stars top right, cash cows bottom right, question marks top left, dogs bottom left</span><span class="dont"><b>Don't:</b> swap the quadrants</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Designers</span></td></tr>
       <!-- src: anti-patterns.md Chrome 4 (88) and anti-exemplar "table-without-column-headers"; layouts.md Table (265-267) -->
       <tr id="r-table-head"><td data-label="Rule, and why">Tables have a header row; the recommended row gets a highlight stripe and a tinted fill<span class="why">A badge on top of the row hides the evidence under it</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> a header row; a highlight stripe on the left edge of the recommended row</span><span class="dont"><b>Don't:</b> rows of numbers with no column names; a "RECOMMENDED" badge over the text</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Designers</span></td></tr>
-      <!-- src: slide-qc/SKILL.md 5b "Blank chart / broken visual" (165) -->
-      <tr id="r-blank-chart"><td data-label="Rule, and why">A blank or broken chart is never shipped<span class="why">An empty box where the evidence should be sinks the slide</span></td><td data-label="Do and don't"><span class="dont"><b>Don't:</b> a white rectangle where the chart should be</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Quality check <span class="sev crit">Critical</span></span></td></tr>
     </tbody>
   </table></div>
   <!-- src: slide-builder/SKILL.md "Editable chart data" (386-394); tutorial FAQ "Can I edit the charts afterward?" -->
@@ -1416,21 +1472,19 @@
 <section class="page" id="rules-layout" data-tab="rules" data-title="Rules for layout, color and the file">
   <p class="eyebrow">Slide rules</p>
   <h1>Rules for layout, color and the file</h1>
+  <p class="lead">These rules cover where things sit on a slide, how the client's colors are used, and what the quality check looks for in the file itself.</p>
+
+  <h2 id="rules-look">Layout and color</h2>
   <div class="table-wrap"><table class="ref rules">
     <thead><tr><th>Rule, and why</th><th>Do and don't</th><th>Where Slide Lab checks it</th></tr></thead>
     <tbody>
+      <tr class="group"><th colspan="3">Layout</th></tr>
       <!-- src: slide-builder/SKILL.md hardline rule 3 (438) and adjacency (283); build_review.py adjacency warning (128-172) -->
       <tr id="r-no-three"><td data-label="Rule, and why">No three slides in a row on the same layout; two in a row is fine<span class="why">Repetition reads as a design failure, even when each slide is right</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> pick a different option for one slide in the run</span><span class="dont"><b>Don't:</b> three two-column slides in a row</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Designers</span><span class="chk">Review page (a warning on those slides)</span></td></tr>
       <!-- src: prompt.md "Make the structure visible" (206-213); build_review.py quick feedback (713, 721-726) -->
       <tr id="r-structure"><td data-label="Rule, and why">Make the structure visible: number only real sequences, give each item a simple marker drawn as a shape, and join steps that happen in order with arrows<span class="why">A number implies an order, and users had to ask for this every round</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> steps 1 to 5 in circles joined by arrows; unordered levers with a marker and no number</span><span class="dont"><b>Don't:</b> numbered pillars that have no order; emoji or clip art</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Designers</span><span class="chk">Review page button <span class="ui">Add process structure: numbers, icons</span></span></td></tr>
       <!-- src: slide-builder/SKILL.md hardline rules 2 and 5 (436, 442); anti-patterns.md Content 1 (66); build_review.py "Not built" badge (767) -->
       <tr id="r-fit-brief"><td data-label="Rule, and why">No invented items to fill a layout<span class="why">Inventing a third option is the most damaging failure there is</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> 2 items in the brief, 2 on the slide</span><span class="dont"><b>Don't:</b> a fourth box added to complete a grid</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Designers (they refuse the layout instead)</span><span class="chk">Review page (the refused design shows as "Not built")</span></td></tr>
-      <!-- src: anti-patterns.md Aesthetics 1 and 7 (26, 42); storyline-helper/SKILL.md "Accent discipline" (431-437); meridian-brief.md deck-level notes -->
-      <tr id="r-one-accent"><td data-label="Rule, and why">One highlighted element per slide, on the thing that carries the takeaway<span class="why">Several highlights compete and none wins</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> Meridian's amber on the two passing rows only</span><span class="dont"><b>Don't:</b> highlight bars on every slide; a hero number plus colored callouts on one slide</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Designers (the brief names each slide's highlight)</span></td></tr>
-      <!-- src: prompt.md section 5 brand token rule (204) and section 9 palette constants (358); slide-qc/SKILL.md 5c "Color palette drift" (192) -->
-      <tr id="r-brand"><td data-label="Rule, and why">The client's colors only, on something that matters<span class="why">A design in grays has no brand, and an outside color reads as another deck</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> the main or highlight color on a headline figure, a rule or a fill</span><span class="dont"><b>Don't:</b> a slide in grays only; a color from outside the template</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Designers</span><span class="chk">Quality check <span class="sev major">Major</span> (color drift)</span></td></tr>
-      <!-- src: anti-patterns.md Aesthetics 4, 5, 5a (34-38); slide-qc/SKILL.md 5b "Background contrast" (167) -->
-      <tr id="r-contrast"><td data-label="Rule, and why">Light text on dark fills: white or near-white, italics included<span class="why">Low contrast disappears on a projector and in print</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> white on the dark brand color</span><span class="dont"><b>Don't:</b> gray or a pale tint of the brand color on a dark fill</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Designers</span><span class="chk">Quality check <span class="sev crit">Critical</span> when text cannot be seen</span></td></tr>
       <!-- src: anti-patterns.md Structural 4 and 6 (56, 60); slide-qc/SKILL.md 5b "Overflow / clipping", "Unreadable overlap" (164, 166) -->
       <tr id="r-overlap"><td data-label="Rule, and why">Nothing overlaps, runs out of its box or off the slide<span class="why">Overlap was the most common defect in early builds</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> size each box to its text</span><span class="dont"><b>Don't:</b> text running past its box</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Designers</span><span class="chk">You, on the final check page</span><span class="chk">Quality check <span class="sev crit">Critical</span> if text is cut off or unreadable; <span class="sev major">Major</span> if a shape spills over with nothing lost</span></td></tr>
       <!-- src: anti-patterns.md Aesthetics 8 (44); slide-qc/SKILL.md 5b "Whitespace / hierarchy / composition" (181) -->
@@ -1439,6 +1493,14 @@
       <tr id="r-curves"><td data-label="Rule, and why">Curved diagrams (hub and spoke, five forces, fishbone, ecosystem maps, rings) are drawn separately<span class="why">Text inside curves wraps badly</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> let Claude draw them by hand; they stay editable</span><span class="dont"><b>Don't:</b> squeeze text into ovals</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Designers (the "drawn by hand" time in <a href="#step-6">step 6</a>)</span></td></tr>
       <!-- src: anti-patterns.md Chrome 2 (84); slide-qc/SKILL.md 5b "Missing footer / page number" (171), 5c (190-193), hard rule "Cover slides" (291) -->
       <tr id="r-template-places"><td data-label="Rule, and why">Title, takeaway, footer and page number stay in the template's places on every slide; a two-line title grows upward. Covers carry no page number<span class="why">Moving furniture makes a deck look assembled from parts</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> the same positions on every content slide</span><span class="dont"><b>Don't:</b> a takeaway pushed down by a long title</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Designers</span><span class="chk">Quality check <span class="sev major">Major</span> (missing footer or page number, or drift)</span></td></tr>
+      <tr class="group"><th colspan="3">Color and contrast</th></tr>
+      <!-- src: anti-patterns.md Aesthetics 1 and 7 (26, 42); storyline-helper/SKILL.md "Accent discipline" (431-437); meridian-brief.md deck-level notes -->
+      <tr id="r-one-accent"><td data-label="Rule, and why">One highlighted element per slide, on the thing that carries the takeaway<span class="why">Several highlights compete and none wins</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> Meridian's amber on the two passing rows only</span><span class="dont"><b>Don't:</b> highlight bars on every slide; a hero number plus colored callouts on one slide</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Designers (the brief names each slide's highlight)</span></td></tr>
+      <!-- src: prompt.md section 5 brand token rule (204) and section 9 palette constants (358); slide-qc/SKILL.md 5c "Color palette drift" (192) -->
+      <tr id="r-brand"><td data-label="Rule, and why">The client's colors only, on something that matters<span class="why">A design in grays has no brand, and an outside color reads as another deck</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> the main or highlight color on a headline figure, a rule or a fill</span><span class="dont"><b>Don't:</b> a slide in grays only; a color from outside the template</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Designers</span><span class="chk">Quality check <span class="sev major">Major</span> (color drift)</span></td></tr>
+      <!-- src: anti-patterns.md Aesthetics 4, 5, 5a (34-38); slide-qc/SKILL.md 5b "Background contrast" (167) -->
+      <tr id="r-contrast"><td data-label="Rule, and why">Light text on dark fills: white or near-white, italics included<span class="why">Low contrast disappears on a projector and in print</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> white on the dark brand color</span><span class="dont"><b>Don't:</b> gray or a pale tint of the brand color on a dark fill</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Designers</span><span class="chk">Quality check <span class="sev crit">Critical</span> when text cannot be seen</span></td></tr>
+      <tr class="group"><th colspan="3">Tags, icons and photos</th></tr>
       <!-- src: anti-patterns.md Chrome 1 (82); build_deck.py (950) -->
       <tr id="r-tags"><td data-label="Rule, and why">No DRAFT or CONFIDENTIAL tags in the top and bottom strips; a required DRAFT mark goes diagonally across the body<span class="why">Those strips are for sources, footnotes and page numbers</span></td><td data-label="Do and don't"><span class="do"><b>Do:</b> a diagonal watermark</span><span class="dont"><b>Don't:</b> "CONFIDENTIAL" in the footer strip</span></td><td data-label="Where Slide Lab checks it"><span class="chk">Designers only</span></td></tr>
       <!-- src: anti-patterns.md Structural 5 (58); prompt.md section 5 markers (208); slide-qc/SKILL.md 5b "Mixed icon styles" (173) -->
@@ -1448,20 +1510,10 @@
     </tbody>
   </table></div>
 
-  <h2 id="rules-file">The file itself</h2>
-  <!-- src: slide-qc/SKILL.md Step 2 hygiene pre-pass (73-76); tutorial step 7 (deck named after its topic) -->
-  <p>Before the deck goes out, the quality check also looks at the file. Each of these is <span class="sev major">Major</span>:</p>
-  <ul>
-    <li>Hidden slides left in the file</li>
-    <li>Comments still attached to slides</li>
-    <li>Scratch notes in the speaker notes ("TODO", "WIP")</li>
-    <li>A file name like "Final_final_v3.pptx" or "Copy of ..." (Slide Lab names its decks after the topic, so this comes up only with other files)</li>
-  </ul>
-
   <h2 id="rules-layouts">The 14 layouts</h2>
   <!-- src: slide-builder/reference/layouts.md (all 14 patterns and the fallback path; "How to pick"; "Directive verb vocabulary") -->
   <details class="more wide">
-    <summary>The 14 layouts Claude chooses from, and the hand-drawn path</summary>
+    <summary>Show the 14 layouts and the hand-drawn path</summary>
     <div class="body">
       <p>For each slide, Claude counts the items, looks at the shape of the comparison and the data, and picks one layout. Then it tilts the design toward the slide's purpose: recommend, warn, explain a cause, show urgency, show progress, compare evenly, or summarize.</p>
       <div class="table-wrap"><table class="ref">
@@ -1486,32 +1538,46 @@
       </table></div>
     </div>
   </details>
+
+  <h2 id="rules-file">The file itself</h2>
+  <!-- src: slide-qc/SKILL.md Step 2 hygiene pre-pass (73-76); tutorial step 7 (deck named after its topic) -->
+  <p>Before the deck goes out, the quality check also looks at the file. Each of these is <span class="sev major">Major</span>:</p>
+  <ul>
+    <li>Hidden slides left in the file</li>
+    <li>Comments still attached to slides</li>
+    <li>Scratch notes in the speaker notes ("TODO", "WIP")</li>
+    <li>A file name like "Final_final_v3.pptx" or "Copy of ..." (Slide Lab names its decks after the topic, so this comes up only with other files)</li>
+  </ul>
 </section>
 
 <section class="page tab-start" id="times" data-tab="reference" data-title="How long each step takes">
   <p class="eyebrow">Reference</p>
   <h1>How long each step takes</h1>
   <p>Ranges, not promises. They assume a 10 to 15 slide deck and a session folder on your computer's own drive (not OneDrive). "Measured" means timed on the example build; "Estimate" means it was not timed.</p>
-  <div class="table-wrap"><table class="ref">
+  <dl class="glance">
+    <dt>A typical deck</dt><dd data-f="t.total_typical"></dd>
+    <dt>Your first deck</dt><dd data-f="t.total_first"></dd>
+  </dl>
+  <div class="table-wrap"><table class="ref times">
     <caption data-f="measured"></caption>
-    <thead><tr><th>Step</th><th>How long</th><th>Whose time</th><th>Basis</th></tr></thead>
+    <thead><tr><th>Step</th><th>How long</th><th>Whose time</th></tr></thead>
     <tbody>
-      <tr><td data-label="Step">Install Slide Lab</td><td data-label="How long" data-f="t.install"></td><td data-label="Whose time"><span class="pill you">Yours</span> approving each step</td><td class="basis" data-label="Basis" data-f="t.install_b"></td></tr>
-      <tr><td data-label="Step">Step 2: set up a client template</td><td data-label="How long" data-f="t.template"></td><td data-label="Whose time"><span class="pill you">Yours</span></td><td class="basis" data-label="Basis" data-f="t.template_b"></td></tr>
-      <tr><td data-label="Step">Step 3: shape the storyline</td><td data-label="How long" data-f="t.storyline"></td><td data-label="Whose time"><span class="pill you">Yours</span> a conversation</td><td class="basis" data-label="Basis" data-f="t.storyline_b"></td></tr>
-      <tr><td data-label="Step">Step 4: designs</td><td data-label="How long" data-f="t.designs"></td><td data-label="Whose time"><span class="pill claude">Waiting</span> walk away</td><td class="basis" data-label="Basis" data-f="t.designs_b"></td></tr>
-      <tr><td data-label="Step">Step 4: previews and the review page</td><td data-label="How long" data-f="t.review_prep"></td><td data-label="Whose time"><span class="pill claude">Waiting</span></td><td class="basis" data-label="Basis" data-f="t.review_prep_b"></td></tr>
-      <tr><td data-label="Step">Step 5: your review</td><td data-label="How long" data-f="t.review"></td><td data-label="Whose time"><span class="pill you">Yours</span></td><td class="basis" data-label="Basis" data-f="t.review_b"></td></tr>
-      <tr><td data-label="Step">Step 5: a "Replace these" round (only if you ask for one)</td><td data-label="How long" data-f="t.replace_round"></td><td data-label="Whose time"><span class="pill claude">Waiting</span></td><td class="basis" data-label="Basis" data-f="t.replace_round_b"></td></tr>
-      <tr><td data-label="Step">Step 6: your picks become editable PowerPoint</td><td data-label="How long"><span data-f="t.convert"></span>; <span data-f="t.hand_drawing"></span></td><td data-label="Whose time"><span class="pill claude">Waiting</span></td><td class="basis" data-label="Basis"><span data-f="t.convert_b"></span>. Extra per slide: <span data-f="t.hand_drawing_b"></span></td></tr>
-      <tr><td data-label="Step">Step 6: the final check page is ready</td><td data-label="How long" data-f="t.final_prep"></td><td data-label="Whose time"><span class="pill claude">Waiting</span></td><td class="basis" data-label="Basis" data-f="t.final_prep_b"></td></tr>
-      <tr><td data-label="Step">Step 6: your final check</td><td data-label="How long" data-f="t.final_check"></td><td data-label="Whose time"><span class="pill you">Yours</span></td><td class="basis" data-label="Basis" data-f="t.final_check_b"></td></tr>
-      <tr><td data-label="Step">Step 7: build the deck</td><td data-label="How long" data-f="t.build"></td><td data-label="Whose time"><span class="pill claude">Waiting</span></td><td class="basis" data-label="Basis" data-f="t.build_b"></td></tr>
-      <tr><td data-label="Step">Step 7: quality check</td><td data-label="How long" data-f="t.qc"></td><td data-label="Whose time"><span class="pill claude">Waiting</span></td><td class="basis" data-label="Basis" data-f="t.qc_b"></td></tr>
-      <tr><td data-label="Step">Step 7: a quality-check fix (if needed)</td><td data-label="How long" data-f="t.qc_fix"></td><td data-label="Whose time"><span class="pill claude">Waiting</span></td><td class="basis" data-label="Basis" data-f="t.qc_fix_b"></td></tr>
-      <tr><td data-label="Step">Step 8: cleanup after "the deck is good"</td><td data-label="How long" data-f="t.cleanup"></td><td data-label="Whose time"><span class="pill claude">Waiting</span></td><td class="basis" data-label="Basis" data-f="t.cleanup_b"></td></tr>
-      <tr class="total"><td data-label="Step">A typical 10 to 15 slide deck</td><td data-label="How long" data-f="t.total_typical"></td><td data-label="Whose time">Mixed</td><td class="basis" data-label="Basis" data-f="t.total_b"></td></tr>
-      <tr class="total"><td data-label="Step">Your first deck ever</td><td data-label="How long" data-f="t.total_first"></td><td data-label="Whose time">Mixed</td><td class="basis" data-label="Basis" data-f="t.total_b"></td></tr>
+      <tr class="group"><th colspan="3">Setup</th></tr>
+      <tr><td data-label="Step">Install Slide Lab<span class="why">You approve each step</span></td><td data-label="How long"><span data-f="t.install"></span><span class="why" data-f="t.install_b"></span></td><td data-label="Whose time"><span class="pill you">Yours</span></td></tr>
+      <tr><td data-label="Step">Step 2: set up a client template</td><td data-label="How long"><span data-f="t.template"></span><span class="why" data-f="t.template_b"></span></td><td data-label="Whose time"><span class="pill you">Yours</span></td></tr>
+      <tr class="group"><th colspan="3">Every deck</th></tr>
+      <tr><td data-label="Step">Step 3: shape the storyline<span class="why">A conversation</span></td><td data-label="How long"><span data-f="t.storyline"></span><span class="why" data-f="t.storyline_b"></span></td><td data-label="Whose time"><span class="pill you">Yours</span></td></tr>
+      <tr><td data-label="Step">Step 4: designs<span class="why">You can walk away</span></td><td data-label="How long"><span data-f="t.designs"></span><span class="why" data-f="t.designs_b"></span></td><td data-label="Whose time"><span class="pill claude">Waiting</span></td></tr>
+      <tr><td data-label="Step">Step 4: previews and the review page</td><td data-label="How long"><span data-f="t.review_prep"></span><span class="why" data-f="t.review_prep_b"></span></td><td data-label="Whose time"><span class="pill claude">Waiting</span></td></tr>
+      <tr><td data-label="Step">Step 5: your review</td><td data-label="How long"><span data-f="t.review"></span><span class="why" data-f="t.review_b"></span></td><td data-label="Whose time"><span class="pill you">Yours</span></td></tr>
+      <tr><td data-label="Step">Step 5: a "Replace these" round (only if you ask for one)</td><td data-label="How long"><span data-f="t.replace_round"></span><span class="why" data-f="t.replace_round_b"></span></td><td data-label="Whose time"><span class="pill claude">Waiting</span></td></tr>
+      <tr><td data-label="Step">Step 6: your picks become editable PowerPoint</td><td data-label="How long"><span data-f="t.convert"></span>; <span data-f="t.hand_drawing"></span><span class="why"><span data-f="t.convert_b"></span>. Extra per slide: <span data-f="t.hand_drawing_b"></span></span></td><td data-label="Whose time"><span class="pill claude">Waiting</span></td></tr>
+      <tr><td data-label="Step">Step 6: the final check page is ready</td><td data-label="How long"><span data-f="t.final_prep"></span><span class="why" data-f="t.final_prep_b"></span></td><td data-label="Whose time"><span class="pill claude">Waiting</span></td></tr>
+      <tr><td data-label="Step">Step 6: your final check</td><td data-label="How long"><span data-f="t.final_check"></span><span class="why" data-f="t.final_check_b"></span></td><td data-label="Whose time"><span class="pill you">Yours</span></td></tr>
+      <tr><td data-label="Step">Step 7: build the deck</td><td data-label="How long"><span data-f="t.build"></span><span class="why" data-f="t.build_b"></span></td><td data-label="Whose time"><span class="pill claude">Waiting</span></td></tr>
+      <tr><td data-label="Step">Step 7: quality check</td><td data-label="How long"><span data-f="t.qc"></span><span class="why" data-f="t.qc_b"></span></td><td data-label="Whose time"><span class="pill claude">Waiting</span></td></tr>
+      <tr><td data-label="Step">Step 7: a quality-check fix (if needed)</td><td data-label="How long"><span data-f="t.qc_fix"></span><span class="why" data-f="t.qc_fix_b"></span></td><td data-label="Whose time"><span class="pill claude">Waiting</span></td></tr>
+      <tr><td data-label="Step">Step 8: cleanup after "the deck is good"</td><td data-label="How long"><span data-f="t.cleanup"></span><span class="why" data-f="t.cleanup_b"></span></td><td data-label="Whose time"><span class="pill claude">Waiting</span></td></tr>
     </tbody>
   </table></div>
 
@@ -1533,15 +1599,15 @@
   <p class="eyebrow">Reference</p>
   <h1>Change a deck later</h1>
   <p>Say what you want, or pick "Change a deck" from the menu (<a href="#step-1">step 1</a>). It works on decks Slide Lab built (rebuild, fix or insert a slide) and on any other PowerPoint file: fix text or numbers with the design unchanged, redesign a slide or a few and drop them back into your file, or refresh a recurring status deck with this cycle's text.</p>
-  <div class="table-wrap"><table class="ref">
-    <thead><tr><th>You say</th><th>What happens</th><th>How long</th></tr></thead>
+  <div class="table-wrap"><table class="ref later">
+    <thead><tr><th>You say</th><th>What happens</th></tr></thead>
     <tbody>
-      <tr><td data-label="You say"><span class="say"><code>Rebuild slide 3</code><button type="button">Copy</button></span></td><td data-label="What happens">Only that slide is redesigned (<span data-f="options_per_slide_revision"></span> design; say "with 3 options" for alternatives). With one design it goes straight to the final check page, then the quality check; with alternatives you pick on the review page first. Every other slide keeps its pick</td><td data-label="How long" data-f="t.rebuild_one"></td></tr>
-      <tr><td data-label="You say"><span class="say"><code>Insert a slide after slide 4</code><button type="button">Copy</button></span></td><td data-label="What happens">Tell Claude what the new slide should say. It designs <span data-f="options_per_slide"></span> options for it and takes it through the review page, the final check page and the quality check; the other slides are untouched</td><td data-label="How long" data-f="t.not_timed"></td></tr>
-      <tr><td data-label="You say"><span class="say"><code>Export the chart data to Excel</code><button type="button">Copy</button></span></td><td data-label="What happens">One sheet per chart slide, ready to paste into think-cell or a normal PowerPoint chart</td><td data-label="How long" data-f="t.not_timed"></td></tr>
-      <tr><td data-label="You say">A deck Slide Lab did not build: "fix the text on slide 6"</td><td data-label="What happens">Changes words or numbers, keeps the design, saves a new copy</td><td data-label="How long" data-f="t.not_timed"></td></tr>
-      <tr><td data-label="You say">A deck Slide Lab did not build: "redesign slide 6"</td><td data-label="What happens">Rebuilds that slide on the deck's own template and drops it back into a copy of your deck, every other slide untouched; then a quality check</td><td data-label="How long" data-f="t.not_timed"></td></tr>
-      <tr><td data-label="You say">A recurring deck: "refresh this month's status deck"</td><td data-label="What happens">Fills this cycle's text into the fixed design (text boxes only; tables and charts by hand); then a quality check</td><td data-label="How long" data-f="t.not_timed"></td></tr>
+      <tr><td data-label="You say"><span class="say"><code>Rebuild slide 3</code><button type="button">Copy</button></span></td><td data-label="What happens">Only that slide is redesigned (<span data-f="options_per_slide_revision"></span> design; say "with 3 options" for alternatives). With one design it goes straight to the final check page, then the quality check; with alternatives you pick on the review page first. Every other slide keeps its pick<span class="why">Time: <span data-f="t.rebuild_one"></span></span></td></tr>
+      <tr><td data-label="You say"><span class="say"><code>Insert a slide after slide 4</code><button type="button">Copy</button></span></td><td data-label="What happens">Tell Claude what the new slide should say. It designs <span data-f="options_per_slide"></span> options for it and takes it through the review page, the final check page and the quality check; the other slides are untouched<span class="why">Time: <span data-f="t.not_timed"></span></span></td></tr>
+      <tr><td data-label="You say"><span class="say"><code>Export the chart data to Excel</code><button type="button">Copy</button></span></td><td data-label="What happens">One sheet per chart slide, ready to paste into think-cell or a normal PowerPoint chart<span class="why">Time: <span data-f="t.not_timed"></span></span></td></tr>
+      <tr><td data-label="You say">A deck Slide Lab did not build: "fix the text on slide 6"</td><td data-label="What happens">Changes words or numbers, keeps the design, saves a new copy<span class="why">Time: <span data-f="t.not_timed"></span></span></td></tr>
+      <tr><td data-label="You say">A deck Slide Lab did not build: "redesign slide 6"</td><td data-label="What happens">Rebuilds that slide on the deck's own template and drops it back into a copy of your deck, every other slide untouched; then a quality check<span class="why">Time: <span data-f="t.not_timed"></span></span></td></tr>
+      <tr><td data-label="You say">A recurring deck: "refresh this month's status deck"</td><td data-label="What happens">Fills this cycle's text into the fixed design (text boxes only; tables and charts by hand); then a quality check<span class="why">Time: <span data-f="t.not_timed"></span></span></td></tr>
     </tbody>
   </table></div>
   <p class="muted">Your original files are never changed; Slide Lab always writes a new copy.</p>
@@ -1568,6 +1634,7 @@
 <section class="page" id="phrases" data-tab="reference" data-title="Phrases that work">
   <p class="eyebrow">Reference</p>
   <h1>Phrases that work</h1>
+  <p class="lead">Click Copy next to a phrase, then paste it into Claude. Replace "..." and the example paths with your own details.</p>
   <div class="table-wrap"><table class="ref phrases">
     <thead><tr><th>Situation</th><th>What to type</th></tr></thead>
     <tbody>
@@ -1598,6 +1665,21 @@
 <section class="page tab-start" id="faq" data-tab="help" data-title="Help and common questions">
   <p class="eyebrow">Help</p>
   <h1>Help and common questions</h1>
+  <p class="lead">Something went wrong? Start with the step you were on, in the table below. Common questions and where to get help follow.</p>
+  <h2 id="trouble">If something goes wrong at a step</h2>
+  <div class="table-wrap"><table class="ref">
+    <thead><tr><th>Step</th><th>Problems covered</th></tr></thead>
+    <tbody>
+      <tr><td data-label="Step"><a href="#step-1-trouble">Step 1: Start Slide Lab</a></td><td data-label="Problems covered" class="plain">Claude picked the wrong route</td></tr>
+      <tr><td data-label="Step"><a href="#step-2-trouble">Step 2: Set up the template</a></td><td data-label="Problems covered" class="plain">Another 16:9 size; a 4:3 template; the sample slide looks wrong; a build refuses the template</td></tr>
+      <tr><td data-label="Step"><a href="#step-3-trouble">Step 3: Shape the storyline</a></td><td data-label="Problems covered" class="plain">Little material; your template is not in the list; the session folder is in OneDrive</td></tr>
+      <tr><td data-label="Step"><a href="#step-4-trouble">Step 4: Claude designs</a></td><td data-label="Problems covered" class="plain">It stops with an error; previews time out</td></tr>
+      <tr><td data-label="Step"><a href="#step-5-trouble">Step 5: Pick the designs</a></td><td data-label="Problems covered" class="plain">Build my deck will not copy anything; Claude refuses the picks; your choices are gone</td></tr>
+      <tr><td data-label="Step"><a href="#step-6-trouble">Step 6: Check the finished slides</a></td><td data-label="Problems covered" class="plain">Unsure about the look; lost the copied text; Claude reports a problem on a slide; the cover has no page number</td></tr>
+      <tr><td data-label="Step"><a href="#step-7-trouble">Step 7: Answer the quality check</a></td><td data-label="Problems covered" class="plain">The build fails; a fix still looks wrong</td></tr>
+    </tbody>
+  </table></div>
+
   <h2 id="questions">Common questions</h2>
   <div class="faq">
     <details class="more"><summary>Do I need to know how to code or design?</summary><div class="body"><p>No. You talk to Claude in plain English and click buttons on two web pages. Claude asks before it runs anything on your computer; click Allow when it does.</p></div></details>
@@ -1614,19 +1696,6 @@
     <details class="more"><summary>Can I break a slide rule?</summary><div class="body"><p>Often, with a reason. A Major finding can stay if you say why in your own words; Claude records your reason. A Critical finding must be fixed, and two slides that contradict each other must be reconciled. See <a href="#rules">Slide rules</a>.</p></div></details>
   </div>
 
-  <h2 id="trouble">If something goes wrong at a step</h2>
-  <div class="table-wrap"><table class="ref">
-    <thead><tr><th>Step</th><th>Problems covered</th></tr></thead>
-    <tbody>
-      <tr><td data-label="Step"><a href="#step-1-trouble">Step 1: Start Slide Lab</a></td><td data-label="Problems covered" class="plain">Claude picked the wrong route</td></tr>
-      <tr><td data-label="Step"><a href="#step-2-trouble">Step 2: Set up the template</a></td><td data-label="Problems covered" class="plain">Another 16:9 size; a 4:3 template; the sample slide looks wrong; a build refuses the template</td></tr>
-      <tr><td data-label="Step"><a href="#step-3-trouble">Step 3: Shape the storyline</a></td><td data-label="Problems covered" class="plain">Little material; your template is not in the list; the session folder is in OneDrive</td></tr>
-      <tr><td data-label="Step"><a href="#step-4-trouble">Step 4: Claude designs</a></td><td data-label="Problems covered" class="plain">It stops with an error; previews time out</td></tr>
-      <tr><td data-label="Step"><a href="#step-5-trouble">Step 5: Pick the designs</a></td><td data-label="Problems covered" class="plain">Build my deck will not copy anything; Claude refuses the picks; your choices are gone</td></tr>
-      <tr><td data-label="Step"><a href="#step-6-trouble">Step 6: Check the finished slides</a></td><td data-label="Problems covered" class="plain">Unsure about the look; lost the copied text; Claude reports a problem on a slide; the cover has no page number</td></tr>
-      <tr><td data-label="Step"><a href="#step-7-trouble">Step 7: Answer the quality check</a></td><td data-label="Problems covered" class="plain">The build fails; a fix still looks wrong</td></tr>
-    </tbody>
-  </table></div>
   <h2 id="help">Updates and help</h2>
   <dl class="leads">
     <dt>Updates</dt>
@@ -1742,7 +1811,7 @@
     p.appendChild(nav);
   });
 
-  // on each step page, the 8 steps in one line: filled = your turn, ringed = this step
+  // on each step page, the 8 steps in one line: filled = this step
   steps.forEach(function(p){
     var ol = document.createElement("ol"); ol.className = "strip"; ol.setAttribute("aria-label", "Steps");
     steps.forEach(function(s){
