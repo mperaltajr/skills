@@ -1072,7 +1072,7 @@ If the user picks Edit, ask what they want to change. If the user picks Review, 
 
 **User refuses pushback.** Do not just acquiesce — that lets weak arguments through. Use the constructive-pushback protocol from the pushback protocol: (1) name the weakness and the reason it doesn't hold, (2) offer two concrete alternative framings — *"a stronger version would be X or Y"* — so the criticism is constructive, not just a no, (3) offer the placeholder path if the gap is missing data rather than flawed thinking, (4) ask explicitly which they want. Only accept the override after the user has chosen with awareness of the trade-off, and record their reason verbatim in **Flags**. If the user refuses to engage at all, the quality gate fails — soft "just ship it" is not sufficient.
 
-**Something went wrong mid-session.** If the coaching flow breaks, `emit_dot_dash.py` errors, or the output isn't right, tell the user they can type `/slidelab-log` to capture a structured session report (the `slidelab-log` skill writes the technical detail; the user just submits the GitHub link).
+**Something went wrong mid-session.** If the coaching flow breaks, `emit_dot_dash.py` errors, or the output isn't right, tell the user they can type `/slidelab-log` to capture a structured session report (the `slidelab-log` skill writes the technical detail and saves it locally; the user sends that file privately to Mario Peralta on Teams or by email, never to GitHub, which is public).
 
 ---
 

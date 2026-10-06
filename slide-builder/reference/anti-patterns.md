@@ -37,7 +37,7 @@ Entry format:
 
    **Italic-on-dark variant (5a).** Italic body, sub-tagline, or supporting copy on a `BRAND_PRIMARY` dark-canvas fill must be **white** (`#FFFFFF`) or **near-white** (`lt1`), never `BRAND_ACCENT_SOFT` or any tinted brand color. Italics already reduce stroke contrast by ~15% against the background; combining the italic with a muted lavender / soft-accent color compounds the loss and renders the line near-invisible at projector distance. *Do instead:* italics on dark canvas use `lt1` at the same point size as the surrounding body, or skip italic styling entirely if a tint is needed.
 
-6. **DON'T use 3+ font sizes on the same slide for body text.** — *Why:* type scale compounds; multiple body sizes destroy the visual hierarchy. *Do instead:* one body size (12pt), one supporting-detail size (10.5pt), plus the title/sub-headline. That's it.
+6. **DON'T use more than 3 font sizes on the same slide for body text.** — *Why:* type scale compounds; multiple body sizes destroy the visual hierarchy. *Do instead:* body text at 12, 14 or 16pt (10.5pt only as a last resort for dense detail), at most 3 sizes, plus the template's title and takeaway. See the Type scale contract under #3.
 
 7. **DON'T let a slide have more than one visual accent moment.** — *Why:* multiple accent moments (brand-accent stripes, hero metrics, color-coded callouts) compete and the reader can't tell what's important. *Do instead:* one accent moment per slide — pick whichever element carries the takeaway and accent only that.
 
