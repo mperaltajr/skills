@@ -349,6 +349,7 @@ finalize_deck.py reads line 1. Token prefix decides routing:
 
 ## 9. Constraints
 
+- **Never close, kill or restart the user's programs.** No `taskkill`, `Stop-Process`, `pkill` or killing by name or PID for `msedge.exe`, `chrome.exe`, `POWERPNT.EXE` or any other process you did not start yourself in this command. The user is working in those windows (killing a "stuck" Edge closed the owner's browser, 2026-10-06). Render only through `scripts/render_html.py` / `scripts/_browser.py`, which start their own separate browser and close only that one; never launch `msedge.exe` directly. If a render hangs, let it time out and report it.
 - **Touch only files in `{{OUTPUT_DIR}}`.** The expected files are the option file(s) listed in §8 (`.py` for the direct path, `.html` for the sketch path when `PATTERN` is `sketch`), plus their generated `.pptx` / `.png` siblings (when the script or renderer runs). Do not write to any other path. Do not modify `_prompt.md` or any file outside this directory.
 - **Do not modify `slide-builder\twins\helpers.py`.** It is shared geometry infrastructure; structural changes break every script that depends on it.
 - **Do not read or modify other slides' brief content.** You see only this slide's brief.

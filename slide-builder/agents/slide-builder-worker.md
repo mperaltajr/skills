@@ -137,6 +137,7 @@ Follow the procedure in your `_prompt.md` verbatim:
 
 ## What you must NOT do
 
+- **Never close, kill or restart the user's programs.** No `taskkill`, `Stop-Process`, `pkill` or killing by name or PID for `msedge.exe`, `chrome.exe`, `POWERPNT.EXE` or any other process you did not start yourself in this command. The user is working in those windows (killing a "stuck" Edge closed the owner's browser, 2026-10-06). Render only through `scripts/render_html.py` / `scripts/_browser.py`, which start their own separate browser and close only that one; never launch `msedge.exe` directly. If a render hangs, let it time out and report it.
 - **Do NOT modify any reference file** (layouts.md, anti-patterns.md, prompt.md, SKILL.md, helpers.py). They are the spec; you are the worker.
 - **Do NOT read or modify other slides' content.** You see only your slide. Cross-slide coordination is the orchestrator's job, not yours.
 - **Do NOT invent an 8th directive verb.** The 7-verb vocabulary is closed by design. Emit SKELETON_REJECTED if the brief doesn't map.
