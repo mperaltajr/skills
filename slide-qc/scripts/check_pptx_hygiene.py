@@ -270,22 +270,32 @@ def check_banned_words(slide, slide_num: int) -> list[dict]:
 
 
 def check_type_scale(slide, slide_num: int, slide_h: int) -> list[dict]:
-    """Body text 12 pt or more, at most 3 body sizes; sources, footnotes and
-    chart labels not under 9 pt (slide-builder/scripts/type_scale.py). Major:
-    fix it, or the user gives a reason to keep it."""
+    """Body text 12 pt by default and never under 10.5 pt, at most 3 body
+    sizes; sources, footnotes and chart labels not under 9 pt
+    (slide-builder/scripts/type_scale.py). Breaks are Major (fix it, or the
+    user gives a reason); body text at 10.5 to 11 pt is an Advisory note."""
     try:
         sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]
                                / "slide-builder" / "scripts"))
         import type_scale
     except Exception:
         return []
-    return [{
+    r = type_scale.check_slide(slide, slide_h)
+    out = [{
         "slide": slide_num,
         "severity": "Major",
         "category": "text size",
-        "issue": (f"Slide {slide_num}: {p}. Make body text 12 pt or more by cutting "
-                  f"words or splitting the content, not by shrinking it."),
-    } for p in type_scale.problems(type_scale.check_slide(slide, slide_h))]
+        "issue": (f"Slide {slide_num}: {p}. Bring body text back to 12 pt (10.5 pt at "
+                  f"the lowest) by cutting words or splitting the content."),
+    } for p in type_scale.problems(r)]
+    out += [{
+        "slide": slide_num,
+        "severity": "Advisory",
+        "category": "text size",
+        "issue": (f"Slide {slide_num}: {n}. Allowed when the content cannot be cut; "
+                  f"12 pt is the default."),
+    } for n in type_scale.notes(r)]
+    return out
 
 
 def check_hidden_slides(prs) -> list[dict]:

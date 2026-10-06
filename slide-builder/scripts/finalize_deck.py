@@ -245,7 +245,7 @@ except ImportError:
     )
 _FOOTNOTE_NAME_PREFIXES = ("footnote", "source", "page-number")
 _FOOTER_NUM_RE = re.compile(r"^\d+$")
-# The font floor now lives in type_scale.py (body 12pt+ in at most 3 sizes;
+# The font floor now lives in type_scale.py (body 12pt, 10.5pt at the lowest, in at most 3 sizes;
 # sources, footnotes and chart text 9pt+). The constants below are kept for
 # older callers only. See reference/anti-patterns.md § Aesthetics #3.
 _BODY_ROLE_NAME_TOKENS = ("body", "bullet", "paragraph", "narrative")
@@ -489,7 +489,8 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
                                     leak_ok = False
                                     leak_offenders.append(f"'{pat}' in {name or '<unnamed>'}: {text[:60]!r}")
                                     break
-        # The type scale (owner's rule, 2026-10-05): body text 12pt or more in
+        # The type scale (owner's rule, 2026-10-05): body text 12pt (10.5pt at
+        # the lowest) in
         # at most 3 sizes; sources, footnotes and chart text not under 9pt.
         # One rule in one place: type_scale.py, also used by FINAL-CHECK.html
         # and slide-qc.
@@ -526,8 +527,8 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
     checks.append({"check": "title_present", "pass": title_ok, "severity": "warn", "detail": title_detail})
     checks.append({"check": "footer_present", "pass": footer_ok, "severity": "warn", "detail": footer_detail})
     if body_ok:
-        body_detail = ("body text >= 12pt in at most 3 sizes; sources, footnotes "
-                       "and chart text >= 9pt")
+        body_detail = ("body text >= 10.5pt (12pt default) in at most 3 sizes; "
+                       "sources, footnotes and chart text >= 9pt")
     else:
         body_detail = "; ".join(body_offenders)
     checks.append({

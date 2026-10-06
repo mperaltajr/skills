@@ -2,10 +2,12 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
-## 2026-10-05: type scale (12 pt body minimum)
+## 2026-10-05: type scale (12 pt body default, 10.5 pt floor)
 
-- Body text is 12 pt or more, using only 12, 14 and 16 pt, at most 3 sizes per
-  slide. Sources, footnotes and chart text may be smaller, never under 9 pt.
+- Body text is 12 pt by default (12, 14, 16), at most 3 sizes per slide. When
+  the content cannot be cut it may drop to 11 or 10.5 pt (an Advisory note),
+  never lower (Major). Sources, footnotes and chart text may be smaller, never
+  under 9 pt.
   Title, takeaway, template footer and one hero figure are not counted.
 - One check, `scripts/type_scale.py`, used by finalize, FINAL-CHECK.html (a
   "Text size" box) and slide-qc (Major: fix it or give a reason). It replaces

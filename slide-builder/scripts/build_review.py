@@ -1844,15 +1844,16 @@ def build_final_check(out_dir: Path, meta: Optional[dict]) -> int:
             out_dir, [(k, out_dir / k / _p.option_pptx_name(L)) for k, L in ship]))
     except Exception:
         src_block = ""
-    # Body text 12 pt or more, at most 3 body sizes (type_scale.py).
+    # Body text 12 pt (10.5 pt at the lowest), at most 3 body sizes (type_scale.py).
     try:
         import type_scale
         ts_rows = []
         for k, L in ship:
             f = out_dir / k / _p.option_pptx_name(L)
             if f.exists():
-                probs = [pr for _, pr in type_scale.check_pptx(f)]
-                ts_rows.append((f"Slide {int(k.split('_')[-1])}", probs[0] if probs else []))
+                res = type_scale.check_pptx(f, with_notes=True)
+                ts_rows.append((f"Slide {int(k.split('_')[-1])}",
+                                res[0][1] if res else [], res[0][2] if res else []))
         ts_block = type_scale.html_block(ts_rows)
     except Exception:
         ts_block = ""

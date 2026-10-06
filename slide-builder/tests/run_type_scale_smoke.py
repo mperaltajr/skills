@@ -1,9 +1,11 @@
 #!/usr/bin/env python3
-"""Smoke test: the type scale (body 12pt+, at most 3 body sizes, exceptions 9pt+).
+"""Smoke test: the type scale (body 12pt default, 10.5pt floor, at most 3
+body sizes, exceptions 9pt+).
 
   1. a slide that keeps to the scale passes: 12/14/16 body, a 40pt hero
      figure, 9pt chart labels named chart-..., a 9pt source line
-  2. body text at 10.5pt is flagged, whatever the shape is called
+  2. body text at 10pt is a finding; at 10.5pt it is only a note (below the
+     12pt default but allowed)
   3. a fourth body size is flagged
   4. a chart label or source under 9pt is flagged
   5. slide-qc's hygiene check reports them as Major "text size" findings
@@ -59,7 +61,7 @@ def main() -> int:
         deck = Path(td) / "t.pptx"
         _deck(deck, [
             GOOD,
-            GOOD + [("cell-1", "Fails on size", 10.5)],
+            GOOD + [("cell-1", "Fails on size", 10)],
             GOOD + [("big-1", "Gate 2 at month 12", 18)],
             GOOD + [("chart-xlab-2024", "2024", 8), ("footnote-1", "1. Estimate", 8, 6.95)],
         ])
@@ -69,8 +71,17 @@ def main() -> int:
         assert res[1] == [], res[1]
         print("    ok")
 
-        print("[2] body text at 10.5pt is flagged")
-        assert any("under 12 pt" in p for p in res[2]), res[2]
+        print("[2] body at 10pt is a finding; at 10.5pt only a note")
+        assert any("under 10.5 pt" in p for p in res[2]), res[2]
+        with tempfile.TemporaryDirectory() as td2:
+            d2 = Path(td2) / "n.pptx"
+            _deck(d2, [[g for g in GOOD if g[0] != "detail-1"]
+                       + [("cell-1", "Fails on size", 10.5)]])
+            (_, probs, nts), = type_scale.check_pptx(d2, with_notes=True)
+            assert probs == [] and nts and "below the 12 pt default" in nts[0], (probs, nts)
+            qc = check_pptx_hygiene.run_all_checks(d2)["violations"]
+            sev = {v["severity"] for v in qc if v.get("category") == "text size"}
+            assert sev == {"Advisory"}, qc
         print("    ok")
 
         print("[3] a fourth body size is flagged")
@@ -79,12 +90,13 @@ def main() -> int:
 
         print("[4] chart label or footnote under 9pt is flagged")
         assert any("under 9 pt" in p for p in res[4]), res[4]
-        assert not any("under 12 pt" in p for p in res[4]), res[4]
+        assert not any("under 10.5 pt" in p for p in res[4]), res[4]
         print("    ok")
 
         print("[5] slide-qc reports Major text-size findings")
         out = check_pptx_hygiene.run_all_checks(deck)
-        ts = [v for v in out["violations"] if v.get("category") == "text size"]
+        ts = [v for v in out["violations"] if v.get("category") == "text size"
+              and v["severity"] == "Major"]
         assert ts and all(v["severity"] == "Major" for v in ts), ts
         assert {v["slide"] for v in ts} == {2, 3, 4}, ts
         print("    ok")

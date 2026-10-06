@@ -165,14 +165,15 @@ Font sizes are specified in pixels at the 1280×720 canvas scale. They convert t
 | Source / footnote (`data-shape-id="source-..."`, `"footnote-..."`) | 12–13px | 9–10pt |
 | Chart text: axis, ticks, legend, data labels (`data-shape-id="chart-..."`) | 12–14px | 9–10.5pt |
 | Body detail, eyebrows, caps labels, table cells, step numbers | 16px | 12pt |
+| Last resort for dense detail, only when it cannot be cut | 14–14.67px | 10.5–11pt |
 | Key lines, card titles | 18.67px | 14pt |
 | Headings inside the body | 21.33px | 16pt |
 | Subtitle / takeaway (template field) | template | template |
 | Slide title (template field) | template | template |
 | One hero figure | 32px or more | 24pt or more |
 
-- **Body text is 12pt (16px) or more, using only 12, 14 and 16pt, at most 3 sizes per slide** (owner's rule, checked on FINAL-CHECK.html and by slide-qc as Major). Only sources, footnotes and chart text go smaller, and **never under 9pt (12px)**; give those elements a `chart-`, `source-` or `footnote-` shape id so the check recognizes them.
-- If content does not fit at 12pt, cut words, drop a column or split the slide. Never shrink body text to fit.
+- **Body text is 12pt (16px) by default, using 12, 14 and 16pt, at most 3 sizes per slide** (owner's rule, checked on FINAL-CHECK.html and by slide-qc). Dense detail may drop to 11 or 10.5pt only when the content cannot be cut (shown as a note); **under 10.5pt is a Major finding**. Only sources, footnotes and chart text go smaller, and **never under 9pt (12px)**; give those elements a `chart-`, `source-` or `footnote-` shape id so the check recognizes them.
+- If content does not fit at 12pt, cut words, drop a column or split the slide first. 10.5pt is the last resort, never below.
 - Hero numerals may exceed the title range (e.g., 64px ≈ 48pt) — still on the grid.
 - Pick a px value from the table; don't free-type arbitrary px that lands between grid points (e.g., 13px → 9.75pt snaps to 10pt anyway, so just use 13px for a 10pt label).
 

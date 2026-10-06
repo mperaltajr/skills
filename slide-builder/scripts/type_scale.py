@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 """type_scale.py: does a slide keep to the house type scale? (owner's rule, 2026-10-05)
 
-  - Body text is 12 pt or larger.
+  - Body text is 12 pt by default. When the content truly cannot be cut
+    further it may go down to 11 or 10.5 pt, never lower. 10.5 to 11 pt is
+    reported as a note (Advisory); under 10.5 pt is a finding (Major).
   - A slide uses at most 3 body text sizes.
   - Exceptions: sources, footnotes and chart text (axis, ticks, legend, data
     labels) may be smaller, but never under 9 pt. Title, takeaway and the
@@ -14,8 +16,9 @@ older names such as tick-label, c-ylab, legend are recognized too) and from
 the text itself (a line starting "Source" or "Note", or a numbered footnote
 in the bottom band).
 
-Used by build_review.py (FINAL-CHECK.html) and slide-qc's hygiene check
-(Major findings: fix, or give a reason to keep it).
+Used by build_review.py (FINAL-CHECK.html), finalize and slide-qc's
+hygiene check (Major findings: fix, or give a reason to keep it; notes are
+Advisory and never block).
 
 Run:  py -3 type_scale.py <deck.pptx>     prints the findings per slide
 """
@@ -26,7 +29,8 @@ import re
 import sys
 from pathlib import Path
 
-BODY_MIN_PT = 12.0
+BODY_DEFAULT_PT = 12.0   # the size to design at
+BODY_MIN_PT = 10.5       # lowest allowed, only when content cannot be cut
 EXCEPTION_MIN_PT = 9.0
 MAX_BODY_SIZES = 3
 HERO_MIN_PT = 24.0
@@ -64,9 +68,10 @@ def _shapes(shapes):
 
 
 def check_slide(slide, slide_h: int) -> dict:
-    """{'small_body': [(pt, text)], 'small_exception': [(pt, text)],
-        'body_sizes': [pt, ...], 'too_many_sizes': bool}"""
-    small_body, small_exc, body_sizes = [], [], set()
+    """{'small_body': [(pt, text)] under 10.5, 'below_default': [(pt, text)]
+        10.5 to 11, 'small_exception': [(pt, text)], 'body_sizes': [pt, ...],
+        'too_many_sizes': bool}"""
+    small_body, below_default, small_exc, body_sizes = [], [], [], set()
     for sh in _shapes(slide.shapes):
         if not getattr(sh, "has_text_frame", False) or not sh.has_text_frame:
             continue
@@ -99,13 +104,17 @@ def check_slide(slide, slide_h: int) -> dict:
                 if pt < BODY_MIN_PT:
                     small_body.append((pt, text))
                     break
-    return {"small_body": small_body, "small_exception": small_exc,
+                if pt < BODY_DEFAULT_PT:
+                    below_default.append((pt, text))
+                    break
+    return {"small_body": small_body, "below_default": below_default,
+            "small_exception": small_exc,
             "body_sizes": sorted(body_sizes),
             "too_many_sizes": len(body_sizes) > MAX_BODY_SIZES}
 
 
 def problems(result: dict) -> list[str]:
-    """Plain-English lines, empty when the slide keeps to the scale."""
+    """Major problems in plain English, empty when the slide keeps to the scale."""
     out = []
     sb = result["small_body"]
     if sb:
@@ -123,25 +132,49 @@ def problems(result: dict) -> list[str]:
     return out
 
 
-def check_pptx(path: Path) -> list[tuple[int, list[str]]]:
+def notes(result: dict) -> list[str]:
+    """Advisory: body text below the 12 pt default but within the 10.5 pt floor."""
+    bd = result.get("below_default") or []
+    if not bd:
+        return []
+    sizes = ", ".join(f"{p:g}" for p in sorted({p for p, _ in bd}))
+    return [f"{len(bd)} piece(s) of body text below the {BODY_DEFAULT_PT:g} pt default "
+            f"({sizes} pt), e.g. \"{bd[0][1][:50]}\""]
+
+
+def check_pptx(path: Path, with_notes: bool = False):
+    """[(slide n, problems)], or [(slide n, problems, notes)] with_notes."""
     from pptx import Presentation
     prs = Presentation(str(path))
-    return [(i, problems(check_slide(s, prs.slide_height)))
-            for i, s in enumerate(prs.slides, 1)]
+    out = []
+    for i, s in enumerate(prs.slides, 1):
+        r = check_slide(s, prs.slide_height)
+        out.append((i, problems(r), notes(r)) if with_notes else (i, problems(r)))
+    return out
 
 
-def html_block(rows: list[tuple[str, list[str]]]) -> str:
-    """FINAL-CHECK.html block. rows: (slide label, problems)."""
-    bad = [(k, p) for k, p in rows if p]
-    if not bad:
-        return ('<div class="srccheck ok">Every slide keeps body text at 12 pt or more, '
+def html_block(rows) -> str:
+    """FINAL-CHECK.html block. rows: (slide label, problems[, notes])."""
+    bad = [(r[0], r[1]) for r in rows if r[1]]
+    low = [(r[0], r[2]) for r in rows if len(r) > 2 and r[2]]
+    if not bad and not low:
+        return ('<div class="srccheck ok">Every slide keeps body text at 12 pt, '
                 'in at most 3 sizes.</div>')
-    trs = "".join(f"<tr><td>{_h.escape(k)}</td><td>{_h.escape('; '.join(p))}</td></tr>"
-                  for k, p in bad)
-    return ('<div class="srccheck"><b>Text size.</b> Body text should be 12 pt or more, '
-            'in at most 3 sizes per slide (sources, footnotes and chart labels may be '
-            'smaller, down to 9 pt). Fix these, or say why one should stay.'
-            f'<table>{trs}</table></div>')
+    parts = []
+    if bad:
+        trs = "".join(f"<tr><td>{_h.escape(k)}</td><td>{_h.escape('; '.join(p))}</td></tr>"
+                      for k, p in bad)
+        parts.append('<div class="srccheck"><b>Text size: fix these.</b> Body text is 12 pt, '
+                     'and never under 10.5 pt, in at most 3 sizes per slide (sources, '
+                     'footnotes and chart labels may go down to 9 pt). Fix these, or say why '
+                     f'one should stay.<table>{trs}</table></div>')
+    if low:
+        trs = "".join(f"<tr><td>{_h.escape(k)}</td><td>{_h.escape('; '.join(p))}</td></tr>"
+                      for k, p in low)
+        parts.append('<div class="srccheck ok"><b>Text size: below the 12 pt default.</b> '
+                     'Allowed down to 10.5 pt when the content cannot be cut; check it '
+                     f'still reads well.<table>{trs}</table></div>')
+    return "".join(parts)
 
 
 def main(argv=None) -> int:
