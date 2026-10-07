@@ -217,6 +217,15 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
 .chip { font-size: 11px; font-weight: 600; padding: 6px 11px; border-radius: 999px; border: 1.5px solid var(--panel-2); background: var(--panel-2); color: var(--text-dim); cursor: pointer; font-family: inherit; transition: all 0.14s; }
 .chip:hover { border-color: var(--accent); color: var(--accent); }
 .chip.selected { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* All options in one deck: a keep / leave-out switch per option */
+.keep-toggle { display: none; margin-top: 6px; font-size: 11px; font-weight: 700; padding: 5px 9px; border-radius: 5px; border: 1.5px solid var(--approve); background: #fff; color: var(--approve); cursor: pointer; font-family: inherit; }
+.keep-toggle.off { border-color: var(--reject); color: var(--reject); }
+body.all-mode .keep-toggle { display: inline-block; }
+body.all-mode .option.left-out .option-frame { opacity: 0.35; }
+#btn-all-cancel, #all-mode-hint { display: none; }
+body.all-mode #btn-all-cancel { display: inline-block; }
+body.all-mode #all-mode-hint { display: block; font-size: 12px; color: var(--text-dim); max-width: 460px; }
 </style></head><body><div style="font-family:Arial,sans-serif;background:#FFF7E8;border:1px solid #F2A541;border-radius:6px;padding:16px 20px;margin:16px;color:#1F2933;font-size:14px;line-height:1.5"><div style="font-size:16px;font-weight:bold;margin-bottom:6px">Example: the review page Slide Lab wrote for this run</div><p style="margin:0 0 8px">This is where you choose. For each slide, <b>Pick</b> one of three designs, <b>Replace these</b> to get a new design, or <b>Leave out</b>. The one-click feedback buttons cover common asks. In this shared copy your clicks are saved only in your own browser, and <b>Build my deck</b> copies a message that works only inside a real Slide Lab session. After this page, Slide Lab shows every pick finished on the template for a final look, then builds the deck.</p><div style="font-weight:bold;margin-top:8px">How this example was made</div><ul style="margin:4px 0 0 18px;padding:0"><li>Made on 5 October 2026 in one real Slide Lab run, on a fictional template (Meridian) with invented numbers. Nothing here is client material.</li><li>Storyline: the 2 October storyline, with 13 titles and takeaways rewritten at the storyline check so each states a fact with a number and fits on one line. A real storyline conversation usually takes 10 to 30 minutes.</li><li>Designs: 10 slides with 3 options each, all designed at the same time, 8.5 minutes. Body text is 12 pt or more on every design.</li><li>Picks: made by Claude at the owner's request (this is an example); in real use you pick on this page.</li><li>After the picks: converting to editable PowerPoint took about 4 minutes (3 slides needed the drawing agent for a few shapes); the final check page and the build took under 1 minute.</li><li>Quality check: no Critical or Major findings; 3 Advisory notes. The deck also opened cleanly in PowerPoint.</li><li>6 October: slide 8's headline was reworded to say what the data supports ("We expect partners to lower Indonesia's entry cost; no data yet") and that one slide redesigned in one design, keeping the picked layout.</li><li>Hand edits: none. Everything is the pipeline's own output.</li></ul></div>
 <div class="topbar">
   <div>
@@ -278,6 +287,7 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
     <span class="option-letter">Option A</span>
     
     
+    <button type="button" class="keep-toggle" data-slide="slide_01" data-letter="A" onclick="toggleKeep('slide_01', 'A')" title="All options in one deck: keep this option in it, or leave it out">Kept in the all-options deck</button>
   </div>
 </div>
 
@@ -287,6 +297,7 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
     <span class="option-letter">Option B</span>
     
     
+    <button type="button" class="keep-toggle" data-slide="slide_01" data-letter="B" onclick="toggleKeep('slide_01', 'B')" title="All options in one deck: keep this option in it, or leave it out">Kept in the all-options deck</button>
   </div>
 </div>
 
@@ -296,6 +307,7 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
     <span class="option-letter">Option C</span>
     
     
+    <button type="button" class="keep-toggle" data-slide="slide_01" data-letter="C" onclick="toggleKeep('slide_01', 'C')" title="All options in one deck: keep this option in it, or leave it out">Kept in the all-options deck</button>
   </div>
 </div>
 
@@ -359,6 +371,7 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
     <span class="option-letter">Option A</span>
     
     
+    <button type="button" class="keep-toggle" data-slide="slide_02" data-letter="A" onclick="toggleKeep('slide_02', 'A')" title="All options in one deck: keep this option in it, or leave it out">Kept in the all-options deck</button>
   </div>
 </div>
 
@@ -368,6 +381,7 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
     <span class="option-letter">Option B</span>
     
     
+    <button type="button" class="keep-toggle" data-slide="slide_02" data-letter="B" onclick="toggleKeep('slide_02', 'B')" title="All options in one deck: keep this option in it, or leave it out">Kept in the all-options deck</button>
   </div>
 </div>
 
@@ -377,6 +391,7 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
     <span class="option-letter">Option C</span>
     
     
+    <button type="button" class="keep-toggle" data-slide="slide_02" data-letter="C" onclick="toggleKeep('slide_02', 'C')" title="All options in one deck: keep this option in it, or leave it out">Kept in the all-options deck</button>
   </div>
 </div>
 
@@ -440,6 +455,7 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
     <span class="option-letter">Option A</span>
     
     
+    <button type="button" class="keep-toggle" data-slide="slide_03" data-letter="A" onclick="toggleKeep('slide_03', 'A')" title="All options in one deck: keep this option in it, or leave it out">Kept in the all-options deck</button>
   </div>
 </div>
 
@@ -449,6 +465,7 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
     <span class="option-letter">Option B</span>
     
     
+    <button type="button" class="keep-toggle" data-slide="slide_03" data-letter="B" onclick="toggleKeep('slide_03', 'B')" title="All options in one deck: keep this option in it, or leave it out">Kept in the all-options deck</button>
   </div>
 </div>
 
@@ -458,6 +475,7 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
     <span class="option-letter">Option C</span>
     
     
+    <button type="button" class="keep-toggle" data-slide="slide_03" data-letter="C" onclick="toggleKeep('slide_03', 'C')" title="All options in one deck: keep this option in it, or leave it out">Kept in the all-options deck</button>
   </div>
 </div>
 
@@ -521,6 +539,7 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
     <span class="option-letter">Option A</span>
     
     
+    <button type="button" class="keep-toggle" data-slide="slide_04" data-letter="A" onclick="toggleKeep('slide_04', 'A')" title="All options in one deck: keep this option in it, or leave it out">Kept in the all-options deck</button>
   </div>
 </div>
 
@@ -530,6 +549,7 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
     <span class="option-letter">Option B</span>
     
     
+    <button type="button" class="keep-toggle" data-slide="slide_04" data-letter="B" onclick="toggleKeep('slide_04', 'B')" title="All options in one deck: keep this option in it, or leave it out">Kept in the all-options deck</button>
   </div>
 </div>
 
@@ -539,6 +559,7 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
     <span class="option-letter">Option C</span>
     
     
+    <button type="button" class="keep-toggle" data-slide="slide_04" data-letter="C" onclick="toggleKeep('slide_04', 'C')" title="All options in one deck: keep this option in it, or leave it out">Kept in the all-options deck</button>
   </div>
 </div>
 
@@ -602,6 +623,7 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
     <span class="option-letter">Option A</span>
     
     
+    <button type="button" class="keep-toggle" data-slide="slide_05" data-letter="A" onclick="toggleKeep('slide_05', 'A')" title="All options in one deck: keep this option in it, or leave it out">Kept in the all-options deck</button>
   </div>
 </div>
 
@@ -611,6 +633,7 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
     <span class="option-letter">Option B</span>
     
     
+    <button type="button" class="keep-toggle" data-slide="slide_05" data-letter="B" onclick="toggleKeep('slide_05', 'B')" title="All options in one deck: keep this option in it, or leave it out">Kept in the all-options deck</button>
   </div>
 </div>
 
@@ -620,6 +643,7 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
     <span class="option-letter">Option C</span>
     
     
+    <button type="button" class="keep-toggle" data-slide="slide_05" data-letter="C" onclick="toggleKeep('slide_05', 'C')" title="All options in one deck: keep this option in it, or leave it out">Kept in the all-options deck</button>
   </div>
 </div>
 
@@ -683,6 +707,7 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
     <span class="option-letter">Option A</span>
     
     
+    <button type="button" class="keep-toggle" data-slide="slide_06" data-letter="A" onclick="toggleKeep('slide_06', 'A')" title="All options in one deck: keep this option in it, or leave it out">Kept in the all-options deck</button>
   </div>
 </div>
 
@@ -692,6 +717,7 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
     <span class="option-letter">Option B</span>
     
     
+    <button type="button" class="keep-toggle" data-slide="slide_06" data-letter="B" onclick="toggleKeep('slide_06', 'B')" title="All options in one deck: keep this option in it, or leave it out">Kept in the all-options deck</button>
   </div>
 </div>
 
@@ -701,6 +727,7 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
     <span class="option-letter">Option C</span>
     
     
+    <button type="button" class="keep-toggle" data-slide="slide_06" data-letter="C" onclick="toggleKeep('slide_06', 'C')" title="All options in one deck: keep this option in it, or leave it out">Kept in the all-options deck</button>
   </div>
 </div>
 
@@ -764,6 +791,7 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
     <span class="option-letter">Option A</span>
     
     
+    <button type="button" class="keep-toggle" data-slide="slide_07" data-letter="A" onclick="toggleKeep('slide_07', 'A')" title="All options in one deck: keep this option in it, or leave it out">Kept in the all-options deck</button>
   </div>
 </div>
 
@@ -773,6 +801,7 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
     <span class="option-letter">Option B</span>
     
     
+    <button type="button" class="keep-toggle" data-slide="slide_07" data-letter="B" onclick="toggleKeep('slide_07', 'B')" title="All options in one deck: keep this option in it, or leave it out">Kept in the all-options deck</button>
   </div>
 </div>
 
@@ -782,6 +811,7 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
     <span class="option-letter">Option C</span>
     
     
+    <button type="button" class="keep-toggle" data-slide="slide_07" data-letter="C" onclick="toggleKeep('slide_07', 'C')" title="All options in one deck: keep this option in it, or leave it out">Kept in the all-options deck</button>
   </div>
 </div>
 
@@ -845,6 +875,7 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
     <span class="option-letter">Option A</span>
     
     
+    <button type="button" class="keep-toggle" data-slide="slide_08" data-letter="A" onclick="toggleKeep('slide_08', 'A')" title="All options in one deck: keep this option in it, or leave it out">Kept in the all-options deck</button>
   </div>
 </div>
 
@@ -854,6 +885,7 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
     <span class="option-letter">Option B</span>
     
     
+    <button type="button" class="keep-toggle" data-slide="slide_08" data-letter="B" onclick="toggleKeep('slide_08', 'B')" title="All options in one deck: keep this option in it, or leave it out">Kept in the all-options deck</button>
   </div>
 </div>
 
@@ -863,6 +895,7 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
     <span class="option-letter">Option C</span>
     
     
+    <button type="button" class="keep-toggle" data-slide="slide_08" data-letter="C" onclick="toggleKeep('slide_08', 'C')" title="All options in one deck: keep this option in it, or leave it out">Kept in the all-options deck</button>
   </div>
 </div>
 
@@ -926,6 +959,7 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
     <span class="option-letter">Option A</span>
     
     
+    <button type="button" class="keep-toggle" data-slide="slide_09" data-letter="A" onclick="toggleKeep('slide_09', 'A')" title="All options in one deck: keep this option in it, or leave it out">Kept in the all-options deck</button>
   </div>
 </div>
 
@@ -935,6 +969,7 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
     <span class="option-letter">Option B</span>
     
     
+    <button type="button" class="keep-toggle" data-slide="slide_09" data-letter="B" onclick="toggleKeep('slide_09', 'B')" title="All options in one deck: keep this option in it, or leave it out">Kept in the all-options deck</button>
   </div>
 </div>
 
@@ -944,6 +979,7 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
     <span class="option-letter">Option C</span>
     
     
+    <button type="button" class="keep-toggle" data-slide="slide_09" data-letter="C" onclick="toggleKeep('slide_09', 'C')" title="All options in one deck: keep this option in it, or leave it out">Kept in the all-options deck</button>
   </div>
 </div>
 
@@ -1007,6 +1043,7 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
     <span class="option-letter">Option A</span>
     
     
+    <button type="button" class="keep-toggle" data-slide="slide_10" data-letter="A" onclick="toggleKeep('slide_10', 'A')" title="All options in one deck: keep this option in it, or leave it out">Kept in the all-options deck</button>
   </div>
 </div>
 
@@ -1016,6 +1053,7 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
     <span class="option-letter">Option B</span>
     
     
+    <button type="button" class="keep-toggle" data-slide="slide_10" data-letter="B" onclick="toggleKeep('slide_10', 'B')" title="All options in one deck: keep this option in it, or leave it out">Kept in the all-options deck</button>
   </div>
 </div>
 
@@ -1025,6 +1063,7 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
     <span class="option-letter">Option C</span>
     
     
+    <button type="button" class="keep-toggle" data-slide="slide_10" data-letter="C" onclick="toggleKeep('slide_10', 'C')" title="All options in one deck: keep this option in it, or leave it out">Kept in the all-options deck</button>
   </div>
 </div>
 
@@ -1068,8 +1107,10 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
 <footer class="summary-footer">
   <div class="count"><span class="num" id="pick-count">0</span> / <span id="total-slides">0</span> picked &middot; <span style="color:#64748B;font-weight:400;font-size:12px;">picks auto-save in this browser</span></div>
   <div class="btns">
+    <div id="all-mode-hint">All options in one deck: every option is kept unless you switch it to Leave out. Click the button again to copy the message.</div>
     <button class="btn ghost small" id="btn-clear">&#x1F5D1; Clear</button>
-    <button class="btn ghost small" id="btn-all" title="Converts every option, not just your picks: several times the tokens. Use sparingly.">All options in one deck &#9888;</button>
+    <button class="btn ghost small" id="btn-all-cancel">Back to one pick per slide</button>
+    <button class="btn ghost small" id="btn-all" title="Converts every option you keep, not just your picks: several times the tokens. Use sparingly.">All options in one deck &#9888;</button>
     <button class="btn primary big" id="btn-build">&#10003; Build my deck</button>
   </div>
 </footer>
@@ -1102,6 +1143,9 @@ const PICK_NS   = "::" + (window.__OUT_DIR__ || window.location.pathname);
 const PICKS_KEY = "slidelab_picks_v3" + PICK_NS;
 const FB_KEY    = "slidelab_feedback_v2" + PICK_NS;
 const REGEN_KEY = "slidelab_regen_v3"    + PICK_NS;
+// All-options deck: the options the user switched to Leave out, per slide,
+// with the slide's stamp (a rebuilt slide starts with every option kept).
+const KEEP_KEY  = "slidelab_keep_v1"     + PICK_NS;
 const STAMPS = window.__STAMPS__ || {};
 
 // Must match _state.fnv1a32 / approval_check character for character.
@@ -1140,6 +1184,8 @@ function savePicks(p) { saveJson(PICKS_KEY, p); }
 function loadRegens() { return loadJson(REGEN_KEY); }
 function saveRegens(r){ saveJson(REGEN_KEY, r); }
 function loadFb()     { return loadJson(FB_KEY); }
+function loadKeep()   { return loadJson(KEEP_KEY); }
+function saveKeep(k)  { saveJson(KEEP_KEY, k); }
 function saveFb(f)    { saveJson(FB_KEY, f); }
 
 function pickForSlide(sid) {
@@ -1196,8 +1242,44 @@ function updateCounts() {
     document.getElementById("total-slides").textContent = TOTAL_SLIDES;
 }
 
+function leftOut(sid) {
+    const v = loadKeep()[sid];
+    return (v && v.s === STAMPS[sid] && Array.isArray(v.out)) ? v.out : [];
+}
+function keptLetters(sid) {
+    const out = leftOut(sid);
+    return Object.keys(SLIDE_MAP[sid] || {}).filter(L => out.indexOf(L) === -1).sort();
+}
+function renderKeep(sid) {
+    const out = leftOut(sid);
+    document.querySelectorAll('.keep-toggle[data-slide="' + sid + '"]').forEach(b => {
+        const off = out.indexOf(b.dataset.letter) !== -1;
+        b.classList.toggle("off", off);
+        b.textContent = off ? "Left out of the all-options deck" : "Kept in the all-options deck";
+        const opt = b.closest(".option");
+        if (opt) opt.classList.toggle("left-out", off);
+    });
+}
+function toggleKeep(sid, letter) {
+    const k = loadKeep();
+    const out = leftOut(sid).slice();
+    const i = out.indexOf(letter);
+    if (i === -1) out.push(letter); else out.splice(i, 1);
+    k[sid] = { s: STAMPS[sid], out: out };
+    saveKeep(k);
+    renderKeep(sid);
+}
+function setAllMode(on) {
+    document.body.classList.toggle("all-mode", on);
+    document.getElementById("btn-all").innerHTML = on
+        ? "Copy the all-options message"
+        : "All options in one deck &#9888;";
+    SLIDE_IDS.forEach(renderKeep);
+}
+
 function renderAll() {
     SLIDE_IDS.forEach(renderSlideState);
+    SLIDE_IDS.forEach(renderKeep);
     const fb = loadFb();
     document.querySelectorAll("textarea[data-slide][data-field]").forEach(ta => {
         const k = ta.dataset.slide + "_" + ta.dataset.field;
@@ -1374,28 +1456,46 @@ async function buildDeck() {
 }
 
 async function buildAllOptions() {
-    // Every option converted and stacked in one deck, for side-by-side
-    // comparison. Converting is the expensive step, so say what it costs first.
-    let nOpts = 0;
-    SLIDE_IDS.forEach(sid => { nOpts += Object.keys(SLIDE_MAP[sid] || {}).length; });
-    const nSlides = SLIDE_IDS.length;
+    // Every option the user keeps, converted and stacked in one labeled deck,
+    // for side-by-side comparison. The first click shows a keep / leave-out
+    // switch on every option (all kept); the second copies the message.
+    if (!document.body.classList.contains("all-mode")) {
+        setAllMode(true);
+        showToast("Every option is kept. Switch any you don't want to Leave out, then click again.");
+        return;
+    }
+    const picks = {};
+    let nOpts = 0, nMulti = 0;
+    SLIDE_IDS.forEach(sid => {
+        const ks = keptLetters(sid);
+        picks[sid] = ks.length ? ks.join("") : "-";
+        nOpts += ks.length;
+        if (ks.length > 1) nMulti++;
+    });
+    if (!nOpts) { showToast("Every option is left out; there would be nothing to build."); return; }
+    if (!nMulti) {
+        showToast("Each slide keeps one option, so this is a normal deck: pick them and use Build my deck.");
+        return;
+    }
+    // Converting is the expensive step, so say what it costs first.
+    const nSlides = SLIDE_IDS.filter(sid => picks[sid] !== "-").length;
     const ratio = nSlides ? (nOpts / nSlides).toFixed(1) : "1";
-    const msg = "All options in one deck converts EVERY option: " + nOpts +
+    const msg = "All options in one deck converts every option you kept: " + nOpts +
         " of them, against " + nSlides + " for a normal build of your picks " +
         "(about " + ratio + "x the conversion cost).\n\n" +
-        "Use it only when you need to compare every design side by side.\n\nContinue?";
+        "Use it only when you need to compare designs side by side.\n\nContinue?";
     if (!confirm(msg)) return;
-    let cmd = "Build all options in one Slide Lab deck (every option, labeled).\n";
+    let cmd = "Build all options in one Slide Lab deck (the options I kept, labeled).\n";
     cmd += "Folder: " + window.__OUT_DIR__ + "\n";
-    cmd += plainPicks("ALL") + "\n";
+    cmd += plainPicks(canonicalPicks(picks)) + "\n";
     cmd += feedbackText();
-    return copyOut(cmd, "All-options command copied. Paste into Claude Code.",
-                   "All-options command (Ctrl+C to copy)");
+    return copyOut(cmd, "All-options message copied. Paste it into Claude.",
+                   "All-options message (Ctrl+C to copy)");
 }
 
 function clearAll() {
     if (!confirm("Clear all picks, replace requests, and feedback?")) return;
-    savePicks({}); saveRegens({}); saveFb({});
+    savePicks({}); saveRegens({}); saveFb({}); saveKeep({});
     document.querySelectorAll("textarea[data-slide][data-field]").forEach(ta => ta.value = "");
     document.querySelectorAll(".chip.selected").forEach(c => c.classList.remove("selected"));
     renderAll(); showToast("Cleared.");
@@ -1426,6 +1526,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     document.getElementById("btn-build").addEventListener("click", buildDeck);
     document.getElementById("btn-all").addEventListener("click", buildAllOptions);
+    document.getElementById("btn-all-cancel").addEventListener("click", () => setAllMode(false));
     document.getElementById("btn-clear").addEventListener("click", clearAll);
     document.getElementById("btn-dlg-copy").addEventListener("click", async () => {
         const txt = document.getElementById("picks-dlg-body").textContent;
