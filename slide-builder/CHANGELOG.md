@@ -108,6 +108,12 @@ All notable changes to this skill. Versioning follows [Semantic Versioning](http
 - Tests: run_named_slots_smoke, run_pdf_ledger_rows_smoke,
   run_template_background_smoke, run_arrow_ends_smoke,
   run_selfcheck_folder_smoke.
+- **The build fills the Source slot too.** finalize's body-canonical
+  finishing step now passes the layout's `source_placeholder_idx` to the
+  composer, so a sketch's source line lands in the template's own Source slot
+  (matched by idx first, a FOOTER placeholder second) instead of the fallback
+  text box with a "no footer slot" warning. Test: case 6 in
+  `tests/run_named_slots_smoke.py`.
 
 ## 2026-10-06: session-report fixes, batch 1
 

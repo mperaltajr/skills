@@ -21,6 +21,9 @@ footer slot turned into a BODY slot named "Source". Then:
      the template's own slots, with no loose copies
   5. the composer fills the source slot by its idx; the build's finishing step
      puts the takeaway in the Subtitle slot and draws no loose 'subtitle' shape
+  6. the build's finishing step puts the source line (template field
+     'footer') in the Source slot by its idx, with no fallback box and no
+     "no footer slot" warning
 
 Run:  py -3 slide-builder/tests/run_named_slots_smoke.py
 Prints "SMOKE PASSED." on success; raises AssertionError otherwise.
@@ -199,6 +202,25 @@ def main() -> int:
         assert not [sh for sh in slide.shapes if not sh.is_placeholder
                     and (sh.name or "").lower().startswith("subtitle")], "loose subtitle drawn"
         print("    ok")
+
+        print("[6] finishing puts the source line in the Source slot, with no warning")
+        prs = Presentation(str(tpl))
+        lay = next(l for l in prs.slide_layouts if l.name == LAYOUT)
+        slide = prs.slides.add_slide(lay)
+        clone_missing_chrome_placeholders(slide, lay)
+        src = Presentation().slides.add_slide(Presentation().slide_layouts[6])
+        said = io.StringIO()
+        with contextlib.redirect_stdout(said), contextlib.redirect_stderr(said):
+            fd._apply_body_canonical_finishing(
+                slide, prs, lc, src, 3,
+                template_fields_override={"title": TITLE, "subtitle": SUB, "footer": SOURCE})
+        got = {ph.placeholder_format.idx: ph.text_frame.text for ph in slide.placeholders}
+        assert got.get(SOURCE_IDX) == SOURCE, got
+        assert "no footer slot" not in said.getvalue(), said.getvalue()
+        assert not [sh for sh in slide.shapes if not sh.is_placeholder
+                    and SOURCE in (sh.text_frame.text if sh.has_text_frame else "")], \
+            "the source line was drawn as a loose text box as well"
+        print(f"    ok: source line in idx {SOURCE_IDX}, no fallback box, no warning")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     print("SMOKE PASSED.")

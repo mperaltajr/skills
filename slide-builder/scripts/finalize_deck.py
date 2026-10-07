@@ -1830,6 +1830,9 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
         title_idx=_title_idx,
         subtitle_idx=_subtitle_idx,
         title_font_pt=getattr(layout_chrome, "title_font_pt", None),
+        # A BODY slot the template names "Source" / "Footnote", registered in
+        # chrome.yml: matched by idx first, a FOOTER placeholder second.
+        footer_idx=getattr(layout_chrome, "source_placeholder_idx", None),
     )
 
     # A source line with no FOOTER placeholder to go into (the layout's source
