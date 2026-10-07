@@ -221,6 +221,23 @@ def main() -> int:
                     and SOURCE in (sh.text_frame.text if sh.has_text_frame else "")], \
             "the source line was drawn as a loose text box as well"
         print(f"    ok: source line in idx {SOURCE_IDX}, no fallback box, no warning")
+
+        print("[7] an indented Source slot is moved to the title's left edge, right edge kept")
+        prs = Presentation(str(tpl))
+        lay = next(l for l in prs.slide_layouts if l.name == LAYOUT)
+        lay_src = next(ph for ph in lay.placeholders if ph.placeholder_format.idx == SOURCE_IDX)
+        lay_title = next(ph for ph in lay.placeholders if int(ph.placeholder_format.type) == 1)
+        right = int(lay_title.left) + int(lay_src.width)
+        _set_box(lay_src._element, int(lay_title.left) + 48 * EMU, int(lay_src.top),
+                 int(lay_src.width) - 48 * EMU, int(lay_src.height))
+        slide = prs.slides.add_slide(lay)
+        _populate_layout_placeholders(slide, title=TITLE, footer=SOURCE,
+                                      title_idx=0, footer_idx=SOURCE_IDX)
+        s_ph = next(ph for ph in slide.placeholders if ph.placeholder_format.idx == SOURCE_IDX)
+        t_ph = next(ph for ph in slide.placeholders if int(ph.placeholder_format.type) == 1)
+        assert int(s_ph.left) == int(t_ph.left), (int(s_ph.left) // EMU, int(t_ph.left) // EMU)
+        assert abs(int(s_ph.left) + int(s_ph.width) - right) <= EMU, "right edge moved"
+        print("    ok: source starts at the title's left edge")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     print("SMOKE PASSED.")

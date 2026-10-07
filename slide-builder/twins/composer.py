@@ -34,7 +34,7 @@ import copy
 import re
 
 from pptx.oxml.ns import qn
-from pptx.util import Pt
+from pptx.util import Emu, Pt
 
 
 def write_literal_run_preserving_field(para, text):
@@ -290,11 +290,36 @@ def _populate_layout_placeholders(slide, *, title=None, subtitle=None,
                     break
             except Exception:
                 continue
+    def _align_source_left(ph):
+        # The source line starts where the title does (owner's decision,
+        # 2026-10-07): a template's Source box can sit indented (one client
+        # master puts it 48 px right of the title), which left the source
+        # out of line with the footnote Slide Lab draws at the title's edge.
+        # Keep the box's right edge, font and size; move only its left edge.
+        try:
+            title_ph = None
+            for cand in slide.placeholders:
+                pf = cand.placeholder_format
+                if (title_idx is not None and pf.idx == title_idx) or int(pf.type) in TITLE_TYPES:
+                    title_ph = cand
+                    break
+            if title_ph is None or ph.left is None or title_ph.left is None:
+                return
+            if ph.left - title_ph.left <= Emu(9525 * 4):  # within 4 px: leave it
+                return
+            left, top, width, height = ph.left, ph.top, ph.width, ph.height
+            right = left + width
+            ph.left, ph.top, ph.height = title_ph.left, top, height
+            ph.width = right - title_ph.left
+        except Exception:
+            pass
+
     if footer is not None and footer_idx is not None:
         for ph in list(slide.placeholders):
             try:
                 if ph.placeholder_format.idx == footer_idx:
                     _write(ph, footer)
+                    _align_source_left(ph)
                     found["footer"] = True
                     break
             except Exception:

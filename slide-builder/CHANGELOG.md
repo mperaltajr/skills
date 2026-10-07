@@ -47,6 +47,10 @@ All notable changes to this skill. Versioning follows [Semantic Versioning](http
   whether anything was rebuilt. Test: `tests/run_finalize_pending_smoke.py`.
 
 ### Templates and designs
+- A template's named Source slot that starts indented is moved to the title's
+  left edge (right edge, font and size kept), so the source line lines up with
+  the footnote (owner's decision, 2026-10-07). Standard footer slots are left
+  as the template places them.
 
 - **Template setup learns text slots named Subtitle and Source.** Many
   templates make the takeaway line and the source line ordinary text (BODY)
