@@ -2,6 +2,50 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## 2026-10-06: session-report fixes, batch 2
+
+### Approvals and picks
+
+- **Picks and "build it" typed in chat count, with the page open** (owner's
+  decisions D1 and D2). `record_picks.py --approved-in-chat "<the user's
+  words>" --picks "1A 2C"` records picks typed in chat, and
+  `compile_picks.py --approved-in-chat "<words>"` takes the place of
+  `--final-token`. Each is accepted only when its page (REVIEW.html,
+  FINAL-CHECK.html) was opened with `build_review.py --open` for the current
+  files: `build_review.py` now records the opening, bound to the page's token
+  and to each slide's option-file stamp (review) or the finished files'
+  digests (final check). Refused before the page was opened, after a rebuild
+  or finalize, when a file changed since, and when a picked letter is not in
+  the user's words. The words are recorded verbatim with what they were bound
+  to, and `check_done.py` lists them at delivery under `chat approvals`, not
+  as gates passed over (a QC fix approved in chat is listed there too). The
+  pasted lines work as before. Test: `tests/run_chat_approval_smoke.py`.
+- **Keep some options of a slide.** A pick may name several letters,
+  `Picks: 1BC 2A (check ...)` (canonical `slide_01=BC;slide_02=A`), recorded as
+  the user's choice and compiled as a labeled all-options deck of exactly the
+  kept options. Before, "B and C, not A" meant moving A's files aside and
+  finalizing with `--allow-missing`, which logged an override on every run.
+  REVIEW.html's "All options in one deck" now shows a **Kept in the
+  all-options deck** switch on every option (first click), and its message
+  uses the multi-letter form with the check code. An identical override is
+  now logged once, with a count. Test: `tests/run_keep_options_smoke.py`
+  (the page switch is driven through Playwright).
+- **QC fixes on slides with several kept options.** `apply_qc_fix.py --slides
+  1B` rebuilds only the named option(s) of a slide that keeps several (B
+  converted again, C left byte-identical and still in the deck), keeps the
+  slide's list and the all-options flag, and compiles the labeled deck. A
+  plain slide number on such a slide, or a letter the user did not keep, is
+  refused. It still needs a first compile. The dead "all-options" guard is
+  gone. Test: case 7 in `tests/run_qc_fix_smoke.py`.
+- **Finalize names pending work and says plainly when it refused.** Options
+  converted before any pick and waiting on the translator agent are no longer
+  counted as "nobody has picked yet" (which ended in "nothing to do", exit 0):
+  finalize exits 11 and names them ("slide 1 option B, slide 1 option C") with
+  the next step on the normal output. Sketches simply waiting for the user's
+  picks get a next-step line instead of "nothing to do". Every refusal or
+  stop ends with one `REFUSED (exit N)` line on the normal output, saying
+  whether anything was rebuilt. Test: `tests/run_finalize_pending_smoke.py`.
+
 ## 2026-10-06: session-report fixes, batch 1
 
 From a session report, checked by three validators and an adjudicator. These

@@ -2597,17 +2597,38 @@ def _run_and_record(args) -> int:
     except DarkVariantCollisionError as exc:
         _state.end_finalize(args.out, "failed", f"dark-variant collision: {exc}")
         print(f"\nERROR: build refused.\n{exc}", file=sys.stderr)
+        _print_refused(EXIT_DARK_COLLISION)
         return EXIT_DARK_COLLISION
     except ChromeLayoutMissingError as exc:
         _state.end_finalize(args.out, "failed", "slide names a layout chrome.yml lacks")
         print(f"\nERROR: {exc}", file=sys.stderr)
+        _print_refused(EXIT_LAYOUT_MISSING)
         return EXIT_LAYOUT_MISSING
     except BaseException as exc:
         _state.end_finalize(args.out, "failed", f"{type(exc).__name__}: {exc}"[:300])
         raise
     _state.end_finalize(args.out, "ok" if rc == 0 else "failed",
                         "" if rc == 0 else f"exit {rc}")
+    if rc != 0:
+        _print_refused(rc)
     return rc
+
+
+def _print_refused(rc: int) -> None:
+    """One plain line on the normal output when finalize refuses or stops.
+
+    The reasons go to the error stream, and the option pictures from the last
+    run stay on disk; with the error stream filtered, a refused run looked like
+    a rebuild and an old picture nearly passed for the fixed one (2026-10-06).
+    """
+    sys.stderr.flush()
+    if rc in (EXIT_MISSING_OUTPUT, 7):
+        print(f"\nREFUSED (exit {rc}): nothing rebuilt. The option files and pictures "
+              "on disk are from an earlier run; the reason is above.", flush=True)
+    else:
+        print(f"\nREFUSED (exit {rc}): finalize stopped; the reason is above. Do not "
+              "show or send option files from this folder until it passes: some may "
+              "be from an earlier run.", flush=True)
 
 
 def _run(args) -> int:
@@ -2779,10 +2800,15 @@ def _run(args) -> int:
     def _awaiting_pick(st) -> bool:
         if st.classification != "missing":
             return False
-        if not (_p.slide_dir(args.out, st.slide_n) / f"option_{st.letter}.html").exists():
+        sd = _p.slide_dir(args.out, st.slide_n)
+        if not (sd / f"option_{st.letter}.html").exists():
             return False
         if not _picks:
-            return True
+            # Already converted (before any pick was recorded) and waiting on
+            # the translator agent: that is pending work, not "nobody has
+            # picked yet". It used to be counted here, and finalize then said
+            # "nothing to do" with exit 0 over two half-converted options.
+            return not (sd / f"option_{st.letter}_native.py").exists()
         chosen = _picks.get(_p.slide_key(st.slide_n))
         chosen = chosen if isinstance(chosen, list) else [chosen]
         return st.letter not in chosen
@@ -2850,6 +2876,19 @@ def _run(args) -> int:
                     "option's translation report). Dispatch slide-builder-translator "
                     "in FALLBACK MODE on:\n"
                     + "".join(f"  {t}_native.py\n" for t in needs_fallback))
+                if not _picks:
+                    sys.stderr.write(
+                        "\nThese were converted before the user's picks were recorded. "
+                        "Record the picks first (record_picks.py, from REVIEW.html or the "
+                        "user's words in chat); only picked options go on to the agent.\n")
+                # Name them on the normal output too, with the next step.
+                print("  waiting on the translator agent (FALLBACK MODE): "
+                      + ", ".join(f"slide {int(t[6:8])} option {t[-1]}"
+                                  for t in needs_fallback))
+                print("  next: " + ("record the user's picks (record_picks.py), then "
+                                    if not _picks else "")
+                      + "run slide-builder-translator in FALLBACK MODE on each "
+                      "option_X_native.py listed, then finalize_deck.py again.")
             if needs_worker:
                 sys.stderr.write(
                     "\nNo design output at all — the worker was never sent, is still "
@@ -2870,7 +2909,15 @@ def _run(args) -> int:
           f"{len({s.slide_n for s in statuses})} slides")
     print(f"  classification: native={n_native}  sketch={n_sketch}  rejected={n_rejected}")
     if not statuses:
-        print("  nothing to do.")
+        if _waiting and not _picks:
+            # Sketches waiting for the user's picks: not finished, and not an
+            # error either. Say what comes next instead of "nothing to do".
+            print("  nothing to finalize until the user picks. Next: build_review.py "
+                  "--open, wait for the user's picks, then record_picks.py.")
+        elif _waiting:
+            print("  nothing to finalize: no picked option needs it.")
+        else:
+            print("  nothing to do.")
         write_result(args.out, args.template, statuses)
         return 0
 

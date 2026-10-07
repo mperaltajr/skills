@@ -29,6 +29,7 @@
     "LEAVE OUT",
     "Build my deck",
     "All options in one deck",
+    "Kept in the all-options deck",
     "Build it",
     "Send fixes",
     "Something needs fixing? Say which slide and what.",
@@ -801,7 +802,8 @@
       <div class="see"><span class="lbl">You'll see</span>A "PICKED" mark on the chosen option, and the counts at the top go up.</div></li>
     <li>Optional: click any of the <span data-f="chips_total">9</span> quick-feedback buttons, such as <span class="ui">Too sparse, add detail</span> or <span class="ui">Add process structure: numbers, icons</span> (the page lists the rest), or type a note under <span class="ui">More detail (optional)</span>. Notes travel with your choices, so a pick plus a quick-feedback button asks for a small change without a new design. The rules behind those two buttons: <a href="#r-full-page">a full page</a>, <a href="#r-structure">visible structure</a>.</li>
     <li>Click <span class="ui">Build my deck</span>, then paste the message it copies into Claude, unchanged. It reads like <code class="msg">Picks: 1B 2C 3A ... (check 1a2b3c4d)</code>.
-      <div class="see"><span class="lbl">You'll see</span>"Build command copied" on the page. Claude records exactly what you picked and moves on to step 6.</div></li>
+      <div class="see"><span class="lbl">You'll see</span>"Build command copied" on the page. Claude records exactly what you picked and moves on to step 6.</div>
+      Or, while the page is open, type your picks in the chat by letter, such as "use 1B 2C 3A" or "build B and C". Claude records your exact words with the page you were looking at. If a slide changed after the page opened, Claude opens it again first.</li>
   </ol>
 
   <aside class="callout tip"><span class="lbl">Tip</span>Your choices save in this browser, so you can close the page and come back later in the same browser.</aside>
@@ -855,8 +857,8 @@
       <div class="see"><span class="lbl">You'll see</span>Every finished slide, exactly as it will be built.</div></li>
     <li>Check the box at the top: it lists any number or label on a slide that is not in your brief (<a href="#r-no-invented">why</a>).
       <aside class="callout important"><span class="lbl">Important</span>A number in that list that you did not expect needs a fix: the quality check cannot tell an invented number from a real one.</aside></li>
-    <li>All good: click <span class="ui">Build it</span> and paste what it copies into Claude.
-      <div class="see"><span class="lbl">You'll see</span>"Build command copied" on the page. Claude builds the deck and runs the quality check (step 7).</div></li>
+    <li>All good: click <span class="ui">Build it</span> and paste what it copies into Claude, or just type "build it" in the chat while the page is open.
+      <div class="see"><span class="lbl">You'll see</span>"Build command copied" on the page. Claude builds the deck and runs the quality check (step 7). A "build it" typed in chat is recorded in your words and listed when the deck is delivered.</div></li>
     <li>Something wrong: type it in the box that reads <span class="ui wrap">Something needs fixing? Say which slide and what.</span> then click <span class="ui">Send fixes</span> and paste what it copies. Name the slide and say what is wrong ("slide 4: the right column is cut off"); the more specific, the better the fix.
       <div class="see"><span class="lbl">You'll see</span>Claude redesigns the affected slides and opens a new final check page in your browser.</div></li>
   </ol>
@@ -1685,8 +1687,8 @@
     <details class="more"><summary>Do I need to know how to code or design?</summary><div class="body"><p>No. You talk to Claude in plain English and click buttons on two web pages. Claude asks before it runs anything on your computer; click Allow when it does.</p></div></details>
     <details class="more"><summary>Why did Claude stop and wait?</summary><div class="body"><p>Slide Lab is built to stop at certain points and wait for your answer. A stop is not a bug: Claude is asking for something only you can decide. Nothing moves on until you answer.</p><p>If you do not answer: nothing is built, saved or deleted. Answer in the chat, or click the button on the page it opened.</p></div></details>
     <details class="more"><summary>What if I don't like any of the designs for a slide?</summary><div class="body"><p>Click <span class="ui">REPLACE THESE</span> and say in the notes what you want different. You get <span data-f="options_per_slide_revision">1</span> new design by default; say "with 3 options" if you want alternatives. For a small change, pick the closest option and add a quick-feedback button or a note instead.</p></div></details>
-    <details class="more"><summary>Can I get every option in one PowerPoint file?</summary><div class="body"><p>Yes. <span class="ui">All options in one deck</span> on the review page builds every option, not just your picks, into one deck for side-by-side comparison. It costs several times more than a normal build, so the page warns you and asks before it copies anything. Use it rarely.</p></div></details>
-    <details class="more"><summary>Why do I paste a message back into Claude?</summary><div class="body"><p>The review pages are files on your computer and cannot talk to Claude directly. The copied message carries your exact choices with a check code, so nothing is retyped or misread. Paste it unchanged.</p></div></details>
+    <details class="more"><summary>Can I get every option in one PowerPoint file?</summary><div class="body"><p>Yes. <span class="ui">All options in one deck</span> on the review page builds every option, not just your picks, into one deck for side-by-side comparison, each slide labeled with its option letter. The first click puts a switch on every option, <span class="ui">Kept in the all-options deck</span>; click it to leave that option out (for example keep B and C of slide 1, not A). Click the button again to copy the message. It costs several times more than a normal build, so the page warns you and asks before it copies anything. Use it rarely.</p></div></details>
+    <details class="more"><summary>Why do I paste a message back into Claude?</summary><div class="body"><p>The review pages are files on your computer and cannot talk to Claude directly. The copied message carries your exact choices with a check code, so nothing is retyped or misread. Paste it unchanged. You can also just say it in the chat while the page is open ("build it", "use 1B 2C"): Claude records your words with the page you saw.</p></div></details>
     <details class="more"><summary>Can I keep my work in OneDrive?</summary><div class="body"><p>Keep the session folder on your computer's own drive (<code class="path">C:\Users\&lt;you&gt;\Slide Lab\sessions\</code>). In OneDrive, builds are noticeably slower and previews can time out. Copy the finished deck to OneDrive or SharePoint afterward. The template itself can live anywhere.</p></div></details>
     <details class="more"><summary>Can I edit the charts afterward?</summary><div class="body"><p>Charts are drawn from shapes for a clean, on-brand look, so they are not linked to a datasheet. Either ask Claude to rebuild the slide with new numbers, or say "Export the chart data to Excel" and paste the sheet into think-cell or a normal PowerPoint chart. The chart rules: <a href="#rules-charts">Numbers and charts</a>.</p></div></details>
     <details class="more"><summary>Is my client's template safe?</summary><div class="body"><p>Yes. Slide Lab works on its own copy and never changes your original file. Your work stays on your computer.</p></div></details>

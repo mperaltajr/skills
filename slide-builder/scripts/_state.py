@@ -113,23 +113,31 @@ def fnv1a32(text: str) -> str:
 
 
 def canonical_picks(picks) -> str:
-    """'ALL', or 'slide_01=A;slide_02=C' sorted by slide."""
+    """'ALL', or 'slide_01=A;slide_02=C' sorted by slide. A slide where the user
+    kept several options is written with its letters run together, sorted:
+    'slide_01=BC;slide_02=A' (the page writes the same string)."""
     if picks == "ALL":
         return "ALL"
-    return ";".join(f"{k}={picks[k]}" for k in sorted(picks))
+
+    def _v(v) -> str:
+        return "".join(sorted(set(v))) if isinstance(v, (list, tuple)) else str(v)
+    return ";".join(f"{k}={_v(picks[k])}" for k in sorted(picks))
 
 
 def approval_check(token: str, canonical: str) -> str:
     return fnv1a32(f"{token}|{canonical}")
 
 
-def record_picks(out_dir, picks: dict, all_options: bool = False) -> None:
+def record_picks(out_dir, picks: dict, all_options: bool = False,
+                 via: str = "page") -> None:
     """The user's approved picks, as verified by record_picks.py. Recording new
-    picks clears any earlier final check: that look was at different slides."""
+    picks clears any earlier final check: that look was at different slides.
+    `via` says how they came in: "page" (the check-coded line from
+    REVIEW.html) or "chat" (the user typed them with the page open)."""
     state = read_state(out_dir)
     review = state.get("review") or {}
     review.update({"picks": picks, "all_options": bool(all_options),
-                   "approved_at": _now()})
+                   "approved_at": _now(), "approved_via": via})
     state["review"] = review
     state.pop("final_check", None)
     _write(out_dir, state)
@@ -166,8 +174,101 @@ def record_override(out_dir, name: str, detail: str = "") -> None:
     """A gate was deliberately overridden. Kept in the build's record so a deck
     built past a check says so, rather than looking like it passed it."""
     state = read_state(out_dir)
-    state.setdefault("overrides", []).append(
-        {"override": name, "detail": detail, "at": _now()})
+    overrides = state.setdefault("overrides", [])
+    # The same override again (finalize re-run with the same gap) is counted on
+    # the entry already there. One build listed four identical "allow_missing"
+    # lines at delivery, which read like four defects.
+    for o in overrides:
+        if o.get("override") == name and o.get("detail", "") == detail:
+            o["count"] = int(o.get("count") or 1) + 1
+            o["last_at"] = _now()
+            break
+    else:
+        overrides.append({"override": name, "detail": detail, "at": _now()})
+    _write(out_dir, state)
+
+
+# ---------------------------------------------------------------------------
+# Chat approvals (owner's decisions D1 and D2, 2026-10-06). Once REVIEW.html or
+# FINAL-CHECK.html has been built AND opened for the current files, the user's
+# own words in chat ("build it", "build B and C") count as the approval that
+# page would have copied. The words are recorded verbatim, bound to the page's
+# token and to the files it showed, so a page from before a rebuild cannot be
+# approved this way. check_done lists them at delivery as chat approvals.
+# ---------------------------------------------------------------------------
+
+def option_files_stamp(slide_dir) -> str:
+    """Fingerprint of a slide's option design files (name, size, time). The
+    review page keeps a pick only while this matches; chat approval of picks is
+    refused when it changed after the page was opened."""
+    h = hashlib.md5()
+    for f in sorted(Path(slide_dir).glob("option_*")):
+        if f.is_file() and f.suffix in (".py", ".html"):
+            st_ = f.stat()
+            h.update(f"{f.name}:{st_.st_size}:{int(st_.st_mtime)}".encode())
+    return h.hexdigest()[:10]
+
+
+def record_page_opened(out_dir, page: str, how: str, stamps: dict | None = None) -> None:
+    """build_review.py --open showed a page to the user. `page` is "review" or
+    "final_check"; the record is bound to that page's current token (and, for
+    the review, to each slide's option-file stamp; the final check's digests
+    already bind its files). `how`: "browser", or "test" under
+    SLIDE_LAB_NO_OPEN (the test suites stand in for the browser)."""
+    state = read_state(out_dir)
+    rec = state.get(page) or {}
+    if not rec.get("token"):
+        return
+    opened = {"token": rec["token"], "at": _now(), "how": how,
+              "content_hash": state.get("content_hash")}
+    if page == "review":
+        opened["stamps"] = dict(stamps or {})
+    else:
+        opened["digests"] = dict(rec.get("digests") or {})
+    rec["opened"] = opened
+    state[page] = rec
+    _write(out_dir, state)
+
+
+def check_page_opened(state: dict, page: str, stamps_now: dict | None = None) -> tuple[bool, str]:
+    """Was `page` opened for the current files? (ok, reason)."""
+    label = "REVIEW.html" if page == "review" else "FINAL-CHECK.html"
+    cmd = ("build_review.py --out <out> --open" if page == "review"
+           else "build_review.py --out <out> --final --open")
+    rec = state.get(page) or {}
+    opened = rec.get("opened") or {}
+    if not rec.get("token") or not opened:
+        return False, (f"{label} has not been opened for the user in this build, so "
+                       f"there is nothing their chat message can approve. Run {cmd}, "
+                       "tell the user it is open, and wait for them.")
+    if opened.get("token") != rec.get("token") or (
+            state.get("content_hash") and opened.get("content_hash") != state.get("content_hash")):
+        return False, (f"the {label} the user saw is from before a rebuild. Run {cmd} "
+                       "again and let them look at the current page.")
+    if page == "final_check" and opened.get("digests") != rec.get("digests"):
+        return False, (f"the finished files changed after {label} was opened. Run {cmd} "
+                       "again and let them look at the current page.")
+    if page == "review" and stamps_now is not None:
+        seen = opened.get("stamps") or {}
+        changed = sorted(k for k in set(seen) | set(stamps_now)
+                         if seen.get(k) != stamps_now.get(k))
+        if changed:
+            return False, (f"{len(changed)} slide(s) changed after {label} was opened "
+                           f"({', '.join(changed[:4])}). Run {cmd} again and let the user "
+                           "look at the current designs.")
+    return True, "ok"
+
+
+def record_chat_approval(out_dir, kind: str, words: str, bound: dict | None = None) -> None:
+    """The user approved in chat, with the page open. `kind`: "picks",
+    "final_check" or "qc_fix". `words` are theirs, verbatim. `bound` is what
+    the approval was checked against (page token, file stamps or digests)."""
+    state = read_state(out_dir)
+    entry = {"kind": kind, "words": words, "at": _now(), "bound": dict(bound or {})}
+    lst = state.setdefault("chat_approvals", [])
+    if not any(e.get("kind") == kind and e.get("words") == words
+               and e.get("bound") == entry["bound"] for e in lst):
+        lst.append(entry)
     _write(out_dir, state)
 
 

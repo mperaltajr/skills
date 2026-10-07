@@ -344,12 +344,9 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
     # clears slide 3's pick and leaves every other slide's alone. Picks used to
     # carry over onto a rebuilt slide (one click, no looking), and after an
     # insert they landed on the wrong slide.
-    _h = __import__("hashlib").md5()
-    for f in sorted(src_dir.glob("option_*")):
-        if f.is_file() and f.suffix in (".py", ".html"):
-            st_ = f.stat()
-            _h.update(f"{f.name}:{st_.st_size}:{int(st_.st_mtime)}".encode())
-    slide_stamp = _h.hexdigest()[:10]
+    # (_state computes it, so a chat approval of picks can check the files
+    # are still the ones the opened page showed.)
+    slide_stamp = _state.option_files_stamp(src_dir)
     for letter in built_letters:
         # The finished, on-template render when finalize has made one; the
         # worker's sketch otherwise. The page says which it is showing.
@@ -772,6 +769,15 @@ def render_option_tile(slide: dict, opt: dict, themed_path_str: str) -> str:
     pattern = opt.get("pattern")
     pattern_html = ""  # internal layout names mean nothing to the reviewer
 
+    # "All options in one deck" mode only (hidden otherwise): keep this option
+    # in that deck or leave it out, so "B and C, not A" is the user's own
+    # recorded choice instead of files moved aside plus an override.
+    keep_btn = (
+        f'<button type="button" class="keep-toggle" data-slide="{sid}" '
+        f'data-letter="{letter}" onclick="toggleKeep(\'{sid}\', \'{letter}\')" '
+        'title="All options in one deck: keep this option in it, or leave it out">'
+        'Kept in the all-options deck</button>')
+
     return f"""
 <div class="option" data-slide="{sid}" data-letter="{letter}" data-pptx="{html.escape(themed_path_str)}">
   <div class="option-frame">{thumb}{qc_badge}{class_badge_html}</div>
@@ -779,6 +785,7 @@ def render_option_tile(slide: dict, opt: dict, themed_path_str: str) -> str:
     <span class="option-letter">Option {letter}</span>
     {pattern_html}
     {vqc_btn}
+    {keep_btn}
   </div>
 </div>
 """
@@ -1255,6 +1262,15 @@ dialog#picks-dialog .dlg-foot { padding: 12px 18px; border-top: 1px solid var(--
 .chip { font-size: 11px; font-weight: 600; padding: 6px 11px; border-radius: 999px; border: 1.5px solid var(--panel-2); background: var(--panel-2); color: var(--text-dim); cursor: pointer; font-family: inherit; transition: all 0.14s; }
 .chip:hover { border-color: var(--accent); color: var(--accent); }
 .chip.selected { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* All options in one deck: a keep / leave-out switch per option */
+.keep-toggle { display: none; margin-top: 6px; font-size: 11px; font-weight: 700; padding: 5px 9px; border-radius: 5px; border: 1.5px solid var(--approve); background: #fff; color: var(--approve); cursor: pointer; font-family: inherit; }
+.keep-toggle.off { border-color: var(--reject); color: var(--reject); }
+body.all-mode .keep-toggle { display: inline-block; }
+body.all-mode .option.left-out .option-frame { opacity: 0.35; }
+#btn-all-cancel, #all-mode-hint { display: none; }
+body.all-mode #btn-all-cancel { display: inline-block; }
+body.all-mode #all-mode-hint { display: block; font-size: 12px; color: var(--text-dim); max-width: 460px; }
 """
 
 
@@ -1274,6 +1290,9 @@ const PICK_NS   = "::" + (window.__OUT_DIR__ || window.location.pathname);
 const PICKS_KEY = "slidelab_picks_v3" + PICK_NS;
 const FB_KEY    = "slidelab_feedback_v2" + PICK_NS;
 const REGEN_KEY = "slidelab_regen_v3"    + PICK_NS;
+// All-options deck: the options the user switched to Leave out, per slide,
+// with the slide's stamp (a rebuilt slide starts with every option kept).
+const KEEP_KEY  = "slidelab_keep_v1"     + PICK_NS;
 const STAMPS = window.__STAMPS__ || {};
 
 // Must match _state.fnv1a32 / approval_check character for character.
@@ -1312,6 +1331,8 @@ function savePicks(p) { saveJson(PICKS_KEY, p); }
 function loadRegens() { return loadJson(REGEN_KEY); }
 function saveRegens(r){ saveJson(REGEN_KEY, r); }
 function loadFb()     { return loadJson(FB_KEY); }
+function loadKeep()   { return loadJson(KEEP_KEY); }
+function saveKeep(k)  { saveJson(KEEP_KEY, k); }
 function saveFb(f)    { saveJson(FB_KEY, f); }
 
 function pickForSlide(sid) {
@@ -1368,8 +1389,44 @@ function updateCounts() {
     document.getElementById("total-slides").textContent = TOTAL_SLIDES;
 }
 
+function leftOut(sid) {
+    const v = loadKeep()[sid];
+    return (v && v.s === STAMPS[sid] && Array.isArray(v.out)) ? v.out : [];
+}
+function keptLetters(sid) {
+    const out = leftOut(sid);
+    return Object.keys(SLIDE_MAP[sid] || {}).filter(L => out.indexOf(L) === -1).sort();
+}
+function renderKeep(sid) {
+    const out = leftOut(sid);
+    document.querySelectorAll('.keep-toggle[data-slide="' + sid + '"]').forEach(b => {
+        const off = out.indexOf(b.dataset.letter) !== -1;
+        b.classList.toggle("off", off);
+        b.textContent = off ? "Left out of the all-options deck" : "Kept in the all-options deck";
+        const opt = b.closest(".option");
+        if (opt) opt.classList.toggle("left-out", off);
+    });
+}
+function toggleKeep(sid, letter) {
+    const k = loadKeep();
+    const out = leftOut(sid).slice();
+    const i = out.indexOf(letter);
+    if (i === -1) out.push(letter); else out.splice(i, 1);
+    k[sid] = { s: STAMPS[sid], out: out };
+    saveKeep(k);
+    renderKeep(sid);
+}
+function setAllMode(on) {
+    document.body.classList.toggle("all-mode", on);
+    document.getElementById("btn-all").innerHTML = on
+        ? "Copy the all-options message"
+        : "All options in one deck &#9888;";
+    SLIDE_IDS.forEach(renderKeep);
+}
+
 function renderAll() {
     SLIDE_IDS.forEach(renderSlideState);
+    SLIDE_IDS.forEach(renderKeep);
     const fb = loadFb();
     document.querySelectorAll("textarea[data-slide][data-field]").forEach(ta => {
         const k = ta.dataset.slide + "_" + ta.dataset.field;
@@ -1546,28 +1603,46 @@ async function buildDeck() {
 }
 
 async function buildAllOptions() {
-    // Every option converted and stacked in one deck, for side-by-side
-    // comparison. Converting is the expensive step, so say what it costs first.
-    let nOpts = 0;
-    SLIDE_IDS.forEach(sid => { nOpts += Object.keys(SLIDE_MAP[sid] || {}).length; });
-    const nSlides = SLIDE_IDS.length;
+    // Every option the user keeps, converted and stacked in one labeled deck,
+    // for side-by-side comparison. The first click shows a keep / leave-out
+    // switch on every option (all kept); the second copies the message.
+    if (!document.body.classList.contains("all-mode")) {
+        setAllMode(true);
+        showToast("Every option is kept. Switch any you don't want to Leave out, then click again.");
+        return;
+    }
+    const picks = {};
+    let nOpts = 0, nMulti = 0;
+    SLIDE_IDS.forEach(sid => {
+        const ks = keptLetters(sid);
+        picks[sid] = ks.length ? ks.join("") : "-";
+        nOpts += ks.length;
+        if (ks.length > 1) nMulti++;
+    });
+    if (!nOpts) { showToast("Every option is left out; there would be nothing to build."); return; }
+    if (!nMulti) {
+        showToast("Each slide keeps one option, so this is a normal deck: pick them and use Build my deck.");
+        return;
+    }
+    // Converting is the expensive step, so say what it costs first.
+    const nSlides = SLIDE_IDS.filter(sid => picks[sid] !== "-").length;
     const ratio = nSlides ? (nOpts / nSlides).toFixed(1) : "1";
-    const msg = "All options in one deck converts EVERY option: " + nOpts +
+    const msg = "All options in one deck converts every option you kept: " + nOpts +
         " of them, against " + nSlides + " for a normal build of your picks " +
         "(about " + ratio + "x the conversion cost).\n\n" +
-        "Use it only when you need to compare every design side by side.\n\nContinue?";
+        "Use it only when you need to compare designs side by side.\n\nContinue?";
     if (!confirm(msg)) return;
-    let cmd = "Build all options in one Slide Lab deck (every option, labeled).\n";
+    let cmd = "Build all options in one Slide Lab deck (the options I kept, labeled).\n";
     cmd += "Folder: " + window.__OUT_DIR__ + "\n";
-    cmd += plainPicks("ALL") + "\n";
+    cmd += plainPicks(canonicalPicks(picks)) + "\n";
     cmd += feedbackText();
-    return copyOut(cmd, "All-options command copied. Paste into Claude Code.",
-                   "All-options command (Ctrl+C to copy)");
+    return copyOut(cmd, "All-options message copied. Paste it into Claude.",
+                   "All-options message (Ctrl+C to copy)");
 }
 
 function clearAll() {
     if (!confirm("Clear all picks, replace requests, and feedback?")) return;
-    savePicks({}); saveRegens({}); saveFb({});
+    savePicks({}); saveRegens({}); saveFb({}); saveKeep({});
     document.querySelectorAll("textarea[data-slide][data-field]").forEach(ta => ta.value = "");
     document.querySelectorAll(".chip.selected").forEach(c => c.classList.remove("selected"));
     renderAll(); showToast("Cleared.");
@@ -1598,6 +1673,7 @@ document.addEventListener("DOMContentLoaded", () => {
     });
     document.getElementById("btn-build").addEventListener("click", buildDeck);
     document.getElementById("btn-all").addEventListener("click", buildAllOptions);
+    document.getElementById("btn-all-cancel").addEventListener("click", () => setAllMode(false));
     document.getElementById("btn-clear").addEventListener("click", clearAll);
     document.getElementById("btn-dlg-copy").addEventListener("click", async () => {
         const txt = document.getElementById("picks-dlg-body").textContent;
@@ -1686,8 +1762,10 @@ def build_html(out_dir: Path, meta: Optional[dict], slides: list, storyline: dic
 <footer class="summary-footer">
   <div class="count"><span class="num" id="pick-count">0</span> / <span id="total-slides">0</span> picked &middot; <span style="color:#64748B;font-weight:400;font-size:12px;">picks auto-save in this browser</span></div>
   <div class="btns">
+    <div id="all-mode-hint">All options in one deck: every option is kept unless you switch it to Leave out. Click the button again to copy the message.</div>
     <button class="btn ghost small" id="btn-clear">&#x1F5D1; Clear</button>
-    <button class="btn ghost small" id="btn-all" title="Converts every option, not just your picks: several times the tokens. Use sparingly.">All options in one deck &#9888;</button>
+    <button class="btn ghost small" id="btn-all-cancel">Back to one pick per slide</button>
+    <button class="btn ghost small" id="btn-all" title="Converts every option you keep, not just your picks: several times the tokens. Use sparingly.">All options in one deck &#9888;</button>
     <button class="btn primary big" id="btn-build">&#10003; Build my deck</button>
   </div>
 </footer>
@@ -1824,7 +1902,7 @@ def build_final_check(out_dir: Path, meta: Optional[dict]) -> int:
     scripts = str(Path(__file__).resolve().parent)
     compile_cmd = (f'py -3 "{scripts}\\compile_picks.py" --out "{out_dir}" '
                    f'--final-token {token}{flags}')
-    what = (f"all {len(ship)} options" if all_options
+    what = (f"the {len(ship)} options you kept, labeled" if all_options
             else f"{len(ship)} slide(s)")
     # Plain lines the Build it message carries so Claude adds the right options.
     extra_lines = ""
@@ -1858,8 +1936,9 @@ def build_final_check(out_dir: Path, meta: Optional[dict]) -> int:
 <header><h1>Final check: this is exactly what will be built</h1>
 <p>Every pick below is finished and on your template ({what}): the real title,
 takeaway and page number, which the sketches did not have. Look for anything
-overlapping, cut off or crowded. If it is right, click <b>Build it</b>. If not,
-say what is wrong in the box instead.</p></header>
+overlapping, cut off or crowded. If it is right, click <b>Build it</b> (or
+just tell Claude "build it" while this page is open). If not, say what is wrong
+in the box instead.</p></header>
 {src_block}
 {ts_block}
 <div class="grid">{tiles}</div>
@@ -1891,8 +1970,9 @@ document.getElementById("btn-fix").onclick = () => {{
     dest = out_dir / "FINAL-CHECK.html"
     dest.write_text(page, encoding="utf-8")
     print(f"FINAL-CHECK.html written: {dest}")
-    print(f"  {len(ship)} finished option(s). Show it to the user and wait for the "
-          "Build command it copies; that command is the only way to compile.")
+    print(f"  {len(ship)} finished option(s). Show it to the user (--open) and wait "
+          "for the Build it message it copies, or for the user to say \"build it\" in "
+          "chat once it is open (compile_picks.py --approved-in-chat).")
     return 0
 
 
@@ -1947,7 +2027,11 @@ def main(argv: list[str]) -> int:
     if args.final:
         rc = build_final_check(out_dir, meta)
         if rc == 0 and args.open:
-            _open_page(out_dir / "FINAL-CHECK.html")
+            how = _open_page(out_dir / "FINAL-CHECK.html")
+            if how:
+                # The page is in front of the user: their "build it" in chat
+                # now counts (compile_picks.py --approved-in-chat).
+                _state.record_page_opened(out_dir, "final_check", how)
         return rc
 
     slides = [scan_slide(out_dir, n, slide_metas.get(n)) for n in slide_nums]
@@ -1985,17 +2069,26 @@ def main(argv: list[str]) -> int:
     print(f"     storyline parsed from brief: {storyline.get('found')}")
     print(f"     size: {fmt_bytes(review_path.stat().st_size)}")
     if args.open:
-        _open_page(review_path)
+        how = _open_page(review_path)
+        if how:
+            # Picks typed in chat now count (record_picks.py --approved-in-chat),
+            # as long as no slide's options change before they are recorded.
+            _state.record_page_opened(out_dir, "review", how,
+                                      stamps={s["slide_id"]: s.get("stamp", "") for s in slides})
     return 0
 
 
-def _open_page(path: Path) -> None:
+def _open_page(path: Path) -> str:
     """Open a page in the user's browser; never fail the build over it.
-    SLIDE_LAB_NO_OPEN=1 (set by the tests) prints the path instead."""
+    SLIDE_LAB_NO_OPEN=1 (set by the tests) prints the path instead.
+
+    Returns how it was shown: "browser", "test" (SLIDE_LAB_NO_OPEN: the test
+    suites stand in for the browser), or "" when it could not be opened (then
+    a chat approval is refused: the user may not have seen the page)."""
     import os
     if os.environ.get("SLIDE_LAB_NO_OPEN"):
         print(f"     (not opened: SLIDE_LAB_NO_OPEN) {path}")
-        return
+        return "test"
     try:
         if os.name == "nt":
             os.startfile(str(path))  # noqa: S606 (local file the build just wrote)
@@ -2003,8 +2096,10 @@ def _open_page(path: Path) -> None:
             import webbrowser
             webbrowser.open(path.resolve().as_uri())
         print(f"     opened in your browser: {path}")
+        return "browser"
     except Exception as exc:
         print(f"     (could not open it automatically: {type(exc).__name__}; open {path})")
+        return ""
 
 
 if __name__ == "__main__":

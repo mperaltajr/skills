@@ -5,7 +5,10 @@ since this script does not carry its own twins/ module.
 
 Inputs:
   --out PATH          Orchestrator output dir (the one that has _meta.json, slide_NN/ dirs, etc.)
-  --final-token TOK   From the Build command on FINAL-CHECK.html. Required.
+  --final-token TOK   From the Build command on FINAL-CHECK.html. Required, unless:
+  --approved-in-chat "<words>"  the user said "build it" in chat while
+                      FINAL-CHECK.html was open for the current files
+                      (build_review.py --final --open). Recorded verbatim.
   --final PATH        Final deck path (default: <out>/final_deck.pptx)
 
 The picks come from the user's recorded approval (record_picks.py), not from a
@@ -676,8 +679,18 @@ def main() -> int:
                          "every pick finished on the template. compile refuses unless it "
                          "matches and the finished files still have the bytes the user "
                          "saw. Never invent it.")
+    ap.add_argument("--approved-in-chat", default=None, dest="approved_in_chat",
+                    help="Instead of --final-token: the user's own words in chat "
+                         "(\"build it\"), verbatim, said while FINAL-CHECK.html was open "
+                         "for the current files (build_review.py --final --open). "
+                         "Recorded, bound to that page's token and file digests, and "
+                         "listed by check_done.py at delivery.")
     ap.add_argument("--review-token", default=None, help=argparse.SUPPRESS)
     args = ap.parse_args()
+    if args.approved_in_chat is not None and args.final_token:
+        print("ERROR: give --final-token (from the page's message) or --approved-in-chat "
+              "(the user's words), not both.")
+        return 2
     if args.review_token and not args.final_token:
         print("REFUSED: --review-token was replaced by --final-token. The user picks "
               "in REVIEW.html, sees the finished picks in FINAL-CHECK.html, and that "
@@ -707,6 +720,27 @@ def main() -> int:
     # Approval: the picks the user made (recorded by record_picks.py from the
     # page's check-coded line) and the final look at the finished picks. The
     # file comparison runs further down, once the options to ship are known.
+    #
+    # Chat approval (owner's decision D1, 2026-10-06): the user's "build it" in
+    # chat counts as the Build it click, but only while FINAL-CHECK.html is open
+    # for exactly the current files. It then stands in for the page's token;
+    # every other check below runs unchanged.
+    _chat = None
+    if args.approved_in_chat is not None:
+        _words = args.approved_in_chat.strip()
+        if not _words:
+            print("REFUSED: --approved-in-chat needs the user's own words, verbatim.")
+            return 5
+        _st = _state.read_state(out_dir)
+        ok, reason = _state.check_page_opened(_st, "final_check")
+        if not ok:
+            print("REFUSED: will not compile.\n  " + reason + " (Or have them click "
+                  "Build it and paste its message, which carries --final-token.)")
+            return 5
+        _fc0 = _st.get("final_check") or {}
+        args.final_token = _fc0.get("token")
+        _chat = {"page": "FINAL-CHECK.html", "final_token": _fc0.get("token"),
+                 "digests": dict(_fc0.get("digests") or {}), "words": _words}
     ok, reason = _state.check_compile_allowed(out_dir, args.final_token)
     if not ok:
         print("REFUSED: will not compile.\n  " + reason)
@@ -757,10 +791,15 @@ def main() -> int:
     # was once recorded as B.
     _review = _state.read_state(out_dir).get("review") or {}
     picks = dict(_review.get("picks") or {})
+    if _chat and _review.get("all_options") and not args.all_variations:
+        # No page message to carry "Deck: all options, labeled": take it from
+        # the recorded approval, which is what that line said.
+        args.all_variations = args.badge = True
+        print("  the recorded picks keep several options: all-options deck, labeled")
     if bool(_review.get("all_options")) != bool(args.all_variations):
         if _review.get("all_options"):
-            print("REFUSED: the user approved ALL options in one deck; add "
-                  "--all-variations (and --badge).")
+            print("REFUSED: the user approved an all-options deck (every option, or "
+                  "several kept on a slide); add --all-variations (and --badge).")
         else:
             print("REFUSED: --all-variations needs the user's approval for it: the "
                   "'All options in one deck' button on REVIEW.html.")
@@ -821,6 +860,12 @@ def main() -> int:
     if not ok:
         print("REFUSED: will not compile.\n  " + reason)
         return 5
+    if _chat:
+        # Every check passed against the files the open page showed: record the
+        # user's words as the approval, bound to that token and those bytes.
+        _words = _chat.pop("words")
+        _state.record_chat_approval(out_dir, "final_check", _words, _chat)
+        print(f"  final check approved in chat by the user: \"{_words}\" (recorded)")
 
     # Option 6b: splice rebuilt slides back into the external original in place.
     if args.splice_into:

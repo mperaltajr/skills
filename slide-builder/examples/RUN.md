@@ -65,7 +65,7 @@ py -3 "$skill\scripts\finalize_deck.py" --out "$session\out" --template "$templa
 py -3 "$skill\scripts\build_review.py" --out "$session\out"
 ```
 
-**6. You pick.** Open `$session\out\REVIEW.html`. Pick an option on every slide (or **Replace these** to get new designs, or **Leave out** to drop it), then click **Build my deck** and paste what it copies into Claude. That command runs `record_picks.py`, which records exactly your picks.
+**6. You pick.** Open `$session\out\REVIEW.html`. Pick an option on every slide (or **Replace these** to get new designs, or **Leave out** to drop it), then click **Build my deck** and paste what it copies into Claude. That command runs `record_picks.py`, which records exactly your picks. (When Claude opened the page with `build_review.py --open`, you can also type the picks in chat, such as "use 1B 2C"; to keep two options of a slide, name both letters, "1BC".)
 
 **7. Claude converts only your picked sketches** (one `slide-builder-translator` each), then runs:
 
@@ -74,7 +74,7 @@ py -3 "$skill\scripts\finalize_deck.py" --out "$session\out" --template "$templa
 py -3 "$skill\scripts\build_review.py" --out "$session\out" --final
 ```
 
-**8. You look at the finished slides.** Open `$session\out\FINAL-CHECK.html`: every pick, on your template, with its real title and page number. If it is right, click **Build it** and paste the command into Claude. It compiles `$session\out\final_deck.pptx`.
+**8. You look at the finished slides.** Open `$session\out\FINAL-CHECK.html`: every pick, on your template, with its real title and page number. If it is right, click **Build it** and paste the command into Claude (or, when Claude opened it with `--final --open`, just say "build it"). It compiles `$session\out\final_deck.pptx`.
 
 **9. QC, then done.** Claude runs slide-qc on the deck, records the pass, and runs:
 

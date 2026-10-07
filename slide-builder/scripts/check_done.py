@@ -20,6 +20,9 @@ So this checks one unbroken chain of recorded facts, each tied to the last:
   8. every figure on a replicated supplied page was reconciled
 
 It is deliberately dumb: it verifies recorded facts, it does not re-run QC.
+On a deliverable deck it also lists every gate passed over (overrides) and,
+separately, every step the user approved by typing in chat (picks, the final
+check, a QC fix), with their words: those are approvals, not overrides.
 
 Run:  py -3 scripts/check_done.py --out <out_dir> [--deck <path>]
 Exit: 0 deliverable | 1 not deliverable | 2 bad usage
@@ -196,17 +199,47 @@ def main(argv=None) -> int:
     # Every gate that was deliberately passed over in this build. They were
     # recorded and then never shown to anyone; delivery is where the user sees
     # what the deck did NOT go through.
-    overrides = state.get("overrides") or []
+    # A QC fix approved in chat was once recorded as an override; it is an
+    # approval, so it is listed with the chat approvals.
+    all_ov = state.get("overrides") or []
+    legacy_chat = [o for o in all_ov if o.get("override") == "qc_fix_approved_in_chat"]
+    overrides = [o for o in all_ov if o not in legacy_chat]
     if overrides:
         print(f"  overrides     : {len(overrides)} gate(s) passed over in this build:")
         for o in overrides:
+            times = f", {o['count']} times" if int(o.get("count") or 1) > 1 else ""
             print(f"                  - {o.get('override')}: {o.get('detail', '')} "
-                  f"({o.get('at', '')})")
+                  f"({o.get('at', '')}{times})")
         print("                  Tell the user about these when you deliver.")
+    for line in chat_approval_lines(state.get("chat_approvals") or [], legacy_chat):
+        print(line)
     line = supplied_page_line(sl)
     if line:
         print(line)
     return 0
+
+
+_CHAT_KIND = {"picks": "picks, with REVIEW.html open",
+              "final_check": "final check, with FINAL-CHECK.html open",
+              "qc_fix": "QC fix after the quality check"}
+
+
+def chat_approval_lines(approvals: list, legacy: list | None = None) -> list[str]:
+    """Delivery lines for approvals the user gave in chat instead of pasting a
+    page's line. They are approvals, not gates passed over: each was accepted
+    only with its page open for the current files (or, for a QC fix, after the
+    first compile), and the user's own words are on record."""
+    rows = [(_CHAT_KIND.get(a.get("kind"), a.get("kind", "")), a.get("words", ""),
+             a.get("at", "")) for a in approvals]
+    rows += [(_CHAT_KIND["qc_fix"], o.get("detail", ""), o.get("at", ""))
+             for o in (legacy or [])]
+    if not rows:
+        return []
+    out = [f"  chat approvals: {len(rows)} recorded (the user's own words in chat):"]
+    out += [f"                  - {what}: \"{words}\" ({at})" for what, words, at in rows]
+    out.append("                  Mention them when you deliver: these steps were "
+               "approved in chat, not on the page.")
+    return out
 
 
 def supplied_page_line(sl: dict) -> str:
