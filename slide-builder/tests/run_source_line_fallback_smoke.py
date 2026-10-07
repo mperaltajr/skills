@@ -41,7 +41,11 @@ from twins.composer import clone_missing_chrome_placeholders  # noqa: E402
 from twins.helpers import _chrome_box_for  # noqa: E402
 
 FIXTURE = HERE / "fixtures" / "layout_diverse_template.pptx"
-CHROME = HERE / "fixtures" / "layout_diverse_template.chrome.yml"
+# The fixture's sidecar folder (written by run_layout_inheritance_smoke.py). The
+# old flat path (layout_diverse_template.chrome.yml) exists only on machines
+# that registered the fixture long ago, so a fresh clone failed here.
+import _paths as _p  # noqa: E402
+CHROME = _p.chrome_yml(FIXTURE)
 LAYOUT = "body_canonical_light"
 SOURCE = "Source: sample data for the test, not real"
 

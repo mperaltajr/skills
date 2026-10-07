@@ -21,9 +21,9 @@ One exception: a `fallback` entry with `kind: "canvas"` means the design is not 
 Otherwise, in fallback mode your job is **only those elements**:
 
 1. Read `option_X_translation_report.json` → `fallback`: each entry has `kind`, `reason`, `id` and the element's box (`x`, `y`, `w`, `h` in 1280x720 pixels). Look at the same region of `option_X.sketch.png` and of the HTML.
-2. In `option_X_native.py`, write python-pptx code **between** the two markers `# --- FALLBACK ELEMENTS ...` and `# --- END FALLBACK ELEMENTS ---` that draws each listed element inside its box. `slide` is in scope there. Draw with native shapes: a curve becomes a freeform or a set of line segments, a ring becomes a stacked proportion bar or arc shapes, arrows become connectors with an arrowhead.
+2. In `option_X_native.py`, write python-pptx code **between** the two markers `# --- FALLBACK ELEMENTS ...` and `# --- END FALLBACK ELEMENTS ---` that draws each listed element inside its box. `slide` is in scope there. Draw with native shapes: a curve becomes a freeform or a set of line segments, a ring becomes a stacked proportion bar or arc shapes, arrows become connectors with an arrowhead. **Every arrowhead stops at least 8 px short of the box it points at**, even where the sketch lets it touch: on cycle and flow diagrams the sketch's arrowheads ran into the boxes and copying them shipped that (2026-10-06). The translation report's `MAJOR_ARROW_END_AT_BOX` warnings name the arrows the design already got wrong.
 3. Change the first header line from `# FALLBACK_PENDING: ...` to `# FALLBACK_DONE: <what you drew, one line>`. That line is what keeps your work: `apply_qc_fix.py` and `redesign_round.py finish` do not convert a slide again while its design is unchanged and nothing is pending, so what you drew survives the next run.
-4. Run the script (`py -3 option_X_native.py`), render `option_X_native.pptx`, and check your elements against the sketch.
+4. Run the script (`py -3 option_X_native.py`), then the self-check render: `py -3 <skill_root>/scripts/selfcheck_render.py option_X_native.pptx`. It renders into this option's own folder (never a shared `slide_01.png`: two agents converting B and C at once checked one option against the other's picture), writes `option_X_native.png`, and checks every arrow end against the boxes. Exit 1 lists arrowheads at a box: move those ends back and run both again. Then check your elements against the sketch.
 
 **Do not touch anything else**: not the plan file, not the other code, not the header's `__template_fields__`. Everything outside your elements is already drawn and checked. Every rule below still applies to what you draw: text at font-weight 600 or more is the base family with `bold = True`, never a heavy face's own name (`Arial Black`, `<Brand> Semibold`: finalize's theme pass swaps any such name for the theme font, and the weight was lost with it); no `add_chart`, no `<p:style>` surgery (`effectRef idx="0"` for no shadow), letter spacing via the raw `spc` attribute at px × 75, `word_wrap = False` on one-line labels.
 
@@ -90,6 +90,8 @@ This is not a style preference. On one 20-slide deck the translators split rough
 ### Task 2 — Translate body-zone shapes (Spec 4 §6)
 
 For every HTML element with attribute `data-shape-id` that sits in the body zone, generate a native python-pptx shape. **Read the body zone from the slide's `_context.md`** (`--body-top` / `--body-bottom`), not from the raw `body_top_y_px` in chrome.yml: the `_context.md` value already reserves the band the grafted title and takeaway occupy, and the raw chrome.yml value does not.
+
+**The canvas is not a shape when it is the template's background.** If `.slide-canvas` is painted with this layout's own background (`--slide-canvas-bg` in `_context.md`; `background_hex` in chrome.yml), draw nothing for it: the slide already has that background, and a full-slide rectangle would cover the master's own artwork. Draw a full-slide rectangle only when the design gives the canvas a different color. (In script mode `translate_html.py` does this.)
 
 **Graceful fallback for under-tagged HTML:**
 Workers are asked to put `data-shape-id` on every body element they want translated, but in practice they under-tag a meaningful share of elements even when the HTML renders cleanly. To avoid hard-blocking a deck on worker compliance, fall back as follows when fewer than 3 elements carry `data-shape-id` in the body zone (or none at all):
@@ -264,12 +266,11 @@ If any check fails, emit `# EDITABILITY_VIOLATION: <which check> — <detail>` a
 After Task 1-4 produce a valid `option_A_native.py`:
 
 1. Execute the script in a subprocess: `py -3 option_A_native.py`. It saves `option_A_native.pptx` next to itself.
-2. Render that PPTX to `option_A_native.png` via the slide-qc renderer:
+2. Render that PPTX to `option_A_native.png` with the self-check renderer:
    ```
-   py -3 <skill_root>/../slide-qc/scripts/render_slides.py \
-       option_A_native.pptx . --engine libre --dpi 96
+   py -3 <skill_root>/scripts/selfcheck_render.py option_A_native.pptx
    ```
-   Resulting file: `slide_01.png` (rename to `option_A_native.png` to match the contract).
+   It renders into a folder of this option's own (one per option, in the slide folder's render scratch area) and writes `option_A_native.png` next to the script. Never render into the slide folder itself and rename its `slide_01.png`: other options of the same slide are converted at the same time, and on 2026-10-06 options B and C were both checked against one picture that way. It also runs the arrow-end check: exit 1 lists any arrowhead inside or within 6 px of a box; move those ends back so they stop at least 8 px short and run it again.
 3. Compute per-zone SSIM between `option_A.sketch.png` (HTML render = target) and `option_A_native.png` (your output). Zones from chrome.yml:
    - Title zone: y=0 to title_box bottom
    - Subtitle zone: title_box bottom to subtitle_box bottom (if subtitle placeholder)

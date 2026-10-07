@@ -31,8 +31,11 @@ signals went blind in this pipeline before.
 Run:
   py -3 scripts/source_ledger.py build  --out <out> --deck <page.pptx> --slide N
   py -3 scripts/source_ledger.py build  --out <out> --deck <page.pdf|page.png> --slide N
-      (a PDF page or a picture has no shape tree: no rows, the whole page is
-       recorded as checked by eye only, and the vision pass covers it)
+      (a PDF page with a text layer: each line that carries a figure is a row
+       to resolve, as for a PowerPoint page; pictures on it go to the vision
+       pass. A scanned PDF page or a picture has nothing to read: no rows, the
+       whole page is recorded as checked by eye only, and the vision pass
+       covers it)
   py -3 scripts/source_ledger.py status --out <out>
 """
 from __future__ import annotations
@@ -139,9 +142,110 @@ def _pdf_pages(path: Path) -> int | None:
         return None
 
 
+def _pdf_text_page(path: Path, n: int) -> tuple[list[str], int] | None:
+    """(text lines, number of pictures) on page n of a PDF, from its text
+    layer. None when no PDF reader is installed or the page can't be read.
+    A scan has no text layer: its lines come back empty."""
+    try:
+        import pypdfium2 as pdfium
+        import pypdfium2.raw as pdfium_c
+    except ImportError:
+        pdfium = None
+    if pdfium is not None:
+        try:
+            doc = pdfium.PdfDocument(str(path))
+            try:
+                page = doc[n - 1]
+                tp = page.get_textpage()
+                text = tp.get_text_range() or ""
+                try:
+                    pictures = sum(1 for _ in page.get_objects(
+                        filter=[pdfium_c.FPDF_PAGEOBJ_IMAGE], max_depth=3))
+                except Exception:
+                    pictures = 0
+                return [ln.strip() for ln in text.replace("\r", "\n").split("\n")
+                        if ln.strip()], pictures
+            finally:
+                doc.close()
+        except Exception:
+            pass
+    try:
+        from pypdf import PdfReader
+        page = PdfReader(str(path)).pages[n - 1]
+        text = page.extract_text() or ""
+        try:
+            pictures = len(page.images)
+        except Exception:
+            pictures = 0
+        return [ln.strip() for ln in text.splitlines() if ln.strip()], pictures
+    except Exception:
+        return None
+
+
+def _build_pdf_text(out_dir: Path, deck: Path, args, lines: list[str], pictures: int) -> int:
+    """A PDF page with a text layer: its figure-bearing lines become ledger
+    rows the user resolves, exactly like the slots of a PowerPoint page (owner
+    decision, 2026-10-06). Option A reproduces the page's wording, so a figure
+    that is only on the PDF can come through; the rows make sure each one is
+    bound from the brief, confirmed, or replaced before compile. Pictures on
+    the page are not machine-read: they go to the vision pass as before."""
+    n = args.slide
+    rows = []
+    for k, line in enumerate(lines):
+        if not _extract.has_figure(line):
+            continue
+        rows.append({
+            "slide": args.target_slide or n,
+            "addr": f"p{n}/line{k + 1}",
+            "kind": "pdf_text",
+            "shape_name": "",
+            "source_text": line,
+            "resolution": None,          # bind_from_brief | keep_source | replace_with
+            "replacement": None,         # required when resolution == replace_with
+            "note": "",
+        })
+    unreachable = []
+    if pictures:
+        unreachable.append({
+            "slide": args.target_slide or n,
+            "addr": f"p{n}/pictures",
+            "kind": "picture",
+            "why": (f"{pictures} picture(s) on PDF page {n}: any figure inside them is "
+                    "not read by machine; checked by eye only (slide-qc vision pass)"),
+        })
+    ledger = {
+        "source_page": str(deck.resolve()),
+        "source_slide": n,
+        "source_kind": "pdf_text",
+        "generated_at": _dt.datetime.now().isoformat(timespec="seconds"),
+        "_how_to": ("Rows are the figure-bearing lines of the PDF page's text. Set "
+                    "`resolution` on every row to one of: bind_from_brief (take the value "
+                    "from the brief), keep_source (you confirm the page's value is still "
+                    "right), replace_with (+ set `replacement`). null is not a resolution "
+                    "and blocks the compile."),
+        "rows": rows,
+        "unreachable": unreachable,
+    }
+    ledger_path(out_dir).write_text(json.dumps(ledger, indent=2, ensure_ascii=False),
+                                    encoding="utf-8")
+    _write_brief_qc(out_dir, ledger)
+    unresolved, keeps, total = tally(ledger)
+    _state.record_source_ledger(out_dir, unresolved, keeps, len(unreachable))
+    print(f"[ok] wrote {ledger_path(out_dir)}")
+    print(f"     PDF page {n} has a text layer: {total} line(s) with a figure to "
+          f"reconcile, {unresolved} unresolved.")
+    if pictures:
+        print(f"     {pictures} picture(s) on the page are NOT read by machine; the "
+              "slide-qc vision pass is responsible for them.")
+    print("     compile_picks.py will refuse until every row is resolved.")
+    return 0
+
+
 def _build_visual(out_dir: Path, deck: Path, args) -> int:
-    """A PDF page or a picture: there is no shape tree to read, so no figure
-    can be machine-checked. Write an honest ledger: no rows (nothing is
+    """A PDF page or a picture. A PDF page with a text layer is read like a
+    PowerPoint page: its figure-bearing lines become rows to resolve
+    (_build_pdf_text). A scan or a picture has nothing to read, so no figure
+    can be machine-checked: write an honest ledger with no rows (nothing is
     claimed as bound), the whole page in `unreachable` so slide-qc's vision
     pass owns it, and the state compile needs. Delivery (check_done) says the
     page was checked by eye only. Before this, `build` crashed on any
@@ -154,10 +258,15 @@ def _build_visual(out_dir: Path, deck: Path, args) -> int:
             print(f"[error] --slide {n} out of range (the PDF has {pages} page(s))",
                   file=sys.stderr)
             return 2
+        got = _pdf_text_page(deck, n)
+        if got is not None and any(ch.isalnum() for ln in got[0] for ch in ln):
+            return _build_pdf_text(out_dir, deck, args, got[0], got[1])
+        why_pdf = ("no text layer: a scan" if got is not None
+                   else "its text could not be read")
     elif n != 1:
         print(f"[error] --slide {n}: a picture has one page; use --slide 1", file=sys.stderr)
         return 2
-    what = f"PDF page {n}" if is_pdf else "picture"
+    what = f"PDF page {n} ({why_pdf})" if is_pdf else "picture"
     unreachable = [{
         "slide": args.target_slide or n,
         "addr": f"whole page ({what})",
@@ -284,8 +393,9 @@ def main(argv=None) -> int:
     b = sub.add_parser("build", help="Enumerate figure-bearing slots from a supplied page.")
     b.add_argument("--out", required=True)
     b.add_argument("--deck", required=True,
-                   help="The supplied page: a .pptx, or a PDF or picture (recorded as "
-                        "checked by eye only).")
+                   help="The supplied page: a .pptx; a PDF (its text's figure lines "
+                        "become rows; a scan is checked by eye only); or a picture "
+                        "(checked by eye only).")
     b.add_argument("--slide", type=int, default=1, help="Which slide of that file.")
     b.add_argument("--target-slide", type=int, default=None,
                    help="Slide number in the deck being built (defaults to --slide).")

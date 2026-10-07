@@ -104,7 +104,9 @@ Follow the procedure in your `_prompt.md` verbatim:
    - Inline `<link rel="stylesheet" href="../../brand.css">` for the brand CSS variables (`var(--brand-primary)`, etc.) OR copy the `:root { ... }` block inline
    - Title / subtitle / footer / page-number text MUST be on elements with `data-template-field="title|subtitle|footer|page_number"` — these become template-inherited placeholders; do NOT position them as freeform shapes
    - **Every body-zone element you want translated to a native PowerPoint shape MUST have `data-shape-id="<unique-id>"`.** This is the LOAD-BEARING contract for the translator. Without `data-shape-id` on a body element, the translator will infer a shape via its fallback walk (lenient, but produces a `TRANSLATOR_WARNING` in the QC report) or skip the element entirely if it looks like a pure layout wrapper. Tag EVERY meaningful card / row / column / pill / badge / chart bar / label / heading / chip / divider in the body zone. **If you draw it on the slide, tag it.** The only exceptions are pure flex/grid wrapper `<div>`s with no background / border / text of their own — those route their children, not themselves.
-   - Body zone is between `--body-top` and `--body-bottom` (from chrome.yml; inlined into _context.md)
+   - Body zone is between `--body-top` and `--body-bottom`, and between `--body-left` and `--body-right` (the template's side margins), all from your slide's `_context.md`
+   - Paint `.slide-canvas` with `var(--slide-canvas-bg)` and take that value from `_context.md` (it is this layout's own background, which can be a light gray rather than white). A pale panel within a few shades of it will not show on the finished slide: give it a clearly different fill or an outline
+   - Arrows stop at least 8 px short of the box they point at; on a cycle or loop diagram leave at least 60 px between neighboring boxes
    - Use ONLY the CSS properties permitted by sketch-html-spec.md §7 (no gradients in body, no shadows, no filters, no text-decoration on body text)
 
    **Worker self-check before declaring done (sketch path) — TWO mandatory checks:**

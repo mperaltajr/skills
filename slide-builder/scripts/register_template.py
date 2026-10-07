@@ -2045,7 +2045,7 @@ def write_brand_css(path: Path, *,
                     primary_hex: str, accent_hex: str,
                     cover_bg_hex: str, dark_bg_hex: str,
                     font_heading: str, font_body: str,
-                    sha8: str) -> None:
+                    sha8: str, canvas_bg_hex: str | None = None) -> None:
     """Write a brand.css sidecar for the sketch-path HTML render path.
 
     Emits a `:root` CSS variables block that the worker's HTML
@@ -2064,6 +2064,10 @@ def write_brand_css(path: Path, *,
     a = accent_hex.upper().lstrip("#")
     cbg = cover_bg_hex.upper().lstrip("#")
     dbg = dark_bg_hex.upper().lstrip("#")
+    # The sketch canvas is the template's own background (the default content
+    # layout's), not a fixed white: a pale panel approved on white vanished on
+    # a gray-blue master (2026-10-06). Per-layout values go in _context.md.
+    canvas = (canvas_bg_hex or "FFFFFF").upper().lstrip("#")
     # Mechanical tone derivations (per Spec 2 §7). Reuse the existing
     # `_mix_hex` helper via the public alias in twins/client_theme.
     from twins.client_theme import mix_hex
@@ -2098,8 +2102,8 @@ def write_brand_css(path: Path, *,
         f"  --font-sans:    \"{fb}\", \"Segoe UI\", -apple-system, sans-serif;\n"
         f"  --font-mono:    ui-monospace, \"Consolas\", monospace;\n"
         f"\n"
-        f"  /* Canvas (locked at 1280×720) */\n"
-        f"  --slide-canvas-bg:      #FFFFFF;\n"
+        f"  /* Canvas (locked at 1280×720); the template's own background */\n"
+        f"  --slide-canvas-bg:      #{canvas};\n"
         f"  --slide-canvas-width:   1280px;\n"
         f"  --slide-canvas-height:  720px;\n"
         f"}}\n"
@@ -2761,12 +2765,21 @@ def _write_outputs(tpl: Path, sha: str, sha8: str,
     # ADD (no existing reader depends on it and its presence does not
     # affect the python-pptx pipeline).
     brand_css = _p.brand_css(tpl)
+    _canvas_bg = None
+    if default_content_layout:
+        try:
+            import _template_bg as _tbg
+            _bgf = (_tbg.template_layout_facts(tpl, default_content_layout)
+                    .get("background") or {})
+            _canvas_bg = _bgf.get("hex")
+        except Exception:
+            _canvas_bg = None
     write_brand_css(
         brand_css,
         primary_hex=primary_hex, accent_hex=accent_hex,
         cover_bg_hex=cover_bg_hex, dark_bg_hex=dark_bg_hex,
         font_heading=font_heading, font_body=font_body,
-        sha8=sha8,
+        sha8=sha8, canvas_bg_hex=_canvas_bg,
     )
 
     # WCAG 2.1 AA contrast warning (Spec 2 §5). Non-blocking — some brand
@@ -3250,11 +3263,14 @@ def _classify_layout(layout) -> str:
     return "bespoke"
 
 
-def _placeholder_role(shape) -> str | None:
+def _placeholder_role(shape, by_name: bool = False) -> str | None:
     """Map a placeholder shape to a chrome role.
 
     Returns one of {'title', 'subtitle', 'footnote', 'source', 'page_number'}
     or None when the placeholder doesn't correspond to a chrome slot.
+    by_name=True asks the other question: is this a BODY slot NAMED as the
+    takeaway ('subtitle') or source line? Callers try the standard types
+    first and use this only for a role still unfilled.
     """
     try:
         pf = shape.placeholder_format
@@ -3264,6 +3280,14 @@ def _placeholder_role(shape) -> str | None:
         return None
     t = pf.type
     name_lower = (shape.name or "").lower()
+    if by_name:
+        # Many templates make the takeaway and source lines ordinary text
+        # (BODY) placeholders and say what they are only in the name.
+        if t in (PP_PLACEHOLDER.BODY, PP_PLACEHOLDER.OBJECT):
+            from _chrome_schema import slot_role_from_name
+            hit = slot_role_from_name(shape.name)
+            return hit[0] if hit else None
+        return None
     if t in (PP_PLACEHOLDER.TITLE, PP_PLACEHOLDER.CENTER_TITLE):
         return "title"
     if t == PP_PLACEHOLDER.SUBTITLE:
@@ -3277,8 +3301,7 @@ def _placeholder_role(shape) -> str | None:
         if "footnote" in name_lower:
             return "footnote"
         return "source"
-    # Some templates expose dated/footer via BODY placeholder with named
-    # idx. We don't map those to chrome roles — only the standard types.
+    # BODY placeholders named as chrome slots: see the by_name pass above.
     return None
 
 
@@ -3308,6 +3331,71 @@ def _extract_bespoke_boxes(layout) -> dict[str, BoxPx | None]:
         role = _placeholder_role(shape)
         if role and out.get(role) is None:
             out[role] = _box_px_from_shape(shape)
+    # Then BODY slots named as the takeaway / source line, for roles the
+    # standard placeholder types left empty.
+    for shape in layout.placeholders:
+        role = _placeholder_role(shape, by_name=True)
+        if role and out.get(role) is None:
+            out[role] = _box_px_from_shape(shape)
+    return out
+
+
+def _slide_height_px(layout) -> int:
+    try:
+        prs = layout.slide_master.part.package.presentation_part.presentation
+        return _emu_to_px(int(prs.slide_height))
+    except Exception:
+        return 720
+
+
+# How far below the title's bottom edge a slot named "Subtitle" / "Takeaway"
+# may start and still be the line under the title.
+NAMED_SUBTITLE_MAX_GAP_PX = 80
+# A slot named "Source" / "Footnote" counts when it starts in the bottom
+# part of the page (this share of the slide height and below).
+NAMED_SOURCE_MIN_TOP_SHARE = 0.6
+
+
+def _named_body_slots(layout, title_box) -> dict:
+    """{'subtitle': (idx, bottom_px), 'source': (idx, top_px)} for BODY
+    placeholders named as the takeaway or source line (see
+    _chrome_schema.slot_role_from_name), each only where that line sits:
+    the takeaway starts at or below the title's top and within
+    NAMED_SUBTITLE_MAX_GAP_PX of its bottom (top part of the page when there is
+    no title); the source line starts in the bottom part of the page. When
+    several qualify, the stronger name wins, then the one nearest its spot."""
+    from _chrome_schema import slot_role_from_name
+    slide_h = _slide_height_px(layout)
+    cands: dict[str, list] = {"subtitle": [], "source": []}
+    for ph in layout.placeholders:
+        try:
+            t = int(ph.placeholder_format.type)
+            idx = int(ph.placeholder_format.idx)
+            if t not in (2, 7):            # BODY, OBJECT
+                continue
+            hit = slot_role_from_name(ph.name)
+            if not hit:
+                continue
+            top = _emu_to_px(int(ph.top))
+            bottom = _emu_to_px(int(ph.top) + int(ph.height))
+        except Exception:
+            continue
+        role, rank = hit
+        if role == "subtitle":
+            if title_box is not None:
+                t_top, t_bottom = title_box[1], title_box[1] + title_box[3]
+                if not (t_top - 4 <= top <= t_bottom + NAMED_SUBTITLE_MAX_GAP_PX):
+                    continue
+                cands["subtitle"].append((rank, abs(top - t_bottom), idx, bottom))
+            elif top < 0.3 * slide_h:
+                cands["subtitle"].append((rank, top, idx, bottom))
+        elif top >= NAMED_SOURCE_MIN_TOP_SHARE * slide_h:
+            cands["source"].append((rank, -top, idx, top))
+    out = {}
+    for role, rows in cands.items():
+        if rows:
+            best = sorted(rows)[0]
+            out[role] = (best[2], best[3])
     return out
 
 
@@ -3324,7 +3412,13 @@ def _extract_body_zone_for_canonical(layout) -> dict:
        canonical position because finalize_deck had no idx to write into.
     body_top_y_px: below the title placeholder, or below the subtitle
        placeholder (+12px) when one sits lower (110 fallback).
-    body_bottom_y_px: top of the footer placeholder in px (or 660 fallback).
+    body_bottom_y_px: top of the footer placeholder in px (or 660 fallback),
+       or the top of a source-line slot when that sits higher.
+    source_placeholder_idx: a BODY placeholder named as the source line
+       ("Source", "Footnote") in the bottom part of the page, else None.
+    A BODY placeholder named as the takeaway ("Subtitle", "Takeaway") just
+    under the title stands in for subtitle_placeholder_idx when the layout has
+    no SUBTITLE-type placeholder (see _named_body_slots).
     """
     title_idx = None
     subtitle_idx = None
@@ -3368,6 +3462,18 @@ def _extract_body_zone_for_canonical(layout) -> dict:
                 footer_top_px = _emu_to_px(int(ph.top))
             except Exception:
                 pass
+    # Ordinary text (BODY) slots NAMED as the takeaway or source line. The
+    # standard SUBTITLE type above wins; a named slot counts only where it sits:
+    # a takeaway just under the title, a source line in the bottom part of the
+    # page (a "Takeaway" box at the foot of a page is not the line under the
+    # title). Before this, such templates drew the takeaway as a loose shape and
+    # dropped the source line (2026-10-06).
+    named = _named_body_slots(layout, title_box)
+    if subtitle_idx is None and named.get("subtitle"):
+        subtitle_idx, subtitle_bottom_px = named["subtitle"]
+    source_idx = source_top_px = None
+    if named.get("source"):
+        source_idx, source_top_px = named["source"]
     if title_bottom_px is None:
         title_bottom_px = CANONICAL_BODY_TOP_Y
     # The body starts below whichever heading sits lower. A subtitle placeholder
@@ -3379,9 +3485,13 @@ def _extract_body_zone_for_canonical(layout) -> dict:
         body_top_px = subtitle_bottom_px + 12
     if footer_top_px is None:
         footer_top_px = CANONICAL_BODY_BOTTOM_Y
+    if source_top_px is not None:
+        # the body ends above the source line's slot
+        footer_top_px = min(footer_top_px, source_top_px)
     fields = {
         "title_placeholder_idx": title_idx,
         "subtitle_placeholder_idx": subtitle_idx,
+        "source_placeholder_idx": source_idx,
         "body_top_y_px": int(body_top_px),
         "body_bottom_y_px": int(footer_top_px),
         # Controlled title size for body-canonical content slides — every deck's
@@ -3455,6 +3565,20 @@ def _propose_layout_chromes(prs, classifications_override: dict[str, str] | None
             if final_class == "body-canonical":
                 inherit_fields.update(_extract_body_zone_for_canonical(layout))
 
+            # What the layout looks like behind the body: its real background
+            # (sketches are drawn on it) and the side margins of its text area.
+            import _template_bg as _tbg
+            try:
+                _bg = _tbg.layout_background(layout)
+            except Exception:
+                _bg = {}
+            try:
+                _margins = _tbg.layout_margins(
+                    layout, int(layout.slide_master.part.package
+                                .presentation_part.presentation.slide_width))
+            except Exception:
+                _margins = None
+
             out[name] = LayoutChrome(
                 name=name,
                 layout_class=final_class,  # type: ignore[arg-type]
@@ -3478,6 +3602,11 @@ def _propose_layout_chromes(prs, classifications_override: dict[str, str] | None
                 title_box_y_px=inherit_fields.get("title_box_y_px"),
                 title_box_width_px=inherit_fields.get("title_box_width_px"),
                 title_box_height_px=inherit_fields.get("title_box_height_px"),
+                source_placeholder_idx=inherit_fields.get("source_placeholder_idx"),
+                background_hex=_bg.get("hex"),
+                background_kind=_bg.get("kind"),
+                body_left_px=_margins[0] if _margins else None,
+                body_right_px=_margins[1] if _margins else None,
             )
     return out
 
@@ -4169,6 +4298,7 @@ def _render_mock_page_selftest(tpl: Path) -> tuple[list[str], list[str]]:
         pass
     title_idx = getattr(lc, "title_placeholder_idx", None)
     subtitle_idx = getattr(lc, "subtitle_placeholder_idx", None)
+    source_idx = getattr(lc, "source_placeholder_idx", None)
 
     prs = Presentation(str(build_tpl))
     layout = _find_named_layout(prs, layout_name)
@@ -4188,11 +4318,13 @@ def _render_mock_page_selftest(tpl: Path) -> tuple[list[str], list[str]]:
     SOURCE = "Company filings, analyst estimates, and Slide Lab analysis, 2026"
     try:
         # Mirror a real build: finalize populates the title (+ any subtitle/footer
-        # placeholders that exist) via _populate_layout_placeholders with
-        # footer=None, then draws the free-floating chrome. Match that here.
+        # placeholders that exist) via _populate_layout_placeholders, then draws
+        # the free-floating chrome. Match that here. A layout with a registered
+        # source-line slot gets the source line written into that slot.
         found = _populate_layout_placeholders(
-            slide, title=TITLE, subtitle=SUB, footer=None, page_num="7",
-            title_idx=title_idx, subtitle_idx=subtitle_idx,
+            slide, title=TITLE, subtitle=SUB,
+            footer=SOURCE if source_idx is not None else None, page_num="7",
+            title_idx=title_idx, subtitle_idx=subtitle_idx, footer_idx=source_idx,
             title_font_pt=getattr(lc, "title_font_pt", None),
         )
     except TemplatePlaceholderEmptyError as exc:
@@ -4210,7 +4342,9 @@ def _render_mock_page_selftest(tpl: Path) -> tuple[list[str], list[str]]:
     if lc is not None:
         if not found.get("subtitle") and subtitle_idx is None:
             add_title_block(slide, "", SUB, chrome=lc)
-        add_footer(slide, page_num="7", source=SOURCE, footnote=FOOTNOTE, chrome=lc)
+        add_footer(slide, page_num="7",
+                   source=None if found.get("footer") else SOURCE,
+                   footnote=FOOTNOTE, chrome=lc)
     # A real build deletes inherited placeholders left empty (finalize_deck's
     # body finishing), so do the same: otherwise the mock shows an empty
     # 'Click to add text' box over the takeaway that no built slide has.
@@ -4232,8 +4366,14 @@ def _render_mock_page_selftest(tpl: Path) -> tuple[list[str], list[str]]:
                          f"(no subtitle placeholder and no free-floating line).")
         if not _has_shape("footnote"):
             fails.append(f"footnote did NOT render on layout {layout_name!r}.")
-        if not _has_shape("source"):
+        if not (found.get("footer") or _has_shape("source")):
             fails.append(f"source did NOT render on layout {layout_name!r}.")
+        if source_idx is not None and not found.get("footer"):
+            fails.append(f"the source line did NOT land in the layout's source slot "
+                         f"(idx {source_idx}) on {layout_name!r}.")
+        if subtitle_idx is not None and not found.get("subtitle"):
+            fails.append(f"the takeaway line did NOT land in the layout's subtitle slot "
+                         f"(idx {subtitle_idx}) on {layout_name!r}.")
     if _slide_has_prompt_text(slide):
         fails.append(f"placeholder prompt text ('Click to add…') is still visible "
                      f"on layout {layout_name!r} after populating.")

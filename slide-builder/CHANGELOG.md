@@ -2,6 +2,71 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## 2026-10-06: session-report fixes, batch 2
+
+### Templates and designs
+
+- **Template setup learns text slots named Subtitle and Source.** Many
+  templates make the takeaway line and the source line ordinary text (BODY)
+  placeholders and say what they are only in the name. `register_template.py`
+  now records a BODY placeholder named `Subtitle` / `Subheading` / `Takeaway`
+  that starts just under the title (within 80 px of its bottom) as the
+  takeaway slot (`subtitle_placeholder_idx`), and one named `Source` /
+  `Sources` / `Footnote` in the bottom 40% of the page as the new
+  `source_placeholder_idx`. PowerPoint's own SUBTITLE / FOOTER types still
+  win; a "Takeaway" box at the foot of the page is not taken for the line
+  under the title. The body starts 12 px below a takeaway slot and ends above
+  a source slot. The composer fills the source slot by its idx
+  (`_populate_layout_placeholders(..., footer_idx=)`), and the registration
+  self-test writes both lines into the slots and fails if either misses. Older
+  chrome.yml files load unchanged (new fields default to empty) and behave as
+  before until the template is registered again.
+- **PDF pages are read for their figures.** When the pinned source page is a
+  PDF with a text layer, `source_ledger.py build` lists each line that
+  carries a figure as a row to resolve (`bind_from_brief` / `keep_source` /
+  `replace_with`), and compile waits for them, as for a PowerPoint page (owner
+  decision). Pictures on the page go to the vision pass. A scanned PDF page or
+  a picture is still "checked by eye only".
+- **Sketches are drawn on the template's real background.** Registration
+  records each layout's own background (its own `<p:bg>`, else the master's;
+  `background_hex`, `background_kind`) and the left and right edges of its
+  text area (`body_left_px`, `body_right_px`); `brand.css`'s canvas is the
+  default content layout's background instead of a fixed white. Each
+  designer's `_context.md` carries `--slide-canvas-bg`, `--body-left` and
+  `--body-right` for its slide's layout, read from the template itself when
+  the registration predates these fields (scripts/_template_bg.py), so no
+  re-registration is needed. `translate_html.py` leaves a canvas of that color
+  to the template instead of painting a full-slide rectangle over the
+  master's artwork (its self-check gives the check slide the same color, so
+  it still compares like with like), and warns `PALE_FILL_ON_BACKGROUND` when
+  a large panel is within a few shades of what is behind it, or was designed
+  visible on white in exactly the template's color (a fill in exactly the
+  color the designer saw behind it is deliberate and not flagged). A loose HTML
+  file with no template (the replay harness) converts exactly as before.
+- **Arrowheads that run into boxes are flagged.** New `scripts/arrow_ends.py`:
+  every arrowhead must stop at least 6 px clear of any box (a panel behind the
+  whole arrow does not count). `translate_html.py` checks the design's SVG
+  arrows (arrow markers, curved ones included) against its boxes, and the
+  translator agent's self-check checks the connectors and freeforms it drew;
+  hits are `MAJOR_ARROW_END_AT_BOX` warnings in the translation report, which
+  the review page shows. prompt.md and the worker / translator instructions
+  now say: arrows end 8 px short of the box edge, and boxes on a cycle diagram
+  are at least 60 px apart.
+- **Each option's self-check has its own picture.** New
+  `scripts/selfcheck_render.py` renders one option's drawn slide into a
+  folder of its own (one per option, in the slide folder's render scratch
+  area; LibreOffice only, never PowerPoint) and writes
+  `option_X_native.png`, then runs the arrow check. The
+  translator agent uses it instead of rendering into the slide folder and
+  renaming `slide_01.png`, which let options B and C of one slide be checked
+  against one shared picture.
+- Fixed: `tests/run_source_line_fallback_smoke.py` read the fixture's
+  chrome.yml from an old flat path that only exists on machines that
+  registered the fixture long ago; it failed on a fresh clone.
+- Tests: run_named_slots_smoke, run_pdf_ledger_rows_smoke,
+  run_template_background_smoke, run_arrow_ends_smoke,
+  run_selfcheck_folder_smoke.
+
 ## 2026-10-06: session-report fixes, batch 1
 
 From a session report, checked by three validators and an adjudicator. These

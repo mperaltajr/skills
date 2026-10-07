@@ -253,7 +253,7 @@ EXTRACT_JS = r"""
   // decorated in a way shapes cannot carry, sends the whole SVG to the agent.
   function readSvg(svg, sid) {
     const r = svg.getBoundingClientRect();
-    const res = {id: sid, ...R(r), order: order++, items: [], unsupported: []};
+    const res = {id: sid, ...R(r), order: order++, items: [], unsupported: [], arrows: []};
     const pt = (el, x, y) => { const m = el.getScreenCTM(); const p = new DOMPoint(x, y).matrixTransform(m); return [p.x - ox, p.y - oy]; };
     for (const el of svg.querySelectorAll('*')) {
       const tag = el.tagName.toLowerCase();
@@ -263,10 +263,24 @@ EXTRACT_JS = r"""
       }
       const cs = getComputedStyle(el);
       if (!visible(cs)) continue;
-      if (el.getAttribute('marker-end') || el.getAttribute('marker-start') || cs.markerEnd !== 'none' || cs.markerStart !== 'none') { res.unsupported.push('arrow marker'); continue; }
+      const mEnd = !!el.getAttribute('marker-end') || cs.markerEnd !== 'none';
+      const mStart = !!el.getAttribute('marker-start') || cs.markerStart !== 'none';
+      if (mEnd || mStart) {
+        // Where the arrow's ends are, for the arrow-end check (scripts/arrow_ends.py).
+        // The element itself still goes to the agent.
+        try {
+          if (!el.closest('defs, marker, symbol') && typeof el.getTotalLength === 'function') {
+            const L = el.getTotalLength(), pts = [];
+            for (let k = 0; k <= 8; k++) { const q = el.getPointAtLength(L * k / 8); pts.push(pt(el, q.x, q.y)); }
+            res.arrows.push({pts, start: mStart, end: mEnd, id: el.getAttribute('data-shape-id') || el.id || ''});
+          }
+        } catch (e) {}
+        res.unsupported.push('arrow marker'); continue;
+      }
       if (cs.strokeDasharray && cs.strokeDasharray !== 'none' && (tag === 'circle' || tag === 'ellipse')) { res.unsupported.push('dashed ring'); continue; }
       const st = {fill: cs.fill, fillOp: parseFloat(cs.fillOpacity) * parseFloat(cs.opacity), stroke: cs.stroke,
-                  sw: parseFloat(cs.strokeWidth) || 0, dash: cs.strokeDasharray && cs.strokeDasharray !== 'none'};
+                  sw: parseFloat(cs.strokeWidth) || 0, dash: cs.strokeDasharray && cs.strokeDasharray !== 'none',
+                  def: !!el.closest('defs, marker, symbol')};
       if (/url\(/.test(st.fill) || /url\(/.test(st.stroke)) { res.unsupported.push('gradient paint'); continue; }
       const A = (n) => parseFloat(el.getAttribute(n) || 0);
       if (tag === 'line') res.items.push({k: 'poly', closed: false, pts: [pt(el, A('x1'), A('y1')), pt(el, A('x2'), A('y2'))], ...st});
@@ -499,12 +513,121 @@ class Plan:
                        "covered_text_skipped": 0, "triangles": 0,
                        "self_check_handed_over": 0}
         self.self_check = {"ran": False, "fired": []}
+        # The template's own background on this slide's layout ('RRGGBB'),
+        # when known (a build's slide); None when translating a loose file.
+        self.template_bg: str | None = None
+        # The design's canvas color when it was left to the template (not drawn).
+        self.canvas_bg: str | None = None
 
     def warn(self, code, detail):
         self.warnings.append({"code": code, "detail": detail})
 
 
 # --- boxes -----------------------------------------------------------------
+
+# A canvas this close (RGB distance) to the template's background IS the
+# template's background.
+CANVAS_MATCH = 3.0
+# A fill this close to what is behind it does not show (PALE_FILL_ON_BACKGROUND).
+PALE_FILL_LIMIT = 10.0
+PALE_FILL_MIN_AREA = 0.02 * 1280 * 720     # only panels, not dots and rules
+
+
+def _color_distance(a: str, b: str) -> float:
+    from _template_bg import color_distance
+    return color_distance(a, b)
+
+
+def _mix(fg: str, bg: str, alpha: float) -> str:
+    f = [int(fg[i:i + 2], 16) for i in (0, 2, 4)]
+    g = [int(bg[i:i + 2], 16) for i in (0, 2, 4)]
+    return "".join(f"{round(a * alpha + b * (1 - alpha)):02X}" for a, b in zip(f, g))
+
+
+def _check_pale_fills(plan: "Plan") -> None:
+    """Warn when a large fill nearly matches what is behind it: the slide's
+    background (the template's, when known) or the panel it sits on. A pale
+    panel designed and approved on white vanished on a gray-blue master
+    (2026-10-06). Advisory: the review page shows it."""
+    designed_bg = plan.canvas_bg or "FFFFFF"          # what the designer saw
+    slide_bg = plan.template_bg or designed_bg        # what the deck will show
+    filled = [o for o in plan.ops if o.get("op") == "shape" and o.get("fill")
+              and o.get("_box") and o.get("_filled")]
+
+    def _against(o, bg):
+        x, y, w, h = o["_box"]
+        under = bg
+        for u in reversed([u for u in filled if u["_order"] < o["_order"]]):
+            ux, uy, uw, uh = u["_box"]
+            if ux - 1 <= x and uy - 1 <= y and x + w <= ux + uw + 1 and y + h <= uy + uh + 1:
+                under = _mix(u["fill"], bg, float(u.get("alpha") or 1.0))
+                break
+        return _mix(o["fill"], under, float(o.get("alpha") or 1.0)), under
+
+    for o in filled:
+        x, y, w, h = o["_box"]
+        if w * h < PALE_FILL_MIN_AREA:
+            continue
+        seen, under = _against(o, slide_bg)
+        line = o.get("line") or {}
+        if line.get("color") and line.get("w", 0) >= 0.5 and \
+                _color_distance(line["color"], under) > PALE_FILL_LIMIT:
+            continue          # an outline shows the panel's edge
+        d = _color_distance(seen, under)
+        # Exactly the color behind it, as designed, is deliberate (a white card
+        # holding a one-sided accent bar, a mask): on 99 past designs that was
+        # 89 of 94 hits. It is a defect only when the design showed it and the
+        # deck's background swallows it, or when a tint nearly matches.
+        d_design = _color_distance(*_against(o, designed_bg))
+        if (1.0 <= d <= PALE_FILL_LIMIT) or (d < 1.0 and d_design >= 1.0):
+            what = ("the template's background" if under == plan.template_bg
+                    else "the slide's background" if under == slide_bg else "the panel behind it")
+            plan.warn("PALE_FILL_ON_BACKGROUND",
+                      f"{o.get('name') or 'a panel'} ({w:.0f}x{h:.0f} px) is #{seen}, "
+                      f"{d:.0f} away from {what} (#{under}): it will barely show. Give it "
+                      "a visibly different fill or an outline")
+
+
+def _check_arrow_ends(plan: "Plan", data: dict) -> None:
+    """The design's arrows (SVG lines and paths with arrow markers) must stop
+    clear of every box (scripts/arrow_ends.py). On cycle diagrams the sketch's
+    arrowheads touched the boxes and the converter copied that (2026-10-06)."""
+    import arrow_ends as AE
+    arrows = []
+    for s in data.get("svgs") or []:
+        for a in s.get("arrows") or []:
+            pts = [tuple(p) for p in a.get("pts") or []]
+            if len(pts) < 2:
+                continue
+            heads = ([(pts[0][0], pts[0][1], "start")] if a.get("start") else []) + \
+                    ([(pts[-1][0], pts[-1][1], "end")] if a.get("end") else [])
+            arrows.append({"name": a.get("id") or s.get("id") or "", "points": pts,
+                           "heads": heads})
+    if not arrows:
+        return
+    boxes = []
+    for b in data.get("boxes") or []:
+        if b.get("canvas"):
+            continue
+        live = any(sd["w"] > 0 and sd["s"] not in ("none", "hidden") and parse_color(sd["c"])
+                   for sd in b.get("sides") or [])
+        if parse_color(b.get("bg")) or live:
+            boxes.append({"name": b.get("id") or b.get("tag") or "", "box": (b["x"], b["y"], b["w"], b["h"])})
+    for s in data.get("svgs") or []:
+        for it in s.get("items") or []:
+            if it.get("def") or not (parse_color(it.get("fill")) or parse_color(it.get("stroke"))):
+                continue
+            if it["k"] == "oval":
+                boxes.append({"name": s.get("id") or "svg shape",
+                              "box": (it["x"], it["y"], it["w"], it["h"])})
+            elif it["k"] == "poly" and it.get("closed") and len(it.get("pts") or []) >= 3:
+                xs, ys = [p[0] for p in it["pts"]], [p[1] for p in it["pts"]]
+                boxes.append({"name": s.get("id") or "svg shape",
+                              "box": (min(xs), min(ys), max(xs) - min(xs), max(ys) - min(ys))})
+    for h in AE.find_hits(arrows, boxes):
+        plan.warnings.append({"code": AE.CODE, "source": "design",
+                              "detail": "design: " + AE.describe(h)})
+
 
 def _plan_box(plan: Plan, b: dict, order_key) -> None:
     x, y, w, h = b["x"], b["y"], b["w"], b["h"]
@@ -540,6 +663,14 @@ def _plan_box(plan: Plan, b: dict, order_key) -> None:
     if b.get("canvas"):
         col = parse_color(b["bg"])
         if not col or col[0] == "FFFFFF":
+            plan.canvas_bg = "FFFFFF"
+            return
+        if plan.template_bg and _color_distance(col[0], plan.template_bg) <= CANVAS_MATCH:
+            # The design is drawn on the template's own background, which the
+            # slide already has. A full-slide rectangle in that color would only
+            # cover the master's own artwork (2026-10-06).
+            plan.canvas_bg = col[0]
+            plan.counts["canvas_left_to_template"] = 1
             return
     col = parse_color(b["bg"])
     flattened = False
@@ -1114,8 +1245,13 @@ def extract(page, html: Path, subtitle_as_shape: bool) -> dict:
     return data
 
 
-def plan_from_extract(data: dict, subtitle_as_shape: bool) -> tuple[Plan, dict]:
+def plan_from_extract(data: dict, subtitle_as_shape: bool,
+                      template_bg: str | None = None) -> tuple[Plan, dict]:
+    """template_bg: the slide layout's own background ('RRGGBB'), when the
+    slide belongs to a build. A canvas of that color is left to the template
+    instead of drawn as a full-slide rectangle over the master's artwork."""
     plan = Plan()
+    plan.template_bg = (template_bg or "").upper().lstrip("#") or None
     fields = {k: v for k, v in (data.get("fields") or {}).items()
               if not (k == "subtitle" and subtitle_as_shape)}
     cv = data.get("canvas") or {}
@@ -1143,6 +1279,8 @@ def plan_from_extract(data: dict, subtitle_as_shape: bool) -> tuple[Plan, dict]:
     _apply_clearance(plan)
     plan.ops.sort(key=lambda o: o["_order"])
     plan.counts["pseudo_elements"] = int(data.get("pseudo_count") or 0)
+    _check_pale_fills(plan)
+    _check_arrow_ends(plan, data)
     return plan, fields
 
 
@@ -1350,12 +1488,36 @@ def _title_text_span(out: Path, slide_n: int) -> tuple[float, float] | None:
         return None
 
 
+def _template_bg(out: Path, slide_n: int) -> str | None:
+    """This slide's layout background ('RRGGBB'): chrome.yml's record, else
+    read from the template. None when unknown or a picture."""
+    try:
+        import _paths as _p
+        import _template_bg as TB
+        from _chrome_schema import load_chrome_yml
+        meta = json.loads(_p.meta_json(out).read_text(encoding="utf-8"))
+        slide = next(s for s in meta["slides"] if s.get("n") == slide_n)
+        tpl = Path(meta["template"])
+        lc = None
+        try:
+            lc = load_chrome_yml(_p.chrome_yml(tpl)).layouts.get(slide.get("layout") or "")
+        except Exception:
+            pass
+        f = TB.facts_for(tpl, slide.get("layout") or "", lc)
+        # For a gradient or pattern this is its first color, the one prep gave
+        # the designer for the canvas: a canvas of that color is still the
+        # template's background and is left to it.
+        return f["bg_hex"] if f.get("bg_hex") and f.get("bg_kind") != "picture" else None
+    except Exception:
+        return None
+
+
 def job_for(out: Path, slide_n: int, letter: str) -> tuple:
     """The translate_many job for one picked option of a build."""
     sd = out / f"slide_{slide_n:02d}"
     sas = _subtitle_as_shape(out, slide_n)
     return (sd / f"option_{letter}.html", sd, letter, sas,
-            _title_text_span(out, slide_n) if sas else None)
+            _title_text_span(out, slide_n) if sas else None, _template_bg(out, slide_n))
 
 
 def snap_subtitle(plan: "Plan", span: tuple[float, float] | None) -> None:
@@ -1398,6 +1560,13 @@ def self_check(items: list[tuple["Plan", dict]]) -> None:
             paths = []
             for k, (plan, _) in enumerate(items):
                 prs, _s = build(_public_plan(plan))
+                if plan.canvas_bg and plan.canvas_bg != "FFFFFF":
+                    # The canvas was left to the template's background; the
+                    # check's blank slide gets that color instead, so it
+                    # compares like with like.
+                    from pptx.dml.color import RGBColor
+                    _s.background.fill.solid()
+                    _s.background.fill.fore_color.rgb = RGBColor.from_string(plan.canvas_bg)
                 paths.append(Path(td) / f"t{k:03d}.pptx")
                 prs.save(str(paths[-1]))
             rendered = A.render_full(paths)
@@ -1429,7 +1598,7 @@ def self_check(items: list[tuple["Plan", dict]]) -> None:
 
 
 def translate_many(jobs: list[tuple], check: bool = True) -> list[dict]:
-    """jobs: (html, emit_dir, letter, subtitle_as_shape[, title_text_span]);
+    """jobs: (html, emit_dir, letter, subtitle_as_shape[, title_text_span[, template_bg]]);
     job_for() builds one for a build's slide. One browser for all, then one
     LibreOffice pass for the self-check."""
     from playwright.sync_api import sync_playwright
@@ -1440,7 +1609,7 @@ def translate_many(jobs: list[tuple], check: bool = True) -> list[dict]:
         page = browser.new_page(viewport={"width": CANVAS_W, "height": CANVAS_H})
         for html, emit_dir, letter, sas, *rest in jobs:
             data = extract(page, html, sas)
-            plan, fields = plan_from_extract(data, sas)
+            plan, fields = plan_from_extract(data, sas, rest[1] if len(rest) > 1 else None)
             done.append((html, emit_dir, letter, plan, fields, data, rest[0] if rest else None))
         browser.close()
     if check and done:

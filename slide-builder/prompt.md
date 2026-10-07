@@ -207,6 +207,7 @@ Produce **{{OPTIONS_COUNT}} option(s)** ({{OPTION_LETTERS}}) for the SAME picked
 - **Number only real sequences:** steps, phases, stages, dated plans, or items the deck refers to by number. A set with no order (levers, pillars, options, criteria, sources) gets a marker but no numbers, because a number implies an order that isn't there.
 - **Give each item a simple marker** drawn with native shapes: a circle, chevron, small rounded square or a simple icon built from shapes. No emoji, no clip art, no image files.
 - **When the items happen in order**, connect them with arrows, chevrons or a line, so the sequence reads at a glance.
+- **Arrows stop short of the boxes.** Work out each arrow's start and end from the box EDGES (not the box centers) and leave at least 8 px between an arrowhead and the box it points at; an arrowhead touching or inside a box is flagged (`MAJOR_ARROW_END_AT_BOX` on the review page). On a **cycle or loop** diagram, also leave at least 60 px between neighboring boxes so each arrow has room to show, and keep the boxes off the arrow's path. On 2026-10-06 a loop's arrowheads ran into the boxes in the sketch, and the finished slide copied it.
 - **Skip it only when it would be false or noise:** a single claim, a quote, a chart that already carries the structure, or items with no order or grouping.
 - **No trailing periods** on headings, labels, callouts or one-sentence text boxes. Multi-sentence paragraphs keep normal punctuation.
 
