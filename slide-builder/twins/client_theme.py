@@ -864,6 +864,13 @@ def strip_master_layout_backgrounds(prs) -> int:
 # ---------------------------------------------------------------------------
 _SRGB_RE = re.compile(rb'(srgbClr\s+val=")([0-9A-Fa-f]{6})(")')
 _LATIN_RE = re.compile(rb'(latin\s+typeface=")([^"]+)(")')
+# A heavy face named as its own font ("Arial Black", "Brand Sans Semibold",
+# "Brand ExtraBold"). The font swap below turns every such literal into the
+# theme font; without this the weight went with the name and the text shipped
+# regular, in PowerPoint too (2026-10-06). Medium and Light are not bold.
+_HEAVY_FACE_RE = re.compile(
+    r"\b(semi[- ]?bold|demi[- ]?bold|extra[- ]?bold|ultra[- ]?bold|bold|black|heavy)\b",
+    re.I)
 # Self-closing srgbClr (no child color modifications). Only this form is
 # eligible for srgbClr -> schemeClr swap; srgbClr with children (alpha,
 # lumMod, etc.) is left to the hex-substitution path so children survive.
@@ -900,6 +907,32 @@ def apply_theme_to_shape_xml(element, color_map: Dict[str, str],
        rather than whatever the worker typed.
     """
     from lxml import etree
+
+    _ICON_FONTS = {
+        "segoe ui symbol", "segoe ui emoji", "wingdings", "wingdings 2",
+        "wingdings 3", "symbol", "symbola", "noto color emoji",
+        "apple color emoji", "marlett", "webdings",
+    }
+    minor_norm = (minor_font or "").strip().lower()
+    major_norm = (major_font or "").strip().lower()
+
+    # Keep the weight of a heavy face whose NAME is about to be swapped for the
+    # theme font: set bold on its run properties first (rPr / defRPr /
+    # endParaRPr all carry b). A face that already is a theme font keeps its
+    # own bold setting.
+    if minor_norm or major_norm:
+        _A_NS = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
+        for latin in element.iter(_A_NS + "latin"):
+            cur = (latin.get("typeface") or "").strip()
+            low = cur.lower()
+            if (not cur or cur.startswith("+") or low in _ICON_FONTS
+                    or low in (minor_norm, major_norm)):
+                continue
+            if _HEAVY_FACE_RE.search(cur):
+                rpr = latin.getparent()
+                if rpr is not None and rpr.get("b") != "1":
+                    rpr.set("b", "1")
+
     xml = etree.tostring(element)
 
     n_subs = 0
@@ -925,13 +958,6 @@ def apply_theme_to_shape_xml(element, color_map: Dict[str, str],
             return m.group(0)
         xml = _SRGB_SELFCLOSE_RE.sub(_replace_to_scheme, xml)
 
-    _ICON_FONTS = {
-        "segoe ui symbol", "segoe ui emoji", "wingdings", "wingdings 2",
-        "wingdings 3", "symbol", "symbola", "noto color emoji",
-        "apple color emoji", "marlett", "webdings",
-    }
-    minor_norm = (minor_font or "").strip().lower()
-    major_norm = (major_font or "").strip().lower()
     if minor_norm or major_norm:
         def _replace_font(m):
             nonlocal n_subs

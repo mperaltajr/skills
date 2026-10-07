@@ -86,6 +86,86 @@ svg { position: absolute; left: 53px; top: 460px; }
 </div></body></html>"""
 
 
+WEIGHTS = """<!doctype html><html><head><meta charset="utf-8"><style>
+body { margin: 0; }
+.slide-canvas { position: relative; width: 1280px; height: 720px; background: #fff;
+  font-family: Arial, sans-serif; color: #1a1a1a; }
+p { position: absolute; left: 80px; margin: 0; font-size: 28px; white-space: nowrap; }
+</style></head><body><div class="slide-canvas">
+<p data-shape-id="w400" style="top:120px;font-weight:400">Weight four hundred</p>
+<p data-shape-id="w600" style="top:200px;font-weight:600">Weight six hundred</p>
+<p data-shape-id="w700" style="top:280px;font-weight:700">Weight seven hundred</p>
+<p data-shape-id="w800" style="top:360px;font-weight:800">Weight eight hundred</p>
+<p data-shape-id="w900" style="top:440px;font-weight:900">Weight nine hundred</p>
+</div></body></html>"""
+
+
+def _run_props(shape):
+    from pptx.oxml.ns import qn
+    out = []
+    for p in shape.text_frame.paragraphs:
+        for r in p.runs:
+            rpr = r._r.find(qn("a:rPr"))
+            lat = rpr.find(qn("a:latin")) if rpr is not None else None
+            out.append((lat.get("typeface") if lat is not None else None,
+                        rpr.get("b") if rpr is not None else None))
+    return out
+
+
+def _weights_survive_theme() -> None:
+    """Weights 600-900 come out bold on the theme font after finalize's theme
+    pass (2026-10-06: weight 800 shipped regular, in PowerPoint too)."""
+    from pptx import Presentation
+    from pptx.util import Inches, Pt
+    from twins.client_theme import apply_theme_to_shape_xml
+    print("[weights] 600/700/800/900 stay bold through the theme font swap")
+    with tempfile.TemporaryDirectory() as td:
+        td = Path(td)
+        html = td / "option_W.html"
+        html.write_text(WEIGHTS, encoding="utf-8")
+        rep = T.translate_many([(html, td, "W", True)])[0]
+        assert not rep["fallback"], f"plain text went to the agent: {rep['fallback']}"
+        r = subprocess.run([sys.executable, str(td / "option_W_native.py")], cwd=str(td),
+                           capture_output=True, text=True, timeout=120)
+        assert r.returncode == 0, r.stderr[-800:]
+        prs = Presentation(str(td / "option_W_native.pptx"))
+        slide = prs.slides[0]
+        # the template's theme font differs from the design's, as on a client template
+        for sh in list(slide.shapes):
+            apply_theme_to_shape_xml(sh.element, {}, major_font="Georgia",
+                                     minor_font="Calibri")
+        by = {sh.name: _run_props(sh) for sh in slide.shapes if sh.has_text_frame}
+        for w in ("w600", "w700", "w800", "w900"):
+            assert by[w] and all(f == "+mn-lt" and b == "1" for f, b in by[w]), (w, by[w])
+        assert all(b != "1" for _f, b in by["w400"]), by["w400"]
+        prs.save(str(td / "themed.pptx"))
+
+        # backstop: a deck built the other way (a heavy face named as its own
+        # font, bold off) keeps its weight when the theme swaps the name
+        prs2 = Presentation()
+        s2 = prs2.slides.add_slide(prs2.slide_layouts[6])
+        faces = {"black": "Arial Black", "semi": "Smoke Sans Semibold",
+                 "xbold": "Smoke Sans ExtraBold", "medium": "Smoke Sans Medium",
+                 "light": "Smoke Sans Light", "theme": "Calibri"}
+        for i, (name, face) in enumerate(faces.items()):
+            tb = s2.shapes.add_textbox(Inches(1), Inches(0.5 + i * 0.8), Inches(6), Inches(0.6))
+            tb.name = name
+            run = tb.text_frame.paragraphs[0].add_run()
+            run.text = f"Face {name}"
+            run.font.name = face
+            run.font.bold = False
+            run.font.size = Pt(20)
+        for sh in list(s2.shapes):
+            apply_theme_to_shape_xml(sh.element, {}, major_font="Georgia",
+                                     minor_font="Calibri")
+        by2 = {sh.name: _run_props(sh)[0] for sh in s2.shapes}
+        for name in ("black", "semi", "xbold"):
+            assert by2[name] == ("+mn-lt", "1"), (name, by2[name])
+        for name in ("medium", "light", "theme"):
+            assert by2[name][1] != "1", (name, by2[name])
+    print("    ok: bold on the theme font for 600-900; Medium, Light and 400 stay regular")
+
+
 def main() -> int:
     with tempfile.TemporaryDirectory() as td:
         td = Path(td)
@@ -103,9 +183,10 @@ def main() -> int:
         ops = plan["ops"]
         texts = {o.get("name"): o for o in ops if o["op"] == "text"}
 
-        # weight 800 -> heavy face
+        # weight 800 -> the base family with bold on (a heavy face's own name
+        # does not survive finalize's theme font swap)
         num = texts["num-01"]["paragraphs"][0][0]
-        assert num["font"] == "Arial Black" and num["bold"] is False, num
+        assert num["font"] == "Arial" and num["bold"] is True, num
         # gap between side-by-side pieces kept
         figs = "".join(r["t"] for p in texts["figs"]["paragraphs"] for r in p)
         assert "$1.2B to" in figs.replace("  ", " ") and "to $4.8B" in figs.replace("  ", " "), figs
@@ -163,12 +244,33 @@ def main() -> int:
         assert any(f["kind"] == "self-check" and f["id"] == "card-body" for f in bad.fallbacks), \
             bad.self_check
 
-    # weight mapping
+    # weight mapping: 600 and up is the base family + bold, never a heavy face
     assert T._face("Arial", "400") == ("Arial", False)
     assert T._face("Arial", "600") == ("Arial", True)
     assert T._face("Arial", "700") == ("Arial", True)
-    assert T._face('"Arial", sans-serif', "800") == ("Arial Black", False)
+    assert T._face('"Arial", sans-serif', "800") == ("Arial", True)
+    assert T._face('"Arial", sans-serif', "900") == ("Arial", True)
     assert T._face("Calibri", "800")[1] is True   # no heavy face installed: bold
+    # a family with its own Semibold face (a made-up family, so the test does
+    # not depend on what is installed)
+    saved = T._FACES
+    try:
+        T._FACES = dict(T._face_table())
+        T._FACES["smoke sans"] = [
+            {"path": "", "weight": 400, "width": 5, "italic": False,
+             "ppt_name": "Smoke Sans", "ppt_bold": False},
+            {"path": "", "weight": 500, "width": 5, "italic": False,
+             "ppt_name": "Smoke Sans Medium", "ppt_bold": False},
+            {"path": "", "weight": 600, "width": 5, "italic": False,
+             "ppt_name": "Smoke Sans Semibold", "ppt_bold": False},
+            {"path": "", "weight": 700, "width": 5, "italic": False,
+             "ppt_name": "Smoke Sans", "ppt_bold": True}]
+        assert T._face("Smoke Sans", "600") == ("Smoke Sans", True), T._face("Smoke Sans", "600")
+        assert T._face("Smoke Sans", "500") == ("Smoke Sans Medium", False)
+    finally:
+        T._FACES = saved
+
+    _weights_survive_theme()
 
     # alarm limits are the calibrated ones (a change here needs a re-run of
     # translate_alarm_calibrate.py and translate_alarm_seeded.py)

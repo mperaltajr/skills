@@ -15,6 +15,10 @@ bug shipped:
        missing TTF surfaces TitleMetricsUnavailableError; char-count proxy is
        the documented transitional fallback.
 
+  P6 — a takeaway drawn as a shape (layout has no subtitle slot) lines up with
+       the title's text edge and width, whatever x the sketch gave it; its
+       height position is the design's; finalize still passes (2026-10-06).
+
 Each phase is self-contained. Run individually with --phase <name> or all with
 no flag.
 
@@ -289,12 +293,99 @@ def phase_P5_title_overlap_gate() -> None:
 # Runner
 # ---------------------------------------------------------------------------
 
+SUBTITLE_SKETCH = (
+    '<html><body style="margin:0"><div class="slide-canvas" style="position:relative;'
+    'width:1280px;height:720px;font-family:Arial">'
+    '<div data-template-field="title" style="position:absolute;left:53px;top:40px;'
+    'font-size:28px">Claim number 1 is stated plainly here</div>'
+    # the worker guessed the takeaway's left edge: 66 px, not the title's
+    '<p data-template-field="subtitle" style="position:absolute;left:66px;top:104px;'
+    'width:900px;margin:0;font-size:18px">The takeaway sits under the title</p>'
+    '<div data-shape-id="box" style="position:absolute;left:66px;top:300px;width:400px;'
+    'height:160px;background:#1f4e79"></div>'
+    '</div></body></html>')
+
+
+def phase_P6_subtitle_lines_up_with_title() -> None:
+    """A takeaway drawn as a shape (no subtitle slot on the layout) lines up
+    with the title's text, whatever x the sketch gave it; its height position
+    stays the design's (2026-10-06: it sat indented under the title)."""
+    import json
+    import os
+    import tempfile
+    sys.path.insert(0, str(HERE))
+    import _e2e_harness as H
+    import _state
+    import translate_html as T
+    from pptx import Presentation
+    saved = os.environ.get("SLIDE_LAB_TRANSLATOR")
+    os.environ["SLIDE_LAB_TRANSLATOR"] = "script"
+    tmp, out = H.new_build(1)
+    try:
+        html = out / "slide_01" / "option_A.html"
+        html.write_text(SUBTITLE_SKETCH, encoding="utf-8")
+        assert T._subtitle_as_shape(out, 1), "the test layout should have no subtitle slot"
+        span = T._title_text_span(out, 1)
+        assert span, "could not read the title's text edges from the layout"
+        # the design as drawn, for its height position
+        with tempfile.TemporaryDirectory() as td:
+            T.translate_many([(html, Path(td), "A", True)], check=False)
+            raw = json.loads((Path(td) / "option_A_native.plan.json").read_text(encoding="utf-8"))
+        raw_sub = next(o for o in raw["ops"] if o.get("name") == "subtitle")
+        assert abs(raw_sub["x"] - 66) < 1, raw_sub["x"]
+
+        assert H.finalize(out).returncode == 0
+        assert H.run("build_review.py", "--out", out).returncode == 0
+        tok = _state.read_state(out)["review"]["token"]
+        body = _state.canonical_picks({"slide_01": "A"})
+        r = H.run("record_picks.py", "--out", out, "--approved",
+                  f"PICKS {body} CHECK {_state.approval_check(tok, body)}")
+        assert r.returncode == 0, r.stdout[-1200:]
+        plan = json.loads((out / "slide_01" / "option_A_native.plan.json").read_text(
+            encoding="utf-8"))
+        sub = next(o for o in plan["ops"] if o.get("name") == "subtitle")
+        assert abs(sub["x"] - span[0]) < 0.01 and abs(sub["w"] - span[1]) < 0.01, (sub, span)
+        assert abs(sub["y"] - raw_sub["y"]) < 0.01, (sub["y"], raw_sub["y"])
+        r = H.finalize(out)
+        assert r.returncode == 0, r.stdout[-1500:] + r.stderr[-800:]
+
+        # on the finished slide, the takeaway's text starts where the title's does
+        from pptx.oxml.ns import qn
+        themed = [p for p in (out / "slide_01").glob("*.pptx")
+                  if "native" not in p.name and "_raw" not in p.name]
+        assert themed, list((out / "slide_01").iterdir())
+        slide = Presentation(str(themed[0])).slides[0]
+        title = next(s for s in slide.placeholders
+                     if int(s.placeholder_format.type or 0) in (1, 3))
+        shape = next(s for s in slide.shapes if s.name == "subtitle")
+
+        def _text_left(sh):
+            for el in (sh._element, getattr(getattr(sh, "_base_placeholder", None),
+                                            "_element", None)):
+                bp = el.find(".//" + qn("a:bodyPr")) if el is not None else None
+                if bp is not None and bp.get("lIns") is not None:
+                    return (int(sh.left) + int(bp.get("lIns"))) / 9525
+            return (int(sh.left) + 91440) / 9525
+        assert abs(_text_left(title) - _text_left(shape)) < 1.0, (
+            f"title text at {_text_left(title):.1f}px, takeaway at "
+            f"{_text_left(shape):.1f}px")
+        print(f"  ok: takeaway moved from x=66 to x={sub['x']:.1f} (title text edge), "
+              f"y kept at {sub['y']:.1f}; finalize passed")
+    finally:
+        if saved is None:
+            os.environ.pop("SLIDE_LAB_TRANSLATOR", None)
+        else:
+            os.environ["SLIDE_LAB_TRANSLATOR"] = saved
+        H.cleanup(tmp)
+
+
 PHASES = {
     "P1": phase_P1_validator_rejects_bespoke_default,
     "P2": phase_P2_loud_fail_on_drop,
     "P3": phase_P3_schema_has_subtitle,
     "P4": phase_P4_pillow_wrap_count,
     "P5": phase_P5_title_overlap_gate,
+    "P6": phase_P6_subtitle_lines_up_with_title,
 }
 
 
@@ -322,6 +413,7 @@ def main() -> int:
             print(f"  - {n}: {msg}")
         return 1
     print("\nAll phases passed.")
+    print("SMOKE PASSED.")
     return 0
 
 

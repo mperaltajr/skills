@@ -15,8 +15,10 @@ It
      option (the redesign);
   2. keeps every other slide's recorded pick and picks the redesign for the
      fixed slides, writing the user's words into the build record;
-  3. converts a redesigned sketch with translate_html.py (stops if part of it
-     needs the translator agent; run the agent, then this again);
+  3. converts a redesigned sketch with translate_html.py when its design
+     changed since it was last converted (stops if part of it needs the
+     translator agent; run the agent, then this again: a slide the agent
+     finished is not converted again, so its drawing is kept);
   4. finalizes the fixed slides, writes the final-check record over the
      finished files (FINAL-CHECK.html is still written, as the record), and
      compiles.
@@ -111,26 +113,18 @@ def main(argv=None) -> int:
     print(f"[ok] recorded the fix for slide(s) {', '.join(map(str, fixed))} "
           f"as approved in chat; other picks kept.")
 
-    # Convert a redesigned sketch.
-    jobs = []
-    for n in fixed:
-        key = _p.slide_key(n)
-        L = picks[key]
-        html = out / key / f"option_{L}.html"
-        if html.exists():
-            import translate_html
-            jobs.append((html, out / key, L, translate_html._subtitle_as_shape(out, n)))
-    if jobs:
-        import translate_html
-        reports = translate_html.translate_many(jobs)
-        pending = [r for r in reports if r["needs_agent"]]
-        if pending:
-            print("Part of the redesign needs the translator agent first (FALLBACK MODE):")
-            for r in pending:
-                h = Path(r["html"])
-                print(f"  {h.with_name(h.stem + '_native.py')}")
-            print("Run it, then run this command again.")
-            return 3
+    # Convert a redesigned sketch, only when its design changed since it was
+    # last converted. Converting again rewrote the script from scratch: what
+    # the translator agent drew was erased and the slide was pending again, so
+    # this command looped on exit 3 for ever (2026-10-06).
+    import translate_html
+    pending = translate_html.convert_picked(out, [(n, picks[_p.slide_key(n)]) for n in fixed])
+    if pending:
+        print("Part of the redesign needs the translator agent first (FALLBACK MODE):")
+        for native in pending:
+            print(f"  {native}")
+        print("Run it, then run this command again (what it draws is kept).")
+        return 3
 
     meta = json.loads(_p.meta_json(out).read_text(encoding="utf-8"))
     tpl = meta.get("template")

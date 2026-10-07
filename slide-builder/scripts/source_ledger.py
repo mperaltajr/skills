@@ -30,6 +30,9 @@ signals went blind in this pipeline before.
 
 Run:
   py -3 scripts/source_ledger.py build  --out <out> --deck <page.pptx> --slide N
+  py -3 scripts/source_ledger.py build  --out <out> --deck <page.pdf|page.png> --slide N
+      (a PDF page or a picture has no shape tree: no rows, the whole page is
+       recorded as checked by eye only, and the vision pass covers it)
   py -3 scripts/source_ledger.py status --out <out>
 """
 from __future__ import annotations
@@ -49,6 +52,9 @@ from pptx import Presentation  # noqa: E402
 
 LEDGER_NAME = "source_ledger.json"
 RESOLUTIONS = ("bind_from_brief", "keep_source", "replace_with")
+# A supplied page with no shape tree: recorded as checked by eye only.
+VISUAL_SUFFIXES = frozenset({".pdf", ".png", ".jpg", ".jpeg", ".gif", ".bmp",
+                             ".tif", ".tiff", ".webp"})
 
 
 def ledger_path(out_dir: Path) -> Path:
@@ -97,12 +103,91 @@ def _write_brief_qc(out_dir: Path, ledger: dict) -> None:
         warnings.append(f"{u.get('addr')}: {u.get('why')} — NOT checked; "
                         f"the vision pass is responsible for this surface")
     # Deliberately never a green "0 conflicts": silence must not read as a pass.
+    if ledger.get("source_kind") == "visual":
+        summary = ("Supplied page is a PDF or picture: nothing on it could be read by "
+                   "machine, so it is checked by eye only (vision QC). Take every figure "
+                   "from the brief or confirm it with the user.")
+        _p.brief_qc_json(out_dir).write_text(
+            json.dumps({"summary": summary, "blocking": blocking, "warnings": warnings},
+                       indent=2), encoding="utf-8")
+        return
     summary = (f"Supplied page: {total} figure-bearing slot(s), "
                f"{total - unresolved} resolved, {keeps} kept from source, "
                f"{len(unreachable)} surface(s) unreadable and referred to vision QC.")
     _p.brief_qc_json(out_dir).write_text(
         json.dumps({"summary": summary, "blocking": blocking, "warnings": warnings},
                    indent=2), encoding="utf-8")
+
+
+def _pdf_pages(path: Path) -> int | None:
+    """Page count of a PDF, or None when no PDF reader is installed."""
+    try:
+        import pypdfium2 as pdfium
+        doc = pdfium.PdfDocument(str(path))
+        try:
+            return len(doc)
+        finally:
+            doc.close()
+    except ImportError:
+        pass
+    except Exception:
+        return None
+    try:
+        from pypdf import PdfReader
+        return len(PdfReader(str(path)).pages)
+    except Exception:
+        return None
+
+
+def _build_visual(out_dir: Path, deck: Path, args) -> int:
+    """A PDF page or a picture: there is no shape tree to read, so no figure
+    can be machine-checked. Write an honest ledger: no rows (nothing is
+    claimed as bound), the whole page in `unreachable` so slide-qc's vision
+    pass owns it, and the state compile needs. Delivery (check_done) says the
+    page was checked by eye only. Before this, `build` crashed on any
+    non-PowerPoint file and a pinned PDF could never compile (2026-10-06)."""
+    n = args.slide
+    is_pdf = deck.suffix.lower() == ".pdf"
+    if is_pdf:
+        pages = _pdf_pages(deck)
+        if pages is not None and not (1 <= n <= pages):
+            print(f"[error] --slide {n} out of range (the PDF has {pages} page(s))",
+                  file=sys.stderr)
+            return 2
+    elif n != 1:
+        print(f"[error] --slide {n}: a picture has one page; use --slide 1", file=sys.stderr)
+        return 2
+    what = f"PDF page {n}" if is_pdf else "picture"
+    unreachable = [{
+        "slide": args.target_slide or n,
+        "addr": f"whole page ({what})",
+        "kind": "pdf" if is_pdf else "picture",
+        "why": (f"{what}: its figures are not read by machine; checked by eye only "
+                "(slide-qc vision pass), no figure on it was machine-checked"),
+    }]
+    ledger = {
+        "source_page": str(deck.resolve()),
+        "source_slide": n,
+        "source_kind": "visual",
+        "generated_at": _dt.datetime.now().isoformat(timespec="seconds"),
+        "_how_to": ("A PDF or picture: nothing here was machine-read, so there are no "
+                    "rows to resolve. Every figure on the slide must come from the brief "
+                    "or be confirmed with the user; slide-qc's vision pass checks the "
+                    "page by eye."),
+        "rows": [],
+        "unreachable": unreachable,
+    }
+    ledger_path(out_dir).write_text(json.dumps(ledger, indent=2, ensure_ascii=False),
+                                    encoding="utf-8")
+    _write_brief_qc(out_dir, ledger)
+    _state.record_source_ledger(out_dir, 0, 0, len(unreachable), visual_only=True)
+    print(f"[ok] wrote {ledger_path(out_dir)}")
+    print(f"     The supplied page is a {what}: its figures are not machine-read, so "
+          "none is claimed as checked.")
+    print("     It is CHECKED BY EYE ONLY: the slide-qc vision pass covers it, and "
+          "check_done.py says so at delivery.")
+    print("     Take every figure from the brief, or confirm it with the user.")
+    return 0
 
 
 def cmd_build(args) -> int:
@@ -113,6 +198,15 @@ def cmd_build(args) -> int:
         return 2
     if not deck.exists():
         print(f"[error] supplied page not found: {deck}", file=sys.stderr)
+        return 2
+
+    suffix = deck.suffix.lower()
+    if suffix in VISUAL_SUFFIXES:
+        return _build_visual(out_dir, deck, args)
+    if suffix not in (".pptx", ".pptm", ".potx"):
+        print(f"[error] {deck.name}: a supplied page must be a PowerPoint file, a PDF or a "
+              f"picture ({', '.join(sorted(VISUAL_SUFFIXES))}). Save it as a PDF and run "
+              f"this again.", file=sys.stderr)
         return 2
 
     prs = Presentation(str(deck))
@@ -174,7 +268,8 @@ def cmd_status(args) -> int:
     unresolved, keeps, total = tally(ledger)
     _write_brief_qc(out_dir, ledger)
     _state.record_source_ledger(out_dir, unresolved, keeps,
-                                len(ledger.get("unreachable", []) or []))
+                                len(ledger.get("unreachable", []) or []),
+                                visual_only=ledger.get("source_kind") == "visual")
     print(f"[ok] {total} slot(s): {total - unresolved} resolved, {unresolved} unresolved, "
           f"{keeps} kept from source.")
     for r in ledger.get("rows", []):
@@ -188,7 +283,9 @@ def main(argv=None) -> int:
     sub = ap.add_subparsers(dest="cmd", required=True)
     b = sub.add_parser("build", help="Enumerate figure-bearing slots from a supplied page.")
     b.add_argument("--out", required=True)
-    b.add_argument("--deck", required=True, help="The supplied page (.pptx).")
+    b.add_argument("--deck", required=True,
+                   help="The supplied page: a .pptx, or a PDF or picture (recorded as "
+                        "checked by eye only).")
     b.add_argument("--slide", type=int, default=1, help="Which slide of that file.")
     b.add_argument("--target-slide", type=int, default=None,
                    help="Slide number in the deck being built (defaults to --slide).")

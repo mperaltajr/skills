@@ -203,12 +203,24 @@ def main(argv=None) -> int:
             print(f"                  - {o.get('override')}: {o.get('detail', '')} "
                   f"({o.get('at', '')})")
         print("                  Tell the user about these when you deliver.")
-    if sl:
-        # State plainly how much was taken on trust rather than verified.
-        print(f"  supplied page : {sl.get('keep_source', 0)} figure(s) kept "
-              f"verbatim from the source, {sl.get('unreachable', 0)} surface(s) "
-              f"unreadable and covered only by the vision pass")
+    line = supplied_page_line(sl)
+    if line:
+        print(line)
     return 0
+
+
+def supplied_page_line(sl: dict) -> str:
+    """The delivery line for a pinned supplied page: how much was taken on
+    trust rather than verified. Empty when no page was pinned."""
+    if not sl:
+        return ""
+    if sl.get("visual_only"):
+        return ("  supplied page : a PDF page or picture, CHECKED BY EYE ONLY (the "
+                "vision pass); no figure on it was machine-checked against the brief. "
+                "Tell the user.")
+    return (f"  supplied page : {sl.get('keep_source', 0)} figure(s) kept "
+            f"verbatim from the source, {sl.get('unreachable', 0)} surface(s) "
+            f"unreadable and covered only by the vision pass")
 
 
 if __name__ == "__main__":

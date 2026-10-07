@@ -279,7 +279,7 @@ def check_options_finalized(state: dict, option_keys) -> tuple[bool, str]:
 
 
 def record_source_ledger(out_dir, unresolved: int, keep_source: int = 0,
-                         unreachable: int = 0) -> None:
+                         unreachable: int = 0, visual_only: bool = False) -> None:
     """Record reconciliation state for a SUPPLIED page that is being replicated.
 
     Deliberately records only what the machine owns: how many figure-bearing
@@ -287,12 +287,14 @@ def record_source_ledger(out_dir, unresolved: int, keep_source: int = 0,
     brief" — deciding that "6-12 months" and "sold out" denote the same quantity
     is a semantic judgment, and a gate that asserted it would be false assurance.
     `keep_source` and `unreachable` are carried so delivery can state how much was
-    taken on trust rather than checked.
+    taken on trust rather than checked. `visual_only` marks a supplied PDF page
+    or picture: nothing on it was machine-read, it is checked by eye only.
     """
     state = read_state(out_dir)
     state["source_ledger"] = {"unresolved": int(unresolved or 0),
                               "keep_source": int(keep_source or 0),
                               "unreachable": int(unreachable or 0),
+                              "visual_only": bool(visual_only),
                               "at": _now()}
     _write(out_dir, state)
 

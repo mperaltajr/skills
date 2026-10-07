@@ -705,16 +705,25 @@ def _pick_weight(faces: list[dict], w: int) -> dict:
 def _face(ff: str, fw, italic: bool = False) -> tuple[str, bool]:
     """(font name, bold) as PowerPoint needs it to draw the face Chrome drew.
 
-    Chrome picks a face by weight from everything installed under the family:
-    Arial at 800 is Arial Black (much wider than Arial Bold); a brand family at
-    500 is often its own "Medium" face. PowerPoint only knows bold on/off, so name that face
-    the way PowerPoint knows it. Without the font files: bold from 600 up.
+    Weight 600 and up is always the base family with bold on. Naming the
+    heavy face instead (Arial at 800 is "Arial Black", a brand family at 600
+    its own "Semibold" face) did not survive: finalize's theme pass swaps
+    every font name that is not the theme font for the theme font, and the
+    weight went with the name, so the text shipped regular, in PowerPoint
+    too (2026-10-06). extract() draws 600+ at 700 before measuring, so the
+    self-check compares against the face that actually ships.
+
+    Below 600, Chrome picks a face by weight from everything installed under
+    the family (a brand family at 500 is often its own "Medium" face), and
+    that face is named the way PowerPoint knows it.
     """
     fam = _family(ff)
     try:
         w = int(fw)
     except (TypeError, ValueError):
         w = 700 if str(fw) in ("bold", "bolder") else 400
+    if w >= 600:
+        return fam, True
     faces = [f for f in _face_table().get(fam.lower(), []) if f["italic"] == italic] or \
         _face_table().get(fam.lower(), [])
     normal = [f for f in faces if f["width"] == 5] or faces
@@ -1067,6 +1076,16 @@ def _apply_clearance(plan: Plan) -> None:
 # Driver
 # ---------------------------------------------------------------------------
 
+HEAVY_TO_BOLD_JS = r"""() => {
+  let n = 0;
+  for (const el of document.querySelectorAll('*')) {
+    const w = parseInt(getComputedStyle(el).fontWeight, 10);
+    if (w >= 600 && w !== 700) { el.style.setProperty('font-weight', '700', 'important'); n++; }
+  }
+  return n;
+}"""
+
+
 def extract(page, html: Path, subtitle_as_shape: bool) -> dict:
     page.goto(html.resolve().as_uri())
     page.wait_for_load_state("load")
@@ -1075,6 +1094,10 @@ def extract(page, html: Path, subtitle_as_shape: bool) -> dict:
     except Exception:
         pass
     page.wait_for_timeout(100)
+    # PowerPoint gets bold on/off only (see _face): draw every weight from 600
+    # up at 700, so the boxes, wraps and the self-check's reference image are
+    # those of the face that ships, not of a heavier face the deck cannot keep.
+    page.evaluate(HEAVY_TO_BOLD_JS)
     # The design as the alarm compares it: without the fields the template
     # draws (title, footer, page number), since the script doesn't draw them.
     page.evaluate("""(sas) => { for (const el of document.querySelectorAll('[data-template-field]')) {
@@ -1185,12 +1208,84 @@ def write_outputs(html: Path, emit_dir: Path, letter: str, plan: Plan, fields: d
         "fallback": plan.fallbacks,
         "self_check": plan.self_check,
         "needs_agent": bool(plan.fallbacks),
+        "html_sha256": _sha256(html),
         "template_fields": fields,
         "visible_text_chars": len(re.sub(r"\s+", "", visible_text or "")),
     }
     (emit_dir / f"option_{letter}_translation_report.json").write_text(
         json.dumps(report, indent=1), encoding="utf-8")
     return report
+
+
+def _sha256(path: Path) -> str:
+    import hashlib
+    try:
+        return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+    except OSError:
+        return ""
+
+
+def fallback_pending(native_py: Path) -> bool:
+    """True while the translator agent still has elements to draw."""
+    try:
+        return "# FALLBACK_PENDING:" in Path(native_py).read_text(encoding="utf-8")
+    except OSError:
+        return False
+
+
+def needs_conversion(html: Path, emit_dir: Path, letter: str) -> bool:
+    """Does this design need converting (again)?
+
+    Yes when there is no option_X_native.py yet, or the design changed after
+    it was written (the report records the design's fingerprint; an older
+    report without one falls back to file times). No otherwise: converting
+    again rewrites option_X_native.py from scratch, which erased what the
+    translator agent had drawn in fallback mode and marked it pending again,
+    so a QC fix or redesign looped on "run the agent" for ever (2026-10-06).
+    """
+    native = Path(emit_dir) / f"option_{letter}_native.py"
+    if not native.exists():
+        return True
+    try:
+        rep = json.loads((Path(emit_dir) / f"option_{letter}_translation_report.json")
+                         .read_text(encoding="utf-8"))
+    except Exception:
+        rep = {}
+    sha = rep.get("html_sha256") if isinstance(rep, dict) else None
+    if sha:
+        return sha != _sha256(html)
+    return Path(html).stat().st_mtime > native.stat().st_mtime
+
+
+def convert_picked(out: Path, items: list[tuple[int, str]]) -> list[Path]:
+    """Convert the picked sketch options that need it; keep the rest as they are.
+
+    items: (slide number, letter). Returns the option_X_native.py files that
+    still wait on the translator agent (fallback mode): the ones just
+    converted with elements left over, and the ones kept whose agent part is
+    not drawn yet. Prints one line per option kept as is.
+    """
+    jobs, waiting = [], []
+    for n, letter in items:
+        sd = out / f"slide_{n:02d}"
+        html = sd / f"option_{letter}.html"
+        if not html.exists():
+            continue
+        native = sd / f"option_{letter}_native.py"
+        if needs_conversion(html, sd, letter):
+            jobs.append(job_for(out, n, letter))
+            continue
+        if fallback_pending(native):
+            waiting.append(native)
+        else:
+            print(f"[ok] slide {n} option {letter}: already converted from the current "
+                  "design; kept as is (nothing the translator agent drew is redone)")
+    if jobs:
+        for r in translate_many(jobs):
+            if r["needs_agent"]:
+                h = Path(r["html"])
+                waiting.append(h.with_name(h.stem + "_native.py"))
+    return waiting
 
 
 def _subtitle_as_shape(out: Path, slide_n: int) -> bool:
@@ -1206,6 +1301,85 @@ def _subtitle_as_shape(out: Path, slide_n: int) -> bool:
         return lc is None or getattr(lc, "subtitle_placeholder_idx", None) is None
     except Exception:
         return True
+
+
+_TEMPLATES: dict = {}   # template opened once per run, not once per slide
+
+
+def _title_text_span(out: Path, slide_n: int) -> tuple[float, float] | None:
+    """(left, width) in px of the title's TEXT on this slide's layout: the
+    title box (chrome.yml's title_box_x_px / title_box_width_px, else the
+    layout's title placeholder) less its inner left and right margins. The
+    takeaway drawn as a shape has no inner margin, so this is where its text
+    must sit to line up with the title's. None when it can't be read."""
+    try:
+        import _paths as _p
+        from _chrome_schema import load_chrome_yml
+        from pptx import Presentation
+        meta = json.loads(_p.meta_json(out).read_text(encoding="utf-8"))
+        slide = next(s for s in meta["slides"] if s.get("n") == slide_n)
+        layout_name = slide.get("layout") or ""
+        tpl = Path(meta["template"])
+        spec = load_chrome_yml(_p.chrome_yml(tpl))
+        lc = spec.layouts.get(layout_name)
+        key = (str(tpl), tpl.stat().st_mtime)
+        prs = _TEMPLATES.get(key)
+        if prs is None:
+            prs = _TEMPLATES[key] = Presentation(str(tpl))
+        layout = next(l for l in prs.slide_layouts if l.name == layout_name)
+        t_idx = getattr(lc, "title_placeholder_idx", None) if lc else None
+        ph = next((p for p in layout.placeholders if t_idx is not None
+                   and p.placeholder_format.idx == t_idx), None) or next(
+            p for p in layout.placeholders if int(p.placeholder_format.type or 0) in (1, 3))
+        x = getattr(lc, "title_box_x_px", None) if lc else None
+        w = getattr(lc, "title_box_width_px", None) if lc else None
+        if x is None or w is None:
+            x, w = int(ph.left) / 9525, int(ph.width) / 9525
+        from pptx.oxml.ns import qn
+
+        def _ins(attr):
+            for el in (ph._element, getattr(ph, "_base_placeholder", None)):
+                el = getattr(el, "_element", el)
+                bp = el.find(".//" + qn("a:bodyPr")) if el is not None else None
+                if bp is not None and bp.get(attr) is not None:
+                    return int(bp.get(attr)) / 9525
+            return 91440 / 9525          # PowerPoint's default inner margin
+        lin, rin = _ins("lIns"), _ins("rIns")
+        return float(x) + lin, float(w) - lin - rin
+    except Exception:
+        return None
+
+
+def job_for(out: Path, slide_n: int, letter: str) -> tuple:
+    """The translate_many job for one picked option of a build."""
+    sd = out / f"slide_{slide_n:02d}"
+    sas = _subtitle_as_shape(out, slide_n)
+    return (sd / f"option_{letter}.html", sd, letter, sas,
+            _title_text_span(out, slide_n) if sas else None)
+
+
+def snap_subtitle(plan: "Plan", span: tuple[float, float] | None) -> None:
+    """Line the takeaway drawn as a shape up with the title: its text starts
+    where the title's text starts and spans the same width. The design's
+    height position is kept. Workers are not told the title's left edge, so
+    the sketch's x was a guess, and the line came out indented under the
+    title (2026-10-06). Runs after the self-check, which compares against the
+    design as drawn."""
+    if not span:
+        return
+    op = next((o for o in plan.ops if o.get("op") == "text" and o.get("name") == "subtitle"),
+              None)
+    if op is None:
+        return
+    x, w = span
+    if w <= 0 or (abs(op["x"] - x) < 0.5 and abs(op["w"] - w) < 0.5):
+        return
+    lines = op.get("_lines")
+    predicted = _wrapped_lines(op["paragraphs"], w)
+    if lines and predicted and predicted > lines:
+        op["h"] = op["h"] * predicted / lines
+    op["x"], op["w"] = x, w
+    plan.counts["subtitle_aligned_to_title"] = 1
 
 
 def self_check(items: list[tuple["Plan", dict]]) -> None:
@@ -1254,24 +1428,27 @@ def self_check(items: list[tuple["Plan", dict]]) -> None:
         plan.counts["self_check_handed_over"] = len(fired)
 
 
-def translate_many(jobs: list[tuple[Path, Path, str, bool]], check: bool = True) -> list[dict]:
-    """jobs: (html, emit_dir, letter, subtitle_as_shape). One browser for all,
-    then one LibreOffice pass for the self-check."""
+def translate_many(jobs: list[tuple], check: bool = True) -> list[dict]:
+    """jobs: (html, emit_dir, letter, subtitle_as_shape[, title_text_span]);
+    job_for() builds one for a build's slide. One browser for all, then one
+    LibreOffice pass for the self-check."""
     from playwright.sync_api import sync_playwright
     done = []
     with sync_playwright() as pw:
         from _browser import launch
         browser = launch(pw)
         page = browser.new_page(viewport={"width": CANVAS_W, "height": CANVAS_H})
-        for html, emit_dir, letter, sas in jobs:
+        for html, emit_dir, letter, sas, *rest in jobs:
             data = extract(page, html, sas)
             plan, fields = plan_from_extract(data, sas)
-            done.append((html, emit_dir, letter, plan, fields, data))
+            done.append((html, emit_dir, letter, plan, fields, data, rest[0] if rest else None))
         browser.close()
     if check and done:
         self_check([(d[3], d[5]) for d in done])
+    for d in done:
+        snap_subtitle(d[3], d[6])
     return [write_outputs(html, emit_dir, letter, plan, fields, data.get("visible_text", ""))
-            for html, emit_dir, letter, plan, fields, data in done]
+            for html, emit_dir, letter, plan, fields, data, _span in done]
 
 
 def main(argv=None) -> int:
@@ -1294,7 +1471,7 @@ def main(argv=None) -> int:
         if not html.exists():
             print(f"ERROR: no design at {html}")
             return 2
-        jobs = [(html, sd, args.letter, _subtitle_as_shape(args.out, args.slide))]
+        jobs = [job_for(args.out, args.slide, args.letter)]
     else:
         ap.error("give --out/--slide/--letter, or --html")
     for rep in translate_many(jobs, check=not args.no_self_check):

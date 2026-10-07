@@ -1832,6 +1832,14 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
         title_font_pt=getattr(layout_chrome, "title_font_pt", None),
     )
 
+    # A source line with no FOOTER placeholder to go into (the layout's source
+    # slot is an ordinary text slot, or there is none) was dropped with no
+    # word (2026-10-06). Draw it at the template's source position instead,
+    # and say so.
+    _footer_text = ((template_fields_override or {}).get("footer") or "").strip()
+    if _footer_text and not found.get("footer"):
+        _draw_source_line_fallback(new_slide, layout_chrome, _footer_text, slide_n)
+
     # Loud-fail when non-empty title or subtitle text was supplied but the
     # layout had no matching placeholder type to populate. Without this check,
     # a bespoke layout with no SUBTITLE placeholder silently drops every
@@ -1889,6 +1897,24 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
     # Title/band overlap issues collected above — graft records these on
     # st.title_overlaps; main() refuses the build after all options finish.
     return _title_overlap_issues
+
+
+def _draw_source_line_fallback(slide, layout_chrome, text: str, slide_n: int) -> None:
+    """Draw the slide's source line as a text shape named 'source' at the
+    template's source position (chrome.yml's source box for the layout, else
+    Slide Lab's standard one), and print a warning. Used when the layout has
+    no FOOTER placeholder to take it."""
+    from twins.helpers import _chrome_box_for, _text_colors_for, add_text
+    from _chrome_schema import CANONICAL_SOURCE_FONT_PX
+    box = _chrome_box_for(layout_chrome, "source")
+    _, faint = _text_colors_for(getattr(layout_chrome, "text_role", "dark_on_light"))
+    add_text(slide, "source", text, x_px=box.x_px, y_px=box.y_px,
+             w_px=box.w_px, h_px=box.h_px,
+             font_size_px=CANONICAL_SOURCE_FONT_PX, color=faint, italic=True)
+    layout_name = getattr(layout_chrome, "name", "(unknown)")
+    print(f"  WARN: slide {slide_n}: layout {layout_name!r} has no footer slot for the "
+          f"source line, so it was drawn as a text box at the template's source position "
+          f"(x={box.x_px}, y={box.y_px} px). Check it on the final-check page.")
 
 
 def _has_free_floating_subtitle(slide) -> bool:

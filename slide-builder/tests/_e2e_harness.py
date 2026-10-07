@@ -111,6 +111,47 @@ def write_option(out: Path, n: int, letter: str = "A", body: str | None = None) 
     return p
 
 
+SKETCH_WITH_FALLBACK = (
+    '<html><body style="margin:0"><div class="slide-canvas" style="position:relative;'
+    'width:1280px;height:720px;font-family:Arial">'
+    '<div data-shape-id="box" style="position:absolute;left:100px;top:220px;width:300px;'
+    'height:120px;background:#1f4e79"></div>'
+    '<p data-shape-id="note" style="position:absolute;left:100px;top:380px;margin:0;'
+    'font-size:16px">{text}</p>'
+    # rotated text: the script cannot draw it, so it goes to the translator agent
+    '<div data-shape-id="tag" style="position:absolute;left:700px;top:300px;'
+    'transform:rotate(-20deg);font-size:16px">Rotated tag</div>'
+    '</div></body></html>')
+
+AGENT_BLOCK = (
+    "    from pptx.util import Emu\n"
+    "    from pptx.enum.shapes import MSO_SHAPE\n"
+    "    _m = slide.shapes.add_shape(MSO_SHAPE.RECTANGLE, Emu(700 * 9525), Emu(290 * 9525),\n"
+    "                                Emu(140 * 9525), Emu(40 * 9525))\n"
+    "    _m.name = \"agent-drawn-mark\"\n")
+
+
+def write_sketch(out: Path, n: int, letter: str = "A", text: str = "A short note.") -> Path:
+    """Stand in for a sketch-path worker: a design with one element only the
+    translator agent can draw."""
+    p = out / f"slide_{n:02d}" / f"option_{letter}.html"
+    p.write_text(SKETCH_WITH_FALLBACK.format(text=text), encoding="utf-8")
+    return p
+
+
+def agent_finishes(native_py: Path) -> str:
+    """Stand in for slide-builder-translator in FALLBACK MODE: draw between the
+    markers and mark the script done. Returns the finished script text."""
+    import re
+    src = native_py.read_text(encoding="utf-8")
+    assert "# FALLBACK_PENDING:" in src, "nothing was waiting on the agent"
+    src = re.sub(r"^# FALLBACK_PENDING:.*$", "# FALLBACK_DONE: drew the rotated tag",
+                 src, count=1, flags=re.M)
+    src = src.replace("    # (none)\n", AGENT_BLOCK, 1)
+    native_py.write_text(src, encoding="utf-8")
+    return src
+
+
 def finalize(out: Path, *extra) -> subprocess.CompletedProcess:
     return run("finalize_deck.py", "--out", out, "--template", TEMPLATE, *extra)
 

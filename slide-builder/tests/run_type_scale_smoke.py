@@ -10,6 +10,11 @@ body sizes, exceptions 9pt+).
   4. a chart label or source under 9pt is flagged
   5. slide-qc's hygiene check reports them as Major "text size" findings
   6. the FINAL-CHECK.html block lists the slide
+  7. Slide Lab's own 9 pt option badge (chrome-option-badge) is skipped: not
+     under the floor, not a 4th size. A designer's 9 pt shape named
+     chrome-foo is still flagged (exact names only)
+  8. a real all-options compile with --badge passes slide-qc's hygiene check
+     with no text-size Major
 
 Run:  py -3 slide-builder/tests/run_type_scale_smoke.py
 Prints "SMOKE PASSED." on success; raises AssertionError otherwise.
@@ -54,6 +59,43 @@ GOOD = [("heading-1", "Vietnam clears both bars", 16), ("key-1", "$1.2B by 2030"
         ("detail-1", "Partners 4, distribution 4, rules 4", 12), ("hero", "60%", 40),
         ("chart-ylab-200", "200", 9), ("chart-legend-vn", "Vietnam", 9),
         ("src", "Source: illustrative data, not real", 9, 6.9)]
+
+
+def _all_options_compile() -> None:
+    """[8] the real pipeline: two options, all-options deck, --badge."""
+    print("[8] an all-options compile with --badge has no text-size Major")
+    sys.path.insert(0, str(HERE))
+    import _e2e_harness as H
+    import _state
+    tmp, out = H.new_build(1)
+    try:
+        H.write_option(out, 1, "A")
+        H.write_option(out, 1, "B")
+        r = H.finalize(out)
+        assert r.returncode == 0, r.stdout[-1500:] + r.stderr[-800:]
+        assert H.run("build_review.py", "--out", out).returncode == 0
+        tok = _state.read_state(out)["review"]["token"]
+        line = f"Picks: all options (check {_state.approval_check(tok, 'ALL')})"
+        r = H.run("record_picks.py", "--out", out, "--approved", line)
+        assert r.returncode == 0, r.stdout[-1200:]
+        assert H.finalize(out).returncode == 0
+        assert H.run("build_review.py", "--out", out, "--final").returncode == 0
+        ftok = _state.read_state(out)["final_check"]["token"]
+        r = H.run("compile_picks.py", "--out", out, "--final-token", ftok,
+                  "--all-variations", "--badge")
+        assert r.returncode == 0, r.stdout[-1500:] + r.stderr[-800:]
+        deck = out / "final_deck_all_variations.pptx"
+        prs = Presentation(str(deck))
+        badges = [sh for s in prs.slides for sh in s.shapes
+                  if sh.name == "chrome-option-badge"]
+        assert len(badges) == 2, f"expected a badge on each option, got {len(badges)}"
+        qc = check_pptx_hygiene.run_all_checks(deck)["violations"]
+        maj = [v for v in qc if v.get("category") == "text size"
+               and v["severity"] == "Major"]
+        assert not maj, f"the labeled all-options deck fails its own text-size check: {maj}"
+        print(f"    ok: {len(prs.slides)} labeled slides, 0 text-size Majors")
+    finally:
+        H.cleanup(tmp)
 
 
 def main() -> int:
@@ -106,6 +148,28 @@ def main() -> int:
         assert "Slide 2" in block and "Slide 1" not in block, block
         assert "ok" in type_scale.html_block([("Slide 1", [])])
         print("    ok")
+
+        print("[7] the option badge is skipped; a designer's chrome-foo is not")
+        from compile_picks import _stamp_option_badge
+        d7 = Path(td) / "badge.pptx"
+        _deck(d7, [GOOD, GOOD + [("chrome-foo", "Looks like chrome", 9)]])
+        prs = Presentation(str(d7))
+        for s in prs.slides:
+            assert _stamp_option_badge(s, prs, "Option B"), "badge not placed"
+        prs.save(str(d7))
+        names = {sh.name for sh in prs.slides[0].shapes}
+        assert names & type_scale.PIPELINE_CHROME_NAMES, (
+            f"compile_picks stamps a name type_scale does not skip: {names}")
+        r7 = dict(type_scale.check_pptx(d7))
+        assert r7[1] == [], f"Slide Lab's own badge failed the type scale: {r7[1]}"
+        assert any("under 10.5 pt" in p for p in r7[2]), (
+            f"a worker shape named chrome-foo dodged the check: {r7[2]}")
+        qc = check_pptx_hygiene.run_all_checks(d7)["violations"]
+        maj = [v for v in qc if v.get("category") == "text size"
+               and v["severity"] == "Major"]
+        assert {v["slide"] for v in maj} == {2}, maj
+        print("    ok")
+    _all_options_compile()
     print("SMOKE PASSED.")
     return 0
 

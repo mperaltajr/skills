@@ -184,8 +184,7 @@ def main(argv=None) -> int:
             slide_key, html_name = t.split("/")
             n = int(slide_key.split("_")[1])
             letter = html_name.split("_")[1].split(".")[0]
-            jobs.append((out / t, out / slide_key, letter,
-                         translate_html._subtitle_as_shape(out, n)))
+            jobs.append(translate_html.job_for(out, n, letter))
         reports = translate_html.translate_many(jobs)
         pending = [r for r in reports if r["needs_agent"]]
         print(f"  translated {len(reports)} picked sketch design(s) with translate_html.py"

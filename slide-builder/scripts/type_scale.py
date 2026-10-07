@@ -9,6 +9,11 @@
     labels) may be smaller, but never under 9 pt. Title, takeaway and the
     template's own footer and page number are set by the template and not
     counted. One large "hero" figure (24 pt or more) is not counted either.
+  - Slide Lab's own review labels (the "Option B" badge compile_picks.py
+    stamps on an all-options deck, shape name chrome-option-badge) are not
+    slide content: skipped entirely, neither checked nor counted as a size.
+    Only the exact names Slide Lab stamps are skipped; a designer's shape
+    named chrome-anything is still checked.
 
 Which text is an exception is read from the shape's name (designers name
 chart pieces chart-..., sources source-..., footnotes footnote-...; common
@@ -41,6 +46,10 @@ EXEMPT_NAME = re.compile(
     r"(^|[-_ ])(chart|axis|tick|ticks|ylab|xlab|legend|leg|gridline|source|sources|"
     r"footnote|footnotes|fn)([-_ \d]|$)", re.I)
 TEMPLATE_NAME = re.compile(r"^(subtitle|takeaway|title)$", re.I)
+# Shapes Slide Lab itself stamps on a compiled deck (review labeling, not
+# content). Exact names only, so a worker cannot dodge the check by naming a
+# shape chrome-something. Add a name here when a script starts stamping one.
+PIPELINE_CHROME_NAMES = frozenset({"chrome-option-badge"})
 SOURCE_TEXT = re.compile(r"^\s*(source|sources|note|notes)\b", re.I)
 FOOTNOTE_TEXT = re.compile(r"^\s*(\d{1,2}[.)]|\*|†)\s")
 # placeholder types: 1 title, 3 centered title, 4 subtitle, 13 slide number,
@@ -78,7 +87,7 @@ def check_slide(slide, slide_h: int) -> dict:
         if sh.is_placeholder and sh.placeholder_format.type in TEMPLATE_PH:
             continue
         name = sh.name or ""
-        if TEMPLATE_NAME.match(name):
+        if TEMPLATE_NAME.match(name) or name in PIPELINE_CHROME_NAMES:
             continue
         exempt_shape = bool(EXEMPT_NAME.search(name))
         bottom = (sh.top or 0) > slide_h * 0.85

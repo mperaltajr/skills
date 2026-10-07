@@ -31,6 +31,66 @@ def _picks_line(out: Path, picks: dict) -> str:
     return f"PICKS {body} CHECK {_state.approval_check(tok, body)}"
 
 
+def _agent_part_survives() -> None:
+    """[5] a QC fix on a sketch slide the translator agent finished does not
+    convert it again (2026-10-06: every run re-converted, erased the agent's
+    drawing and exited 3 again, for ever)."""
+    import os
+    from pptx import Presentation
+    print("[5] a fix on a slide the translator agent finished compiles, keeping its drawing")
+    saved = os.environ.get("SLIDE_LAB_TRANSLATOR")
+    os.environ["SLIDE_LAB_TRANSLATOR"] = "script"
+    tmp, out = H.new_build(2)
+    try:
+        sd = out / "slide_02"
+        native = sd / "option_A_native.py"
+        H.write_option(out, 1, "A")
+        H.write_sketch(out, 2, "A")
+        assert H.finalize(out).returncode == 0
+        assert H.run("build_review.py", "--out", out).returncode == 0
+        r = H.run("record_picks.py", "--out", out, "--approved",
+                  _picks_line(out, {"slide_01": "A", "slide_02": "A"}))
+        assert r.returncode == 0 and native.exists(), r.stdout[-1200:]
+        H.agent_finishes(native)
+        r = H.finalize(out)
+        assert r.returncode == 0, r.stdout[-1500:] + r.stderr[-800:]
+        assert H.run("build_review.py", "--out", out, "--final").returncode == 0
+        tok = _state.read_state(out)["final_check"]["token"]
+        assert H.run("compile_picks.py", "--out", out, "--final-token", tok).returncode == 0
+
+        # the QC fix: a new design for slide 2, with a part only the agent draws
+        H.write_sketch(out, 2, "A", text="The fixed note.")
+        r = H.run("apply_qc_fix.py", "--out", out, "--slides", "2", "--approved", "fix slide 2")
+        assert r.returncode == 3 and "option_A_native.py" in r.stdout, r.stdout[-1500:]
+        finished = H.agent_finishes(native)
+        r = H.run("apply_qc_fix.py", "--out", out, "--slides", "2", "--approved", "fix slide 2")
+        assert r.returncode == 0, (
+            f"exit {r.returncode}: the finished slide was converted again "
+            f"(the loop)\n{r.stdout[-1500:]}")
+        assert native.read_text(encoding="utf-8") == finished, \
+            "the agent's drawing was rewritten"
+        assert "kept as is" in r.stdout, r.stdout[-1500:]
+        deck = Presentation(str(out / "final_deck.pptx"))
+        names = {sh.name for sh in deck.slides[1].shapes}
+        assert "agent-drawn-mark" in names, f"the agent's shape is not in the deck: {names}"
+        print("    ok: second run exit 0, the agent's part byte-identical and in the deck")
+
+        print("[6] a design changed after the conversion is converted again")
+        H.write_sketch(out, 2, "A", text="A second fix to the note.")
+        r = H.run("apply_qc_fix.py", "--out", out, "--slides", "2", "--approved", "fix it again")
+        assert r.returncode == 3, r.stdout[-1500:]
+        assert "# FALLBACK_PENDING:" in native.read_text(encoding="utf-8")
+        assert "The fixed note" not in (sd / "option_A_native.plan.json").read_text(
+            encoding="utf-8"), "the plan was not redrawn from the new design"
+        print("    ok: re-converted, waiting on the agent for the new design")
+    finally:
+        if saved is None:
+            os.environ.pop("SLIDE_LAB_TRANSLATOR", None)
+        else:
+            os.environ["SLIDE_LAB_TRANSLATOR"] = saved
+        H.cleanup(tmp)
+
+
 def main() -> int:
     tmp, out = H.new_build(2)
     try:
@@ -83,6 +143,7 @@ def main() -> int:
         print("    ok: other picks kept, user's words recorded, deck compiled")
     finally:
         H.cleanup(tmp)
+    _agent_part_survives()
     print("SMOKE PASSED.")
     return 0
 

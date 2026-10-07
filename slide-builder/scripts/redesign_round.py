@@ -121,22 +121,18 @@ def finish(out: Path) -> int:
     _state.record_override(out, "single_option_redesign_picked",
                            f"slides {','.join(map(str, rr['slides']))}: one new design each, "
                            "picked without a second review page; the final check still shown")
-    jobs = []
+    # Convert only designs that changed since their last conversion; a slide
+    # the translator agent finished is kept as is (converting again erased its
+    # drawing and looped on exit 3, 2026-10-06).
     import translate_html
-    for n in rr["slides"]:
-        k = _p.slide_key(n)
-        html = out / k / f"option_{picks[k]}.html"
-        if html.exists():
-            jobs.append((html, out / k, picks[k], translate_html._subtitle_as_shape(out, n)))
-    if jobs:
-        pending = [r for r in translate_html.translate_many(jobs) if r["needs_agent"]]
-        if pending:
-            print("Part of a redesign needs the translator agent first (FALLBACK MODE):")
-            for r in pending:
-                h = Path(r["html"])
-                print(f"  {h.with_name(h.stem + '_native.py')}")
-            print("Run it, then run finish again.")
-            return 3
+    pending = translate_html.convert_picked(
+        out, [(n, picks[_p.slide_key(n)]) for n in rr["slides"]])
+    if pending:
+        print("Part of a redesign needs the translator agent first (FALLBACK MODE):")
+        for native in pending:
+            print(f"  {native}")
+        print("Run it, then run finish again (what it draws is kept).")
+        return 3
     tpl = meta.get("template")
     for n in rr["slides"]:
         rc = subprocess.run([sys.executable, str(HERE / "finalize_deck.py"), "--out", str(out),

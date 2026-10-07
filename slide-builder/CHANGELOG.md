@@ -2,6 +2,51 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## 2026-10-06: session-report fixes, batch 1
+
+From a session report, checked by three validators and an adjudicator. These
+are the six fixes for silent damage and dead ends.
+
+- **Option labels pass the text-size check.** The 9 pt "Option B" label
+  `compile_picks.py --badge` stamps on an all-options deck (shape
+  `chrome-option-badge`) is Slide Lab's own review labeling; `type_scale.py`
+  now skips it (not under the floor, not a 4th size), so a labeled
+  all-options deck no longer fails slide-qc on its own label. Exact names
+  only: a designer's shape named `chrome-anything` is still checked.
+- **Bold is kept.** `translate_html.py` writes weight 600 and up as the base
+  font with bold on (it used to name the heavy face, e.g. Arial Black, with
+  bold off), and draws 600+ at 700 before measuring, so the self-check
+  compares against the face that ships. The theme font swap
+  (`twins/client_theme.py`) also turns bold on when it replaces a heavy face
+  name (Black, ExtraBold, Bold, Semibold, Heavy); Medium and Light stay
+  regular. Before, weight 800 and Semibold text shipped regular, in
+  PowerPoint too.
+- **The takeaway lines up with the title.** On a layout with no subtitle slot
+  the takeaway is still drawn as a shape named `subtitle` (the documented
+  rule), but its left edge and width now match the title's text (title box
+  plus its inner margin); its height position stays the design's. It used to
+  keep the sketch's guessed x and sat indented.
+- **QC fixes and redesigns no longer loop.** `apply_qc_fix.py` and
+  `redesign_round.py finish` convert a sketch only when its design changed
+  since the last conversion (the translation report now records the design's
+  fingerprint). A slide the translator agent finished is kept as is. Before,
+  every run converted it again, erased the agent's drawing and exited 3 for
+  ever.
+- **A PDF or picture can be the pinned source page.** `source_ledger.py build
+  --deck page.pdf` (or .png, .jpg) writes an honest ledger: no rows, the whole
+  page recorded as checked by eye only, so compile proceeds and slide-qc's
+  vision pass covers it. `check_done.py` says so at delivery. Before, `build`
+  crashed and a pinned PDF could never compile. Other file types are refused
+  with "save it as a PDF".
+- **Source lines are no longer dropped silently.** When a slide has a source
+  line and its layout has no footer slot (the template's source slot is an
+  ordinary text box, or there is none), finalize draws it as a text box at
+  the template's source position and prints a WARN line.
+- Tests: run_type_scale_smoke [7]-[8], run_translate_smoke (weights),
+  run_title_subtitle_loud_fail_smoke P6, run_qc_fix_smoke [5]-[6],
+  run_redesign_round_smoke [6], run_source_ledger_smoke [7]-[8], and the new
+  run_source_line_fallback_smoke.
+
 ## 2026-10-06: guide in pages, storyline and slide-rules reference
 
 - Slide-Lab-Tutorial.html is now 25 pages in 6 tabs (Start here, Your first

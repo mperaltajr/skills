@@ -228,6 +228,7 @@ These CSS features DO NOT translate cleanly to python-pptx. The worker MUST NOT 
 - `padding`, `margin` → translates to position math
 - `display: flex`, `display: grid`, `display: block` → translates to absolute positioning in python-pptx
 - `font-family`, `font-size`, `font-weight`, `font-style`, `letter-spacing`, `line-height`, `text-align`, `text-transform` → all translate to python-pptx text run properties
+  - `font-weight` ships as regular (under 600) or bold (600 and up). PowerPoint has only bold on or off, so 800 and 900 come out as the family's bold, not a heavier face; design hierarchy with size and color, not with 800 versus 700.
 - `position: absolute`, `position: relative` → translates to absolute x/y positioning
 
 If the worker reaches for a forbidden feature, the worker prompt says: "If you genuinely need a forbidden feature for design impact, route to the direct path (native-only) or flag the slide as requiring an image-embed exception."

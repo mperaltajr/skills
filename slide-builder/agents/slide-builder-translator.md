@@ -22,10 +22,10 @@ Otherwise, in fallback mode your job is **only those elements**:
 
 1. Read `option_X_translation_report.json` → `fallback`: each entry has `kind`, `reason`, `id` and the element's box (`x`, `y`, `w`, `h` in 1280x720 pixels). Look at the same region of `option_X.sketch.png` and of the HTML.
 2. In `option_X_native.py`, write python-pptx code **between** the two markers `# --- FALLBACK ELEMENTS ...` and `# --- END FALLBACK ELEMENTS ---` that draws each listed element inside its box. `slide` is in scope there. Draw with native shapes: a curve becomes a freeform or a set of line segments, a ring becomes a stacked proportion bar or arc shapes, arrows become connectors with an arrowhead.
-3. Change the first header line from `# FALLBACK_PENDING: ...` to `# FALLBACK_DONE: <what you drew, one line>`.
+3. Change the first header line from `# FALLBACK_PENDING: ...` to `# FALLBACK_DONE: <what you drew, one line>`. That line is what keeps your work: `apply_qc_fix.py` and `redesign_round.py finish` do not convert a slide again while its design is unchanged and nothing is pending, so what you drew survives the next run.
 4. Run the script (`py -3 option_X_native.py`), render `option_X_native.pptx`, and check your elements against the sketch.
 
-**Do not touch anything else**: not the plan file, not the other code, not the header's `__template_fields__`. Everything outside your elements is already drawn and checked. Every rule below still applies to what you draw: no `add_chart`, no `<p:style>` surgery (`effectRef idx="0"` for no shadow), letter spacing via the raw `spc` attribute at px × 75, `word_wrap = False` on one-line labels.
+**Do not touch anything else**: not the plan file, not the other code, not the header's `__template_fields__`. Everything outside your elements is already drawn and checked. Every rule below still applies to what you draw: text at font-weight 600 or more is the base family with `bold = True`, never a heavy face's own name (`Arial Black`, `<Brand> Semibold`: finalize's theme pass swaps any such name for the theme font, and the weight was lost with it); no `add_chart`, no `<p:style>` surgery (`effectRef idx="0"` for no shadow), letter spacing via the raw `spc` attribute at px × 75, `word_wrap = False` on one-line labels.
 
 ## Input — what the parent dispatches
 
@@ -82,7 +82,7 @@ If a chrome zone has text in the HTML but no `data-template-field` attribute, th
 **When the layout has no subtitle placeholder** (`subtitle_placeholder_idx: null` in `chrome.yml` for this slide's layout — check it), the rule above inverts for `subtitle` only:
 
 - **Do NOT put `subtitle` in `__template_fields__`.** There is no placeholder to receive it, so finalize drops the takeaway at a default position near the top of the body and it lands on whatever your design put there.
-- **DO emit the takeaway as a body shape named exactly `subtitle`**, at the geometry the HTML's `data-template-field="subtitle"` element occupies. finalize looks for a free-floating shape with that name and suppresses its own fallback when it finds one (`_has_free_floating_subtitle`).
+- **DO emit the takeaway as a body shape named exactly `subtitle`**, at the height the HTML's `data-template-field="subtitle"` element occupies, but **lined up with the title**: its left edge is the title's text edge (`title_box_x_px` from `chrome.yml`, else the layout's title placeholder, plus the placeholder's left inner margin, 9.6 px when the template sets none) and its width the title's text width; inner margins 0. Workers are not told the title's left edge, so the sketch's x is a guess, and copying it left the line indented under the title. (In script mode `translate_html.py` does this.) finalize looks for a free-floating shape with that name and suppresses its own fallback when it finds one (`_has_free_floating_subtitle`).
 - Title, footer and page_number still go through `__template_fields__` as normal.
 
 This is not a style preference. On one 20-slide deck the translators split roughly evenly between the two behaviors and eight slides shipped with the takeaway buried under body content. The ones that came out clean did so by accident. `finalize_deck.py` now blocks on the collision (`chrome_buried`), so getting this wrong costs a round trip.
