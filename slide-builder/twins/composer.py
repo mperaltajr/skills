@@ -164,7 +164,7 @@ def _strip_layout_placeholders(slide, *, keep_master_shapes: bool = False) -> in
 def _populate_layout_placeholders(slide, *, title=None, subtitle=None,
                                    footer=None, page_num=None,
                                    title_idx=None, subtitle_idx=None,
-                                   title_font_pt=None):
+                                   title_font_pt=None, footer_idx=None):
     """Write text into the slide's inherited layout placeholders.
 
     For body-canonical grafts: instead of stripping the layout's title/footer/
@@ -181,6 +181,11 @@ def _populate_layout_placeholders(slide, *, title=None, subtitle=None,
     back to type-based matching only if idx-based lookup fails. This
     closes the silent-drop bug where BODY-type slots that serve as
     subtitles were skipped by strict type matching.
+
+    footer_idx: the same for the source line (chrome.yml's
+    source_placeholder_idx: a BODY slot named "Source" or "Footnote"). Matched
+    by idx first; a FOOTER-type placeholder is the fallback. Without it the
+    source line had no home on such templates (2026-10-06).
 
     Caller is responsible for choosing whether to invoke this (body-canonical)
     vs. _strip_layout_placeholders (bespoke / cover).
@@ -282,6 +287,15 @@ def _populate_layout_placeholders(slide, *, title=None, subtitle=None,
                 if ph.placeholder_format.idx == subtitle_idx:
                     _write(ph, subtitle)
                     found["subtitle"] = True
+                    break
+            except Exception:
+                continue
+    if footer is not None and footer_idx is not None:
+        for ph in list(slide.placeholders):
+            try:
+                if ph.placeholder_format.idx == footer_idx:
+                    _write(ph, footer)
+                    found["footer"] = True
                     break
             except Exception:
                 continue

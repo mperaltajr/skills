@@ -144,6 +144,40 @@ CANONICAL_BODY_TOP_Y: int = 110
 CANONICAL_BODY_BOTTOM_Y: int = 660
 
 
+# ---------------------------------------------------------------------------
+# Named text slots (a BODY placeholder that does a chrome job)
+# ---------------------------------------------------------------------------
+#
+# Many templates make the takeaway line and the source line ordinary text
+# (BODY) placeholders and say what they are only in the name: "Subtitle",
+# "Takeaway", "Source". Registration used to count only PowerPoint's own
+# SUBTITLE / FOOTER placeholder types, so on those templates the takeaway was
+# drawn as a loose shape and the source line had no home (2026-10-06).
+
+_SUBTITLE_NAMES = ("subtitle", "sub-title", "sub title", "subheading", "sub-heading",
+                   "sub heading", "subhead", "takeaway", "take-away", "take away")
+_SOURCE_NAMES = ("source", "sources", "footnote", "footnotes", "foot note")
+
+
+def slot_role_from_name(name: str | None) -> tuple[str, int] | None:
+    """('subtitle' | 'source', rank) for a placeholder whose NAME says it holds
+    the takeaway line or the source line; None otherwise. Lower rank = a
+    stronger name ('Subtitle' beats 'Takeaway', 'Source' beats 'Footnote').
+    PowerPoint's own numbering suffix ('Subtitle 2') is ignored."""
+    import re as _re
+    n = _re.sub(r"\s+\d+$", "", (name or "").strip().lower())
+    n = _re.sub(r"\s+placeholder$", "", n)
+    if not n:
+        return None
+    for rank, key in enumerate(_SUBTITLE_NAMES):
+        if n == key or n.startswith(key + " ") or n.endswith(" " + key):
+            return "subtitle", (0 if rank < 7 else 2)     # Subtitle/Subheading beat Takeaway
+    for rank, key in enumerate(_SOURCE_NAMES):
+        if n == key or n.startswith(key + " ") or n.endswith(" " + key):
+            return "source", (0 if rank < 2 else 1)
+    return None
+
+
 def canonical_title_box() -> "BoxPx":
     return BoxPx(
         x_px=CANONICAL_TITLE_X, y_px=CANONICAL_TITLE_Y,
@@ -416,6 +450,23 @@ class LayoutChrome(BaseModel):
     title_box_width_px: int | None = None
     title_box_height_px: int | None = None
     title_font_pt: int | None = None
+    # The layout's source-line slot when it is an ordinary text (BODY)
+    # placeholder named "Source" / "Sources" / "Footnote" near the bottom,
+    # rather than a PowerPoint footer placeholder. Without it the source line
+    # had nowhere to go on such templates (2026-10-06). finalize writes the
+    # sketch's source line (template field 'footer') into this idx first.
+    # Older chrome.yml files omit it -> None -> footer placeholder only.
+    source_placeholder_idx: int | None = None
+    # What the layout really looks like behind the body (scripts/_template_bg):
+    # its background color ('RRGGBB'; the first color for a gradient, None for a
+    # picture) and kind (solid / gradient / picture / pattern / theme-style),
+    # and the left/right edges of its text area in px. Sketches are drawn on
+    # this background and inside these margins. Older chrome.yml files omit
+    # them -> None -> build prep reads them from the template instead.
+    background_hex: str | None = None
+    background_kind: str | None = None
+    body_left_px: int | None = None
+    body_right_px: int | None = None
     # body_overlay_hex retained for backward-compat with existing chrome.yml
     # files; never populated by current register_template and unread by any
     # downstream code. Slated for removal once existing templates are

@@ -1110,16 +1110,50 @@ def _body_geometry_block(template_path, layout_name: str) -> str:
         top, bot = body_zone_for_chrome(lc)
     except Exception:
         return ""   # never break prep over a context nicety
+    # The layout's own background and side margins: chrome.yml's record, else
+    # read from the template now (no re-registration needed). Designs used to
+    # be drawn on a fixed white canvas with no side margins given, so a pale
+    # panel vanished on a gray-blue master and panels ran past the template's
+    # right margin (2026-10-06).
+    facts = {}
+    try:
+        import _template_bg as _tbg
+        facts = _tbg.facts_for(template_path, layout_name, lc)
+    except Exception:
+        facts = {}
+    bg = facts.get("bg_hex") if facts.get("bg_kind") != "picture" else None
+    css = [f"  --body-top: {top}px;      /* first body shape starts at or below this */",
+           f"  --body-bottom: {bot}px;   /* last body shape ends at or above this */",
+           f"  --body-height: {bot - top}px;"]
+    if facts.get("left") is not None and facts.get("right") is not None:
+        css += [f"  --body-left: {facts['left']}px;    /* the template's left margin */",
+                f"  --body-right: {facts['right']}px;  /* the template's right margin */"]
+    if bg:
+        css.append(f"  --slide-canvas-bg: #{bg};  /* this layout's own background */")
+    notes = ["The grafted title and takeaway line own everything above `--body-top`. "
+             "Anything you place above it will be collided with after the graft, which "
+             "no pre-graft preview can show you."]
+    if facts.get("left") is not None and facts.get("right") is not None:
+        notes.append("Keep body content between `--body-left` and `--body-right`: those "
+                     "are the template's own side margins (its title and text area).")
+    if bg:
+        approx = (" It is the first color of the layout's "
+                  f"{facts.get('bg_kind')} background, so treat it as approximate."
+                  if facts.get("bg_kind") in ("gradient", "pattern", "theme-style") else "")
+        notes.append(f"Paint `.slide-canvas` with `var(--slide-canvas-bg)` (#{bg}): it is "
+                     "the template's own background on this layout, so the sketch shows "
+                     "what the slide will look like, and the converter leaves it to the "
+                     "template instead of covering the master's artwork. Copy this value "
+                     "over the one in brand.css. A panel within a few shades of it will "
+                     "barely show: give panels a clearly different fill or an outline."
+                     + approx)
+    elif facts.get("bg_kind") == "picture":
+        notes.append("This layout's background is a picture. Keep `.slide-canvas` "
+                     "unpainted (white) and keep body panels opaque so they read on it.")
     return (
         "\n**Body zone for this layout (authoritative, use these numbers, do not guess):**\n\n"
-        "```css\n:root {\n"
-        f"  --body-top: {top}px;      /* first body shape starts at or below this */\n"
-        f"  --body-bottom: {bot}px;   /* last body shape ends at or above this */\n"
-        f"  --body-height: {bot - top}px;\n"
-        "}\n```\n\n"
-        "The grafted title and takeaway line own everything above `--body-top`. "
-        "Anything you place above it will be collided with after the graft, which "
-        "no pre-graft preview can show you.\n"
+        "```css\n:root {\n" + "\n".join(css) + "\n}\n```\n\n"
+        + "\n\n".join(notes) + "\n"
     )
 
 

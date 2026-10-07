@@ -35,7 +35,7 @@ Rules:
 - `overflow: hidden` enforces that content cannot extend past the canvas edges.
 - `position: relative` enables absolute positioning of child zones inside the canvas.
 - `box-sizing: border-box` so padding doesn't extend the canvas size.
-- Background color defaults to `#FFFFFF`; the master template's true background renders through this layer because the body PNG only covers the body zone.
+- Background color is **the template's own background for this slide's layout**: `_context.md` gives it as `--slide-canvas-bg` (it can be a light gray-blue, not white; the `#FFFFFF` fallback is for a loose file only). Paint the canvas with it, so the sketch you design and the user approves looks like the finished slide. Sketches used to be drawn on a fixed white, and a pale panel approved on white vanished on a gray-blue master (2026-10-06). The translator leaves a canvas of that color to the template (the slide already has it; a full-slide rectangle would cover the master's own artwork) and draws a canvas of any other color as the design's own. A large panel within a few shades of what is behind it gets a `PALE_FILL_ON_BACKGROUND` advisory on the review page: give it a clearly different fill or an outline.
 
 **Why this size:** matches PowerPoint's default 16:9 slide dimensions exactly. Geometry math becomes 1:1 (HTML pixel = PPT EMU/9525). No scaling factors. Worker can position elements using coordinates that map directly to chrome.yml pixel values.
 
@@ -116,8 +116,9 @@ Brand colors and fonts are injected as CSS variables at the top of every HTML fi
   --font-sans: "<brand body font>", "Segoe UI", -apple-system, sans-serif;
   --font-mono: ui-monospace, "Consolas", monospace;
 
-  /* Canvas */
-  --slide-canvas-bg: #FFFFFF;
+  /* Canvas: the layout's own background. brand.css carries the default
+     content layout's; _context.md carries this slide's layout's. Use that. */
+  --slide-canvas-bg: <from _context.md>;
 
   /* Body zone bounds — COPY THESE FROM YOUR SLIDE'S _context.md.
      The values below are placeholders, NOT real numbers. They differ per
@@ -128,6 +129,8 @@ Brand colors and fonts are injected as CSS variables at the top of every HTML fi
   --body-top: <from _context.md>;
   --body-bottom: <from _context.md>;
   --body-height: <from _context.md>;
+  --body-left: <from _context.md>;    /* the template's side margins: */
+  --body-right: <from _context.md>;   /* keep body content between them */
   --body-width: 1280px;
 }
 ```
@@ -147,7 +150,9 @@ OR (preferred for self-contained HTML files):
 </style>
 ```
 
-`build_deck.py` Stage 1 writes each slide's `_context.md` with an authoritative body-zone `:root` block for **that slide's layout**, resolved from the same code finalize uses. **Use those numbers. Do not guess and do not copy them from this document.** The body top already excludes the band the grafted title and takeaway occupy, so content placed at or below `--body-top` cannot collide after the graft. Content placed above it will.
+`build_deck.py` Stage 1 writes each slide's `_context.md` with an authoritative body-zone `:root` block for **that slide's layout**, resolved from the same code finalize uses. **Use those numbers. Do not guess and do not copy them from this document.** The body top already excludes the band the grafted title and takeaway occupy, so content placed at or below `--body-top` cannot collide after the graft. Content placed above it will. The same block gives the layout's background (`--slide-canvas-bg`) and its side margins (`--body-left` / `--body-right`: the left and right edges of the template's title and text area). Panels used to run past the template's right margin because designers had only the top and bottom. Both are read from chrome.yml, or from the template itself for a template registered before they were recorded.
+
+**Arrows.** Work out each arrow's ends from the box edges, not the box centers, and stop every arrowhead at least 8 px short of the box it points at. On a cycle or loop diagram leave at least 60 px between neighboring boxes. The translator checks every arrow with an arrow marker against the design's boxes, and the translator agent's self-check checks the drawn slide the same way (`scripts/arrow_ends.py`): an arrowhead inside a box or within 6 px of one is a `MAJOR_ARROW_END_AT_BOX` warning on the review page.
 
 ## 5. Font handling
 
