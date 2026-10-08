@@ -140,6 +140,20 @@ CANONICAL_PAGE_NUMBER_FONT_PX: int = 11
 # placeholders during registration. Used only when register_template cannot
 # locate the inherited placeholder bounds; real templates populate these
 # fields per layout in chrome.yml.
+# Chrome normalization (owner's rule, 2026-10-08): on every finished slide
+# Slide Lab sets the takeaway, footnote(s) and source line itself, whatever
+# the designer drew (twins/composer.py normalize_chrome).
+#   takeaway: under the title (this gap below the title box, when the layout
+#             has no takeaway slot), at the title's text left edge, the
+#             template's Subtitle-slot size, else CHROME_TAKEAWAY_FONT_PT.
+#   source:   at the template's source position, title's text left edge.
+#   footnotes: stacked upward directly above the source line.
+CHROME_TAKEAWAY_FONT_PT: int = 16
+CHROME_TAKEAWAY_GAP_PX: int = 8
+CHROME_NOTE_FONT_PT: int = 9
+CHROME_NOTE_GAP_PX: int = 2
+CHROME_PAGE_NUMBER_GAP_PX: int = 8
+
 CANONICAL_BODY_TOP_Y: int = 110
 CANONICAL_BODY_BOTTOM_Y: int = 660
 
@@ -295,16 +309,191 @@ def _find_brand_ttf(font_name: str | None = None) -> str | None:
     return _font_index().get(font_name.lower())
 
 
+# ---------------------------------------------------------------------------
+# Font faces read from the fonts' own name tables
+# ---------------------------------------------------------------------------
+#
+# A font file's NAME says little: one brand family shipped its narrow
+# ("condensed") face as the bare <Family>.ttf, and registration, which guessed
+# the file by name, copied that face. Every sketch was then drawn about a
+# quarter narrower than the finished slide (2026-10-08). Faces are picked from
+# what each file says about itself: family (name ids 16, else 1), style (17,
+# else 2), weight and width (OS/2).
+
+_WIDTH_WORDS = {1: "ultra-condensed", 2: "extra-condensed", 3: "condensed",
+                4: "semi-condensed", 5: "normal width", 6: "semi-expanded",
+                7: "expanded", 8: "extra-expanded", 9: "ultra-expanded"}
+_FONT_EXTS = (".ttf", ".otf", ".ttc")
+
+
+def _read_face(path: str) -> dict | None:
+    """One face's facts from its name and OS/2 tables, or None if unreadable."""
+    try:
+        from fontTools.ttLib import TTFont
+        f = TTFont(path, lazy=True, fontNumber=0)
+        n = f["name"]
+        fam1 = n.getDebugName(1) or ""
+        sub2 = n.getDebugName(2) or ""
+        os2 = f["OS/2"]
+        face = {
+            "path": str(path),
+            "family": fam1,
+            "style": sub2,
+            "typo_family": n.getDebugName(16) or fam1,
+            "typo_style": n.getDebugName(17) or sub2,
+            "full_name": n.getDebugName(4) or f"{fam1} {sub2}".strip(),
+            "weight": int(os2.usWeightClass),
+            "width": int(os2.usWidthClass),
+            "italic": bool(os2.fsSelection & 1) or "italic" in sub2.lower()
+                      or "oblique" in sub2.lower(),
+            "bold": bool(os2.fsSelection & 32) or "bold" in sub2.lower(),
+        }
+        f.close()
+        return face
+    except Exception:
+        return None
+
+
+_FACES_MEM: dict = {}
+
+
+def font_faces(dirs: list | tuple | None = None) -> list[dict]:
+    """Every readable font face, with its own name-table facts.
+
+    dirs=None: the fonts installed on this computer (the same folders as
+    _font_index), cached on disk and rebuilt when the set of font files
+    changes. dirs given: just the font files in those folders (not cached on
+    disk; used for a template's bundled fonts and by the tests)."""
+    import json
+    import os
+    import tempfile
+    if dirs is not None:
+        paths = []
+        for d in dirs:
+            if d and os.path.isdir(str(d)):
+                paths += [os.path.join(str(d), fn) for fn in sorted(os.listdir(str(d)))
+                          if fn.lower().endswith(_FONT_EXTS)]
+        key = tuple(sorted((p, os.path.getmtime(p)) for p in paths))
+        if key not in _FACES_MEM:
+            _FACES_MEM[key] = [f for f in (_read_face(p) for p in paths) if f]
+        return _FACES_MEM[key]
+    paths = sorted({p for p in _font_index().values() if p.lower().endswith(_FONT_EXTS)})
+    import hashlib
+    sig = hashlib.sha1("|".join(paths).encode("utf-8", "replace")).hexdigest()[:16]
+    if ("installed", sig) in _FACES_MEM:
+        return _FACES_MEM[("installed", sig)]
+    cache = Path(tempfile.gettempdir()) / "slidelab_font_name_tables.json"
+    faces = None
+    try:
+        data = json.loads(cache.read_text(encoding="utf-8"))
+        if data.get("sig") == sig:
+            faces = data["faces"]
+    except Exception:
+        faces = None
+    if faces is None:
+        faces = [f for f in (_read_face(p) for p in paths) if f]
+        try:
+            cache.write_text(json.dumps({"sig": sig, "faces": faces}), encoding="utf-8")
+        except OSError:
+            pass
+    _FACES_MEM[("installed", sig)] = faces
+    return faces
+
+
+def installed_families() -> set[str]:
+    """Lower-case family names (legacy and typographic) of every installed font."""
+    out: set[str] = set()
+    for f in font_faces():
+        for k in ("family", "typo_family"):
+            if f.get(k):
+                out.add(f[k].strip().lower())
+    return out
+
+
+def describe_face(face: dict | None) -> str:
+    """'Fict Sans Regular (normal width, weight 400)'."""
+    if not face:
+        return "(none)"
+    return (f"{face['typo_family']} {face['typo_style']} "
+            f"({_WIDTH_WORDS.get(face['width'], 'width ' + str(face['width']))}, "
+            f"weight {face['weight']})")
+
+
+def pick_family_faces(family: str, dirs: list | tuple | None = None) -> dict:
+    """The regular and bold faces of `family`, chosen from the fonts' own data.
+
+    Matches the family name against each face's family names (typographic and
+    legacy) and, failing that, a full face name ("Fict Sans Bold" finds its
+    family). Regular = upright, normal width when the family has one, weight
+    nearest 400. Bold = upright, same width, weight nearest 700 (600 and up).
+    Returns {"regular", "bold": path or None, "regular_face", "bold_face":
+    face dicts or None, "warnings": [plain-English lines]}.
+    """
+    out = {"regular": None, "bold": None, "regular_face": None, "bold_face": None,
+           "warnings": []}
+    want = (family or "").strip().lower()
+    if not want:
+        return out
+    faces = font_faces(dirs)
+    fam = [f for f in faces if want in (f["typo_family"].strip().lower(),
+                                        f["family"].strip().lower())]
+    if not fam:
+        hit = next((f for f in faces if f["full_name"].strip().lower() == want), None)
+        if hit is not None:
+            tf = hit["typo_family"].strip().lower()
+            fam = [f for f in faces if f["typo_family"].strip().lower() == tf]
+    upright = [f for f in fam if not f["italic"]] or fam
+    if not upright:
+        return out
+    normal = [f for f in upright if f["width"] == 5]
+    pool = normal or upright
+    if not normal:
+        widths = sorted({f["width"] for f in upright}, key=lambda w: abs(w - 5))
+        pool = [f for f in upright if f["width"] == widths[0]]
+        out["warnings"].append(
+            f"only a {_WIDTH_WORDS.get(widths[0], 'non-standard width')} version of "
+            f"{family!r} is installed, not its normal-width face: sketches and fit "
+            f"checks will be drawn narrower or wider than PowerPoint shows the text. "
+            f"Install the normal-width face and register the template again.")
+
+    def _style_rank(f):
+        s = f["style"].strip().lower()
+        return 0 if s in ("regular", "normal", "book", "roman") else 1
+
+    regular = min(pool, key=lambda f: (abs(f["weight"] - 400), _style_rank(f), f["path"]))
+    heavy = [f for f in pool if f["weight"] >= 600 or f["bold"]]
+    bold = min(heavy, key=lambda f: (abs(f["weight"] - 700), 0 if f["bold"] else 1,
+                                     f["path"])) if heavy else None
+    out.update(regular=regular["path"], regular_face=regular,
+               bold=bold["path"] if bold else None, bold_face=bold)
+    return out
+
+
 def bold_ttf_for(ttf: str | None) -> str | None:
     """The bold face of the same family as `ttf` (a filename or a path), or
     None. Titles are usually bold, and measuring them with the regular face
     under-counted wraps: on the 10/02 showcase 5 titles wrapped that the
-    regular-face count said fit."""
+    regular-face count said fit.
+
+    Read from the fonts' own data: the family `ttf` belongs to, then its bold
+    face in the same folder (a template's bundled fonts) or among the
+    installed fonts. File-name guesses are the last resort."""
     if not ttf:
         return None
     import os
+    path = str(ttf)
+    me = _read_face(path) if os.path.isfile(path) else None
+    if me is not None:
+        here = os.path.normcase(os.path.dirname(os.path.abspath(path)))
+        installed_dirs = {os.path.normcase(os.path.dirname(p)) for p in _font_index().values()}
+        for dirs in (([os.path.dirname(path)],) if here not in installed_dirs else ()) + (None,):
+            hit = pick_family_faces(me["typo_family"], dirs)
+            bf = hit.get("bold_face")
+            if bf and os.path.normcase(bf["path"]) != os.path.normcase(path) \
+                    and bf["width"] == me["width"]:
+                return bf["path"]
     idx = _font_index()
-    name = os.path.basename(str(ttf)).lower()
+    name = os.path.basename(path).lower()
     stem, ext = os.path.splitext(name)
     cands = [stem + "bd", stem + "b", stem + "-bold", stem.replace("-regular", "-bold"),
              stem.replace("regular", "bold"), stem + "bold"]
@@ -313,6 +502,26 @@ def bold_ttf_for(ttf: str | None) -> str | None:
         if hit and c != stem:
             return hit
     return None
+
+
+_HEAVY_FACE_WORDS = ("semibold", "semi bold", "demibold", "demi bold", "extrabold",
+                     "extra bold", "ultrabold", "bold", "black", "heavy")
+
+
+def face_name_is_bold(face_name: str | None) -> bool:
+    """True for a theme face name that names a heavy face ('Fict Sans Bold')."""
+    low = (face_name or "").strip().lower()
+    return any(low.endswith(" " + w) for w in _HEAVY_FACE_WORDS)
+
+
+def title_measure_ttf(regular: str | None, bold_path: str | None = None, *,
+                      title_bold: bool = False, heading_face: str = "") -> str | None:
+    """The font file to measure titles with: the bold face when the template's
+    title style is bold or the theme's heading face is itself a bold face
+    (titles then draw in it), else the regular face."""
+    if title_bold or face_name_is_bold(heading_face):
+        return bold_path or bold_ttf_for(regular) or regular
+    return regular
 
 
 def template_title_is_bold(template_path) -> bool:

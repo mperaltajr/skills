@@ -427,6 +427,14 @@ def load_brand_sidecar(template_path: Path) -> dict:
         "title_font_ttf_path": _resolve_ttf_path(
             str(brand_raw.get("title_font_ttf_path", "") or ""), brand_yml
         ),
+        "title_font_bold_ttf_path": _resolve_ttf_path(
+            str(brand_raw.get("title_font_bold_ttf_path", "") or ""), brand_yml
+        ),
+        "body_font_ttf_path": _resolve_ttf_path(
+            str(brand_raw.get("body_font_ttf_path", "") or ""), brand_yml
+        ),
+        "theme_heading_face": str(brand_raw.get("theme_heading_face", "") or ""),
+        "theme_body_face": str(brand_raw.get("theme_body_face", "") or ""),
         # Gate A.1: reference-slide spec (dict or None). Captured at
         # registration when the user designates a canonical slide in the
         # template ("make every output look like this slide").
@@ -484,6 +492,14 @@ class ClientTheme:
     # at registration time. Empty string when the registering machine did not
     # have the font installed; finalize_deck falls back to a runtime disk scan.
     title_font_ttf_path: str = ""
+    # The heading family's bold face and the body family's regular face, read
+    # from the fonts' own name tables at registration (empty on older ones).
+    title_font_bold_ttf_path: str = ""
+    body_font_ttf_path: str = ""
+    # The theme's own face names before the style word is dropped
+    # ("Fict Sans Bold"); empty on older registrations.
+    theme_heading_face: str = ""
+    theme_body_face: str = ""
     # Gate A.1: canonical reference-slide spec from brand.yml.
     # None when the user did not designate a reference slide at registration.
     # Schema: {slide_n, layout_name, title_box_px, subtitle_box_px,
@@ -799,6 +815,10 @@ def load_client_theme(template_path: str) -> ClientTheme:
         strip_master_backgrounds=brand["strip_master_backgrounds"],
         template_sha=brand["_template_sha"],
         title_font_ttf_path=brand.get("title_font_ttf_path", "") or "",
+        title_font_bold_ttf_path=brand.get("title_font_bold_ttf_path", "") or "",
+        body_font_ttf_path=brand.get("body_font_ttf_path", "") or "",
+        theme_heading_face=brand.get("theme_heading_face", "") or "",
+        theme_body_face=brand.get("theme_body_face", "") or "",
         reference_slide=brand.get("reference_slide"),
     )
 
@@ -967,7 +987,11 @@ def apply_theme_to_shape_xml(element, color_map: Dict[str, str],
                 return m.group(0)
             if cur.startswith("+"):
                 return m.group(0)
-            if major_norm and cur_lower == major_norm:
+            # A name that is both the heading and the body font (one family
+            # registered for both, while the theme's heading face is that
+            # family's bold face) is body text. Binding it to the heading
+            # font made every body box come out bold (2026-10-08).
+            if major_norm and cur_lower == major_norm and cur_lower != minor_norm:
                 replacement = b"+mj-lt"
             elif minor_norm:
                 # Match against minor OR fall back to minor for any

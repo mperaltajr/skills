@@ -216,12 +216,17 @@ def _strip_font_style(name: str) -> str:
 
 
 def _extract_font(theme_xml: str, kind: str) -> str:
-    """kind = 'majorFont' or 'minorFont'."""
-    m = re.search(rf"<a:{kind}>(.*?)</a:{kind}>", theme_xml, re.DOTALL)
+    """kind = 'majorFont' or 'minorFont'. The family (style word dropped)."""
+    return _strip_font_style(_theme_face(theme_xml, kind))
+
+
+def _theme_face(theme_xml: str, kind: str) -> str:
+    """The theme's own face name for kind ('Fict Sans Bold'), as written."""
+    m = re.search(rf"<a:{kind}>(.*?)</a:{kind}>", theme_xml or "", re.DOTALL)
     if not m:
         return ""
     latin = re.search(r'<a:latin\s+typeface="([^"]+)"', m.group(1))
-    return _strip_font_style(latin.group(1)) if latin else ""
+    return latin.group(1).strip() if latin else ""
 
 
 # ---------------------------------------------------------------------------
@@ -1961,6 +1966,15 @@ font_body:       "{font_body}"
 # this machine at registration time; finalize_deck falls back to a
 # disk scan (transitional) and warns the operator to install the font.
 title_font_ttf_path: '{title_font_ttf_path}'
+# The same family's bold face, and the body font's regular face, chosen by
+# reading each font file's own name table (not guessed from its file name).
+title_font_bold_ttf_path: '{title_font_bold_ttf_path}'
+body_font_ttf_path: '{body_font_ttf_path}'
+
+# The theme's own face names, before the style word is dropped
+# (font_heading / font_body above are the families).
+theme_heading_face: "{theme_heading_face}"
+theme_body_face: "{theme_body_face}"
 
 # Background handling
 # Default false — KEEP the master decoration. For most client templates
@@ -1976,42 +1990,91 @@ def _resolve_brand_ttf_path(font_name: str) -> str:
     """Resolve a brand font name (e.g. 'Acme Sans') to an absolute TTF path
     on the registering machine.
 
-    Tries several filename conventions that map a display name to TTF files
-    (no spaces, with spaces, -Regular suffix, etc.). Returns empty string
-    when the font is not installed locally — registration still succeeds;
-    finalize_deck falls back to a disk scan + warning.
-
-    Persists the TTF path into brand.yml so the
-    per-build _find_brand_ttf() scan can be skipped.
+    The regular face of the family, read from the fonts' own name tables
+    (see _brand_font_faces), never guessed from file names. Returns empty
+    string when the font is not installed locally — registration still
+    succeeds; finalize_deck falls back to a disk scan + warning.
     """
+    return _brand_font_faces(font_name).get("regular") or ""
+
+
+def _brand_font_faces(font_name: str, dirs=None) -> dict:
+    """The family's regular and bold faces, picked from the fonts' own name
+    tables (_chrome_schema.pick_family_faces), never from file-name guesses:
+    one family shipped its narrow face as the bare <Family>.ttf, and the old
+    guess bundled that (2026-10-08). Empty dict entries when not installed."""
     if not font_name:
-        return ""
+        return {"regular": None, "bold": None, "warnings": []}
     try:
         sys.path.insert(0, str(Path(__file__).resolve().parent))
-        from _chrome_schema import _find_brand_ttf
+        from _chrome_schema import pick_family_faces
     except Exception:
-        return ""
-    # Build candidate TTF filenames from the display name.
-    clean = font_name.strip()
-    nospace = clean.replace(" ", "")
-    candidates = [
-        f"{nospace}.ttf",
-        f"{nospace}-Regular.ttf",
-        f"{nospace}_0.ttf",
-        f"{clean}.ttf",
-        f"{clean}-Regular.ttf",
-    ]
-    seen: set[str] = set()
-    for cand in candidates:
-        if cand in seen:
+        return {"regular": None, "bold": None, "warnings": []}
+    return pick_family_faces(font_name.strip(), dirs)
+
+
+def _bundle_brand_fonts(sidecar: Path, font_heading: str, font_body: str,
+                        dirs=None) -> dict:
+    """Copy the heading family's regular + bold faces and the body family's
+    regular face into the template's sidecar; return their file names
+    (relative to brand.yml) as {"title", "title_bold", "body"} ("" = none).
+
+    Faces are chosen from the fonts' own data (_brand_font_faces). The chosen
+    face is printed, with a warning when it is not normal width. When the
+    family is not installed here, fonts bundled by an earlier registration are
+    reused (picked the same way, from the sidecar's own files)."""
+    import shutil as _shutil
+    from _chrome_schema import describe_face
+    out = {"title": "", "title_bold": "", "body": ""}
+    sidecar = Path(sidecar)
+
+    def _copy(src: str | None) -> str:
+        if not src:
+            return ""
+        try:
+            s = Path(src)
+            dst = sidecar / s.name
+            if not dst.exists() or s.resolve() != dst.resolve():
+                sidecar.mkdir(parents=True, exist_ok=True)
+                _shutil.copy2(s, dst)
+            return dst.name
+        except Exception as exc:  # noqa: BLE001
+            sys.stderr.write(f"  WARN: could not bundle font {src} into the sidecar "
+                             f"({type(exc).__name__}: {exc}); keeping its local path.\n")
+            return str(src)
+
+    for role, family in (("title", font_heading), ("body", font_body)):
+        if not family:
             continue
-        seen.add(cand)
-        found = _find_brand_ttf(cand)
-        if found:
-            return found
-    # No TTF matched any name variation; the caller falls back gracefully and
-    # warns the operator to record the font path at registration.
-    return ""
+        if role == "body" and out["title"] and \
+                family.strip().lower() == (font_heading or "").strip().lower():
+            out["body"] = out["title"]
+            continue
+        picked = _brand_font_faces(family, dirs)
+        where = "installed"
+        if not picked.get("regular"):
+            picked = _brand_font_faces(family, [str(sidecar)])
+            where = "bundled earlier"
+        for w in picked.get("warnings") or []:
+            print(f"  WARN: {w}")
+        if not picked.get("regular"):
+            print(f"  {role} font {family!r}: not installed on this computer and not "
+                  f"bundled; title-fit checks fall back to a disk scan")
+            continue
+        out[role] = _copy(picked["regular"]) if where == "installed" else \
+            Path(picked["regular"]).name
+        print(f"  {role} font {family!r}: regular face {describe_face(picked['regular_face'])}"
+              f" -> {out[role]} ({where})")
+        if role == "title":
+            if picked.get("bold"):
+                out["title_bold"] = _copy(picked["bold"]) if where == "installed" else \
+                    Path(picked["bold"]).name
+                print(f"  {role} font {family!r}: bold face "
+                      f"{describe_face(picked['bold_face'])} -> {out['title_bold']} ({where})")
+            else:
+                print(f"  {role} font {family!r}: no bold face found; bold titles are "
+                      f"measured with the regular face")
+    return out
 
 
 def write_brand_yml(path: Path, *, primary_hex: str, accent_hex: str,
@@ -2020,7 +2083,11 @@ def write_brand_yml(path: Path, *, primary_hex: str, accent_hex: str,
                     dark_bg_hex: str, dark_bg_slot: str,
                     font_heading: str, font_body: str,
                     strip_master_backgrounds: bool, sha8: str,
-                    title_font_ttf_path: str = "") -> None:
+                    title_font_ttf_path: str = "",
+                    title_font_bold_ttf_path: str = "",
+                    body_font_ttf_path: str = "",
+                    theme_heading_face: str = "",
+                    theme_body_face: str = "") -> None:
     content = BRAND_YML_TEMPLATE.format(
         stem=path.stem.replace(".brand", ""),
         date=datetime.now().strftime("%Y-%m-%d"),
@@ -2036,6 +2103,10 @@ def write_brand_yml(path: Path, *, primary_hex: str, accent_hex: str,
         font_heading=font_heading or "",
         font_body=font_body or "",
         title_font_ttf_path=title_font_ttf_path or "",
+        title_font_bold_ttf_path=title_font_bold_ttf_path or "",
+        body_font_ttf_path=body_font_ttf_path or "",
+        theme_heading_face=(theme_heading_face or "").replace('"', ""),
+        theme_body_face=(theme_body_face or "").replace('"', ""),
         strip_master_bg="true" if strip_master_backgrounds else "false",
     )
     path.write_text(content, encoding="utf-8")
@@ -2669,43 +2740,29 @@ def _write_outputs(tpl: Path, sha: str, sha8: str,
     brand_yml = _p.brand_yml(tpl)
     theme_json = _p.theme_json(tpl)
 
-    # Resolve the heading font's on-disk TTF and persist into
-    # brand.yml so finalize_deck doesn't scan Windows fonts each build.
-    title_font_ttf_path = _resolve_brand_ttf_path(font_heading)
+    # Resolve the heading font's regular and bold faces (and the body font's
+    # regular face) by reading each font file's own name table, bundle them
+    # into the sidecar and record them in brand.yml, so finalize_deck and the
+    # brief check measure titles with the face PowerPoint will draw.
     _sidecar = _p.template_sidecar_dir(tpl)
-    if title_font_ttf_path:
-        # Bundle the resolved TTF INTO the sidecar next to brand.yml and store a
-        # RELATIVE path (just the filename). finalize resolves it against
-        # brand.yml's dir, so it stays valid when the sidecar syncs to another
-        # machine (OneDrive) that doesn't have the brand font installed — the
-        # exact setup of one client template. Otherwise the title/band overlap gate (issue #2)
-        # would silently skip precisely when a custom brand font is in play.
-        try:
-            import shutil as _shutil
-            _src_ttf = Path(title_font_ttf_path)
-            _bundled = _sidecar / _src_ttf.name
-            if _src_ttf.resolve() != _bundled.resolve():
-                _shutil.copy2(_src_ttf, _bundled)
-            title_font_ttf_path = _bundled.name  # RELATIVE to the sidecar/brand.yml
-            print(f"  title_font_ttf_path: {title_font_ttf_path} (bundled into sidecar)")
-        except Exception as _exc:
-            sys.stderr.write(
-                f"  WARN: could not bundle brand TTF into sidecar "
-                f"({type(_exc).__name__}: {_exc}); keeping the machine-local "
-                f"absolute path (title-overlap gate won't survive a move).\n"
-            )
-    else:
-        # Font not installed on THIS machine — but if a prior registration
-        # already bundled the TTF into the sidecar, reuse it rather than blanking
-        # the reference (a re-register for colors/chrome shouldn't drop the gate).
-        _existing = sorted(_sidecar.glob("*.ttf"))
-        if _existing:
-            title_font_ttf_path = _existing[0].name
-            print(f"  title_font_ttf_path: {title_font_ttf_path} "
-                  f"(reused previously-bundled font from sidecar)")
-        else:
-            print(f"  title_font_ttf_path: <not resolved on this machine — "
-                  f"finalize_deck will fall back to disk scan>")
+    _bundle = _bundle_brand_fonts(_sidecar, font_heading, font_body)
+    title_font_ttf_path = _bundle["title"]
+    try:
+        _theme_xml = _read_theme_xml(tpl)
+    except Exception:
+        _theme_xml = ""
+    theme_heading_face = _theme_face(_theme_xml, "majorFont")
+    theme_body_face = _theme_face(_theme_xml, "minorFont")
+    if theme_heading_face or theme_body_face:
+        print(f"  theme faces: heading={theme_heading_face!r}  body={theme_body_face!r}")
+    from _chrome_schema import face_name_is_bold
+    if (font_heading and font_heading.strip().lower() == (font_body or "").strip().lower()
+            and face_name_is_bold(theme_heading_face)
+            and not face_name_is_bold(theme_body_face)):
+        print(f"  WARN: heading and body are one family ({font_heading!r}) and the "
+              f"theme's heading face is bold ({theme_heading_face!r}). Body text is "
+              f"bound to the body font; check on the mock slide that body text is "
+              f"regular, not bold.")
 
     write_brand_yml(
         brand_yml,
@@ -2718,6 +2775,10 @@ def _write_outputs(tpl: Path, sha: str, sha8: str,
         strip_master_backgrounds=strip_master_backgrounds,
         sha8=sha8,
         title_font_ttf_path=title_font_ttf_path,
+        title_font_bold_ttf_path=_bundle["title_bold"],
+        body_font_ttf_path=_bundle["body"],
+        theme_heading_face=theme_heading_face,
+        theme_body_face=theme_body_face,
     )
 
     # Append the reference_slide block (if any) to brand.yml.
@@ -4345,10 +4406,21 @@ def _render_mock_page_selftest(tpl: Path) -> tuple[list[str], list[str]]:
         add_footer(slide, page_num="7",
                    source=None if found.get("footer") else SOURCE,
                    footnote=FOOTNOTE, chrome=lc)
+    # The owner's chrome rule, as finalize applies it to every built slide:
+    # takeaway under the title, footnote and source line at the template's
+    # source position, all at the title's text left edge, in their fixed sizes.
+    # The template's own sample lines are cleared first, as at finalize.
+    from twins.chrome_rules import normalize_chrome, template_takeaway_pt
+    from twins.composer import remove_empty_placeholders, clear_template_sample_text
+    clear_template_sample_text(slide)
+    try:
+        _spec = load_chrome_yml(_p.chrome_yml(tpl))
+    except Exception:  # noqa: BLE001
+        _spec = None
+    normalize_chrome(slide, lc, takeaway_pt=template_takeaway_pt(prs, _spec, lc))
     # A real build deletes inherited placeholders left empty (finalize_deck's
     # body finishing), so do the same: otherwise the mock shows an empty
     # 'Click to add text' box over the takeaway that no built slide has.
-    from twins.composer import remove_empty_placeholders
     remove_empty_placeholders(slide)
 
     def _has_shape(prefix: str) -> bool:
@@ -4444,8 +4516,11 @@ def _render_mock_page_selftest(tpl: Path) -> tuple[list[str], list[str]]:
                          "open the .pptx in PowerPoint to check")
 
     # Informational fit measurement (mirrors finalize's >2-line rule).
-    ttf = _resolve_brand_ttf_path((theme_data.get("brand") or {}).get("font_heading", ""))
+    _hf = _brand_font_faces((theme_data.get("brand") or {}).get("font_heading", ""))
+    ttf = _hf.get("regular")
     if ttf:
+        from _chrome_schema import presentation_title_is_bold, title_measure_ttf
+        ttf = title_measure_ttf(ttf, _hf.get("bold"), title_bold=presentation_title_is_bold(prs))
         title_w = getattr(lc, "title_box_width_px", None) or 1190
         title_pt = getattr(lc, "title_font_pt", None) or 28
         try:

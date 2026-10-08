@@ -179,6 +179,7 @@ Font sizes are specified in pixels at the 1280×720 canvas scale. They convert t
 
 - **Body text is 12pt (16px) by default, using 12, 14 and 16pt, at most 3 sizes per slide** (owner's rule, checked on FINAL-CHECK.html and by slide-qc). Dense detail may drop to 11 or 10.5pt only when the content cannot be cut (shown as a note); **under 10.5pt is a Major finding**. Only sources, footnotes and chart text go smaller, and **never under 9pt (12px)**; give those elements a `chart-`, `source-` or `footnote-` shape id so the check recognizes them.
 - If content does not fit at 12pt, cut words, drop a column or split the slide first. 10.5pt is the last resort, never below.
+- **The takeaway, footnotes and source line are placed by Slide Lab** (owner's rule, 2026-10-08): finalize puts the takeaway directly under the title at the title's text left edge (the template's Subtitle-slot size, else 16pt, regular weight), the source line at the template's source position and the footnotes stacked directly above it (9pt, same left edge), whatever the sketch drew. Draw them where they go so the review picture matches, give footnotes `data-shape-id="footnote-1"`, `"footnote-2"` … and the source line the `footer` template field (or a `source-` shape id), and leave room above the source line for the footnotes.
 - Hero numerals may exceed the title range (e.g., 64px ≈ 48pt) — still on the grid.
 - Pick a px value from the table; don't free-type arbitrary px that lands between grid points (e.g., 13px → 9.75pt snaps to 10pt anyway, so just use 13px for a 10pt label).
 
@@ -220,7 +221,7 @@ These CSS features DO NOT translate cleanly to python-pptx. The worker MUST NOT 
 | `clip-path`, `mask`, `mask-image` | Not supported. |
 | CSS `transform: rotate/skew` on text containers | python-pptx can rotate but text within rotated containers loses readability. Avoid. |
 | `opacity` < 1 on text elements | Translates to transparency in python-pptx, often reducing legibility. Avoid on text; allowed on shape fills with explicit color reduction instead. |
-| Custom web fonts loaded via `@font-face` (other than the brand fonts) | Worker assumes only brand fonts are installed. Loading additional web fonts at render time is non-deterministic. |
+| Any `@font-face` rule, the brand fonts included | Name the font in `font-family` and let the installed font draw it. Never point a font at a file: a designer once loaded the brand family from a copied file that held its narrow face, so the approved sketch was a quarter narrower than the finished slide (2026-10-08). Slide Lab's renderer removes any `@font-face` rule that names an installed font and warns (`FONT_FACE_REMOVED`); for a font that is not installed, Slide Lab supplies the files, not the designer. |
 | Animations (`@keyframes`, `transition`, etc.) | Rendered output is a static PNG; animations have no effect. Use static visual hierarchy instead. |
 | `position: fixed` (any element) | Doesn't make sense on a fixed-size canvas; will produce unexpected results. |
 | External CSS frameworks (Bootstrap, Tailwind, etc.) | Render pipeline doesn't load external resources except the `brand.css` injected by Slide Lab. |

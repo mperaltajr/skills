@@ -19,7 +19,8 @@ What it does:
   2. _clear_existing_slides() — strip template stock slides + named sections.
   3. For each slide in numeric order, open <out>/slide_NN/option_<X>.pptx
      and copy its single slide's shapes into a new blank slide in the final deck
-     (deepcopy(shape.element) + append to _spTree).
+     (twins.composer.copy_shape_with_parts: each shape with the pictures,
+     charts, workbooks and media it points at).
   4. Save to --final.
   5. Render every slide of the final deck to PNG via render_libre → output to
      <out>/final_pngs/.
@@ -218,8 +219,15 @@ def copy_picked_slide_into(dst_prs, src_pptx: Path,
 
     sp_tree = new_slide.shapes._spTree
     count = 0
+    # Copy each shape WITH the files it points at (pictures, also inside
+    # groups; charts and their workbooks; media; links). The plain deepcopy
+    # kept the ids but not the files, so any page with a photo, logo or chart
+    # failed the integrity check and the whole deck was refused (2026-10-08).
+    from twins.composer import copy_shape_with_parts
+    memo: dict = {}
     for shape in src_slide.shapes:
-        sp_tree.append(deepcopy(shape.element))
+        sp_tree.append(copy_shape_with_parts(shape.element, src_slide.part,
+                                             new_slide.part, memo))
         count += 1
 
     # Each source slide numbered its own shapes from 1, so grafting several of

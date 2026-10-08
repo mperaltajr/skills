@@ -1174,11 +1174,78 @@ def _plan_svg(plan: Plan, s: dict) -> None:
 
 # --- clearance ---------------------------------------------------------------
 
+# Clearance growth (owner's rule, 2026-10-08): a box grows only into empty
+# space, by at most a few px, and keeps this gap to the next shape.
+CLEARANCE_GAP_PX = 2.0
+
+
+def _op_rect(o: dict) -> tuple[float, float, float, float] | None:
+    """(x0, y0, x1, y1) of an op as drawn: a box's outer edge, a text's ink
+    when known, a line's points."""
+    if o.get("_box"):
+        x, y, w, h = o["_box"]
+    elif o.get("op") == "text" and o.get("_ink"):
+        x, y, w, h = o["_ink"]
+    elif all(k in o for k in ("x", "y", "w", "h")):
+        x, y, w, h = o["x"], o["y"], o["w"], o["h"]
+    elif o.get("points"):
+        xs = [p[0] for p in o["points"]]
+        ys = [p[1] for p in o["points"]]
+        w_line = ((o.get("line") or {}).get("w") or 1) / 2
+        return min(xs) - w_line, min(ys) - w_line, max(xs) + w_line, max(ys) + w_line
+    else:
+        return None
+    return float(x), float(y), float(x + w), float(y + h)
+
+
+def _free_space(plan: Plan, b: dict, side: str) -> float:
+    """Empty px past box b's bottom ('bottom') or right ('right') edge before
+    the next thing drawn there: a shape, line or text beyond the edge, the
+    edge of a shape that holds b, the canvas edge. A shape that crosses the
+    edge leaves no room. Text that starts inside b and runs past its edge is
+    overhang, not a neighbor."""
+    bx0, by0, bx1, by1 = _op_rect(b)
+    if side == "bottom":
+        lim = CANVAS_H - by1
+        lo, hi, edge, a0, a1 = bx0, bx1, by1, 1, 3     # axis: y; span: x
+    else:
+        lim = CANVAS_W - bx1
+        lo, hi, edge, a0, a1 = by0, by1, bx1, 0, 2     # axis: x; span: y
+    # elements left to the agent are drawn there too
+    others = list(plan.ops) + [dict(f, op="fallback") for f in plan.fallbacks
+                               if f.get("w") and f.get("h")]
+    for o in others:
+        if o is b:
+            continue
+        r = _op_rect(o)
+        if r is None:
+            continue
+        s0, s1 = (r[0], r[2]) if side == "bottom" else (r[1], r[3])
+        if s1 <= lo + 0.5 or s0 >= hi - 0.5:
+            continue                                   # not beside this edge
+        start, end = r[a0], r[a1]
+        if start >= edge - 0.5:
+            lim = min(lim, start - edge)               # below / right of the edge
+        elif end > edge + 0.5:
+            if o.get("op") == "text":
+                continue                               # overhanging text
+            holds = (r[0] <= bx0 + 0.5 and r[1] <= by0 + 0.5 and r[2] >= bx1 - 0.5
+                     and r[3] >= by1 - 0.5)
+            lim = min(lim, end - edge) if holds else 0.0
+    return max(0.0, lim)
+
+
 def _apply_clearance(plan: Plan) -> None:
     """Text sitting right on the edge of the filled box behind it gets room.
     LibreOffice and PowerPoint can set text a few pixels off Chrome, enough to
     push the last line past a dark band's edge. Deliberately overhanging text
-    (big numerals breaking out of a card) is left alone."""
+    (big numerals breaking out of a card) is left alone.
+
+    Runs after the self-check, which compares the design as drawn (a grown box
+    read as drawn wrong and went to the agent, 2026-10-08). The box grows only
+    into empty space and keeps CLEARANCE_GAP_PX to the next shape: thin
+    stacked boxes used to grow into each other. A box with no room keeps its
+    design size."""
     boxes = [o for o in plan.ops if o["op"] == "shape" and o.get("_filled") and o.get("_box")]
     for t in (o for o in plan.ops if o["op"] == "text" and o.get("_ink")):
         ix, iy, iw, ih = t["_ink"]
@@ -1191,16 +1258,23 @@ def _apply_clearance(plan: Plan) -> None:
         bx, by, bw, bh = b["_box"]
         gap_bottom = (by + bh) - (iy + ih)
         if 0 <= gap_bottom < 4:
-            grow = 6 - gap_bottom
-            b["h"] += grow
-            b["_box"] = (bx, by, bw, bh + grow)
-            plan.counts["boxes_grown_for_clearance"] += 1
+            grow = min(6 - gap_bottom, _free_space(plan, b, "bottom") - CLEARANCE_GAP_PX)
+            if grow >= 0.5:
+                b["h"] += grow
+                b["_box"] = (bx, by, bw, bh + grow)
+                bh += grow
+                plan.counts["boxes_grown_for_clearance"] += 1
+            else:
+                plan.counts["boxes_kept_no_room"] = plan.counts.get("boxes_kept_no_room", 0) + 1
         gap_right = (bx + bw) - (ix + iw)
         if t.get("_single") and t["align"] == "left" and 0 <= gap_right < 4:
-            grow = 6 - gap_right
-            b["w"] += grow
-            b["_box"] = (bx, by, bw + grow, bh)
-            plan.counts["boxes_grown_for_clearance"] += 1
+            grow = min(6 - gap_right, _free_space(plan, b, "right") - CLEARANCE_GAP_PX)
+            if grow >= 0.5:
+                b["w"] += grow
+                b["_box"] = (bx, by, bw + grow, bh)
+                plan.counts["boxes_grown_for_clearance"] += 1
+            else:
+                plan.counts["boxes_kept_no_room"] = plan.counts.get("boxes_kept_no_room", 0) + 1
 
 
 # ---------------------------------------------------------------------------
@@ -1242,6 +1316,13 @@ def extract(page, html: Path, subtitle_as_shape: bool) -> dict:
         el.style.visibility = el.dataset.alarmHidden; delete el.dataset.alarmHidden; } }""")
     data = page.evaluate(EXTRACT_JS, {"subtitleAsShape": subtitle_as_shape})
     data["_shot"] = shot
+    # @font-face rules that pointed an installed font at a file, removed by
+    # the browser (scripts/_browser.py) before anything was measured.
+    try:
+        data["font_face_removed"] = sorted(set(
+            page.evaluate("() => window.__slidelabFontFaceRemoved || []") or []))
+    except Exception:
+        data["font_face_removed"] = []
     return data
 
 
@@ -1252,6 +1333,11 @@ def plan_from_extract(data: dict, subtitle_as_shape: bool,
     instead of drawn as a full-slide rectangle over the master's artwork."""
     plan = Plan()
     plan.template_bg = (template_bg or "").upper().lstrip("#") or None
+    for fam in data.get("font_face_removed") or []:
+        plan.warn("FONT_FACE_REMOVED",
+                  f"the design pointed the installed font {fam!r} at a font file "
+                  f"(@font-face); the rule was ignored, so the design was read in the "
+                  f"installed font, the one the finished slide uses")
     fields = {k: v for k, v in (data.get("fields") or {}).items()
               if not (k == "subtitle" and subtitle_as_shape)}
     cv = data.get("canvas") or {}
@@ -1276,7 +1362,9 @@ def plan_from_extract(data: dict, subtitle_as_shape: bool,
             _plan_text(plan, it, it["order"], name=name)
         else:
             _plan_svg(plan, it)
-    _apply_clearance(plan)
+    # Clearance growth (_apply_clearance) is NOT applied here: it runs after
+    # the self-check, in translate_many, so the check compares the design as
+    # drawn.
     plan.ops.sort(key=lambda o: o["_order"])
     plan.counts["pseudo_elements"] = int(data.get("pseudo_count") or 0)
     _check_pale_fills(plan)
@@ -1544,6 +1632,33 @@ def snap_subtitle(plan: "Plan", span: tuple[float, float] | None) -> None:
     plan.counts["subtitle_aligned_to_title"] = 1
 
 
+def font_ratio_message(font: str, ratio: float, installed: bool | None = None) -> str:
+    """The RENDER_FONT_RATIO warning. ratio: finished text width / sketch text
+    width, shared by every text in `font` (font may end in ' bold').
+
+    Installed font: the sketch was drawn in a different version of it than the
+    finished slide uses (the cause on 2026-10-08 was a designer's font-file
+    rule; the old wording blamed the check's renderer and called it "not a
+    defect", which sent the session after the wrong cause). Not installed: the
+    check had to use a stand-in, so text size was not judged for that font."""
+    fam = re.sub(r"\s+bold$", "", font or "", flags=re.I).strip()
+    if installed is None:
+        try:
+            from _chrome_schema import installed_families
+            installed = fam.lower() in installed_families()
+        except Exception:
+            installed = True
+    pct = abs(ratio - 1)
+    more = "wider" if ratio >= 1 else "narrower"
+    if installed:
+        return (f"the design was drawn in a different version of {font} than the finished "
+                f"slide uses: the finished text runs {pct:.0%} {more} than the approved "
+                f"sketch. Check every {font} text box for overflow; this is a design issue "
+                f"to fix, not a renderer quirk")
+    return (f"this computer lacks {font}, so the check used a stand-in {pct:.0%} {more}; "
+            f"text size was not judged for this font")
+
+
 def self_check(items: list[tuple["Plan", dict]]) -> None:
     """Render every translated slide once and hand any element that came out
     looking different from the design to the agent (scripts/translate_alarm.py).
@@ -1584,8 +1699,7 @@ def self_check(items: list[tuple["Plan", dict]]) -> None:
         plan.self_check = {"ran": True, "fired": [
             {"element": r["name"], "what": r["fired"]} for r in fired]}
         for font, ratio in (getattr(A.compare, "font_ratios", None) or {}).items():
-            plan.warn("RENDER_FONT_RATIO", f"the check's renderer drew every {font} text at "
-                      f"{ratio:.0%} of its width (a substituted font); allowed for, not a defect")
+            plan.warn("RENDER_FONT_RATIO", font_ratio_message(font, ratio))
         for r in sorted(fired, key=lambda r: -r["i"]):
             x0, y0, x1, y1 = r["box"]
             plan.fallbacks.append({
@@ -1616,6 +1730,8 @@ def translate_many(jobs: list[tuple], check: bool = True) -> list[dict]:
         self_check([(d[3], d[5]) for d in done])
     for d in done:
         snap_subtitle(d[3], d[6])
+        # after the check, as snap_subtitle: grown boxes are not "drawn wrong"
+        _apply_clearance(d[3])
     return [write_outputs(html, emit_dir, letter, plan, fields, data.get("visible_text", ""))
             for html, emit_dir, letter, plan, fields, data, _span in done]
 

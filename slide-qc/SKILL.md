@@ -68,6 +68,7 @@ Parse this and hold the violations in memory. They will be merged with the visua
 **What this script catches (deterministic, no vision needed):**
 - Lorem ipsum / placeholder residue (`[Insert ...]`, "Subtitle goes here", TODO/FIXME/XXX) → Critical
 - **Placeholder prompts** (`[add footnote here or delete]`, `[add source here or delete]`) → Major. Designers no longer write them, so one on a finished slide is a leak.
+- **The template's own sample text** (category `template-sample-text`): a whole line in angle brackets (`<Customize with ...>`) or a "Click to add" / "Click to edit" line on a slide → Critical. A layout footer cloned with its sample line once shipped on every slide and only a human eye caught it (2026-10-08); finalize now clears such lines, so one here is a leak. A `<` inside a sentence ("fell <5%") is not flagged.
 - **Buzzwords and competitor names** from `slide-builder/reference/banned-words.md` → Major, one finding per slide listing the words.
 - **Text size** (body under 10.5pt, more than 3 body sizes, exceptions under 9pt) → Major, one finding per problem per slide; body at 10.5 to 11pt (below the 12pt default) → Advisory. Slide Lab's own 9pt "Option B" label on an all-options deck (shape `chrome-option-badge`) is skipped, not counted; any other shape is checked, whatever its name.
 - Hidden slides leaking into the file → Major
@@ -193,6 +194,7 @@ After all per-slide checks, scan for consistency issues that only appear when co
 | **Footer drift** | Major | Same confidentiality / client name should appear on all non-cover slides; if it changes, flag |
 | **Color palette drift** | Major | A slide uses an off-brand color without semantic reason |
 | **Chrome drift for same slide type** | Major | Title, takeaway or footer sit in different positions on two slides of the same type. Different body layouts are not drift: the build deliberately varies them (no three slides in a row share a layout). |
+| **Takeaway, footnotes or source line out of place** | Major | The owner's chrome rule (2026-10-08): on every content slide the takeaway sits directly under the title at the title's text left edge, in one size (the template's Subtitle-slot size, else 16 pt), regular weight, the template's main text color; the source line sits at the template's source position at the same left edge in 9 pt; footnotes sit directly above the source line, stacked, same edge, 9 pt. Slide Lab places them itself at finalize, so any slide where one differs (another size, x, height, bold, a footnote mid-page, a centered source) is a defect: flag it on that slide. Covers and section dividers are exempt. |
 
 Cross-slide findings get tagged to the slide(s) where they appear in the final table — not as a separate "cross-deck" section.
 

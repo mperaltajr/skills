@@ -472,6 +472,41 @@ def clone_missing_chrome_placeholders(slide, layout):
     return cloned
 
 
+# A template's own sample text in a layout placeholder: a whole line in angle
+# brackets ("<Customize with the client name>") or PowerPoint's "Click to add"
+# / "Click to edit" prompts. A footer cloned from the layout kept that line
+# when the design supplied no footer text, and it shipped on every slide
+# (2026-10-08). slide-qc/scripts/check_pptx_hygiene.py flags the same lines.
+SAMPLE_TEXT_RE = re.compile(r"^\s*(<[^<>\n]{2,200}>|click to (add|edit)\b.*)\s*$", re.I)
+
+
+def clear_template_sample_text(slide) -> int:
+    """Clear sample-text lines (SAMPLE_TEXT_RE) from the slide's placeholders.
+
+    Only placeholders (text the slide inherited from its layout) are touched,
+    and only whole lines that are sample text: real footer text in the same
+    box is kept. A placeholder left empty is then removed by
+    remove_empty_placeholders. Returns the number of lines cleared."""
+    cleared = 0
+    for ph in list(slide.placeholders):
+        try:
+            if not ph.has_text_frame:
+                continue
+            paras = list(ph.text_frame.paragraphs)
+        except Exception:
+            continue
+        for para in paras:
+            text = "".join(r.text or "" for r in para.runs) or (para.text or "")
+            if text.strip() and SAMPLE_TEXT_RE.match(text):
+                for r in list(para.runs):
+                    r._r.getparent().remove(r._r)
+                for fld in list(para._p):
+                    if fld.tag.endswith("}fld") or fld.tag.endswith("}br"):
+                        para._p.remove(fld)
+                cleared += 1
+    return cleared
+
+
 def remove_empty_placeholders(slide) -> int:
     """Remove inherited placeholders left empty after population.
 
@@ -626,3 +661,126 @@ def _clear_existing_slides(prs):
                 if ext.find(".//" + tag) is not None:
                     ext_lst.remove(ext)
                     break
+
+
+# ---------------------------------------------------------------------------
+# Copying a shape onto another slide WITH the files it points at
+# ---------------------------------------------------------------------------
+#
+# A shape's XML names its picture, chart, embedded workbook or media by a
+# relationship id of its own slide. Copying only the XML (deepcopy + append)
+# left those ids pointing at nothing on the new slide: PowerPoint refuses the
+# file, and compile_picks refused the whole deck with a message that blamed an
+# edit "outside the pipeline" (2026-10-08). copy_shape_with_parts copies the
+# XML and carries every related part (pictures, pictures inside groups,
+# charts with their workbooks and styles, media, external links) over to the
+# target slide under fresh ids.
+
+_R_NS = "http://schemas.openxmlformats.org/officeDocument/2006/relationships"
+# Parts that belong to the source deck's structure, never carried with a shape
+# (a link from a shape to another slide is dropped).
+_STRUCTURAL_RELTYPES = ("/slide", "/slideLayout", "/slideMaster", "/notesSlide",
+                        "/notesMaster", "/handoutMaster", "/theme")
+
+
+def _is_structural(reltype: str) -> bool:
+    return any(reltype.endswith(s) for s in _STRUCTURAL_RELTYPES)
+
+
+def _free_partname(pkg, partname: str, memo: dict):
+    from pptx.opc.packuri import PackURI
+    used = memo.setdefault("__names__", set())
+    if "__pkg_names__" not in memo:
+        memo["__pkg_names__"] = {str(p.partname) for p in pkg.iter_parts()}
+    taken = used | memo["__pkg_names__"]
+    m = re.match(r"^(.*?)(\d*)(\.[^./]+)$", str(partname))
+    base, ext = (m.group(1), m.group(3)) if m else (str(partname), "")
+    n = 1
+    while f"{base}{n}{ext}" in taken:
+        n += 1
+    name = f"{base}{n}{ext}"
+    used.add(name)
+    return PackURI(name)
+
+
+def _remap_rids(root, rid_map: dict) -> None:
+    """Rewrite relationship-id attributes under root; drop links whose target
+    was not carried (rid_map value None)."""
+    prefix = "{%s}" % _R_NS
+    for node in list(root.iter()):
+        for attr, val in list(node.attrib.items()):
+            if not attr.startswith(prefix) or val not in rid_map:
+                continue
+            new = rid_map[val]
+            if new is not None:
+                node.set(attr, new)
+                continue
+            local = node.tag.rsplit("}", 1)[-1]
+            parent = node.getparent()
+            if local in ("hlinkClick", "hlinkHover", "hlinkMouseOver") and parent is not None:
+                parent.remove(node)
+            else:
+                del node.attrib[attr]
+
+
+def _clone_part(part, pkg, memo: dict):
+    """A copy of `part` (and everything it relates to) inside package `pkg`."""
+    import io
+    if part.package is pkg:
+        return part
+    key = id(part)
+    if key in memo:
+        return memo[key]
+    from pptx.opc.package import XmlPart
+    from pptx.parts.image import ImagePart
+    if isinstance(part, ImagePart):
+        try:
+            new = pkg.get_or_add_image_part(io.BytesIO(part.blob))
+            memo[key] = new
+            return new
+        except Exception:
+            pass                      # a format python-pptx can't read (SVG): copy as is
+    partname = _free_partname(pkg, str(part.partname), memo)
+    new = type(part).load(partname, part.content_type, pkg, part.blob)
+    memo[key] = new
+    rid_map = {}
+    for rId, rel in list(part.rels.items()):
+        if rel.is_external:
+            rid_map[rId] = new.relate_to(rel.target_ref, rel.reltype, is_external=True)
+        elif _is_structural(rel.reltype):
+            rid_map[rId] = None
+        else:
+            rid_map[rId] = new.relate_to(_clone_part(rel.target_part, pkg, memo), rel.reltype)
+    if rid_map and isinstance(new, XmlPart):
+        _remap_rids(new._element, rid_map)
+    return new
+
+
+def copy_shape_with_parts(element, src_part, dst_part, memo: dict | None = None):
+    """A deep copy of shape `element` from slide part `src_part`, ready to
+    append to slide part `dst_part`'s shape tree, with every picture, chart,
+    workbook, media file or external link it references carried over under
+    new relationship ids. `memo` (one dict per target slide) keeps a part
+    referenced twice from being copied twice."""
+    el = copy.deepcopy(element)
+    memo = {} if memo is None else memo
+    if src_part is dst_part:
+        return el
+    rid_map: dict = {}
+    prefix = "{%s}" % _R_NS
+    for node in el.iter():
+        for attr, val in node.attrib.items():
+            if not attr.startswith(prefix) or val in rid_map:
+                continue
+            if val not in src_part.rels:
+                continue                     # already dangling in the source
+            rel = src_part.rels[val]
+            if rel.is_external:
+                rid_map[val] = dst_part.relate_to(rel.target_ref, rel.reltype, is_external=True)
+            elif _is_structural(rel.reltype):
+                rid_map[val] = None
+            else:
+                tgt = _clone_part(rel.target_part, dst_part.package, memo)
+                rid_map[val] = dst_part.relate_to(tgt, rel.reltype)
+    _remap_rids(el, rid_map)
+    return el
