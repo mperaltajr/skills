@@ -49,7 +49,7 @@ TEMPLATE_NAME = re.compile(r"^(subtitle|takeaway|title)$", re.I)
 # Shapes Slide Lab itself stamps on a compiled deck (review labeling, not
 # content). Exact names only, so a worker cannot dodge the check by naming a
 # shape chrome-something. Add a name here when a script starts stamping one.
-PIPELINE_CHROME_NAMES = frozenset({"chrome-option-badge"})
+PIPELINE_CHROME_NAMES = frozenset({"chrome-option-badge", "section-tag"})  # section-tag: the kicker above the title (add_sources_tags_native / assemble)
 SOURCE_TEXT = re.compile(r"^\s*(source|sources|note|notes)\b", re.I)
 FOOTNOTE_TEXT = re.compile(r"^\s*(\d{1,2}[.)]|\*|†)\s")
 # placeholder types: 1 title, 3 centered title, 4 subtitle, 13 slide number,
