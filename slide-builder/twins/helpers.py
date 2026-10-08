@@ -369,22 +369,21 @@ def add_icon_from_library(slide, shape_id, x_px, y_px, size_px, name, *,
     (process / data / people / risk / decision / etc.). The library ships 1,143
     pre-extracted icons. Generic Unicode glyphs (☰ ✦ →) are a last resort only.
 
-    The 15 standard icons (use these first; full catalog in icons/icon-index.json):
-      gear            — process / operations / workflow
-      wrench          — work in progress / tools
-      people          — team / workforce / org
-      chart-bar       — data / analytics / reporting
-      compass         — strategy / direction / vision
+    Use ONLY names from icons/checked-icons.json: each was checked by eye to
+    match its picture, and its "shows" field says what the picture is. About
+    half of the library's other names do not match their pictures (e.g.
+    "shield-warning" is a vault, "chip" a head with binary digits, "speech" a
+    podium), so they are not offered. A few checked names:
+      gear            — process / operations (cog with circular arrows)
+      people          — team / organization (org chart of people)
+      chart-bar       — data / results (rising bars)
+      compass         — strategy / direction (compass rose)
       calendar        — timeline / schedule
-      coins           — cost / budget / value
-      shield-warning  — risk / controls / escalation
-      diamond         — decision / approval / governance
-      lightbulb       — insight / finding / idea
-      globe           — external / market / scale
-      clipboard-check — compliance / audit / sign-off
-      chip            — technology / systems / AI
-      speech          — communication / engagement / change
-      package         — delivery / output / shipping
+      coins           — cost / budget
+      lightbulb       — insight / idea
+      globe           — global / market
+      clipboard-check — compliance / audit / done
+      package         — delivery / output (3D box)
 
     The icon is tinted with `color` (defaults to BRAND_ACCENT). After the theme
     graft pipeline runs, BRAND_ACCENT gets remapped to the client's accent — so

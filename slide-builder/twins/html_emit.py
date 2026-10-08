@@ -8,7 +8,8 @@ fix to how something is drawn applies to every slide on the next finalize.
 
 Each op kind maps to plain python-pptx: rectangles, rounded rectangles, ovals,
 triangles, freeform polygons and polylines, straight connectors, and text boxes
-with styled runs. No charts, no embedded objects, no pictures of text.
+with styled runs, and library icons (inserted as their vector shapes through
+icon_helper). No charts, no embedded objects, no pictures of text.
 
 The rules that used to live as prose in the translator agent's instructions are
 code here, applied the same way every time:
@@ -177,7 +178,26 @@ def _text(slide, op) -> None:
                 set_letter_spacing(run, r["letter_spacing_px"])
 
 
-_DRAW = {"shape": _shape, "freeform": _freeform, "connector": _connector, "text": _text}
+def _icon(slide, op) -> None:
+    """A library icon, inserted as its real vector shapes (icon_helper), tinted
+    with the sketch's color. An unknown name, or an icon with no drawable
+    picture, gets icon_helper's labeled placeholder: never a silent gap."""
+    import sys
+    scripts = str(Path(__file__).resolve().parent.parent / "scripts")
+    if scripts not in sys.path:
+        sys.path.insert(0, scripts)
+    import icon_helper
+    args = (E(op["x"]), E(op["y"]), E(max(op["w"], 1)), E(max(op["h"], 1)))
+    name = op.get("name") or "?"
+    if op.get("placeholder"):
+        icon_helper._insert_placeholder(slide, *args, icon_name=name)
+        slide.shapes[-1].name = f"icon-{name}"
+        return
+    icon_helper.insert_icon(name, slide, *args, accent_color="#" + (op.get("color") or "000000"))
+
+
+_DRAW = {"shape": _shape, "freeform": _freeform, "connector": _connector, "text": _text,
+         "icon": _icon}
 
 
 def build(plan: dict):

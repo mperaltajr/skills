@@ -184,15 +184,22 @@ Font sizes are specified in pixels at the 1280×720 canvas scale. They convert t
 
 ## 6. Icon handling
 
-Icons stay on the existing icon library (`slide-builder/scripts/icon_helper.py` + `slide-builder/icons/`). The worker references icons in HTML by name:
+Icons stay on the existing icon library (`slide-builder/scripts/icon_helper.py` + `slide-builder/icons/`). The worker references icons in HTML by name, **using only a name from `slide-builder/icons/checked-icons.json`** (each entry says what the picture `shows` and what it suits). About half of the library's other names do not match their pictures, so they are not offered:
 
 ```html
-<img src="icons/check-circle.svg" class="icon icon-anchor" alt="">
-<!-- OR -->
-<i class="icon" data-icon-name="check-circle"></i>
+<i class="icon" data-icon-name="clipboard-check" style="width:32px;height:32px;color:var(--brand-primary)"></i>
+<!-- also accepted: -->
+<img src="icons/clipboard-check.svg" class="icon" style="width:32px;height:32px" alt="">
 ```
 
-The translator agent maps these references to the icon library and inserts them as small picture shapes in the native PPTX. The worker does NOT generate inline SVG paths for icons; they reference the library.
+- **Size** comes from the element's width and height (24 px when it has none). The picture keeps its shape and is centered in the box.
+- **Color** is the element's CSS `color` (so `currentColor` cascades), or `data-icon-color="#RRGGBB"` when set. On a dark panel set a light color.
+- **Sketch render:** `scripts/render_html.py` draws each icon from its shipped SVG preview (`icons/svg/<name>.svg`, made from the icon's own DrawingML by `scripts/icon_svg.py --build`), so the review page shows what the slide will get.
+- **Finished slide:** `scripts/translate_html.py` turns each icon into an `icon` step, and the slide gets the real, editable vector icon (`icon_helper.insert_icon`) at the same box and color, as a group named `icon-<name>`.
+- **Unknown name:** a labeled dashed placeholder on the sketch and the slide, an `ICON_UNKNOWN` warning on the render and the review card. A name in the library but not on the checked list draws, with an advisory that its picture may not match its name. Never a silent gap.
+- The worker does NOT draw icons from its own SVG paths or write preview tools; it references the library.
+
+A picture sheet of any icons: `py -3 scripts/icon_svg.py --sheet sheet.html --names checked` (or a comma list, or no `--names` for all).
 
 Standard icon sizes:
 - Anchor icons (recommendation indicator, status glyph): `24px–32px`
@@ -267,7 +274,7 @@ Every sketch-path worker HTML file follows this exact structure:
 </style>
 </head>
 <body>
-<div class="slide-canvas">
+<div class="slide-canvas" data-visual-form="cards">
 
   <!-- Chrome top: title bar (style approximates template; actual title text re-used as data field for placeholder population) -->
   <div class="chrome-top" style="position: absolute; top: 0; left: 0; right: 0; height: var(--body-top);">
@@ -296,8 +303,12 @@ Every sketch-path worker HTML file follows this exact structure:
 Supported field names:
 - `title` → template title placeholder
 - `subtitle` → template subtitle/so-what placeholder
-- `footer` → template footer placeholder
+- `footer` → template footer placeholder (the template's Source slot when it has one). Put the brief's **Source:** line here word for word; prep passes it in `_prompt.md` § 1 and records it in `_meta.json` (`source`). The review card flags a sketch whose brief gives a source but which has no footer element (`SOURCE_LINE_MISSING`)
 - `page_number` → template page-number placeholder
+
+The brief's **Section tag:** reaches the worker as text only. It is not a field yet: do not draw it (a fixed-style tag slot drawn by Slide Lab is planned).
+
+**The `data-visual-form` attribute** goes on `.slide-canvas` and names the page's main visual form, one of: `cards`, `table`, `chart`, `flow`, `timeline`, `matrix`, `hero-number`, `diagram`, `comparison`, `text`, `quote`, `image`, `map`. It draws nothing. The review page counts the forms across the deck ("Visual forms" strip) and warns when one form is on at least half of the pages or on three neighbors in a row; a sketch without it is reported as "unknown". Example: `<div class="slide-canvas" data-visual-form="flow">`.
 
 The translator agent's contract (Spec 4) details the extraction logic.
 

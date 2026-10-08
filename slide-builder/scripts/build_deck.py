@@ -135,6 +135,27 @@ DECK_NOTES_RE = re.compile(
     r"^##\s+Deck[\s\-]?level\s+design\s+notes\b[^\n]*\n(.*?)(?=^#{1,3}\s|\Z)",
     re.MULTILINE | re.IGNORECASE | re.DOTALL,
 )
+# Any `## ` section and its body (to the next H1-H3 heading).
+H2_SECTION_RE = re.compile(r"^##\s+([^\n]+?)\s*\n(.*?)(?=^#{1,3}\s|\Z)",
+                           re.MULTILINE | re.DOTALL)
+# Other headings that also mean "rules for every page". A brief once named its
+# section "Section content rules (binding on every page)"; prep read only the
+# exact "Deck-level design notes" heading, so a dozen binding rules reached no
+# designer (2026-10-08). Matched against _heading_key(heading).
+DECK_NOTES_HEADING_RES = (
+    re.compile(r"\bdesign\s+notes\b"),
+    re.compile(r"^(?:deck[\s\-]*(?:level|wide)\s+)?(?:section\s+)?"
+               r"(?:design|content|style|writing|build|page|slide)\s+"
+               r"(?:notes|rules|conventions|constraints|guidelines)$"),
+    re.compile(r"^deck[\s\-]*(?:level|wide)?\s*(?:notes|rules|conventions|constraints|guidelines)$"),
+    re.compile(r"^(?:rules|notes|conventions)\s+for\s+every\s+(?:page|slide)$"),
+)
+# Deck-level sections prep knows (read, or deliberately not needed by the
+# designers). Any other `##` section gets a warning at prep.
+KNOWN_DECK_SECTIONS = (
+    "sequence", "deck type", "narrative framework", "strategic framework",
+    "governing thought", "audience", "flags", "open gaps",
+)
 
 # Bold-labeled field lines: **Label:** value (one-line)  OR  **Label:**\nblock
 FIELD_LABELS = {
@@ -163,7 +184,22 @@ FIELD_LABELS = {
     # in _meta.json so it cannot be quietly replaced by a summary of it, which
     # is how a supplied one-pager once became an exec summary nobody asked for.
     "pinned_source_page":  ("pinned source page", "supplied page"),
+    # The page's source line (for the template's Source slot / footer) and the
+    # small section tag above the title. Briefs wrote both as fields of their
+    # own; prep did not read them, so designers never saw them and pages went
+    # out with no source (2026-10-08).
+    "source":              ("source", "sources", "source line"),
+    "section_tag":         ("section tag", "section label"),
 }
+
+# Bold labels a slide block may carry that prep knows but does not pass on as
+# a field of its own: cover and closing-page items written inside the content.
+# Any other label is warned about at prep instead of being dropped silently.
+KNOWN_EXTRA_LABELS = (
+    "title", "tagline", "subtitle", "presenter", "date", "audience / client",
+    "audience", "client", "eyebrow", "eyebrow (optional)", "primary ask", "sub-asks",
+    "page type",
+)
 
 
 # Archetype → page_type normalization. storyline-helper produces brief slides
@@ -422,12 +458,70 @@ def extract_front_matter(brief_text: str) -> tuple[dict[str, str], str]:
     return parse_yaml_simple(match.group(1)), brief_text[match.end():]
 
 
+def _heading_key(heading: str) -> str:
+    """A `##` heading reduced for matching: no "(...)" note, nothing after a
+    dash or colon ("Flags — live issues" is "flags"), lower case."""
+    h = re.sub(r"\([^)]*\)", " ", heading)
+    h = re.split(r"\s[—–]\s|:|\s-\s", h)[0]
+    h = re.sub(r"[^\w\s/\-]", " ", h)
+    return " ".join(h.lower().split())
+
+
+def is_deck_notes_heading(heading: str) -> bool:
+    """True when a `##` heading names the deck-wide design or content rules."""
+    if re.search(r"binding\s+on\s+every\s+(?:page|slide)", heading, re.I):
+        return True
+    key = _heading_key(heading)
+    return any(r.search(key) for r in DECK_NOTES_HEADING_RES)
+
+
 def extract_deck_notes(body: str) -> str:
-    """Extract the '## Deck-level design notes' section if present."""
-    match = DECK_NOTES_RE.search(body)
-    if not match:
-        return ""
-    return match.group(1).strip()
+    """The deck-wide design notes: every `##` section whose heading names them
+    ("Deck-level design notes", "Section content rules (binding on every
+    page)", "Deck rules", ...), joined in brief order."""
+    parts = []
+    for m in H2_SECTION_RE.finditer(body):
+        heading, text = m.group(1).strip(), m.group(2).strip()
+        if re.match(r"^Slide\s+\d+", heading, re.I) or not text:
+            continue
+        if is_deck_notes_heading(heading):
+            parts.append(text if not parts else f"({heading})\n{text}")
+    return "\n\n".join(parts)
+
+
+def brief_warnings(body: str, blocks: list) -> list[str]:
+    """Sections and slide fields prep does not read. Prep used to drop them
+    without a word, so the designers never saw them and nobody knew."""
+    out = []
+    for m in H2_SECTION_RE.finditer(body):
+        heading = m.group(1).strip()
+        if re.match(r"^Slide\s+\d+", heading, re.I) or is_deck_notes_heading(heading):
+            continue
+        key = _heading_key(heading)
+        if any(key == k or key.startswith(k + " ") for k in KNOWN_DECK_SECTIONS):
+            continue
+        out.append(f'section "## {heading}" is not one prep reads, so no designer will '
+                   f'see it. If it holds rules for every page, name it "## Deck-level '
+                   f'design notes"; otherwise move what matters into the slides\' fields.')
+    known = {lab for labs in FIELD_LABELS.values() for lab in labs} | set(KNOWN_EXTRA_LABELS)
+    label_re = re.compile(r"^[ \t]*\*\*([^*\n]{1,60}?)\s*(?::\s*\*\*|\*\*\s*:)", re.M)
+    seen: dict[str, list[int]] = {}
+    for slide_n, _title, block in blocks:
+        # The last slide's block runs to the end of the brief; stop at the
+        # next deck-level heading (the Flags section has fields of its own).
+        block = re.split(r"(?m)^#{1,2}\s", block)[0]
+        for lm in label_re.finditer(block):
+            lab = lm.group(1).strip()
+            if " ".join(lab.lower().split()) not in known:
+                ns = seen.setdefault(lab, [])
+                if slide_n not in ns:
+                    ns.append(slide_n)
+    for lab, ns in seen.items():
+        out.append(f'field "**{lab}:**" (slide {", ".join(str(n) for n in ns)}) is not one '
+                   f"prep reads, so the designer will not see it. Put it under **Evidence / "
+                   f"content:** or **Editorial emphasis:**, or use a field from "
+                   f"storyline-helper's brief format.")
+    return out
 
 
 def extract_deck_section(body: str, *heading_aliases: str) -> str:
@@ -558,6 +652,8 @@ def parse_brief(brief_path: Path, bypass_gate: bool = False) -> dict[str, Any]:
             "forbidden_patterns": extract_field(block, FIELD_LABELS["forbidden_patterns"]),
             "accent_placement": extract_field(block, FIELD_LABELS["accent_placement"]),
             "pinned_source_page": extract_field(block, FIELD_LABELS["pinned_source_page"]),
+            "source": " ".join(extract_field(block, FIELD_LABELS["source"]).split()),
+            "section_tag": " ".join(extract_field(block, FIELD_LABELS["section_tag"]).split()),
         }
         slides.append(slide)
 
@@ -573,6 +669,7 @@ def parse_brief(brief_path: Path, bypass_gate: bool = False) -> dict[str, Any]:
     return {
         "front_matter": front_matter,
         "deck_notes": deck_notes,
+        "warnings": brief_warnings(body, blocks),
         "deck_governing_thought": deck_governing_thought,
         "deck_audience": deck_audience,
         "slides": slides,
@@ -972,6 +1069,10 @@ expect (one way of writing each kind of number across all slides).
 - Archetype: {archetype!r}
 - Editorial emphasis: {emphasis!r}
 - Layout: {layout!r}
+- Source line: {source!r} (goes in the `data-template-field="footer"` element on a
+  sketch, `add_footer(source=...)` on the direct path; never invent one)
+- Section tag: {section_tag!r} (text only for now: the template has no drawn slot for it,
+  so do not draw it yourself)
 {body_geometry}
 
 ## 4. QC anchor
@@ -1195,6 +1296,8 @@ def write_slide_context_md(slide: dict, brand: dict, slide_dir: Path,
         archetype=archetype,
         emphasis=emphasis,
         layout=layout,
+        source=(slide.get("source") or "").strip() or "(none in the brief)",
+        section_tag=(slide.get("section_tag") or "").strip() or "(none)",
         body_geometry=_body_geometry_block(template_path, layout),
         primary_hex=brand.get("primary_hex", "(unset)"),
         accent_hex=brand.get("accent_hex", "(unset)"),
@@ -1318,6 +1421,8 @@ def build_placeholders(
         "VISUAL_RHYTHM":           slide.get("visual_rhythm", "") or "(worker's judgment)",
         "MANDATORY_SHAPE":         slide.get("mandatory_shape", "") or "(none — worker's judgment)",
         "PINNED_SOURCE_PAGE":      slide.get("pinned_source_page", "") or "(none)",
+        "SOURCE_LINE":             slide.get("source", "") or "(none in the brief)",
+        "SECTION_TAG":             slide.get("section_tag", "") or "(none)",
         "FORBIDDEN_PATTERNS":      slide.get("forbidden_patterns", "") or "(none)",
         "ACCENT_PLACEMENT":        slide.get("accent_placement", "") or "(worker's judgment)",
         "DECK_LEVEL_DESIGN_NOTES": deck_notes or "(no deck-level design notes)",
@@ -1547,6 +1652,13 @@ def _build_slide_meta_entry(slide: dict[str, Any], forecast: str,
     _pin = (slide.get("pinned_source_page") or "").strip()
     if _pin:
         entry["pinned_source_page"] = _pin
+    # Kept for the finishing step: the template's Source slot / footer can be
+    # filled from here when the design left it out; the tag is text only for
+    # now (no drawn slot yet).
+    for _k in ("source", "section_tag"):
+        _v = (slide.get(_k) or "").strip()
+        if _v:
+            entry[_k] = _v
     # Only populate build-path fields when the classifier produced routing for
     # this slide. Empty pattern_per_slide (legacy mode) leaves the shape unchanged.
     if str(slide_n) in pattern_per_slide:
@@ -2475,6 +2587,9 @@ def main() -> int:
     slides = brief["slides"]
     slide_total = brief["slide_total"]
     deck_notes = brief["deck_notes"]
+    # Say what in the brief prep could not read, instead of dropping it silently.
+    for _w in brief.get("warnings") or []:
+        print(f"WARNING (brief): {_w}")
 
     # Build-state manifest: a stable hash of the deck inputs. Any (re)prep records
     # it and invalidates a prior review approval, so a rebuilt/edited deck can
@@ -2769,6 +2884,13 @@ def main() -> int:
         print("Takeaway lines over 130 characters (they will wrap to two lines): "
               + ", ".join(f"slide {n} ({k})" for n, k in _long))
         print("  Tighten them in the brief and re-seal it, or accept the wrap.")
+        print()
+    if brief.get("warnings"):
+        print(f"Brief warnings: {len(brief['warnings'])} part(s) of the brief prep could "
+              "not read; the designers will not see them:")
+        for _w in brief["warnings"]:
+            print(f"  WARNING: {_w}")
+        print("  Fix the brief and prep again, or tell the user what is being left out.")
         print()
     if theme_warnings:
         print()

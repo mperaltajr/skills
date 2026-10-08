@@ -994,6 +994,10 @@ For closing-CTA slides, the brief MUST include:
 **Chart data:**
 [Inline table or path to CSV/Excel in _reference/, or "TBD — placeholder". Omit this field if Chart type is none.]
 
+**Source:** [optional — the page's source line, one line, word for word as it should appear in the footer / Source slot. Omit when the page has none.]
+
+**Section tag:** [optional — the short section label above the title, e.g. "MARKET CONTEXT". Passed to the designer as text only for now.]
+
 ---
 
 ### Slide 2 — [Slide title]
@@ -1011,6 +1015,7 @@ For closing-CTA slides, the brief MUST include:
 These are not historical risks. They are unresolved gaps the user chose to ship with. Downstream skills and the MD reviewer must see them.]
 
 ## Deck-level design notes (optional)
+[Keep this exact heading for rules that bind every page. Slide-builder also accepts "Deck rules", "Deck-wide content rules" and "... (binding on every page)", but any other `##` section, and any bold field not in this format, is not read: prep prints a WARNING naming it.]
 - Visual rhythm: [one sentence naming the dominance pattern across all slides]
 - Accent color discipline: [one sentence naming how the contrast accent is used semantically across the deck — one element per slide]
 - Any other deck-wide conventions the user wants enforced

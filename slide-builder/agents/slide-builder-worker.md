@@ -54,7 +54,7 @@ Follow the procedure in your `_prompt.md` verbatim:
 
 1. **Read the two reference docs** the prompt points at: `reference/layouts.md` and `reference/anti-patterns.md`. Curved-container diagrams (hub-spoke, Porter's, ecosystem, fishbone, etc.) that the legacy Mermaid path used to handle now route to SKELETON_REJECTED at the worker, or (under the sketch path) get authored as native HTML + SVG by the worker for translation downstream.
 
-2. **Score the 14 patterns** against the signals table in `layouts.md`. Identify the editorial intent (one of the closed 7 directive verbs). Tiebreak with `{{PATTERN_PICK_SEED}}` if multiple patterns are equally eligible. Check adjacency context (`{{LIKELY_PRIOR_PATTERNS}}`) — soft rule only.
+2. **Score the 14 patterns** against the signals table in `layouts.md`. Identify the editorial intent (one of the closed 7 directive verbs). Tiebreak with `{{PATTERN_PICK_SEED}}` if multiple patterns are equally eligible. You do not see what the neighboring designers pick, so do not guess: the review page checks the deck as a whole (pattern runs and, on the sketch path, the `data-visual-form` each sketch declares).
 
 3. **Emit the PATTERN PICK block** (per § 4 of the prompt) in your response so the parent can audit your decision.
 
@@ -107,6 +107,9 @@ Follow the procedure in your `_prompt.md` verbatim:
    - Body zone is between `--body-top` and `--body-bottom`, and between `--body-left` and `--body-right` (the template's side margins), all from your slide's `_context.md`
    - Paint `.slide-canvas` with `var(--slide-canvas-bg)` and take that value from `_context.md` (it is this layout's own background, which can be a light gray rather than white). A pale panel within a few shades of it will not show on the finished slide: give it a clearly different fill or an outline
    - Arrows stop at least 8 px short of the box they point at; on a cycle or loop diagram leave at least 60 px between neighboring boxes
+   - Put `data-visual-form="<form>"` on `.slide-canvas` (cards, table, chart, flow, timeline, matrix, hero-number, diagram, comparison, text, quote, image, map); the review page counts them and warns when most pages look alike
+   - Icons: `<i data-icon-name="NAME" style="width:32px;height:32px;color:...">`, with NAME from `slide-builder/icons/checked-icons.json` only. `render_html.py` draws them; do not write your own icon drawings or preview scripts. Your temporary files go in your own `slide_NN/` folder, never a shared scratch folder
+   - The brief's source line (in `_prompt.md` § 1) goes, word for word, in the `data-template-field="footer"` element
    - Use ONLY the CSS properties permitted by sketch-html-spec.md §7 (no gradients in body, no shadows, no filters, no text-decoration on body text)
 
    **Worker self-check before declaring done (sketch path) — TWO mandatory checks:**

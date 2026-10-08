@@ -2,6 +2,60 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## 2026-10-08: session-report fixes, batch 3
+
+### Brief, icons and variety
+
+- **Deck-wide rules reach every designer, under any common heading.** Prep
+  read only "## Deck-level design notes", so a brief whose rules sat under
+  "## Section content rules (binding on every page)" sent every designer
+  "(no deck-level design notes)". `build_deck.py` now also reads "Deck rules",
+  "Deck-wide content rules", "Design rules", any heading with "design notes"
+  or "(binding on every page)", and joins every such section. **Any other
+  `##` section and any bold slide field prep does not read is now a
+  `WARNING (brief):` line** in prep's output (repeated in its summary),
+  naming it, instead of being dropped silently. Test:
+  `tests/run_brief_fields_smoke.py`.
+- **Per-page Source line and Section tag reach the designer.** New brief
+  fields `**Source:**` and `**Section tag:**` (documented in
+  storyline-helper's brief format) go into `_prompt.md` § 1 (next to the
+  footer rule: the source goes word for word in the footer / Source slot),
+  `_context.md`, and `_meta.json` (`source`, `section_tag`) so the finishing
+  step can fill the template's Source slot. The tag is text only for now (a
+  fixed-style drawn slot is planned). The review card flags a sketch whose
+  brief gives a source but which has no footer element
+  (`SOURCE_LINE_MISSING`). Same test.
+- **Library icons end to end.** `scripts/icon_svg.py --build` converts every
+  icon's DrawingML into a small SVG once (`icons/svg/`, 1,138 files, about
+  2 MB; two icons have no drawable picture). `render_html.py` draws
+  `<i data-icon-name>` and `<img src="icons/x.svg">` from them in the
+  element's color (or `data-icon-color`), so the review page no longer shows
+  blank gaps. `translate_html.py` turns each icon into an `icon` step and
+  `twins/html_emit.py` inserts the real vector icon (`icon_helper.insert_icon`)
+  at the same box (aspect kept) and color; it used to drop `<i>` icons
+  without a word. An unknown name gets a labeled placeholder on the sketch and
+  the slide, an `ICON_UNKNOWN` warning on the render, the translation report
+  and the review card, never a silent gap. `insert_icon` now gives inserted
+  shapes fresh ids (the library XML carried its source deck's ids) and names
+  the group `icon-<name>`. Test: `tests/run_icons_smoke.py`.
+- **A checked icon list.** About half of the library's names do not match
+  their pictures. `icons/checked-icons.json` lists 48 names whose pictures
+  were rendered and checked by eye, each with what it `shows`; designers use
+  only those (an unchecked library name still draws, with an advisory). The
+  worker prompt's "icon built from shapes, no image files" rule now points at
+  the library; `icons/README.md` and the design guide no longer describe
+  `compass` as a lighthouse or use the nonexistent `check-circle`.
+- **Sameness warning on the review page.** Each sketch declares its visual
+  form (`data-visual-form` on `.slide-canvas`: cards, table, chart, flow,
+  ...). REVIEW.html shows the form count across the deck and a "Many pages
+  look alike" warning when one form is on at least half the pages or on three
+  neighbors in a row; untagged sketches are listed as unknown. The old check
+  read only `option_X.py` headers, so it never ran on sketch decks. The stale
+  "you see the patterns picked for the previous two slides" text is gone from
+  the worker prompt and agent. Test: `tests/run_visual_form_smoke.py`.
+- **`translate_html.py --emit <dir>` creates the folder** instead of crashing
+  on a manual run. Covered in `tests/run_icons_smoke.py`.
+
 ## 2026-10-06: session-report fixes, batch 2
 
 ### Approvals and picks

@@ -254,6 +254,16 @@ def insert_icon(
         _insert_placeholder(target_slide, left_emu, top_emu, width_emu, height_emu, icon_name)
         return False
 
+    # Fresh shape ids: the library XML carries the ids of the deck it came
+    # from, and two shapes with one id on a slide is what makes PowerPoint
+    # refuse a file. The outer shape is named after the icon, for tracing.
+    used = [int(v) for v in sp_tree.xpath(".//p:cNvPr/@id") if str(v).isdigit()]
+    next_id = max(used + [1]) + 1
+    for k, c_nv in enumerate(elem.iter(f"{{{_NS_P}}}cNvPr")):
+        c_nv.set("id", str(next_id))
+        next_id += 1
+        if k == 0:
+            c_nv.set("name", f"icon-{icon_name}")
     sp_tree.append(elem)
     return True
 

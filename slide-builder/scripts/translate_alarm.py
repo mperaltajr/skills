@@ -519,6 +519,10 @@ def compare(ops: list[dict], design: np.ndarray, native: np.ndarray,
             texts.append((i, (int(x - 2), int(y - 2), int(x + w + 3), int(y + h + 3))))
     rows = []
     for i, o in enumerate(ops):
+        if o.get("placeholder"):
+            # A missing-icon marker is meant to look like a marker, not like
+            # the sketch's; it is already a warning on its own.
+            continue
         r = region(o)
         if r is None:
             continue

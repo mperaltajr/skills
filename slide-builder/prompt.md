@@ -18,6 +18,8 @@ Placeholders rendered by `build_deck.py`:
 | `{{NOT_THIS_SLIDE}}` | "What this slide is NOT" block (may be empty) |
 | `{{VISUAL_RHYTHM}}` | Optional steering: the dominance pattern the brief wants (e.g. `conclusion-dominant`, `contrast-dominant`). Honor it when set; else use your judgment. |
 | `{{PINNED_SOURCE_PAGE}}` | A page the user supplied to be reproduced on this slide, or `(none)`. When set, option A must reproduce it. |
+| `{{SOURCE_LINE}}` | The brief's `**Source:**` line for this page, or `(none in the brief)`. It goes in the footer / Source slot. |
+| `{{SECTION_TAG}}` | The brief's `**Section tag:**` for this page, or `(none)`. Text only for now: the finishing step will draw it in a fixed style later; designers do not draw it. |
 | `{{MANDATORY_SHAPE}}` | Optional steering: a layout shape the brief requires (e.g. `two-column`, `three-column`). When set, the picked pattern MUST satisfy it. |
 | `{{FORBIDDEN_PATTERNS}}` | Optional steering: pattern stems the brief excludes. Do NOT pick any pattern named here. |
 | `{{ACCENT_PLACEMENT}}` | Optional steering: where the accent color should land on this slide. Honor it when set. |
@@ -47,7 +49,7 @@ You are building **slide {{SLIDE_N}} of {{SLIDE_TOTAL}}** of a deck using `slide
 
 The full output contract for each path is in §6 below. Read it before writing anything.
 
-You are one of {{SLIDE_TOTAL}} parallel agents dispatched from the same parent session. The other agents are building the other slides at the same time. You see only your slide's brief content. You do not see the other slides' content directly, but you do see the patterns picked for the previous two slides — those constrain you via the adjacency rule (Hardline #3).
+You are one of {{SLIDE_TOTAL}} parallel agents dispatched from the same parent session. The other agents are building the other slides at the same time. You see only your slide's brief content (and, in `_context.md`, the deck's main message, audience and every slide's title). You do not see what the other designers pick; the review page checks the deck as a whole (see § 4 step 3).
 
 ---
 
@@ -74,6 +76,12 @@ You are one of {{SLIDE_TOTAL}} parallel agents dispatched from the same parent s
 
 **Chart data:**
 {{CHART_DATA}}
+
+**Source line:** {{SOURCE_LINE}}
+Put this text, word for word, in the footer / Source slot (see § 8). When it says `(none in the brief)`, use the deck-level notes' source line if they set one; otherwise leave the source out. Never invent one.
+
+**Section tag:** {{SECTION_TAG}}
+For your information only: Slide Lab will draw the tag in one fixed style later. Do not draw it, and do not invent any other label.
 
 ### Per-slide steering (honor when set; otherwise use your own judgment)
 
@@ -205,7 +213,7 @@ Produce **{{OPTIONS_COUNT}} option(s)** ({{OPTION_LETTERS}}) for the SAME picked
 
 **Make the structure visible (default, every option).** When the slide's content is a sequence or a set of parallel items (steps, phases, stages, levers, pillars, options, sources, criteria, workstreams), show that structure, don't just list it:
 - **Number only real sequences:** steps, phases, stages, dated plans, or items the deck refers to by number. A set with no order (levers, pillars, options, criteria, sources) gets a marker but no numbers, because a number implies an order that isn't there.
-- **Give each item a simple marker** drawn with native shapes: a circle, chevron, small rounded square or a simple icon built from shapes. No emoji, no clip art, no image files.
+- **Give each item a simple marker:** a library icon from the checked list, or a circle, chevron or small rounded square drawn with shapes when no checked icon fits. Library icons: on the sketch path `<i data-icon-name="NAME" style="width:32px;height:32px;color:...">`, on the direct path `add_icon_from_library(...)`. Use **only names from `slide-builder/icons/checked-icons.json`** (its `shows` field says what each picture is): about half of the library's other names do not match their pictures, so an unchecked name is flagged on the review page and an unknown name becomes a labeled placeholder. Do not write your own icon drawings or preview tools; the renderer already draws library icons. No emoji, no clip art, no other image files.
 - **When the items happen in order**, connect them with arrows, chevrons or a line, so the sequence reads at a glance.
 - **Arrows stop short of the boxes.** Work out each arrow's start and end from the box EDGES (not the box centers) and leave at least 8 px between an arrowhead and the box it points at; an arrowhead touching or inside a box is flagged (`MAJOR_ARROW_END_AT_BOX` on the review page). On a **cycle or loop** diagram, also leave at least 60 px between neighboring boxes so each arrow has room to show, and keep the boxes off the arrow's path. On 2026-10-06 a loop's arrowheads ran into the boxes in the sketch, and the finished slide copied it.
 - **Skip it only when it would be false or noise:** a single claim, a quote, a chart that already carries the structure, or items with no order or grouping.
@@ -295,7 +303,7 @@ Each `option_X.py` is a **standalone runnable Python script** that:
 2. Does **NOT** open the client template directly. Build slide content fresh on a 1280×720 canvas using `new_slide()` from `twins.helpers` — this returns `(prs, slide)` with no template. `finalize_deck.py` handles the graft of your slide onto `{{CLIENT_TEMPLATE_PATH}}` after your script saves. The client template path is provided in § 11 as context only; your script does not need to load it.
 3. Builds the slide using `twins.helpers` for chrome (title block at the top, footer at y≈672) and raw python-pptx primitives for body geometry.
 
-   **Footer/source content — explicit choice required.** When you call `add_footer(slide, page_num, source=..., footnote=...)`, every slide's `footnote` and `source` arguments must be either **real text from the brief** or **explicit `None`**. `None` draws nothing (since 2026-06-15). **Never write the presenter prompts `[add footnote here or delete]` / `[add source here or delete]` yourself**, on either path: on the sketch path, a slide whose brief gives no source or footnote simply has no source or footnote element. If the brief's deck-level notes set one source line for every slide (for example "Illustrative data, not real"), use it. Do not invent source text just to make the footer look complete — that violates Hardline #2.
+   **Footer/source content — explicit choice required.** When you call `add_footer(slide, page_num, source=..., footnote=...)`, every slide's `footnote` and `source` arguments must be either **real text from the brief** or **explicit `None`**. This page's source line is in § 1 (**Source line:**); pass it as `source=` word for word. `None` draws nothing (since 2026-06-15). **Never write the presenter prompts `[add footnote here or delete]` / `[add source here or delete]` yourself**, on either path: on the sketch path, a slide whose brief gives no source or footnote simply has no source or footnote element. If the brief's deck-level notes set one source line for every slide (for example "Illustrative data, not real"), use it. Do not invent source text just to make the footer look complete — that violates Hardline #2.
 4. **Saves the slide as the exact filename `option_<A|B|C>.pptx`** in the same directory as the script. `finalize_deck.py` looks for this exact filename next to the `.py` (`option_A.pptx`, `option_B.pptx`, or `option_C.pptx`). The script is invoked with **NO command-line arguments** — do **NOT** use `sys.argv[1]`. Standard pattern:
 
    ```python
@@ -343,7 +351,9 @@ finalize_deck.py reads line 1. Token prefix decides routing:
 - `# SKELETON_REJECTED:` → rejection surfaces in REVIEW.html for user resolution (brief/pattern disagreement OR unsupported curved-container under the direct path).
 <!-- /only -->
 <!-- only:sketch -->
-**Source and footnote (sketch path).** Put the brief's source line in the element with `data-template-field="footer"`. If the brief's deck-level notes set one source line for every slide (for example "Illustrative data, not real"), use it. If the brief gives no source, leave the footer element out. **Never write `[add source here or delete]` or `[add footnote here or delete]`.** If the brief and the pattern fundamentally disagree (Hardline #5), write no HTML for that option; write `option_X.py` whose line 1 is `# SKELETON_REJECTED: <reason>` and whose body is `import sys; sys.exit(0)`, and stop.
+**Visual form (sketch path, every option).** Put `data-visual-form="FORM"` on the `.slide-canvas` element, naming the page's main visual form: one of `cards`, `table`, `chart`, `flow`, `timeline`, `matrix`, `hero-number`, `diagram`, `comparison`, `text`, `quote`, `image`, `map`. The review page counts them across the deck and warns when most pages share one form or three neighbors repeat; a sketch without it shows as "unknown". Say the form you actually drew, not the one you wish it were.
+
+**Source and footnote (sketch path).** Put the brief's source line (§ 1, **Source line:** `{{SOURCE_LINE}}`) in the element with `data-template-field="footer"`, word for word. If the brief's deck-level notes set one source line for every slide (for example "Illustrative data, not real"), use it. If the brief gives no source, leave the footer element out. **Never write `[add source here or delete]` or `[add footnote here or delete]`.** If the brief and the pattern fundamentally disagree (Hardline #5), write no HTML for that option; write `option_X.py` whose line 1 is `# SKELETON_REJECTED: <reason>` and whose body is `import sys; sys.exit(0)`, and stop.
 <!-- /only -->
 
 ---

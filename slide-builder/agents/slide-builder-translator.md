@@ -252,7 +252,7 @@ The following CSS features are FORBIDDEN in body-zone elements. If you encounter
 
 Before emitting `option_A_native.py`, scan your own generated code:
 
-1. **No `add_picture()` calls with text content.** Icons from `slide-builder/icons/` library are allowed (they don't contain rendered text). Pictures with embedded text glyphs are an editability violation.
+1. **No `add_picture()` calls with text content.** Icons from `slide-builder/icons/` library are allowed (they don't contain rendered text). `translate_html.py` already inserts every `data-icon-name` icon as the real vector icon (an `icon` step in the plan, shape named `icon-<name>`); do not draw them again. An unknown name is a labeled placeholder plus an `ICON_UNKNOWN` warning: report it, do not invent a picture. Pictures with embedded text glyphs are an editability violation.
 2. **No shapes with `text_frame.text` at zero width or zero height.** Editable text positioned where it can't be edited is a violation.
 3. **No chrome-zone elements as freeform shapes.** Any shape positioned in the title/subtitle/footer y-range that's NOT routed through `data-template-field` is a violation.
 4. **No shapes outside the canvas.** `shape.left + shape.width <= Emu(px_to_emu(1280))` and `shape.top + shape.height <= Emu(px_to_emu(720))`.

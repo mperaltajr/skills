@@ -37,31 +37,33 @@ The function:
 1. Reads `icons/<name>.xml`
 2. Replaces all `solidFill/srgbClr` values with the supplied accent hex (theme-aware `schemeClr` fills are deliberately preserved)
 3. Repositions to the supplied bounding box
-4. Injects into the target slide's `spTree`
+4. Gives every shape a fresh id (the library XML carries the ids of its source deck; two shapes with one id make PowerPoint refuse a file) and names the outer shape `icon-<name>`
+5. Injects into the target slide's `spTree`
 
 ---
 
-## Standard 15-icon vocabulary
+## The checked list: the names designers use
 
-The pre-extracted set covers the most common consulting concepts. Pattern prompts should pick from these names by default; anything outside the list falls through to a placeholder.
+**About half of the library's names do not match their pictures** (the names were assigned by position in the source deck, and many are shifted onto a neighbor: `certified-75` is a clipboard, `bank-12` a gavel, `partner-17` a yen sign). So designers pick only from **`checked-icons.json`**: names whose picture was checked by eye (2026-10-08) to match the name, each with what the picture `shows` and what it suits (`use_for`). The full library stays on disk so older scripts keep working; a name outside the list still draws, with an advisory on the review card that its picture may not match. Do not rename files: old briefs and scripts use the current names.
 
-| `data-icon` | Concept | Visual |
-|-------------|---------|--------|
-| `gear` | Process / operations | Single cog wheel |
-| `wrench` | Work in progress / tools | Standalone wrench |
-| `people` | People / team / workforce | 3-tier org-chart hierarchy |
-| `chart-bar` | Data / analytics | 3-bar vertical chart |
-| `compass` | Strategy / direction | Lighthouse with light beams |
-| `calendar` | Timeline / schedule | Calendar grid |
-| `coins` | Cost / budget | Stacked coin cylinders |
-| `shield-warning` | Risk / escalation | Vault with combination dial |
-| `diamond` | Decision / approval | Hands holding diamond |
-| `lightbulb` | Insight / finding | Head silhouette with lightbulb |
-| `globe` | External / market | Globe with continent outlines |
-| `clipboard-check` | Compliance / audit | Clipboard with checkmark |
-| `chip` | Technology / systems | Head silhouette with binary overlay |
-| `speech` | Communication | Podium / lectern |
-| `package` | Delivery / output | 3D cube outline |
+Three of the original 15 standard names are NOT on the checked list because their pictures do not match: `shield-warning` (a vault with a combination dial), `chip` (a head silhouette with binary digits), `speech` (a podium). `compass` is a compass rose in a circle (an older version of this page wrongly called it a lighthouse).
+
+See every checked icon at once: `py -3 scripts/icon_svg.py --sheet sheet.html --names checked` and open the sheet (a check mark marks checked names). Adding a name to the list: render it, look at it, and add it only if the picture is what the name says.
+
+## Previews for the sketch path (`svg/`)
+
+`icons/svg/<name>.svg` holds one small SVG per icon (about 2 MB in all), converted once from the icon's own DrawingML by `py -3 scripts/icon_svg.py --build` (re-run it after adding an icon). The conversion reads the same geometry `insert_icon` puts on a slide, and every shape is filled with `currentColor`, so the sketch shows the slide's picture in the designer's color. `render_html.py` and `translate_html.py` both use them; the finished slide gets the real vector icon, not the SVG. Two library icons have no preview (one is a picture, not shapes); asking for them gives a labeled placeholder.
+
+## Sketch path: how an icon gets from HTML to the slide
+
+```html
+<i data-icon-name="clipboard-check" style="width:32px;height:32px;color:#1F3A93"></i>
+```
+
+1. `render_html.py` draws it from `svg/clipboard-check.svg` in the element's color (or `data-icon-color`).
+2. `translate_html.py` records an `icon` step: name, box (the picture fitted into the element's box, keeping its shape) and color.
+3. `twins/html_emit.py` calls `insert_icon()` at that box and color. The group is named `icon-<name>` and gets fresh shape ids.
+4. An unknown name: a labeled dashed box on the sketch, `insert_icon`'s labeled placeholder on the slide, and an `ICON_UNKNOWN` warning on the render, the translation report and the review card.
 
 See `icon-index.json` for per-icon source-slide provenance and grid coordinates (kept for reference; not used at build time).
 

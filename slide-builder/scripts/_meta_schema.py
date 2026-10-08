@@ -92,6 +92,11 @@ class SlideMeta(BaseModel):
     # brief's **Pinned source page:** line). Option A reproduces it, and
     # compile refuses until its figures are reconciled (source_ledger.py).
     pinned_source_page: Optional[str] = None
+    # The brief's **Source:** line for this page (for the template's Source
+    # slot / footer when the design leaves it out) and its **Section tag:**
+    # (text only for now; no drawn slot yet).
+    source: Optional[str] = None
+    section_tag: Optional[str] = None
 
 
 class DeckMeta(BaseModel):

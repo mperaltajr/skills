@@ -72,7 +72,7 @@ EXTRACT_JS = r"""
     return out;
   };
   const transparent = (c) => !c || c === 'transparent' || /rgba\([^)]*,\s*0\)$/.test(c);
-  const out = {boxes: [], texts: [], svgs: [], fallbacks: [], fields: {}, notes: [],
+  const out = {boxes: [], texts: [], svgs: [], icons: [], fallbacks: [], fields: {}, notes: [],
     canvas: {w: cr.width, h: cr.height}};
   let order = 0;
 
@@ -126,6 +126,14 @@ EXTRACT_JS = r"""
     if (!visible(cs)) { if (cs.display === 'none') markSubtree(el); continue; }
     const r = el.getBoundingClientRect();
     const sid = el.getAttribute('data-shape-id') || el.getAttribute('data-template-field') || '';
+
+    // A library icon (drawn into the page by icon_svg.draw_icons): one icon
+    // step, inserted as the real vector icon. It used to vanish silently.
+    if (el.hasAttribute('data-icon-name')) {
+      out.icons.push({name: (el.getAttribute('data-icon-name') || '').trim(), ...R(r), color: cs.color,
+        drawn: el.getAttribute('data-icon-drawn') || '', id: sid, order: order++});
+      markSubtree(el); continue;
+    }
 
     if (isRotated(cs)) {
       out.fallbacks.push({kind: 'rotated', reason: 'rotated or skewed element', id: sid, ...R(r), order: order++});
@@ -1134,6 +1142,31 @@ def _plan_text(plan: Plan, t: dict, order_key, name=None) -> None:
 
 # --- svg -------------------------------------------------------------------
 
+def _plan_icon(plan: Plan, ic: dict) -> None:
+    """One library icon: inserted at the same spot and color as the sketch
+    drew it (the picture fitted into its box, keeping its shape, as the
+    browser did). An unknown name keeps its step: icon_helper draws a labeled
+    placeholder there, and the warning comes from icon_svg.draw_icons."""
+    import icon_svg
+    name = ic.get("name") or ""
+    x, y, w, h = ic["x"], ic["y"], ic["w"], ic["h"]
+    if w < 1 or h < 1:
+        plan.warn("ICON_NO_SIZE", f'icon "{name}" has no size on the page; not inserted')
+        return
+    svg = icon_svg.svg_for(name) if ic.get("drawn") == "icon" else None
+    m = re.search(r'viewBox="0 0 (\d+) (\d+)"', svg or "")
+    if m:
+        vw, vh = int(m.group(1)), int(m.group(2))
+        k = min(w / vw, h / vh)
+        fw, fh = vw * k, vh * k
+        x, y, w, h = x + (w - fw) / 2, y + (h - fh) / 2, fw, fh
+    col = parse_color(ic.get("color"))
+    plan.ops.append({"op": "icon", "name": name, "x": x, "y": y, "w": w, "h": h,
+                     "color": col[0] if col else "000000",
+                     "placeholder": not bool(m), "_order": ic["order"]})
+    plan.counts["icons"] = plan.counts.get("icons", 0) + 1
+
+
 def _plan_svg(plan: Plan, s: dict) -> None:
     if s["unsupported"]:
         plan.fallbacks.append({"kind": "svg", "id": s.get("id") or "", "x": s["x"], "y": s["y"],
@@ -1225,6 +1258,10 @@ def extract(page, html: Path, subtitle_as_shape: bool) -> dict:
     except Exception:
         pass
     page.wait_for_timeout(100)
+    # Library icons are drawn exactly as render_html drew them for the review,
+    # so the boxes and the self-check's reference image include them.
+    import icon_svg
+    icon_warnings = icon_svg.draw_icons(page)
     # PowerPoint gets bold on/off only (see _face): draw every weight from 600
     # up at 700, so the boxes, wraps and the self-check's reference image are
     # those of the face that ships, not of a heavier face the deck cannot keep.
@@ -1242,6 +1279,7 @@ def extract(page, html: Path, subtitle_as_shape: bool) -> dict:
         el.style.visibility = el.dataset.alarmHidden; delete el.dataset.alarmHidden; } }""")
     data = page.evaluate(EXTRACT_JS, {"subtitleAsShape": subtitle_as_shape})
     data["_shot"] = shot
+    data["icon_warnings"] = icon_warnings
     return data
 
 
@@ -1266,6 +1304,9 @@ def plan_from_extract(data: dict, subtitle_as_shape: bool,
     items = [(b["order"], "box", b) for b in data["boxes"]]
     items += [(t["order"], "text", t) for t in data["texts"]]
     items += [(s["order"], "svg", s) for s in data["svgs"]]
+    items += [(ic["order"], "icon", ic) for ic in data.get("icons") or []]
+    for w in data.get("icon_warnings") or []:
+        plan.warn(w["code"], w["detail"])
     for f in data["fallbacks"]:
         plan.fallbacks.append({k: f.get(k) for k in ("kind", "id", "x", "y", "w", "h", "reason")})
     for _, kind, it in sorted(items, key=lambda z: z[0]):
@@ -1274,6 +1315,8 @@ def plan_from_extract(data: dict, subtitle_as_shape: bool,
         elif kind == "text":
             name = "subtitle" if it.get("tf") == "subtitle" and subtitle_as_shape else None
             _plan_text(plan, it, it["order"], name=name)
+        elif kind == "icon":
+            _plan_icon(plan, it)
         else:
             _plan_svg(plan, it)
     _apply_clearance(plan)
@@ -1632,6 +1675,7 @@ def main(argv=None) -> int:
     args = ap.parse_args(argv)
     if args.html:
         emit = args.emit or args.html.parent
+        emit.mkdir(parents=True, exist_ok=True)   # a manual run used to crash here
         letter = re.match(r"option_([A-Z])", args.html.name)
         jobs = [(args.html, emit, letter.group(1) if letter else "A", True)]
     elif args.out and args.slide and args.letter:

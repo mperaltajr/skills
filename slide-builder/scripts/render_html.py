@@ -54,6 +54,20 @@ def _copy_into_place(src: Path, dst: Path, tries: int = 6) -> None:
             time.sleep(0.5 * (i + 1))
 
 
+def draw_icons_safe(page) -> list[dict]:
+    """Draw the page's library icons (scripts/icon_svg.py). A failure here
+    must not stop the render; it is reported as a warning instead."""
+    try:
+        here = str(Path(__file__).resolve().parent)
+        if here not in sys.path:
+            sys.path.insert(0, here)
+        import icon_svg
+        return icon_svg.draw_icons(page)
+    except Exception as exc:  # pragma: no cover
+        return [{"code": "ICON_DRAW_FAILED", "name": "",
+                 "detail": f"could not draw the library icons ({type(exc).__name__}: {exc})"}]
+
+
 def render_html_to_png(
     html_path: Path,
     png_path: Path,
@@ -107,6 +121,12 @@ def render_html_to_png(
                 # file:// URL with the absolute path. Playwright handles
                 # the local-file load directly; no need for a server.
                 page.goto(html_path.resolve().as_uri(), wait_until="networkidle")
+                # Library icons (`<i data-icon-name>`, or `<img src=".../icons/x.svg">`)
+                # are drawn from the shipped SVG previews in the designer's color.
+                # They used to render as blank gaps. An unknown name gets a
+                # labeled placeholder and a warning here, never a silent gap.
+                for w in draw_icons_safe(page):
+                    sys.stderr.write(f"WARNING {w['code']}: {w['detail']}\n")
                 # `clip` forces the screenshot to exactly the locked canvas
                 # box regardless of HTML overflow. `full_page=False` is the
                 # default but make it explicit so a future refactor can't

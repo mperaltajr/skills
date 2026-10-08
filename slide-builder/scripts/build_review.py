@@ -301,6 +301,138 @@ def parse_prompt(prompt_path: Path) -> dict:
 OPTIONS = _p._ALL_OPTION_LETTERS
 
 
+# ---------------------------------------------------------------------------
+# Sketch facts: visual form, icons, source line
+# ---------------------------------------------------------------------------
+
+# The visual forms a sketch declares with data-visual-form on its canvas
+# (reference/sketch-html-spec.md). Other values are kept as written.
+VISUAL_FORMS = ("cards", "table", "chart", "flow", "timeline", "matrix", "hero-number",
+                "diagram", "comparison", "text", "quote", "image", "map")
+_FORM_RE = re.compile(r"""data-visual-form\s*=\s*["']([^"']+)["']""", re.I)
+_FORM_META_RE = re.compile(r"""<meta\s+name\s*=\s*["']visual-form["']\s+content\s*=\s*["']([^"']+)["']""", re.I)
+_ICON_RE = re.compile(r"""data-icon-name\s*=\s*["']([^"']*)["']|"""
+                      r"""<img[^>]+src\s*=\s*["'][^"']*?icons/([A-Za-z0-9_.\-]+?)\.(?:svg|png|xml)["']""", re.I)
+_FOOTER_RE = re.compile(r"""data-template-field\s*=\s*["']footer["']""", re.I)
+
+
+def sketch_facts(html_path: Path, slide_meta: Optional[dict]) -> tuple[Optional[str], list]:
+    """(visual form the sketch declares or None, notes for its card).
+
+    Notes are {severity, code, detail}: an icon name not in the library
+    (Major: a placeholder will ship in its place), one in the library but not
+    on the checked list (Advisory: its picture may not match its name), and a
+    brief source line the sketch left out of its footer (Major)."""
+    try:
+        text = html_path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None, []
+    m = _FORM_RE.search(text) or _FORM_META_RE.search(text)
+    form = " ".join(m.group(1).strip().lower().split()) if m else None
+    notes = []
+    try:
+        import icon_svg
+        names = sorted({(a or b).strip() for a, b in _ICON_RE.findall(text)})
+        for name in names:
+            w = icon_svg.warning_for(name)
+            if w:
+                sev = "Advisory" if w["code"] == "ICON_NOT_CHECKED" else "Major"
+                notes.append({"severity": sev, "code": w["code"], "detail": w["detail"]})
+    except Exception:
+        pass
+    src = ((slide_meta or {}).get("source") or "").strip()
+    if src and not _FOOTER_RE.search(text):
+        notes.append({"severity": "Major", "code": "SOURCE_LINE_MISSING",
+                      "detail": f'the brief gives this page a source line ("{src}") but the '
+                                'design has no footer element for it; the page would ship with '
+                                'no source'})
+    return form, notes
+
+
+def compute_form_warnings(slides: list) -> Optional[dict]:
+    """Deck-level sameness check on the visual forms the sketches declare.
+
+    A page's form is the one most of its options share (option A's on a tie).
+    Warns when one form is on at least half of the pages (4 or more pages
+    with a known form) or on 3 or more pages in a row. Pages whose sketches
+    declare no form are listed as unknown, not skipped. None when the deck
+    has no sketches. The check that read the pattern from option_X.py
+    headers never ran on sketch decks, and split names cannot see "cards on
+    every page" anyway (2026-10-08)."""
+    from collections import Counter
+    pages = []
+    for s in slides:
+        sk = [o for o in s.get("options", []) if o.get("is_sketch")]
+        if not sk:
+            continue
+        forms = [o.get("visual_form") for o in sk if o.get("visual_form")]
+        if forms:
+            c = Counter(forms)
+            top = max(c.values())
+            form = next(f for f in forms if c[f] == top)
+        else:
+            form = None
+        pages.append((s["n"], form))
+    if not pages:
+        return None
+    known = [(n, f) for n, f in pages if f]
+    counts = Counter(f for _, f in known)
+    unknown = [n for n, f in pages if not f]
+    warnings = []
+    if len(known) >= 4 and counts:
+        form, k = counts.most_common(1)[0]
+        if k * 2 >= len(pages):
+            warnings.append(f"{k} of {len(pages)} pages use the same visual form "
+                            f"({form}). Ask for a different form on some of them "
+                            f"(Replace these, with a note), or confirm it is intended.")
+    i = 0
+    while i < len(pages):
+        j = i
+        while j + 1 < len(pages) and pages[i][1] and pages[j + 1][1] == pages[i][1]:
+            j += 1
+        if pages[i][1] and j - i + 1 >= 3:
+            warnings.append(f"slides {', '.join(str(pages[k][0]) for k in range(i, j + 1))} "
+                            f"in a row are all {pages[i][1]}.")
+        i = j + 1
+    return {"pages": pages, "counts": dict(counts), "unknown": unknown, "warnings": warnings}
+
+
+def render_form_banner(slides: list) -> str:
+    """The deck at a glance: how many pages use each visual form, and a
+    warning when one form dominates or repeats on neighbors."""
+    res = compute_form_warnings(slides)
+    if not res:
+        return ""
+    mix = ", ".join(f"{f} {k}" for f, k in sorted(res["counts"].items(), key=lambda kv: -kv[1]))
+    parts = [f"Visual forms across {len(res['pages'])} sketched pages: {html.escape(mix) or 'none declared'}"]
+    if res["unknown"]:
+        parts.append("form unknown (the sketch does not say) on slide "
+                     + ", ".join(str(n) for n in res["unknown"]))
+    body = ". ".join(parts) + "."
+    if res["warnings"]:
+        items = "".join(f"<li>{html.escape(w)}</li>" for w in res["warnings"])
+        return ('<div class="font-banner" id="form-banner">'
+                '<div class="font-banner-title"><span class="font-banner-icon">&#9888;</span> '
+                'Many pages look alike</div>'
+                f'<div class="font-banner-body">{body}<ul>{items}</ul></div></div>')
+    return ('<div class="qc-brief-banner" id="form-banner">'
+            '<div class="qc-brief-banner-title">Visual forms</div>'
+            f'<div>{body}</div></div>')
+
+
+def render_sketch_notes(slide: dict) -> str:
+    rows = []
+    for o in slide.get("options", []):
+        for nt in o.get("sketch_notes") or []:
+            rows.append(f'<li><strong>Option {o["letter"]}, {html.escape(nt["severity"])}</strong>'
+                        f' ({html.escape(nt["code"])}): {html.escape(nt["detail"])}</li>')
+    if not rows:
+        return ""
+    return ('<div class="adjacency-banner sketch-notes">'
+            '<div class="adjacency-banner-title">&#9888; Check before picking</div>'
+            f'<ul>{"".join(rows)}</ul></div>')
+
+
 def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dict:
     slide_id = _p.slide_key(slide_num)
     src_dir = out_dir / slide_id
@@ -419,8 +551,15 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
                 # Malformed report is non-blocking; just don't surface it.
                 pass
 
+        sketch_html = src_dir / f"option_{letter}.html"
+        visual_form, sketch_notes = (sketch_facts(sketch_html, slide_meta)
+                                     if sketch_html.exists() else (None, []))
+
         options.append({
             "letter": letter,
+            "is_sketch": sketch_html.exists(),
+            "visual_form": visual_form,
+            "sketch_notes": sketch_notes,
             "png": png,
             "png_exists": png.exists(),
             "png_kind": png_kind,
@@ -994,6 +1133,7 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
   </div>
 
   {adjacency_banner}
+  {render_sketch_notes(slide)}
   {context_chip}
   {('<div class="redo-note" style="display:block;">&#128204; <strong>Option A reproduces the page you supplied</strong> (' + html.escape(slide["pinned"]) + '). Its figures are checked against the brief before anything compiles.</div>') if slide.get("pinned") else ""}
 
@@ -1804,6 +1944,7 @@ def build_html(out_dir: Path, meta: Optional[dict], slides: list, storyline: dic
         f"{storyline_html}"
         f"{font_html}"
         f"{preview_html}"
+        f"{render_form_banner(slides)}"
         f"{qc_html}"
         f"<div class=\"cards\">{cards_html}</div>"
         f"{footer_html}"
