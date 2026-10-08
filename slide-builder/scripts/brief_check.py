@@ -63,12 +63,24 @@ def _template_metrics(template: str | None, layout: str | None):
         brand = yaml.safe_load(_p.brand_yml(tpl).read_text(encoding="utf-8")) or {}
         lc = chrome.layouts.get(layout or "") or next(
             (l for l in chrome.layouts.values() if l.layout_class == "body-canonical"), None)
-        from _chrome_schema import bold_ttf_for, template_title_is_bold
-        regular = (getattr(lc, "title_font_ttf_path", None) or brand.get("title_font_ttf_path")
+        from _chrome_schema import (template_title_is_bold, title_measure_ttf,
+                                    pick_family_faces)
+        sidecar = Path(_p.template_sidecar_dir(tpl))
+
+        def _rel(v):
+            # brand.yml records bundled fonts by file name, relative to itself
+            if not v:
+                return None
+            q = Path(str(v))
+            return str(q if q.is_absolute() else sidecar / q)
+        regular = (getattr(lc, "title_font_ttf_path", None) or _rel(brand.get("title_font_ttf_path"))
+                   or pick_family_faces(brand.get("font_heading") or "").get("regular")
                    or _find_brand_ttf(brand.get("font_heading")))
-        build_copy = Path(_p.template_sidecar_dir(tpl)) / "build-template.pptx"
+        build_copy = sidecar / "build-template.pptx"
         bold = template_title_is_bold(build_copy if build_copy.exists() else tpl)
-        ttf = (bold_ttf_for(regular) if bold else None) or regular
+        ttf = title_measure_ttf(regular, _rel(brand.get("title_font_bold_ttf_path")),
+                                title_bold=bold,
+                                heading_face=brand.get("theme_heading_face") or "")
         title_w = (getattr(lc, "title_box_width_px", None) or 1190) - 19
         title_pt = getattr(lc, "title_font_pt", None) or 28
         sb = getattr(lc, "subtitle", None)
@@ -80,7 +92,9 @@ def _template_metrics(template: str | None, layout: str | None):
         else:
             sub_w = canonical_subtitle_box().w_px - 19
         sub_pt = getattr(sb, "font_pt", None) or CANONICAL_SUBTITLE_FONT_PT
-        body_ttf = _find_brand_ttf(brand.get("font_body")) or regular
+        body_ttf = (_rel(brand.get("body_font_ttf_path"))
+                    or pick_family_faces(brand.get("font_body") or "").get("regular")
+                    or _find_brand_ttf(brand.get("font_body")) or regular)
         return ttf, title_pt, title_w, sub_pt, sub_w, body_ttf
     except Exception:
         return None

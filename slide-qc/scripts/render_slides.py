@@ -113,6 +113,77 @@ def render_ppt_fallback(pptx: pathlib.Path, out_dir: pathlib.Path, width_px: int
     print(f"Rendered {n} slides to {out_dir} (PowerPoint, because LibreOffice is not installed)")
 
 
+def _run_soffice(cmd: list) -> subprocess.CompletedProcess:
+    """One LibreOffice call (a seam the render-retry test replaces)."""
+    return subprocess.run(cmd, capture_output=True, text=True, timeout=180)
+
+
+def _is_synced_path(p: pathlib.Path) -> bool:
+    """True for a file under a OneDrive (cloud-synced) folder: the sync client
+    can hold the file while LibreOffice opens it."""
+    return any("onedrive" in part.lower() for part in pathlib.Path(p).resolve().parts)
+
+
+def _pdf_pages(pdf: pathlib.Path) -> int:
+    try:
+        import pypdfium2 as pdfium
+        with _PDFIUM_LOCK:
+            doc = pdfium.PdfDocument(str(pdf))
+            try:
+                return len(doc)
+            finally:
+                doc.close()
+    except Exception:
+        return 0
+
+
+def _convert_to_pdf(pptx: pathlib.Path, td_p: pathlib.Path) -> pathlib.Path:
+    """PPTX -> PDF in td_p, retried once.
+
+    A render fails now and then (non-zero exit or no PDF), and a second try
+    usually works (2026-10-08 reports). Each try gets its own fresh LibreOffice
+    profile; a file under a OneDrive folder is rendered from a local copy (the
+    second try always uses one). Renders are NOT made to wait for each other:
+    many run in parallel fine. When both tries fail, the error carries the
+    full output of both, so the cause is not lost."""
+    attempts = []
+    for attempt in (1, 2):
+        run_dir = td_p / f"try{attempt}"
+        run_dir.mkdir(parents=True, exist_ok=True)
+        src = pptx
+        if attempt == 2 or _is_synced_path(pptx):
+            (run_dir / "in").mkdir(exist_ok=True)
+            src = run_dir / "in" / pptx.name
+            shutil.copyfile(pptx, src)
+        user_profile = run_dir / "lo_profile"
+        cmd = [
+            SOFFICE,
+            f"-env:UserInstallation=file:///{user_profile.as_posix()}",
+            "--headless", "--norestore", "--nologo", "--nodefault", "--nofirststartwizard",
+            "--convert-to", "pdf", "--outdir", str(run_dir), str(src),
+        ]
+        try:
+            result = _run_soffice(cmd)
+            rc, out, err = result.returncode, result.stdout or "", result.stderr or ""
+        except subprocess.TimeoutExpired as exc:
+            rc, out, err = "timeout", str(exc.stdout or ""), str(exc.stderr or "")
+        pdf_path = run_dir / (src.stem + ".pdf")
+        if pdf_path.exists() and (rc == 0 or _pdf_pages(pdf_path) > 0):
+            if attempt == 2:
+                print(f"  (LibreOffice render of {pptx.name} worked on the second try)",
+                      file=sys.stderr)
+            return pdf_path
+        attempts.append(
+            f"try {attempt}{' (from a local copy)' if src != pptx else ''}: "
+            f"exit code {rc}; PDF {'written' if pdf_path.exists() else 'not written'}\n"
+            f"  stdout: {out.strip() or '(empty)'}\n  stderr: {err.strip() or '(empty)'}")
+        if attempt == 1:
+            time.sleep(1.0)
+    raise RuntimeError(
+        f"LibreOffice could not render {pptx.name} (tried twice, each with a fresh "
+        f"profile, the second time from a local copy).\n" + "\n".join(attempts))
+
+
 def render_libre(pptx: pathlib.Path, out_dir: pathlib.Path, dpi: int):
     global SOFFICE
     if SOFFICE is None:
@@ -129,22 +200,9 @@ def render_libre(pptx: pathlib.Path, out_dir: pathlib.Path, dpi: int):
 
     with tempfile.TemporaryDirectory() as td:
         td_p = pathlib.Path(td)
-        # PPTX → PDF, isolated user profile so we don't fight a running LO
-        user_profile = td_p / "lo_profile"
-        cmd = [
-            SOFFICE,
-            f"-env:UserInstallation=file:///{user_profile.as_posix()}",
-            "--headless", "--norestore", "--nologo", "--nodefault", "--nofirststartwizard",
-            "--convert-to", "pdf", "--outdir", str(td_p), str(pptx),
-        ]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=180)
-        if result.returncode != 0:
-            raise RuntimeError(
-                f"soffice failed (rc={result.returncode})\n"
-                f"stdout={result.stdout!r}\nstderr={result.stderr!r}")
-        pdf_path = td_p / (pptx.stem + ".pdf")
-        if not pdf_path.exists():
-            raise RuntimeError(f"PDF not produced. td contents: {list(td_p.iterdir())}")
+        # PPTX → PDF, isolated user profile so we don't fight a running LO;
+        # retried once on failure (see _convert_to_pdf).
+        pdf_path = _convert_to_pdf(pathlib.Path(pptx), td_p)
 
         # PDF → PNG via pypdfium2 (pure-python, no system deps).
         # pypdfium2 is NOT thread-safe — serialize via _PDFIUM_LOCK so

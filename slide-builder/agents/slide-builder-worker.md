@@ -110,6 +110,7 @@ Follow the procedure in your `_prompt.md` verbatim:
    - Put `data-visual-form="<form>"` on `.slide-canvas` (cards, table, chart, flow, timeline, matrix, hero-number, diagram, comparison, text, quote, image, map); the review page counts them and warns when most pages look alike
    - Icons: `<i data-icon-name="NAME" style="width:32px;height:32px;color:...">`, with NAME from `slide-builder/icons/checked-icons.json` only. `render_html.py` draws them; do not write your own icon drawings or preview scripts. Your temporary files go in your own `slide_NN/` folder, never a shared scratch folder
    - The brief's source line (in `_prompt.md` § 1) goes, word for word, in the `data-template-field="footer"` element
+   - Never use `@font-face`; name the font in `font-family`. Give footnotes `data-shape-id="footnote-1"`, `"footnote-2"` ...; the source goes in the footer template field (or a `source-` id). Slide Lab places the takeaway, footnotes and source itself in fixed positions, so leave room above the source line
    - Use ONLY the CSS properties permitted by sketch-html-spec.md §7 (no gradients in body, no shadows, no filters, no text-decoration on body text)
 
    **Worker self-check before declaring done (sketch path) — TWO mandatory checks:**

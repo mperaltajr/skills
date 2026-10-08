@@ -106,10 +106,15 @@ def main() -> int:
         shape = texts[0]
         assert shape.name == "source" and not shape.is_placeholder, shape.name
         box = _chrome_box_for(chrome, "source")
-        assert abs(int(shape.left) / 9525 - box.x_px) < 1 and \
-            abs(int(shape.top) / 9525 - box.y_px) < 1, (shape.left, shape.top, box)
+        # Owner's chrome rule (2026-10-08): the source line starts at the
+        # title's text left edge, at the template's source height.
+        from twins.chrome_rules import _title_geometry
+        text_left = _title_geometry(slide, chrome)[0]
+        assert abs(int(shape.left) - text_left) < 9525 and \
+            abs(int(shape.top) / 9525 - box.y_px) < 1, (shape.left, shape.top, text_left, box)
         assert "WARN" in out and "slide 3" in out and LAYOUT in out, out
-        print(f"    ok: at x={box.x_px}, y={box.y_px} px; {out.strip()[:90]}...")
+        print(f"    ok: at x={text_left / 9525:.0f} (title's text edge), y={box.y_px} px; "
+              f"{out.strip()[:90]}...")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     print("SMOKE PASSED.")

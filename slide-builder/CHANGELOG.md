@@ -55,6 +55,116 @@ All notable changes to this skill. Versioning follows [Semantic Versioning](http
   the worker prompt and agent. Test: `tests/run_visual_form_smoke.py`.
 - **`translate_html.py --emit <dir>` creates the folder** instead of crashing
   on a manual run. Covered in `tests/run_icons_smoke.py`.
+- **Designer and translator instructions follow the fonts and chrome
+  changes below.** Worker (`agents/slide-builder-worker.md`, `prompt.md`): no
+  `@font-face`, footnotes as `footnote-1`, `footnote-2` ..., the source in the
+  footer field, room left above the source line. Translator: the takeaway,
+  footnotes and source are named `subtitle`, `footnote-N`, `source` for
+  `twins/chrome_rules.py`; box growth happens after the self-check, into empty
+  space only. A design that painted its own picture of a library icon
+  (background image) now shows the library icon instead, so sketch and slide
+  agree. Installed agent copies updated (md5 checked).
+
+### Fonts, converter and chrome
+
+- **The brand font's files are chosen from the fonts' own data.** Registration
+  used to guess the font file from the family's name; one family ships its
+  narrow ("condensed") face as the bare `<Family>.ttf`, so that face was
+  bundled and every sketch and title-fit check was drawn about a quarter
+  narrower than the finished slide. `register_template.py` now reads each
+  installed font's name table (`_chrome_schema.pick_family_faces`: family,
+  style, weight, width), picks the heading family's regular face (upright,
+  normal width, weight nearest 400) and its bold face, plus the body family's
+  regular face, bundles them into the sidecar and records them in `brand.yml`
+  (`title_font_ttf_path`, new `title_font_bold_ttf_path`,
+  `body_font_ttf_path`). It prints the face chosen and warns when only a
+  narrow or wide version is installed. `brand.yml` also records the theme's
+  own face names (`theme_heading_face`, `theme_body_face`), and registration
+  warns when heading and body are one family with a bold heading face.
+  `bold_ttf_for` finds the bold face by name table (the bundled one first).
+  Title-fit measurement (brief check, finalize, the sample slide) uses the
+  bold face when the title style is bold or the theme's heading face is bold;
+  the brief check also resolves the bundled file names it used to pass as
+  bare names. Templates registered earlier keep their bundled file until they
+  are registered again. Test: `tests/run_font_pick_smoke.py`.
+- **A design cannot swap an installed font for a file.** A designer pointed
+  the installed brand family at a copied file holding its narrow face, so the
+  review picture and the conversion were narrower than the finished slide.
+  The rendering browser (`scripts/_browser.py`, used by the review render and
+  the converter) now removes any `@font-face` rule that points an installed
+  font at a file, inline or in a linked stylesheet, before anything is drawn
+  or measured, prints a warning, and the conversion records
+  `FONT_FACE_REMOVED`. The sketch spec bans `@font-face` outright. The
+  `RENDER_FONT_RATIO` warning no longer blames the check's renderer or says
+  "not a defect": with the font installed it says the design was drawn in a
+  different version of the font and the finished text runs N% wider (a design
+  issue to check for overflow); with the font missing it says the check used
+  a stand-in and text size was not judged. Test:
+  `tests/run_font_face_rule_smoke.py`.
+- **Box growth only into empty space, after the self-check** (owner's
+  decision). To keep text off a filled box's edge the converter grew every
+  such box a few px without looking below it, and before the self-check:
+  thin stacked boxes grew into each other and nearly every one went to the
+  agent (21 elements on one slide). `_apply_clearance` now runs after the
+  self-check (like the takeaway snap), grows a box only into free space,
+  keeps 2 px (`CLEARANCE_GAP_PX`) to the next shape, line, text or
+  agent-drawn element, and leaves a box with no room at its design size
+  (`boxes_kept_no_room` in the report). Test: `tests/run_box_growth_smoke.py`
+  (a made-up stack of thin solid and dashed boxes: 0 elements to the agent,
+  no overlaps, a box with room still grows).
+- **Body text stays regular when heading and body are one family.** With the
+  theme's heading face being that family's bold face, both names read as the
+  same family, and the theme pass bound every body run to the heading font,
+  so body text came out bold on every slide. Text in a name that is both the
+  heading and the body font now binds to the body font (`client_theme.py`
+  `_replace_font`). Test: `tests/run_body_font_binding_smoke.py`.
+- **The template's sample text never ships.** A layout footer cloned with its
+  bracketed sample line (`<Customize with ...>`) appeared on every slide when
+  the design gave no footer text. Finalize (and the registration sample
+  slide) now clears whole sample lines (angle-bracket lines, "Click to add" /
+  "Click to edit") from inherited placeholders, keeping real text
+  (`twins/composer.py` `clear_template_sample_text`), and
+  `slide-qc/scripts/check_pptx_hygiene.py` flags any such line left on a
+  slide as Critical (`template-sample-text`). Test:
+  `tests/run_sample_text_smoke.py`.
+- **Pictures and charts survive finalize and assembly.** Both copy steps
+  copied shapes without their files: finalize re-attached top-level pictures
+  only (losing crops), compile nothing, so a page with a photo, a grouped
+  photo, a logo or a native chart failed the integrity check and compile
+  refused the whole deck with a misleading message. Both now use
+  `twins/composer.py` `copy_shape_with_parts`, which carries every related
+  part (images, charts with their workbooks and styles, media, external
+  links) under fresh ids, copies a part used twice once, and drops links to
+  other slides cleanly. Test: `tests/run_picture_graft_smoke.py` (through
+  prep, finalize, final check and compile).
+- **The takeaway, footnotes and source line sit in one place on every slide**
+  (owner's rule). New `twins/chrome_rules.py` `normalize_chrome`, run per
+  slide at finalize on every path and on the registration sample slide: the
+  takeaway goes directly under the title (in the template's takeaway slot,
+  else 8 px below the title box) at the title's text left edge, in the
+  template's own Subtitle-slot size (`template_takeaway_pt`) else 16 pt, not
+  bold, in the template's main text color, the same on every slide; the
+  source line goes to the template's source position (registered Source
+  slot, else its footer slot, else the standard source line) at the title's
+  text left edge in 9 pt, also where the template's footer box is centered;
+  footnotes stack upward directly above it, same edge, 9 pt. Roles come from
+  the template's fields and from shape names (`subtitle*`, `takeaway*`,
+  `source*`, `footnote*`); covers and section dividers keep their own lines.
+  slide-qc's visual pass flags a slide where one differs. Test:
+  `tests/run_chrome_rules_smoke.py` (a made-up deck with footnotes mid-page
+  and sources at different x and sizes comes out identical on every slide,
+  and the sample slide matches). Updated to the new rule:
+  `tests/run_source_line_fallback_smoke.py` (the drawn source line now starts
+  at the title's text edge) and `tests/run_registration_selftest_smoke.py`
+  (the takeaway spans the title's text width, not its box width).
+- **A failed LibreOffice render is retried once, and its error is kept.**
+  `slide-qc/scripts/render_slides.py` retries a render that exits non-zero
+  or writes no PDF once, with a fresh profile and from a local copy (always
+  from a local copy for a deck in a OneDrive folder); renders still run in
+  parallel. When both tries fail the error carries the full output of both.
+  The converter's self-check render retries the slides that wrote no PDF.
+  finalize prints the whole error instead of its first 50 characters. Test:
+  `tests/run_render_retry_smoke.py`.
 
 ## 2026-10-06: session-report fixes, batch 2
 

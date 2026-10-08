@@ -1576,7 +1576,10 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
                                      dark_variant: bool = False,
                                      dark_bg_hex: str = "",
                                      brand_ttf_path: str = "",
-                                     template_fields_override: Optional[dict] = None) -> list:
+                                     template_fields_override: Optional[dict] = None,
+                                     brand_bold_ttf_path: str = "",
+                                     heading_face: str = "",
+                                     chrome_takeaway_pt: Optional[float] = None) -> list:
     """Body-canonical chrome population + title/subtitle finishing.
 
     `template_fields_override` is the dict parsed from a sketch-path
@@ -1729,10 +1732,12 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
             or brand_ttf_path
             or _find_brand_ttf()
         )
-        # Bold titles measured with the regular face under-counted wraps.
-        from _chrome_schema import bold_ttf_for, presentation_title_is_bold
-        if presentation_title_is_bold(prs):
-            _ttf = bold_ttf_for(_ttf) or _ttf
+        # Bold titles measured with the regular face under-counted wraps. The
+        # bold face is the one registration recorded from the fonts' own data.
+        from _chrome_schema import presentation_title_is_bold, title_measure_ttf
+        _ttf = title_measure_ttf(_ttf, brand_bold_ttf_path or None,
+                                 title_bold=presentation_title_is_bold(prs),
+                                 heading_face=heading_face or "")
         # Title box width in px: layout's title_box_width_px if available,
         # else canonical CANONICAL_TITLE_W. Title font size: layout's
         # title_font_pt if available, else 28pt (canonical for body-canonical
@@ -1889,6 +1894,22 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
                 f"this slide intentionally has no takeaway."
             )
 
+    # The template's own sample lines ("<Customize with ...>", "Click to add
+    # ...") inherited from a layout placeholder, e.g. a footer cloned with its
+    # sample text when the design supplied none, shipped on every slide
+    # (2026-10-08). Clear them; real footer text is kept. Before the chrome
+    # placement, so a sample footer is not taken for the source line.
+    from twins.composer import clear_template_sample_text
+    _n_sample = clear_template_sample_text(new_slide)
+    if _n_sample:
+        print(f"  slide {slide_n}: cleared {_n_sample} line(s) of the template's sample text")
+    # Owner's chrome rule (2026-10-08): the takeaway, footnote(s) and source
+    # line go in one fixed position and size on every slide, whatever the
+    # designer drew (twins/chrome_rules.py).
+    from twins.chrome_rules import normalize_chrome, template_takeaway_pt
+    normalize_chrome(new_slide, layout_chrome,
+                     takeaway_pt=chrome_takeaway_pt or template_takeaway_pt(
+                         prs, None, layout_chrome))
     # Drop any inherited placeholder left empty after population (e.g. the
     # layout's content placeholder — the body is drawn as free-floating shapes),
     # so PowerPoint doesn't show a 'Click to add text' prompt in edit mode.
@@ -2163,7 +2184,8 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
                     layout_chrome=None,
                     slide_title: str = "",
                     slide_subtitle: str = "",
-                    slide_variant: str = "") -> None:
+                    slide_variant: str = "",
+                    takeaway_pt: Optional[float] = None) -> None:
     try:
         src_prs = Presentation(str(st.pptx_path))
         src_slide = src_prs.slides[0]
@@ -2261,38 +2283,21 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
         # rendering as garbled anti-aliased text. Skipping the deepcopy of
         # placeholder shapes is the fix.
         _PH_TAG = qn("p:ph")
+        # Shapes are copied WITH the files they point at: pictures (also
+        # inside groups), charts and their workbooks, media, links. A plain
+        # deepcopy kept the relationship ids but not the relationships, so a
+        # chart or a grouped photo lost its file and PowerPoint refused the
+        # deck (2026-10-08). The old picture-only re-embed also dropped crops
+        # and effects; the copy keeps the picture's XML as drawn.
+        from twins.composer import copy_shape_with_parts
+        _memo: dict = {}
         for shape in src_slide.shapes:
-            # Picture shapes carry a blipFill that references an image via
-            # an rId in the source part's relationships. A naive deepcopy
-            # of shape.element preserves the rId string but does NOT carry
-            # the relationship onto the target slide's part, leaving an
-            # orphan reference that LibreOffice and PowerPoint both render
-            # as nothing. Re-embed the blob via add_picture so python-pptx
-            # registers a fresh, valid rId on the target.
-            #
-            # Custom <p:pic> children (srcRect crop, recolor, alpha, rot,
-            # picture-effects) are not preserved here. Picture shapes today
-            # carry no transforms, so this is safe. Add transform preservation
-            # here if a future writer emits Picture shapes with effects.
-            if shape.shape_type == MSO_SHAPE_TYPE.PICTURE:
-                try:
-                    blob = shape.image.blob
-                    new_slide.shapes.add_picture(
-                        io.BytesIO(blob),
-                        left=shape.left, top=shape.top,
-                        width=shape.width, height=shape.height,
-                    )
-                    continue
-                except Exception:
-                    # Fall through to naive copy; it will render blank but
-                    # preserves the (broken) shape so the operator can
-                    # diagnose. Better than swallowing the picture entirely.
-                    pass
             # Body-canonical: skip placeholder shapes — new_slide already
             # has them via inheritance, populate step writes the content.
             if _is_body_canonical and shape.element.find(".//" + _PH_TAG) is not None:
                 continue
-            sp_tree.append(deepcopy(shape.element))
+            sp_tree.append(copy_shape_with_parts(shape.element, src_slide.part,
+                                                 new_slide.part, _memo))
 
         # Body-canonical: insert dark-overlay rectangle (if any) so it
         # sits BEFORE the source-slide content in z-order, and write the source
@@ -2316,6 +2321,9 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
                     dark_bg_hex=_dark_bg,
                     brand_ttf_path=getattr(theme, "title_font_ttf_path", "") or "",
                     template_fields_override=_tf_override,
+                    brand_bold_ttf_path=getattr(theme, "title_font_bold_ttf_path", "") or "",
+                    heading_face=getattr(theme, "theme_heading_face", "") or "",
+                    chrome_takeaway_pt=takeaway_pt,
                 ) or []
                 # Hard-fail collision check on dark-variant slides.
                 # If any shape fill or text color collides with dark_bg_hex,
@@ -2341,6 +2349,20 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
                     f"  WARN: body-canonical finishing skipped on slide "
                     f"{st.slide_n}: {type(_exc).__name__}: {_exc}\n"
                 )
+
+        # Owner's chrome rule on the slides the light body-canonical finishing
+        # does not reach (dark variant, bespoke layouts): takeaway, footnotes
+        # and source line in their fixed places (twins/chrome_rules.py).
+        if not _is_body_canonical or _is_dark_variant:
+            try:
+                from twins.chrome_rules import normalize_chrome, template_takeaway_pt
+                normalize_chrome(new_slide, layout_chrome,
+                                 takeaway_pt=takeaway_pt or template_takeaway_pt(
+                                     prs, None, layout_chrome),
+                                 on_dark=True if _is_dark_variant else None)
+            except Exception as _exc:  # noqa: BLE001 -- never fail the graft on this
+                sys.stderr.write(f"  WARN: chrome placement skipped on slide {st.slide_n}: "
+                                 f"{type(_exc).__name__}: {_exc}\n")
 
         subs = 0
         slot_map = theme.theme_slot_map()
@@ -2380,6 +2402,14 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
     except Exception as e:
         st.themed = False
         st.error = f"graft: {type(e).__name__}: {e}"
+
+
+def _fail_flag(error: str) -> str:
+    """'FAIL (first line)' plus every further line of the error, indented.
+    The error used to be cut to 50 characters, which lost the cause of every
+    render failure (2026-10-08)."""
+    lines = [ln for ln in (error or "").splitlines() if ln.strip()] or ["(no error text)"]
+    return f"FAIL ({lines[0]})" + "".join(f"\n        {ln}" for ln in lines[1:])
 
 
 # ---------------------------------------------------------------------------
@@ -2941,7 +2971,7 @@ def _run(args) -> int:
         elif st.built:
             flag = "ok"
         else:
-            flag = f"FAIL ({st.error[:50]})"
+            flag = _fail_flag(st.error)
         print(f"  [{i:>3}/{len(statuses)}] slide_{st.slide_n:02d}/option_{st.letter}  [{_class_short(st.classification)}]  {flag}")
 
     built_statuses = [s for s in statuses if s.built]
@@ -3023,6 +3053,13 @@ def _run(args) -> int:
     for st in built_statuses:
         stash_raw(st)
 
+    # One takeaway size for the whole deck: the template's Subtitle slot size,
+    # else 16 pt (owner's chrome rule, 2026-10-08).
+    try:
+        from twins.chrome_rules import template_takeaway_pt
+        _deck_takeaway_pt = template_takeaway_pt(Presentation(str(build_template)), chrome_spec)
+    except Exception:
+        _deck_takeaway_pt = None
     print("\n[4] Graft + theme remap (serial — python-pptx not thread-safe)")
     for i, st in enumerate(built_statuses, 1):
         try:
@@ -3033,6 +3070,7 @@ def _run(args) -> int:
                 slide_title=_slide_title_for(st.slide_n),
                 slide_subtitle=_slide_subtitle_for(st.slide_n),
                 slide_variant=_slide_variant_for(st.slide_n),
+                takeaway_pt=_deck_takeaway_pt,
             )
         except (TitleDropError, SubtitleDropError,
                 TemplateLayoutMissingError,
@@ -3049,7 +3087,7 @@ def _run(args) -> int:
                   f"slide {st.slide_n} option {st.letter}.\n{_exc}",
                   file=sys.stderr)
             return EXIT_GRAFT_HALTED
-        flag = f"ok (shapes={st.n_shapes} subs={st.n_subs})" if st.themed else f"FAIL ({st.error[:50]})"
+        flag = f"ok (shapes={st.n_shapes} subs={st.n_subs})" if st.themed else _fail_flag(st.error)
         print(f"  [{i:>3}/{len(built_statuses)}] slide_{st.slide_n:02d}/option_{st.letter}  {flag}")
 
     themed_statuses = [s for s in built_statuses if s.themed]
@@ -3133,7 +3171,7 @@ def _run(args) -> int:
             for fut in as_completed(futures):
                 st = fut.result()
                 done += 1
-                flag = "ok" if st.rendered else f"FAIL ({st.error[:50]})"
+                flag = "ok" if st.rendered else _fail_flag(st.error)
                 print(f"  [{done:>3}/{len(themed_statuses)}] slide_{st.slide_n:02d}/option_{st.letter}  {flag}")
 
         for tmp in args.out.glob("slide_*/_render_tmp"):
@@ -3172,16 +3210,16 @@ def _run(args) -> int:
         elif st.classification == "skeleton_rejected":
             why = f"worker refused: {st.classification_reason[:80]}"
         elif not st.built:
-            why = f"did not build: {st.error[:80]}"
+            why = f"did not build: {st.error}"
         else:
-            why = f"did not graft onto the template: {st.error[:80]}"
+            why = f"did not graft onto the template: {st.error}"
         option_results[_state.option_key(st.slide_n, st.letter)] = {
             "blocks": 1, "reasons": [why]}
     for st in themed_statuses:
         _okey = _state.option_key(st.slide_n, st.letter)
         if not args.skip_render and not st.rendered:
             option_results[_okey] = {"blocks": 1, "reasons": [
-                f"did not render: {st.error[:80]}"]}
+                f"did not render: {st.error}"]}
             qc_counts["block"] += 1
             print(f"  slide_{st.slide_n:02d}/option_{st.letter}  BLOCK (not rendered)")
             continue

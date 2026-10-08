@@ -97,19 +97,23 @@ def main() -> int:
         assert lc.title_font_pt == 28, f"chrome title_font_pt not 28: {lc.title_font_pt}"
         title_w = sub_w = None
         title_pts = []
+        from twins.chrome_rules import _inset
         for sh in mprs.slides[0].shapes:
             nm = (sh.name or "").lower()
             if sh.is_placeholder and int(sh.placeholder_format.type) in _TITLE_TYPES:
-                title_w = sh.width
+                # Owner's chrome rule (2026-10-08): the takeaway spans the
+                # title's TEXT width (box less its inner margins), from the
+                # title's text left edge.
+                title_w = sh.width - _inset(sh, "lIns") - _inset(sh, "rIns")
                 title_pts = [r.font.size.pt for p in sh.text_frame.paragraphs
                              for r in p.runs if r.font.size]
             elif nm.startswith("subtitle"):
                 sub_w = sh.width
         assert title_pts == [28.0], f"title not rendered at 28pt: {title_pts}"
-        if lc.title_box_width_px:  # geometry captured -> takeaway must match title width
+        if lc.title_box_width_px:  # geometry captured -> takeaway must match title text width
             assert title_w and sub_w and abs(sub_w - title_w) < 15000, \
-                f"takeaway width {sub_w} != title width {title_w} (EMU)"
-        print("    ok: title/takeaway/footnote/source render; title=28pt; takeaway spans title width")
+                f"takeaway width {sub_w} != title text width {title_w} (EMU)"
+        print("    ok: title/takeaway/footnote/source render; title=28pt; takeaway spans title text width")
 
         # cleanup-on-confirm: confirm removes the selftest folder + flags confirmed
         import _registry

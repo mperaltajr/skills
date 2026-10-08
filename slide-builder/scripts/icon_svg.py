@@ -326,6 +326,10 @@ ICON_DRAW_JS = r"""(lib) => {
     el.style.flexShrink = '0';
     const svg = lib[name];
     if (svg) {
+      // A design that painted its own picture of the icon (a background
+      // image, the workaround while icons rendered blank) shows the library
+      // icon instead, so the sketch and the slide agree.
+      el.style.backgroundImage = 'none';
       el.innerHTML = svg;
       const s = el.firstElementChild;
       s.setAttribute('width', '100%'); s.setAttribute('height', '100%');

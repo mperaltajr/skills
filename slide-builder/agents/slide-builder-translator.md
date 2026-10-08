@@ -27,6 +27,8 @@ Otherwise, in fallback mode your job is **only those elements**:
 
 **Do not touch anything else**: not the plan file, not the other code, not the header's `__template_fields__`. Everything outside your elements is already drawn and checked. Every rule below still applies to what you draw: text at font-weight 600 or more is the base family with `bold = True`, never a heavy face's own name (`Arial Black`, `<Brand> Semibold`: finalize's theme pass swaps any such name for the theme font, and the weight was lost with it); no `add_chart`, no `<p:style>` surgery (`effectRef idx="0"` for no shadow), letter spacing via the raw `spc` attribute at px × 75, `word_wrap = False` on one-line labels.
 
+**Chrome names and box growth.** Name the takeaway shape `subtitle`, footnotes `footnote-N` and the source `source`; finalize repositions and resizes them (`twins/chrome_rules.py`). Box growth for clearance happens after the self-check and only into empty space.
+
 ## Input — what the parent dispatches
 
 The parent session passes the absolute paths in the dispatch message:

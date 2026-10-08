@@ -107,13 +107,24 @@ def render_full(pptxs: list[Path], engine: str = "libreoffice") -> list[tuple[np
         if engine == "powerpoint":
             _powerpoint_pdfs(staged)
         else:
-            for i in range(0, len(staged), 20):
-                subprocess.run([_resolve_soffice(),
-                                f"-env:UserInstallation=file:///{(td / 'lo_profile').as_posix()}",
-                                "--headless", "--norestore", "--nologo", "--nodefault",
-                                "--convert-to", "pdf", "--outdir", str(td),
-                                *[str(s) for s in staged[i:i + 20]]],
-                               capture_output=True, timeout=600)
+            # A render that leaves no PDF is retried once, with a fresh
+            # profile (it usually works the second time, 2026-10-08).
+            for attempt, todo in enumerate((staged, None)):
+                if todo is None:
+                    todo = [s for s in staged if not s.with_suffix(".pdf").exists()]
+                    if not todo:
+                        break
+                prof = td / f"lo_profile{attempt}"
+                for i in range(0, len(todo), 20):
+                    try:
+                        subprocess.run([_resolve_soffice(),
+                                        f"-env:UserInstallation=file:///{prof.as_posix()}",
+                                        "--headless", "--norestore", "--nologo", "--nodefault",
+                                        "--convert-to", "pdf", "--outdir", str(td),
+                                        *[str(s) for s in todo[i:i + 20]]],
+                                       capture_output=True, timeout=600)
+                    except subprocess.TimeoutExpired:
+                        pass
         for s in staged:
             pdf = s.with_suffix(".pdf")
             if not pdf.exists():
@@ -479,11 +490,13 @@ def compare(ops: list[dict], design: np.ndarray, native: np.ndarray,
     pixel checks.
     """
     found = match_text(ops, chars) if chars is not None else {}
-    # A renderer that substitutes a font (LibreOffice picked a brand
-    # family's condensed face for its plain name) makes every text in that font wider or
-    # narrower by the same ratio. A translation defect hits one element, so a
-    # ratio shared by 3+ texts in one font is taken as the renderer's and
-    # divided out (reported as font_ratios).
+    # A whole-font width difference makes every text in that font wider or
+    # narrower by the same ratio: the design was drawn in a different version
+    # of the font than the deck uses (a designer's @font-face rule pointing the
+    # installed family at a narrow file, 2026-10-08), or this computer lacks
+    # the font and both sides used stand-ins. A translation defect hits one
+    # element, so a ratio shared by 3+ texts in one font is divided out here
+    # and reported as font_ratios (translate_html words the warning).
     flat = [region(o) for o in ops if o.get("_flattened") and region(o)]
     geos, by_font, by_font_h = {}, {}, {}
     for i, k in found.items():

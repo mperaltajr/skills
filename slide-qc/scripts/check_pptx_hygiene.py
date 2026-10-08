@@ -9,6 +9,7 @@ pass so the visual pass can focus on what only eyes can catch.
 Detects:
   - Lorem ipsum / placeholder text residue
   - "[Insert X]" / "Subtitle goes here" / TODO / FIXME / XXX in text
+  - The template's own sample lines ("<Customize with ...>", "Click to edit")
   - Hidden slides leaking into the file
   - Comments left attached to slides
   - Speaker notes with non-substantive content
@@ -100,6 +101,16 @@ LOREM_PATTERNS: list[tuple[str, str]] = [
     (r"\[\s*(TBD|TK|TKTK)\s*\]",        "[TBD] / [TK] marker"),
     (r"\b(TBD|TKTK)\b",                  "TBD / TKTK marker (bare)"),
 ]
+
+
+# A template's own sample line left on a slide: a whole line in angle brackets
+# ("<Customize with the client name>"), or PowerPoint's "Click to edit" prompt
+# typed in as text. A layout footer cloned with its sample text shipped on every
+# slide of a deck and only a human eye caught it (2026-10-08). Matched per line,
+# so "<5% of spend" inside a sentence is not flagged. Mirrors
+# slide-builder/twins/composer.py SAMPLE_TEXT_RE, which clears these lines at
+# finalize.
+SAMPLE_LINE_RE = re.compile(r"^\s*(<[^<>\n]{2,200}>|click to (add|edit)\b.*)\s*$", re.I)
 
 
 def _is_intentional_placeholder(text: str) -> bool:
@@ -232,6 +243,29 @@ def check_placeholders_in_text(slide, slide_num: int) -> list[dict]:
                 "issue": f"Placeholder text detected on Slide {slide_num}: {label}.",
             })
     return violations
+
+
+def check_template_sample_text(slide, slide_num: int) -> list[dict]:
+    """Critical: a line of the template's own sample text is on the slide."""
+    hits: list[str] = []
+    for shape in slide.shapes:
+        if not getattr(shape, "has_text_frame", False):
+            continue
+        for para in shape.text_frame.paragraphs:
+            line = "".join(r.text or "" for r in para.runs)
+            if line.strip() and SAMPLE_LINE_RE.match(line):
+                hits.append(line.strip())
+    if not hits:
+        return []
+    shown = "; ".join(repr(h[:60]) for h in hits[:3])
+    return [{
+        "slide": slide_num,
+        "severity": "Critical",
+        "category": "template-sample-text",
+        "issue": (f"Slide {slide_num} shows the template's sample text ({shown}). "
+                  f"Put the real text in, or clear the line: the template's footer or "
+                  f"another layout box kept its sample line."),
+    }]
 
 
 def _banned_terms() -> list[tuple[str, "re.Pattern"]]:
@@ -367,6 +401,7 @@ def run_all_checks(pptx_path: pathlib.Path) -> dict:
 
     for i, slide in enumerate(prs.slides, start=1):
         violations.extend(check_placeholders_in_text(slide, i))
+        violations.extend(check_template_sample_text(slide, i))
         violations.extend(check_banned_words(slide, i))
         violations.extend(check_type_scale(slide, i, prs.slide_height))
         violations.extend(check_speaker_notes(slide, i))
