@@ -71,6 +71,7 @@ EXTRACT_JS = r"""
     }
     return out;
   };
+  const glyphCount = (t) => { let n = 0; for (let i = 0; i < t.length; i++) { if (/\s/.test(t[i])) continue; if (t.codePointAt(i) > 0xffff) i++; n++; } return n; };
   const transparent = (c) => !c || c === 'transparent' || /rgba\([^)]*,\s*0\)$/.test(c);
   const out = {boxes: [], texts: [], svgs: [], icons: [], fallbacks: [], fields: {}, notes: [],
     canvas: {w: cr.width, h: cr.height}};
@@ -108,6 +109,147 @@ EXTRACT_JS = r"""
   const skip = new Set();
   const markSubtree = (el) => { skip.add(el); el.querySelectorAll('*').forEach(e => skip.add(e)); };
 
+  // 1b. Tables and lists (2026-10-08). Each one is marked, so every box and
+  //     text read below says which table cell or list item it belongs to. The
+  //     planner builds one native PowerPoint table (or one text box with real
+  //     bullets) from them, and keeps the separate shapes as the fallback.
+  const sidesOf = (s) => ['Top','Right','Bottom','Left'].map(n => ({w: parseFloat(s['border'+n+'Width']) || 0, c: s['border'+n+'Color'], s: s['border'+n+'Style']}));
+  const radiusOf = (s) => Math.max(...[s.borderTopLeftRadius, s.borderTopRightRadius, s.borderBottomRightRadius, s.borderBottomLeftRadius].map(v => parseFloat(v) || 0));
+  const inField = (el) => !!el.closest('[data-template-field]');
+  out.tables = []; out.lists = [];
+  const TROOT = 'table, [data-native="table"]';
+  for (const t of canvas.querySelectorAll(TROOT)) {
+    if ((t.parentElement && t.parentElement.closest(TROOT)) || inField(t)) continue;
+    const tcs = getComputedStyle(t);
+    if (!visible(tcs)) continue;
+    const k = out.tables.length;
+    t.setAttribute('data-pm-tbl', k);
+    const tag = t.tagName.toLowerCase();
+    const rec = {k, ...R(t.getBoundingClientRect()), tag, id: t.getAttribute('data-shape-id') || '',
+      collapse: tcs.borderCollapse === 'collapse', spacing: tcs.borderSpacing, sides: sidesOf(tcs),
+      radius: radiusOf(tcs), opacity: effOpacity(t), cells: []};
+    const rows = [];
+    if (tag === 'table') {
+      for (const r of t.rows) rows.push([r, Array.from(r.cells)]);
+    } else {
+      for (const c of t.children) {
+        if (c.getAttribute('role') === 'row' || c.hasAttribute('data-row')) rows.push([c, Array.from(c.children)]);
+        else rows.push([null, [c]]);
+      }
+    }
+    for (const [row, cells] of rows) {
+      if (row) row.setAttribute('data-pm-part', '');
+      const rcs = row ? getComputedStyle(row) : null;
+      const sec = row && row.parentElement !== t ? row.parentElement : null;
+      if (sec) sec.setAttribute('data-pm-part', '');
+      const scs = sec ? getComputedStyle(sec) : null;
+      for (const c of cells) {
+        const ccs = getComputedStyle(c);
+        if (!visible(ccs)) continue;
+        const i = rec.cells.length;
+        c.setAttribute('data-pm-cell', k + ':' + i);
+        c.setAttribute('data-pm-part', '');
+        rec.cells.push({i, ...R(c.getBoundingClientRect()),
+          bg: [tcs.backgroundColor, scs ? scs.backgroundColor : '', rcs ? rcs.backgroundColor : '', ccs.backgroundColor],
+          bgimg: [tcs.backgroundImage, scs ? scs.backgroundImage : 'none', rcs ? rcs.backgroundImage : 'none', ccs.backgroundImage].join(' '),
+          sides: sidesOf(ccs), rowSides: rcs ? sidesOf(rcs) : null, rowRect: row ? R(row.getBoundingClientRect()) : null,
+          secSides: scs ? sidesOf(scs) : null, secRect: sec ? R(sec.getBoundingClientRect()) : null,
+          radius: Math.max(radiusOf(ccs), rcs ? radiusOf(rcs) : 0), opacity: effOpacity(c),
+          id: c.getAttribute('data-shape-id') || ''});
+      }
+    }
+    out.tables.push(rec);
+  }
+
+  // A list's marker: where Chrome drew it and what it is.
+  const firstChar = (el) => {
+    const tw = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+    for (let n = tw.nextNode(); n; n = tw.nextNode()) {
+      const p = n.parentElement;
+      if (p.closest('[data-pm-item]') !== el || p.closest('[data-pm-marker]')) continue;
+      const pcs = getComputedStyle(p);
+      if (!visible(pcs)) continue;
+      const m = n.textContent.search(/\S/);
+      if (m < 0) continue;
+      const rg = document.createRange(); rg.setStart(n, m); rg.setEnd(n, m + 1);
+      const q = rg.getBoundingClientRect();
+      return {x: q.left - ox, y: q.top - oy, h: q.height};
+    }
+    return null;
+  };
+  const markerOf = (c, k, i, ccs) => {
+    const tag = k + ':' + i;
+    if (ccs.display === 'list-item' && ccs.listStyleType !== 'none' && ccs.listStyleImage === 'none') {
+      const ms = getComputedStyle(c, '::marker');
+      const a = firstChar(c);
+      if (!a) return {type: 'none'};
+      const pos = ccs.listStylePosition;
+      const old = c.style.listStylePosition;
+      c.style.listStylePosition = pos === 'inside' ? 'outside' : 'inside';
+      const b = firstChar(c);
+      c.style.listStylePosition = old;
+      if (!b) return {type: 'none'};
+      // outside: switching to inside pushes the text right by the marker's width
+      const mw = Math.abs(b.x - a.x);
+      const mx = pos === 'inside' ? b.x : a.x - mw;
+      return {type: 'native', style: ccs.listStyleType, color: ms.color || ccs.color,
+        fs: parseFloat(ms.fontSize) || parseFloat(ccs.fontSize), ff: ms.fontFamily || ccs.fontFamily,
+        fw: ms.fontWeight, x: mx, y: a.y, w: mw, h: a.h, value: (c.tagName === 'LI' ? c.value : null)};
+    }
+    const f = c.firstElementChild;
+    if (!f) return {type: 'none'};
+    const fr = f.getBoundingClientRect();
+    const fcs = getComputedStyle(f);
+    const txt = f.textContent.trim();
+    const isPseudo = f.getAttribute('data-pseudo') === '::before';
+    const smallEmpty = !txt && fr.width > 0 && fr.width <= 24 && fr.height <= 24;
+    const icon = f.hasAttribute('data-icon-name') || f.tagName.toLowerCase() === 'svg';
+    // a short label or glyph set before the text in its own element ("01", a check)
+    f.setAttribute('data-pm-marker', tag);
+    const tc = firstChar(c);
+    const before = tc && fr.right - ox <= tc.x + 1 && txt.length <= 3;
+    if (!(isPseudo || smallEmpty || (icon && fr.width <= 32) || (before && txt))) {
+      f.removeAttribute('data-pm-marker');
+      return {type: 'none'};
+    }
+    return {type: icon ? 'icon' : (txt ? 'glyph' : 'box'), char: txt, color: txt ? fcs.color : fcs.backgroundColor,
+      fs: parseFloat(fcs.fontSize), ff: fcs.fontFamily, fw: fcs.fontWeight, ...R(fr), radius: radiusOf(fcs),
+      bg: fcs.backgroundColor, bgimg: fcs.backgroundImage, sides: sidesOf(fcs), inline: fcs.display === 'inline'};
+  };
+  const LROOT = 'ul, ol, [data-native="list"]';
+  for (const L of canvas.querySelectorAll(LROOT)) {
+    if ((L.parentElement && L.parentElement.closest(LROOT)) || inField(L) || L.closest('[data-pm-tbl]')) continue;
+    if (!visible(getComputedStyle(L))) continue;
+    const k = out.lists.length;
+    L.setAttribute('data-pm-list', k);
+    const rec = {k, id: L.getAttribute('data-shape-id') || '', tag: L.tagName.toLowerCase(), ...R(L.getBoundingClientRect()), items: []};
+    const walk = (list, level) => {
+      const html = list.tagName === 'UL' || list.tagName === 'OL';
+      for (const c of Array.from(list.children)) {
+        if (html && c.tagName !== 'LI') continue;
+        const ccs = getComputedStyle(c);
+        if (!visible(ccs)) continue;
+        const i = rec.items.length;
+        c.setAttribute('data-pm-item', k + ':' + i);
+        const it = {i, level, ordered: list.tagName === 'OL', ...R(c.getBoundingClientRect())};
+        rec.items.push(it);
+        it.marker = markerOf(c, k, i, ccs);
+        for (const n of c.querySelectorAll(LROOT)) {
+          if (n.parentElement.closest(LROOT) === list && n.parentElement.closest('[data-pm-item]') === c) walk(n, level + 1);
+        }
+      }
+    };
+    walk(L, 0);
+    out.lists.push(rec);
+  }
+  const grp = (el) => {
+    const g = (sel, a) => { const e = el.closest(sel); return e ? e.getAttribute(a) : null; };
+    return {tbl: g('[data-pm-tbl]', 'data-pm-tbl'), cell: g('[data-pm-cell]', 'data-pm-cell'),
+      list: g('[data-pm-list]', 'data-pm-list'), item: g('[data-pm-item]', 'data-pm-item'),
+      marker: g('[data-pm-marker]', 'data-pm-marker'),
+      part: el.hasAttribute('data-pm-part') || el.hasAttribute('data-pm-tbl')};
+  };
+
   // 2. Template fields: the graft owns title / footer / page number. The
   //    takeaway is drawn as a body shape named "subtitle" when the layout has no
   //    subtitle placeholder; otherwise it goes to the placeholder too.
@@ -131,24 +273,24 @@ EXTRACT_JS = r"""
     // step, inserted as the real vector icon. It used to vanish silently.
     if (el.hasAttribute('data-icon-name')) {
       out.icons.push({name: (el.getAttribute('data-icon-name') || '').trim(), ...R(r), color: cs.color,
-        drawn: el.getAttribute('data-icon-drawn') || '', id: sid, order: order++});
+        drawn: el.getAttribute('data-icon-drawn') || '', id: sid, g: grp(el), order: order++});
       markSubtree(el); continue;
     }
 
     if (isRotated(cs)) {
-      out.fallbacks.push({kind: 'rotated', reason: 'rotated or skewed element', id: sid, ...R(r), order: order++});
+      out.fallbacks.push({kind: 'rotated', reason: 'rotated or skewed element', id: sid, ...R(r), g: grp(el), order: order++});
       markSubtree(el); continue;
     }
     if (cs.writingMode && cs.writingMode !== 'horizontal-tb') {
-      out.fallbacks.push({kind: 'vertical-text', reason: 'vertical writing mode', id: sid, ...R(r), order: order++});
+      out.fallbacks.push({kind: 'vertical-text', reason: 'vertical writing mode', id: sid, ...R(r), g: grp(el), order: order++});
       markSubtree(el); continue;
     }
     if (tag === 'img' || tag === 'canvas' || tag === 'video' || tag === 'iframe' || tag === 'picture') {
-      out.fallbacks.push({kind: tag, reason: tag + ' element', id: sid, ...R(r), order: order++});
+      out.fallbacks.push({kind: tag, reason: tag + ' element', id: sid, ...R(r), g: grp(el), order: order++});
       markSubtree(el); continue;
     }
     if (tag === 'svg') {
-      out.svgs.push(readSvg(el, sid));
+      { const sv = readSvg(el, sid); sv.g = grp(el); out.svgs.push(sv); }
       continue;
     }
 
@@ -158,7 +300,7 @@ EXTRACT_JS = r"""
     const inline = cs.display === 'inline';
     const bgimg = cs.backgroundImage;
     if (bgimg && bgimg !== 'none' && /url\(/.test(bgimg)) {
-      out.fallbacks.push({kind: 'background-image', reason: 'background image', id: sid, ...R(r), order: order++});
+      out.fallbacks.push({kind: 'background-image', reason: 'background image', id: sid, ...R(r), g: grp(el), order: order++});
     }
     const hasBg = !transparent(cs.backgroundColor) || (bgimg && /gradient/.test(bgimg));
     if ((hasBg || liveSides.length) && r.width >= 0 && r.height >= 0 && el !== canvas || (el === canvas && hasBg)) {
@@ -167,7 +309,7 @@ EXTRACT_JS = r"""
         out.boxes.push({...R(q), bg: cs.backgroundColor, bgimg, sides,
           radii: [cs.borderTopLeftRadius, cs.borderTopRightRadius, cs.borderBottomRightRadius, cs.borderBottomLeftRadius],
           opacity: effOpacity(el), shadow: cs.boxShadow !== 'none', filter: cs.filter !== 'none',
-          id: sid, tag, canvas: el === canvas, order: order++});
+          id: sid, tag, canvas: el === canvas, g: grp(el), order: order++});
       }
     }
 
@@ -188,6 +330,7 @@ EXTRACT_JS = r"""
             runs.push({t: c.textContent, color: pcs.color, fw: pcs.fontWeight, fi: pcs.fontStyle,
               fs: parseFloat(pcs.fontSize), ff: pcs.fontFamily, ls: pcs.letterSpacing, tt: pcs.textTransform,
               td: pcs.textDecorationLine, op: effOpacity(c.parentElement), ws: pcs.whiteSpace,
+              mk: !!c.parentElement.closest('[data-pm-marker]'), gc: glyphCount(c.textContent),
               first: rs.length ? {x: rs[0].left - ox, y: rs[0].top - oy, r: rs[0].right - ox, h: rs[0].height} : null,
               last: rs.length ? {x: rs[rs.length-1].left - ox, r: rs[rs.length-1].right - ox, y: rs[rs.length-1].top - oy, h: rs[rs.length-1].height} : null});
           } else if (c.nodeType === 1) {
@@ -249,7 +392,7 @@ EXTRACT_JS = r"""
           glyphs: glyphBoxes(textNodes),
           runs, align: cs.textAlign, lh: cs.lineHeight, fs: parseFloat(cs.fontSize), ws: cs.whiteSpace,
           display: cs.display, jc: cs.justifyContent, covered, clipped,
-          listItem: cs.display === 'list-item' && cs.listStyleType !== 'none',
+          listItem: cs.display === 'list-item' && cs.listStyleType !== 'none', g: grp(el),
           id: sid, tf: el.getAttribute('data-template-field') || (el.closest('[data-template-field]') ? el.closest('[data-template-field]').getAttribute('data-template-field') : null),
           order: order++});
       }
@@ -526,6 +669,9 @@ class Plan:
         self.template_bg: str | None = None
         # The design's canvas color when it was left to the template (not drawn).
         self.canvas_bg: str | None = None
+        # Tables and lists drawn natively, each with its fallback versions
+        # (see _plan_native_groups).
+        self.groups: dict = {}
 
     def warn(self, code, detail):
         self.warnings.append({"code": code, "detail": detail})
@@ -1311,6 +1457,687 @@ def _apply_clearance(plan: Plan) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Native tables and lists (owner's decision, 2026-10-08)
+# ---------------------------------------------------------------------------
+# An HTML <table> (or a grid marked data-native="table") becomes ONE native
+# PowerPoint table, and a <ul>/<ol> (or a column marked data-native="list")
+# becomes ONE text box with real bullets, instead of a rectangle and a text
+# box per cell or per line. Each is a "group" with a chain of versions, best
+# first; the self-check moves a group one step down its chain when the
+# version on the slide renders differently from the design:
+#   table: native table -> separate shapes (as before)
+#   list:  one box with bullets -> one box, markers drawn as shapes
+#          -> one text box per item (as before)
+# Text is never lost on the way: every version holds all of it.
+
+GRID_TOL = 1.5          # px: cell edges this close are the same grid line
+TABLE_MAX_RADIUS = 4.0  # px: rounder corners than this can't be a native table
+
+_BULLET_CHARS = {"disc": "•", "circle": "◦", "square": "▪"}
+_AUTONUM = {"decimal": "arabicPeriod", "lower-alpha": "alphaLcPeriod",
+            "lower-latin": "alphaLcPeriod", "upper-alpha": "alphaUcPeriod",
+            "upper-latin": "alphaUcPeriod", "lower-roman": "romanLcPeriod",
+            "upper-roman": "romanUcPeriod"}
+
+
+def _g(rec: dict) -> dict:
+    return rec.get("g") or rec.get("_g") or {}
+
+
+def _cluster(vals: list[float], tol: float = GRID_TOL) -> list[float]:
+    out: list[list[float]] = []
+    for v in sorted(vals):
+        if out and v - out[-1][-1] <= tol:
+            out[-1].append(v)
+        else:
+            out.append([v])
+    return [sum(c) / len(c) for c in out]
+
+
+def _nearest(lines: list[float], v: float) -> tuple[int, float]:
+    j = min(range(len(lines)), key=lambda k: abs(lines[k] - v))
+    return j, abs(lines[j] - v)
+
+
+def _live_side(s):
+    """A CSS border side as {"color", "w", "dash"}, "hidden", or None."""
+    if not s or s.get("w", 0) <= 0 or s.get("s") in (None, "none"):
+        return None
+    if s["s"] == "hidden":
+        return "hidden"
+    c = parse_color(s.get("c"))
+    if not c:
+        return None
+    color = c[0] if c[1] >= 0.999 else _mix(c[0], "FFFFFF", c[1])
+    return {"color": color, "w": float(s["w"]),
+            "dash": s["s"] if s["s"] in ("dashed", "dotted") else None}
+
+
+def _compose_fill(layers: list[str]):
+    """Backgrounds from the bottom (table) to the top (cell) as one fill."""
+    col = None
+    for layer in layers:
+        c = parse_color(layer)
+        if not c:
+            continue
+        if c[1] >= 0.999 or col is None:
+            col = (c[0], c[1])
+        else:
+            col = (_mix(c[0], col[0], c[1]), col[1])
+    return col
+
+
+def _scratch_text(t: dict):
+    """Plan one text block on its own; the text op, or None (nothing drawn)."""
+    sp = Plan()
+    _plan_text(sp, t, t["order"])
+    return sp.ops[0] if sp.ops else None
+
+
+def _resolve_edge(cands):
+    if not cands or any(c == "hidden" for c, _p in cands):
+        return None
+    c, _p = max(cands, key=lambda q: (round(q[0]["w"], 1), q[1]))
+    return dict(c)
+
+
+def _table_group(plan: "Plan", tb: dict, data: dict):
+    """(table op, the ops it replaces) or (None, reason it stays shapes)."""
+    k = str(tb["k"])
+    name = tb.get("id") or f"table-{tb['k'] + 1}"
+    # What sits on top of a cell (a pill, a numbered badge, an icon, a small
+    # drawing) stays its own shape, drawn over the native table, exactly as
+    # before; the text inside such a badge goes with it.
+    decos = [b for b in data.get("boxes") or [] if _g(b).get("tbl") == k and not _g(b).get("part")]
+
+    def _inside(t, b):
+        ix, iy, iw, ih = t["ink"]["x"], t["ink"]["y"], t["ink"]["w"], t["ink"]["h"]
+        return (b["order"] <= t["order"] and b["x"] - 1 <= ix and b["y"] - 1 <= iy
+                and ix + iw <= b["x"] + b["w"] + 1 and iy + ih <= b["y"] + b["h"] + 1)
+
+    texts = [t for t in data.get("texts") or [] if _g(t).get("tbl") == k]
+    deco_texts = [t for t in texts if any(_inside(t, b) for b in decos)]
+    texts = [t for t in texts if not any(t is d for d in deco_texts)]
+
+    def _overlaps(t, b):
+        ix, iy, iw, ih = t["ink"]["x"], t["ink"]["y"], t["ink"]["w"], t["ink"]["h"]
+        return ix < b["x"] + b["w"] - 1 and b["x"] < ix + iw - 1 and \
+            iy < b["y"] + b["h"] - 1 and b["y"] < iy + ih - 1
+    if any(_overlaps(t, b) for t in texts for b in decos):
+        return None, "a cell's text runs through its own badge or band"
+    others =(data.get("svgs") or []) + (data.get("icons") or [])
+    keep = {x["order"] for x in decos + deco_texts + others if _g(x).get("tbl") == k}
+    alt = [o for o in plan.ops if _g(o).get("tbl") == k and o.get("_src") not in keep]
+    if any(not _g(t).get("cell") for t in texts):
+        return None, "text in the table sits outside its cells (a caption)"
+    cells = tb.get("cells") or []
+    if not cells:
+        return None, "it has no cells"
+    if tb.get("opacity", 1) < 0.99 or any(c.get("opacity", 1) < 0.99 for c in cells):
+        return None, "it is see-through"
+    if tb.get("radius", 0) > TABLE_MAX_RADIUS or any(c.get("radius", 0) > TABLE_MAX_RADIUS for c in cells):
+        return None, "it has rounded corners"
+    if any("gradient" in (c.get("bgimg") or "") or "url(" in (c.get("bgimg") or "") for c in cells):
+        return None, "a cell has a gradient or picture background"
+    if not alt:
+        return None, "nothing in it is drawn"
+
+    fills = {c["i"]: _compose_fill(c["bg"]) for c in cells}
+    has_lines = any(_live_side(s) not in (None, "hidden") for c in cells for s in c["sides"])
+
+    def lines_and_gaps(pairs):
+        lines = _cluster([v for p in pairs for v in p])
+        covered = [False] * max(0, len(lines) - 1)
+        for lo, hi in pairs:
+            a, _ = _nearest(lines, lo)
+            b, _ = _nearest(lines, hi)
+            for j in range(a, b):
+                covered[j] = True
+        gaps = [j for j, cv in enumerate(covered) if not cv]
+        return lines, gaps
+
+    xs, gx = lines_and_gaps([(c["x"], c["x"] + c["w"]) for c in cells])
+    ys, gy = lines_and_gaps([(c["y"], c["y"] + c["h"]) for c in cells])
+    tol = GRID_TOL
+    for lines, gaps in ((xs, gx), (ys, gy)):
+        if not gaps:
+            continue
+        widest = max(lines[j + 1] - lines[j] for j in gaps)
+        if widest > GRID_TOL and (any(fills.values()) or has_lines):
+            return None, "its cells are spaced apart"
+        tol = max(tol, widest + GRID_TOL)
+        for j in sorted(gaps, reverse=True):
+            del lines[j + 1]
+    if len(xs) < 2 or len(ys) < 2:
+        return None, "its cells don't form a grid"
+    nr, nc = len(ys) - 1, len(xs) - 1
+    own = [[None] * nc for _ in range(nr)]
+    span = {}
+    for c in cells:
+        (c0, e0), (c1, e1) = _nearest(xs, c["x"]), _nearest(xs, c["x"] + c["w"])
+        (r0, e2), (r1, e3) = _nearest(ys, c["y"]), _nearest(ys, c["y"] + c["h"])
+        if max(e0, e1, e2, e3) > tol or c1 <= c0 or r1 <= r0:
+            return None, "its cells don't form a grid"
+        for r in range(r0, r1):
+            for cc in range(c0, c1):
+                if own[r][cc] is not None:
+                    return None, "its cells overlap"
+                own[r][cc] = c["i"]
+        span[c["i"]] = (r0, r1, c0, c1)
+
+    # Borders, one per grid edge. In CSS's collapsed model the widest border
+    # wins and a cell's own beats its row's, then its group's, then the table's.
+    html_sep = tb.get("tag") == "table" and not tb.get("collapse")
+    Hs: dict = {}
+    Vs: dict = {}
+
+    def add(d, key, side, prio):
+        ls = _live_side(side)
+        if ls:
+            d.setdefault(key, []).append((ls, prio))
+
+    by_i = {c["i"]: c for c in cells}
+    for c in cells:
+        r0, r1, c0, c1 = span[c["i"]]
+        T_, R_, B_, L_ = c["sides"]
+        for cc in range(c0, c1):
+            add(Hs, (r0, cc), T_, 3)
+            add(Hs, (r1, cc), B_, 3)
+        for rr in range(r0, r1):
+            add(Vs, (c0, rr), L_, 3)
+            add(Vs, (c1, rr), R_, 3)
+        if html_sep:
+            continue
+        for sides, rect, prio in ((c.get("rowSides"), c.get("rowRect"), 2),
+                                  (c.get("secSides"), c.get("secRect"), 1)):
+            if not sides or not rect:
+                continue
+            if abs(rect["y"] - c["y"]) <= tol:
+                for cc in range(c0, c1):
+                    add(Hs, (r0, cc), sides[0], prio)
+            if abs(rect["y"] + rect["h"] - c["y"] - c["h"]) <= tol:
+                for cc in range(c0, c1):
+                    add(Hs, (r1, cc), sides[2], prio)
+            if abs(rect["x"] - c["x"]) <= tol:
+                for rr in range(r0, r1):
+                    add(Vs, (c0, rr), sides[3], prio)
+            if abs(rect["x"] + rect["w"] - c["x"] - c["w"]) <= tol:
+                for rr in range(r0, r1):
+                    add(Vs, (c1, rr), sides[1], prio)
+    ts = tb.get("sides") or [None] * 4
+    for cc in range(nc):
+        add(Hs, (0, cc), ts[0], 0)
+        add(Hs, (nr, cc), ts[2], 0)
+    for rr in range(nr):
+        add(Vs, (0, rr), ts[3], 0)
+        add(Vs, (nc, rr), ts[1], 0)
+
+    table_fill = _compose_fill([cells[0]["bg"][0]])
+    slots = []
+    for r in range(nr):
+        row = []
+        for cc in range(nc):
+            o = own[r][cc]
+            f = fills.get(o) if o is not None else table_fill
+            row.append({
+                "fill": f[0] if f else None, "alpha": f[1] if f else 1.0,
+                "L": _resolve_edge(Vs.get((cc, r))) if cc == 0 or own[r][cc - 1] != o or o is None else None,
+                "R": _resolve_edge(Vs.get((cc + 1, r))) if cc == nc - 1 or own[r][cc + 1] != o or o is None else None,
+                "T": _resolve_edge(Hs.get((r, cc))) if r == 0 or own[r - 1][cc] != o or o is None else None,
+                "B": _resolve_edge(Hs.get((r + 1, cc))) if r == nr - 1 or own[r + 1][cc] != o or o is None else None})
+        slots.append(row)
+
+    # Cell text: planned exactly as a text box would be, then turned into the
+    # cell's inner margins, so the letters land where Chrome put them.
+    texts_by = {}
+    for t in texts:
+        texts_by.setdefault(_g(t)["cell"], []).append(t)
+    out_cells, cmp_ops = [], []
+    for c in cells:
+        r0, r1, c0, c1 = span[c["i"]]
+        X0, X1, Y0, Y1 = xs[c0], xs[c1], ys[r0], ys[r1]
+        ts_ = sorted((t for t in texts_by.get(f"{k}:{c['i']}", [])
+                      if not (t.get("covered") or t.get("clipped"))), key=lambda t: t["order"])
+        blocks = [o for o in (_scratch_text(t) for t in ts_) if o is not None]
+        rec = {"r": r0, "c": c0, "rs": r1 - r0, "cs": c1 - c0, "paragraphs": [],
+               "mar": [0, 0, 0, 0], "align": "left", "line_height_px": 0}
+        label = f"{name} r{r0 + 1}c{c0 + 1}"
+        if blocks:
+            for p_, q_ in zip(blocks, blocks[1:]):
+                if q_["_ink"][1] < p_["_ink"][1] + p_["_ink"][3] - 2:
+                    return None, "a cell holds pieces of text side by side"
+            aligns = {o["align"] for o in blocks}
+            if len(aligns) > 1:
+                return None, "a cell mixes text alignments"
+            align = aligns.pop()
+            wrap = any(o["wrap"] for o in blocks)
+            x = min(o["x"] for o in blocks)
+            w = max(o["x"] + o["w"] for o in blocks) - x
+            if not wrap:
+                # one line each: give the text all the room the cell has, so a
+                # renderer that sets the font a hair wider doesn't break a line
+                if align == "right":
+                    mar_l, mar_r = 0.0, X1 - (x + w)
+                elif align == "center":
+                    cx = x + w / 2
+                    half = min(cx - X0, X1 - cx)
+                    mar_l, mar_r = cx - half - X0, X1 - cx - half
+                else:
+                    mar_l, mar_r = x - X0, 0.0
+            else:
+                mar_l, mar_r = x - X0, X1 - (x + w)
+            mar_t = blocks[0]["y"] - Y0
+            if min(mar_l, mar_r) < -2:
+                return None, "text runs past the edge of its cell"
+            if mar_t < -3:
+                return None, "text sits too close to the top of its cell"
+            mar_l, mar_r, mar_t = max(0.0, mar_l), max(0.0, mar_r), max(0.0, mar_t)
+            paragraphs, props, prev = [], [], None
+            for o in blocks:
+                spc = 0.0 if prev is None else \
+                    o["y"] - (prev["y"] + max(1, prev.get("_lines") or 1) * prev["line_height_px"])
+                if spc < -2:
+                    return None, "a cell's lines of text overlap"
+                ml = (o["x"] - x) if align in ("left", "justify") else 0.0
+                mr = (x + w - o["x"] - o["w"]) if (align == "right" or (wrap and align != "center")) else 0.0
+                avail = X1 - X0 - mar_l - mar_r - ml - mr
+                pred = _wrapped_lines(o["paragraphs"], avail)
+                want = max(1, o.get("_lines") or 1) if o["wrap"] else len(o["paragraphs"])
+                if pred is not None and pred > want:
+                    return None, "cell text would break onto more lines than in the design"
+                for pi, para in enumerate(o["paragraphs"]):
+                    paragraphs.append(para)
+                    props.append({"line_height_px": o["line_height_px"], "marL_px": ml,
+                                  "marR_px": mr, "indent_px": 0.0,
+                                  "space_before_px": max(0.0, spc) if pi == 0 else 0.0})
+                prev = o
+            total = blocks[-1]["y"] + max(1, blocks[-1].get("_lines") or 1) * \
+                blocks[-1]["line_height_px"] - blocks[0]["y"]
+            if mar_t + total > (Y1 - Y0) + 1.0:
+                return None, "cell text is taller than its row"
+            rec.update(paragraphs=paragraphs, mar=[mar_l, mar_t, mar_r, 0.0], align=align,
+                       line_height_px=blocks[0]["line_height_px"])
+            if len(blocks) > 1:
+                rec["para"] = props
+            for n_, o in enumerate(blocks):
+                cmp_ops.append(dict(o, name=label + (f" text {n_ + 1}" if len(blocks) > 1 else "")))
+        out_cells.append(rec)
+        f = fills.get(c["i"])
+        cmp_ops.append({"op": "shape", "kind": "rect", "x": X0, "y": Y0, "w": X1 - X0,
+                        "h": Y1 - Y0, "fill": f[0] if f else None, "name": label + " cell",
+                        "_filled": bool(f)})
+    x0, y0 = xs[0], ys[0]
+    op = {"op": "table", "x": x0, "y": y0, "w": xs[-1] - x0, "h": ys[-1] - y0,
+          "cols": [xs[j + 1] - xs[j] for j in range(nc)],
+          "rows": [ys[j + 1] - ys[j] for j in range(nr)],
+          "slots": slots, "cells": out_cells, "name": name,
+          "_order": min(o["_order"] for o in alt), "_box": (x0, y0, xs[-1] - x0, ys[-1] - y0),
+          "_filled": any(fills.values()), "_cmp": cmp_ops}
+    return op, alt
+
+
+def _strip_marker_runs(t: dict) -> dict:
+    """Text block t without the runs of its marker (an inline ::before glyph),
+    with the glyph boxes and ink trimmed to match."""
+    if not any(r.get("mk") for r in t["runs"] if not r.get("br")):
+        return t
+    glyphs = t.get("glyphs") or []
+    keep_runs, keep_g, gi = [], [], 0
+    for r in t["runs"]:
+        if r.get("br"):
+            keep_runs.append(r)
+            continue
+        n = int(r.get("gc") or 0)
+        if not r.get("mk"):
+            keep_runs.append(r)
+            keep_g += glyphs[gi:gi + n]
+        gi += n
+    q = dict(t, runs=keep_runs, glyphs=keep_g)
+    if keep_g:
+        x0 = min(g_[0] for g_ in keep_g)
+        x1 = max(g_[2] for g_ in keep_g)
+        q["ink"] = dict(t["ink"], x=x0, w=x1 - x0)
+    q["listItem"] = False
+    return q
+
+
+_GLYPH_BOX: dict = {}
+
+
+def _glyph_box(ch: str, face: str = "Arial"):
+    """(left bearing, ink width) of one glyph in em, or None."""
+    key = (ch, face)
+    if key not in _GLYPH_BOX:
+        val = None
+        path = _face_path(face, False)
+        if path:
+            try:
+                from fontTools.ttLib import TTFont
+                f = TTFont(path, lazy=True)
+                gname = (f.getBestCmap() or {}).get(ord(ch))
+                if gname and "glyf" in f:
+                    gl = f["glyf"][gname]
+                    upm = f["head"].unitsPerEm
+                    if getattr(gl, "numberOfContours", 0):
+                        val = (gl.xMin / upm, (gl.xMax - gl.xMin) / upm)
+            except Exception:
+                val = None
+        _GLYPH_BOX[key] = val
+    return _GLYPH_BOX[key]
+
+
+_SHOT_CACHE: dict = {}
+
+
+def _ink_box(data: dict, x0: float, y0: float, x1: float, y1: float):
+    """(x, y, w, h) of the marks inside a region of the design's picture, or None."""
+    import io
+    import numpy as np
+    from PIL import Image
+    shot = data.get("_shot")
+    if not shot:
+        return None
+    if _SHOT_CACHE.get("key") is not shot:          # one design at a time
+        _SHOT_CACHE.update(key=shot, arr=np.asarray(
+            Image.open(io.BytesIO(shot)).convert("RGB"), dtype=np.float32))
+    arr = _SHOT_CACHE["arr"]
+    h, w = arr.shape[:2]
+    x0, y0 = max(0, int(math.floor(x0))), max(0, int(math.floor(y0)))
+    x1, y1 = min(w, int(math.ceil(x1))), min(h, int(math.ceil(y1)))
+    if x1 - x0 < 2 or y1 - y0 < 2:
+        return None
+    crop = arr[y0:y1, x0:x1]
+    ring = np.concatenate([crop[0], crop[-1], crop[:, 0], crop[:, -1]])
+    bg = np.median(ring, axis=0)
+    mask = np.linalg.norm(crop - bg, axis=2) > 60
+    ys, xs = np.nonzero(mask)
+    if not len(xs):
+        return None
+    return (float(x0 + xs.min()), float(y0 + ys.min()),
+            float(xs.max() - xs.min() + 1), float(ys.max() - ys.min() + 1))
+
+
+def _bullet_for(it: dict, op: dict, marker_texts: dict, data: dict | None = None):
+    """The PowerPoint bullet for one list item: (spec, bullet x, region the
+    marker covers in the design), "keep" when the marker has to stay a shape,
+    or None when the item has no marker."""
+    m = it.get("marker") or {}
+    kind = m.get("type")
+    runs = [r for p in op["paragraphs"] for r in p if r["t"].strip()]
+    text_px = runs[0]["size_px"] if runs else 16.0
+    if kind == "native":
+        col = parse_color(m.get("color"))
+        style = m.get("style") or ""
+        pct = 100.0 * float(m.get("fs") or text_px) / text_px
+        # Where the marker's ink is, read off the design's own picture: the
+        # browser does not report where it drew a list marker.
+        fs = float(m.get("fs") or text_px)
+        right = m["x"] + m["w"]
+        ink = _ink_box(data, right - max(m["w"], 3 * fs), m["y"] - 2, right - 0.5,
+                       m["y"] + m["h"] + 2) if data is not None else None
+        if style in _AUTONUM:
+            spec = {"autonum": _AUTONUM[style], "start": int(m.get("value") or 1)}
+            bx = ink[0] if ink else m["x"]
+        elif style in _BULLET_CHARS:
+            spec = {"char": _BULLET_CHARS[style], "font": "Arial"}
+            gb = _glyph_box(spec["char"])
+            bx = m["x"]
+            if ink and gb:
+                size_px = ink[2] / gb[1]
+                pct = 100.0 * size_px / text_px
+                bx = ink[0] - gb[0] * size_px
+        else:
+            return "unsupported"
+        spec.update(color=col[0] if col else None, pct=pct)
+        region = (ink[0], ink[1], ink[2], ink[3]) if ink else (m["x"], m["y"], max(1.0, m["w"]), m["h"])
+        return spec, bx, region
+    if kind == "glyph":
+        c = (m.get("char") or "").strip()
+        boxed = parse_color(m.get("bg")) or any(_live_side(s) not in (None, "hidden")
+                                                 for s in m.get("sides") or [])
+        if boxed:
+            return "keep"
+        tb = marker_texts.get(f"{it['_k']}:{it['i']}")
+        col = parse_color(m.get("color"))
+        pct = 100.0 * float(m.get("fs") or text_px) / text_px
+        num = re.fullmatch(r"(\d{1,2})([.)])", c)
+        if num and not c.startswith("0"):
+            spec = {"autonum": "arabicPeriod" if num.group(2) == "." else "arabicParenR",
+                    "start": int(num.group(1))}
+        elif len(c) == 1 and not c.isalnum():
+            face, _b = _face(m.get("ff") or "", m.get("fw"))
+            spec = {"char": c, "font": face or "Arial"}
+        else:
+            return "keep"
+        spec.update(color=col[0] if col else None, pct=pct)
+        mx = tb["ink"]["x"] if tb else m["x"]
+        if m.get("inline") and it.get("_mk_x") is not None:
+            mx = it["_mk_x"]
+        return spec, mx, (m["x"], m["y"], max(1.0, m["w"]), max(1.0, m["h"]))
+    if kind == "box":
+        col = parse_color(m.get("bg"))
+        bgimg = m.get("bgimg") or "none"
+        w, h = float(m.get("w") or 0), float(m.get("h") or 0)
+        if not col:
+            if any(_live_side(s) not in (None, "hidden") for s in m.get("sides") or []):
+                return "keep"
+            return None                    # an empty ::before: no marker at all
+        if bgimg != "none" or w < 1 or h < 1:
+            return "keep"
+        ratio = w / h
+        if 0.7 <= ratio <= 1.43:
+            ch = "●" if (m.get("radius") or 0) >= min(w, h) / 2 - 0.5 else "■"
+        elif ratio >= 2.5:
+            ch = "–"
+        else:
+            return "keep"
+        gb = _glyph_box(ch)
+        if not gb:
+            return "keep"
+        lsb, ink_w = gb
+        size_px = w / ink_w                          # bullet font size that draws it w wide
+        pct = 100.0 * size_px / text_px
+        if not 25 <= pct <= 400:
+            return "keep"
+        spec = {"char": ch, "font": "Arial", "color": col[0], "pct": pct}
+        return spec, m["x"] - lsb * size_px, (m["x"], m["y"], w, h)
+    if kind == "icon":
+        return "keep"
+    return None
+
+
+def _list_op(name: str, blocks: list, order) -> dict | None:
+    """One text box for a whole list. blocks: (item, first block of the item,
+    text op, bullet (spec, x, region) or None), in reading order."""
+    x0 = min([b[2]["x"] for b in blocks] + [b[3][1] for b in blocks if b[3]])
+    right = max(b[2]["x"] + b[2]["w"] for b in blocks)
+    wrap = any(b[2]["wrap"] for b in blocks)
+    paragraphs, props = [], []
+    prev = None
+    for it, first, op, bul in blocks:
+        spc = 0.0 if prev is None else \
+            op["y"] - (prev["y"] + max(1, prev.get("_lines") or 1) * prev["line_height_px"])
+        if spc < -2:
+            return None
+        for pi, para in enumerate(op["paragraphs"]):
+            pr = {"lvl": int(it.get("level") or 0), "marL_px": op["x"] - x0,
+                  "marR_px": (right - (op["x"] + op["w"])) if wrap else 0.0,
+                  "indent_px": 0.0, "space_before_px": max(0.0, spc) if pi == 0 else 0.0,
+                  "line_height_px": op["line_height_px"]}
+            if pi == 0 and first and bul:
+                pr["indent_px"] = bul[1] - op["x"]
+                pr["bullet"] = bul[0]
+            props.append(pr)
+            paragraphs.append(para)
+        prev = op
+    first_op, last_op = blocks[0][2], blocks[-1][2]
+    inks = [b[2]["_ink"] for b in blocks]
+    ix0, iy0 = min(i[0] for i in inks), min(i[1] for i in inks)
+    ix1, iy1 = max(i[0] + i[2] for i in inks), max(i[1] + i[3] for i in inks)
+    bottom = last_op["y"] + max(1, last_op.get("_lines") or 1) * last_op["line_height_px"]
+    return {"op": "text", "x": x0, "y": first_op["y"], "w": right - x0,
+            "h": bottom - first_op["y"] + 2, "align": "left",
+            "line_height_px": first_op["line_height_px"], "wrap": wrap,
+            "paragraphs": paragraphs, "para": props, "name": name, "_order": order,
+            "_ink": (ix0, iy0, ix1 - ix0, iy1 - iy0), "_single": False,
+            "_lines": sum(max(1, b[2].get("_lines") or 1) for b in blocks), "_id": name,
+            "_glyphs": [q for b in blocks for q in (b[2].get("_glyphs") or [])],
+            "_design_px": max(b[2].get("_design_px") or 0 for b in blocks),
+            "_cased": any(b[2].get("_cased") for b in blocks), "_list": True}
+
+
+def _list_group(plan: "Plan", L: dict, data: dict):
+    """(chain of versions, best first) or (None, reason it stays as before)."""
+    k = str(L["k"])
+    name = L.get("id") or f"list-{L['k'] + 1}"
+    items = L.get("items") or []
+    if len(items) < 2:
+        return None, None
+    alt = [o for o in plan.ops if _g(o).get("list") == k
+           and (o["op"] == "text" or _g(o).get("marker"))]
+    if not alt:
+        return None, None
+    if any(_g(b).get("list") == k and _g(b).get("item") and not _g(b).get("marker")
+           for b in data.get("boxes") or []):
+        return None, "its items are drawn as panels or have their own borders"
+    if any(_g(f).get("list") == k for f in data.get("fallbacks") or []):
+        return None, "it holds a picture or an element left to the agent"
+    texts = [t for t in data.get("texts") or [] if _g(t).get("list") == k]
+    if any(not _g(t).get("item") for t in texts):
+        return None, "it holds text outside its items"
+    by_item, marker_texts = {}, {}
+    for t in texts:
+        if _g(t).get("marker"):
+            marker_texts[_g(t)["marker"]] = t
+        else:
+            by_item.setdefault(_g(t)["item"], []).append(t)
+    plain_blocks, bullet_blocks = [], []
+    bullets_ok = True
+    for it in items:
+        it = dict(it, _k=k)
+        ts = sorted((t for t in by_item.get(f"{k}:{it['i']}", [])
+                     if not (t.get("covered") or t.get("clipped"))), key=lambda t: t["order"])
+        first = True
+        for t in ts:
+            op_plain = _scratch_text(dict(t, listItem=False) if (it.get("marker") or {}).get("type") == "native" else t)
+            stripped = _strip_marker_runs(t)
+            if stripped is not t:
+                mk_runs = [r for r in t["runs"] if r.get("mk") and r.get("first")]
+                if mk_runs:
+                    it["_mk_x"] = mk_runs[0]["first"]["x"]
+            op_bul = _scratch_text(dict(stripped, listItem=False))
+            if op_plain is None or op_bul is None:
+                continue
+            bul = _bullet_for(it, op_bul, marker_texts, data) if first else None
+            if bul in ("keep", "unsupported"):
+                bullets_ok = False
+                if bul == "unsupported":
+                    return None, "its marker style has no PowerPoint bullet"
+                bul = None
+            plain_blocks.append((it, first, op_plain, None))
+            bullet_blocks.append((it, first, op_bul, bul))
+            first = False
+    if len(plain_blocks) < 2:
+        return None, None
+    for blocks in (plain_blocks,):
+        for a, b in zip(blocks, blocks[1:]):
+            if b[2]["_ink"][1] < a[2]["_ink"][1] + a[2]["_ink"][3] - 2:
+                return None, "its items sit side by side"
+    if any(b[2]["align"] not in ("left", "justify") for b in plain_blocks):
+        return None, "its text is not left-aligned"
+    order = min(o["_order"] for o in alt)
+    markers = [o for o in alt if _g(o).get("marker")]
+    inline_marks = any(r.get("mk") for t in texts for r in t["runs"] if not r.get("br"))
+    plain = _list_op(name, plain_blocks, order)
+    chain = []
+    if bullets_ok and any(b[3] for b in bullet_blocks):
+        native = _list_op(name, bullet_blocks, order)
+        if native is not None:
+            regions = [b[3][2] for b in bullet_blocks if b[3]]
+            native["_cmp"] = [native] + [
+                {"op": "shape", "kind": "rect", "x": rx, "y": ry, "w": rw, "h": rh,
+                 "name": f"{name} marker {n + 1}", "_filled": True}
+                for n, (rx, ry, rw, rh) in enumerate(regions)]
+            chain.append([native])
+    elif bullets_ok and plain is not None and not markers and not inline_marks:
+        chain.append([plain])                 # no markers at all: one box, no bullets
+    if plain is not None and (markers or inline_marks) and \
+            not (chain and chain[0][0] is plain):
+        chain.append([plain] + markers)
+    if not chain:
+        return None, "its items could not be set as one text box"
+    chain.append(alt)
+    return chain, None
+
+
+def _register_group(plan: "Plan", kind: str, name: str, chain: list) -> None:
+    gid = len(plan.groups)
+    for v, ops in enumerate(chain):
+        for o in ops:
+            o["_gid"], o["_gv"] = gid, v
+    plan.groups[gid] = {"kind": kind, "name": name, "chain": chain, "cur": 0}
+    drop = {id(o) for o in chain[-1]}
+    plan.ops = [o for o in plan.ops if id(o) not in drop] + list(chain[0])
+
+
+def _plan_native_groups(plan: "Plan", data: dict) -> None:
+    for tb in data.get("tables") or []:
+        op, alt_or_why = _table_group(plan, tb, data)
+        name = tb.get("id") or f"table-{tb['k'] + 1}"
+        if op is None:
+            if any(_g(o).get("tbl") == str(tb["k"]) for o in plan.ops):
+                plan.warn("TABLE_KEPT_AS_SHAPES",
+                          f"{name}: not drawn as a native table because {alt_or_why}; "
+                          "drawn as separate shapes as before")
+            continue
+        _register_group(plan, "table", name, [[op], alt_or_why])
+    for L in data.get("lists") or []:
+        chain, why = _list_group(plan, L, data)
+        name = L.get("id") or f"list-{L['k'] + 1}"
+        if chain is None:
+            if why:
+                plan.warn("LIST_KEPT_AS_SEPARATE_BOXES",
+                          f"{name}: not set as one text box because {why}; each item "
+                          "drawn as its own text box as before")
+            continue
+        _register_group(plan, "list", name, chain)
+    plan.ops.sort(key=lambda o: o["_order"])
+
+
+_STEP_WARN = {
+    "table": ("TABLE_NOT_NATIVE", "the native table rendered differently from the design "
+              "({why}); drawn as separate shapes as before"),
+    "list1": ("LIST_MARKERS_AS_SHAPES", "the bullets rendered differently from the design's "
+              "markers ({why}); the text stays one box and the markers are drawn as shapes"),
+    "list2": ("LIST_NOT_SINGLE_BOX", "the one-box list rendered differently from the design "
+              "({why}); each item drawn as its own text box as before"),
+}
+
+
+def _step_group(plan: "Plan", gid: int, why: str) -> list[dict]:
+    """Move a group one version down its chain; return the ops swapped in."""
+    grp = plan.groups[gid]
+    cur_ids = {id(o) for o in grp["chain"][grp["cur"]]}
+    plan.ops = [o for o in plan.ops if id(o) not in cur_ids]
+    grp["cur"] += 1
+    new = grp["chain"][grp["cur"]]
+    plan.ops += list(new)
+    plan.ops.sort(key=lambda o: o["_order"])
+    last = grp["cur"] == len(grp["chain"]) - 1
+    key = "table" if grp["kind"] == "table" else ("list2" if last else "list1")
+    code, text = _STEP_WARN[key]
+    plan.warn(code, f"{grp['name']}: " + text.format(why=why))
+    return list(new)
+
+
+def native_counts(plan: "Plan") -> dict:
+    n_tables = sum(1 for g_ in plan.groups.values() if g_["kind"] == "table" and g_["cur"] == 0)
+    n_lists = sum(1 for g_ in plan.groups.values()
+                  if g_["kind"] == "list" and g_["cur"] < len(g_["chain"]) - 1)
+    return {"native_tables": n_tables, "single_box_lists": n_lists}
+
+
+# ---------------------------------------------------------------------------
 # Driver
 # ---------------------------------------------------------------------------
 
@@ -1396,15 +2223,11 @@ def plan_from_extract(data: dict, subtitle_as_shape: bool,
     for f in data["fallbacks"]:
         plan.fallbacks.append({k: f.get(k) for k in ("kind", "id", "x", "y", "w", "h", "reason")})
     for _, kind, it in sorted(items, key=lambda z: z[0]):
-        if kind == "box":
-            _plan_box(plan, it, it["order"])
-        elif kind == "text":
-            name = "subtitle" if it.get("tf") == "subtitle" and subtitle_as_shape else None
-            _plan_text(plan, it, it["order"], name=name)
-        elif kind == "icon":
-            _plan_icon(plan, it)
-        else:
-            _plan_svg(plan, it)
+        n0 = len(plan.ops)
+        _plan_item(plan, kind, it, subtitle_as_shape)
+        for o in plan.ops[n0:]:
+            o["_g"] = it.get("g") or {}
+            o["_src"] = it.get("order")
     # Clearance growth (_apply_clearance) is NOT applied here: it runs after
     # the self-check, in translate_many, so the check compares the design as
     # drawn.
@@ -1412,7 +2235,20 @@ def plan_from_extract(data: dict, subtitle_as_shape: bool,
     plan.counts["pseudo_elements"] = int(data.get("pseudo_count") or 0)
     _check_pale_fills(plan)
     _check_arrow_ends(plan, data)
+    _plan_native_groups(plan, data)
     return plan, fields
+
+
+def _plan_item(plan: Plan, kind: str, it: dict, subtitle_as_shape: bool) -> None:
+    if kind == "box":
+        _plan_box(plan, it, it["order"])
+    elif kind == "text":
+        name = "subtitle" if it.get("tf") == "subtitle" and subtitle_as_shape else None
+        _plan_text(plan, it, it["order"], name=name)
+    elif kind == "icon":
+        _plan_icon(plan, it)
+    else:
+        _plan_svg(plan, it)
 
 
 def _public_plan(plan: Plan) -> dict:
@@ -1468,6 +2304,7 @@ def write_outputs(html: Path, emit_dir: Path, letter: str, plan: Plan, fields: d
     (emit_dir / f"{stem}.py").write_text(NATIVE_TEMPLATE.format(
         name=f"{stem}.py", version=TRANSLATOR_VERSION, plan_name=plan_name,
         fields_block=_fields_block(fields), fallback_line=fb, skill=str(SKILL)), encoding="utf-8")
+    plan.counts.update(native_counts(plan))
     report = {
         "translator": TRANSLATOR_VERSION,
         "html": str(html),
@@ -1702,56 +2539,118 @@ def font_ratio_message(font: str, ratio: float, installed: bool | None = None) -
             f"text size was not judged for this font")
 
 
-def self_check(items: list[tuple["Plan", dict]]) -> None:
-    """Render every translated slide once and hand any element that came out
-    looking different from the design to the agent (scripts/translate_alarm.py).
-
-    items: (plan, extracted data) pairs; plans are changed in place. If the
-    render can't run (no LibreOffice), every plan gets a SELF_CHECK_SKIPPED
-    warning and keeps all its elements.
-    """
+def _render_plans(plans: list["Plan"], engine: str = "auto") -> list:
+    """(image, characters) per plan, from one render pass (translate_alarm)."""
     import tempfile
     import translate_alarm as A
     from twins.html_emit import build
-    try:
-        with tempfile.TemporaryDirectory() as td:
-            paths = []
-            for k, (plan, _) in enumerate(items):
-                prs, _s = build(_public_plan(plan))
-                if plan.canvas_bg and plan.canvas_bg != "FFFFFF":
-                    # The canvas was left to the template's background; the
-                    # check's blank slide gets that color instead, so it
-                    # compares like with like.
-                    from pptx.dml.color import RGBColor
-                    _s.background.fill.solid()
-                    _s.background.fill.fore_color.rgb = RGBColor.from_string(plan.canvas_bg)
-                paths.append(Path(td) / f"t{k:03d}.pptx")
-                prs.save(str(paths[-1]))
-            rendered = A.render_full(paths)
-    except Exception as exc:
-        for plan, _ in items:
-            plan.warn("SELF_CHECK_SKIPPED", f"could not render to compare ({type(exc).__name__})")
-        return
-    for (plan, data), got in zip(items, rendered):
-        if not got:
-            plan.warn("SELF_CHECK_SKIPPED", "the slide did not render")
-            continue
-        native, chars = got
-        fired = [r for r in A.compare(plan.ops, A.load_rgb(data["_shot"]), native, chars)
-                 if r["fired"]]
-        plan.self_check = {"ran": True, "fired": [
-            {"element": r["name"], "what": r["fired"]} for r in fired]}
-        for font, ratio in (getattr(A.compare, "font_ratios", None) or {}).items():
-            plan.warn("RENDER_FONT_RATIO", font_ratio_message(font, ratio))
-        for r in sorted(fired, key=lambda r: -r["i"]):
-            x0, y0, x1, y1 = r["box"]
-            plan.fallbacks.append({
-                "kind": "self-check", "id": plan.ops[r["i"]].get("name") or "",
-                "x": x0, "y": y0, "w": x1 - x0, "h": y1 - y0,
-                "reason": "came out looking different from the design ("
-                          + ", ".join(r["fired"]) + ")"})
-            del plan.ops[r["i"]]
-        plan.counts["self_check_handed_over"] = len(fired)
+    with tempfile.TemporaryDirectory() as td:
+        paths = []
+        for k, plan in enumerate(plans):
+            prs, _s = build(_public_plan(plan))
+            if plan.canvas_bg and plan.canvas_bg != "FFFFFF":
+                # The canvas was left to the template's background; the
+                # check's blank slide gets that color instead, so it
+                # compares like with like.
+                from pptx.dml.color import RGBColor
+                _s.background.fill.solid()
+                _s.background.fill.fore_color.rgb = RGBColor.from_string(plan.canvas_bg)
+            paths.append(Path(td) / f"t{k:03d}.pptx")
+            prs.save(str(paths[-1]))
+        return A.render_full(paths, engine=engine)
+
+
+SELF_CHECK_ROUNDS = 4    # a group steps down at most twice, plus a last look
+
+
+def self_check(items: list[tuple["Plan", dict]], engine: str = "auto",
+               hand_over: bool = True) -> None:
+    """Render every translated slide and hand any element that came out
+    looking different from the design to the agent (scripts/translate_alarm.py).
+
+    A native table or a one-box list that comes out different is not handed
+    over: it steps down to its next version (see _plan_native_groups) and
+    that slide is rendered again, judging only what was swapped in. Text is
+    never dropped on the way.
+
+    items: (plan, extracted data) pairs; plans are changed in place.
+    engine: "auto" (LibreOffice, else PowerPoint when LibreOffice is not
+    installed), "libreoffice" or "powerpoint". hand_over=False (the go/no-go
+    harness) keeps fired elements in the plan and only records them.
+    If the render can't run, every plan gets a SELF_CHECK_SKIPPED warning and
+    keeps all its elements.
+    """
+    import translate_alarm as A
+    judge: dict[int, set | None] = {k: None for k in range(len(items))}
+    for plan, _ in items:
+        plan.self_check = {"ran": False, "fired": []}
+        plan.counts["self_check_handed_over"] = 0
+    todo = list(range(len(items)))
+    for rnd in range(SELF_CHECK_ROUNDS):
+        if not todo:
+            break
+        try:
+            rendered = _render_plans([items[k][0] for k in todo], engine)
+        except Exception as exc:
+            for k in todo:
+                items[k][0].warn("SELF_CHECK_SKIPPED",
+                                 f"could not render to compare ({type(exc).__name__})")
+            return
+        nxt = []
+        for k, got in zip(todo, rendered):
+            plan, data = items[k]
+            if not got:
+                plan.warn("SELF_CHECK_SKIPPED", "the slide did not render")
+                continue
+            native, chars = got
+            plan._last_render = got
+            rows = [r for r in A.compare(plan.ops, A.load_rgb(data["_shot"]), native, chars)
+                    if r["fired"]]
+            if rnd == 0:
+                for font, ratio in (getattr(A.compare, "font_ratios", None) or {}).items():
+                    plan.warn("RENDER_FONT_RATIO", font_ratio_message(font, ratio))
+            plan.self_check["ran"] = True
+            if judge[k] is not None:
+                rows = [r for r in rows if id(plan.ops[r["i"]]) in judge[k]]
+            by_op: dict[int, list] = {}
+            for r in rows:
+                by_op.setdefault(r["i"], []).append(r)
+            stepped, swapped_in, handed = set(), [], []
+            last_round = rnd == SELF_CHECK_ROUNDS - 1
+            for i, rs in sorted(by_op.items()):
+                o = plan.ops[i]
+                gid = o.get("_gid")
+                grp = plan.groups.get(gid) if gid is not None else None
+                if grp and grp["cur"] < len(grp["chain"]) - 1 and not last_round:
+                    if gid not in stepped:
+                        stepped.add(gid)
+                        why = ", ".join(sorted({w for r in rs for w in r["fired"]}))
+                        swapped_in.append((gid, why))
+                    continue
+                handed.append((o, rs))
+            for o, rs in handed:
+                plan.self_check["fired"] += [{"element": r["name"], "what": r["fired"]} for r in rs]
+            if hand_over:
+                for o, rs in handed:
+                    x0 = min(r["box"][0] for r in rs)
+                    y0 = min(r["box"][1] for r in rs)
+                    x1 = max(r["box"][2] for r in rs)
+                    y1 = max(r["box"][3] for r in rs)
+                    plan.fallbacks.append({
+                        "kind": "self-check", "id": o.get("name") or "",
+                        "x": x0, "y": y0, "w": x1 - x0, "h": y1 - y0,
+                        "reason": "came out looking different from the design ("
+                                  + ", ".join(sorted({w for r in rs for w in r["fired"]})) + ")"})
+                gone = {id(o) for o, _ in handed}
+                plan.ops = [o for o in plan.ops if id(o) not in gone]
+                plan.counts["self_check_handed_over"] += len(handed)
+            if swapped_in:
+                new_ids = set()
+                for gid, why in swapped_in:
+                    new_ids |= {id(o) for o in _step_group(plan, gid, why)}
+                judge[k] = new_ids
+                nxt.append(k)
+        todo = nxt
 
 
 def translate_many(jobs: list[tuple], check: bool = True) -> list[dict]:

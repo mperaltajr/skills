@@ -1,20 +1,28 @@
 #!/usr/bin/env python3
 """
-render_silent.py — Render PPTX to per-slide PNGs WITHOUT touching the user's
-PowerPoint instance.
+render_slides.py — Render PPTX to per-slide PNGs without disturbing the user's
+PowerPoint.
 
-Default engine = LibreOffice headless (always safe; spawns its own process,
-never sees PowerPoint).  Use --engine=ppt only when pixel-perfect font
-fidelity is required AND PowerPoint isn't already open with other files.
+Default engine = LibreOffice headless (spawns its own process, never sees
+PowerPoint). When LibreOffice is not installed (Windows), PowerPoint draws
+the slides instead, the safe way (ppt_safe.py): our file is opened read-only
+without a window, only that file is closed, and PowerPoint is quit only if
+we started it and nothing else is open in it. --engine ppt uses that same
+safe path on purpose (PowerPoint's own fonts and layout), also while the
+user has PowerPoint open.
+
+Set SLIDE_LAB_NO_LIBREOFFICE=1 to act as if LibreOffice were not installed
+(tests, or a broken LibreOffice).
 
 Usage:
-  py -3 render_silent.py <pptx> <out_dir>
-  py -3 render_silent.py <pptx> <out_dir> --dpi 200
-  py -3 render_silent.py <pptx> <out_dir> --engine ppt          # uses COM (will refuse if PPT is already running)
+  py -3 render_slides.py <pptx> <out_dir>
+  py -3 render_slides.py <pptx> <out_dir> --dpi 200
+  py -3 render_slides.py <pptx> <out_dir> --engine ppt          # PowerPoint, safe with PowerPoint open
 
 Outputs: <out_dir>/slide_01.png, slide_02.png, …
 """
 import argparse, os, pathlib, subprocess, sys, tempfile, shutil, threading, time
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
 
 def _resolve_soffice() -> str:
@@ -26,8 +34,11 @@ def _resolve_soffice() -> str:
       3. Common Windows default install location
       4. Common macOS default install location
 
-    Raises RuntimeError on the FIRST call that needs soffice if nothing resolves.
+    Raises RuntimeError on the FIRST call that needs soffice if nothing resolves,
+    or when SLIDE_LAB_NO_LIBREOFFICE=1 (act as if it were not installed).
     """
+    if os.environ.get("SLIDE_LAB_NO_LIBREOFFICE", "").strip() in ("1", "true", "yes"):
+        raise RuntimeError("LibreOffice turned off (SLIDE_LAB_NO_LIBREOFFICE=1).")
     env = os.environ.get("SLIDE_LAB_SOFFICE")
     if env and pathlib.Path(env).exists():
         return env
@@ -86,30 +97,14 @@ def powerpoint_available() -> bool:
 def render_ppt_fallback(pptx: pathlib.Path, out_dir: pathlib.Path, width_px: int):
     """Draw slides with PowerPoint when LibreOffice is not installed.
 
-    Unlike --engine ppt this does not refuse when PowerPoint is open: it opens
-    the deck read-only without a window, exports, closes only that deck, and
-    quits PowerPoint only if it started it. Same slide_NN.png names as
-    render_libre, so every caller works unchanged.
+    Safe while the user has PowerPoint open (ppt_safe.py): the deck is opened
+    read-only without a window, only that deck is closed, and PowerPoint is
+    quit only if it was not running before AND nothing is open in it after
+    (the user may open PowerPoint while a render runs). Renders are serial.
+    Same slide_NN.png names as render_libre, so every caller works unchanged.
     """
-    import win32com.client
-    out_dir.mkdir(parents=True, exist_ok=True)
-    for p in out_dir.glob("slide_*.png"):
-        p.unlink()
-    was_running = _powerpoint_already_running()
-    height_px = int(width_px * 9 / 16)
-    app = win32com.client.Dispatch("PowerPoint.Application")
-    n = 0
-    try:
-        pres = app.Presentations.Open(str(pptx), True, False, False)  # read-only, no window
-        try:
-            for i, slide in enumerate(pres.Slides, start=1):
-                slide.Export(str(out_dir / f"slide_{i:02d}.png"), "PNG", width_px, height_px)
-                n = i
-        finally:
-            pres.Close()
-    finally:
-        if not was_running:
-            app.Quit()
+    import ppt_safe
+    n = ppt_safe.export_pngs(pathlib.Path(pptx), pathlib.Path(out_dir), width_px)
     print(f"Rendered {n} slides to {out_dir} (PowerPoint, because LibreOffice is not installed)")
 
 
@@ -246,31 +241,14 @@ def _powerpoint_already_running() -> bool:
 
 
 def render_ppt_com(pptx: pathlib.Path, out_dir: pathlib.Path, width_px: int):
-    """Pixel-perfect via PowerPoint COM. Refuses if PowerPoint is already running."""
-    if _powerpoint_already_running():
-        raise RuntimeError(
-            "PowerPoint is already running — refusing to launch a COM instance "
-            "because it would interfere with your open decks.\n"
-            "Close PowerPoint and retry, or use the default LibreOffice engine "
-            "(drop --engine ppt).")
-    import win32com.client
-    out_dir.mkdir(parents=True, exist_ok=True)
-    for p in out_dir.glob("slide_*.png"):
-        p.unlink()
-    height_px = int(width_px * 9 / 16)
-    powerpoint = win32com.client.Dispatch("PowerPoint.Application")
-    try:
-        pres = powerpoint.Presentations.Open(str(pptx), WithWindow=False)
-        try:
-            for i, slide in enumerate(pres.Slides, start=1):
-                png = out_dir / f"slide_{i:02d}.png"
-                slide.Export(str(png), "PNG", width_px, height_px)
-                print(f"  {png.name}")
-        finally:
-            pres.Close()
-    finally:
-        powerpoint.Quit()
-    print(f"\nRendered {i} slides to {out_dir} (PowerPoint COM, {width_px}px)")
+    """Pixel-perfect via PowerPoint itself, safe while the user has PowerPoint
+    open (ppt_safe.py: read-only, no window, closes only this deck, quits
+    only a PowerPoint it started and nothing else is open in)."""
+    import ppt_safe
+    n = ppt_safe.export_pngs(pathlib.Path(pptx), pathlib.Path(out_dir), width_px)
+    for i in range(1, n + 1):
+        print(f"  slide_{i:02d}.png")
+    print(f"\nRendered {n} slides to {out_dir} (PowerPoint, {width_px}px)")
 
 
 # ---------------------------------------------------------------------------
@@ -280,7 +258,8 @@ def main():
     ap.add_argument("pptx", type=pathlib.Path)
     ap.add_argument("out_dir", type=pathlib.Path)
     ap.add_argument("--engine", choices=["libre", "ppt"], default="libre",
-        help="libre (default; silent, never touches PowerPoint) or ppt (pixel-perfect COM, refuses if PowerPoint already running)")
+        help="libre (default; never touches PowerPoint; falls back to PowerPoint when LibreOffice "
+             "is not installed) or ppt (PowerPoint itself, safe with PowerPoint open)")
     ap.add_argument("--dpi",   type=int, default=150,
         help="LibreOffice render DPI (default 150 ≈ 1700px wide; 200 ≈ 2300px)")
     ap.add_argument("--width", type=int, default=1920,

@@ -72,26 +72,44 @@ def render_many(pptxs: list[Path]) -> list[np.ndarray | None]:
 
 
 def _powerpoint_pdfs(pptxs: list[Path]) -> None:
-    """PDF beside each PPTX, exported by PowerPoint itself (Windows, opt-in,
-    PowerPoint must be closed). A file PowerPoint refuses gets no PDF."""
-    import win32com.client
-    app = win32com.client.DispatchEx("PowerPoint.Application")
+    """PDF beside each PPTX, exported by PowerPoint itself (Windows). Safe with
+    the user's PowerPoint open: each file is opened read-only without a window
+    and only that file is closed (slide-qc/scripts/ppt_safe.py). A file
+    PowerPoint refuses gets no PDF."""
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "slide-qc" / "scripts"))
+    import ppt_safe
+    ppt_safe.export_pdfs(pptxs)
+
+
+def libreoffice_available() -> bool:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "slide-qc" / "scripts"))
+    from render_slides import _resolve_soffice
     try:
-        for p in pptxs:
-            try:
-                pres = app.Presentations.Open(str(p), True, False, False)  # read-only, no window
-                pres.SaveAs(str(p.with_suffix(".pdf")), 32)                 # 32 = PDF
-                pres.Close()
-            except Exception:
-                pass
-    finally:
-        app.Quit()
+        _resolve_soffice()
+        return True
+    except Exception:
+        return False
 
 
-def render_full(pptxs: list[Path], engine: str = "libreoffice") -> list[tuple[np.ndarray, list] | None]:
+def pick_engine(engine: str = "auto") -> str:
+    """"libreoffice" or "powerpoint". auto = LibreOffice when installed, else
+    PowerPoint when it can be driven (Windows), else LibreOffice (which then
+    fails with the install hint)."""
+    if engine in ("libreoffice", "powerpoint"):
+        return engine
+    if libreoffice_available():
+        return "libreoffice"
+    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "slide-qc" / "scripts"))
+    from render_slides import powerpoint_available
+    return "powerpoint" if powerpoint_available() else "libreoffice"
+
+
+def render_full(pptxs: list[Path], engine: str = "auto") -> list[tuple[np.ndarray, list] | None]:
     """(image, characters) for page 1 of each PPTX, from one render pass.
     The characters are where the renderer actually put each letter.
-    engine "powerpoint" uses PowerPoint itself (validation runs only)."""
+    engine: "auto" (LibreOffice, else PowerPoint when LibreOffice is not
+    installed), "libreoffice" or "powerpoint" (safe with PowerPoint open)."""
+    engine = pick_engine(engine)
     import sys
     sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "slide-qc" / "scripts"))
     from render_slides import _resolve_soffice
@@ -480,8 +498,35 @@ def _align(wD: np.ndarray, native: np.ndarray, r, bg, mask, edges: bool = False)
     return float(np.hypot(bx, by)), e0, e
 
 
+def expand_ops(ops: list[dict]) -> tuple[list[dict], list[int]]:
+    """The elements to judge, and the plan op each one belongs to.
+
+    A native table is judged cell by cell (each cell's text as a text box,
+    each cell's area as a shape) and a one-box list as its text plus each
+    bullet's spot: the plan carries those as the op's "_cmp" list."""
+    flat, owner = [], []
+    for i, o in enumerate(ops):
+        subs = o.get("_cmp")
+        for s in (subs if subs is not None else [o]):
+            flat.append(s)
+            owner.append(i)
+    return flat, owner
+
+
 def compare(ops: list[dict], design: np.ndarray, native: np.ndarray,
             chars: list[dict] | None = None) -> list[dict]:
+    """One row per judged element (see expand_ops); row["i"] is the plan op
+    it belongs to, row["sub"] its place in the expanded list."""
+    flat, owner = expand_ops(ops)
+    rows = _compare_flat(flat, design, native, chars)
+    for r in rows:
+        r["sub"] = r["i"]
+        r["i"] = owner[r["i"]]
+    return rows
+
+
+def _compare_flat(ops: list[dict], design: np.ndarray, native: np.ndarray,
+                  chars: list[dict] | None = None) -> list[dict]:
     """One row per element: its numbers and whether it trips the alarm.
 
     Text is judged by where its letters landed (from the PDF's characters)

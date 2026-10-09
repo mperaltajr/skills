@@ -5,6 +5,7 @@
     further it may go down to 11 or 10.5 pt, never lower. 10.5 to 11 pt is
     reported as a note (Advisory); under 10.5 pt is a finding (Major).
   - A slide uses at most 3 body text sizes.
+  - Text in native tables counts like any text box (2026-10-08).
   - Exceptions: sources, footnotes and chart text (axis, ticks, legend, data
     labels) may be smaller, but never under 9 pt. Title, takeaway and the
     template's own footer and page number are set by the template and not
@@ -82,16 +83,21 @@ def check_slide(slide, slide_h: int) -> dict:
         'too_many_sizes': bool}"""
     small_body, below_default, small_exc, body_sizes = [], [], [], set()
     for sh in _shapes(slide.shapes):
-        if not getattr(sh, "has_text_frame", False) or not sh.has_text_frame:
-            continue
-        if sh.is_placeholder and sh.placeholder_format.type in TEMPLATE_PH:
+        if getattr(sh, "has_table", False) and sh.has_table:
+            # a native table: every cell's text counts like a text box's
+            frames = [c.text_frame for row in sh.table.rows for c in row.cells]
+        elif getattr(sh, "has_text_frame", False) and sh.has_text_frame:
+            if sh.is_placeholder and sh.placeholder_format.type in TEMPLATE_PH:
+                continue
+            frames = [sh.text_frame]
+        else:
             continue
         name = sh.name or ""
         if TEMPLATE_NAME.match(name) or name in PIPELINE_CHROME_NAMES:
             continue
         exempt_shape = bool(EXEMPT_NAME.search(name))
         bottom = (sh.top or 0) > slide_h * 0.85
-        for para in sh.text_frame.paragraphs:
+        for para in (p for tf in frames for p in tf.paragraphs):
             text = "".join(r.text for r in para.runs).strip()
             if not text:
                 continue

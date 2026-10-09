@@ -62,6 +62,11 @@ def pptx_text(pptx: Path) -> str:
     for sh in prs.slides[0].shapes:
         if sh.has_text_frame:
             out.append(sh.text_frame.text)
+        elif getattr(sh, "has_table", False) and sh.has_table:
+            # a native table's text is in its cells
+            for row in sh.table.rows:
+                for cell in row.cells:
+                    out.append(cell.text_frame.text)
     return "\n".join(out)
 
 
@@ -115,7 +120,8 @@ def main(argv=None) -> int:
     rng = random.Random(20261001)
     results, blind_key = [], {}
     with sync_playwright() as pw:
-        browser = pw.chromium.launch()
+        from _browser import launch
+        browser = launch(pw)
         page = browser.new_page(viewport={"width": 1280, "height": 720})
         for i, (tag, html, npy) in enumerate(jobs, 1):
             key = f"{tag}__{html.parent.name}__{html.stem}"

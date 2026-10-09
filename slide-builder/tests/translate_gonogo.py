@@ -48,7 +48,7 @@ def main(argv=None) -> int:
     ap.add_argument("--out", required=True, type=Path)
     ap.add_argument("--work", required=True, type=Path, action="append")
     ap.add_argument("--engine", default="libreoffice", choices=("libreoffice", "powerpoint"),
-                    help="Render with PowerPoint itself (close PowerPoint first).")
+                    help="Render with PowerPoint itself (safe with PowerPoint open; slower).")
     args = ap.parse_args(argv)
     out = args.out
     (out / "pptx").mkdir(parents=True, exist_ok=True)
@@ -79,59 +79,67 @@ def main(argv=None) -> int:
                                    fallback=plan.fallbacks, warnings=[])
                         items.append((od, res, None, None, None))
                         continue
-                    prs, _ = build(T._public_plan(plan))
-                    pp = out / "pptx" / f"{od.name}.pptx"
-                    prs.save(str(pp))
-                    res["open_issues"] = [x["issue"][:120] for x in
-                                          check_openability(Presentation(str(pp)))]
-                    # Everything the design shows, by character count (so a
-                    # field's whitespace can't stop it being taken out), less
-                    # the template's fields (the graft draws those) and text
-                    # the design itself hides (covered or clipped).
-                    want = _norm_chars(data.get("visible_text", ""))
-                    for v in fields.values():     # (a subtitle drawn as a shape is not in here)
-                        want = want - _norm_chars(v or "")
-                    for t in data["texts"]:
-                        if t.get("covered") or t.get("clipped"):
-                            want = want - _norm_chars("".join(r.get("t", "") for r in t["runs"]))
-                    missing = want - _norm_chars(pptx_text(pp))
-                    # characters inside elements handed to the agent are its to draw
-                    res["text_in_agent_elements"] = bool(plan.fallbacks)
-                    res["text_chars"] = sum(want.values())
-                    res["text_missing"] = sum(missing.values())
-                    res["fallback"] = plan.fallbacks
-                    res["warnings"] = [x["code"] for x in plan.warnings]
-                    items.append((od, res, plan, A.load_rgb(data["_shot"]), pp))
+                    items.append((od, res, plan, None, data))
                 except Exception as exc:
                     res["error"] = f"{type(exc).__name__}: {exc}"
                     items.append((od, res, None, None, None))
         br.close()
 
-    todo = [pp for od, res, plan, shot, pp in items if pp is not None]
-    rendered = dict(zip(todo, A.render_full(todo, engine=args.engine)))
+    # The converter's own self-check, as in a build: a native table or a
+    # one-box list that renders differently steps down to its fallback and is
+    # rendered again. Elements that would go to the agent are only recorded
+    # (hand_over=False), so the text and line checks below see every element.
+    live = [(plan, data) for od, res, plan, shot, data in items if plan is not None]
+    T.self_check(live, engine=args.engine, hand_over=False)
 
     rng = random.Random(20261001)
     blind_key = {}
     line_total = line_match = 0
     mismatches, midword, alarms = [], [], []
-    for od, res, plan, shot, pp in items:
-        if pp is None:
+    for od, res, plan, shot, data in items:
+        if plan is None:
             continue
-        if not rendered.get(pp):
+        prs, _ = build(T._public_plan(plan))
+        pp = out / "pptx" / f"{od.name}.pptx"
+        prs.save(str(pp))
+        res["open_issues"] = [x["issue"][:120] for x in
+                              check_openability(Presentation(str(pp)))]
+        # Everything the design shows, by character count (so a field's
+        # whitespace can't stop it being taken out), less the template's
+        # fields (the graft draws those) and text the design itself hides
+        # (covered or clipped).
+        fields = {k: v for k, v in (data.get("fields") or {}).items() if k != "subtitle"}
+        want = _norm_chars(data.get("visible_text", ""))
+        for v in fields.values():
+            want = want - _norm_chars(v or "")
+        for t in data["texts"]:
+            if t.get("covered") or t.get("clipped"):
+                want = want - _norm_chars("".join(r.get("t", "") for r in t["runs"]))
+        missing = want - _norm_chars(pptx_text(pp))
+        # characters inside elements handed to the agent are its to draw
+        res["text_in_agent_elements"] = bool(plan.fallbacks)
+        res["text_chars"] = sum(want.values())
+        res["text_missing"] = sum(missing.values())
+        res["fallback"] = plan.fallbacks
+        res["warnings"] = [x["code"] for x in plan.warnings]
+        res["native"] = T.native_counts(plan)
+        got = getattr(plan, "_last_render", None)
+        if not got:
             res["error"] = "render failed" + (" (PowerPoint could not open or export it)"
                                               if args.engine == "powerpoint" else "")
             continue
-        native, cs = rendered[pp]
+        native, cs = got
         # same lines
         t, m, rows, mw = _lines(od, plan, cs)
         line_total += t; line_match += m; mismatches += rows; midword += mw
-        # alarm
-        fired = [r for r in A.compare(plan.ops, shot, native, cs) if r["fired"]]
-        res["alarm"] = [f"{r['name']} {r['fired']}" for r in fired]
-        alarms += [dict(r, option=od.name) for r in fired]
+        # alarm: what the self-check would hand to the agent
+        fired = plan.self_check.get("fired") or []
+        res["alarm"] = [f"{r['element']} {r['what']}" for r in fired]
+        alarms += [{"option": od.name, "name": r["element"], "fired": r["what"]} for r in fired]
         # blind sheet: design | X | Y
         agent_png = od / "render_agent" / "slide_01.png"
         if agent_png.exists():
+            shot = A.load_rgb(data["_shot"])
             ims = {"design": Image.fromarray(shot.astype("uint8")),
                    "agent": Image.open(agent_png).convert("RGB").resize((1280, 720)),
                    "script": Image.fromarray(native.astype("uint8"))}
@@ -168,6 +176,10 @@ def main(argv=None) -> int:
         "alarm_options": sum(1 for r in done if r.get("alarm")),
         "alarm_elements": len(alarms),
         "warning_counts": dict(Counter(w for r in done for w in r["warnings"])),
+        "native_table_options": sum(1 for r in done if (r.get("native") or {}).get("native_tables")),
+        "native_tables": sum((r.get("native") or {}).get("native_tables", 0) for r in done),
+        "single_box_list_options": sum(1 for r in done if (r.get("native") or {}).get("single_box_lists")),
+        "single_box_lists": sum((r.get("native") or {}).get("single_box_lists", 0) for r in done),
     }
     (out / "gonogo.json").write_text(json.dumps(
         {"summary": summary, "line_mismatches": mismatches, "midword": midword,
@@ -180,8 +192,7 @@ def main(argv=None) -> int:
     for r in midword[:10]:
         print(f"  MID-WORD {r['option']} [{r['id']}]: {r['at']!r}")
     for r in alarms[:20]:
-        print(f"  ALARM {r['option']} {r['name']} {r['fired']} color={r['color']} "
-              f"ink={r['ink_design']}->{r['ink_native']} shift={r.get('shift')}")
+        print(f"  ALARM {r['option']} {r['name']} {r['fired']}")
     for r in done:
         if r["open_issues"] or r["text_missing"]:
             print(f"  {r['key']}: open={r['open_issues'][:1]} missing={r['text_missing']}")
@@ -191,10 +202,11 @@ def main(argv=None) -> int:
 def _lines(od, plan, cs):
     """Do the text boxes break into the same lines as the design, and is any
     word split mid-word? Uses the alarm's own matching of text to the PDF."""
-    found = A.match_text(plan.ops, cs)
+    ops, _owner = A.expand_ops(plan.ops)      # a table's cells count as text boxes
+    found = A.match_text(ops, cs)
     total = match = 0
     rows, midword = [], []
-    for i, o in enumerate(plan.ops):
+    for i, o in enumerate(ops):
         if o["op"] != "text" or not o.get("_lines"):
             continue
         raw = A.op_text(o)
