@@ -1030,9 +1030,10 @@ The expanded format makes the brief longer than v1's version — typically 20-30
 - titles that wrap to two or more lines on the template, and takeaways that wrap under the title (measured with the template's own font and box width);
 - words from `slide-builder/reference/banned-words.md`, and judgment words ("significant", "scalable") with no number next to them;
 - takeaways with no number, and "not X, it's Y" reframes;
-- thresholds ("target", "significant") with no number or "(to be set)".
+- thresholds ("target", "significant") with no number or "(to be set)";
+- **recommendations** (the owner's rule, 2026-10-08; never a reason to refuse a seal): a title that wraps to two lines AND has a takeaway under it (suggest a one-line title or dropping the takeaway: a two-line title is allowed, but a subtitle suits a one-line title), and a takeaway that repeats the title (half or more of its content words are already in the title; it should state the number or consequence the title does not).
 
-Run it during the language pass and fold its rows into the review table. `seal_brief.py` runs it again and refuses to seal while any row is open, unless the user's own reasons are passed with `--accepted`. It does not judge the argument; the nine-part gate above does that.
+Run it during the language pass and fold its rows into the review table. `seal_brief.py` runs it again and refuses to seal while any row other than a recommendation is open, unless the user's own reasons are passed with `--accepted`. It does not judge the argument; the nine-part gate above does that.
 
 ### Optional per-slide steering fields (P1 enrichment)
 

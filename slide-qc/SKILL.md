@@ -18,7 +18,7 @@ You are the QC reviewer. You look at every slide. You report what is wrong. The 
 
 ## When to invoke
 
-- After any slide-builder pipeline run completes (specifically after `compile_picks.py` produces `final_deck.pptx`)
+- After any slide-builder pipeline run completes (specifically after `compile_picks.py` produces the deck, named after the topic; older builds named it `final_deck.pptx`)
 - When the user says "qc this", "check the deck", "review the slides", or `/slide-qc`
 - When the user has a PPTX and wants to know if it's safe to present
 
@@ -71,6 +71,7 @@ Parse this and hold the violations in memory. They will be merged with the visua
 - **The template's own sample text** (category `template-sample-text`): a whole line in angle brackets (`<Customize with ...>`) or a "Click to add" / "Click to edit" line on a slide → Critical. A layout footer cloned with its sample line once shipped on every slide and only a human eye caught it (2026-10-08); finalize now clears such lines, so one here is a leak. A `<` inside a sentence ("fell <5%") is not flagged.
 - **Buzzwords and competitor names** from `slide-builder/reference/banned-words.md` → Major, one finding per slide listing the words.
 - **Text size** (body under 10.5pt, more than 3 body sizes, exceptions under 9pt) → Major, one finding per problem per slide; body at 10.5 to 11pt (below the 12pt default) → Advisory. Slide Lab's own 9pt "Option B" label on an all-options deck (shape `chrome-option-badge`) is skipped, not counted; any other shape is checked, whatever its name.
+- **A line that repeats the title** (category `repeats-title`): the takeaway under the title or a bottom takeaway / so-what band where half or more of its content words are already in the title → Major, marked `"content": true, "auto_fix": false`. It is a wording choice: show it to the user with the suggestion (state the number or consequence the title does not, or leave the line out); never fix it automatically. **A two-line title with a takeaway under it AND a filled bottom band** (category `title-load`) → Advisory recommendation (a one-line title, or no takeaway under a two-line title). The owner's rule (2026-10-08): a two-line title is allowed, each line must add something the others do not say. Both come from `slide-builder/scripts/title_load.py`.
 - Hidden slides leaking into the file → Major
 - Comments left attached to slides → Major
 - Speaker notes containing scratch content (TODO / asdf / WIP / etc.) → Major
