@@ -13,6 +13,12 @@
      converted again
   7. on a slide where the user kept two options (B and C), "--slides 1B"
      rebuilds B only, keeps C byte-identical, and compiles the labeled deck
+  8. on an all-options deck where slide 1 keeps only A of A, B, C: A edited
+     in place, "--slides 1" converts A only and leaves the picks unchanged
+     (B and C stay out of the deck); "--slides 1B" is refused; a slide NOT
+     being fixed with a new design since the compile (slide_NN/_prev/) blocks
+     the fix; once B is designed again after the compile, "--slides 1" is
+     refused (a new alternative the user has not seen)
 
 Run:  py -3 slide-builder/tests/run_qc_fix_smoke.py
 Prints "SMOKE PASSED." on success; raises AssertionError otherwise.
@@ -167,6 +173,81 @@ def _kept_options_fix() -> None:
         H.cleanup(tmp)
 
 
+def _one_kept_of_several() -> None:
+    """[8] the user kept one option of several on an all-options deck (Kinfield
+    v3.1, 2026-10-09: 13 of 49 slides kept only A next to B and C, and
+    apply_qc_fix refused every fix to them, with a message saying the user had
+    not chosen)."""
+    import shutil
+    import time
+    from datetime import datetime
+    from pptx import Presentation
+    print("[8] a slide that keeps one option of three: fix the kept one in place")
+    tmp, out = H.new_build(2)
+    try:
+        for L in "ABC":
+            H.write_option(out, 1, L)
+        for L in "AB":
+            H.write_option(out, 2, L)
+        assert H.finalize(out).returncode == 0
+        assert H.run("build_review.py", "--out", out).returncode == 0
+        tok = _state.read_state(out)["review"]["token"]
+        body = "slide_01=A;slide_02=AB"
+        r = H.run("record_picks.py", "--out", out, "--approved",
+                  f"Picks: 1A 2AB (check {_state.approval_check(tok, body)})")
+        assert r.returncode == 0, r.stdout[-1500:]
+        assert H.finalize(out).returncode == 0
+        assert H.run("build_review.py", "--out", out, "--final").returncode == 0
+        ftok = _state.read_state(out)["final_check"]["token"]
+        r = H.run("compile_picks.py", "--out", out, "--final-token", ftok,
+                  "--all-variations", "--badge")
+        assert r.returncode == 0, r.stdout[-1500:]
+        sd = out / "slide_01"
+        assert sorted(p.name for p in sd.glob("option_?.py")) == \
+            ["option_A.py", "option_B.py", "option_C.py"], "the compile pruned options"
+        picks_before = _state.read_state(out)["review"]["picks"]
+
+        time.sleep(1.1)
+        body_a = H.OPTION_SCRIPT.format(n=1, L="A", skill=str(H.SKILL)).replace(
+            "font_size_pt=18", "font_size_pt=16")
+        H.write_option(out, 1, "A", body=body_a)          # the edit in place of A
+
+        r = H.run("apply_qc_fix.py", "--out", out, "--slides", "1B", "--approved", "fix it")
+        assert r.returncode == 5 and "keeps option A, not B" in r.stdout, r.stdout[-1500:]
+
+        prev = out / "slide_02" / "_prev" / datetime.now().strftime("%Y%m%dT%H%M%S")
+        prev.mkdir(parents=True)
+        r = H.run("apply_qc_fix.py", "--out", out, "--slides", "1", "--approved", "fix it")
+        assert r.returncode == 5 and "slide_02 got a new design" in r.stdout, r.stdout[-1500:]
+        shutil.rmtree(out / "slide_02" / "_prev")
+        print("    ok: a letter the user did not keep, and an unpicked redesign elsewhere, "
+              "are refused")
+
+        r = H.run("apply_qc_fix.py", "--out", out, "--slides", "1",
+                  "--approved", "fix the size on slide 1")
+        assert r.returncode == 0, r.stdout[-2000:] + r.stderr[-800:]
+        st = _state.read_state(out)
+        assert st["review"]["picks"] == picks_before == \
+            {"slide_01": ["A"], "slide_02": ["A", "B"]}, st["review"]["picks"]
+        deck = Presentation(str(_state.compiled_deck(out)))
+        badges = [sh.text_frame.text for s in deck.slides for sh in s.shapes
+                  if sh.name == "chrome-option-badge"]
+        assert len(deck.slides) == 3 and badges == ["Option A", "Option A", "Option B"], badges
+        print("    ok: A converted, picks unchanged, B and C of slide 1 not in the deck")
+
+        r = H.run("apply_qc_fix.py", "--out", out, "--slides", "1A",
+                  "--approved", "fix it again")
+        assert r.returncode == 0, r.stdout[-1500:]
+        time.sleep(1.1)
+        H.write_option(out, 1, "B")                        # a new design for B
+        r = H.run("apply_qc_fix.py", "--out", out, "--slides", "1", "--approved", "fix it")
+        assert r.returncode == 5 and "designed after the last compile" in r.stdout \
+            and "not chosen between" not in r.stdout, r.stdout[-1500:]
+        print("    ok: --slides 1A works too; a new B since the compile is refused")
+    finally:
+        H.cleanup(tmp)
+
+
 def main() -> int:
     tmp, out = H.new_build(2)
     try:
@@ -203,7 +284,7 @@ def main() -> int:
         H.write_option(out, 2, "B")
         r = H.run("apply_qc_fix.py", "--out", out, "--slides", "2", "--approved", "fix it")
         assert r.returncode == 5 and "has 2 options" in r.stdout and \
-            "not chosen between" in r.stdout, r.stdout
+            "designed after the last compile" in r.stdout, r.stdout
         for p in (out / "slide_02").glob("option_B*"):
             p.unlink()
         print("    ok")
@@ -224,6 +305,7 @@ def main() -> int:
         H.cleanup(tmp)
     _agent_part_survives()
     _kept_options_fix()
+    _one_kept_of_several()
     print("SMOKE PASSED.")
     return 0
 

@@ -253,16 +253,23 @@ def main(argv=None) -> int:
     ap.add_argument("--edits-done", action="store_true", dest="edits_done",
                     help="The picked slides with comments were edited in place: check, mark "
                          "the comments applied, convert them together.")
+    ap.add_argument("--edited-by-parent", action="append", default=[], dest="edited_by_parent",
+                    help='With --edits-done: a slide the main session edited itself, no worker '
+                         '(a color, a font size or the user\'s exact words, direct-path pages '
+                         'only): "N: <what changed>" (repeat per slide). check_done lists it.')
     args = ap.parse_args(argv)
     out = args.out
     if not out.exists():
         print(f"ERROR: out dir not found: {out}")
         return 2
+    if args.edited_by_parent and not args.edits_done:
+        print("ERROR: --edited-by-parent goes with --edits-done.")
+        return 2
     if args.edits_done:
         if args.approved or args.approved_in_chat:
-            print("ERROR: --edits-done takes only --out.")
+            print("ERROR: --edits-done takes only --out (and --edited-by-parent).")
             return 2
-        return edits_done(out)
+        return edits_done(out, args.edited_by_parent)
     if args.comment and not args.approved_in_chat:
         print("ERROR: --comment goes with --approved-in-chat; the page's message carries "
               "its comments in its Feedback block.")
@@ -556,7 +563,34 @@ def _print_finish_steps(out: Path, meta: dict, picks: dict, step: int) -> None:
           "(or for them to say \"build it\" in chat).")
 
 
-def edits_done(out: Path) -> int:
+def _parent_edits(out: Path, entries: list, sids: list, picks: dict):
+    """Check the --edited-by-parent entries ("N: what changed"). Returns
+    ({sid: what}, "") or (None, reason). Only a direct-path pick (option_X.py
+    with no sketch behind it) may be edited by the parent; a sketch page keeps
+    the worker route (owner's decision, 2026-10-09)."""
+    got: dict[str, str] = {}
+    for e in entries or []:
+        m = re.fullmatch(r"\s*(\d{1,3})\s*:\s*(.+?)\s*", e or "", re.S)
+        if not m:
+            return None, (f"--edited-by-parent takes \"N: <what changed>\", e.g. "
+                          f"\"19: bar color to brand Teal\"; got {e!r}.")
+        sid = _p.slide_key(int(m.group(1)))
+        if sid not in sids:
+            return None, (f"{sid} is not waiting on an edit from the user's comments "
+                          f"(waiting: {', '.join(sids)}).")
+        v = picks.get(sid)
+        letters = [L for L in (v if isinstance(v, list) else [v]) if L and L != "-"]
+        sketch = [L for L in letters if not _state.direct_path_letter(out / sid, L)]
+        if not letters or sketch:
+            return None, (f"{sid} option {', '.join(sketch or letters) or '?'} is not a "
+                          "direct-path page (option_X.py with no option_X.html). A parent "
+                          "edit is for direct-path pages only; sketch pages keep the worker "
+                          "route.")
+        got[sid] = (got[sid] + "; " if sid in got else "") + m.group(2)
+    return got, ""
+
+
+def edits_done(out: Path, parent_entries: list | None = None) -> int:
     """The edit-first slides were edited in place: verify, record, convert."""
     state = _state.read_state(out)
     pend = _state.pending_comments(state, "edit")
@@ -583,11 +617,20 @@ def edits_done(out: Path) -> int:
                   f"{letters_now}). An edit in place keeps the picked option and its letter; "
                   "new designs are a Replace round.")
             return 5
+    by_parent, why = _parent_edits(out, parent_entries or [], sids, picks)
+    if by_parent is None:
+        print(f"REFUSED: {why}")
+        return 5
     for sid in sids:
         v = picks.get(sid)
         letters = ", ".join(v) if isinstance(v, list) else str(v)
+        who = "by the parent, no worker" if sid in by_parent else "same layout"
         _state.mark_comments_applied(out, sid, f"edited in place (option {letters} kept, "
-                                     "same layout, the comments applied)", "edit")
+                                     f"{who}, the comments applied)", "edit")
+        if sid in by_parent:
+            _state.record_parent_edit(out, sid, by_parent[sid], "record_picks.py --edits-done")
+            print(f"[ok] {sid}: recorded as edited by the parent: {by_parent[sid]}. After "
+                  "finalize, look at its new picture and confirm the colors can be told apart.")
         _state.mark_edited_in_place(out, sid)
         # The review record's stamps move on too: the user's pick stands.
         st = _state.read_state(out)
