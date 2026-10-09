@@ -11,7 +11,7 @@ reframes outside the one slide that names the audience's belief).
 
 seal_brief.py runs the same check and refuses to seal while issues remain,
 unless the user's reasons are recorded with --accepted. Exit 0 clean, 3 issues.
-Rows marked "recommendation" (a two-line title with a takeaway under it; a
+Rows marked "recommendation" (a two-line title; a two-line title with a takeaway under it; a
 takeaway that repeats the title, title_load.py) are shown but never stop a
 seal: the owner's rule of 2026-10-08 is a recommendation, not a hard stop.
 
@@ -139,8 +139,10 @@ def check(brief_path: Path) -> list[dict]:
             if tl and tl > 2:
                 add(n, "title", f"wraps to {tl} lines on this template (2 is the most)", title)
             elif tl == 2:
-                add(n, "title", "wraps to 2 lines on this template; one line reads better, "
-                                "and a lone word on line 2 looks like a mistake", title)
+                # A two-line title is allowed (owner, 2026-10-08): a recommendation only.
+                add(n, "title", "recommendation: wraps to 2 lines on this template; one line reads "
+                                "better, and a lone word on line 2 looks like a mistake", title,
+                    level="recommendation")
             sl = _lines(take, bttf, spt, sw)
             if sl and sl > 1:
                 add(n, "takeaway", f"wraps to {sl} lines under the title", take)

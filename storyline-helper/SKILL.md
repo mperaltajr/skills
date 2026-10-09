@@ -321,7 +321,7 @@ When a bullet or takeaway is soft and the user doesn't have a fact, follow this 
 
 The governing thought  becomes the slide headline AND the dot in the dot-dash. Both need to be short.
 
-- **Target:** one line of the template's title box (measured; about 62 characters, 9 to 11 words, on a 28 pt title). Two lines is the hard ceiling, and a second line holding one or two words reads as a mistake.
+- **Target:** one line of the template's title box (measured; about 62 characters, 9 to 11 words, on a 28 pt title). Two lines is allowed and is the hard ceiling (a recommendation, not a stop, since the owner's rule of 2026-10-08); a second line holding one or two words reads as a mistake, and with a two-line title prefer no subtitle.
 - **What to do if a candidate dot is too long:** before locking, push back with a specific compression option. *"This dot has 27 words: 'Customer experience, revenue capture, and cost-to-serve all break in the same place — across the seams between functions — which is exactly where no single P&L can fix them.' That won't fit on a slide. Two options: (a) compress to 'The biggest problems sit between functions, where no single P&L can reach them' — 13 words, same meaning, with the nuance moving to the dashes and Takeaway. (b) split into two slides if you want both halves to land separately. (a) or (b)?"*
 - **Where the nuance goes when you compress:** the dashes (supporting facts) and the Takeaway (the belief shift). Both already exist for the slide — they absorb the lost detail naturally.
 
@@ -1027,11 +1027,11 @@ The expanded format makes the brief longer than v1's version — typically 20-30
 
 `slide-builder/scripts/brief_check.py` is the mechanical half of the gate. It reads the brief and the registered template and lists, in one table:
 
-- titles that wrap to two or more lines on the template, and takeaways that wrap under the title (measured with the template's own font and box width);
+- titles that wrap to three or more lines on the template, and takeaways that wrap under the title (measured with the template's own font and box width);
 - words from `slide-builder/reference/banned-words.md`, and judgment words ("significant", "scalable") with no number next to them;
 - takeaways with no number, and "not X, it's Y" reframes;
 - thresholds ("target", "significant") with no number or "(to be set)";
-- **recommendations** (the owner's rule, 2026-10-08; never a reason to refuse a seal): a title that wraps to two lines AND has a takeaway under it (suggest a one-line title or dropping the takeaway: a two-line title is allowed, but a subtitle suits a one-line title), and a takeaway that repeats the title (half or more of its content words are already in the title; it should state the number or consequence the title does not).
+- **recommendations** (the owner's rule, 2026-10-08; never a reason to refuse a seal): a title that wraps to two lines (allowed; one line reads better), a title that wraps to two lines AND has a takeaway under it (suggest a one-line title or dropping the takeaway: a two-line title is allowed, but a subtitle suits a one-line title), and a takeaway that repeats the title (half or more of its content words are already in the title; it should state the number or consequence the title does not).
 
 Run it during the language pass and fold its rows into the review table. `seal_brief.py` runs it again and refuses to seal while any row other than a recommendation is open, unless the user's own reasons are passed with `--accepted`. It does not judge the argument; the nine-part gate above does that.
 
