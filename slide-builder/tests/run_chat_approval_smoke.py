@@ -110,7 +110,7 @@ def main() -> int:
         assert H.run("build_review.py", "--out", out, "--final").returncode == 0
         r = H.run("compile_picks.py", "--out", out, "--approved-in-chat", "build it")
         assert r.returncode == 5 and "has not been opened" in r.stdout, r.stdout
-        assert not (out / "final_deck.pptx").exists()
+        assert not list(out.glob("*.pptx"))
         print("    ok: before the page was opened, and after a re-finalize")
 
         print("[6] refused when a finished file changed after the page was opened")
@@ -136,7 +136,7 @@ def main() -> int:
         assert r.returncode == 2, r.stdout
         r = H.run("compile_picks.py", "--out", out, "--approved-in-chat", "build it")
         assert r.returncode == 0, r.stdout[-1500:]
-        deck = out / "final_deck.pptx"
+        deck = _state.compiled_deck(out)
         assert deck.exists()
         st = _state.read_state(out)
         fc = [a for a in st["chat_approvals"] if a["kind"] == "final_check"]

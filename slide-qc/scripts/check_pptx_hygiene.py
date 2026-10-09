@@ -33,8 +33,10 @@ the unified Critical/Major/Advisory table. JSON shape:
         "slide": <int or null>,           # null for deck-level
         "severity": "Critical|Major|Advisory",
         "category": "<short tag>",
-        "issue": "<one-line description>"
-      },
+        "issue": "<one-line description>",
+        "content": true, "auto_fix": false   # only on wording findings
+      },                                      # (repeats-title, title-load):
+                                              # they go to the user
       ...
     ]
   }
@@ -332,6 +334,26 @@ def check_type_scale(slide, slide_num: int, slide_h: int) -> list[dict]:
     return out
 
 
+def check_title_load(prs) -> list[dict]:
+    """The owner's rule (2026-10-08): each of the title, the takeaway under it
+    and a bottom takeaway band must add something the others do not say. A
+    line that repeats the title (half or more of its content words are in the
+    title) is a content Major: a wording choice that goes to the user and is
+    never fixed automatically. A two-line title with a takeaway under it AND a
+    filled band is an Advisory recommendation
+    (slide-builder/scripts/title_load.py)."""
+    try:
+        sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]
+                               / "slide-builder" / "scripts"))
+        import title_load
+    except Exception:
+        return []
+    try:
+        return title_load.deck_findings(prs)
+    except Exception:
+        return []
+
+
 def check_hidden_slides(prs) -> list[dict]:
     violations: list[dict] = []
     for i, slide in enumerate(prs.slides, start=1):
@@ -398,6 +420,7 @@ def run_all_checks(pptx_path: pathlib.Path) -> dict:
     # the way python-pptx and LibreOffice do, which is how a deck that would not
     # open at all once passed this check with zero violations.
     violations.extend(check_openability(prs, pptx_path))
+    violations.extend(check_title_load(prs))
 
     for i, slide in enumerate(prs.slides, start=1):
         violations.extend(check_placeholders_in_text(slide, i))

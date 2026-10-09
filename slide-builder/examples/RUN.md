@@ -74,7 +74,7 @@ py -3 "$skill\scripts\finalize_deck.py" --out "$session\out" --template "$templa
 py -3 "$skill\scripts\build_review.py" --out "$session\out" --final
 ```
 
-**8. You look at the finished slides.** Open `$session\out\FINAL-CHECK.html`: every pick, on your template, with its real title and page number. If it is right, click **Build it** and paste the command into Claude (or, when Claude opened it with `--final --open`, just say "build it"). It compiles `$session\out\final_deck.pptx`.
+**8. You look at the finished slides.** Open `$session\out\FINAL-CHECK.html`: every pick, on your template, with its real title and page number. If it is right, click **Build it** and paste the command into Claude (or, when Claude opened it with `--final --open`, just say "build it"). It compiles the deck into `$session\out`, named after the topic (one deck; `final_deck.pptx` only when the brief has no title).
 
 **9. QC, then done.** Claude runs slide-qc on the deck, records the pass, and runs:
 

@@ -2780,7 +2780,7 @@ def main() -> int:
     # _meta.json and stop. Every other slide's prompt, context, themed PPTX,
     # and meta entry (including artifacts) are preserved. The operator then
     # dispatches one worker for slide N, runs finalize_deck.py --slide N, picks,
-    # and re-runs compile_picks.py to graft the rebuilt slide into final_deck.pptx.
+    # and re-runs compile_picks.py to graft the rebuilt slide into the deck.
     if rebuild_slide_n is not None:
         meta_path = update_meta_for_rebuild(
             out_dir=args.out,

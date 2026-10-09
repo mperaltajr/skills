@@ -382,6 +382,7 @@ finalize_deck.py reads line 1. Token prefix decides routing:
 <!-- only:sketch -->
   - **Sketch path (HTML):** CSS uses px; px = pt × 4⁄3. Size text so it maps to the grid — e.g. **8pt→10.67px, 9pt→12px, 10.5pt→14px, 12pt→16px, 14pt→18.67px, 18pt→24px, 24pt→32px, 32pt→42.67px**. Body text (bullets, labels, eyebrows, table cells) is 12pt (16px) by default, 10.5pt (14px) at the very lowest when the content cannot be cut, in at most 3 sizes; only sources, footnotes and chart text may go down to 9pt (12px). See `reference/sketch-html-spec.md` § "Font-size grid".
 <!-- /only -->
+- **Title, subtitle and bottom band: one job each (owner's rule, 2026-10-08).** Each must add something the others do not say. Do not fill a template's takeaway or so-what band with a restatement of the title; leave it empty unless it adds new information (the number or consequence the title does not state). A two-line title is allowed, but with a two-line title prefer no subtitle; a subtitle suits a one-line title. QC flags a subtitle or band that repeats the title as Major.
 - **Insertion order = paint order.** Background fills first, foreground/text last.
 
 ---

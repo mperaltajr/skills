@@ -159,6 +159,7 @@ When the parent dispatches you with a `slide_NN/_edit_request.md` (written by `r
 - **Do NOT invent an 8th directive verb.** The 7-verb vocabulary is closed by design. Emit SKELETON_REJECTED if the brief doesn't map.
 - **Do NOT substitute a different pattern** to avoid a SKELETON_REJECTED marker. Silent substitution is the failure mode the marker exists to prevent.
 - **Do NOT produce options on different patterns.** All options share the picked pattern; only variants differ.
+- **Do NOT say the title twice.** The title, the takeaway under it (the subtitle) and a bottom takeaway or so-what band each have one job, and each must add something the others do not say. Never fill a template's takeaway or so-what band with a restatement of the title: leave it empty unless it adds new information (the number or consequence the title does not state). A two-line title is allowed, but with a two-line title prefer no subtitle; a subtitle suits a one-line title. QC flags a line that repeats the title as Major (owner's rule, 2026-10-08).
 - **Do NOT report success without verifying the option file(s) exist.** After writing, Glob the output directory to confirm the option file(s) the prompt asked for are present (`.py` for the direct path, `.html` for the sketch path per the dispatch's PATTERN field).
 - **Do NOT dispatch sub-agents.** You are the leaf; you have Write/Edit/Read/Glob/Grep/Bash. The parent does dispatch.
 

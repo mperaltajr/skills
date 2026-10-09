@@ -11,6 +11,9 @@ reframes outside the one slide that names the audience's belief).
 
 seal_brief.py runs the same check and refuses to seal while issues remain,
 unless the user's reasons are recorded with --accepted. Exit 0 clean, 3 issues.
+Rows marked "recommendation" (a two-line title with a takeaway under it; a
+takeaway that repeats the title, title_load.py) are shown but never stop a
+seal: the owner's rule of 2026-10-08 is a recommendation, not a hard stop.
 
 Why: on the 2026-10-02 showcase build, 5 of 10 titles wrapped with one word on
 line 2 and 4 takeaways wrapped, although every one passed the old "under 12
@@ -118,8 +121,11 @@ def check(brief_path: Path) -> list[dict]:
     judge_res = [(w, _word_re(w)) for w in judge]
     issues: list[dict] = []
 
-    def add(n, field, problem, text):
-        issues.append({"slide": n, "field": field, "problem": problem, "text": text})
+    def add(n, field, problem, text, level="issue"):
+        issues.append({"slide": n, "field": field, "problem": problem, "text": text,
+                       "level": level})
+
+    import title_load
 
     for s in brief["slides"]:
         n = s.get("slide_n")
@@ -138,6 +144,19 @@ def check(brief_path: Path) -> list[dict]:
             sl = _lines(take, bttf, spt, sw)
             if sl and sl > 1:
                 add(n, "takeaway", f"wraps to {sl} lines under the title", take)
+            # The owner's rule (2026-10-08): a two-line title is allowed, but a
+            # two-line title with a takeaway under it is heavy (and the
+            # template's bottom band, when filled, makes three). A subtitle is
+            # recommended only under a one-line title. Not a hard stop.
+            if tl and tl >= 2 and take:
+                add(n, "takeaway", "recommendation: the title wraps to 2 lines and has a takeaway "
+                                   "under it; use a one-line title, or drop the takeaway",
+                    take, level="recommendation")
+        if not cover and title and take and title_load.repeats_title(title, take):
+            share = title_load.repeat_share(title, take)
+            add(n, "takeaway", f"recommendation: repeats the title ({share:.0%} of its content "
+                               "words are in the title); state the number or consequence the "
+                               "title does not", take, level="recommendation")
         for field, text in (("title", title), ("takeaway", take), ("bullets", evidence)):
             for w, rx in banned_res:
                 if rx.search(text):
@@ -185,7 +204,12 @@ def main(argv=None) -> int:
     a = ap.parse_args(argv)
     issues = check(a.brief)
     print(table(issues))
-    return 3 if issues else 0
+    return 3 if blocking(issues) else 0
+
+
+def blocking(issues: list[dict]) -> list[dict]:
+    """The issues that stop a seal; recommendation rows are shown, never block."""
+    return [i for i in issues if i.get("level") != "recommendation"]
 
 
 if __name__ == "__main__":

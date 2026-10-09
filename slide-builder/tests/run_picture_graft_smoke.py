@@ -174,7 +174,7 @@ def main() -> int:
         r = H.run("compile_picks.py", "--out", out, "--final-token", tok)
         assert r.returncode == 0, r.stdout[-2500:] + r.stderr[-2500:]
         assert "REFUSED" not in r.stdout, r.stdout[-1500:]
-        deck = out / "final_deck.pptx"
+        deck = _state.compiled_deck(out)
         assert deck.exists(), "no final deck"
         print("    ok: compile exit 0")
 

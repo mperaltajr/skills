@@ -9,7 +9,9 @@ Inputs:
   --approved-in-chat "<words>"  the user said "build it" in chat while
                       FINAL-CHECK.html was open for the current files
                       (build_review.py --final --open). Recorded verbatim.
-  --final PATH        Final deck path (default: <out>/final_deck.pptx)
+  --final PATH        Final deck path (default: <out>/<topic>.pptx, the brief's
+                      title; final_deck.pptx when the brief has none). The
+                      path is recorded in _state.json (_state.compiled_deck).
 
 The picks come from the user's recorded approval (record_picks.py), not from a
 file passed in. --picks is accepted only to double-check: it must match.
@@ -669,14 +671,14 @@ def run_splice(out_dir: Path, meta: dict, picks: dict, template_path: Path,
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
-def _topic_named_copy(out_dir: Path, final_path: Path):
-    """Also save the deck under its topic ("Southeast Asia Entry.pptx"), so the
-    file the user shares is not called final_deck.pptx. final_deck.pptx stays
-    the build's own name (checks and later rebuilds use it)."""
+def _topic_deck_path(out_dir: Path):
+    """The deck is saved once, under its topic ("Southeast Asia Entry.pptx"),
+    so the user sees one deck at the top of the folder and it is not called
+    final_deck.pptx. (Until 2026-10-08 compile wrote final_deck.pptx AND a
+    byte-identical topic-named copy.) The path is recorded by record_compile;
+    readers resolve it with _state.compiled_deck(). None when the brief has no
+    title: the deck is then final_deck.pptx, as before."""
     import re as _re
-    import shutil as _sh
-    if final_path.name != "final_deck.pptx" or final_path.parent != out_dir:
-        return None
     try:
         meta = json.loads((out_dir / "_meta.json").read_text(encoding="utf-8"))
         brief = Path(meta.get("brief") or "")
@@ -686,15 +688,33 @@ def _topic_named_copy(out_dir: Path, final_path: Path):
     except Exception:
         topic = ""
     topic = _re.sub(r'[<>:"/\\|?*]+', " ", topic).strip(" .")[:80]
-    if not topic:
+    if not topic or topic.lower() in ("final_deck", "final_deck_all_variations"):
         return None
-    dest = out_dir / f"{topic}.pptx"
-    try:
-        _sh.copy2(final_path, dest)
-    except OSError as exc:
-        print(f"  (could not save {dest.name}: {exc}; it is probably open in PowerPoint)")
-        return None
-    return dest
+    return out_dir / f"{topic}.pptx"
+
+
+def _earlier_decks(out_dir: Path, final_path: Path) -> list:
+    """Slide Lab's own earlier compiles at the top of the folder that the new
+    deck replaces: the deck at final_path, the last recorded final deck (the
+    topic may have changed), and final_deck.pptx from builds before the deck
+    was topic-named. Never any other file: a deck the user put there is not
+    touched."""
+    found = []
+    cands = [final_path]
+    if not final_path.name.startswith("final_deck_all_variations"):
+        # The all-options comparison deck never replaces the final deck.
+        comp = (_state.read_state(out_dir).get("stages") or {}).get("compile") or {}
+        if comp.get("kind") == "picks" and comp.get("output"):
+            cands.append(Path(comp["output"]))
+        cands.append(out_dir / "final_deck.pptx")
+    for c in cands:
+        try:
+            if (c.is_file() and (c == final_path or c.parent.resolve() == out_dir.resolve())
+                    and c.resolve() not in [f.resolve() for f in found]):
+                found.append(c)
+        except OSError:
+            pass
+    return found
 
 
 def main() -> int:
@@ -704,7 +724,8 @@ def main() -> int:
                     help="Optional. A picks.json file to cross-check against the "
                          "recorded approval; compile refuses if they differ.")
     ap.add_argument("--final", default=None, type=Path,
-                    help="Final deck path (default: <out>/final_deck.pptx)")
+                    help="Final deck path (default: <out>/<topic>.pptx, named after "
+                         "the brief's title; final_deck.pptx when it has none)")
     ap.add_argument("--all-variations", action="store_true",
                     help="Instead of "
                          "selecting one pick per slide, iterate ALL options "
@@ -883,7 +904,7 @@ def main() -> int:
         print(f"  all-variations mode: {len(picks)} slides, {total} options")
         final_path: Path = args.final or (out_dir / "final_deck_all_variations.pptx")
     else:
-        final_path = args.final or (out_dir / "final_deck.pptx")
+        final_path = args.final or _topic_deck_path(out_dir) or (out_dir / "final_deck.pptx")
 
     # Every option about to ship must have been finalized, and cleanly. Checked
     # per option against exactly what ships, so a blocked option nobody picked
@@ -1074,8 +1095,12 @@ def main() -> int:
     # occurrence of each name. Cheap on size, unbreakable for downstream readers.
     _dedupe_zip_entries(incoming)
     _rc = _report_integrity(incoming) or _report_powerpoint_opens(incoming)
+    # A rejected deck keeps one fixed name (final_deck.REJECTED.pptx for the
+    # final deck), so a later compile that passes finds it and removes it.
+    _rej_stem = ("final_deck" if (args.final is None and not args.all_variations)
+                 else final_path.stem)
+    rejected = final_path.with_name(f"{_rej_stem}.REJECTED{final_path.suffix}")
     if _rc:
-        rejected = final_path.with_name(f"{final_path.stem}.REJECTED{final_path.suffix}")
         try:
             incoming.replace(rejected)
             print(f"  the rejected file is kept for diagnosis: {rejected.name}")
@@ -1085,22 +1110,40 @@ def main() -> int:
             print(f"  {final_path.name} was left as it was.")
         return _rc
 
-    if final_path.exists():
+    earlier = (_earlier_decks(out_dir, final_path) if args.final is None
+               else [final_path] if final_path.exists() else [])
+    if earlier:
+        prior = earlier[0]
         try:
             from datetime import datetime as _dt
             ts = _dt.now().strftime("%Y%m%dT%H%M%S")
-            # Old decks go into _session/old-decks, not beside the new one.
-            old_dir = final_path.parent / "_session" / "old-decks"
+            # The previous deck goes into _session/old-decks, not beside the
+            # new one, and only the latest previous version is kept there.
+            old_dir = out_dir / "_session" / "old-decks"
             old_dir.mkdir(parents=True, exist_ok=True)
-            backup = old_dir / f"{final_path.stem}.{ts}{final_path.suffix}"
-            final_path.replace(backup)
+            backup = old_dir / f"{prior.stem}.{ts}{prior.suffix}"
+            prior.replace(backup)
             print(f"  previous deck kept in _session/old-decks/{backup.name}")
         except OSError as exc:
             sys.stderr.write(
-                f"\nERROR: could not move the prior {final_path.name} aside: {exc}\n"
+                f"\nERROR: could not move the prior {prior.name} aside: {exc}\n"
                 f"       It is usually open in PowerPoint. Close it and re-run.\n"
                 f"       The new deck is at {incoming.name}.\n")
             return 3
+        # Other earlier copies (final_deck.pptx beside a topic-named deck, from
+        # builds before 2026-10-08): the user should see one deck.
+        for extra in earlier[1:]:
+            try:
+                extra.unlink()
+                print(f"  removed the earlier copy {extra.name} (one deck at the top)")
+            except OSError as exc:
+                print(f"  (could not remove {extra.name}: {exc}; it is probably open)")
+        for f in old_dir.iterdir():
+            if f.is_file() and f != backup:
+                try:
+                    f.unlink()
+                except OSError:
+                    pass
     incoming.replace(final_path)
     print(f"  saved ({final_path.stat().st_size:,} bytes)")
     if badge_skipped:
@@ -1110,9 +1153,7 @@ def main() -> int:
               f"{', '.join(badge_skipped[:5])}"
               f"{' ...' if len(badge_skipped) > 5 else ''}")
 
-    named = _topic_named_copy(out_dir, final_path)
-    if named:
-        print(f"  deck to share: {named}")
+    print(f"  deck to share: {final_path}")
 
     print("\n[4] Verify opens cleanly")
     opens = False
@@ -1189,6 +1230,22 @@ def main() -> int:
         _state.record_compile(
             out_dir, kind="all_variations" if args.all_variations else "picks",
             output=final_path, slides=slide_count, options=_ship)
+        # A newer deck passed: the rejected one is no longer worth keeping.
+        if rejected.exists():
+            try:
+                rejected.unlink()
+                print(f"  removed {rejected.name} (a newer deck passed)")
+            except OSError:
+                pass
+        # Clearly temporary files go now (render scratch, options not picked);
+        # the rest waits for the user to say the deck is good. An all-options
+        # comparison deck is for choosing between options, so it keeps them.
+        try:
+            import publish_cleanup
+            print(publish_cleanup.compile_cleanup(
+                out_dir, picks, remove_unpicked=not args.all_variations))
+        except Exception as exc:                       # never fail a good compile
+            print(f"  (cleanup skipped: {type(exc).__name__}: {exc})")
     return rc
 
 

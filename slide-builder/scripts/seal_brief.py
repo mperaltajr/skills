@@ -98,6 +98,12 @@ def main(argv=None) -> int:
     except Exception as exc:  # the check must never stop a seal by crashing
         issues = []
         print(f"  (brief check skipped: {type(exc).__name__}: {exc})")
+    recs = [i for i in issues if i.get("level") == "recommendation"]
+    issues = [i for i in issues if i.get("level") != "recommendation"]
+    if recs:
+        # Shown, never a reason to refuse (the owner's rule, 2026-10-08).
+        print("Recommendations (not required to seal):")
+        print(brief_check.table(recs))
     if issues and not args.accepted.strip():
         print("NOT SEALED: the brief check found issues. Fix them in the brief, or "
               "record the user's reasons with --accepted \"<their words>\":")

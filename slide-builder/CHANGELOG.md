@@ -164,6 +164,61 @@ All notable changes to this skill. Versioning follows [Semantic Versioning](http
   `run_native_tables_lists_smoke.py` run their self-check on LibreOffice
   when it is installed for that reason.
 
+## 2026-10-09: smaller session folders, one deck, title load
+
+### Folder cleanup and one deck at the top (owner approved)
+
+- **One deck, named after the topic.** `compile_picks.py` writes the deck
+  once as `<topic>.pptx` (the brief's title; `final_deck.pptx` only when the
+  brief has none) instead of `final_deck.pptx` plus a byte-identical copy.
+  The path is recorded in `_state.json`; `_state.compiled_deck(out)` resolves
+  it (falling back to `final_deck.pptx` for older builds), and
+  `record_vision_qc.py` now defaults `--deck` to it. A recompile moves the
+  previous deck into `_session/old-decks/` (only the latest previous version
+  is kept there), removes an older `final_deck.pptx` copy left at the top,
+  and removes `final_deck.REJECTED.pptx` once a newer compile passes.
+- **Compile removes clearly temporary files.** After a successful compile:
+  `_qc_tmp/`, `_qc_pre/`, `_render_tmp/`, `_raw/` (top and slide folders) and
+  the options the user did not pick (with their `img/` pictures; not after an
+  all-options comparison deck, which exists so a choice can still be made);
+  `_meta.json` then lists only the picked letters. The picked options keep every file
+  until the deck is good (a QC fix rebuilds from them). One line reports the
+  folder size before and after.
+- **`publish_cleanup.py` keeps an exact list.** Per slide: the picked
+  option's `option_X.py` / `option_X_native.py`, `.plan.json`, translation
+  report, `option_X.html`, its `img/X_*` pictures, any file the kept script
+  names (a `headshots/` folder), and `_prior_feedback.md`. Everything else in
+  slide folders goes, `_prompt.md` / `_context.md` included (`build_deck.py
+  --slide N` writes them again). At the top it now also removes `_qc*/`
+  render folders (written notes kept), `_session/old-decks/`, a rejected or
+  half-written deck, and a `final_deck.pptx` that is a byte-identical copy of
+  the topic-named deck (the records are pointed at that deck first). On a
+  copy of the 2-slide FedEx session: 130.7 MB to 19.2 MB, and the trimmed
+  folder rebuilt (finalize, final check, compile) into the same deck as an
+  untrimmed rebuild (ids and timestamps aside).
+- Tests: `run_one_deck_smoke.py` (new), `run_publish_cleanup_smoke.py`
+  (keep-list), and the e2e smokes read the deck through `compiled_deck`.
+
+### Title, subtitle and takeaway band: one job each (owner approved)
+
+- The owner's rule: a two-line title is allowed, but a two-line title plus a
+  takeaway under it plus a filled bottom takeaway band is too much; a
+  subtitle is recommended only under a one-line title (a recommendation, not
+  a hard stop); each line must add something the others do not say.
+- New `scripts/title_load.py`: content-word overlap (stopwords removed) and
+  the finished-deck reading of title, subtitle and bottom band.
+- `brief_check.py`: two recommendation rows (two-line title with a takeaway;
+  a takeaway that repeats the title, overlap 0.5 or more). `seal_brief.py`
+  shows recommendations and never refuses on them.
+- `slide-qc/scripts/check_pptx_hygiene.py`: a takeaway or band that repeats the
+  title is a content Major (`repeats-title`, `"content": true, "auto_fix":
+  false`, it goes to the user); a two-line title with a takeaway and a filled
+  band is an Advisory (`title-load`).
+- Worker agent and `prompt.md`: do not fill a template's takeaway or so-what
+  band with a restatement of the title; leave it empty unless it adds new
+  information; with a two-line title prefer no subtitle.
+- Test: `run_title_load_smoke.py` (new).
+
 ## 2026-10-08: native tables and PowerPoint-only rendering
 
 ### Native tables and one-box lists (sketch path)
