@@ -2,6 +2,86 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## 2026-10-09: validated fixes from the Kinfield v3.1 session report
+
+### Agent files and quality-check records
+
+Owner approved every recommendation (items 5 and 8, and the side finding of
+item 7: a session recorded 71 pages reviewed after opening about 9).
+
+**Agent files (item 5).**
+- The refusal when the installed agent files differ from the repo now says
+  which version is installed, by looking the installed file up in git
+  history: an older version from main (copy the repo version over), a newer
+  version from main (update this checkout), an unmerged branch X (merge
+  branch X first; only the main session installs, after the merge), or no
+  committed version at all (local edits: back them up first). Without git, or
+  if the lookup fails, it gives the old plain message; it never crashes the
+  check. A version first written by a merge is found too. Used by
+  `build_deck.py` (exit 7) and `doctor.py` (`_install.py`).
+- `doctor.py fix` and the printed copy command back up the installed files
+  first, into `~/.claude/agents/_backup_<date>/` as `<name>.md.bak` (a
+  subfolder and not `.md`, so a backup is never loaded as an agent); the last
+  5 backup folders are kept.
+- Prep records the installed agent files' fingerprints in the build record.
+  `compile_picks.py` (exit 7) and `check_done.py` compare them and stop with a
+  plain message when they changed mid-build; the message says to start a new
+  Claude session after installing (agent files load when a session starts).
+  No override flag.
+
+**Quality-check records (item 8, the new definition of done).**
+- Compile renders the deck once, at 150 dpi (the QC floor; it was 120), into
+  the build's `_qc` folder with `render_manifest.json`: the deck's digest, the
+  program that drew it, the dpi, a template fingerprint (slide masters and
+  theme) and each page's image hash (of the pixels). `render_slides.py`
+  reuses those images when the folder already holds a render of these exact
+  deck bytes by the same program at the same dpi (`--fresh` draws again), so
+  slide-qc's render step costs nothing after a compile. (`final_pngs/` is no
+  longer written.)
+- New `qc_pages.py plan` works out which pages a round must read, by image
+  hash: the pages whose image changed since they were reviewed, or every page
+  when there is no earlier page review, the page count, renderer, dpi or
+  template changed. It writes each page to read with a one-time check code in
+  a band under it, thumbnail sheets of the whole deck and each changed page
+  beside an unchanged page of the same layout (the deck-wide look, every
+  round), and `_qc/page_notes.json` to fill in.
+- `record_vision_qc.py` no longer takes typed counts. It refuses (and records
+  nothing) unless every page of the round has its right code and a short
+  quote (3+ words) that is found in that slide's own text (pages with no text:
+  a description), the round covers every changed page, every sheet and pair
+  code is right, and any `--slides-reviewed` is no more than the notes prove.
+  It runs the whole-file hygiene and type-scale check itself. It records per
+  page: image hash, renderer, dpi, time, quote and open findings with
+  severity; unchanged pages keep their review and their open findings.
+- `check_done.py` passes only when every page's reviewed image is that page's
+  image in the current render of this exact deck, a deck-wide look was
+  recorded for this deck, and no Critical or Major is open on any page
+  (carried findings included; a Major the user kept with their reason is
+  listed at delivery). A vision record in the old shape (a typed count) is
+  refused with what to run.
+- Renderer determinism, measured before relying on it: two fictional decks
+  (6 pages on the default template with a native chart and a table; 8 pages
+  on the test template with pictures and page-number fields), each drawn
+  twice at 150 dpi by PowerPoint (through ppt_safe) and twice by LibreOffice:
+  every page identical, pixels and file bytes; a one-word edit changed that
+  page only. So the comparison is exact. If a program update changes pixels,
+  those pages are read again (it errs toward re-reading).
+- What the proof shows, honestly: a right code shows the page's picture was
+  opened (the code is only in the picture; the build record keeps a slow
+  salted hash; codes are new every round), and the quote shows the note is
+  about that page. Neither shows the page was inspected carefully. A session
+  that writes a program to read the codes out of the pictures, or calls the
+  module's internals, defeats it on purpose. Pages whose text is all in
+  pictures are proved by the code only.
+- slide-qc `SKILL.md`: the render step (reuse of compile's images, the build's
+  `_qc` folder) and the record step (plan, notes, record) rewritten; slide-builder
+  `SKILL.md`'s definition of done says the same.
+- Tests: new `run_agent_versions_smoke.py` (item 5) and
+  `run_incremental_qc_smoke.py` (item 8, points 1 to 7); `tests/_qc_helper.py`
+  stands in for a reviewer; `run_qc_gates_smoke.py`, `run_chat_approval_smoke.py`,
+  `run_one_deck_smoke.py`, `run_pipeline_e2e_smoke.py` and
+  `run_powerpoint_e2e_smoke.py` use the new record.
+
 ## 2026-10-09: chart header, legend, no final periods
 
 Three owner-approved rules, with the guidance, an automatic fix and QC checks.

@@ -16,13 +16,20 @@ writes render_manifest.json beside the images:
                   decoded pixels (PNG metadata cannot change it), file_md5 the
                   file's bytes (fast reuse check), layout the page's layout name
 
-Page images are compared by their pixel hash. Measured 2026-10-09 on a
-fictional 6-page deck (text, a native chart, a table, a filled shape) at 150
-dpi: PowerPoint (through ppt_safe) and LibreOffice each drew identical pixels
-on two runs, and a one-word edit on page 3 changed page 3 only, so an exact
-comparison is used (no tolerance). If a renderer ever draws an unchanged page
-differently, that page is simply read again: the comparison errs toward
-re-reading, never toward skipping a page.
+Page images are compared by their pixel hash, exactly (no tolerance).
+Measured 2026-10-09 at 150 dpi, each deck drawn twice by each program
+(PowerPoint through ppt_safe, read-only, no window; LibreOffice headless):
+  - a fictional 6-page deck on the default template (title, bullets, a
+    native column chart, a table, a filled shape): 6 of 6 pages identical
+    pixels AND identical file bytes, in both programs
+  - a fictional 8-page deck on the test template (its masters and layouts),
+    with pictures and page-number fields: 8 of 8 identical, both programs
+  - a one-word edit in one title changed that page's image only, both decks,
+    both programs
+So both renderers are deterministic for these decks on this computer. A
+program update or a font change can change every page's pixels; then those
+pages are simply read again: the comparison errs toward re-reading, never
+toward skipping a page.
 """
 from __future__ import annotations
 

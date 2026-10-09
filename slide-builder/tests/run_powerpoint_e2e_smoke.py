@@ -100,7 +100,7 @@ def build(n: int, env: dict, check: bool = True) -> dict:
         if check:
             assert "PowerPoint opens it cleanly" in r.stdout, r.stdout[-1500:]
             assert (r.stdout + r.stderr).count(RS.NOTICE) == 1
-            assert len(list((out / "final_pngs").glob("slide_*.png"))) == n
+            assert len(list((out / "_qc").glob("slide_*.png"))) == n   # compile renders into _qc
             comp = _state.read_state(out)["stages"]["compile"]
             assert comp["slides"] == n, comp
             md = (out / "COMPILED.md").read_text(encoding="utf-8")

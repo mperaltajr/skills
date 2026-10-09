@@ -79,7 +79,9 @@ def _resolve_current_png(build_dir: Path, baseline_name: str) -> Path:
         return build_dir / f"slide_{int(n_str):02d}" / f"option_{letter}.png"
     if parts[0] == "final" and len(parts) == 2:
         n = int(parts[1])
-        return build_dir / "final_pngs" / f"slide_{n:02d}.png"
+        # compile renders into _qc since 2026-10-09; older builds used final_pngs
+        new = build_dir / "_qc" / f"slide_{n:02d}.png"
+        return new if new.exists() else build_dir / "final_pngs" / f"slide_{n:02d}.png"
     raise ValueError(f"unrecognised baseline filename: {baseline_name}")
 
 
