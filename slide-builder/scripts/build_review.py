@@ -518,6 +518,7 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
                                     slide_content_lines.append(x)
                         else:
                             qc_plain.append({"block": c.get("severity") == "block",
+                                             "advisory": bool(c.get("advisory")),
                                              "lines": lines})
             except Exception:
                 qc_summary = None
@@ -941,7 +942,8 @@ def render_option_tile(slide: dict, opt: dict, themed_path_str: str) -> str:
     rows = []
     for grp in opt.get("qc_plain") or []:
         lines = grp.get("lines") or []
-        cls = "qc-line block" if grp.get("block") else "qc-line major"
+        cls = ("qc-line block" if grp.get("block") else
+               "qc-line advisory" if grp.get("advisory") else "qc-line major")
         rows += [f'<div class="{cls}">{html.escape(x)}</div>' for x in lines[:4]]
         if len(lines) > 4:
             rows.append(f'<div class="{cls}">and {len(lines) - 4} more like it</div>')
@@ -1406,6 +1408,7 @@ code { font-family: Consolas, monospace; font-size: 12px; color: var(--text-dim)
 .qc-lines { margin-top: 6px; display: flex; flex-direction: column; gap: 3px; }
 .qc-line { font-size: 12px; line-height: 1.35; padding: 3px 6px; border-left: 3px solid var(--tweak); background: rgba(0,0,0,0.03); }
 .qc-line.block { border-left-color: var(--reject); }
+.qc-line.advisory { border-left-color: var(--border); color: var(--text-dim); }
 .content-line { font-size: 13px; line-height: 1.4; margin: 6px 0; padding: 6px 10px; border-left: 3px solid var(--tweak); background: rgba(0,0,0,0.03); }
 
 .card-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 14px 20px 18px; border-top: 1px solid var(--border); }

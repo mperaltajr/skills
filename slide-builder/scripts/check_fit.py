@@ -14,7 +14,8 @@ What it reports (the same check finalize runs on the finished slide):
   STOP   a word wider than its box: PowerPoint breaks it in the middle
   STOP   a table whose rows grow into other content, past the body area or
          off the page
-  FLAG   a line within 2% of its box width (a few pixels more and it wraps),
+  FLAG   one-line text using more than 92% of its box width (PowerPoint may
+         wrap it; the last line of wrapped text from 98%),
          a label of two words or fewer that wraps, a table row that grows
 
 Run it on the raw option the script just saved: Slide Lab's own fonts are

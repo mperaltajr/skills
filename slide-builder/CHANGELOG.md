@@ -2,6 +2,79 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## 2026-10-09: validated fixes from the Kinfield v3.1 session report
+
+### Finalize, chrome and checks
+
+Owner-approved recommendations from the validation of the Kinfield v3.1
+session report (items 2, 4a, 4b, 6, 9 and 10).
+
+- **One rule for which shape is the page takeaway, the source line or a
+  footnote** (`scripts/_chrome_schema.py` `is_page_takeaway` / `note_role`,
+  used by `twins/chrome_rules.py` `normalize_chrome` and by finalize when it
+  reads the designer's takeaway and decides whether one is already drawn). The
+  takeaway is the registered takeaway slot, a SUBTITLE placeholder, a box
+  named exactly `subtitle` anywhere, or a `subtitle-...` name only in the top
+  35% of the page. A name starting `takeaway` never counts: on the v3.1 deck
+  bottom bands named `takeaway-bar` / `takeaway-box` were pulled up under the
+  title, restyled or deleted as a "second copy". A `source...` /
+  `footnote...` box counts only in the bottom 25% of the page or when its
+  text starts like one ("Source", "Note", "1.", "*"), so a body row named
+  `source-1` stays where it is. Only a second copy of the real takeaway is
+  deleted; a shape that matches nothing is not moved. `type_scale.py` skips a
+  shape named `takeaway` only when it is a template placeholder. The names
+  `subtitle`, `source-...` and `footnote-...` are reserved; designers name a
+  bottom band `band-...` or `so-what-...` (`SKILL.md`, `prompt.md`, the worker
+  and translator agents, `reference/sketch-html-spec.md`).
+- **The section tag is drawn by Slide Lab** (`chrome_rules.place_section_tag`,
+  called in `graft_and_theme` on every path). Text from the brief's
+  `**Section tag:**` (`_meta.json` `section_tag`); nothing for an empty tag
+  or "(none)"; content pages only (no cover, divider or closing page). Any
+  shape named exactly `section-tag` is deleted first, then one is drawn, so a
+  second finalize still leaves one. Position from the template's title box:
+  left at the title's text edge, its bottom 6 px above the title box (a title
+  box at y=34, like Kinfield's, puts the tag 8 px from the top). Style: the
+  template's accent color (white on a dark slide), 10.5 pt bold small caps,
+  the template's body font. A template with no room above its title box stops
+  finalize with a plain message instead of guessing a place. The converter
+  warns when a sketch marks the label as a template field, the title-load
+  check and the chrome-zone check ignore it, and the designer instructions now
+  say "Slide Lab draws it; do not draw it" (`build_deck.py`, `prompt.md`,
+  `reference/sketch-html-spec.md`).
+- **Soft accents are themed as accents again.** `CARD_BORDER` /
+  `SLIDE_LAB_CARD_BORDER_1` is now `C2A3FE` (looks the same in a raw script)
+  so `C2A3FF` maps only to the accent tint: on Kinfield, soft accents became
+  the border gray `DADDE0` instead of the light blue `B0C5DB`. The overwrite
+  and its comments are gone (`twins/client_theme.py`, `twins/helpers.py`).
+- **Checks with signal.** The palette check accepts every color written in
+  the template's own masters and layouts (still a warning; the template's
+  page-number gray alone failed 107 of 119 options). A takeaway that repeats
+  the title is now checked at finalize, once per slide, on the takeaway
+  actually on the page: a Major content finding (asked, never fixed
+  automatically) with its own plain line on the REVIEW.html card. A
+  type-scale break is a Major "fix it, or give a reason", shown as its own
+  line on the card, not a hard stop.
+- **Text fit, measured with the template's fonts**
+  (`_chrome_schema.fit_findings`, next to `count_wrapped_lines`). Every text
+  box, table cell and placeholder on the finished slide, with the font files
+  from brand.yml and no renderer. It replaces finalize's character-count clip
+  guess. A word wider than its box, and a table that grows into another shape,
+  past the body area or off the page, stop finalize (exit 17). A label of two
+  words or fewer that wraps and a table row that grows are Major flags; text
+  close to its box edge is an Advisory flag (one-line text over 92% of the
+  width, the last line of wrapped text over 98%). Findings go into the
+  option's `.qc.json` (with `findings` lines `apply_qc_fix.py` reads) and onto
+  the REVIEW.html card. Workers MUST run `scripts/check_fit.py
+  <option_X.pptx>` before finishing (the translator on its converted slide).
+  Tuning: the slide 38 page that shipped with "FY2 H1" wrapped (14 pt bold,
+  68 px room) measures 93%, so 92% flags it and 95% would not; on the current
+  71-slide v3.1 deck 92% flags about 90 one-line texts that PowerPoint shows
+  on one line, which is why the near-limit flag is Advisory only.
+- **`--skip-render` is refused once the user has picked** (exit 18): the
+  final check and QC read the finished picture, and five such runs in one
+  session had to be redone.
+- Test: `tests/run_finalize_chrome_checks_smoke.py`.
+
 ## 2026-10-09: chart header, legend, no final periods
 
 Three owner-approved rules, with the guidance, an automatic fix and QC checks.

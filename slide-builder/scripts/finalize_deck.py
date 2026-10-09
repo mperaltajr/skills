@@ -684,7 +684,7 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
                         _z, name, _l, _t, _l + _w, _t + _h,
                         _is_ph2 or name_lower.startswith(
                             ("page-number", "footnote", "source", "header",
-                             "chrome", "title", "subtitle")),
+                             "chrome", "title", "subtitle", "section-tag")),
                         _has_text, _paints(shape)))
                     if _has_text:
                         _text_boxes.append((name, _l, _t, _l + _w, _t + _h))
@@ -725,7 +725,7 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
                         is_ph = False
                     named_chrome = name_lower.startswith(
                         ("page-number", "footnote", "source", "header", "chrome",
-                         "title", "subtitle", "background", "overlay"))
+                         "title", "subtitle", "background", "overlay", "section-tag"))
                     # A shape covering essentially the whole canvas is a backdrop,
                     # not content sitting in the chrome band. The dark-variant
                     # overlay and full-bleed hero panels are legitimately there.
@@ -835,11 +835,15 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
     # Text fit (owner's decision, 2026-10-09): every text box, table cell and
     # placeholder measured with the template's fonts (_chrome_schema
     # .fit_findings, run on the grafted slide). A word broken in the middle or
-    # a table running into other content stops finalize (block); text within
-    # 2% of wrapping, a wrapped short label or a growing table row is flagged.
+    # a table running into other content stops finalize (block); a wrapped
+    # short label or a growing table row is a Major flag; text close to its
+    # box edge is an Advisory flag (measured on the Kinfield v3.1 deck, nearly
+    # all such lines still fit in PowerPoint, so it is never fixed
+    # automatically and does not count as a Major).
     fit_list = list((fit or {}).get("findings") or [])
     _stops = [f for f in fit_list if f.get("stop")]
-    _flags = [f for f in fit_list if not f.get("stop")]
+    _flags = [f for f in fit_list if not f.get("stop") and f.get("kind") != "near_limit"]
+    _near = [f for f in fit_list if f.get("kind") == "near_limit"]
     from _chrome_schema import fit_problem_line as _fit_line
     checks.append({
         "check": "text_fit_stop", "pass": not _stops, "severity": "block",
@@ -857,6 +861,14 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
                    else "; ".join(_fit_line(f) for f in _flags[:3])
                    + ("" if len(_flags) <= 3 else f" (+{len(_flags) - 3} more)")),
         "plain": [_fit_line(f) for f in _flags],
+    })
+    checks.append({
+        "check": "text_fit_near_limit", "pass": not _near, "severity": "warn",
+        "advisory": bool(_near), "category": "overflow",
+        "detail": ("no text close to its box edge" if not _near
+                   else "; ".join(_fit_line(f) for f in _near[:3])
+                   + ("" if len(_near) <= 3 else f" (+{len(_near) - 3} more)")),
+        "plain": [_fit_line(f) for f in _near],
     })
     checks.append({
         # warn, not block, and deliberately so. Content above the body top is a
@@ -3474,9 +3486,10 @@ def _run(args) -> int:
             # apply_qc_fix.py and qc_fix_policy.py read.
             result["findings"] = [
                 f"slide {st.slide_n} [{c.get('category')}] "
-                f"{'Critical' if c.get('severity') == 'block' else 'Major'}: {line}"
+                f"{'Critical' if c.get('severity') == 'block' else ('Major' if c.get('major') else 'Advisory')}: {line}"
                 for c in result["checks"]
-                if not c.get("pass") and c.get("category") and (c.get("major") or c.get("severity") == "block")
+                if not c.get("pass") and c.get("category")
+                and (c.get("major") or c.get("advisory") or c.get("severity") == "block")
                 for line in (c.get("plain") or [c.get("detail", "")])]
             # For sketch-path picks, run R4.1-R4.8 checks against the
             # translator's report + script. Merge into the same QC JSON so

@@ -1086,8 +1086,8 @@ expect (one way of writing each kind of number across all slides).
 - Layout: {layout!r}
 - Source line: {source!r} (goes in the `data-template-field="footer"` element on a
   sketch, `add_footer(source=...)` on the direct path; never invent one)
-- Section tag: {section_tag!r} (text only for now: the template has no drawn slot for it,
-  so do not draw it yourself)
+- Section tag: {section_tag!r} (Slide Lab draws it; do not draw it. Finalize puts it
+  just above the title in the template's fixed style)
 {body_geometry}
 
 ## 4. QC anchor

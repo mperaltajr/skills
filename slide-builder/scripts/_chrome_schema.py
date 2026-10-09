@@ -736,22 +736,29 @@ def count_wrapped_lines(text: str, ttf_path: str | None,
 #   broken_word     a word wider than its box: PowerPoint breaks it mid-word (stop)
 #   table_overflow  a table that grows past its frame or the body area (stop)
 #   short_label_wraps  a label of two words or fewer that wraps (flag)
-#   near_limit      a line that ends within FIT_NEAR_LIMIT of the usable width:
-#                   a few pixels more and PowerPoint wraps it (flag)
+#   near_limit      one-line text that uses more than FIT_NEAR_LIMIT (92%) of the
+#                   usable width, or the last line of wrapped text past
+#                   FIT_NEAR_LIMIT_WRAPPED (98%): PowerPoint may wrap it (flag)
 #   row_grows       a table row whose text is taller than the row's set height, or a
 #                   table that grows into empty space below it (flag)
 # A table that grows into another shape, past the body area or off the page is
 # table_overflow (stop).
 #
-# Tuned 2026-10-09 against PowerPoint itself: "FY2 H1" (Arial Bold 12 pt) set in
-# 64 to 78 px cells and text boxes wrapped exactly where these widths say (fits
-# at 97% of the room, wraps at 100.4%), and row heights matched PowerPoint's
+# Checked 2026-10-09 against PowerPoint itself: "FY2 H1" (Arial Bold 12 pt) set
+# in 64 to 78 px cells and text boxes wrapped where these widths say (fits at
+# 97% of the room, wraps at 100.4%), and row heights matched PowerPoint's
 # within a pixel (lines x 1.2 x size, less a fifth of the size, plus margins).
-# The near-limit flag started at 92%: on the 119 options of the Kinfield v3.1
-# deck that flagged 228 lines that all fit; 98% flags 46 (the ones within about
-# two pixels of wrapping), so 98% it is.
+# But the slide 38 page that shipped wrapped had "FY2 H1" at 14 pt bold in a
+# 68 px room: 63.3 px by these widths (93%), and PowerPoint still wrapped it.
+# So one-line text is flagged from 92% (the owner's number; 95% would miss
+# that page). On the 71-slide Kinfield v3.1 deck that flags about 90 one-line
+# texts (spot-checked in PowerPoint pictures: they fit), so a near-limit line
+# is an Advisory flag, never a Major and never fixed automatically. The last
+# line of text that already wraps counts only from 98% (at 92% it added
+# about 40 more flags on long sentences in wide boxes).
 
-FIT_NEAR_LIMIT: float = 0.98
+FIT_NEAR_LIMIT: float = 0.92
+FIT_NEAR_LIMIT_WRAPPED: float = 0.98
 FIT_STOP_KINDS: tuple[str, ...] = ("broken_word", "table_overflow")
 _FIT_DEFAULT_INSET_EMU = 91440        # PowerPoint's default left/right text margin
 _FIT_DEFAULT_TB_INSET_EMU = 45720     # and top/bottom
@@ -964,7 +971,8 @@ def _fit_label(shape) -> str:
 
 
 def fit_findings(slide, fonts: dict, body_bottom_px: float | None = None,
-                 near_limit: float = FIT_NEAR_LIMIT) -> dict:
+                 near_limit: float = FIT_NEAR_LIMIT,
+                 near_limit_wrapped: float = FIT_NEAR_LIMIT_WRAPPED) -> dict:
     """Measure every text box, table cell and placeholder on `slide`.
 
     fonts: fit_fonts(...). body_bottom_px: the bottom of the layout's body
@@ -1005,10 +1013,14 @@ def fit_findings(slide, fonts: dict, body_bottom_px: float | None = None,
                     add("short_label_wraps", where, seg,
                         f"a {len(words)}-word label wraps onto {len(lines)} lines "
                         f"({width_px:.0f} px at {pt:g} pt)")
-                elif lines and lines[-1] > near_limit * width_px:
+                elif lines and lines[-1] > (near_limit if len(lines) == 1
+                                            else near_limit_wrapped) * width_px:
                     add("near_limit", where, seg,
-                        f"its last line uses {100 * lines[-1] / width_px:.0f}% of the "
-                        f"{width_px:.0f} px width at {pt:g} pt: PowerPoint may wrap it")
+                        (f"it uses {100 * lines[-1] / width_px:.0f}% of the {width_px:.0f} px "
+                         f"width at {pt:g} pt: PowerPoint may wrap it onto a second line")
+                        if len(lines) == 1 else
+                        (f"its last line uses {100 * lines[-1] / width_px:.0f}% of the "
+                         f"{width_px:.0f} px width at {pt:g} pt: PowerPoint may add a line"))
 
     def rows_needed(sh, tbl):
         """[(set height px, needed height px)] per row."""
