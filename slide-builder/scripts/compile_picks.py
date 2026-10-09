@@ -526,6 +526,12 @@ Final deck: `{final}`
 - Renders succeeded: **{render_ok}**
 - Renders failed   : **{render_fail}**
 
+## Final periods removed (automatic)
+
+No text item ends with a period (owner's rule, 2026-10-09); finalize removed these.
+
+{period_fixes}
+
 ## Failures
 
 {failures}
@@ -1016,6 +1022,7 @@ def main() -> int:
     rows: list[str] = []
     failures: list[str] = []
     badge_skipped: list[str] = []
+    period_lines: list[str] = []   # final periods finalize removed (2026-10-09)
     ordered_keys = sorted(picks.keys(), key=lambda k: int(k.split("_")[1]))
     copied_count = 0
     for key in ordered_keys:
@@ -1055,6 +1062,16 @@ def main() -> int:
                         badge_note = " (no clear spot for the badge)"
                         badge_skipped.append(f"{key} {letter}")
                 rows.append(f"| {key} | {letter} | `{src.name}` | {n_shapes} | ok{badge_note} |")
+                try:
+                    _qc = json.loads((src.parent / (src.stem + ".qc.json")).read_text(
+                        encoding="utf-8"))
+                    for c in _qc.get("final_period_fixes") or []:
+                        period_lines.append(
+                            f"- deck slide {copied_count} ({key} {letter}), "
+                            f"`{c.get('shape', '?')}`: '{c.get('before', '')}' -> "
+                            f"'{c.get('after', '')}'")
+                except Exception:
+                    pass
                 print(f"  {key} pick {letter}  ok (shapes={n_shapes}){badge_note}")
             except Exception as e:
                 tb = traceback.format_exc().strip().splitlines()[-1]
@@ -1202,6 +1219,7 @@ def main() -> int:
         render_ok=render_ok,
         render_fail=render_fail,
         failures="\n".join(failures) if failures else "(none)",
+        period_fixes="\n".join(period_lines) if period_lines else "(none)",
     )
     compiled_md = out_dir / "COMPILED.md"
     compiled_md.write_text(content, encoding="utf-8")
@@ -1213,6 +1231,7 @@ def main() -> int:
     print(f"  Opens   : {'yes' if opens else 'NO'} (PowerPoint: {_PPT_OPENS})")
     print(f"  Slides  : {slide_count}")
     print(f"  Renders : {render_ok} / {render_total}")
+    print(f"  Periods : {len(period_lines)} final period(s) removed (listed in COMPILED.md)")
     print(f"  Report  : {compiled_md}")
     print(f"  Deck    : {final_path}")
     print("=" * 72)

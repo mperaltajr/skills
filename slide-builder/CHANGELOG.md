@@ -2,6 +2,53 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## 2026-10-09: chart header, legend, no final periods
+
+Three owner-approved rules, with the guidance, an automatic fix and QC checks.
+
+- **Legend: one row at the chart's top right.** Every chart's legend sits on
+  the chart's header line, at the far right, right-aligned to the chart's
+  right edge, one row. This replaces the old guidance ("right-aligned below
+  the sub-headline, or top-right of the chart as a fallback") in
+  `build_deck.py` (the context rules), `prompt.md`, the worker agent,
+  `reference/layouts.md` (Chart) and `reference/anti-patterns.md` (Chrome 3).
+  A chart with one series has no legend.
+- **Chart header line: "Chart title, [Unit]".** Every chart has one line at
+  its top left: the title bold, the comma and the unit in square brackets
+  regular weight, an optional footnote mark after the title as a superscript
+  digit (¹), axis titles where an axis carries a unit. Shape names are fixed
+  so the checks can find them: `chart-title` (`chart-title-2` for a second
+  chart), `chart-legend-<series>` and `chart-legend-swatch-<series>`,
+  `chart-axis-title-x` / `-y`, and `chart-...` for every other piece. These
+  names already count as chart text in `type_scale.py`.
+- **No final periods, removed automatically.** No text item ends with a
+  period; periods between sentences stay. Finalize (in `graft_and_theme`,
+  after the slide is built and before it is rendered) removes one final
+  period from every paragraph of every text box, group and table cell
+  (`scripts/chart_rules.py strip_final_periods`). Kept: ellipses,
+  abbreviations (Inc., Ltd., Co., Corp., etc., e.g., i.e., vs., No., St.,
+  U.S., Jr., Sr., Mr., Mrs., Ms., Dr., a single capital such as "J.", any
+  dotted abbreviation such as "U.K."), and a list number on its own ("3.").
+  Footnotes and sources are included. Text inside native chart objects is not
+  touched. Each change (slide, shape, before / after) goes into the option's
+  `.qc.json` (`final_period_fixes`), finalize prints a one-line count, and
+  RESULT.md and COMPILED.md list every change. `prompt.md` no longer exempts
+  multi-sentence paragraphs: "keep periods between sentences, never at the
+  end".
+- **QC.** slide-qc's hygiene check adds three layout Majors, fixed
+  automatically (`qc_fix_policy.py` keys `final_period`, `chart_header`,
+  `legend_position`): a text item that still ends with a period; a chart
+  without its header line, or with a value axis and no unit; a legend that is
+  not one row at the chart's top right. Drawn charts are found by shape name
+  (`chart-...`), grouped by position, so two charts on a slide are checked
+  one by one; native charts are read from the chart object (the legend must
+  be at the top or top right). Kept conservative: a deck whose chart pieces
+  are not named `chart-...` gets no chart finding, a header is accepted up to
+  3.5 inches above the named marks, and any unit-looking text (brackets,
+  parentheses, $, %, a comma tail, a unit shape, $ or % in the ticks) counts
+  as a unit. slide-qc's vision pass checks all three too.
+- New test: `tests/run_chart_header_periods_smoke.py`.
+
 ## 2026-10-09: comments before conversion, picks kept, PowerPoint by default
 
 ### Review page and comments

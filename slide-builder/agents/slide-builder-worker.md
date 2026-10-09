@@ -90,6 +90,14 @@ Follow the procedure in your `_prompt.md` verbatim:
 
    The finalizer (`finalize_deck.py`) executes each script with CWD set to the slide directory, then looks for `option_A.pptx` / `option_B.pptx` / `option_C.pptx` next to the `.py` file. Using `sys.argv[1]` will crash with `IndexError: list index out of range` because the finalizer passes no arguments.
 
+   ### Charts and final periods (both paths; owner's rules, 2026-10-09)
+
+   - **Chart header line.** Every chart has a header line at its top left, starting at the chart's left edge: `Chart title, [Unit]`. The title is bold; the comma and the unit in square brackets are regular weight (not bold); an optional footnote mark goes right after the title as a superscript digit (use the characters ¹ ² ³ so it survives the conversion). Name it `chart-title` (`chart-title-2` and so on when the slide has more than one chart). Sketch: `<div data-shape-id="chart-title"><b>Revenue by region</b>¹, [$B]</div>`. Direct: `add_text(slide, "chart-title", "<strong>Revenue by region</strong>¹, [$B]", ..., bold=False)`. Axis titles go on each axis that carries a unit (`chart-axis-title-x`, `chart-axis-title-y`).
+   - **Legend: one row, top right, on the header line.** The legend sits at the far right of that same header line, right-aligned to the chart's right edge: a small swatch and a label per series, side by side, never stacked, never under the chart or at the side. Name each label `chart-legend-<series>` and each swatch `chart-legend-swatch-<series>`. A chart with one series has no legend.
+   - **Name every chart piece `chart-...`** (`chart-bar-...`, `chart-line-...`, `chart-dot-...`, `chart-ylab-...` for value-axis ticks, `chart-grid-...`): QC finds the chart, its header and its legend by these names, and the type-scale check treats them as chart text.
+   - **No text item ends with a period**: titles, takeaways, labels, bullets, panel text, callouts, table cells, chart labels, footnotes and sources. Periods between sentences stay ("Costs fall 12%. Savings start in Year 2"). Finalize removes any final period it finds and lists each one in the report, but write them without.
+   - QC flags a chart with no header line, a value axis with no unit, a legend anywhere but one row at the top right, and a final period as Major.
+
    ### Sketch path (HTML-first)
 
    When `PATTERN: sketch`, write HTML file(s) INSTEAD of `.py` files — the exact file(s) the prompt lists, e.g.:
@@ -107,6 +115,7 @@ Follow the procedure in your `_prompt.md` verbatim:
    - Body zone is between `--body-top` and `--body-bottom`, and between `--body-left` and `--body-right` (the template's side margins), all from your slide's `_context.md`
    - Paint `.slide-canvas` with `var(--slide-canvas-bg)` and take that value from `_context.md` (it is this layout's own background, which can be a light gray rather than white). A pale panel within a few shades of it will not show on the finished slide: give it a clearly different fill or an outline
    - Arrows stop at least 8 px short of the box they point at; on a cycle or loop diagram leave at least 60 px between neighboring boxes
+   - Charts: header line `chart-title` ("**Title**, [Unit]") at the chart's top left, legend one row at the right end of the same line, every piece named `chart-...` (see "Charts and final periods" above)
    - Put `data-visual-form="<form>"` on `.slide-canvas` (cards, table, chart, flow, timeline, matrix, hero-number, diagram, comparison, text, quote, image, map); the review page counts them and warns when most pages look alike
    - Icons: `<i data-icon-name="NAME" style="width:32px;height:32px;color:...">`, with NAME from `slide-builder/icons/checked-icons.json` only. `render_html.py` draws them; do not write your own icon drawings or preview scripts. Your temporary files go in your own `slide_NN/` folder, never a shared scratch folder
    - The brief's source line (in `_prompt.md` § 1) goes, word for word, in the `data-template-field="footer"` element

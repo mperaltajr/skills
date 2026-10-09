@@ -217,9 +217,15 @@ Produce **{{OPTIONS_COUNT}} option(s)** ({{OPTION_LETTERS}}) for the SAME picked
 - **When the items happen in order**, connect them with arrows, chevrons or a line, so the sequence reads at a glance.
 - **Arrows stop short of the boxes.** Work out each arrow's start and end from the box EDGES (not the box centers) and leave at least 8 px between an arrowhead and the box it points at; an arrowhead touching or inside a box is flagged (`MAJOR_ARROW_END_AT_BOX` on the review page). On a **cycle or loop** diagram, also leave at least 60 px between neighboring boxes so each arrow has room to show, and keep the boxes off the arrow's path. On 2026-10-06 a loop's arrowheads ran into the boxes in the sketch, and the finished slide copied it.
 - **Skip it only when it would be false or noise:** a single claim, a quote, a chart that already carries the structure, or items with no order or grouping.
-- **No trailing periods** on headings, labels, callouts or one-sentence text boxes. Multi-sentence paragraphs keep normal punctuation.
+- **No final periods (owner's rule, 2026-10-09):** no text item ends with a period: titles, subtitles, takeaways, labels, bullets, panel text, callouts, table cells, chart labels, footnotes and sources. Keep periods between sentences, never at the end ("Costs fall 12%. Savings start in Year 2"). Finalize removes any final period left (it keeps ellipses, abbreviations such as "Inc." or "U.S." and list numbers such as "3.") and lists each change in the report; QC flags one that remains as Major.
 
 Users had to ask for this in words every round ("how come we aren't using process icons/numbers"). Doing it unasked is the default now; the review page's "Add process structure" button exists for the cases you miss.
+
+**Every chart: header line at the top left, legend at the top right (owner's rules, 2026-10-09).** The house chart looks like this: a panel; along its top, one line that reads "Chart title¹, [Unit]" on the left and the legend "● AA ● BB" at the far right; under it the plot with axis titles; the footnote ("1. Footnote") and then the source at the bottom left of the slide.
+- **Header line:** starts at the chart's left edge. The title is bold; the comma and the unit in square brackets are regular weight (not bold); an optional footnote mark goes right after the title as a superscript digit (use the characters ¹ ² ³, which survive the conversion). Name it `chart-title` (`chart-title-2` and so on for a second chart on the slide). Sketch: `<div data-shape-id="chart-title"><b>Revenue by region</b>¹, [$B]</div>`; direct: `add_text(slide, "chart-title", "<strong>Revenue by region</strong>¹, [$B]", ..., bold=False)`.
+- **Legend:** one row on the same line, right-aligned to the chart's right edge: a small swatch and a label per series, side by side. Never under the chart, never stacked at the side, never under the takeaway. Name each label `chart-legend-<series>` and each swatch `chart-legend-swatch-<series>`. A chart with one series has no legend.
+- **Axis titles** on each axis that carries a unit (`chart-axis-title-x`, `chart-axis-title-y`).
+- **Name every other chart piece `chart-...`** (`chart-bar-...`, `chart-line-...`, `chart-dot-...`, `chart-ylab-...` for value-axis ticks, `chart-grid-...`). QC finds a chart, its header and its legend by these names and flags a missing header line, a value axis without a unit, and a legend anywhere but one row at the top right as Major.
 
 **All options use the SAME pattern** — only the variants differ. Don't spread options across different patterns.
 
@@ -253,7 +259,7 @@ After you have a draft option script but before you call it done, re-read the re
 | Horizontal bands | Aesthetics #4–#5 (dark band contrast); Aesthetics #7 (single accent) |
 | Org chart, Decision tree | Structural #2 (no auto-routed connectors); Structural #4 (text-box overlap) |
 | Swimlane | Structural #2, #4; Content #5 (3+ consecutive same-split — though swimlane is rarely consecutive) |
-| Chart (incl. quadrant) | Encoding #1 (scale legend), #2 (named-framework convention positions); Chrome #3 (legend placement) |
+| Chart (incl. quadrant) | Encoding #1 (scale legend), #2 (named-framework convention positions), #3 (header line "Chart title, [Unit]"); Chrome #3 (legend one row at the chart's top right) |
 | Table | Chrome #4 (no stacked RECOMMENDED badges — use accent stripe); Aesthetics #6 (font sizes) |
 | Any with curved-container concept | Structural #1 (no text inside curves — route to fallback) |
 
@@ -373,7 +379,7 @@ finalize_deck.py reads line 1. Token prefix decides routing:
 - **Use the brand palette constants only.** Never raw `RGBColor(...)` literals. The named constants from `twins.helpers` are: `BRAND_PRIMARY`, `BRAND_PRIMARY_MID`, `BRAND_ACCENT`, `BRAND_ACCENT_SOFT`, `TEXT_DARK`, `TEXT_MID`, `TEXT_FAINT`, `CARD_BG`, `CARD_BORDER`, `WHITE`.
 - **Type scale (owner's rule; checked on the final check page and in QC as Major).**
   - **Body text is 12 pt by default**: bullets, card text, table cells and headers, labels, eyebrows, step numbers, captions. Design at **12, 14 or 16 pt**, with **at most 3 body sizes on the slide** (e.g. 16 headings, 14 key lines, 12 detail). **Only when the content truly cannot be cut further** (a dense table, many labels) may detail text drop to **11 or 10.5 pt, never lower**; it still counts toward the 3 sizes, and it shows as a note on the final check page. The title and takeaway use the template's own sizes and are not counted. One large hero figure (24 pt or more) is allowed and not counted.
-  - **Exceptions, not under 9 pt:** sources, footnotes, and text that is part of a chart (axis titles, tick labels, legend, data labels on bars or lines). Name these shapes so the check recognizes them: `chart-...` for every chart piece (e.g. `chart-ylab-200`, `chart-legend-vn`, `chart-val-2030`), `source-...` and `footnote-...`. Anything else is body text.
+  - **Exceptions, not under 9 pt:** sources, footnotes, and text that is part of a chart (axis titles, tick labels, legend, data labels on bars or lines). Name these shapes so the check recognizes them: `chart-...` for every chart piece (e.g. `chart-title`, `chart-ylab-200`, `chart-legend-vn`, `chart-val-2030`), `source-...` and `footnote-...`. Anything else is body text.
   - **If it does not fit at 12 pt, first cut words, drop a column or split the content.** Going down to 10.5 pt is the last resort, never the first fix, and never below 10.5 pt. Never add a fourth size for one line.
   - Every size must be on PowerPoint's default grid (9 and 10 for exceptions only; 10.5 and 11 as the last-resort body sizes; 12, 14, 16, 18, 20, 24, 28, 32 ... for the rest), never off-grid like 7.3 or 8.2. The finalize step snaps stragglers to the grid, but author on it so what you design is what ships.
 <!-- only:direct -->

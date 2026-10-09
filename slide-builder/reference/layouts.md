@@ -244,17 +244,20 @@ First-class helpers with their own plumbing. Hardline Rule #1: charts and tables
 
 ![Chart with quadrant mode](../_decisions/gallery/gallery10-chart-quadrant.png)
 
-Axes plus items in 2D space plus a takeaway. The `chart_type` parameter governs the variant: `scatter`, `line`, `bar`, `waterfall`, `donut`, `quadrant`. **Quadrant mode absorbs the old 2×2 matrix** — growth-share matrix, Magic Quadrant, Eisenhower, all render here via `quadrants: [name×4]`. The example PNG shows a growth-share matrix: brand-primary axes, quadrant labels in the four corners, product bubbles at correct fractional coordinates, right-side "Recommended moves" legend.
+Axes plus items in 2D space plus a takeaway. The `chart_type` parameter governs the variant: `scatter`, `line`, `bar`, `waterfall`, `donut`, `quadrant`. **Quadrant mode absorbs the old 2×2 matrix** — growth-share matrix, Magic Quadrant, Eisenhower, all render here via `quadrants: [name×4]`. The example PNG shows a growth-share matrix: brand-primary axes, quadrant labels in the four corners, product bubbles at correct fractional coordinates, right-side "Recommended moves" legend. (The example predates the 2026-10-09 chart rules below: today its legend would be one row at the right end of the chart's header line, and the chart would carry a "Chart title, [Unit]" header.)
 
 **Use when:** any 2-axis chart (scatter, line, bar, waterfall, donut) · 2×2 matrix frameworks (growth-share matrix, Magic Quadrant, Eisenhower, prioritization matrices) · charts where the data is the slide's center of gravity.
 
-**Variants:** `chart_type` (scatter, line, bar, waterfall, donut, quadrant) · axis labels yes/no · legend position (right, bottom, top-right under sub-headline) · per-item callout pills yes/no · recommended-item emphasis (size, fill, halo).
+**Variants:** `chart_type` (scatter, line, bar, waterfall, donut, quadrant) · axis labels yes/no · legend yes/no (when there is one, it is always one row at the chart's top right; a one-series chart has none) · per-item callout pills yes/no · recommended-item emphasis (size, fill, halo).
 
 **Do not use for:** comparison tables (use Table) · pure category lists without 2D positioning · cases where the chart would be invented because the brief has no quantitative data.
 
 **Convention rules:**
 - For growth-share matrix quadrants: STARS top-right, CASH COWS bottom-right, QUESTION MARKS top-left, DOGS bottom-left. Never swap these positions.
-- Legends go below the sub-headline (right-aligned) by default; top-right of the chart only when the right side is occupied by a callout.
+- **Header line (owner's rule, 2026-10-09).** Every chart has one line along its top. On the left, starting at the chart's left edge: "Chart title, [Unit]", the title in bold, then a comma and the unit in square brackets in regular weight (not bold), with an optional footnote mark right after the title as a superscript digit (¹ ² ³). Name it `chart-title` (`chart-title-2` for a second chart). Axis titles go on each axis that carries a unit (`chart-axis-title-x`, `chart-axis-title-y`). The chart's footnote ("1. Footnote") goes above the source line at the bottom left of the slide.
+- **Legend (owner's rule, 2026-10-09).** One row at the far right of that same header line, right-aligned to the chart's right edge: a small swatch and a label per series, side by side ("● AA ● BB"). Never under the chart, never stacked at the side, never under the takeaway. Name the labels `chart-legend-<series>` and the swatches `chart-legend-swatch-<series>`. A chart with one series has no legend.
+- **Names.** Every other chart piece is named `chart-...` too (`chart-bar-...`, `chart-line-...`, `chart-dot-...`, `chart-ylab-...` for value-axis ticks, `chart-grid-...`). The QC check (`scripts/chart_rules.py`) finds a chart, its header and its legend by these names; a missing header line, a value axis without a unit, or a legend anywhere but one row at the top right is a layout Major, fixed automatically.
+- **Native PowerPoint charts** (only in an external deck; Slide Lab draws its charts from shapes): the chart's own title or a text box just above it is the header line; the legend is at the top (`XL_LEGEND_POSITION.TOP` with a manual layout that moves it to the right, `include_in_layout = False`) or drawn as shapes on the header line.
 
 ---
 
