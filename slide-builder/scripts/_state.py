@@ -454,6 +454,19 @@ def record_compile(out_dir, kind: str = "picks", output=None, slides: int = 0,
     _write(out_dir, state)
 
 
+def compiled_deck(out_dir) -> Path:
+    """The deck the last compile wrote. Since 2026-10-08 compile names the deck
+    after its topic ("HR cost takeout approach.pptx") and records the path;
+    older builds wrote final_deck.pptx. Readers resolve the deck through this
+    instead of assuming a file name."""
+    out = Path(out_dir)
+    comp = (read_state(out).get("stages") or {}).get("compile") or {}
+    rec = comp.get("output")
+    if rec and Path(rec).exists():
+        return Path(rec)
+    return out / "final_deck.pptx"
+
+
 def has_compiled(out_dir) -> bool:
     """True once this build has produced a final deck from an approval."""
     return bool(read_state(out_dir).get("stages", {}).get("compile"))

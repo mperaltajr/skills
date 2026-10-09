@@ -183,7 +183,7 @@ def main() -> int:
         assert r.returncode == 0 and tok, r.stdout[-1500:] + r.stderr[-1500:]
         r = H.run("compile_picks.py", "--out", out, "--final-token", tok)
         assert r.returncode == 0, r.stdout[-2500:] + r.stderr[-2500:]
-        deck = Presentation(str(out / "final_deck.pptx"))
+        deck = Presentation(str(_state.compiled_deck(out)))
         from twins.chrome_rules import template_takeaway_pt
         from _chrome_schema import load_chrome_yml
         import _paths as _p

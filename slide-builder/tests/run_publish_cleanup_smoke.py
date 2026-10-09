@@ -6,6 +6,11 @@ deck stays editable.
     deck yet (exit 5)
   - --scan lists finished decks (flagging recent ones) and deletes nothing
   - a dry run deletes nothing
+  - keeps per slide only the picked option's rebuild files (design, script,
+    plan, translation report, its img/ pictures, files the script names,
+    _prior_feedback.md); deletes _prompt.md, _context.md, scratch, root _qc*
+    renders, _session/old-decks, a rejected deck, and a final_deck.pptx that
+    duplicates the topic-named deck (the records then point at that deck)
   - deletes unpicked options, the picked option's images and per-option
     PowerPoint files, _session/_qc* renders (keeping notes such as
     qc-flags-*.md), final_pngs/, _prev/, REVIEW.html
@@ -26,6 +31,7 @@ from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
+sys.path.insert(0, str(HERE.parent / "scripts"))
 import _e2e_harness as H  # noqa: E402
 
 
@@ -64,6 +70,28 @@ def main() -> int:
         (out / "slide_01" / "_prev").mkdir(exist_ok=True)
         (out / "slide_01" / "_prev" / "old.py").write_text("old", encoding="utf-8")
         (out / "REVIEW.html").write_text("<html></html>", encoding="utf-8")
+        # The 2026-10-08 keep-list: pictures and files the kept script names
+        # stay; scratch, prompts, root _qc* renders, old-decks and a rejected
+        # or duplicate deck go.
+        img = out / "slide_01" / "img"
+        img.mkdir(exist_ok=True)
+        (img / "A_logo.png").write_bytes(b"x" * 100)
+        (img / "B_logo.png").write_bytes(b"x" * 100)
+        (out / "slide_01" / "headshots").mkdir()
+        (out / "slide_01" / "headshots" / "p1.png").write_bytes(b"x" * 100)
+        with (out / "slide_01" / "option_A.py").open("a", encoding="utf-8") as fh:
+            fh.write("\n# picture: headshots/p1.png\n")
+        (out / "slide_01" / "_scratch").mkdir()
+        (out / "slide_01" / "_scratch" / "t.png").write_bytes(b"x" * 100)
+        (out / "slide_01" / "option_A.probe.html").write_text("<p>", encoding="utf-8")
+        (out / "_qc_tmp").mkdir()
+        (out / "_qc_tmp" / "slide_01.png").write_bytes(b"x" * 1000)
+        (out / "_session" / "old-decks").mkdir()
+        (out / "_session" / "old-decks" / "final_deck.1.pptx").write_bytes(b"x" * 1000)
+        (out / "final_deck.REJECTED.pptx").write_bytes(b"x" * 1000)
+        shutil.copy2(out / "Client Deck.pptx", out / "final_deck.pptx")
+        import _state
+        _state.record_compile(out, output=out / "final_deck.pptx", slides=1)
 
         print("[1b] --scan lists the finished deck and deletes nothing")
         before_scan = sorted(str(p) for p in out.rglob("*"))
@@ -91,8 +119,22 @@ def main() -> int:
         for gone in ("_session/_qc2", "final_pngs", "slide_01/_prev", "REVIEW.html"):
             assert not (out / gone).exists(), gone
         for kept in ("Client Deck.pptx", "_session/narrative-brief-x.md", "_meta.json",
-                     "picks.json", "slide_01/_prompt.md"):
+                     "picks.json", "slide_01/img/A_logo.png", "slide_01/headshots/p1.png"):
             assert (out / kept).exists(), kept
+        for gone in ("slide_01/_prompt.md", "slide_01/_context.md", "slide_01/img/B_logo.png",
+                     "slide_01/_scratch", "slide_01/option_A.probe.html", "_qc_tmp",
+                     "_session/old-decks", "final_deck.REJECTED.pptx", "final_deck.pptx",
+                     "slide_01/option_A.qc.json"):
+            assert not (out / gone).exists(), gone
+        assert [p.name for p in out.glob("*.pptx")] == ["Client Deck.pptx"], list(out.glob("*.pptx"))
+        rec = _state.read_state(out)["stages"]["compile"]["output"]
+        assert Path(rec).name == "Client Deck.pptx", rec
+        assert _state.compiled_deck(out).name == "Client Deck.pptx"
+        allowed = {"option_A.py", "option_A_native.py", "option_A_native.plan.json",
+                   "option_A_translation_report.json", "option_A.html", "_prior_feedback.md",
+                   "img", "headshots"}
+        left = {p.name for p in s1.iterdir()}
+        assert left <= allowed, f"slide folder keeps more than the keep-list: {left - allowed}"
         meta = json.loads((out / "_meta.json").read_text(encoding="utf-8"))
         assert next(s for s in meta["slides"] if s["n"] == 1)["options"] == ["A"], meta["slides"][0]
         print("    ok: unpicked + regenerable files gone; deck, brief, records, picked script kept")

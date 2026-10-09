@@ -75,7 +75,7 @@ def _agent_part_survives() -> None:
         assert native.read_text(encoding="utf-8") == finished, \
             "the agent's drawing was rewritten"
         assert "kept as is" in r.stdout, r.stdout[-1500:]
-        deck = Presentation(str(out / "final_deck.pptx"))
+        deck = Presentation(str(_state.compiled_deck(out)))
         names = {sh.name for sh in deck.slides[1].shapes}
         assert "agent-drawn-mark" in names, f"the agent's shape is not in the deck: {names}"
         print("    ok: second run exit 0, the agent's part byte-identical and in the deck")
@@ -217,7 +217,7 @@ def main() -> int:
         assert ca and ca[-1]["words"] == "fix the chart on slide 2", st.get("chat_approvals")
         assert not [o for o in st.get("overrides", [])
                     if o["override"] == "qc_fix_approved_in_chat"], "listed as a gate passed over"
-        assert (out / "final_deck.pptx").exists()
+        assert _state.compiled_deck(out).exists()
         assert json.loads((out / "picks.json").read_text(encoding="utf-8"))["slide_02"] == "A"
         print("    ok: other picks kept, user's words recorded, deck compiled")
     finally:

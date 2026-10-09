@@ -106,7 +106,7 @@ def main() -> int:
         print("    ok: finalize -> final check -> compile with its token")
 
         print("[1a] vision pass + check_done over the real compiled deck")
-        deck = out / "final_deck.pptx"
+        deck = _state.compiled_deck(out)
         r = H.run("check_done.py", "--out", out)
         assert r.returncode == 1 and "no vision pass" in r.stdout, r.stdout
         r = H.run("record_vision_qc.py", "--out", out, "--deck", deck,

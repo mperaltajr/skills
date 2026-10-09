@@ -12,7 +12,7 @@ finding that turned out to be wrong is not open: correct it in the QC report as
 "not a defect" and leave it out of the count.
 
 Run:
-  py -3 scripts/record_vision_qc.py --out <out_dir> --deck <final_deck.pptx> \\
+  py -3 scripts/record_vision_qc.py --out <out_dir> [--deck <the compiled deck>] \\
       --slides-reviewed 13 --criticals 0 --majors 0 --advisories 2
 """
 from __future__ import annotations
@@ -28,7 +28,9 @@ import _state  # noqa: E402
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description="Record a vision QC pass.")
     ap.add_argument("--out", required=True, type=Path, help="Build output dir.")
-    ap.add_argument("--deck", required=True, help="The deck that was reviewed.")
+    ap.add_argument("--deck", default=None,
+                    help="The deck that was reviewed (default: the deck the last "
+                         "compile wrote, named after the topic).")
     ap.add_argument("--slides-reviewed", required=True, type=int,
                     help="How many slides you actually LOOKED at, one by one.")
     ap.add_argument("--criticals", required=True, type=int,
@@ -42,7 +44,7 @@ def main(argv=None) -> int:
     if not args.out.exists():
         print(f"ERROR: out dir not found: {args.out}")
         return 2
-    deck = Path(args.deck)
+    deck = Path(args.deck) if args.deck else _state.compiled_deck(args.out)
     if not deck.exists():
         # The record is evidence about a specific file. Recording a pass over a
         # deck that is not there would leave check_done unable to verify anything.
