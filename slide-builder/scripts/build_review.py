@@ -1129,6 +1129,7 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
       <div class="card-num">SLIDE {n}</div>
       <div class="card-name">{title}</div>
     </div>
+    <div class="kept-mark" id="kept-{sid}" style="display:none;">Kept from last round</div>
     <div class="status-badge pending" id="badge-{sid}">Not decided yet</div>
   </div>
 
@@ -1162,7 +1163,9 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
     <div>
       <div class="quick-fb">
         <div class="field-label">Quick feedback</div>
-        <div class="hint-text">Click any that apply. No typing needed.</div>
+        <div class="hint-text">Click any that apply. No typing needed. On a picked slide they are
+        applied to that design before it is converted; "Wrong layout / structure" or asking for
+        a different design gets new designs instead.</div>
         <div class="chip-row">
           {chips_html}
         </div>
@@ -1325,6 +1328,9 @@ code { font-family: Consolas, monospace; font-size: 12px; color: var(--text-dim)
 .status-badge.pending { background: rgba(100,116,139,0.18); color: var(--text-dim); border: 1px solid var(--pending); }
 .status-badge.picked  { background: rgba(22,163,74,0.18); color: var(--approve); border: 1px solid var(--approve); }
 .status-badge.none    { background: rgba(220,38,38,0.18); color: var(--reject); border: 1px solid var(--reject); }
+/* A pick carried over from the last round (recorded by record_picks.py) */
+.kept-mark { font-size: 10px; font-weight: 600; padding: 3px 8px; margin-right: 8px; border-radius: 10px; color: var(--text-dim); background: var(--panel-2); }
+.kept-mark.edited { color: var(--approve); }
 
 /* MULTI (2-3 options): thumbnails compare side-by-side across the top; the
    column count comes from an inline style keyed to the option count. */
@@ -1428,12 +1434,20 @@ const PICK_NS   = "::" + (window.__OUT_DIR__ || window.location.pathname);
 // v3: a pick is stored with the stamp of the slide it was made on, and only
 // counts while that stamp still matches (see pickForSlide).
 const PICKS_KEY = "slidelab_picks_v3" + PICK_NS;
-const FB_KEY    = "slidelab_feedback_v2" + PICK_NS;
+// v3: comments are scoped per slide like picks, with the slide's stamp. A
+// slide whose designs changed (edited in place from these comments, or
+// redesigned) starts with no comments; comments on untouched slides stay.
+const FB_KEY    = "slidelab_feedback_v3" + PICK_NS;
 const REGEN_KEY = "slidelab_regen_v3"    + PICK_NS;
 // All-options deck: the options the user switched to Leave out, per slide,
 // with the slide's stamp (a rebuilt slide starts with every option kept).
 const KEEP_KEY  = "slidelab_keep_v1"     + PICK_NS;
 const STAMPS = window.__STAMPS__ || {};
+// Picks recorded by record_picks.py in an earlier round, for slides whose
+// designs are unchanged (or were edited in place from the user's comments,
+// same letter). Written into the page by build_review.py, so they show in
+// any browser. A choice made on this page wins over them.
+const SERVER_PICKS = window.__SERVER_PICKS__ || {};
 
 // Must match _state.fnv1a32 / approval_check character for character.
 function fnv1a32(str) {
@@ -1480,8 +1494,30 @@ function pickForSlide(sid) {
     // A rebuilt slide gets a new stamp, so its old pick falls away and the
     // reviewer has to look at the new design; every other slide keeps its pick.
     const v = loadPicks()[sid];
-    if (!v || typeof v !== "object") return null;
-    return (v.s === STAMPS[sid] && v.l) ? v.l : null;
+    if (v && typeof v === "object" && v.s === STAMPS[sid]) return v.l || null;  // null: cleared here
+    return keptPick(sid);
+}
+function keptPick(sid) {
+    // A pick carried over from the last round (server record), single letter only.
+    const sp = SERVER_PICKS[sid];
+    return (sp && typeof sp.letter === "string" && /^([A-F]|-)$/.test(sp.letter)) ? sp.letter : null;
+}
+function isKeptFromLastRound(sid) {
+    const v = loadPicks()[sid];
+    const local = (v && typeof v === "object" && v.s === STAMPS[sid]);
+    const k = keptPick(sid);
+    return !!k && (!local || v.l === k);
+}
+function fbFor(sid) {
+    const v = loadFb()[sid];
+    return (v && typeof v === "object" && v.s === STAMPS[sid] && v.f) ? v.f : {};
+}
+function setFb(sid, field, value) {
+    const fb = loadFb();
+    const cur = (fb[sid] && fb[sid].s === STAMPS[sid] && fb[sid].f) ? fb[sid].f : {};
+    if (value) cur[field] = value; else delete cur[field];
+    if (Object.keys(cur).length) fb[sid] = { s: STAMPS[sid], f: cur }; else delete fb[sid];
+    saveFb(fb);
 }
 function isReplace(sid) { return loadRegens()[sid] === STAMPS[sid]; }
 
@@ -1511,6 +1547,16 @@ function renderSlideState(sid) {
     if (letter) { badge.classList.add("picked"); badge.textContent = letter === "-" ? "Left out" : "Picked " + letter; }
     else if (isNone) { badge.classList.add("none"); badge.textContent = "New designs requested"; }
     else { badge.classList.add("pending"); badge.textContent = "Not decided yet"; }
+
+    const kept = document.getElementById("kept-" + sid);
+    if (kept) {
+        const on = !!letter && isKeptFromLastRound(sid);
+        kept.style.display = on ? "inline-block" : "none";
+        const edited = on && SERVER_PICKS[sid] && SERVER_PICKS[sid].edited;
+        kept.classList.toggle("edited", !!edited);
+        kept.textContent = edited ? "Kept from last round, edited from your comments"
+                                  : "Kept from last round";
+    }
 
     const regenPanel = document.getElementById("regen-" + sid);
     if (regenPanel) regenPanel.style.display = isNone ? "block" : "none";
@@ -1567,14 +1613,12 @@ function setAllMode(on) {
 function renderAll() {
     SLIDE_IDS.forEach(renderSlideState);
     SLIDE_IDS.forEach(renderKeep);
-    const fb = loadFb();
     document.querySelectorAll("textarea[data-slide][data-field]").forEach(ta => {
-        const k = ta.dataset.slide + "_" + ta.dataset.field;
-        if (fb[k]) ta.value = fb[k];
+        ta.value = fbFor(ta.dataset.slide)[ta.dataset.field] || "";
     });
     // restore quick-feedback chip selections
     document.querySelectorAll(".chip[data-slide][data-chip]").forEach(chip => {
-        const sel = (fb[chip.dataset.slide + "_quick"] || "").split("; ");
+        const sel = (fbFor(chip.dataset.slide).quick || "").split("; ");
         chip.classList.toggle("selected", sel.indexOf(chip.dataset.chip) !== -1);
     });
     updateCounts();
@@ -1608,7 +1652,9 @@ function pickOption(sid, letter) {
     // review, so gating here left every button inert on a first-pass build.
     // compile_picks resolves <out>/<slide>/option_<letter>.pptx from the letter.
     const picks = loadPicks();
-    if (pickForSlide(sid) === letter) delete picks[sid];   // clicking the pick again clears it
+    // Clicking the pick again clears it. Cleared is stored (l: null), so a
+    // pick carried over from the last round does not come back.
+    if (pickForSlide(sid) === letter) picks[sid] = { l: null, s: STAMPS[sid] };
     else picks[sid] = { l: letter, s: STAMPS[sid] };
     savePicks(picks);
     const regens = loadRegens();
@@ -1622,7 +1668,7 @@ function pickNone(sid) {
     else {
         regens[sid] = STAMPS[sid];
         const picks = loadPicks();
-        delete picks[sid];
+        picks[sid] = { l: null, s: STAMPS[sid] };
         savePicks(picks);
     }
     saveRegens(regens);
@@ -1631,12 +1677,7 @@ function pickNone(sid) {
 
 function wireFeedback() {
     document.querySelectorAll("textarea[data-slide][data-field]").forEach(ta => {
-        ta.addEventListener("input", () => {
-            const fb = loadFb();
-            const k = ta.dataset.slide + "_" + ta.dataset.field;
-            if (ta.value) fb[k] = ta.value; else delete fb[k];
-            saveFb(fb);
-        });
+        ta.addEventListener("input", () => setFb(ta.dataset.slide, ta.dataset.field, ta.value));
     });
 }
 
@@ -1649,21 +1690,19 @@ function toggleChip(btn) {
     const card = document.getElementById("card-" + sid);
     const selected = Array.from(card.querySelectorAll(".chip.selected"))
         .map(c => c.dataset.chip);
-    const fb = loadFb();
-    const k = sid + "_quick";
-    if (selected.length) fb[k] = selected.join("; "); else delete fb[k];
-    saveFb(fb);
+    setFb(sid, "quick", selected.join("; "));
 }
 
 function feedbackText() {
-    const fb = loadFb();
     const bySlide = {};
-    Object.keys(fb).forEach(k => {
-        const m = k.match(/^(slide_\d+)_(.+)$/);
-        if (m && fb[k] && fb[k].trim()) {
-            if (!bySlide[m[1]]) bySlide[m[1]] = {};
-            bySlide[m[1]][m[2]] = fb[k];
-        }
+    SLIDE_IDS.forEach(sid => {
+        const f = fbFor(sid);
+        Object.keys(f).forEach(k => {
+            if (f[k] && f[k].trim()) {
+                if (!bySlide[sid]) bySlide[sid] = {};
+                bySlide[sid][k] = f[k];
+            }
+        });
     });
     if (!Object.keys(bySlide).length) return "";
     let t = "Feedback:\n";
@@ -1782,7 +1821,10 @@ async function buildAllOptions() {
 
 function clearAll() {
     if (!confirm("Clear all picks, replace requests, and feedback?")) return;
-    savePicks({}); saveRegens({}); saveFb({}); saveKeep({});
+    // Cleared, not just forgotten: picks carried over from the last round go too.
+    const cleared = {};
+    SLIDE_IDS.forEach(sid => { cleared[sid] = { l: null, s: STAMPS[sid] }; });
+    savePicks(cleared); saveRegens({}); saveFb({}); saveKeep({});
     document.querySelectorAll("textarea[data-slide][data-field]").forEach(ta => ta.value = "");
     document.querySelectorAll(".chip.selected").forEach(c => c.classList.remove("selected"));
     renderAll(); showToast("Cleared.");
@@ -1924,7 +1966,13 @@ def build_html(out_dir: Path, meta: Optional[dict], slides: list, storyline: dic
     # recorded at prep). The page never shows it bare: it is folded into the
     # check code on the picks line, which record_picks.py verifies.
     review_token = _state.record_review(out_dir)
+    stamps_now = {s["slide_id"]: s.get("stamp", "") for s in slides}
+    # Picks recorded in an earlier round, only where that slide's designs are
+    # the ones it was made on (or were edited in place from the user's
+    # comments, same letter). A redesigned slide has new designs: no pick.
+    server_picks = _state.remembered_picks(out_dir, stamps_now)
     js_setup = (
+        f"window.__SERVER_PICKS__ = {json.dumps(server_picks)};\n"
         f"window.__TOTAL_SLIDES__ = {len(slides)};\n"
         f"window.__SLIDE_IDS__ = {json.dumps(slide_ids)};\n"
         f"window.__QUICK_EXPANDED__ = {json.dumps(QUICK_FEEDBACK_EXPANDED, ensure_ascii=False)};\n"
@@ -2005,6 +2053,15 @@ def build_final_check(out_dir: Path, meta: Optional[dict]) -> int:
             for L in (v if isinstance(v, list) else [v]) if L != "-"]
     keys = [_state.option_key(int(k.split("_")[1]), L) for k, L in ship]
     problems: list[str] = []
+    # The user's comments come before the final look (owner's decision,
+    # 2026-10-09): a picked slide with comments is edited (or redesigned) first.
+    for c in _state.pending_comments(state):
+        problems.append(
+            f"{c['slide']} still waits on the user's comment ({c['kind']}): "
+            + ("edit the picked design in place, then record_picks.py --edits-done"
+               if c["kind"] == "edit" else
+               "redesign it (redesign_round.py finish, or REVIEW.html for three designs)")
+            + f": {c['text'][:100]}")
     ok, why = _state.check_options_finalized(state, keys)
     if not ok:
         problems.append(why)

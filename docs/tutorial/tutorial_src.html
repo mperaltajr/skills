@@ -34,6 +34,7 @@
     "Send fixes",
     "Something needs fixing? Say which slide and what.",
     "Too sparse, add detail",
+    "Wrong layout / structure",
     "Add process structure: numbers, icons",
     "More detail (optional)"
   ],
@@ -800,13 +801,13 @@
       <div class="see"><span class="lbl">You'll see</span>One card per slide, with its <span data-f="options_per_slide"></span> options side by side.</div></li>
     <li>For each slide, click <span class="ui">PICK A</span>, <span class="ui">PICK B</span> or <span class="ui">PICK C</span>. Click <span class="ui">REPLACE THESE</span> to get a new design for that slide, or <span class="ui">LEAVE OUT</span> to drop it from the deck.
       <div class="see"><span class="lbl">You'll see</span>A "PICKED" mark on the chosen option, and the counts at the top go up.</div></li>
-    <li>Optional: click any of the <span data-f="chips_total"></span> quick-feedback buttons, such as <span class="ui">Too sparse, add detail</span> or <span class="ui">Add process structure: numbers, icons</span> (the page lists the rest), or type a note under <span class="ui">More detail (optional)</span>. Notes travel with your choices, so a pick plus a quick-feedback button asks for a small change without a new design. The rules behind those two buttons: <a href="#r-full-page">a full page</a>, <a href="#r-structure">visible structure</a>.</li>
-    <li>Click <span class="ui">Build my deck</span>, then paste the message it copies into Claude, unchanged. It reads like <code class="msg">Picks: 1B 2C 3A ... (check 1a2b3c4d)</code>.
-      <div class="see"><span class="lbl">You'll see</span>"Build command copied" on the page. Claude records exactly what you picked and moves on to step 6.</div>
-      Or, while the page is open, type your picks in the chat by letter, such as "use 1B 2C 3A" or "build B and C". Claude records your exact words with the page you were looking at. If a slide changed after the page opened, Claude opens it again first.</li>
+    <li>Optional: click any of the <span data-f="chips_total"></span> quick-feedback buttons, such as <span class="ui">Too sparse, add detail</span> or <span class="ui">Add process structure: numbers, icons</span> (the page lists the rest), or type a note under <span class="ui">More detail (optional)</span>. Notes travel with your choices, so a pick plus a quick-feedback button asks for a small change without a new design: Claude applies your comments to the design you picked (same layout, same letter) <b>before</b> turning it into PowerPoint. <span class="ui">Wrong layout / structure</span>, or a note asking for a different design ("try a chart instead"), gets new designs instead: Claude asks whether you want one or three (three is the default). Every comment is listed with how it was applied when the deck is delivered. The rules behind those two buttons: <a href="#r-full-page">a full page</a>, <a href="#r-structure">visible structure</a>.</li>
+    <li>Click <span class="ui">Build my deck</span>, then paste the message it copies into Claude, unchanged. It reads like <code class="msg">Picks: 1B 2C 3A ... (check 1a2b3c4d)</code>, followed by your feedback when you gave some.
+      <div class="see"><span class="lbl">You'll see</span>"Build command copied" on the page. Claude records exactly what you picked, edits the slides you commented on, and moves on to step 6.</div>
+      Or, while the page is open, type your picks in the chat by letter, such as "use 1B 2C 3A" or "build B and C", with any comment for a slide in your own words. Claude records your exact words with the page you were looking at. If a slide changed after the page opened, Claude opens it again first.</li>
   </ol>
 
-  <aside class="callout tip"><span class="lbl">Tip</span>Your choices save in this browser, so you can close the page and come back later in the same browser.</aside>
+  <aside class="callout tip"><span class="lbl">Tip</span>Your choices save in this browser, so you can close the page and come back later. When Claude opens a new review page (after a redesign, for example), the picks you already made are filled in for you, in any browser, marked "Kept from last round"; a slide Claude edited from your comments keeps its pick and drops the comments it applied; a slide with new designs starts empty.</aside>
 
   <p class="example"><span class="lbl">Meridian example</span>Open <a href="Slide-Lab-Example-Review.html">the example review page</a> to click around. The buttons work and copy a message, but there is no build behind it, so there is nothing to paste it into.</p>
 
@@ -827,7 +828,7 @@
       <dt>Claude refuses the picks</dt>
       <dd>The message was edited, cut short or copied from an older review page; its check code catches that. Click <span class="ui">Build my deck</span> again and paste the message unchanged. Do not retype it.</dd>
       <dt>Your choices are gone</dt>
-      <dd>They save in the browser you used. Open the page again in that same browser.</dd>
+      <dd>They save in the browser you used. Open the page again in that same browser. Picks Claude has already recorded are filled in on its next review page in any browser.</dd>
     </dl></div>
   </details>
 </section>
@@ -893,10 +894,11 @@
     <li><b>Advisory</b>: a suggestion, never blocks</li>
   </ul>
   <p>Claude does not call a deck done while a Critical or Major finding is open. Which rule each finding comes from: <a href="#rules">Slide rules</a>.</p>
+  <p><b>Layout fixes happen without asking.</b> Every Critical finding, and every Major one about layout or format (text too small or in too many sizes, text cut off or overlapping, an arrow running into a box, a panel that disappears into the background, a title, takeaway, footnote or source line out of place, leftover sample text, a missing footer or page number, a chart axis without a unit, off-brand colors), Claude fixes on its own: it redesigns only those slides, keeps every other pick, rebuilds the deck and checks it again, at most twice. Findings about content (a number or label not in your brief, buzzwords, a headline that is a topic and not a claim, uneven bullets, a missing source, anything that would change your words or numbers) are always yours to decide.</p>
   <ol class="do">
-    <li>Read the findings: one table in the chat, with Claude's offer to fix them. Disagree with a Major finding? Say why in your own words; Claude records your reason.</li>
-    <li>Say <span class="say"><code>Fix it</code><button type="button">Copy</button></span> (or "build it").
-      <div class="see"><span class="lbl">You'll see</span>Claude redesigns each flagged slide (one design each), builds the deck straight away and checks the new deck again. There is no page to look at again: it does not send you back to either review page. Time: <span data-f="t.qc_fix"></span>.</div></li>
+    <li>Read Claude's one message: what it fixed on each slide, with a picture from before and after, and one table of the content findings with a proposed fix for each. Disagree with a Major finding? Say why in your own words; Claude records your reason. Do not like an automatic fix? Say <span class="say"><code>Undo slide 3</code><button type="button">Copy</button></span>: the slide's earlier design comes back and the deck is rebuilt.</li>
+    <li>Say <span class="say"><code>Fix it</code><button type="button">Copy</button></span> (or "build it") for the content findings.
+      <div class="see"><span class="lbl">You'll see</span>Claude redesigns each flagged slide (one design each), builds the deck straight away and checks the new deck again. There is no page to look at again: it does not send you back to either review page. Every automatic fix is listed, with the finding, when the deck is delivered. Time: <span data-f="t.qc_fix"></span>.</div></li>
     <li>Open the deck.
       <div class="see"><span class="lbl">You'll see</span>The deck's path in the chat, once no Critical or Major finding is open.</div></li>
   </ol>
@@ -908,7 +910,7 @@
       <dt>The build fails</dt>
       <dd>Claude says why. If that is unclear, type <span class="say"><code>/slidelab-log</code><button type="button">Copy</button></span>.</dd>
       <dt>A fix still looks wrong</dt>
-      <dd>Say what you want; you can also ask to "rebuild slide N" for a fresh design (see <a href="#later">Change a deck later</a>).</dd>
+      <dd>Say what you want, or "undo slide N" to get back the design from before an automatic fix; you can also ask to "rebuild slide N" for a fresh design (see <a href="#later">Change a deck later</a>).</dd>
     </dl></div>
   </details>
 </section>

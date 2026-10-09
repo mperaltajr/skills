@@ -209,39 +209,40 @@ Use this exact shape:
 ```
 [deck-filename].pptx · [N] slides QC'd · [X] Critical, [Y] Major, [Z] Advisory
 
-| Page | Severity | Issue |
-|------|----------|-------|
-| Slide [N] | **Critical** / **Major** / Advisory | [one-line description] |
-| [...] | [...] | [...] |
+| Page | Severity | Category | Issue | Fix |
+|------|----------|----------|-------|-----|
+| Slide [N] | **Critical** / **Major** / Advisory | [key] | [one-line description] | automatic / asked: [proposed fix] |
+| [...] | [...] | [...] | [...] | [...] |
 ```
 
 Sort the rows: page number ascending; if a single page has multiple issues, Critical → Major → Advisory within the page.
 
-Then follow the table with a conditional section based on what was found:
+**Category and Fix come from one place: `slide-builder/scripts/qc_fix_policy.py`** (`py -3 <skills>\slide-builder\scripts\qc_fix_policy.py --list` prints it; `classify "<findings>"` checks a list). Tag every Critical and Major with its category key. The owner's decision (2026-10-09):
 
-**If any Critical issues exist:**
+- **Fixed automatically, without asking:** every **Critical**, and every **Major in the layout/format group**: `text_size` (under the size floor, more than 3 body sizes), `overflow` (overflow, clipping), `overlap`, `arrow_into_box`, `panel_vanishes` (a panel vanishing on the background), `chrome` (chrome drift, a misplaced takeaway, footnote or source line), `sample_text` (template sample text, placeholder prompts), `footer_page_number`, `axis_unit`, `palette` (color palette drift).
+- **Asked, in ONE table with proposed fixes and one reply:** Majors in the content group: `number_not_in_brief` (a number or label not in the brief), `buzzwords` (buzzwords, hedging), `headline` (not a fact, or a topic label), `bullets_parallel`, `missing_source` (a source expected and missing), `rewrite` (anything that rewrites the user's words or numbers). A Major that fits no key is asked.
+- **Advisory:** never fixed automatically; listed for the user's judgment.
 
-```
-⛔ Critical issues block this deck from shipping. They cannot be overridden — they have to be fixed.
-
-[For each Critical, name the specific fix you can apply, in plain language. Example:]
-- Slide 3: I can remove the lorem ipsum body block.
-- Slide 7: The chart is blank — I need to re-run the build for that slide.
-
-Want me to fix all of these in one pass?
-```
-
-**If no Criticals but at least one Major exists:**
+Do not send the report to the user and wait when it has automatic findings: go to Step 7 and fix them first (at most two rounds). The user gets ONE message after that:
 
 ```
-[N] Major issues. Each has a proposed fix in the table above.
+[deck-filename].pptx: [K] issue(s) fixed automatically, [M] need your call.
 
-Reply **fix** to fix all of them (I redesign those slides and rebuild the deck
-without sending you back to the review pages), or name any you want to keep
-and say why; I'll record your reason.
+Fixed automatically (no action needed; say "undo slide N" to get a slide's earlier design back):
+- Slide 3: text cut off at the bottom (Critical) -> body shortened to fit.
+  Before: <path to the picture before>   After: <path to the picture after>
+- [...]
+
+Need your call (one reply covers them all):
+| # | Slide | Issue | Proposed fix |
+|---|-------|-------|--------------|
+| 1 | 5 | "42%" is not in the brief | use the brief's 38% |
+
+Reply **fix** to apply all of them, name the ones to keep as they are and why, or give your own fix.
+[Still open after two automatic rounds: list them, with what was tried.]
 ```
 
-Put every Major in the one table, each with a concrete fix, and ask once. Do not walk the user through them one message at a time.
+Put every content Major in the one table, each with a concrete fix, and ask once. Do not walk the user through them one message at a time.
 
 **Override path for Major issues:** A user can ship a Major as-is, but only by writing a reason in their own words (no shortcut keyword). If the reply doesn't include a reason ("skip," "override," "ignore" alone), ask once:
 
@@ -266,9 +267,17 @@ When a reason is given, record it alongside the QC report in `_session/_qc/qc-fl
 
 ## Step 7 — Batch the fixes
 
-If the user signs off on fixes (or after handling all Majors via the conversational prompt), **batch every fix into a single rebuild pass**. Never fix one issue at a time and re-render — that's the failure mode that multiplies build time 5–6× on a 10-slide deck.
+**Batch every fix into a single rebuild pass**, for the automatic fixes and, after the user's reply, for the approved ones. Never fix one issue at a time and re-render — that's the failure mode that multiplies build time 5–6× on a 10-slide deck.
 
-Order of operations:
+**Automatic fixes (no approval asked; owner's decision, 2026-10-09).** For the Criticals and layout/format Majors (Step 6, `qc_fix_policy.py` says "auto"):
+
+1. Keep the current design of every slide to be fixed: `py -3 <skills>\slide-builder\scripts\apply_qc_fix.py --out <build_dir> --slides N[,M] --snapshot` (the deck too; this is what "undo slide N" restores, kept until delivery).
+2. Rebuild only those slides, one design each, keeping every other pick and anything the translator agent drew: `build_deck.py --slide N` with the finding and the fix in `slide_NN/_prior_feedback.md`, one worker, its sketch render (on a slide that keeps several options, re-dispatch the worker on the flagged option in place instead).
+3. `py -3 <skills>\slide-builder\scripts\apply_qc_fix.py --out <build_dir> --slides N[,M] --auto "slide N [category] Severity: finding; ..."`. It refuses a content finding, a slide with no snapshot, and a third automatic round; it records each fix with its finding text as **fixed automatically** (not as the user's approval), compiles, and prints the before/after picture paths. Exit 3: run the translator agent in FALLBACK MODE, then the same command again.
+4. Re-QC the full deck. **At most TWO automatic rounds**; then stop, whatever is left.
+5. Send the ONE message of Step 6: what was fixed per slide with before/after pictures, the content findings table, anything still open. "Undo slide N" from the user: `apply_qc_fix.py --out <build_dir> --undo N --approved "<their words>"` restores that slide's earlier design and compiles again. `check_done.py` lists every automatic fix at delivery.
+
+**Fixes the user approved** (the content table, or anything after the automatic rounds):
 
 1. Compile the list of all approved fixes across all slides.
 2. Fix them **through the pipeline**, not by patching the compiled deck: rebuild each slide with the finding as direction (`build_deck.py --slide N`, write the finding and the fix into `slide_NN/_prior_feedback.md`, one worker, render its sketch), then compile straight from the user's approval: `py -3 <skills>\slide-builder\scripts\apply_qc_fix.py --out <build_dir> --slides N[,M] --approved "<the user's words>"`. **The user's "fix it" / "build it" is the approval: do not send them back to REVIEW.html or FINAL-CHECK.html** (owner's decision, 2026-10-02). The command keeps every other pick, converts and finalizes the fixed slides, records the user's words in the build record, and compiles. If it exits 3, part of the new design needs the translator agent: run it in FALLBACK MODE, then the same command again (a slide the agent finished is not converted again, so its drawing is kept). Use the pages only if the user asks to see options, or a fix needs several options to choose from. Patching the compiled file with python-pptx is what broke the 09/29 deck four separate ways (a badge on every page number, deleted lead text, shifted labels, a file PowerPoint refused), and a later compile silently overwrites patches anyway. `check_done.py` refuses a deck whose bytes changed after compile. The one exception is a deck Slide Lab did not build (option 6a); there, patch text runs only, then re-QC.
@@ -291,7 +300,8 @@ Order of operations:
 - **Never say "looks good" without reading the PNGs.** Running the export and reporting without using the Read tool on the images is a silent QC failure — it is worse than not running QC at all.
 - **Per-zone inspection is the hard gate, not the categorical checks.** The visual categorical checks (Step 5b) only catch coarse failures. Small-text bugs (washed-out chart annotations, clipped numerals, sub-headlines inheriting master color, footer fills that shouldn't be there) only get caught by walking through every zone of every slide and reading what is rendered. **You must produce a quote-back for each zone on each slide** (Step 5a). If you cannot quote what you saw, you didn't read it — and the QC is a lie regardless of what severity you report.
 - **Severity discipline.** Critical issues block ship and cannot be overridden — they have to be fixed. Major issues can be shipped with a written reason from the user (no shortcut keyword — they must explain). Advisory issues are judgment calls and never block. Do not promote an Advisory to Major to force the user to engage, and do not demote a real Major to Advisory to avoid friction.
+- **Fix the automatic findings without asking; ask about content.** Criticals and layout/format Majors are fixed automatically (Step 7), at most two rounds, each recorded; content Majors (anything that changes the user's words or numbers) are never fixed without the user's reply. `slide-builder/scripts/qc_fix_policy.py` is the only list of which is which: do not re-class a finding by judgment to skip the question, and do not ask about an automatic one.
 - **Never skip a slide.** If there are 10 slides, every slide gets walked in Step 5a. A slide that is "all clear" still produces a quote-back — the absence of violations is fine, but the absence of the inspection record is not.
 - **Cover slides are not exempt from content checks.** They are exempt from footer / page-number checks only.
 - **Report what you see, not what you expect.** If the mockup says there should be a chart and you see a white box, that is a Critical regardless of what the build log said.
-- **Batch all fixes — never fix one issue at a time.** Read every slide, identify every issue, fix all issues in a single pass at Step 7, rebuild once, then re-QC once. One fix → one rebuild → one QC cycle per issue is the failure mode that multiplies build time by 5–6× on a 10-slide deck. There is exactly one exception: if fixing issue A would conflict with fixing issue B (e.g., different background colors on the same slide), flag the conflict to the user and ask which takes precedence before fixing anything.
+- **Batch all fixes — never fix one issue at a time.** Read every slide, identify every issue, fix all issues in a single pass at Step 7 (all automatic findings in one round), rebuild once, then re-QC once. One fix → one rebuild → one QC cycle per issue is the failure mode that multiplies build time by 5–6× on a 10-slide deck. There is exactly one exception: if fixing issue A would conflict with fixing issue B (e.g., different background colors on the same slide), flag the conflict to the user and ask which takes precedence before fixing anything.

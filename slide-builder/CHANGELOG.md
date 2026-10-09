@@ -2,6 +2,86 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## 2026-10-09: comments before conversion, picks kept, PowerPoint by default
+
+### Review page and comments
+
+- **Comments on a pick are applied before it is converted** (owner's
+  decision). The review page's "Build my deck" message carries a `Feedback:`
+  block (quick-feedback chips and typed notes per slide), but
+  `record_picks.py` converted every pick at once and nothing read the block,
+  so comments were missed or applied by hand after conversion (the slide was
+  converted twice and agent-drawn parts redone). Now `record_picks.py` parses
+  the block (pass the whole message to `--approved`; in chat, each comment as
+  `--comment "N: <the user's words>"`, which must appear in their words). A
+  picked slide with comments is recorded as **edit first** and is not
+  converted; the other picks are. It writes `slide_NN/_edit_request.md`, and
+  one `slide-builder-worker` per such slide, in its new **EDIT MODE**, edits
+  the picked design in place (same layout, the comments applied, option letter
+  unchanged) and re-renders the sketch. `record_picks.py --edits-done` then
+  refuses a slide whose design did not change or whose option letters changed,
+  marks the comments applied, keeps the picks, and converts the edited picks
+  together in one call.
+- **A comment asking for a different design is a Replace request** (the
+  "Wrong layout / structure" chip, "try a chart instead", "a different
+  layout"). `record_picks.py` drops that pick, writes the comment to
+  `slide_NN/_prior_feedback.md` and records the redesign round; Claude asks
+  the user for one or three new designs, three preselected (owner's decision,
+  2026-10-08). `redesign_round.py finish` refuses while a slide still waits on
+  an edit, converts every pick that needs it, finalizes the whole deck for a
+  round started from comments, and marks the comment applied.
+- **No comment is dropped.** Every comment is kept in the build record with
+  how it was applied (edited in place, redesigned, or not needed on a slide
+  the user left out). FINAL-CHECK.html refuses while one is pending;
+  `check_done.py` refuses a deck with one never applied and lists them all at
+  delivery.
+- **The review page keeps picks between rounds.** The per-slide stamp hashed
+  every `option_*` `.py`/`.html`, including the `option_X_native.py` the
+  conversion writes, so every converted pick looked changed on the next page
+  and was dropped, while its comments stayed. The stamp now covers only the
+  designer's files (`option_X.html`, `option_X.py`). Comments are stored per
+  slide with the stamp, like picks: a slide edited in place or redesigned
+  starts with no comments, comments on untouched slides stay. Recorded picks
+  (kept in the build record across prep) are written into the next
+  REVIEW.html, so they are preselected in any browser, with a small "Kept from
+  last round" mark ("edited from your comments" on a slide edited in place,
+  which keeps its letter); a redesigned slide starts empty. A pick still never
+  lands on a slide whose designs changed under it, except that edit in place.
+- Tests: `tests/run_comments_before_conversion_smoke.py` (picks with and
+  without feedback, only the unflagged slides convert first, all convert after
+  the edit, the redesign and left-out cases, the delivery list),
+  `tests/run_picks_kept_smoke.py` (the stamp, and two review rounds driven in
+  a real page through `scripts/_browser.py`, in the same and a fresh browser).
+
+### Automatic QC fixes
+
+- **Layout and format findings are fixed without asking** (owner's decision).
+  After slide-qc, every Critical and every Major in the layout/format group
+  (text under the size floor or more than 3 body sizes, overflow or clipping,
+  overlap, an arrow into a box, a panel vanishing on the background, chrome
+  drift or a misplaced takeaway / footnote / source line, template sample
+  text, a missing footer or page number, an axis without a unit, color palette
+  drift) is fixed automatically, at most two rounds. Content Majors (a number
+  or label not in the brief, buzzwords or hedging, a headline that is not a
+  fact or is a topic label, bullets not parallel, a missing source where one
+  was expected, anything that rewrites words or numbers) still go to the user
+  in one table with proposed fixes and one reply. Then ONE message: what was
+  fixed per slide (before/after pictures), the content table, what is open.
+- `scripts/qc_fix_policy.py` is the one place that classes a finding (category
+  key -> automatic or ask; `--list`, `classify`); slide-qc's report tags each
+  finding with its key. Unrecognized Majors are asked.
+- `apply_qc_fix.py --snapshot` keeps a slide's current design (and the deck)
+  before the rebuild; `--auto "<findings>"` records the fix as an automatic
+  fix with its finding text (not as a user approval), refuses a content
+  finding, a slide with no snapshot and a third round, compiles, and prints
+  before/after picture paths; `--undo N --approved "<the user's words>"`
+  restores slide N's earlier design and compiles again. `check_done.py` lists
+  every automatic fix at delivery as "fixed automatically", with any undo.
+- Test: `tests/run_auto_qc_fix_smoke.py` (a fictional deck with one Critical,
+  two layout Majors and one content Major: three fixed and recorded without
+  approval, the content one refused for asking, no third round, undo restores
+  the slide).
+
 ## 2026-10-08: native tables and PowerPoint-only rendering
 
 ### Native tables and one-box lists (sketch path)

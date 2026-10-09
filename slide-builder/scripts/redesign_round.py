@@ -20,8 +20,15 @@ Picking the only option on a second review page added nothing, so:
      built.
 
 finish refuses when a redesigned slide has more than one option (the user
-asked for alternatives: build REVIEW.html and let them pick) or when any slide
-would be left without a pick.
+asked for alternatives: build REVIEW.html and let them pick), when any slide
+would be left without a pick, or while a picked slide still waits on an edit
+from the user's comments (record_picks.py --edits-done first).
+
+record_picks.py starts a round itself when a comment on a picked slide asks
+for a different design ("try a chart instead", the "Wrong layout / structure"
+chip; owner's decision 2026-10-09). That round may keep picks that were never
+converted, so finish then converts every pick that needs it and finalizes the
+whole deck; it marks the comment applied.
 Exit: 0 ok | 3 translator agent needed first | 5 refused | 2 bad usage
 """
 from __future__ import annotations
@@ -89,6 +96,8 @@ def start(out: Path, slides: list[int], kept_line: str, keep_previous: bool = Fa
             return 5
     state["redesign_round"] = {"slides": sorted(slides), "kept": kept}
     _state._write(out, state)
+    # New designs for these slides: their old picks are not preselected again.
+    _state.forget_picks(out, [_p.slide_key(n) for n in slides])
     print(f"[ok] kept {len(kept)} pick(s); redesigning slide(s) "
           f"{', '.join(map(str, sorted(slides)))}. Rebuild them, then run finish.")
     return 0
@@ -100,8 +109,20 @@ def finish(out: Path) -> int:
     if not rr.get("slides"):
         print("REFUSED: no redesign round recorded; run start first.")
         return 5
+    if _state.pending_comments(state, "edit"):
+        sids = sorted({c["slide"] for c in _state.pending_comments(state, "edit")})
+        print(f"REFUSED: {', '.join(sids)} still wait on an edit from the user's comments. "
+              "Edit them and run record_picks.py --out <out> --edits-done first.")
+        return 5
     picks = dict(rr.get("kept") or {})
     for n in rr["slides"]:
+        sid = _p.slide_key(n)
+        for c in _state.pending_comments(state, "redesign"):
+            if c["slide"] == sid and _state.option_files_stamp(out / sid) == c.get("stamp"):
+                print(f"REFUSED: slide {n} has not been redesigned yet (its designs are the "
+                      "ones the comment was about). Run build_deck.py --slide "
+                      f"{n} and its worker first.")
+                return 5
         letters = _letters(out / _p.slide_key(n))
         if len(letters) != 1:
             print(f"REFUSED: slide {n} has {len(letters)} options. With alternatives "
@@ -121,12 +142,25 @@ def finish(out: Path) -> int:
     _state.record_override(out, "single_option_redesign_picked",
                            f"slides {','.join(map(str, rr['slides']))}: one new design each, "
                            "picked without a second review page; the final check still shown")
+    for n in rr["slides"]:
+        _state.mark_comments_applied(out, _p.slide_key(n), "redesigned: one new design made "
+                                     "from the comment, shown at the final check", "redesign")
     # Convert only designs that changed since their last conversion; a slide
     # the translator agent finished is kept as is (converting again erased its
-    # drawing and looped on exit 3, 2026-10-06).
+    # drawing and looped on exit 3, 2026-10-06). A round started from the
+    # user's comments may hold kept picks that were never converted or
+    # finalized (the first review), so then every pick is looked at and the
+    # whole deck is finalized.
     import translate_html
-    pending = translate_html.convert_picked(
-        out, [(n, picks[_p.slide_key(n)]) for n in rr["slides"]])
+    from_comments = bool(rr.get("from_comments"))
+    items = [(n, picks[_p.slide_key(n)]) for n in rr["slides"]]
+    if from_comments:
+        items = []
+        for k, v in sorted(picks.items()):
+            for L in (v if isinstance(v, list) else [v]):
+                if L != "-":
+                    items.append((int(k.split("_")[1]), L))
+    pending = translate_html.convert_picked(out, items)
     if pending:
         print("Part of a redesign needs the translator agent first (FALLBACK MODE):")
         for native in pending:
@@ -134,11 +168,16 @@ def finish(out: Path) -> int:
         print("Run it, then run finish again (what it draws is kept).")
         return 3
     tpl = meta.get("template")
-    for n in rr["slides"]:
-        rc = subprocess.run([sys.executable, str(HERE / "finalize_deck.py"), "--out", str(out),
-                             "--template", str(tpl), "--slide", str(n)]).returncode
+    runs = rr["slides"]
+    if from_comments:
+        # An adopted deck finalizes slide by slide (a full run exits 11 there).
+        runs = (sorted({n for n, _ in items}) if meta.get("adopted_source") else [None])
+    for n in runs:
+        cmd = [sys.executable, str(HERE / "finalize_deck.py"), "--out", str(out),
+               "--template", str(tpl)] + ([] if n is None else ["--slide", str(n)])
+        rc = subprocess.run(cmd).returncode
         if rc != 0:
-            print(f"finalize_deck.py --slide {n} exited {rc}.")
+            print(f"finalize_deck.py{'' if n is None else f' --slide {n}'} exited {rc}.")
             return rc
     rc = subprocess.run([sys.executable, str(HERE / "build_review.py"), "--out", str(out),
                          "--final", "--open"]).returncode

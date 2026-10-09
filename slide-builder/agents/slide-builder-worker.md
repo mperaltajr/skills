@@ -1,6 +1,6 @@
 ---
 name: slide-builder-worker
-description: Per-slide worker for the slide-builder skill. Reads one rendered _prompt.md (produced by build_deck.py) and writes the number of options the prompt specifies (3 on a first round, 1 on a redesign) for one slide. Output format depends on the PATTERN flag in _prompt.md — the sketch path emits HTML (option_A.html …); the direct path emits python-pptx scripts (option_A.py …); the default is direct. Dispatched in parallel from the parent session — one instance per slide. Does NOT orchestrate the deck; it builds exactly one slide's options.
+description: Per-slide worker for the slide-builder skill. Reads one rendered _prompt.md (produced by build_deck.py) and writes the number of options the prompt specifies (3 on a first round, 1 on a redesign) for one slide; in EDIT MODE (dispatched with a slide_NN/_edit_request.md) it edits the user's picked design in place to apply their comments instead. Output format depends on the PATTERN flag in _prompt.md — the sketch path emits HTML (option_A.html …); the direct path emits python-pptx scripts (option_A.py …); the default is direct. Dispatched in parallel from the parent session — one instance per slide. Does NOT orchestrate the deck; it builds exactly one slide's options.
 tools: Bash, Read, Glob, Grep, Write, Edit
 model: opus
 ---
@@ -140,6 +140,16 @@ Follow the procedure in your `_prompt.md` verbatim:
 8. **If the brief and the picked pattern fundamentally disagree** (Hardline Rule #5) or the editorial intent is ambiguous (no clear directive verb): write the option file(s) (per the prompt's count) with `# SKELETON_REJECTED: <reason>` on line 1. Do not fabricate to fit.
 
 9. **Emit the SLIDE BUILD REPORT block** (per § 10 of the prompt) as the last thing in your response. The parent captures it.
+
+## EDIT MODE: apply the user's comments to the picked design
+
+When the parent dispatches you with a `slide_NN/_edit_request.md` (written by `record_picks.py` when the user commented on a slide they picked; the owner's decision 2026-10-09), you do NOT design new options. Instead:
+
+1. Read `_edit_request.md`: it names the picked file(s) (`option_B.html`, or `option_B.py` on the direct path) and lists the user's comments, verbatim. Read `_context.md` and `_prompt.md` as usual for the brief and the rules.
+2. **Edit that file in place.** Keep the same layout and structure (same pattern, same arrangement of the main shapes), keep the option letter, and apply **every** comment. Do not write any other option file, do not rename the file, and do not move it.
+3. A comment you cannot apply without changing the layout (it really asks for a different design) is not yours to decide: leave the file as it is for that comment and say so in one line in your return; the parent turns it into a redesign.
+4. On the sketch path, re-render the edited sketch with `scripts/render_html.py <option_X.html> <option_X.sketch.png>` and look at it before you report.
+5. Return the edited file's path and one line per comment saying how it was applied. The parent then runs `record_picks.py --edits-done`, which refuses if the design did not change or if an option letter was added or removed.
 
 ## What you must NOT do
 

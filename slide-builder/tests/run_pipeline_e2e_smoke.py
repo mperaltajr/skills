@@ -205,7 +205,10 @@ def main() -> int:
                 b = pw.chromium.launch()
                 pg = b.new_page()
                 pg.goto((out / "REVIEW.html").resolve().as_uri())
+                # Picks recorded earlier in this test are written into the page
+                # (kept between rounds, 2026-10-09); start from an undecided page.
                 pg.evaluate("() => { localStorage.clear(); window.__copied = null;"
+                            " for (const k in SERVER_PICKS) delete SERVER_PICKS[k];"
                             " navigator.clipboard.writeText = t => {"
                             " window.__copied = t; return Promise.resolve(); }; }")
                 pg.click('#card-slide_01 .option[data-letter="A"] img, '

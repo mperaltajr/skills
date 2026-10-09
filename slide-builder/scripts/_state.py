@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import re
 import secrets
 from datetime import datetime
 from pathlib import Path
@@ -140,7 +141,171 @@ def record_picks(out_dir, picks: dict, all_options: bool = False,
                    "approved_at": _now(), "approved_via": via})
     state["review"] = review
     state.pop("final_check", None)
+    _remember_picks(out_dir, state, picks)
     _write(out_dir, state)
+
+
+# ---------------------------------------------------------------------------
+# Pick memory (2026-10-09). Recorded picks used to live only in the review
+# record, which every prep clears, and in the browser that made them. The
+# review page of the next round (a redesign, a rebuilt slide, another browser)
+# then showed every slide undecided. The memory survives prep; each pick is
+# kept with the stamp of the designs it was made on, so build_review.py
+# preselects it only while that slide's designs are unchanged, or after an
+# edit in place from the user's comments (same layout, same letter), which
+# moves the stamp on with `edited` set.
+# ---------------------------------------------------------------------------
+
+def _remember_picks(out_dir, state: dict, picks: dict) -> None:
+    mem = dict(state.get("pick_memory") or {})
+    for sid, v in (picks or {}).items():
+        prev = mem.get(sid) or {}
+        stamp = option_files_stamp(Path(out_dir) / sid)
+        same = prev.get("letter") == v and prev.get("stamp") == stamp
+        mem[sid] = {"letter": v, "stamp": stamp, "at": _now(),
+                    "edited": bool(prev.get("edited")) if same else False}
+    state["pick_memory"] = mem
+
+
+def mark_edited_in_place(out_dir, sid: str) -> None:
+    """A picked slide was edited in place from the user's comments: keep its
+    pick (same letter) under the slide's new design stamp, marked edited."""
+    state = read_state(out_dir)
+    mem = dict(state.get("pick_memory") or {})
+    if sid in mem:
+        mem[sid] = {**mem[sid], "stamp": option_files_stamp(Path(out_dir) / sid),
+                    "edited": True, "at": _now()}
+        state["pick_memory"] = mem
+        _write(out_dir, state)
+
+
+def forget_picks(out_dir, sids) -> None:
+    """These slides get new designs (Replace): their remembered picks go."""
+    state = read_state(out_dir)
+    mem = dict(state.get("pick_memory") or {})
+    for sid in sids:
+        mem.pop(sid, None)
+    state["pick_memory"] = mem
+    _write(out_dir, state)
+
+
+def remembered_picks(out_dir, stamps_now: dict) -> dict:
+    """{sid: {"letter", "edited"}} for picks still valid on these designs."""
+    mem = read_state(out_dir).get("pick_memory") or {}
+    return {sid: {"letter": m.get("letter"), "edited": bool(m.get("edited"))}
+            for sid, m in mem.items()
+            if sid in stamps_now and m.get("stamp") == stamps_now[sid]}
+
+
+# ---------------------------------------------------------------------------
+# Comments on picks (owner's decision, 2026-10-09). The review page's message
+# carries the user's quick-feedback chips and notes per slide. They used to be
+# read by nobody: the pick was converted at once and the comments were missed
+# or applied by hand afterwards. record_picks.py now records each slide's
+# comments here:
+#   kind "edit"      a picked slide to edit in place first (same layout, same
+#                    letter), then convert
+#   kind "redesign"  the comment asks for a different design: a Replace round
+#   kind "left_out"  a comment on a slide the user left out (nothing to do)
+# Every comment ends "applied" (or "not_needed"), with how; check_done lists
+# them at delivery and refuses while one is still pending.
+# ---------------------------------------------------------------------------
+
+def record_comments(out_dir, entries: list) -> list:
+    """Add comment entries (dicts with slide, letters, text, kind). Returns
+    the entries as stored. An identical pending comment is not added twice."""
+    state = read_state(out_dir)
+    lst = state.setdefault("comments", [])
+    stored = []
+    for e in entries:
+        dup = next((c for c in lst if c.get("slide") == e.get("slide")
+                    and c.get("text") == e.get("text") and c.get("status") == "pending"), None)
+        if dup:
+            stored.append(dup)
+            continue
+        c = {"id": len(lst) + 1, "slide": e["slide"], "letters": e.get("letters", ""),
+             "text": e["text"], "kind": e["kind"],
+             "status": "not_needed" if e["kind"] == "left_out" else "pending",
+             "stamp": option_files_stamp(Path(out_dir) / e["slide"]),
+             "letters_on_disk": e.get("letters_on_disk", ""),
+             "via": e.get("via", "page"), "at": _now()}
+        if e["kind"] == "left_out":
+            c["applied_how"] = "not needed: the slide was left out of the deck"
+        lst.append(c)
+        stored.append(c)
+    _write(out_dir, state)
+    return stored
+
+
+def pending_comments(state: dict, kind: str | None = None) -> list:
+    return [c for c in (state.get("comments") or [])
+            if c.get("status") == "pending" and (kind is None or c.get("kind") == kind)]
+
+
+def mark_comments_applied(out_dir, sid: str, how: str, kind: str | None = None) -> int:
+    """Mark a slide's pending comments applied. Returns how many."""
+    state = read_state(out_dir)
+    n = 0
+    for c in state.get("comments") or []:
+        if c.get("slide") == sid and c.get("status") == "pending" and (
+                kind is None or c.get("kind") == kind):
+            c.update({"status": "applied", "applied_how": how, "applied_at": _now()})
+            n += 1
+    if n:
+        _write(out_dir, state)
+    return n
+
+
+# ---------------------------------------------------------------------------
+# Automatic QC fixes (owner's decision, 2026-10-09). After slide-qc, Criticals
+# and layout/format Majors are fixed without asking (qc_fix_policy.py says
+# which), at most two rounds; apply_qc_fix.py --auto records each one here so
+# check_done can list it at delivery as "fixed automatically", and so
+# "undo slide N" can restore the design kept from before the fix.
+# ---------------------------------------------------------------------------
+
+AUTO_QC_MAX_ROUNDS = 2
+
+
+def auto_qc_rounds(state: dict) -> int:
+    """Automatic rounds since the user last replied about QC."""
+    return int((state.get("auto_qc") or {}).get("rounds") or 0)
+
+
+def record_auto_fix(out_dir, slides: str, findings: str, before: dict) -> dict:
+    state = read_state(out_dir)
+    aq = state.get("auto_qc") or {}
+    aq["rounds"] = int(aq.get("rounds") or 0) + 1
+    state["auto_qc"] = aq
+    entry = {"round": aq["rounds"], "slides": slides, "findings": findings,
+             "before": dict(before or {}), "at": _now(), "status": "fixed"}
+    state.setdefault("auto_fixes", []).append(entry)
+    _write(out_dir, state)
+    return entry
+
+
+def reset_auto_qc_rounds(out_dir) -> None:
+    """The user replied (approved a fix, or new picks): a new QC cycle."""
+    state = read_state(out_dir)
+    if state.get("auto_qc"):
+        state["auto_qc"] = {"rounds": 0}
+        _write(out_dir, state)
+
+
+def mark_auto_fix_undone(out_dir, slide_n: int) -> dict | None:
+    """The latest automatic fix touching slide N is undone. Returns it."""
+    state = read_state(out_dir)
+    sid = f"slide_{int(slide_n):02d}"
+    for e in reversed(state.get("auto_fixes") or []):
+        before = e.get("before") or {}
+        if sid in before and sid not in (e.get("undone_slides") or []):
+            e.setdefault("undone_slides", []).append(sid)
+            e["undone_at"] = _now()
+            e["status"] = ("undone" if set(e["undone_slides"]) >= set(before)
+                           else "partly undone")
+            _write(out_dir, state)
+            return e
+    return None
 
 
 def record_final_check(out_dir, digests: dict) -> str:
@@ -197,13 +362,22 @@ def record_override(out_dir, name: str, detail: str = "") -> None:
 # approved this way. check_done lists them at delivery as chat approvals.
 # ---------------------------------------------------------------------------
 
+_DESIGN_FILE_RE = re.compile(r"^option_[A-F]\.(py|html)$")
+
+
 def option_files_stamp(slide_dir) -> str:
-    """Fingerprint of a slide's option design files (name, size, time). The
-    review page keeps a pick only while this matches; chat approval of picks is
-    refused when it changed after the page was opened."""
+    """Fingerprint of a slide's option DESIGN files (name, size, time): the
+    designer's option_X.html / option_X.py only. The review page keeps a pick
+    only while this matches; chat approval of picks is refused when it changed
+    after the page was opened.
+
+    Files written later in the pipeline (option_X_native.py from the
+    conversion, plans, reports, pictures) are not part of it. They used to be,
+    so converting a pick changed the stamp and every picked slide lost its pick
+    on the next review page (2026-10-09)."""
     h = hashlib.md5()
     for f in sorted(Path(slide_dir).glob("option_*")):
-        if f.is_file() and f.suffix in (".py", ".html"):
+        if f.is_file() and _DESIGN_FILE_RE.match(f.name):
             st_ = f.stat()
             h.update(f"{f.name}:{st_.st_size}:{int(st_.st_mtime)}".encode())
     return h.hexdigest()[:10]

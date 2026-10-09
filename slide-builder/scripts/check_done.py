@@ -18,6 +18,10 @@ So this checks one unbroken chain of recorded facts, each tied to the last:
   6. a VISION pass was recorded over these same bytes, covering every slide
   7. that pass left no open Critical or Major findings (only Advisory may remain)
   8. every figure on a replicated supplied page was reconciled
+  9. every comment the user made on a pick was applied (none pending)
+
+On delivery it also lists the user's comments with how each was applied, and
+every QC finding fixed automatically (apply_qc_fix.py --auto), with any undo.
 
 It is deliberately dumb: it verifies recorded facts, it does not re-run QC.
 On a deliverable deck it also lists every gate passed over (overrides) and,
@@ -186,6 +190,15 @@ def main(argv=None) -> int:
             f"{sl['unresolved']} figure(s) on a supplied/replicated page are "
             "unreconciled; resolve every row in source_ledger.json")
 
+    # 9. Every comment the user made on a pick was applied (never dropped).
+    pend = _state.pending_comments(state)
+    if pend:
+        problems.append(
+            f"{len(pend)} comment(s) from the review page were never applied: "
+            + "; ".join(f"{c['slide']} ({c['kind']}): {c['text'][:80]}" for c in pend[:4])
+            + ". Edit or redesign those slides (record_picks.py --edits-done, "
+              "redesign_round.py finish) and rebuild.")
+
     if problems:
         return _refuse()
 
@@ -213,6 +226,10 @@ def main(argv=None) -> int:
         print("                  Tell the user about these when you deliver.")
     for line in chat_approval_lines(state.get("chat_approvals") or [], legacy_chat):
         print(line)
+    for line in comment_lines(state.get("comments") or []):
+        print(line)
+    for line in auto_fix_lines(state.get("auto_fixes") or []):
+        print(line)
     line = supplied_page_line(sl)
     if line:
         print(line)
@@ -221,7 +238,8 @@ def main(argv=None) -> int:
 
 _CHAT_KIND = {"picks": "picks, with REVIEW.html open",
               "final_check": "final check, with FINAL-CHECK.html open",
-              "qc_fix": "QC fix after the quality check"}
+              "qc_fix": "QC fix after the quality check",
+              "qc_undo": "undo of an automatic QC fix"}
 
 
 def chat_approval_lines(approvals: list, legacy: list | None = None) -> list[str]:
@@ -239,6 +257,36 @@ def chat_approval_lines(approvals: list, legacy: list | None = None) -> list[str
     out += [f"                  - {what}: \"{words}\" ({at})" for what, words, at in rows]
     out.append("                  Mention them when you deliver: these steps were "
                "approved in chat, not on the page.")
+    return out
+
+
+def comment_lines(comments: list) -> list[str]:
+    """Delivery lines for the user's comments on their picks: each one and how
+    it was applied (edited in place, redesigned, or not needed because the
+    slide was left out). Comments used to be read by nobody."""
+    if not comments:
+        return []
+    out = [f"  comments      : {len(comments)} from the review page, each applied:"]
+    for c in comments:
+        how = c.get("applied_how") or "NOT APPLIED"
+        out.append(f"                  - {c.get('slide')}: \"{c.get('text', '')}\" -> {how}")
+    out.append("                  Tell the user how their comments were applied.")
+    return out
+
+
+def auto_fix_lines(fixes: list) -> list[str]:
+    """Delivery lines for QC findings fixed automatically (no approval asked,
+    owner's decision 2026-10-09), with the finding text and any undo."""
+    if not fixes:
+        return []
+    out = [f"  fixed automatically: {len(fixes)} QC fix round(s) without asking:"]
+    for f in fixes:
+        undone = f.get("undone_slides") or []
+        tail = (f"; undone by the user on {', '.join(undone)}" if undone else "")
+        out.append(f"                  - round {f.get('round')}, slide(s) {f.get('slides')}: "
+                   f"{f.get('findings', '')}{tail} ({f.get('at', '')})")
+    out.append("                  List these when you deliver; \"undo slide N\" restores "
+               "a slide's design from before its fix.")
     return out
 
 
