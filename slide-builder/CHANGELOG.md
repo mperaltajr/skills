@@ -2,6 +2,110 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## 2026-10-08: native tables and PowerPoint-only rendering
+
+### Native tables and one-box lists (sketch path)
+
+- **An HTML table becomes a real PowerPoint table.** The converter
+  (`scripts/translate_html.py`) used to turn a `<table>` into a rectangle and
+  a text box per cell. Now a `<table>` (or a `<div>` grid marked
+  `data-native="table"`) becomes ONE native table (`twins/html_emit.py`,
+  plan op `"table"`): column widths and row heights as designed, merged
+  cells (`colspan`/`rowspan`), every cell's fill (a highlighted row
+  included), every border per edge (CSS's collapsed-border rules: widest
+  wins, cell over row over group over table), cell margins that put each
+  letter where the sketch had it, and styled runs (size, bold, color,
+  alignment). The table carries no theme banding ("No Style, No Grid"). A
+  pill or badge inside a cell stays its own shape on top of the table. A
+  table that can't be matched (rounded corners, spaced-apart cells, pieces
+  of text side by side in a cell) stays separate shapes as before, with a
+  `TABLE_KEPT_AS_SHAPES` warning naming why.
+- **A bullet list becomes one text box with real bullets.** A `<ul>`/`<ol>`
+  (or a column marked `data-native="list"`) becomes ONE text box: one
+  paragraph per item, real bullets or numbers (`buChar` / `buAutoNum`) in
+  the marker's color and size, nested items as paragraph levels, the hanging
+  indent and the space between items from the CSS, bold lead-ins kept.
+  Custom markers (a small square or dot drawn with `li::before`, a glyph,
+  "1.") become the bullet character in their color; markers that can't be
+  (an icon, a boxed number) are drawn as shapes beside the one text box.
+- **Checked like everything else, never at the cost of text.** The
+  self-check (`translate_alarm.py`) judges a native table cell by cell (each
+  cell's text and area) and a list by its text and each bullet's spot. One
+  that renders differently from the sketch steps down and that slide is
+  rendered again: table -> separate shapes (`TABLE_NOT_NATIVE`); list ->
+  one box with marker shapes (`LIST_MARKERS_AS_SHAPES`) -> one box per item
+  (`LIST_NOT_SINGLE_BOX`). Every version holds all the text. The report's
+  counts gain `native_tables` and `single_box_lists`.
+- **Type-scale check reads table text** (`type_scale.py`); it used to skip
+  graphic frames.
+- Designer and translator guidance: `prompt.md` and
+  `reference/sketch-html-spec.md` § 6b ("draw tables as an HTML table,
+  header row in `<thead>`"; "write lists as `<ul>`/`<ol>`"), and the
+  translator agent's instructions (draw native tables and one-box lists in
+  full translations; draw only the listed element in fallback mode).
+- Test: `tests/run_native_tables_lists_smoke.py` (a fictional table slide:
+  header row, 6 rows, a highlighted row, a merged cell, right-aligned
+  numbers; a fictional 5-item list with a nested item and bold lead-ins plus
+  a square-marker list). One native table, one text box per list, opens
+  cleanly, every character kept, renders at least as close to the sketch as
+  the old shapes in LibreOffice (mean pixel difference table 2.55 vs 3.33,
+  lists 11.08 vs 12.02 of 255) and in PowerPoint (5.10 vs 6.41, 13.71 vs
+  14.57), planted defects step down with warnings, no text lost.
+- Go/no-go replay (263 past translated options, `tests/translate_replay.py`
+  + `tests/translate_gonogo.py`, which now runs the converter's own
+  self-check including the step-downs and counts table cells as text):
+  open failures 0 -> 0; options with lost text 1 -> 1 (the same 87
+  characters in an element left to the agent, unchanged); options needing
+  the agent 14.07% -> 13.31%; same lines 99.67% -> 99.67%; mid-word breaks
+  1 -> 1. 6 options now carry a native table and 7 options carry 19
+  one-box lists; 1 table and 1 list stepped down by the self-check.
+- Known and unchanged: a list that steps all the way down still draws a
+  "• " in front of each item box, which shifts its text right; the
+  self-check hands those items to the agent, as before.
+
+### Rendering without LibreOffice (Windows, PowerPoint)
+
+- **One safe way to drive PowerPoint** (`slide-qc/scripts/ppt_safe.py`),
+  used by every PowerPoint render: attach (start it if needed), open OUR
+  file read-only without a window, export, close only that file, and quit
+  PowerPoint only if it was not running before AND nothing is open in it
+  afterwards. This fixes the race where the user opened PowerPoint while a
+  render ran and Slide Lab then quit it. Renders are serial (one lock shared
+  by every Slide Lab process) and never touch, save or close the user's
+  presentations.
+- **The converter's self-check works without LibreOffice.**
+  `translate_alarm.render_full` now picks LibreOffice, else PowerPoint
+  (`engine="auto"`); it used to call `soffice` directly, so the check was
+  skipped. `selfcheck_render.py` (the translator agent's check render) no
+  longer refuses without LibreOffice.
+- **slide-qc's PowerPoint pass works while PowerPoint is open.**
+  `render_slides.py --engine ppt` and `export_slides.py` used to refuse (or
+  start their own PowerPoint and quit it); both now use the safe path.
+  `slide-qc/SKILL.md` updated (it said to ask the user to close PowerPoint).
+- **`SLIDE_LAB_NO_LIBREOFFICE=1`** makes Slide Lab act as if LibreOffice
+  were not installed (tests, or a broken LibreOffice).
+- **Finalize: a sparse slide drawn by PowerPoint is not a failed render.**
+  PowerPoint compresses a mostly empty slide under the 12 KB "blank render"
+  floor, which blocked every slide of a fictional build; a small picture
+  that shows content now passes (`finalize_deck.py`).
+- **doctor.py** lists LibreOffice as optional on Windows when PowerPoint can
+  be driven, with a note that renders then run one at a time and are slower.
+  README install table and the install guide say the same (guide still 2
+  pages).
+- Tests: `tests/run_powerpoint_only_smoke.py` (the quit rule with a stand-in
+  PowerPoint, including the user opening a deck mid-render; then, with
+  LibreOffice turned off and the user's PowerPoint open: slide-qc render,
+  `--engine ppt`, `export_slides.py`, the converter's self-check and
+  `selfcheck_render.py`, recording the open presentations before and after:
+  unchanged, PowerPoint still running). `run_pipeline_e2e_smoke.py` (finalize,
+  picks, converter, compile) and `run_registration_selftest_smoke.py` pass
+  with `SLIDE_LAB_NO_LIBREOFFICE=1`, the user's 4 open presentations unchanged.
+- Timing per slide on this computer (4-slide fictional deck, one process
+  per render, PowerPoint already running): PowerPoint 0.27 s, LibreOffice
+  0.96 s. PowerPoint is faster per file when it is already open, but renders
+  never run in parallel; LibreOffice's parallel renders are faster for a
+  whole build. A cold PowerPoint start adds several seconds.
+
 ## 2026-10-08: session-report fixes, batch 3
 
 ### Brief, icons and variety

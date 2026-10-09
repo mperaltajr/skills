@@ -14,7 +14,17 @@ The build layer of Slide Lab. The split is the spec.
 > automatically on every OS (Windows `C:\Program Files\LibreOffice`, macOS
 > `/Applications/LibreOffice.app`, Linux via PATH); set the `SLIDE_LAB_SOFFICE`
 > environment variable to the `soffice` path only if you installed it somewhere
-> non-standard.
+> non-standard. On Windows without LibreOffice, every render (previews, the
+> converter's self-check, finalize, QC) goes through PowerPoint instead, the
+> safe way (`slide-qc/scripts/ppt_safe.py`: read-only, no window, closes only
+> its own file, quits only a PowerPoint it started with nothing else open);
+> renders are serial and slower. `SLIDE_LAB_NO_LIBREOFFICE=1` forces that path.
+>
+> **Tables and lists (sketch path).** Workers draw tables as an HTML `<table>`
+> (header row in `<thead>`) and lists as `<ul>`/`<ol>`; the converter turns
+> them into ONE native PowerPoint table and ONE text box with real bullets,
+> checks its render, and falls back to separate shapes with a warning when
+> they don't match (`reference/sketch-html-spec.md` § 6b).
 
 ---
 

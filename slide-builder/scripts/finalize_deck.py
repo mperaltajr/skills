@@ -371,6 +371,21 @@ def detect_missing_client_fonts(theme) -> list:
     return missing
 
 
+def _png_has_content(png_path) -> bool:
+    """True when at least 0.2% of the picture differs from its main color."""
+    try:
+        from collections import Counter
+        from PIL import Image
+        im = Image.open(png_path).convert("RGB")
+        im.thumbnail((640, 360))
+        px = list(im.getdata())
+        main = Counter(px).most_common(1)[0][0]
+        off = sum(1 for q in px if sum(abs(a - b) for a, b in zip(q, main)) > 30)
+        return off >= 0.002 * len(px)
+    except Exception:
+        return False
+
+
 def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
                   page_type: str = "", body_zone: tuple | None = None) -> dict:
     """Run 7 deterministic checks on a themed option.
@@ -396,8 +411,11 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
         # still catching the "blank canvas / render failed silently" mode.
         try:
             sz = png_path.stat().st_size
-            if sz <= 12 * 1024:
-                png_detail = f"PNG too small ({sz} bytes; floor 12KB)"
+            # PowerPoint's own export (used when LibreOffice is not installed)
+            # compresses a sparse slide well under 12KB; a small file that
+            # still shows content is not a failed render (2026-10-08).
+            if sz <= 12 * 1024 and not _png_has_content(png_path):
+                png_detail = f"PNG too small ({sz} bytes; floor 12KB) and nearly blank"
             else:
                 png_ok = True
                 png_detail = f"{sz} bytes"

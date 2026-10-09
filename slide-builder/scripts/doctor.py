@@ -133,17 +133,19 @@ def check_libreoffice(rows):
         try:
             from render_slides import powerpoint_available
             if powerpoint_available():
-                _row(rows, "LibreOffice", True,
-                     "Not installed; Slide Lab draws previews with PowerPoint instead "
-                     "(save your open decks before a build). Installing LibreOffice "
-                     "from the software portal is still recommended.")
+                _row(rows, "LibreOffice (optional here)", True, required=False, todo=(
+                     "Not installed; optional on this computer because PowerPoint "
+                     "draws the previews instead. Your open decks are never closed or "
+                     "touched (Slide Lab opens its own files read-only, without a "
+                     "window). Renders run one at a time, so a build's previews are "
+                     "slower than with LibreOffice."))
                 return
         except Exception:
             pass
         _row(rows, "LibreOffice", False,
              "Install LibreOffice from the company software portal (or "
-             "libreoffice.org). It is required: template registration, the "
-             "final check page and the quality check all use it.")
+             "libreoffice.org). It is required here (no PowerPoint was found to "
+             "stand in for it): template registration, the final check page and the quality check all use it.")
         return
     try:
         from pptx import Presentation

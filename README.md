@@ -24,7 +24,7 @@ Claude Slide Lab is a collection of Claude Code skills that turn a narrative bri
 | `slide-lab` | **Front door: start here for any deck request.** Routes the request to the right skill (new narrative → storyline-helper; finished package/HTML mockup → validate → slide-builder; RFP → rfp-helper; edit an existing `.pptx` → slide-builder's edit mode; QC → slide-qc) and enforces the rule: never hand-roll a deck from a blank python-pptx Presentation for a branded deck; build on the client template's layouts; a deck isn't done until slide-qc has run. |
 | `storyline-helper` | Coaches your deck narrative (governing thought, audience, per-slide story) before any slides are built |
 | `slide-builder` | Builds a PowerPoint deck from a narrative brief via parallel agent fanout: prep → per-slide workers produce three design options each on the first round (one on a redesign), image-first, then converted to native PowerPoint → finalize → REVIEW.html → pick → compile. Brand colors + fonts + layouts come from your registered client template. Also handles small edits to an **existing** `.pptx` Slide Lab didn't build (text/shape tweaks, extraction). |
-| `slide-qc` | Renders every slide to PNG (LibreOffice by default; opt-in PowerPoint COM) and reviews them with vision, then produces a per-slide Critical / Major / Advisory report before you open the deck |
+| `slide-qc` | Renders every slide to PNG (LibreOffice by default; PowerPoint when LibreOffice is not installed, or opt-in, safe with PowerPoint open) and reviews them with vision, then produces a per-slide Critical / Major / Advisory report before you open the deck |
 | `docx` | Word document generation: reports, memos, letters with proper formatting |
 | `xlsx` | Spreadsheet creation, editing, and cleaning for any `.xlsx` / `.csv` task |
 | `slidelab-log` | Generates a structured session report when something goes wrong: Claude writes the technical details, you send the file privately to Mario Peralta (Teams or email), never to GitHub |
@@ -42,7 +42,7 @@ Claude cannot install desktop software for you on a company laptop, so do these 
 |---|---|---|
 | **Claude** (desktop app or Claude Code) | Runs Slide Lab | However your company provides Claude; otherwise [claude.ai/code](https://claude.ai/code) |
 | **Python 3.10 or newer** | Runs the build scripts | Software portal, or [python.org](https://www.python.org/downloads/) |
-| **LibreOffice** | Required. Draws slide previews during template registration, the final check page and the quality check | Software portal, or [libreoffice.org](https://www.libreoffice.org/download/). Request it on day one: on company PCs it can need approval |
+| **LibreOffice** | Draws slide previews during template registration, the final check page and the quality check. Required on a Mac. On Windows it is optional when PowerPoint is installed: PowerPoint then draws the previews (read-only, without a window, never closing your open decks), one at a time, so a build is slower | Software portal, or [libreoffice.org](https://www.libreoffice.org/download/). Request it on day one: on company PCs it can need approval |
 
 Git is usually already there, because Claude Code on Windows uses it. If the setup check later says it is missing, get it from the portal or [git-scm.com](https://git-scm.com).
 

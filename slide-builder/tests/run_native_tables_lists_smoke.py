@@ -269,27 +269,42 @@ def main() -> int:
         from render_slides import powerpoint_available
         if powerpoint_available() and os.environ.get("SLIDE_LAB_SKIP_POWERPOINT") != "1":
             engines.append("powerpoint")
+        # today's output (separate shapes / one box per item), for comparison:
+        # the native version must render at least as close to the sketch
+        from twins.html_emit import build as _build
+        legacy = []
+        for nm, data in (("table", data_t), ("list", data_l)):
+            lp, _ = T.plan_from_extract(data, True)
+            for gid in list(lp.groups):
+                while lp.groups[gid]["cur"] < len(lp.groups[gid]["chain"]) - 1:
+                    T._step_group(lp, gid, "comparison")
+            prs_old, _ = _build(T._public_plan(lp))
+            f = td / f"legacy_{nm}.pptx"
+            prs_old.save(str(f))
+            legacy.append(f)
         for eng in engines:
             before = ppt_names() if eng == "powerpoint" else None
-            (got_t, got_l) = A.render_full([pp, pp_l], engine=eng)
+            got_t, got_l, old_t, old_l = A.render_full([pp, pp_l] + legacy, engine=eng)
             after = ppt_names() if eng == "powerpoint" else None
-            assert got_t and got_l, f"{eng} did not render"
+            assert got_t and got_l and old_t and old_l, f"{eng} did not render"
             if eng == "powerpoint":
                 assert before == after, "the user's open presentations changed"
-            dt = region_diff(design_t, got_t[0], (53, 140, 953, 430))
-            dl = region_diff(design_l, got_l[0], (53, 140, 1230, 420))
+            tb_box, l_box = (53, 140, 953, 430), (53, 140, 1230, 420)
+            dt = region_diff(design_t, got_t[0], tb_box)
+            dl = region_diff(design_l, got_l[0], l_box)
+            ot = region_diff(design_t, old_t[0], tb_box)
+            ol = region_diff(design_l, old_l[0], l_box)
             # every character is where the renderer put text
-            for got, ops in ((got_t, json.loads((dirs["table"] / "option_A_native.plan.json")
-                                                .read_text(encoding="utf-8"))["ops"]),):
+            for got, want in ((got_t, design_text), (got_l, chars(lt))):
                 pdf_text = chars("".join(c["ch"] for c in got[1]))
-                assert not (design_text - pdf_text), (eng, design_text - pdf_text)
-            if os.environ.get('SMOKE_DUMP'):
-                from PIL import Image
-                Image.fromarray(got_l[0].astype('uint8')).save(os.environ['SMOKE_DUMP'] + f'/l_{eng}.png')
-                Image.fromarray(design_l.astype('uint8')).save(os.environ['SMOKE_DUMP'] + '/l_design.png')
-            assert dt < 6.0 and dl < 6.0, (eng, dt, dl)
-            print(f"  ok: renders close to the sketch in {eng} (mean pixel difference "
-                  f"table {dt:.2f}, lists {dl:.2f} of 255)"
+                assert not (want - pdf_text), (eng, want - pdf_text)
+            # (sizes snap to PowerPoint's list, e.g. 18px -> 14pt, so text is a
+            # little wider than the sketch in both versions)
+            assert dt <= ot + 0.5 and dl <= ol + 0.5, (eng, dt, ot, dl, ol)
+            assert dt < 6.0 and dl < 15.0, (eng, dt, dl)
+            print(f"  ok: renders close to the sketch in {eng} (mean pixel difference, "
+                  f"native vs separate shapes: table {dt:.2f} vs {ot:.2f}, lists {dl:.2f} "
+                  f"vs {ol:.2f} of 255)"
                   + ("; the user's PowerPoint presentations untouched" if before is not None else ""))
 
         # ---- fallbacks ---------------------------------------------------------
@@ -313,7 +328,9 @@ def main() -> int:
                 if pr.get("bullet"):
                     pr["bullet"]["color"] = "00CC00"     # planted: wrong bullet color
                     pr["bullet"]["pct"] = 300
-        T.self_check([(plan_t, data_t), (plan_l, data_l)])
+        # hand_over=False: what the step-down leaves on the slide, before any
+        # element is handed to the agent (whose part it then is to draw)
+        T.self_check([(plan_t, data_t), (plan_l, data_l)], hand_over=False)
         codes_t = [w["code"] for w in plan_t.warnings]
         codes_l = [w["code"] for w in plan_l.warnings]
         assert "TABLE_NOT_NATIVE" in codes_t and not any(o["op"] == "table" for o in plan_t.ops), codes_t
@@ -326,7 +343,7 @@ def main() -> int:
                 f = Path(t2) / f"{nm}.pptx"
                 prs2.save(str(f))
                 want = design_text if nm == "t" else chars(lt)
-                assert not (want - chars(pptx_text(f))), nm
+                assert not (want - chars(pptx_text(f))), (nm, want - chars(pptx_text(f)))
         print("  ok: a table / list that renders differently steps down with a warning "
               "(native table -> shapes; bullets -> marker shapes -> item boxes), no text lost")
     print("SMOKE PASSED.")

@@ -1,6 +1,6 @@
 ---
 name: slide-qc
-description: "QC reviewer for built PPTX decks. Runs a deterministic hygiene pre-pass (lorem ipsum, hidden slides, comments, speaker-note junk, filename smell), then renders every slide to PNG silently (LibreOffice headless, never touches the user's open PowerPoint), reads each PNG zone-by-zone with vision, and produces a unified Critical / Major / Advisory report. Override-with-reason flow for Majors; Criticals are hard stops. Opt-in PowerPoint COM pass for pixel-perfect final fidelity. Invoke after a build completes."
+description: "QC reviewer for built PPTX decks. Runs a deterministic hygiene pre-pass (lorem ipsum, hidden slides, comments, speaker-note junk, filename smell), then renders every slide to PNG silently (LibreOffice headless; on Windows without LibreOffice, PowerPoint opened read-only without a window, never closing the user's decks), reads each PNG zone-by-zone with vision, and produces a unified Critical / Major / Advisory report. Override-with-reason flow for Majors; Criticals are hard stops. Opt-in PowerPoint COM pass for pixel-perfect final fidelity. Invoke after a build completes."
 ---
 
 # Slide QC
@@ -109,13 +109,13 @@ For final pixel-perfect brand-fidelity QC — typically the last QC before sign-
 py -3 <SKILL_DIR>/scripts/render_slides.py "<pptx_path>" "<session_folder>/_qc_ppt/" --engine ppt
 ```
 
-This script **refuses to run if PowerPoint is already open** (checks `tasklist` for `POWERPNT.EXE`). If refused, tell the user to close PowerPoint and rerun — never kill `POWERPNT.EXE`, never use `Stop-Process`. The user's open decks are not yours to close.
+This works while the user has PowerPoint open (since 2026-10-08; it used to refuse). It goes through `scripts/ppt_safe.py`: the deck is opened read-only without a window, only that deck is closed, and PowerPoint is quit only if this run started it and nothing else is open in it (the user may open PowerPoint while it runs). It never closes, saves or touches another presentation, and renders run one at a time. Still: never kill `POWERPNT.EXE`, never use `Stop-Process`; the user's open decks are not yours to close.
 
-An older `scripts/export_slides.py` (COM-only, uses `DispatchEx` to spawn its own PowerPoint process) is also on disk. It does not check for a running instance, so prefer `render_slides.py --engine ppt`.
+`scripts/export_slides.py` does the same through the same safe path (it used to start its own PowerPoint and quit it); either is fine.
 
 ### Rendering rules
 - Width 1920px (COM) or DPI 150 (LibreOffice ≈ 1700px wide) is the minimum. Do not lower — at 1280px small text (footnotes, chart annotations, numerals) is unreadable and small-text bugs slip past QC.
-- If LibreOffice fails (missing install at `C:\Program Files\LibreOffice\program\soffice.exe`): tell the user how to install or fall back to `--engine ppt`. Never substitute python-pptx text inspection or HTML preview — those ARE approximations and the rule against them stands.
+- If LibreOffice is not installed (Windows), `render_slides.py` draws the slides with PowerPoint by itself, the same safe way, and says so ("PowerPoint, because LibreOffice is not installed"); renders are serial and can be slower. Set `SLIDE_LAB_NO_LIBREOFFICE=1` to force that path (tests, or a broken LibreOffice). Without LibreOffice AND PowerPoint, tell the user how to install LibreOffice. Never substitute python-pptx text inspection or HTML preview: those ARE approximations and the rule against them stands.
 - Do not continue to Step 4 until the export succeeds and all PNG files exist.
 
 ---

@@ -213,6 +213,38 @@ Icon CSS rules:
 - Icons inherit `currentColor` so brand-variable color cascades work
 - Icons positioned via flexbox or absolute, never floated
 
+## 6b. Tables and lists (native in the finished slide)
+
+The converter turns these into real PowerPoint objects, so the user can edit
+them as a table and as bullets (owner's decision, 2026-10-08):
+
+- **Draw tables as an HTML `<table>`, header row in `<thead>`.** Body rows in
+  `<tbody>`, one `<td>` per cell, `colspan` / `rowspan` for merged cells,
+  `<col>` widths for the columns. Style with `border-collapse: collapse`,
+  cell `padding`, borders per edge (e.g. `border-bottom` on rows or cells),
+  a background on a `<tr>` for a highlighted row, `text-align: right` for
+  numbers. It becomes ONE native table (column widths, row heights, fills,
+  borders, merged cells, margins from the padding). A grid drawn with
+  `<div>`s can be marked `data-native="table"`: its direct children are the
+  cells (or rows marked `role="row"` whose children are the cells), with no
+  gap between them.
+- **Write lists as `<ul>` / `<ol>`.** One `<li>` per point, a nested
+  `<ul>` inside the `<li>` for a sub-point, `<b>` for a bold lead-in,
+  `margin` on the `<li>` for the space between points. The list becomes ONE
+  text box with real bullets or numbers, sub-points as indented levels.
+  Custom markers are fine: `list-style: none` plus a small square or dot
+  drawn with `li::before` becomes a bullet character in that color. A column
+  of separate text blocks can be marked `data-native="list"` (each child is
+  one item).
+- What stays separate shapes (with a `TABLE_KEPT_AS_SHAPES` /
+  `LIST_KEPT_AS_SEPARATE_BOXES` note in the translation report, never lost
+  text): tables with rounded corners, spaced-apart cells, or pieces of text
+  side by side in one cell; lists whose items are cards or panels. A pill or
+  badge inside a cell stays its own shape on top of the native table.
+- The converter checks its own render: a table or list that comes out
+  looking different from the sketch falls back to separate shapes
+  (`TABLE_NOT_NATIVE`, `LIST_MARKERS_AS_SHAPES`, `LIST_NOT_SINGLE_BOX`).
+
 ## 7. CSS feature kill-list
 
 These CSS features DO NOT translate cleanly to python-pptx. The worker MUST NOT use them in the body zone (chrome zones are unaffected since they don't get translated):
