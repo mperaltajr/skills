@@ -76,13 +76,14 @@ SLIDE_LAB_TEXT_MID = "595959"           # helpers.TEXT_MID (mid grey)
 SLIDE_LAB_TEXT_FAINT = "888888"         # helpers.TEXT_FAINT (light grey)
 SLIDE_LAB_CARD_BG_1 = "E6DCFF"          # helpers.CARD_BG (very light purple)
 SLIDE_LAB_CARD_BG_2 = "F8F4FC"          # legacy alias (some twins use this)
-SLIDE_LAB_CARD_BORDER_1 = "C2A3FF"      # helpers.CARD_BORDER (light purple)
+SLIDE_LAB_CARD_BORDER_1 = "C2A3FE"      # helpers.CARD_BORDER (light purple, own code)
 SLIDE_LAB_CARD_BORDER_2 = "E5D5F0"      # legacy alias
 
-# NOTE: SLIDE_LAB_BRAND_ACCENT_SOFT and SLIDE_LAB_CARD_BORDER_1 are both
-# "C2A3FF" — same literal hex. In the color_map dict this means the second
-# write wins for that key. color_map() resolves the collision deterministically
-# (see comment near _color_map assignment).
+# Every SLIDE_LAB_* palette value above is its own code: theming matches
+# colors by the exact code, so two roles sharing one code get one themed
+# color. BRAND_ACCENT_SOFT and CARD_BORDER_1 used to share C2A3FF, and every
+# soft accent was themed to the border gray (2026-10-09). CARD_BORDER_1 is now
+# C2A3FE (looks the same in a raw script); a test keeps the codes apart.
 
 # Off-palette colors agents have been observed using (despite not being in
 # helpers.py). We map these too so existing decks survive the theme pass.
@@ -529,11 +530,9 @@ class ClientTheme:
 
         Returned dict has UPPERCASE hex keys and values (no leading #).
 
-        Collision: SLIDE_LAB_BRAND_ACCENT_SOFT and SLIDE_LAB_CARD_BORDER_1 are
-        both literal C2A3FF. Python dict literals let the LAST write win, so
-        C2A3FF maps to card_border (subtle neutral). Exemplars using C2A3FF
-        as a soft accent will read as a subtle neutral after theming — known
-        regression carried from the heuristic era; not introduced here.
+        C2A3FF (BRAND_ACCENT_SOFT) maps to the accent tint and C2A3FE
+        (CARD_BORDER) to the subtle border gray; every palette code is its
+        own key, so no role overwrites another.
         """
         if self._color_map is not None:
             return self._color_map
@@ -554,15 +553,15 @@ class ClientTheme:
         card_bg = _mix_hex(self.dk1, self.lt1, 0.95)         # very pale near-white
         card_border = _mix_hex(self.dk1, self.lt1, 0.85)     # subtle grey
 
-        # Insert order matters for the C2A3FF collision — see docstring.
+        # One key per palette code (no two SLIDE_LAB_* values share a hex).
         self._color_map = {
             SLIDE_LAB_BRAND_PRIMARY:      primary,
             SLIDE_LAB_BRAND_PRIMARY_MID:  primary_mid,
             SLIDE_LAB_BRAND_ACCENT:       accent,
-            SLIDE_LAB_BRAND_ACCENT_SOFT:  accent_soft,   # written first
+            SLIDE_LAB_BRAND_ACCENT_SOFT:  accent_soft,   # C2A3FF -> accent tint
             SLIDE_LAB_CARD_BG_1:          card_bg,
             SLIDE_LAB_CARD_BG_2:          card_bg,
-            SLIDE_LAB_CARD_BORDER_1:      card_border,   # overwrites C2A3FF -> card_border
+            SLIDE_LAB_CARD_BORDER_1:      card_border,   # C2A3FE -> border gray
             SLIDE_LAB_CARD_BORDER_2:      card_border,
             SLIDE_LAB_TEXT_DARK:          self.dk1,
             SLIDE_LAB_TEXT_MID:           text_mid,

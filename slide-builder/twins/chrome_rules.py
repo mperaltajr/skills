@@ -18,8 +18,15 @@ normalize_chrome() runs per slide in finalize (scripts/finalize_deck.py), so
 it holds for every path (direct, sketch, redesign, QC fix), and on the
 registration mock slide (scripts/register_template.py). Roles are found from
 the template's fields (registered takeaway / source slot ids, SUBTITLE and
-FOOTER placeholders) and from shape names (subtitle*, takeaway*, source*,
-footnote*).
+FOOTER placeholders) and, for loose shapes, by one rule in
+scripts/_chrome_schema.py (is_page_takeaway, note_role): the takeaway is a box
+named exactly "subtitle", or "subtitle-..." in the top 35% of the page (never a
+"takeaway..." name: that is a bottom band); a "source..." / "footnote..." box
+counts only in the bottom 25% of the page or when its text starts like a
+source or note. A shape that matches nothing is not moved.
+
+place_section_tag() draws the brief's section tag (the small label above the
+title) in one fixed style per template (owner's decision, 2026-10-09).
 """
 from __future__ import annotations
 
@@ -157,6 +164,12 @@ def template_takeaway_pt(prs, chrome_spec=None, layout_chrome=None) -> float:
 
 def _title_geometry(slide, layout_chrome) -> tuple[int, int, int]:
     """(text left, text right, box bottom) of the slide's title, in EMU."""
+    left, right, _top, bottom = _title_frame(slide, layout_chrome)
+    return left, right, bottom
+
+
+def _title_frame(slide, layout_chrome) -> tuple[int, int, int, int]:
+    """(text left, text right, box top, box bottom) of the slide's title, in EMU."""
     t_idx = getattr(layout_chrome, "title_placeholder_idx", None) if layout_chrome else None
     title = next((sh for sh in slide.shapes if _ph_type(sh) in _TITLE_TYPES
                   or (t_idx is not None and _ph_idx(sh) == t_idx)), None)
@@ -173,7 +186,7 @@ def _title_geometry(slide, layout_chrome) -> tuple[int, int, int]:
         left, width = int(title.left), int(title.width)
         top, height = int(title.top or 0), int(title.height or 0)
         return (left + _inset(title, "lIns"), left + width - _inset(title, "rIns"),
-                top + height)
+                top, top + height)
     tx = getattr(layout_chrome, "title_box_x_px", None) if layout_chrome else None
     tw = getattr(layout_chrome, "title_box_width_px", None) if layout_chrome else None
     ty = getattr(layout_chrome, "title_box_y_px", None) if layout_chrome else None
@@ -182,7 +195,7 @@ def _title_geometry(slide, layout_chrome) -> tuple[int, int, int]:
         b = CS.canonical_title_box()
         tx, tw, ty, th = b.x_px, b.w_px, b.y_px, b.h_px
     return (tx * _EMU_PX + _DEFAULT_INSET_EMU, (tx + tw) * _EMU_PX - _DEFAULT_INSET_EMU,
-            (ty + th) * _EMU_PX)
+            ty * _EMU_PX, (ty + th) * _EMU_PX)
 
 
 def source_top_emu(slide, layout_chrome) -> int:
@@ -286,6 +299,7 @@ def normalize_chrome(slide, layout_chrome=None, *, takeaway_pt: float | None = N
     note_pt = float(CS.CHROME_NOTE_FONT_PT)
     text_left, text_right, title_bottom = _title_geometry(slide, layout_chrome)
     width = max(_EMU_PX * 40, text_right - text_left)
+    slide_h = CS.slide_height_emu(slide)
     sub_idx = getattr(layout_chrome, "subtitle_placeholder_idx", None) if layout_chrome else None
     src_idx = getattr(layout_chrome, "source_placeholder_idx", None) if layout_chrome else None
 
@@ -299,20 +313,26 @@ def normalize_chrome(slide, layout_chrome=None, *, takeaway_pt: float | None = N
             continue
         if not _text_of(sh):
             continue
-        if (sub_idx is not None and idx == sub_idx) or t in _SUBTITLE_TYPES or \
-                (t is None and (name.startswith("subtitle") or name.startswith("takeaway"))):
+        # One rule for which shape is the takeaway / source / footnote
+        # (_chrome_schema.is_page_takeaway / note_role): a bottom band named
+        # "takeaway-bar" or a body row named "source-1" is left alone.
+        if CS.is_page_takeaway(sh, slide_h, sub_idx):
             takeaways.append(sh)
-        elif (src_idx is not None and idx == src_idx) or t in _FOOTER_TYPES or \
-                (t is None and name.startswith("source")):
+        elif (src_idx is not None and idx == src_idx) or t in _FOOTER_TYPES:
             sources.append(sh)
-        elif t is None and name.startswith("footnote"):
-            notes.append(sh)
+        else:
+            role = CS.note_role(sh, slide_h)
+            if role == "source":
+                sources.append(sh)
+            elif role == "footnote":
+                notes.append(sh)
 
     # takeaway: the layout's slot keeps its own height position; a drawn line
-    # goes just under the title
-    takeaways.sort(key=lambda s: (0 if s.is_placeholder else 1))
+    # goes just under the title. Only a second copy of the real takeaway (a
+    # shape that passed the same rule, with the same text) is deleted.
+    takeaways.sort(key=lambda s: (0 if s.is_placeholder else 1,
+                                  0 if _name(s) == "subtitle" else 1))
     for extra in takeaways[1:]:
-        # a designer's second copy of the same takeaway line
         if _text_of(extra) == _text_of(takeaways[0]):
             extra._element.getparent().remove(extra._element)
     for sh in takeaways[:1]:
@@ -360,3 +380,88 @@ def normalize_chrome(slide, layout_chrome=None, *, takeaway_pt: float | None = N
         stack_top = top
         done["footnotes"] += 1
     return done
+
+
+# ---------------------------------------------------------------------------
+# Section tag: the small label above the title (owner's decision, 2026-10-09)
+# ---------------------------------------------------------------------------
+
+class SectionTagNoRoomError(RuntimeError):
+    """The template's title box sits too close to the top of the page for the
+    section tag. Raised instead of guessing another place for it."""
+
+
+def _no_tag_page(layout_chrome, page_type: str) -> bool:
+    if (page_type or "").strip().lower() in CS.SECTION_TAG_SKIP_PAGE_TYPES:
+        return True
+    if (layout_chrome is not None
+            and getattr(layout_chrome, "layout_class", "") == "bespoke"
+            and not getattr(layout_chrome, "has_page_number", True)):
+        return True               # a cover or a section divider
+    name = (getattr(layout_chrome, "name", "") or "").lower()
+    return any(w in name for w in ("cover", "divider", "closing"))
+
+
+def remove_section_tags(slide) -> int:
+    """Delete every shape named exactly "section-tag" (never by its text)."""
+    gone = 0
+    for sh in list(slide.shapes):
+        if _name(sh) == CS.SECTION_TAG_NAME:
+            sh._element.getparent().remove(sh._element)
+            gone += 1
+    return gone
+
+
+def place_section_tag(slide, layout_chrome, text: str | None, *, accent_hex: str,
+                      on_dark: bool | None = None, page_type: str = "") -> bool:
+    """Draw the brief's section tag above the title in the template's fixed
+    style; True when one was drawn.
+
+    Any earlier "section-tag" shape is removed first, so running finalize
+    again still leaves one. Nothing is drawn for an empty tag or "(none)", or
+    on a cover, divider or closing page. Raises SectionTagNoRoomError when the
+    title box leaves no room above it (never guesses another place)."""
+    from pptx.util import Emu
+    remove_section_tags(slide)
+    text = " ".join((text or "").split())
+    if not text or text.lower() in ("(none)", "none") or _no_tag_page(layout_chrome, page_type):
+        return False
+    if on_dark is None:
+        on_dark = getattr(layout_chrome, "text_role", "dark_on_light") == "light_on_dark"
+    text_left, text_right, title_top, _bottom = _title_frame(slide, layout_chrome)
+    h = CS.SECTION_TAG_H_PX * _EMU_PX
+    top = title_top - CS.SECTION_TAG_GAP_PX * _EMU_PX - h
+    if top < 0:
+        lname = getattr(layout_chrome, "name", "(unknown)") if layout_chrome else "(unknown)"
+        raise SectionTagNoRoomError(
+            f"The section tag {text!r} goes just above the title, but on layout {lname!r} the "
+            f"title box starts {int(title_top / _EMU_PX)} px from the top of the page: there "
+            f"is no room for a {CS.SECTION_TAG_H_PX} px label above it. Slide Lab does not guess "
+            f"another place. Ask the user where the section tag should go on this template "
+            f"(or leave the brief's Section tag empty for these pages).")
+    width = max(_EMU_PX * 40, text_right - text_left)
+    box = slide.shapes.add_textbox(Emu(int(text_left)), Emu(int(top)), Emu(int(width)), Emu(int(h)))
+    box.name = CS.SECTION_TAG_NAME
+    tf = box.text_frame
+    tf.word_wrap = True
+    bp = tf._txBody.find(qn("a:bodyPr"))
+    for ins in ("lIns", "tIns", "rIns", "bIns"):
+        bp.set(ins, "0")
+    bp.set("anchor", "b")
+    p = tf.paragraphs[0]
+    p._p.get_or_add_pPr().set("algn", "l")
+    run = p.add_run()
+    run.text = text
+    rpr = run._r.get_or_add_rPr()
+    rpr.set("sz", str(int(round(CS.SECTION_TAG_FONT_PT * 100))))
+    rpr.set("b", "1")
+    rpr.set("cap", "small")
+    fill = rpr.makeelement(qn("a:solidFill"), {})
+    color = "FFFFFF" if on_dark else (accent_hex or "").lstrip("#").upper()[:6]
+    if len(color) == 6:
+        fill.append(fill.makeelement(qn("a:srgbClr"), {"val": color}))
+    else:
+        fill.append(fill.makeelement(qn("a:schemeClr"), {"val": "accent1"}))
+    rpr.append(fill)
+    rpr.append(rpr.makeelement(qn("a:latin"), {"typeface": "+mn-lt"}))
+    return True

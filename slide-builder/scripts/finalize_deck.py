@@ -78,6 +78,7 @@ from pptx.util import Emu, Pt  # noqa: E402
 from pptx.enum.shapes import MSO_SHAPE_TYPE  # noqa: E402
 from pptx.oxml.ns import qn  # noqa: E402
 from twins.client_theme import load_client_theme, apply_theme_to_shape_xml, resolve_build_template  # noqa: E402
+from twins.chrome_rules import SectionTagNoRoomError  # noqa: E402
 from twins.composer import (  # noqa: E402
     _clear_existing_slides,
     _find_blank_layout,
@@ -255,8 +256,30 @@ _BODY_FONT_FLOOR_PT = 10.5
 _FONT_HARD_FLOOR_PT = 8.0
 
 
-def _expected_palette_for_theme(theme) -> set:
-    palette: set = set()
+def _template_own_colors(template_path) -> set:
+    """Every color written in the template's own slide masters and layouts
+    (its page-number gray, rules, bands). A slide that inherits or repeats
+    them is on-palette: on the Kinfield v3.1 deck the template's page-number
+    gray 8A93A0 alone made 107 of 119 options fail the palette check, so the
+    check carried no signal (2026-10-09)."""
+    out: set = set()
+    if not template_path:
+        return out
+    try:
+        with zipfile.ZipFile(str(template_path), "r") as zf:
+            for name in zf.namelist():
+                if (name.startswith("ppt/slideMasters/") or name.startswith("ppt/slideLayouts/")) \
+                        and name.endswith(".xml"):
+                    data = zf.read(name).decode("utf-8", errors="ignore")
+                    for m in _SRGB_RE.finditer(data):
+                        out.add(m.group(1).upper())
+    except Exception:
+        pass
+    return out
+
+
+def _expected_palette_for_theme(theme, template_path=None) -> set:
+    palette: set = set(_template_own_colors(template_path))
     try:
         for v in theme.color_map().values():
             if isinstance(v, str) and len(v) == 6:
@@ -389,7 +412,8 @@ def _png_has_content(png_path) -> bool:
 
 
 def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
-                  page_type: str = "", body_zone: tuple | None = None) -> dict:
+                  page_type: str = "", body_zone: tuple | None = None,
+                  fit: dict | None = None) -> dict:
     """Run 7 deterministic checks on a themed option.
 
     page_type (from _meta.json::slides[].page_type) lets the check exempt
@@ -551,9 +575,16 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
                        "sources, footnotes and chart text >= 9pt")
     else:
         body_detail = "; ".join(body_offenders)
+    # A type-scale break is a Major (owner's decision, 2026-10-09): fix it, or
+    # give a reason to keep it. Not a hard stop; shown as its own plain line on
+    # the REVIEW.html card, not only in the badge's hover text.
     checks.append({
         "check": "body_font_floor", "pass": body_ok, "severity": "warn",
+        "major": not body_ok, "category": "text_size",
         "detail": body_detail,
+        "plain": ([] if body_ok else
+                  ["Text size: " + p + ". Fix it, or give a reason to keep it"
+                   for p in body_offenders]),
     })
     checks.append({
         "check": "font_size_locked", "pass": sizes_locked_ok, "severity": "warn",
@@ -576,8 +607,6 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
     # overlap-with-chrome (worker placed content at canonical chrome y).
     zero_fill_ok = True
     zero_fill_offenders: list = []
-    clip_risk_ok = True
-    clip_risk_offenders: list = []
     chrome_overlap_ok = True
     chrome_overlap_offenders: list = []
     _thin_rules: list = []   # untexted rules/dividers: (name, x0, y0, x1, y1)
@@ -635,40 +664,9 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
                         zero_fill_offenders.append(name)
                 except Exception:
                     pass
-            # (b) Text-clip risk heuristic. For text shapes with a known font
-            # size, check whether the literal text is too long for the box.
-            # Rough: monospace char width ~= 0.6 × font_size_pt; PowerPoint
-            # auto-wraps but a long single token (e.g., "04" rendering as "0"
-            # at slide 51) clips at single-character boundary.
-            if shape.has_text_frame and shape.width and shape.height:
-                try:
-                    text = (shape.text_frame.text or "").strip()
-                    if text:
-                        # Find largest font size in the shape.
-                        max_pt = 0.0
-                        for p in shape.text_frame.paragraphs:
-                            for r in p.runs:
-                                try:
-                                    if r.font.size:
-                                        pt_val = r.font.size.pt
-                                        if pt_val > max_pt:
-                                            max_pt = pt_val
-                                except Exception:
-                                    pass
-                        if max_pt > 0:
-                            w_emu = int(shape.width)
-                            w_px = w_emu / 9525.0  # EMU → px @96dpi
-                            # Heuristic: estimated rendered width = chars × 0.6 × pt → px
-                            est_width_px = len(text) * 0.6 * max_pt * (96.0 / 72.0)
-                            # Flag when estimate exceeds 1.5× box width AND box
-                            # is narrow (< 200 px) — single-char-clip pattern.
-                            if est_width_px > 1.5 * w_px and w_px < 200:
-                                clip_risk_ok = False
-                                clip_risk_offenders.append(
-                                    f"{name!r} ({len(text)} chars @ {max_pt:.0f}pt, box={w_px:.0f}px)"
-                                )
-                except Exception:
-                    pass
+            # (b) Text fit is measured with the template's fonts by
+            # _chrome_schema.fit_findings on the grafted slide (graft_and_theme)
+            # and reported below; the old character-count guess is gone.
             # (d) Collect geometry for the thin-rule collision test after the walk.
             try:
                 _l = int(shape.left or 0) / 9525.0
@@ -834,11 +832,31 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
                    else f"{len(zero_fill_offenders)} no-fill bg shape(s): "
                         + ", ".join(zero_fill_offenders[:3])),
     })
+    # Text fit (owner's decision, 2026-10-09): every text box, table cell and
+    # placeholder measured with the template's fonts (_chrome_schema
+    # .fit_findings, run on the grafted slide). A word broken in the middle or
+    # a table running into other content stops finalize (block); text within
+    # 2% of wrapping, a wrapped short label or a growing table row is flagged.
+    fit_list = list((fit or {}).get("findings") or [])
+    _stops = [f for f in fit_list if f.get("stop")]
+    _flags = [f for f in fit_list if not f.get("stop")]
+    from _chrome_schema import fit_problem_line as _fit_line
     checks.append({
-        "check": "text_clip_risk", "pass": clip_risk_ok, "severity": "warn",
-        "detail": ("no obvious clip risk" if clip_risk_ok
-                   else f"{len(clip_risk_offenders)} shape(s) likely clipped: "
-                        + "; ".join(clip_risk_offenders[:3])),
+        "check": "text_fit_stop", "pass": not _stops, "severity": "block",
+        "category": "overflow",
+        "detail": ("no word broken in the middle and no table running into other content"
+                   if not _stops else "; ".join(_fit_line(f) for f in _stops[:3])
+                   + ("" if len(_stops) <= 3 else f" (+{len(_stops) - 3} more)")),
+        "plain": [_fit_line(f) for f in _stops],
+    })
+    checks.append({
+        "check": "text_fit", "pass": not _flags, "severity": "warn", "major": bool(_flags),
+        "category": "overflow",
+        "detail": ((f"every line fits ({(fit or {}).get('measured', 0)} measured with the "
+                    "template's fonts)") if not _flags
+                   else "; ".join(_fit_line(f) for f in _flags[:3])
+                   + ("" if len(_flags) <= 3 else f" (+{len(_flags) - 3} more)")),
+        "plain": [_fit_line(f) for f in _flags],
     })
     checks.append({
         # warn, not block, and deliberately so. Content above the body top is a
@@ -1227,6 +1245,14 @@ class OptionStatus:
     # {slide, shape, before, after}. Written to the option's .qc.json and
     # listed in RESULT.md and COMPILED.md.
     period_fixes: list = field(default_factory=list)
+    # Text fit measured on the finished (grafted, themed) slide: the
+    # _chrome_schema.fit_findings result. Broken words and a table running
+    # into other content stop finalize; the rest are flagged on REVIEW.html.
+    fit: dict = field(default_factory=dict)
+    # The page takeaway actually on the finished slide and the slide's title,
+    # for the repeated-subtitle check (title_load.repeats_title).
+    page_title: str = ""
+    page_subtitle: str = ""
 
 
 # ---------------------------------------------------------------------------
@@ -1635,6 +1661,8 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
     # Title text: prefer source-slide 'title' shape, then meta fallback.
     src_title = ""
     src_subtitle = ""
+    from _chrome_schema import is_page_takeaway, slide_height_emu
+    _src_h = slide_height_emu(src_slide)
     for shape in src_slide.shapes:
         try:
             name = (shape.name or "").strip().lower()
@@ -1649,8 +1677,11 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
         # Also harvest the source slide's subtitle textbox so finalize can
         # populate the layout's inherited subtitle placeholder. Worker scripts
         # name the shape "subtitle" by convention when they author a
-        # free-floating one.
-        if (not src_subtitle) and (name == "subtitle" or name.startswith("subtitle")):
+        # free-floating one. One rule for what counts as the takeaway
+        # (_chrome_schema.is_page_takeaway): exactly "subtitle", or a
+        # "subtitle-..." name in the top 35% of the page; never "takeaway...".
+        if (not src_subtitle) and getattr(shape, "has_text_frame", False) \
+                and is_page_takeaway(shape, _src_h):
             try:
                 src_subtitle = (shape.text_frame.text or "").strip()
             except Exception:
@@ -1724,6 +1755,7 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
         title_h_emu = Emu(44 * 9525)
         tb = new_slide.shapes.add_textbox(title_x_emu, title_y_emu,
                                             title_w_emu, title_h_emu)
+        tb.name = "title"
         tb.text_frame.word_wrap = True
         p = tb.text_frame.paragraphs[0]
         p.text = src_title or ""
@@ -1971,14 +2003,15 @@ def _has_free_floating_subtitle(slide) -> bool:
     subtitle textbox — the shape helpers.add_title_block draws (named
     'subtitle') when a layout has no subtitle placeholder. Used to avoid
     double-drawing the takeaway on the direct path (worker already drew it)."""
+    from _chrome_schema import is_page_takeaway, slide_height_emu
+    h = slide_height_emu(slide)
     for sh in slide.shapes:
         try:
             if sh.is_placeholder:
                 continue
         except Exception:
             pass
-        name = (getattr(sh, "name", "") or "").lower()
-        if name.startswith("subtitle") and getattr(sh, "has_text_frame", False):
+        if getattr(sh, "has_text_frame", False) and is_page_takeaway(sh, h):
             return True
     return False
 
@@ -2210,7 +2243,9 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
                     slide_title: str = "",
                     slide_subtitle: str = "",
                     slide_variant: str = "",
-                    takeaway_pt: Optional[float] = None) -> None:
+                    takeaway_pt: Optional[float] = None,
+                    section_tag: str = "",
+                    page_type: str = "") -> None:
     try:
         src_prs = Presentation(str(st.pptx_path))
         src_slide = src_prs.slides[0]
@@ -2404,6 +2439,17 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
         # px->pt conversion. Applies to both build paths.
         _snap_font_sizes(new_slide.shapes)
 
+        # The section tag (owner's decision, 2026-10-09): the brief's label
+        # above the title, drawn here on every path (direct, sketch, normal,
+        # dark and bespoke) in the template's fixed style; designers never draw
+        # it. Any earlier "section-tag" is replaced, so a second finalize still
+        # leaves one. After theming, so its accent color is final.
+        from twins.chrome_rules import place_section_tag
+        place_section_tag(new_slide, layout_chrome, section_tag,
+                          accent_hex=getattr(theme, "brand_accent", "") or "",
+                          on_dark=True if _is_dark_variant else None,
+                          page_type=page_type)
+
         # No text item ends with a period (owner's rule, 2026-10-09): remove
         # one final "." from every paragraph, keeping ellipses, abbreviations
         # and list numbers; periods between sentences stay. After every text
@@ -2416,6 +2462,28 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
             sys.stderr.write(f"  WARN: final-period pass skipped on slide {st.slide_n}: "
                              f"{type(_exc).__name__}: {_exc}\n")
 
+        # Text fit on the finished slide, with the template's fonts (owner's
+        # decision, 2026-10-09; _chrome_schema.fit_findings). Reported in the
+        # option's QC; broken words and tables running into content stop the
+        # build after every option is grafted.
+        try:
+            from _chrome_schema import fit_findings
+            st.fit = fit_findings(new_slide, _fit_fonts_for(theme),
+                                  body_bottom_px=getattr(layout_chrome, "body_bottom_y_px", None))
+        except Exception as _exc:  # noqa: BLE001 -- recorded, never silent
+            st.fit = {"findings": [], "measured": 0, "unmeasured": 0,
+                      "error": f"{type(_exc).__name__}: {_exc}"}
+            sys.stderr.write(f"  WARN: text-fit check skipped on slide {st.slide_n}: "
+                             f"{type(_exc).__name__}: {_exc}\n")
+        # The title and the takeaway actually on the page, for the
+        # repeated-subtitle check (title_load).
+        try:
+            import title_load as _tl
+            _lines = _tl.slide_lines(new_slide, prs.slide_width, prs.slide_height)
+            st.page_title, st.page_subtitle = _lines["title"], _lines["subtitle"]
+        except Exception:
+            st.page_title, st.page_subtitle = "", ""
+
         # Last, after every shape this function adds (overlay, title block,
         # cloned chrome placeholders): the graft merges shape trees that each
         # numbered themselves from 1, and PowerPoint refuses to open a slide
@@ -2426,7 +2494,8 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
         prs.save(str(st.themed_pptx_path))
         st.themed = True
     except (TitleDropError, SubtitleDropError,
-            TemplateLayoutMissingError, TemplatePlaceholderEmptyError):
+            TemplateLayoutMissingError, TemplatePlaceholderEmptyError,
+            SectionTagNoRoomError):
         # Named silent-drop / layout-drift errors must propagate out of
         # graft_and_theme so main() halts the whole build (not just records
         # one option as failed). Per
@@ -2439,6 +2508,45 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
     except Exception as e:
         st.themed = False
         st.error = f"graft: {type(e).__name__}: {e}"
+
+
+def _repeat_finding(st) -> Optional[dict]:
+    """The repeated-subtitle check on the takeaway actually on the finished
+    page (title_load.repeats_title), as a QC check entry, or None."""
+    if not st.page_title or not st.page_subtitle:
+        return None
+    try:
+        import title_load as _tl
+        share = _tl.repeat_share(st.page_title, st.page_subtitle)
+    except Exception:
+        return None
+    if share < _tl.REPEAT_THRESHOLD:
+        return None
+    line = (f"The takeaway under the title repeats the title ({share:.0%} of its words are "
+            f"in the title): \"{st.page_subtitle[:90]}\". Each line must add something: "
+            f"state the number or consequence the title does not, or leave it out. Your "
+            f"wording choice; Slide Lab does not change it")
+    return {"check": "repeats_title", "pass": False, "severity": "warn", "major": True,
+            "content": True, "auto_fix": False, "category": "rewrite",
+            "detail": line, "plain": [line], "slide_level": True}
+
+
+def _fit_fonts_for(theme) -> dict:
+    """The template's fonts for the text-fit check, from brand.yml / theme."""
+    from _chrome_schema import fit_fonts
+    key = (getattr(theme, "major_font", ""), getattr(theme, "minor_font", ""),
+           getattr(theme, "title_font_ttf_path", ""), getattr(theme, "body_font_ttf_path", ""))
+    if key not in _FIT_FONTS_CACHE:
+        _FIT_FONTS_CACHE[key] = fit_fonts(
+            heading=getattr(theme, "major_font", "") or "",
+            body=getattr(theme, "minor_font", "") or "",
+            heading_ttf=getattr(theme, "title_font_ttf_path", "") or "",
+            heading_bold_ttf=getattr(theme, "title_font_bold_ttf_path", "") or "",
+            body_ttf=getattr(theme, "body_font_ttf_path", "") or "")
+    return _FIT_FONTS_CACHE[key]
+
+
+_FIT_FONTS_CACHE: dict = {}
 
 
 def _fail_flag(error: str) -> str:
@@ -2669,6 +2777,8 @@ EXIT_GRAFT_HALTED = 13        # title/subtitle would drop, or the layout drifted
 EXIT_DARK_COLLISION = 14      # content invisible on the dark background
 EXIT_OPTIONS_FAILED = 15      # an option failed to build, theme or render
 EXIT_LAYOUT_MISSING = 16      # a slide names a layout chrome.yml does not have
+EXIT_TEXT_FIT = 17            # a word breaks mid-word, or a table runs into content
+EXIT_SKIP_RENDER_PICKED = 18  # --skip-render asked on a slide the user already picked
 
 
 def _run_and_record(args) -> int:
@@ -2720,6 +2830,25 @@ def _print_refused(rc: int) -> None:
 
 
 def _run(args) -> int:
+    # --skip-render on a slide the user already picked (owner's decision,
+    # 2026-10-09): the finished pictures are what the final check and QC look
+    # at, so a picked slide is always re-rendered. Five such runs in one
+    # session had to be redone.
+    if args.skip_render:
+        import _state  # noqa: E402
+        _pk = ((_state.read_state(args.out).get("review") or {}).get("picks")) or {}
+        if args.slide is not None:
+            _hit = [args.slide] if _pk.get(_p.slide_key(args.slide)) not in (None, "", []) else []
+        else:
+            _hit = sorted(int(re.sub(r"\D", "", k) or 0) for k, v in _pk.items() if v not in (None, "", []))
+        if _hit:
+            print("ERROR: --skip-render refused: the user has already picked "
+                  + ("slide " + str(_hit[0]) if args.slide is not None
+                     else f"{len(_hit)} slide(s)")
+                  + ". A picked slide is always rendered again, because the final check and "
+                  "QC read its finished picture. Run finalize without --skip-render.",
+                  file=sys.stderr)
+            return EXIT_SKIP_RENDER_PICKED
     # Open the normalized build copy when registration made one; every sidecar
     # lookup below stays keyed off the ORIGINAL args.template.
     build_template = resolve_build_template(args.template)
@@ -2821,6 +2950,8 @@ def _run(args) -> int:
     _slide_titles: dict[int, str] = {}
     _slide_subtitles: dict[int, str] = {}
     _slide_variants: dict[int, str] = {}
+    _slide_tags: dict[int, str] = {}
+    _slide_types: dict[int, str] = {}
     try:
         _meta_dict_layouts = json.loads(_p.meta_json(args.out).read_text(encoding="utf-8"))
         for s in _meta_dict_layouts.get("slides", []):
@@ -2830,6 +2961,8 @@ def _run(args) -> int:
                 _slide_titles[n] = (s.get("title") or "").strip()
                 _slide_subtitles[n] = (s.get("subtitle") or "").strip()
                 _slide_variants[n] = (s.get("variant") or "").strip().lower()
+                _slide_tags[n] = (s.get("section_tag") or "").strip()
+                _slide_types[n] = (s.get("page_type") or "").strip()
     except Exception:
         _slide_layout_names = {}
         _slide_titles = {}
@@ -3036,7 +3169,7 @@ def _run(args) -> int:
     theme = load_client_theme(str(args.template))
     color_map = theme.color_map()
     theme_slot_map = theme.theme_slot_map()
-    expected_palette = _expected_palette_for_theme(theme)
+    expected_palette = _expected_palette_for_theme(theme, build_template)
     print(f"  raw dk2={theme.dk2}  lt2={theme.lt2}  font={theme.minor_font}")
     print(f"  brand_primary=#{theme.brand_primary} (source: {theme.brand_primary_source})")
     print(f"  brand_accent =#{theme.brand_accent} (source: {theme.brand_accent_source})")
@@ -3126,10 +3259,13 @@ def _run(args) -> int:
                 slide_subtitle=_slide_subtitle_for(st.slide_n),
                 slide_variant=_slide_variant_for(st.slide_n),
                 takeaway_pt=_deck_takeaway_pt,
+                section_tag=_slide_tags.get(st.slide_n, ""),
+                page_type=_slide_types.get(st.slide_n, ""),
             )
         except (TitleDropError, SubtitleDropError,
                 TemplateLayoutMissingError,
-                TemplatePlaceholderEmptyError) as _exc:
+                TemplatePlaceholderEmptyError,
+                SectionTagNoRoomError) as _exc:
             # Silent-drop / layout-drift errors halt the build cleanly with a
             # recovery hint instead of a raw stack trace. The named exception
             # messages were written for the operator; relay them verbatim and
@@ -3213,6 +3349,37 @@ def _run(args) -> int:
         print("  reflects PowerPoint, not the LibreOffice preview.")
         return EXIT_TITLE_OVERLAP
 
+    # Text-fit gate (owner's decision, 2026-10-09). Measured with the
+    # template's fonts on each finished slide: a word PowerPoint would break in
+    # the middle, or a table that grows into other content or past the body
+    # area, stops the build here, before rendering. Once the user has picked,
+    # only picked options count (an unpicked option is not shipped).
+    def _counts_for_gate(st) -> bool:
+        if not _picks:
+            return True
+        v = _picks.get(_p.slide_key(st.slide_n))
+        return st.letter in (v if isinstance(v, list) else [v])
+    _fit_stops = [(s, f) for s in themed_statuses if _counts_for_gate(s)
+                  for f in ((s.fit or {}).get("findings") or []) if f.get("stop")]
+    if _fit_stops:
+        import _state  # noqa: E402
+        from _chrome_schema import fit_problem_line as _fit_line
+        _state.record_option_qc(args.out, {
+            _state.option_key(s.slide_n, s.letter): {
+                "blocks": 1, "reasons": ["text does not fit (broken word or table overflow)"]}
+            for s, _f in _fit_stops})
+        print("\n[4d] TEXT FIT CHECK, BUILD REFUSED")
+        print(f"  {len(_fit_stops)} piece(s) of text would not fit when PowerPoint sets them "
+              "(measured with the template's fonts):\n")
+        for s, f in _fit_stops:
+            print(f"    - slide {s.slide_n} option {s.letter}: {_fit_line(f)}")
+        print("")
+        print("  To fix: rebuild these options with the finding (build_deck.py --slide N with")
+        print("  the finding in _prior_feedback.md): widen the box or column, shorten the")
+        print("  word, or make the table's rows fit its space. Workers can check before")
+        print("  finishing with scripts/check_fit.py <option_X.pptx>.")
+        return EXIT_TEXT_FIT
+
     # Remove the previous finished preview first. A failed render used to leave
     # the old picture in place, and the review page showed it as the new slide.
     for st in themed_statuses:
@@ -3254,6 +3421,7 @@ def _run(args) -> int:
         pass
 
     qc_counts = {"all_ok": 0, "warn_only": 0, "block": 0}
+    _repeat_printed: set = set()
     import _state  # noqa: E402
     # One record per option in this run. An option that never got as far as QC
     # (worker refused, script crashed, graft failed, render failed) is recorded
@@ -3289,7 +3457,27 @@ def _run(args) -> int:
             except Exception:
                 _bz = None
             result = run_option_qc(st.themed_pptx_path, st.themed_png_path, expected_palette,
-                                   page_type=pt, body_zone=_bz)
+                                   page_type=pt, body_zone=_bz, fit=st.fit)
+            # Repeated subtitle (owner's decision, 2026-10-09): the takeaway
+            # actually on the page repeats the title. A content Major: asked,
+            # never fixed automatically. Checked once per slide (once per
+            # distinct takeaway when options differ), printed once.
+            _rt = _repeat_finding(st)
+            if _rt is not None:
+                result["checks"].append(_rt)
+                result["summary"]["warn"] = result["summary"].get("warn", 0) + 1
+                _rkey = (st.slide_n, st.page_subtitle)
+                if _rkey not in _repeat_printed:
+                    _repeat_printed.add(_rkey)
+                    print(f"  slide_{st.slide_n:02d}  CONTENT (ask the user): {_rt['plain'][0]}")
+            # Findings in the "slide N [category] Severity: text" form
+            # apply_qc_fix.py and qc_fix_policy.py read.
+            result["findings"] = [
+                f"slide {st.slide_n} [{c.get('category')}] "
+                f"{'Critical' if c.get('severity') == 'block' else 'Major'}: {line}"
+                for c in result["checks"]
+                if not c.get("pass") and c.get("category") and (c.get("major") or c.get("severity") == "block")
+                for line in (c.get("plain") or [c.get("detail", "")])]
             # For sketch-path picks, run R4.1-R4.8 checks against the
             # translator's report + script. Merge into the same QC JSON so
             # build_review.py renders them uniformly with the R1-R3 results.
