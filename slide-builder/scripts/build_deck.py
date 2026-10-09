@@ -2204,8 +2204,9 @@ def stage1_sanity_check(template_path: Path, allow_unconfirmed: bool = False) ->
             "ERROR: The agents Claude Code will dispatch are not the ones in this repo.\n\n"
             + "".join(f"  - {p}\n" for p in _stale)
             + "\nEvery fix in slide-builder/agents/ is invisible until it is copied over.\n"
-            "Copy them, then re-run:\n\n" + _install.copy_command() + "\n\n"
-            "New Claude Code sessions pick up the copied files.\n")
+            "Do what each line above says. To copy the repo version over (the\n"
+            "installed files are backed up first):\n\n" + _install.copy_command() + "\n\n"
+            + _install.NEW_SESSION + " Then re-run.\n")
         return 7
 
     # Check (a): brand sidecar present + valid

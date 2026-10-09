@@ -28,8 +28,12 @@ What it does:
      offline integrity checks AND PowerPoint's own opens-cleanly check
      (opened read-only without a window: no repair question, same slide
      count), when PowerPoint is on this computer.
-  5. Render every slide of the final deck to PNG with the default renderer
-     (PowerPoint on Windows, else LibreOffice) → output to <out>/final_pngs/.
+  5. Render every slide of the final deck to PNG ONCE, at 150 dpi (the QC
+     floor), with the default renderer (PowerPoint on Windows, else
+     LibreOffice) into the build's QC folder <out>/_qc/, with
+     render_manifest.json (deck digest, renderer, dpi, each page's image
+     hash). slide-qc reuses these images when the deck bytes match, and the
+     page-by-page quality check compares page images against them.
   6. Write <out>/COMPILED.md summarizing picks, output path, slide count,
      render success/fail, opens-cleanly status.
 
@@ -791,6 +795,14 @@ def main() -> int:
     if not out_dir.exists():
         print(f"ERROR: out dir not found: {out_dir}")
         return 2
+    # The agent files Claude Code runs must be the ones this build was
+    # prepared with (recorded at prep). A swap and restore around prep once
+    # made the prep check certify slides built by an unmerged agent.
+    import _install
+    _agents = _install.changed_since_prep(_state.read_state(out_dir))
+    if _agents:
+        print("REFUSED: will not compile.\n  " + _agents)
+        return 7
 
     # ---- User-approval gate (Rule 2): a review token minted by build_review,
     # not a self-asserted flag. compile refuses unless the token supplied matches
@@ -1184,14 +1196,17 @@ def main() -> int:
         print(f"  FAIL: {type(e).__name__}: {e}")
         failures.append(f"- **reload**: {type(e).__name__}: {e}")
 
-    print("\n[5] Render every slide to PNG")
-    pngs_dir = out_dir / "final_pngs"
+    print("\n[5] Render every slide to PNG (once, 150 dpi, into the QC folder)")
+    # One render serves compile's own check AND slide-qc: compile used to draw
+    # every page at 120 dpi (below the QC floor) and slide-qc drew them all
+    # again at 150. The manifest ties the images to these exact deck bytes.
+    pngs_dir = out_dir / "_qc"
     render_total = 0
     render_ok = 0
     render_fail = 0
     try:
         from render_slides import render as _render
-        _render(final_path, pngs_dir, dpi=120)
+        _render(final_path, pngs_dir, dpi=150, manifest=True, writer="compile_picks")
         pngs = sorted(pngs_dir.glob("slide_*.png"))
         render_total = max(slide_count, len(pngs))
         render_ok = len(pngs)

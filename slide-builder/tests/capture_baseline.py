@@ -108,7 +108,8 @@ def capture(source: Path, name: str, include_final: bool) -> Path:
     # Finalized slide_NN.png (post-graft, themed) — recommended for the
     # "Quality Guarantee #3 no silent regression" check.
     if include_final:
-        final_dir = source / "final_pngs"
+        # compile renders into _qc since 2026-10-09; older builds used final_pngs
+        final_dir = source / "_qc" if (source / "_qc").exists() else source / "final_pngs"
         if not final_dir.exists():
             print(f"  warning: --include final_pngs but {final_dir} not found")
         else:

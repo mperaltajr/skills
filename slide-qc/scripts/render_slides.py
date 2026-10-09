@@ -25,9 +25,15 @@ Usage:
   py -3 render_slides.py <pptx> <out_dir> --dpi 200
   py -3 render_slides.py <pptx> <out_dir> --engine libre     # LibreOffice first
   py -3 render_slides.py <pptx> <out_dir> --engine ppt       # PowerPoint first
+  py -3 render_slides.py <pptx> <out_dir> --fresh            # draw again, no reuse
 
 Outputs: <out_dir>/slide_01.png, slide_02.png, ... (one per slide, hidden
-slides included, so slide_NN is always the deck's slide NN)
+slides included, so slide_NN is always the deck's slide NN), plus
+render_manifest.json from the command line: the deck's digest, the program,
+the dpi and each page's image hash (render_manifest.py). A folder that already
+holds a render of these exact deck bytes by the same program at the same dpi
+is reused, not drawn again: compile renders the deck into the build's _qc
+folder at 150 dpi, so slide-qc's render step costs nothing. --fresh redraws.
 """
 import argparse, json, os, pathlib, re, subprocess, sys, tempfile, shutil, threading, time
 import zipfile
@@ -400,13 +406,30 @@ def _with_backup(first: str, run):
 
 
 def render(pptx: pathlib.Path, out_dir: pathlib.Path, dpi: int = 150,
-           renderer: str | None = None, quiet: bool = False) -> str:
+           renderer: str | None = None, quiet: bool = False,
+           manifest: bool = False, reuse: bool = False, writer: str = "") -> str:
     """slide_NN.png per slide in out_dir with the default program (see the
     top of this file), the other one taking over if it fails twice.
     renderer: None/"auto", "powerpoint" or "libreoffice" (the one to start
-    with). Returns the program that drew it."""
+    with). Returns the program that drew it.
+
+    manifest: write render_manifest.json (deck digest, renderer, dpi, each
+    page's image hash) beside the images. reuse: when out_dir already holds a
+    render of these exact deck bytes by the same program at the same dpi
+    (compile renders into the QC folder), keep it instead of drawing again."""
     pptx, out_dir = pathlib.Path(pptx).absolute(), pathlib.Path(out_dir).absolute()
     out_dir.mkdir(parents=True, exist_ok=True)
+    if reuse:
+        import render_manifest as RM
+        want = pick_renderer(renderer)
+        ok, why = RM.reusable(out_dir, pptx, want, dpi)
+        if ok:
+            if not quiet:
+                print(f"Reused {why} in {out_dir} ({_label(want)}, {dpi} dpi); "
+                      "nothing drawn again. --fresh draws them again.")
+            return want
+        if not quiet and RM.read(out_dir):
+            print(f"  (drawing again: {why})", file=sys.stderr)
 
     def run(eng):
         # Wipe stale slide_*.png so old files don't linger if the deck shrank
@@ -419,7 +442,15 @@ def render(pptx: pathlib.Path, out_dir: pathlib.Path, dpi: int = 150,
     first = pick_renderer(renderer)
     if first == "libreoffice" and not libreoffice_available() and not powerpoint_available():
         _resolve_soffice()          # raises with the install hint
+    if manifest:
+        import render_manifest as RM
+        try:
+            RM.manifest_path(out_dir).unlink()     # never left describing old images
+        except OSError:
+            pass
     n, eng = _with_backup(first, run)
+    if manifest:
+        RM.write(out_dir, pptx, eng, dpi, writer=writer or "render_slides")
     if not quiet:
         print(f"\nRendered {n} slides to {out_dir} ({_label(eng)}, {dpi} dpi)")
     return eng
@@ -482,6 +513,9 @@ def main():
         help="render DPI (default 150 ≈ 2000px wide; 200 ≈ 2700px)")
     ap.add_argument("--width", type=int, default=None,
         help="width in pixels (overrides --dpi)")
+    ap.add_argument("--fresh", action="store_true",
+        help="draw the pages again even when the folder already holds a render "
+             "of these exact deck bytes (same program, same dpi)")
     args = ap.parse_args()
 
     pptx = args.pptx.resolve()
@@ -490,7 +524,8 @@ def main():
     dpi = args.dpi
     if args.width:
         dpi = max(1, int(round(args.width / slide_width_in(pptx))))
-    render(pptx, args.out_dir.resolve(), dpi, renderer=args.engine)
+    render(pptx, args.out_dir.resolve(), dpi, renderer=args.engine,
+           manifest=True, reuse=not args.fresh)
 
 
 if __name__ == "__main__":

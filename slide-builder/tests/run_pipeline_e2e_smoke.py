@@ -39,6 +39,7 @@ sys.path.insert(0, str(HERE.parent / "scripts"))
 
 import _e2e_harness as H  # noqa: E402
 import _state  # noqa: E402
+import _qc_helper as Q  # noqa: E402
 
 CRASHING_SCRIPT = "# Slide 2 option A — crashes on purpose\nraise RuntimeError('boom')\n"
 
@@ -109,10 +110,14 @@ def main() -> int:
         deck = _state.compiled_deck(out)
         r = H.run("check_done.py", "--out", out)
         assert r.returncode == 1 and "no vision pass" in r.stdout, r.stdout
-        r = H.run("record_vision_qc.py", "--out", out, "--deck", deck,
-                  "--slides-reviewed", 2, "--criticals", 0, "--majors", 0,
-                  "--advisories", 1)
-        assert r.returncode == 0, r.stdout + r.stderr
+        # compile drew the pages once into _qc at 150 dpi, with the manifest
+        import render_manifest as RM
+        man = RM.read(out / "_qc")
+        assert man.get("deck_digest") == _state.file_digest(deck) and man["dpi"] == 150 \
+            and man["slides"] == 2, man
+        rc, o, _ = Q.read_round(out, deck=deck,
+                                findings={1: [{"severity": "Advisory", "issue": "tight"}]})
+        assert rc == 0, o
         r = H.run("check_done.py", "--out", out)
         assert r.returncode == 0 and "DELIVERABLE (final deck)" in r.stdout, r.stdout
         print("    ok: refused before the vision pass, deliverable after")

@@ -32,6 +32,7 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parent / "scripts"))
 import _e2e_harness as H  # noqa: E402
 import _state  # noqa: E402
+import _qc_helper as Q  # noqa: E402
 
 
 def _line(token: str, picks) -> str:
@@ -101,9 +102,8 @@ def main() -> int:
         print("    ok")
 
         print("[3] the recorded deck is what check_done and record_vision_qc use")
-        r = H.run("record_vision_qc.py", "--out", out, "--slides-reviewed", 2,
-                  "--criticals", 0, "--majors", 0)
-        assert r.returncode == 0, r.stdout + r.stderr
+        rc, o, _ = Q.read_round(out, record_args=("--slides-reviewed", 2))
+        assert rc == 0, o
         r = H.run("check_done.py", "--out", out)
         assert r.returncode == 0 and "Pipeline test.pptx" in r.stdout, r.stdout
         print("    ok")
