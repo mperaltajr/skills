@@ -1,10 +1,13 @@
 {
-  "schema_version": 2,
-  "template_path": "C:\\Users\\m.a.peralta\\.claude\\skills\\slide-builder\\tests\\fixtures\\layout_diverse_template.pptx",
-  "template_sha": "46a7230c9ad63b154a81c7968c5f54906bce7b176fbca177ebffe599358f6112",
-  "registered_at": "2026-06-05T11:10:46+00:00",
+  "schema_version": 3,
+  "template_path": "C:\\Users\\m.a.peralta\\.claude\\skills\\.claude\\worktrees\\agent-adaab597465ba7cd7\\slide-builder\\tests\\fixtures\\layout_diverse_template.pptx",
+  "template_sha": "5784360c47adab573c8d2aa57c4899db5b2944f195bcc32b2c578264d6a49635",
+  "build_template_path": "C:\\Users\\m.a.peralta\\.claude\\skills\\.claude\\worktrees\\agent-adaab597465ba7cd7\\slide-builder\\tests\\fixtures\\layout_diverse_template\\build-template.pptx",
+  "build_template_sha": "346b9a8323ffbc7b29830aa84f540bbbc7cd8a5c868d190f4ef05b1d125415fb",
+  "registered_at": "2026-10-09T09:30:06+00:00",
   "registered_by": "m.a.peralta",
   "default_content_layout": "",
+  "cover_layout": "",
   "brand": {
     "primary_hex": "#1F2937",
     "accent_hex": "#F59E0B",
@@ -34,8 +37,17 @@
     "master_count": 1,
     "layout_count": 6
   },
-  "brand_yml_path": "C:\\Users\\m.a.peralta\\.claude\\skills\\slide-builder\\tests\\fixtures\\layout_diverse_template\\brand.yml",
+  "theme_parts": {
+    "canonical": "ppt/theme/theme1.xml",
+    "referenced": [
+      "ppt/theme/theme1.xml"
+    ],
+    "orphan": [],
+    "all_themes": [
+      "ppt/theme/theme1.xml"
+    ]
+  },
+  "brand_yml_path": "C:\\Users\\m.a.peralta\\.claude\\skills\\.claude\\worktrees\\agent-adaab597465ba7cd7\\slide-builder\\tests\\fixtures\\layout_diverse_template\\brand.yml",
   "confirmed": true,
-  "confirmed_at": "2026-09-30T00:00:00+00:00",
-  "_doc_confirmed": "Test fixture: confirmed so the pipeline tests exercise a build on a confirmed template, as a real one would be."
+  "confirmed_at": "2026-09-30T00:00:00+00:00"
 }

@@ -1,12 +1,12 @@
 schema_version: 2
-source_template_sha8: 46a7230c
+source_template_sha8: 5784360c
 layouts:
   cover_light:
     name: cover_light
     layout_class: bespoke
     text_role: dark_on_light
     background: light
-    has_page_number: true
+    has_page_number: false
     title:
       x_px: 72
       y_px: 224
@@ -40,6 +40,16 @@ layouts:
     subtitle_placeholder_idx: null
     body_top_y_px: null
     body_bottom_y_px: null
+    title_box_x_px: null
+    title_box_y_px: null
+    title_box_width_px: null
+    title_box_height_px: null
+    title_font_pt: null
+    source_placeholder_idx: null
+    background_hex: FFFFFF
+    background_kind: solid
+    body_left_px: 72
+    body_right_px: 888
     body_overlay_hex: null
   body_canonical_light:
     name: body_canonical_light
@@ -56,6 +66,16 @@ layouts:
     subtitle_placeholder_idx: null
     body_top_y_px: 149
     body_bottom_y_px: 667
+    title_box_x_px: 48
+    title_box_y_px: 29
+    title_box_width_px: 864
+    title_box_height_px: 120
+    title_font_pt: 28
+    source_placeholder_idx: null
+    background_hex: FFFFFF
+    background_kind: solid
+    body_left_px: 48
+    body_right_px: 912
     body_overlay_hex: null
   section_divider:
     name: section_divider
@@ -90,6 +110,16 @@ layouts:
     subtitle_placeholder_idx: null
     body_top_y_px: null
     body_bottom_y_px: null
+    title_box_x_px: null
+    title_box_y_px: null
+    title_box_width_px: null
+    title_box_height_px: null
+    title_font_pt: null
+    source_placeholder_idx: null
+    background_hex: FFFFFF
+    background_kind: solid
+    body_left_px: 76
+    body_right_px: 892
     body_overlay_hex: null
   cover_dark:
     name: cover_dark
@@ -124,6 +154,16 @@ layouts:
     subtitle_placeholder_idx: null
     body_top_y_px: null
     body_bottom_y_px: null
+    title_box_x_px: null
+    title_box_y_px: null
+    title_box_width_px: null
+    title_box_height_px: null
+    title_font_pt: null
+    source_placeholder_idx: null
+    background_hex: 0A1A2E
+    background_kind: solid
+    body_left_px: 48
+    body_right_px: 912
     body_overlay_hex: null
   body_canonical_dark:
     name: body_canonical_dark
@@ -140,6 +180,16 @@ layouts:
     subtitle_placeholder_idx: null
     body_top_y_px: 149
     body_bottom_y_px: 667
+    title_box_x_px: 48
+    title_box_y_px: 29
+    title_box_width_px: 864
+    title_box_height_px: 120
+    title_font_pt: 28
+    source_placeholder_idx: null
+    background_hex: 0A1A2E
+    background_kind: solid
+    body_left_px: 48
+    body_right_px: 912
     body_overlay_hex: null
   section_divider_dark:
     name: section_divider_dark
@@ -174,6 +224,16 @@ layouts:
     subtitle_placeholder_idx: null
     body_top_y_px: null
     body_bottom_y_px: null
+    title_box_x_px: null
+    title_box_y_px: null
+    title_box_width_px: null
+    title_box_height_px: null
+    title_font_pt: null
+    source_placeholder_idx: null
+    background_hex: 0A1A2E
+    background_kind: solid
+    body_left_px: 48
+    body_right_px: 912
     body_overlay_hex: null
   Blank:
     name: Blank
@@ -202,6 +262,16 @@ layouts:
     subtitle_placeholder_idx: null
     body_top_y_px: null
     body_bottom_y_px: null
+    title_box_x_px: null
+    title_box_y_px: null
+    title_box_width_px: null
+    title_box_height_px: null
+    title_font_pt: null
+    source_placeholder_idx: null
+    background_hex: FFFFFF
+    background_kind: solid
+    body_left_px: null
+    body_right_px: null
     body_overlay_hex: null
   Content with Caption:
     name: Content with Caption
@@ -218,6 +288,16 @@ layouts:
     subtitle_placeholder_idx: null
     body_top_y_px: 151
     body_bottom_y_px: 667
+    title_box_x_px: 48
+    title_box_y_px: 29
+    title_box_width_px: 316
+    title_box_height_px: 122
+    title_font_pt: 28
+    source_placeholder_idx: null
+    background_hex: FFFFFF
+    background_kind: solid
+    body_left_px: 48
+    body_right_px: 912
     body_overlay_hex: null
   Picture with Caption:
     name: Picture with Caption
@@ -234,6 +314,16 @@ layouts:
     subtitle_placeholder_idx: null
     body_top_y_px: 564
     body_bottom_y_px: 667
+    title_box_x_px: 188
+    title_box_y_px: 504
+    title_box_width_px: 576
+    title_box_height_px: 60
+    title_font_pt: 28
+    source_placeholder_idx: null
+    background_hex: FFFFFF
+    background_kind: solid
+    body_left_px: 188
+    body_right_px: 764
     body_overlay_hex: null
   Title and Vertical Text:
     name: Title and Vertical Text
@@ -250,6 +340,16 @@ layouts:
     subtitle_placeholder_idx: null
     body_top_y_px: 149
     body_bottom_y_px: 667
+    title_box_x_px: 48
+    title_box_y_px: 29
+    title_box_width_px: 864
+    title_box_height_px: 120
+    title_font_pt: 28
+    source_placeholder_idx: null
+    background_hex: FFFFFF
+    background_kind: solid
+    body_left_px: 48
+    body_right_px: 912
     body_overlay_hex: null
   Vertical Title and Text:
     name: Vertical Title and Text
@@ -266,4 +366,14 @@ layouts:
     subtitle_placeholder_idx: null
     body_top_y_px: 643
     body_bottom_y_px: 667
+    title_box_x_px: 696
+    title_box_y_px: 29
+    title_box_width_px: 216
+    title_box_height_px: 614
+    title_font_pt: 28
+    source_placeholder_idx: null
+    background_hex: FFFFFF
+    background_kind: solid
+    body_left_px: 48
+    body_right_px: 680
     body_overlay_hex: null

@@ -43,6 +43,15 @@ CATEGORIES: dict[str, tuple[str, str, tuple[str, ...]]] = {
     "footer_page_number": ("auto", "Missing footer or page number",
                            ("footer", "page number")),
     "axis_unit": ("auto", "Chart axis without a unit", ("axis", "no unit", "missing unit")),
+    # The three chart and punctuation rules (owner's rules, 2026-10-09;
+    # slide-builder/scripts/chart_rules.py finds them)
+    "final_period": ("auto", "A text item ends with a final period",
+                     ("final period", "ends with a period", "trailing period")),
+    "chart_header": ("auto", "Chart without its header line (\"Chart title, [Unit]\") or "
+                             "without a unit",
+                     ("chart header", "header line", "no chart title")),
+    "legend_position": ("auto", "Chart legend not one row at the chart's top right",
+                        ("legend",)),
     "palette": ("auto", "Color palette drift", ("palette", "off-brand color", "off-brand colour")),
     # content: asked, in one table with proposed fixes
     "number_not_in_brief": ("ask", "A number or label that is not in the brief",

@@ -83,7 +83,7 @@ Entry format:
 
 2. **DON'T displace the subtitle when titles grow to two lines.** — *Why:* titles that push the subtitle down cascade into the body and break the layout grid. *Do instead:* title bottom-y is fixed regardless of line count; 2-line titles grow UPWARD. The subtitle position never moves.
 
-3. **DON'T put the legend below the chart when the right side is occupied.** — *Why:* legend-below-chart consumes vertical space that the chart needs; bottom placement is the fallback, not the default. *Do instead:* legend goes right-aligned below the sub-headline (primary); top-right of the chart only when the right side is occupied by a callout. **See `layouts.md § Chart (with quadrant mode)` for the canonical positive spec.**
+3. **DON'T put a chart's legend anywhere but one row at the chart's top right (owner's rule, 2026-10-09).** *Why:* a legend under the chart takes the chart's height, a legend stacked at the side takes its width, and a legend under the takeaway is read as part of the headline. *Do instead:* the legend is one row at the far right of the chart's header line, right-aligned to the chart's right edge, on the same line as "Chart title, [Unit]" at the left. A chart with one series has no legend. QC flags any other place as a layout Major (`legend_position`, fixed automatically). **See `layouts.md § Chart (with quadrant mode)` for the canonical positive spec.**
 
 4. **DON'T stack visual badges (RECOMMENDED, PRIORITY, MUST-DO, etc.) on top of body content.** — *Why:* stacked badges overlap evidence text; the badge wins visually but the reader misses the supporting content beneath it. *Do instead:* use a brand-accent left-edge stripe + tinted row fill to indicate the recommended row in a table, or an accent-fill on the recommended card in a card grid. The stripe is enough; no badge.
 
@@ -94,6 +94,8 @@ Entry format:
 1. **DON'T use size-encoded visual elements (bubbles, dots, tiles) without a scale legend.** — *Why:* size-encoded elements without a legend leave the reader guessing what "big" means; the chart fails to communicate. *Do instead:* if the chart uses size as an axis (bubble size = revenue, tile size = headcount), include a scale legend that shows what each size represents.
 
 2. **DON'T swap convention positions in named frameworks.** — *Why:* the growth-share matrix, Magic Quadrant, Eisenhower, and other named frameworks have established quadrant conventions; swapping positions confuses any reader who knows the framework. *Do instead:* follow the canonical positions documented in `layouts.md § Chart (with quadrant mode)`. **See that file for the full positive spec** (e.g., growth-share matrix: STARS top-right, CASH COWS bottom-right, QUESTION MARKS top-left, DOGS bottom-left).
+
+3. **DON'T draw a chart without its header line (owner's rule, 2026-10-09).** *Why:* without "what is this and in what unit" at the top, the reader works it out from the axis or not at all. *Do instead:* one line at the chart's top left, starting at its left edge: "Chart title, [Unit]", the title bold, the comma and the unit in square brackets regular weight, an optional superscript footnote mark (¹) after the title; axis titles where an axis carries a unit. Name it `chart-title`. QC flags a chart with no header line, or a value axis with no unit, as a layout Major (`chart_header`, fixed automatically).
 
 ---
 
@@ -124,6 +126,7 @@ These rules have their canonical home in `layouts.md` (the "how to render" file)
 | Topic | Canonical home |
 |---|---|
 | Legend placement on charts | `layouts.md § Chart (with quadrant mode)` |
+| Chart header line ("Chart title, [Unit]") | `layouts.md § Chart (with quadrant mode)` |
 | Growth-share / Magic Quadrant / Eisenhower convention positions | `layouts.md § Chart (with quadrant mode)` |
 | Recommended-row stripe (Table) | `layouts.md § Table` cross-refs back here for the badge-stacking rule |
 | Title bottom-anchor geometry | `layouts.md` (when documented) — for now see Chrome rule #2 above |

@@ -1,5 +1,5 @@
 # brand.brand.yml
-# Registered 2026-06-05 - Template SHA: 46a7230c
+# Registered 2026-10-09 - Template SHA: 5784360c
 # Source: theme1.xml + register_template.py
 
 # Ground-truth hexes - these drive every build.
@@ -20,9 +20,25 @@ dark_bg_slot:    dk2
 font_heading:    "Arial"
 font_body:       "Arial"
 
+# Resolved on-disk TTF path for the heading font.
+# Recorded at registration so finalize_deck doesn't have to scan
+# Windows fonts on every build. Empty string = TTF not discovered on
+# this machine at registration time; finalize_deck falls back to a
+# disk scan (transitional) and warns the operator to install the font.
+title_font_ttf_path: 'arial.ttf'
+# The same family's bold face, and the body font's regular face, chosen by
+# reading each font file's own name table (not guessed from its file name).
+title_font_bold_ttf_path: 'arialbd.ttf'
+body_font_ttf_path: 'arial.ttf'
+
+# The theme's own face names, before the style word is dropped
+# (font_heading / font_body above are the families).
+theme_heading_face: "Calibri"
+theme_body_face: "Calibri"
+
 # Background handling
 # Default false — KEEP the master decoration. For most client templates
-# (most corporate templates) the master IS the brand chrome and stripping
+# the master IS the brand chrome and stripping
 # makes every slide look off-spec. Set true ONLY when the master ships
 # unwanted photographic decoration (stadium photos, watermarks) that you
 # do NOT want behind every slide.

@@ -1222,6 +1222,11 @@ class OptionStatus:
     # Human-readable per-check detail for any non-passing QC check, surfaced in
     # the RESULT.md "QC findings" section.
     qc_findings: list = field(default_factory=list)
+    # Final periods finalize removed from this option (owner's rule
+    # 2026-10-09, chart_rules.strip_final_periods): one record per paragraph,
+    # {slide, shape, before, after}. Written to the option's .qc.json and
+    # listed in RESULT.md and COMPILED.md.
+    period_fixes: list = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -2399,6 +2404,18 @@ def graft_and_theme(st: OptionStatus, template_path: Path, theme, color_map,
         # px->pt conversion. Applies to both build paths.
         _snap_font_sizes(new_slide.shapes)
 
+        # No text item ends with a period (owner's rule, 2026-10-09): remove
+        # one final "." from every paragraph, keeping ellipses, abbreviations
+        # and list numbers; periods between sentences stay. After every text
+        # this function writes (title, subtitle, chrome), before the render.
+        try:
+            from chart_rules import strip_final_periods
+            st.period_fixes = strip_final_periods(new_slide, slide_n=st.slide_n)
+        except Exception as _exc:  # noqa: BLE001 -- never fail the graft on this
+            st.period_fixes = []
+            sys.stderr.write(f"  WARN: final-period pass skipped on slide {st.slide_n}: "
+                             f"{type(_exc).__name__}: {_exc}\n")
+
         # Last, after every shape this function adds (overlay, title block,
         # cloned chrome placeholders): the graft merges shape trees that each
         # numbered themselves from 1, and PowerPoint refuses to open a slide
@@ -2495,6 +2512,10 @@ Template: `{template}`
 
 {qc_findings}
 
+## Final periods removed (automatic)
+
+{period_fixes}
+
 ## Outputs
 
 - **Themed PPTX**: `<out>/slide_NN/option_X.pptx`
@@ -2571,6 +2592,11 @@ def write_result(out_dir: Path, template_path: Path, statuses: list,
         for finding in st.qc_findings:
             qc_finding_lines.append(f"- **slide {st.slide_n:02d} option {st.letter}**: {finding}")
 
+    period_lines = [
+        f"- slide {st.slide_n:02d} option {st.letter}, `{c.get('shape', '?')}`: "
+        f"'{c.get('before', '')}' -> '{c.get('after', '')}'"
+        for st in statuses for c in (getattr(st, "period_fixes", None) or [])]
+
     total = len(statuses)
     content = RESULT_TEMPLATE.format(
         ts=datetime.now().isoformat(timespec="seconds"),
@@ -2590,6 +2616,7 @@ def write_result(out_dir: Path, template_path: Path, statuses: list,
         rows="\n".join(rows) if rows else "| (no options found) |",
         qc_findings="\n".join(qc_finding_lines) if qc_finding_lines else "(none)",
         failures="\n".join(failures) if failures else "(none)",
+        period_fixes="\n".join(period_lines) if period_lines else "(none)",
     )
     target = out_dir / (f"RESULT-slide-{slide_n:02d}.md" if slide_n is not None else "RESULT.md")
     target.write_text(content, encoding="utf-8")
@@ -3120,6 +3147,9 @@ def _run(args) -> int:
 
     themed_statuses = [s for s in built_statuses if s.themed]
     print(f"  themed: {len(themed_statuses)} / {len(built_statuses)}")
+    _n_period = sum(len(s.period_fixes) for s in themed_statuses)
+    print(f"  final periods removed: {_n_period} text item(s) on "
+          f"{sum(1 for s in themed_statuses if s.period_fixes)} option(s)")
 
     # Dark-variant collision gate. Before any further work, refuse to
     # ship a build that contains shapes/text whose color would render
@@ -3276,6 +3306,7 @@ def _run(args) -> int:
                         summary["block"] = summary.get("block", 0) + 1
                     else:
                         summary["warn"] = summary.get("warn", 0) + 1
+            result["final_period_fixes"] = list(st.period_fixes)
             qc_path = st.themed_pptx_path.parent / (st.themed_pptx_path.stem + ".qc.json")
             qc_path.write_text(json.dumps(result, indent=2), encoding="utf-8")
             summ = result["summary"]

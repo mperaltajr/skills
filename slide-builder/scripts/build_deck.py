@@ -1044,10 +1044,21 @@ expect (one way of writing each kind of number across all slides).
   shorten an over-long title rather than counting on it to fit.
 - **Subtitle fit:** ~130 chars at 16pt in a ~12.5"×0.39" box. Above ~130
   chars the subtitle will wrap and crowd the body zone.
-- **Accent placement:** legends go right-aligned below the sub-headline
-  (primary), or top-right of the chart when the right side is occupied
-  (fallback). Top/bottom invariant zones hold sources/footnotes/page
-  numbers only — NO ACCENTURE/DRAFT/CONFIDENTIAL tags.
+- **Accent placement:** every chart's legend is one row at the top right of
+  the chart, on the chart's header line, right-aligned to the chart's right
+  edge (owner's rule, 2026-10-09); never below the chart, never stacked at
+  the side. A chart with one series has no legend. Top/bottom invariant
+  zones hold sources/footnotes/page numbers only: NO
+  ACCENTURE/DRAFT/CONFIDENTIAL tags.
+- **Chart header line (owner's rule, 2026-10-09):** every chart has a header
+  line at its top left, starting at the chart's left edge: "Chart title,
+  [Unit]", the title bold, the comma and the unit in square brackets regular
+  weight, an optional footnote mark right after the title as a superscript
+  digit (the characters ¹ ² ³). Name it `chart-title` (`chart-title-2` for a
+  second chart), the legend pieces `chart-legend-<series>` and
+  `chart-legend-swatch-<series>`, axis titles `chart-axis-title-x` /
+  `chart-axis-title-y`, and every other chart piece `chart-...`. QC flags a
+  missing header line, a missing unit and a misplaced legend as Major.
 - **Title bottom-anchor:** title bottom-y is fixed; 2-line titles grow
   UPWARD into the chrome zone, never displacing the subtitle.
 - **No inline run formatting on placeholders.** Title/subtitle inherit
@@ -1059,8 +1070,12 @@ expect (one way of writing each kind of number across all slides).
   across the deck ($1.2B on every slide, never $1,200M on the next one).
 - **Facts, not adjectives:** write only words and numbers from the brief.
   Labels, eyebrows and callouts reuse the brief's wording; no new claims, no
-  buzzwords (see `reference/banned-words.md`). No trailing period on headings,
-  labels or one-sentence text boxes.
+  buzzwords (see `reference/banned-words.md`).
+- **No final periods (owner's rule, 2026-10-09):** no text item ends with a
+  period (titles, takeaways, labels, bullets, panel text, callouts, table
+  cells, chart labels, footnotes, sources). Keep periods between sentences,
+  never at the end. Finalize removes any final period left and lists each
+  one in the report; QC flags one that remains as Major.
 
 ## 3. This slide's brief metadata
 

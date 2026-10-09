@@ -13,6 +13,10 @@ Detects:
   - Hidden slides leaking into the file
   - Comments left attached to slides
   - Speaker notes with non-substantive content
+  - A text item ending with a final period; a chart without its header line
+    ("Chart title, [Unit]") or unit; a legend not one row at the chart's top
+    right (owner's rules 2026-10-09, slide-builder/scripts/chart_rules.py;
+    layout Majors, fixed automatically)
   - File name patterns that signal workspace dumps
     ("Final_final_v3.pptx", "Copy of...", "deck (3).pptx")
 
@@ -354,6 +358,31 @@ def check_title_load(prs) -> list[dict]:
         return []
 
 
+def check_chart_and_period_rules(prs) -> list[dict]:
+    """The owner's three rules (2026-10-09), from
+    slide-builder/scripts/chart_rules.py. All layout Majors, fixed
+    automatically (qc_fix_policy.py keys):
+      final_period     a text item ends with a period (periods between
+                       sentences, ellipses, abbreviations and list numbers
+                       are fine)
+      chart_header     a chart without its header line "Chart title, [Unit]",
+                       or with a value axis and no unit
+      legend_position  a legend that is not one row at the chart's top right
+    Drawn charts are found by shape name (chart-...); a deck whose chart
+    pieces are not named that way is not flagged here (the vision pass still
+    looks). Native charts are read from the chart object."""
+    try:
+        sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]
+                               / "slide-builder" / "scripts"))
+        import chart_rules
+    except Exception:
+        return []
+    try:
+        return chart_rules.deck_findings(prs)
+    except Exception:
+        return []
+
+
 def check_hidden_slides(prs) -> list[dict]:
     violations: list[dict] = []
     for i, slide in enumerate(prs.slides, start=1):
@@ -421,6 +450,7 @@ def run_all_checks(pptx_path: pathlib.Path) -> dict:
     # open at all once passed this check with zero violations.
     violations.extend(check_openability(prs, pptx_path))
     violations.extend(check_title_load(prs))
+    violations.extend(check_chart_and_period_rules(prs))
 
     for i, slide in enumerate(prs.slides, start=1):
         violations.extend(check_placeholders_in_text(slide, i))
