@@ -3,7 +3,8 @@
 
 Re-translates every option in one or more replay work dirs (made by
 translate_replay.py, which also rendered the agent's version) with the CURRENT
-script, renders all of them in one LibreOffice pass, and measures the bar the
+script, renders all of them in one pass with the default renderer (PowerPoint
+on Windows when installed; --engine picks one), and measures the bar the
 script has to clear before settings.json can say "translator": "script":
 
   opens cleanly       0 PowerPoint openability problems
@@ -47,8 +48,9 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--out", required=True, type=Path)
     ap.add_argument("--work", required=True, type=Path, action="append")
-    ap.add_argument("--engine", default="libreoffice", choices=("libreoffice", "powerpoint"),
-                    help="Render with PowerPoint itself (safe with PowerPoint open; slower).")
+    ap.add_argument("--engine", default="auto", choices=("auto", "libreoffice", "powerpoint"),
+                    help="The program that renders (auto: the default renderer, PowerPoint "
+                         "on Windows when installed; safe with PowerPoint open).")
     args = ap.parse_args(argv)
     out = args.out
     (out / "pptx").mkdir(parents=True, exist_ok=True)

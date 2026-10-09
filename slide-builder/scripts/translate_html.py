@@ -859,7 +859,9 @@ def _plan_box(plan: Plan, b: dict, order_key) -> None:
         plan.ops.append({"op": "shape", "kind": kind, "radius_ratio": ratio,
                          "x": x + bw / 2, "y": y + bw / 2, "w": w - bw, "h": h - bw,
                          "fill": col[0] if col else None,
-                         "alpha": (col[1] if col else 1.0) * b["opacity"],
+                         # a native gradient's stops carry their own alpha; the
+                         # middle stop's (col) used to fade all of them again
+                         "alpha": (1.0 if gradient else (col[1] if col else 1.0)) * b["opacity"],
                          "line": line, "name": b.get("id") or None, "_order": order_key,
                          "_box": (x, y, w, h), "_filled": bool(col), "_flattened": flattened})
         if gradient:
@@ -1071,24 +1073,95 @@ def _face_path(face: str, bold: bool):
     return hit["path"] if hit else None
 
 
-def _descent_gap(face: str, bold: bool) -> float:
-    """Windows descent minus typographic descent, in em (0 when unknown)."""
+def vertical_metrics(face: str, bold: bool) -> tuple[float, float, float]:
+    """(ascent, descent, normal line height) in em, as Chrome sets this face.
+
+    Chrome on Windows takes ascent and descent from the font's Windows
+    metrics (its typographic ones when the font says USE_TYPO_METRICS), and
+    line-height "normal" from the hhea ascent + descent + line gap (measured
+    on Arial, Arial Black, Calibri, Georgia, Segoe UI, Consolas, Verdana and
+    Times New Roman, 2026-10-09). Arial's values when the file can't be found.
+    """
     key = (face.lower(), bold)
     if key not in _DESC_CACHE:
-        gap = 0.0
+        got = (0.905, 0.212, 1.149)
         path = _face_path(face, bold)
         if path:
             try:
                 from fontTools.ttLib import TTFont
                 f = TTFont(path, lazy=True)
                 upm = f["head"].unitsPerEm
-                o = f["OS/2"]
-                if not (o.fsSelection & 128):      # USE_TYPO_METRICS off: Chrome uses win metrics
-                    gap = (o.usWinDescent - abs(o.sTypoDescender)) / upm
+                o, hh = f["OS/2"], f["hhea"]
+                if o.fsSelection & 128:
+                    asc, desc = o.sTypoAscender / upm, abs(o.sTypoDescender) / upm
+                else:
+                    asc, desc = o.usWinAscent / upm, o.usWinDescent / upm
+                normal = (hh.ascent + abs(hh.descent) + hh.lineGap) / upm
+                if asc > 0 and desc >= 0:
+                    got = (asc, desc, normal if normal > 0.5 else asc + desc)
             except Exception:
-                gap = 0.0
-        _DESC_CACHE[key] = gap
+                pass
+        _DESC_CACHE[key] = got
     return _DESC_CACHE[key]
+
+
+# Where each renderer puts the first baseline of a text box (top inset 0,
+# anchored at the top) whose paragraph has exact line spacing L ("spcPts") and
+# whose largest letters are S, below the box top. Measured from the glyph
+# origins in each program's PDF and checked against the pixels, on 8 fonts
+# (Arial, Arial Black, Calibri, Georgia, Segoe UI, Consolas, Verdana, Times
+# New Roman), 9 to 72 pt, L from 0.69 S to 2.3 S (2026-10-09):
+#   PowerPoint   rounds L to whole points, for the line pitch too; then
+#                L > floor(1.2 S) pt (past its "single" line):  0.75 L, for
+#                every font;  otherwise  max(0.75 L, L - D), where D is the
+#                font's share of a 1.2 S line below the baseline:
+#                D = 1.2 S x descent / (ascent + descent)
+#   LibreOffice  L - 0.2 S, for every font and every L; pitch L, unrounded
+# Chrome puts it at the line's top + half the leading + the font's ascent.
+# So the converter writes line spacing in whole points (both programs then set
+# the same pitch) and places each box for PowerPoint, the program the deck is
+# opened in. A one-line text box gets L = 0.8 S, the one spacing at which both
+# programs put the baseline in the same place (0.6 S below the top; letters
+# are not cut off); its line spacing is not visible otherwise. Text on more
+# lines keeps the design's pitch, and LibreOffice draws it
+# (L - 0.2 S) - PowerPoint's baseline lower, which the self-check expects.
+PPT_SINGLE = 1.2
+TIGHT_SINGLE = 0.8
+
+
+def line_spacing_pt(lh_px: float, size_pt: float, single: bool) -> int:
+    """The exact line spacing to write, in whole points."""
+    if single:
+        return max(1, int(round(TIGHT_SINGLE * size_pt)))
+    return max(1, int(round(lh_px * 0.75)))
+
+
+def ppt_first_baseline(L: float, S: float, asc: float, desc: float) -> float:
+    """px below the box top; L (the spacing written) and S in px."""
+    import math
+    Lpt = round(L * 0.75)
+    Lr = Lpt / 0.75
+    if Lpt > math.floor(PPT_SINGLE * S * 0.75 + 1e-6):
+        return 0.75 * Lr
+    return max(0.75 * Lr, Lr - PPT_SINGLE * S * desc / (asc + desc))
+
+
+def lo_first_baseline(L: float, S: float) -> float:
+    return L - 0.2 * S
+
+
+def place_first_line(ink_top: float, first_h: float, run: dict | None, lh_px: float,
+                     single: bool) -> tuple[float, float, float]:
+    """(box top, line spacing to write in px, how much lower LibreOffice draws
+    the text than PowerPoint) for a text whose first line's text box (Chrome)
+    starts at ink_top and is first_h tall, set in run's face and size."""
+    asc, desc, _n = vertical_metrics(run["font"], run["bold"]) if run else (0.905, 0.212, 1.149)
+    base = ink_top + first_h * asc / (asc + desc)      # Chrome's first baseline
+    S_pt = _snapped_px(run["size_px"]) * 0.75 if run else lh_px * 0.75 / 1.2
+    S = S_pt / 0.75
+    L = line_spacing_pt(lh_px, S_pt, single) / 0.75
+    b = ppt_first_baseline(L, S, asc, desc)
+    return base - b, L, lo_first_baseline(L, S) - b
 
 
 def _snapped_px(size_px: float) -> float:
@@ -1190,7 +1263,13 @@ def _plan_text(plan: Plan, t: dict, order_key, name=None) -> None:
         paras[0].insert(0, dict(paras[0][0], t="• "))
 
     fs = t["fs"]
-    lh = _px(t["lh"]) if t["lh"] not in ("normal", None) else fs * 1.15
+    r0 = next((r for p in paras for r in p if r["t"].strip()), None)
+    if t["lh"] not in ("normal", None):
+        lh = _px(t["lh"])
+    else:
+        # "normal" is the face's own line height (1.15 em for Arial, 1.33 for
+        # Segoe UI), not a fixed 1.15
+        lh = fs * (vertical_metrics(r0["font"], r0["bold"])[2] if r0 else 1.15)
     lines = max(1, t["lines"])
     ink, cont = t["ink"], t["content"]
     align = t["align"] if t["align"] in ("left", "center", "right", "justify") else \
@@ -1212,21 +1291,6 @@ def _plan_text(plan: Plan, t: dict, order_key, name=None) -> None:
         right = max(ink["x"] + ink["w"], cont["x"] + cont["w"])
         w = max(right - cont["x"], ink["w"])
         x = right - w
-    # First baseline. Chrome puts it at (top of the first line's text box) +
-    # ascent; LibreOffice and PowerPoint with exact line spacing put it at
-    # (box top) + line height - descent. Ascent + descent is the first line's
-    # text-box height, so the box top that lands both baselines in the same
-    # place is: ink top + that height - line height. Measured, so it holds for
-    # any font and for large numerals, where a fixed nudge did not.
-    flh = t.get("firstLineH") or fs * 1.15
-    y = ink["y"] + flh - lh
-    # Chrome's descent comes from the font's Windows metrics, LibreOffice's
-    # from its typographic ones. Equal for Arial; Arial Black differs by a
-    # tenth of an em, which put heavy numerals ~7px low.
-    r0 = next((r for p in paras for r in p if r["t"].strip()), None)
-    if r0:
-        y -= _descent_gap(r0["font"], r0["bold"]) * r0["size_px"]
-    h = max(lh * lines, ink["h"]) + 2
     single = lines == 1 and len(paras) == 1
     wrap = not (single or t["ws"] == "nowrap")
     design_px = max((r["size_px"] for p in paras for r in p if r["t"].strip()), default=fs)
@@ -1277,12 +1341,21 @@ def _plan_text(plan: Plan, t: dict, order_key, name=None) -> None:
                               "narrowed to keep the design's line breaks")
                     break
 
+    # First baseline, placed where PowerPoint draws it (place_first_line).
+    # Chrome's first baseline is the first line's text-box top (ink top) plus
+    # the face's ascent; the first line's text-box height (firstLineH) is
+    # ascent + descent, so the ascent's share of it comes from the font.
+    flh = t.get("firstLineH") or fs * 1.15
+    big = max((r for r in paras[0] if r["t"].strip()), key=lambda r: r["size_px"], default=r0)
+    y, L, dy_lo = place_first_line(ink["y"], flh, big, lh, single)
+    h = max(lh * lines, ink["h"]) + 2
+
     plan.ops.append({"op": "text", "x": x, "y": y, "w": w, "h": h, "align": align,
-                     "line_height_px": lh, "wrap": wrap, "paragraphs": paras,
+                     "line_height_px": L, "_lh_design": lh, "wrap": wrap, "paragraphs": paras,
                      "name": name or (t.get("id") or None), "_order": order_key,
                      "_ink": (ink["x"], ink["y"], ink["w"], ink["h"]), "_single": single,
                      "_lines": lines, "_id": t.get("id") or "", "_glyphs": t.get("glyphs") or [],
-                     "_design_px": design_px, "_cased": cased})
+                     "_design_px": design_px, "_cased": cased, "_dy_lo": dy_lo})
     plan.counts["texts"] += 1
 
 
@@ -1341,13 +1414,14 @@ def _plan_svg(plan: Plan, s: dict) -> None:
         elif it["k"] == "text" and it["t"]:
             col = parse_color(it["color"])
             align = {"middle": "center", "end": "right"}.get(it["anchor"], "left")
-            plan.ops.append({"op": "text", "x": it["x"], "y": it["y"], "w": it["w"] + 4, "h": it["h"],
-                             "align": align, "line_height_px": it["h"], "wrap": False,
-                             "paragraphs": [[{"t": it["t"], "font": _face(it["ff"], it["fw"])[0],
-                                              "size_px": it["fs"],
-                                              "bold": _face(it["ff"], it["fw"])[1], "italic": False,
-                                              "color": col[0] if col else None}]],
-                             "_order": k})
+            run = {"t": it["t"], "font": _face(it["ff"], it["fw"])[0], "size_px": it["fs"],
+                   "bold": _face(it["ff"], it["fw"])[1], "italic": False,
+                   "color": col[0] if col else None}
+            # the text's box is Chrome's (ascent + descent tall): one line
+            ty, L, dy_lo = place_first_line(it["y"], it["h"], run, it["h"], True)
+            plan.ops.append({"op": "text", "x": it["x"], "y": ty, "w": it["w"] + 4, "h": it["h"],
+                             "align": align, "line_height_px": L, "_lh_design": it["h"],
+                             "wrap": False, "paragraphs": [[run]], "_order": k, "_dy_lo": dy_lo})
         plan.counts["svg_items"] += 1
 
 
@@ -1765,7 +1839,7 @@ def _table_group(plan: "Plan", tb: dict, data: dict):
         f = fills.get(c["i"])
         cmp_ops.append({"op": "shape", "kind": "rect", "x": X0, "y": Y0, "w": X1 - X0,
                         "h": Y1 - Y0, "fill": f[0] if f else None, "name": label + " cell",
-                        "_filled": bool(f)})
+                        "_filled": bool(f), "_cell": True})
     x0, y0 = xs[0], ys[0]
     op = {"op": "table", "x": x0, "y": y0, "w": xs[-1] - x0, "h": ys[-1] - y0,
           "cols": [xs[j + 1] - xs[j] for j in range(nc)],
@@ -1983,7 +2057,8 @@ def _list_op(name: str, blocks: list, order) -> dict | None:
             "_lines": sum(max(1, b[2].get("_lines") or 1) for b in blocks), "_id": name,
             "_glyphs": [q for b in blocks for q in (b[2].get("_glyphs") or [])],
             "_design_px": max(b[2].get("_design_px") or 0 for b in blocks),
-            "_cased": any(b[2].get("_cased") for b in blocks), "_list": True}
+            "_cased": any(b[2].get("_cased") for b in blocks), "_list": True,
+            "_dy_lo": first_op.get("_dy_lo") or 0.0}
 
 
 def _list_group(plan: "Plan", L: dict, data: dict):
@@ -2610,7 +2685,8 @@ def self_check(items: list[tuple["Plan", dict]], engine: str = "auto",
                 continue
             native, chars = got
             plan._last_render = got
-            rows = [r for r in A.compare(plan.ops, A.load_rgb(data["_shot"]), native, chars)
+            rows = [r for r in A.compare(plan.ops, A.load_rgb(data["_shot"]), native, chars,
+                                         engine=A.LAST_RENDER_ENGINES.get(j))
                     if r["fired"]]
             if rnd == 0:
                 for font, ratio in (getattr(A.compare, "font_ratios", None) or {}).items():

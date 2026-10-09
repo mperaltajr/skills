@@ -19,6 +19,15 @@ redraws only those elements.
 
 Thresholds are calibrated on real translations; see
 tests/translate_alarm_calibrate.py and tests/translate_alarm_seeded.py.
+
+The same limits hold on both renderers (2026-10-09) once three measured
+differences between them are taken out, none of them a defect in the deck:
+text is located by its baseline, which both programs' PDFs record the same
+way (their letter boxes differ, see _page_chars); on a LibreOffice render,
+text on several lines is expected lower by LibreOffice's own first-line rule
+(op "_dy_lo", translate_html.ppt_first_baseline); on a PowerPoint render, the
+pixel rows a filled shape's fractional edge only partly covers are left out
+(_mask_edge_pixels). The program that drew a page is read from its PDF.
 """
 from __future__ import annotations
 
@@ -41,7 +50,8 @@ INK_DIST = 60          # a pixel is "ink" when this far (RGB distance) from the 
 
 # Limits, set just above the noise between Chrome and LibreOffice on ~3,000
 # real elements (tests/translate_alarm_calibrate.py) and checked against
-# planted defects (tests/translate_alarm_seeded.py).
+# planted defects (tests/translate_alarm_seeded.py); re-checked on PowerPoint
+# renders of the 263-option replay and the planted defects, 2026-10-09.
 # Text, from where its letters landed:
 SCALE_LIMIT = 0.04        # letters 4% wider/narrower than designed (size, spacing)
 HEIGHT_LIMIT = 0.15       # letters 15% taller/shorter (size, on short labels)
@@ -88,6 +98,23 @@ def pick_engine(engine: str = "auto") -> str:
 
 # {index into the last render_full's pptxs: why it did not render}
 LAST_RENDER_ERRORS: dict[int, str] = {}
+# {index into the last render_full's pptxs: "powerpoint" | "libreoffice"},
+# read from each PDF's Producer (the other program takes over when the first
+# fails twice, so the one asked for is not always the one that drew it)
+LAST_RENDER_ENGINES: dict[int, str] = {}
+
+
+def pdf_engine(doc) -> str | None:
+    """Which program wrote this PDF (pypdfium2 document), from its Producer."""
+    try:
+        prod = (doc.get_metadata_value("Producer") or "").lower()
+    except Exception:
+        return None
+    if "powerpoint" in prod or "microsoft" in prod:
+        return "powerpoint"
+    if "libreoffice" in prod or "openoffice" in prod:
+        return "libreoffice"
+    return None
 
 
 def render_full(pptxs: list[Path], engine: str = "auto") -> list[tuple[np.ndarray, list] | None]:
@@ -102,6 +129,7 @@ def render_full(pptxs: list[Path], engine: str = "auto") -> list[tuple[np.ndarra
     import one_deck
     import pypdfium2 as pdfium
     LAST_RENDER_ERRORS.clear()
+    LAST_RENDER_ENGINES.clear()
     out: list = []
     with tempfile.TemporaryDirectory() as td:
         got = one_deck.pdf_pages([Path(p) for p in pptxs], Path(td),
@@ -116,6 +144,9 @@ def render_full(pptxs: list[Path], engine: str = "auto") -> list[tuple[np.ndarra
                 pdf, k = g
                 if pdf not in docs:
                     docs[pdf] = pdfium.PdfDocument(str(pdf))
+                eng = pdf_engine(docs[pdf])
+                if eng:
+                    LAST_RENDER_ENGINES[i] = eng
                 page = docs[pdf][k]
                 bmp = page.render(scale=W / page.get_width())
                 im = bmp.to_pil().convert("RGB")
@@ -140,21 +171,64 @@ def pdf_chars(pdf: Path) -> list[dict]:
 
 def _page_chars(page) -> list[dict]:
     """Visible characters, in 1280x720 px with the origin top-left. Boxes are
-    the font's full box (not the ink), so an apostrophe sits on its line."""
+    the font's full box (not the ink), so an apostrophe sits on its line.
+
+    That box comes from the ascent and descent written in the PDF, and the two
+    programs write different ones: LibreOffice the font's Windows metrics (as
+    Chrome uses), PowerPoint its typographic ones (0.73 em above the baseline
+    for Arial, not 0.91). The box's middle therefore sat ~0.09 em lower in a
+    PowerPoint PDF with the letters in the same place (6 px on a 72 px
+    numeral). So each character also carries its baseline ("y0", the glyph
+    origin) and its size ("fs"), the same in both, and the text checks build
+    Chrome's box from those (chrome_box)."""
+    import ctypes
+    import pypdfium2.raw as pdfium_c
     k = W / page.get_width()
     Hp = page.get_height()
     tp = page.get_textpage()
     out = []
+    ox, oy = ctypes.c_double(), ctypes.c_double()
     for i in range(tp.count_chars()):
         # pdfium reports a hyphen that ends a line as U+FFFE
         ch = tp.get_text_range(i, 1).replace("\ufffe", "-")
         if not ch.strip():
             continue
         l, b, r, t = tp.get_charbox(i, loose=True)
-        out.append({"ch": ch, "x0": l * k, "x1": r * k, "top": (Hp - t) * k,
-                    "base": (Hp - b) * k, "h": (t - b) * k})
+        c = {"ch": ch, "x0": l * k, "x1": r * k, "top": (Hp - t) * k,
+             "base": (Hp - b) * k, "h": (t - b) * k}
+        try:
+            if pdfium_c.FPDFText_GetCharOrigin(tp.raw, i, ctypes.byref(ox), ctypes.byref(oy)):
+                fs = float(pdfium_c.FPDFText_GetFontSize(tp.raw, i)) * k
+                if fs > 0:
+                    c["y0"], c["fs"] = (Hp - oy.value) * k, fs
+        except Exception:
+            pass
+        out.append(c)
     tp.close()
     return out
+
+
+def _metrics(o: dict) -> tuple[float, float]:
+    """(ascent, descent) in em of the text's (largest) font, as Chrome sets it."""
+    runs = [r for p in o.get("paragraphs") or [] for r in p if r.get("t", "").strip()]
+    if not runs:
+        return 0.905, 0.212
+    r = max(runs, key=lambda q: q.get("size_px") or 0)
+    try:
+        from translate_html import vertical_metrics
+        asc, desc, _n = vertical_metrics(r.get("font") or "", bool(r.get("bold")))
+        return asc, desc
+    except Exception:
+        return 0.905, 0.212
+
+
+def chrome_box(c: dict, asc: float, desc: float) -> tuple[float, float]:
+    """(top, bottom) of character c's box as Chrome draws it (the face's
+    ascent above the baseline, its descent below), from where the renderer put
+    the baseline. Falls back to the PDF's own box."""
+    if "y0" in c and c.get("fs"):
+        return c["y0"] - asc * c["fs"], c["y0"] + desc * c["fs"]
+    return c["top"], c["base"]
 
 
 def op_text(o: dict) -> str:
@@ -274,7 +348,9 @@ def text_geometry(o: dict, cs: list[dict]) -> dict | None:
         except Exception:
             exp = 1.0
 
-    dy = np.array([(c["top"] + c["base"]) / 2 - (q[1] + q[3]) / 2 for c, q in zip(cs, g)])
+    asc, desc = _metrics(o)
+    boxes = [chrome_box(c, asc, desc) for c in cs]
+    dy = np.array([(b[0] + b[1]) / 2 - (q[1] + q[3]) / 2 for b, q in zip(boxes, g)])
     offset_y = float(np.median(dy))
 
     # Stretch, fitted on runs of characters that share a line in both (a
@@ -298,7 +374,7 @@ def text_geometry(o: dict, cs: list[dict]) -> dict | None:
 
     # Size from letter height, for text too short to measure a stretch.
     hc = np.median([q[3] - q[1] for q in g])
-    hn = np.median([c["h"] for c in cs])
+    hn = np.median([b[1] - b[0] for b in boxes])
     hscale = float(hn / hc / exp) if hc > 0 else None
 
     # Anchor of every line that holds the same characters in both.
@@ -365,8 +441,10 @@ def text_ink(o: dict, cs: list[dict], design: np.ndarray, native: np.ndarray) ->
             area += crop.shape[0] * crop.shape[1]
         return tot / area if area else 0.0
 
+    asc, desc = _metrics(o)
     d = ink(design, [(q[0], q[1], q[2], q[3]) for q in g])
-    nv = ink(native, [(c["x0"], c["top"], c["x1"], c["base"]) for c in cs])
+    nv = ink(native, [(c["x0"], top, c["x1"], bot)
+                      for c, (top, bot) in ((c, chrome_box(c, asc, desc)) for c in cs)])
     return nv / d if d > 1e-4 else None
 
 
@@ -386,7 +464,7 @@ def region(o: dict) -> tuple[int, int, int, int] | None:
         # The design's ink, plus a line below and a little to the right: an
         # extra wrapped line or a run-on shows up there.
         x, y, w, h = o.get("_ink") or (o["x"], o["y"], o["w"], o["h"])
-        lh = o.get("line_height_px") or 0
+        lh = o.get("_lh_design") or o.get("line_height_px") or 0
         x0, y0, x1, y1 = x, y, x + w + 0.15 * lh, y + h + lh
     else:
         x0, y0, x1, y1 = o["x"], o["y"], o["x"] + o["w"], o["y"] + o["h"]
@@ -468,6 +546,32 @@ def _align(wD: np.ndarray, native: np.ndarray, r, bg, mask, edges: bool = False)
     return float(np.hypot(bx, by)), e0, e
 
 
+def _mask_edge_pixels(mask: np.ndarray, o: dict, x0: int, y0: int) -> None:
+    """Leave out the pixel rows and columns a shape's fractional edges only
+    partly cover. PowerPoint's export draws every straight shape edge on a
+    whole pixel (a row is fully covered or not at all), where Chrome and
+    LibreOffice blend the partly covered row; where PowerPoint rounds is its
+    own choice (100.6 px went up, 100.75 px down, measured 2026-10-09). On a
+    7 px chart bar that one row moved the box's average color by up to 29
+    RGB levels with the bar drawn right. Only the half-covered rows are left
+    out, so a bar that is a pixel or more too tall or too short still shows.
+    A shape with an outline, and a table cell (its borders), keep those rows:
+    there they hold the lines."""
+    if o.get("op") != "shape" or o.get("rotation") or "x" not in o \
+            or o.get("line") or o.get("_cell"):
+        return
+    h, w = mask.shape
+    for a, b, axis in ((o["y"], o["y"] + o["h"], 0), (o["x"], o["x"] + o["w"], 1)):
+        for e in (a, b):
+            if abs(e - round(e)) < 0.02:
+                continue
+            k = int(np.floor(e)) - (y0 if axis == 0 else x0)
+            if axis == 0 and 0 <= k < h:
+                mask[k, :] = False
+            elif axis == 1 and 0 <= k < w:
+                mask[:, k] = False
+
+
 def expand_ops(ops: list[dict]) -> tuple[list[dict], list[int]]:
     """The elements to judge, and the plan op each one belongs to.
 
@@ -484,11 +588,11 @@ def expand_ops(ops: list[dict]) -> tuple[list[dict], list[int]]:
 
 
 def compare(ops: list[dict], design: np.ndarray, native: np.ndarray,
-            chars: list[dict] | None = None) -> list[dict]:
+            chars: list[dict] | None = None, engine: str | None = None) -> list[dict]:
     """One row per judged element (see expand_ops); row["i"] is the plan op
     it belongs to, row["sub"] its place in the expanded list."""
     flat, owner = expand_ops(ops)
-    rows = _compare_flat(flat, design, native, chars)
+    rows = _compare_flat(flat, design, native, chars, engine)
     for r in rows:
         r["sub"] = r["i"]
         r["i"] = owner[r["i"]]
@@ -496,7 +600,7 @@ def compare(ops: list[dict], design: np.ndarray, native: np.ndarray,
 
 
 def _compare_flat(ops: list[dict], design: np.ndarray, native: np.ndarray,
-                  chars: list[dict] | None = None) -> list[dict]:
+                  chars: list[dict] | None = None, engine: str | None = None) -> list[dict]:
     """One row per element: its numbers and whether it trips the alarm.
 
     Text is judged by where its letters landed (from the PDF's characters)
@@ -568,6 +672,8 @@ def _compare_flat(ops: list[dict], design: np.ndarray, native: np.ndarray,
                     a1, b1 = min(tr[2], x1) - x0, min(tr[3], y1) - y0
                     if a1 > a0 and b1 > b0:
                         mask[b0:b1, a0:a1] = False
+        if engine == "powerpoint" and not is_text:
+            _mask_edge_pixels(mask, o, x0, y0)
         if mask.sum() < 4:
             continue
         ring = np.concatenate([D[0], D[-1], D[:, 0], D[:, -1]])
@@ -610,6 +716,12 @@ def _compare_flat(ops: list[dict], design: np.ndarray, native: np.ndarray,
                     hr = font_hratio.get(runs[0]["font"]) if runs else None
                     if hr and geo.get("hscale") is not None:
                         geo["hscale"] = round(geo["hscale"] / hr, 4)
+                    if engine == "libreoffice" and o.get("_dy_lo") and \
+                            geo.get("offset_y") is not None:
+                        # Text is placed for PowerPoint; LibreOffice sets the
+                        # first baseline this much lower by its own rule
+                        # (translate_html.ppt_first_baseline), not a defect.
+                        geo["offset_y"] = round(geo["offset_y"] - o["_dy_lo"], 2)
                     row.update(geo)
                     if geo.get("lines_native", 0) > geo.get("lines_design", 99):
                         reasons.append("lines")

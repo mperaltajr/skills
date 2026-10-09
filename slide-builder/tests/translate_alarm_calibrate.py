@@ -31,7 +31,8 @@ def plans_for(work_dirs: list[Path]):
     from playwright.sync_api import sync_playwright
     out = []
     with sync_playwright() as pw:
-        br = pw.chromium.launch()
+        from _browser import launch
+        br = launch(pw)
         page = br.new_page(viewport={"width": 1280, "height": 720})
         for w in work_dirs:
             for od in sorted(p for p in (w / "opts").iterdir() if p.is_dir()):
