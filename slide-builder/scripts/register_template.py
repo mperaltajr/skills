@@ -754,14 +754,14 @@ def build_preview_pptx(template_path: Path, primary_hex: str, accent_hex: str,
 def render_pptx_to_png(pptx_path: Path, png_path: Path) -> bool:
     """Render the multi-surface preview PPTX and composite into one tall PNG.
 
-    Reuses render_libre from slide-qc. If the PPTX has >1 slide, the surfaces
+    Uses the default renderer from slide-qc (PowerPoint on Windows, else LibreOffice). If the PPTX has >1 slide, the surfaces
     are stacked vertically (gap of 20px) into a single PNG so the user can
     review title + content + dashboard in one image.
     """
     try:
-        from render_slides import render_libre
+        from render_slides import render as render_default
     except ImportError as e:
-        print(f"WARNING: could not import render_libre: {e}")
+        print(f"WARNING: could not import the renderer: {e}")
         return False
     try:
         from PIL import Image
@@ -771,9 +771,9 @@ def render_pptx_to_png(pptx_path: Path, png_path: Path) -> bool:
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
         try:
-            render_libre(pptx_path, tmp, dpi=120)
+            render_default(pptx_path, tmp, dpi=120)
         except Exception as e:
-            print(f"WARNING: render_libre failed: {e}")
+            print(f"WARNING: the render failed: {e}")
             return False
         pngs = sorted(tmp.glob("slide_*.png"))
         if not pngs:
@@ -805,7 +805,8 @@ def render_layout_thumbnails(template_path: Path, out_dir: Path,
     Opens a copy of the template, clears existing sample slides, adds one
     slide per layout (instantiating the layout untouched so its native
     placeholders + decorative chrome appear), saves a temp PPTX, renders
-    via LibreOffice, and returns {layout_name: png_path}.
+    with the default renderer (PowerPoint on Windows, else LibreOffice),
+    and returns {layout_name: png_path}.
 
     Used by the registration HTML so the user can SEE each layout when
     deciding which to pick. Empty placeholders show their hint text
@@ -813,9 +814,9 @@ def render_layout_thumbnails(template_path: Path, out_dir: Path,
     title sits, where body content lands, what the chrome looks like.
     """
     try:
-        from render_slides import render_libre
+        from render_slides import render as render_default
     except ImportError as e:
-        print(f"WARNING: could not import render_libre: {e}")
+        print(f"WARNING: could not import the renderer: {e}")
         return {}
     from pptx import Presentation as _Pres
     from copy import deepcopy as _deepcopy
@@ -848,9 +849,9 @@ def render_layout_thumbnails(template_path: Path, out_dir: Path,
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
         try:
-            render_libre(tmp_pptx, tmp, dpi=dpi)
+            render_default(tmp_pptx, tmp, dpi=dpi)
         except Exception as e:
-            print(f"WARNING: render_libre failed for layout thumbnails: {e}")
+            print(f"WARNING: the render failed for layout thumbnails: {e}")
             return {}
         pngs = sorted(tmp.glob("slide_*.png"))
         if len(pngs) < len(layout_order):
@@ -890,9 +891,9 @@ def render_slide_thumbnails(template_path: Path, out_dir: Path,
     in slide order.
     """
     try:
-        from render_slides import render_libre
+        from render_slides import render as render_default
     except ImportError as e:
-        print(f"WARNING: could not import render_libre: {e}")
+        print(f"WARNING: could not import the renderer: {e}")
         return []
     from pptx import Presentation as _Pres
 
@@ -919,9 +920,9 @@ def render_slide_thumbnails(template_path: Path, out_dir: Path,
     with tempfile.TemporaryDirectory() as td:
         tmp = Path(td)
         try:
-            render_libre(template_path, tmp, dpi=dpi)
+            render_default(template_path, tmp, dpi=dpi)
         except Exception as e:
-            print(f"WARNING: render_libre failed for slide thumbnails: {e}")
+            print(f"WARNING: the render failed for slide thumbnails: {e}")
             return []
         pngs = sorted(tmp.glob("slide_*.png"))
         if len(pngs) < n_slides:
@@ -3879,7 +3880,7 @@ def _check_libreoffice_available() -> tuple[bool, str]:
     install hint so the failure mode is obvious, not silent.
 
     Routes through render_slides._resolve_soffice so this gate agrees with
-    what render_libre will actually do — including the default macOS
+    what the renderer will actually do — including the default macOS
     (/Applications/LibreOffice.app) and Linux install locations that are NOT
     on PATH. A PATH-only check would falsely block a stock Mac install.
     """
@@ -3896,22 +3897,24 @@ def _check_libreoffice_available() -> tuple[bool, str]:
             "  Make sure the sibling `slide-qc` skill is installed next to "
             "`slide-builder`, then re-run."
         )
+    # PowerPoint draws them on Windows when it is installed (the default
+    # renderer there); LibreOffice everywhere else.
+    try:
+        from render_slides import powerpoint_available
+        if powerpoint_available():
+            return True, ""
+    except Exception:
+        pass
     try:
         _resolve_soffice()  # raises RuntimeError if nothing resolves
         return True, ""
     except Exception:
         pass
-    try:
-        from render_slides import powerpoint_available
-        if powerpoint_available():
-            print("  LibreOffice not found: drawing previews with PowerPoint instead.")
-            return True, ""
-    except Exception:
-        pass
     msg = (
-        "LibreOffice was not found. Slide Lab needs it to render the preview, "
-        "the layout thumbnails, and the per-slide thumbnails shown "
-        "during registration.\n\n"
+        "Neither PowerPoint nor LibreOffice was found. Slide Lab needs one of them "
+        "to render the preview, the layout thumbnails, and the per-slide "
+        "thumbnails shown during registration (PowerPoint on Windows; "
+        "LibreOffice on a Mac).\n\n"
         "  Install LibreOffice (free): https://www.libreoffice.org/download/\n\n"
         "  Default locations Slide Lab checks automatically:\n"
         "    Windows  C:\\Program Files\\LibreOffice\\program\\soffice.exe\n"
@@ -3938,7 +3941,7 @@ def _main_propose(args) -> int:
         return _gate
 
     # Audit blocker: block propose when LibreOffice is missing.
-    # Without it, render_libre returns empty, thumbnail dicts are empty, and
+    # Without it, renders return empty, thumbnail dicts are empty, and
     # register.html opens with blank sections. Better to hard-fail here with
     # an install hint than to ship a confusing UI.
     _lo_ok, _lo_msg = _check_libreoffice_available()
@@ -4499,11 +4502,11 @@ def _render_mock_page_selftest(tpl: Path) -> tuple[list[str], list[str]]:
     # Best-effort: never a hard fail (LibreOffice may be absent or quirky).
     if mock_pptx is not None:
         try:
-            from render_slides import render_libre
+            from render_slides import render as render_default
             dest = _p.selftest_png(tpl)
             with tempfile.TemporaryDirectory() as td:
                 tmp = Path(td)
-                render_libre(mock_pptx, tmp, dpi=120)
+                render_default(mock_pptx, tmp, dpi=120)
                 pngs = sorted(tmp.glob("slide_*.png"))
                 if pngs and pngs[0].stat().st_size >= 12 * 1024:
                     shutil.copy2(str(pngs[0]), str(dest))

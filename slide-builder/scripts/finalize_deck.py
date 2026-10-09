@@ -26,7 +26,8 @@ Pipeline:
   3. Stash raw output to <out>/slide_NN/_raw/option_X.pptx.
   4. Graft + theme-remap each raw pptx onto the client template; write themed
      to <out>/slide_NN/option_X.pptx.
-  5. Render each themed .pptx to PNG (LibreOffice headless, parallel x4).
+  5. Render every themed .pptx to PNG as ONE deck (default renderer: PowerPoint
+     on Windows, else LibreOffice), split back per option (scripts/one_deck.py).
   6. Run a deterministic per-option QC self-check.
   7. Write <out>/RESULT.md with per-slide status table.
 
@@ -50,6 +51,7 @@ import runpy
 import shutil
 import subprocess
 import sys
+import time
 import traceback
 import zipfile
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -2434,23 +2436,31 @@ def _fail_flag(error: str) -> str:
 # Step 3: render to PNG
 # ---------------------------------------------------------------------------
 def render_one(st: OptionStatus) -> OptionStatus:
-    from render_slides import render_libre
-    pptx = st.themed_pptx_path
-    tmp = _p.render_tmp_dir(pptx)
-    tmp.mkdir(parents=True, exist_ok=True)
-    try:
-        render_libre(pptx, tmp, dpi=120)
-        src_png = tmp / "slide_01.png"
-        if src_png.exists():
-            src_png.replace(st.themed_png_path)
+    """One option on its own (render_all renders a whole run as one deck)."""
+    render_all([st])
+    return st
+
+
+def render_all(statuses: list) -> None:
+    """Every themed option of this run as ONE deck, rendered once with the
+    default renderer (PowerPoint on Windows, else LibreOffice) and split back
+    into each option's PNG (scripts/one_deck.py). A rebuild (--slide N)
+    renders only that slide's options. An option that fails to render is
+    marked failed with its own reason; the others still render."""
+    import one_deck
+    if not statuses:
+        return
+    errors = one_deck.render_pngs([st.themed_pptx_path for st in statuses],
+                                  [st.themed_png_path for st in statuses], dpi=120)
+    for i, st in enumerate(statuses):
+        if i in errors:
+            st.rendered = False
+            st.error = f"render: {errors[i]}"
+        elif Path(st.themed_png_path).exists():
             st.rendered = True
         else:
             st.rendered = False
             st.error = "render: no png produced"
-    except Exception as e:
-        st.rendered = False
-        st.error = f"render: {type(e).__name__}: {e}"
-    return st
 
 
 # ---------------------------------------------------------------------------
@@ -3182,15 +3192,15 @@ def _run(args) -> int:
             pass
 
     if not args.skip_render:
-        print(f"\n[5] Render themed .pptx -> .png (parallel x4)")
-        with ThreadPoolExecutor(max_workers=4) as pool:
-            futures = {pool.submit(render_one, st): st for st in themed_statuses}
-            done = 0
-            for fut in as_completed(futures):
-                st = fut.result()
-                done += 1
-                flag = "ok" if st.rendered else _fail_flag(st.error)
-                print(f"  [{done:>3}/{len(themed_statuses)}] slide_{st.slide_n:02d}/option_{st.letter}  {flag}")
+        from render_slides import pick_renderer as _pick_renderer
+        _eng = "PowerPoint" if _pick_renderer() == "powerpoint" else "LibreOffice"
+        print(f"\n[5] Render themed .pptx -> .png ({len(themed_statuses)} as one deck, {_eng})")
+        _t_render = time.monotonic()
+        render_all(themed_statuses)
+        for done, st in enumerate(themed_statuses, 1):
+            flag = "ok" if st.rendered else _fail_flag(st.error)
+            print(f"  [{done:>3}/{len(themed_statuses)}] slide_{st.slide_n:02d}/option_{st.letter}  {flag}")
+        print(f"  rendered in {time.monotonic() - _t_render:.1f}s")
 
         for tmp in args.out.glob("slide_*/_render_tmp"):
             shutil.rmtree(tmp, ignore_errors=True)

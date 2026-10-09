@@ -13,6 +13,9 @@
   "translator": "script",
   "_doc_translator": "How picked sketch designs become native PowerPoint. 'script' = scripts/translate_html.py (deterministic, seconds per slide; it renders its own result and hands any element it cannot draw, or that came out looking different, to the agent in fallback mode). 'agent' = the slide-builder-translator agent translates every picked option. 'script' since 2026-10-01: on 272 past options it kept 99%+ of line breaks, opened in PowerPoint, and a blind comparison of 40 slides found it closer to the design than the agent 27 to 5. Re-run tests/translate_gonogo.py before changing the translator.",
 
+  "renderer": "auto",
+  "_doc_renderer": "Which program draws slides into pictures (previews, the converter's self-check, the final check page, slide-qc, template setup). 'auto' = PowerPoint on Windows when it is installed (opened read-only without a window, never touching your open decks; it may pause for a few seconds while slides render), else LibreOffice (always on a Mac). 'powerpoint' or 'libreoffice' = start with that one. Whichever starts, if it fails a render twice the other one takes over when it is installed. SLIDE_LAB_RENDERER overrides this for one run. Read by slide-qc/scripts/render_slides.py.",
+
   "enable_sketch": true,
   "_doc_enable_sketch": "Master switch for the sketch (HTML-first) path. When false, default_pattern is forced to 'legacy' regardless of its value, and --pattern auto|sketch is downgraded.",
 

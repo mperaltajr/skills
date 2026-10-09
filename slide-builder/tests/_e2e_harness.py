@@ -77,11 +77,21 @@ def env(**extra) -> dict:
          # Never let a test write into the user's real template pick-list.
          "SLIDE_LAB_REGISTRY": str(Path(tempfile.gettempdir()) / "slidelab_test_registry.json")}
     e.update({k: str(v) for k, v in extra.items()})
+    # each stage is its own command, as in a build: it prints its own
+    # PowerPoint notice (a render in the test process would silence it)
+    e.pop("SLIDE_LAB_PPT_NOTICE_SHOWN", None)
     return e
 
 
 def run(script: str, *args, **env_extra) -> subprocess.CompletedProcess:
     return subprocess.run([sys.executable, str(SCRIPTS / script), *map(str, args)],
+                          capture_output=True, text=True, env=env(**env_extra),
+                          encoding="utf-8", errors="replace")
+
+
+def run_path(script: Path, *args, **env_extra) -> subprocess.CompletedProcess:
+    """run() for a script outside slide-builder/scripts (e.g. slide-qc)."""
+    return subprocess.run([sys.executable, str(script), *map(str, args)],
                           capture_output=True, text=True, env=env(**env_extra),
                           encoding="utf-8", errors="replace")
 

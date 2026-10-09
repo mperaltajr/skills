@@ -29,6 +29,8 @@ def export_via_powerpoint(pptx_path: pathlib.Path, out_dir: pathlib.Path, width:
         print("  Run: pip install pywin32", file=sys.stderr)
         sys.exit(1)
     import ppt_safe
+    from render_slides import powerpoint_notice
+    powerpoint_notice()
     try:
         count = ppt_safe.export_pngs(pptx_path, out_dir, width)
     except Exception as exc:

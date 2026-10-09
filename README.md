@@ -24,7 +24,7 @@ Claude Slide Lab is a collection of Claude Code skills that turn a narrative bri
 | `slide-lab` | **Front door: start here for any deck request.** Routes the request to the right skill (new narrative → storyline-helper; finished package/HTML mockup → validate → slide-builder; RFP → rfp-helper; edit an existing `.pptx` → slide-builder's edit mode; QC → slide-qc) and enforces the rule: never hand-roll a deck from a blank python-pptx Presentation for a branded deck; build on the client template's layouts; a deck isn't done until slide-qc has run. |
 | `storyline-helper` | Coaches your deck narrative (governing thought, audience, per-slide story) before any slides are built |
 | `slide-builder` | Builds a PowerPoint deck from a narrative brief via parallel agent fanout: prep → per-slide workers produce three design options each on the first round (one on a redesign), image-first, then converted to native PowerPoint → finalize → REVIEW.html → pick → compile. Brand colors + fonts + layouts come from your registered client template. Also handles small edits to an **existing** `.pptx` Slide Lab didn't build (text/shape tweaks, extraction). |
-| `slide-qc` | Renders every slide to PNG (LibreOffice by default; PowerPoint when LibreOffice is not installed, or opt-in, safe with PowerPoint open) and reviews them with vision, then produces a per-slide Critical / Major / Advisory report before you open the deck |
+| `slide-qc` | Renders every slide to PNG (through PowerPoint on Windows, safe with your decks open; LibreOffice on a Mac) and reviews them with vision, then produces a per-slide Critical / Major / Advisory report before you open the deck |
 | `docx` | Word document generation: reports, memos, letters with proper formatting |
 | `xlsx` | Spreadsheet creation, editing, and cleaning for any `.xlsx` / `.csv` task |
 | `slidelab-log` | Generates a structured session report when something goes wrong: Claude writes the technical details, you send the file privately to Mario Peralta (Teams or email), never to GitHub |
@@ -34,7 +34,7 @@ Claude Slide Lab is a collection of Claude Code skills that turn a narrative bri
 
 ## Install (about 20 to 45 minutes the first time)
 
-### Step 1. Install three programs yourself
+### Step 1. Install these programs yourself
 
 Claude cannot install desktop software for you on a company laptop, so do these first. On a company PC, use your company's software portal (Software Center, Self Service or similar); otherwise use the links.
 
@@ -42,7 +42,7 @@ Claude cannot install desktop software for you on a company laptop, so do these 
 |---|---|---|
 | **Claude** (desktop app or Claude Code) | Runs Slide Lab | However your company provides Claude; otherwise [claude.ai/code](https://claude.ai/code) |
 | **Python 3.10 or newer** | Runs the build scripts | Software portal, or [python.org](https://www.python.org/downloads/) |
-| **LibreOffice** | Draws slide previews during template registration, the final check page and the quality check. Required on a Mac. On Windows it is optional when PowerPoint is installed: PowerPoint then draws the previews (read-only, without a window, never closing your open decks), one at a time, so a build is slower | Software portal, or [libreoffice.org](https://www.libreoffice.org/download/). Request it on day one: on company PCs it can need approval |
+| **LibreOffice** (Mac: needed; Windows: optional) | Draws slide previews (template setup, the converter's check, the final check page, the quality check). **On a Mac it is required.** On Windows with PowerPoint installed it is optional: PowerPoint draws the previews itself (read-only, without a window, never closing your open decks) and LibreOffice is only a backup | Software portal, or [libreoffice.org](https://www.libreoffice.org/download/). On a Mac, request it on day one: on company computers it can need approval |
 
 Git is usually already there, because Claude Code on Windows uses it. If the setup check later says it is missing, get it from the portal or [git-scm.com](https://git-scm.com).
 
@@ -61,7 +61,8 @@ Claude asks before each download or install (your company's settings may require
   Python 3.12                    OK
   Python packages                OK
   Browser for rendering designs  OK
-  LibreOffice                    OK
+  PowerPoint (draws the slides)  OK
+  LibreOffice (optional here)    OK
   Slide Lab agents               OK
   Claude settings                OK
   Local work folder              OK       C:\Users\<you>\Slide Lab\sessions
@@ -98,7 +99,7 @@ python3 -m playwright install chromium
 python3 ~/.claude/skills/slide-builder/scripts/doctor.py fix
 ```
 
-LibreOffice is found automatically in `/Applications`. If the browser download is blocked, Google Chrome is used instead. Restart Claude when done.
+Install LibreOffice first (a Mac needs it to draw slide previews); it is found automatically in `/Applications`. If the browser download is blocked, Google Chrome is used instead. Restart Claude when done.
 
 ### If something goes wrong
 
@@ -112,6 +113,7 @@ Or just tell Claude: *"check my Slide Lab setup"*.
 
 - **"certificate verify failed" during the pip install.** Try again first; recent versions of pip use your company's certificates. Only if it keeps failing, add `--trusted-host pypi.org --trusted-host files.pythonhosted.org` to the pip line.
 - **LibreOffice installed somewhere unusual.** Set the environment variable `SLIDE_LAB_SOFFICE` to the full path of `soffice.exe`. Do not add LibreOffice to your PATH.
+- **PowerPoint pauses for a few seconds during a build.** On Windows Slide Lab draws its previews through PowerPoint, opening its own files read-only without a window; Claude tells you before it starts. Your open decks are not touched, but editing in PowerPoint while it renders slows the build. To use LibreOffice instead, set `"renderer": "libreoffice"` in `slide-builder\settings.json`.
 - **A build stops saying the agents are out of date.** Run `doctor.py fix`, then restart Claude.
 - **Claude keeps asking "allow?" during a build.** Run `doctor.py fix`, then restart Claude.
 

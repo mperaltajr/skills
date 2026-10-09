@@ -1,17 +1,17 @@
 ---
 name: slide-qc
-description: "QC reviewer for built PPTX decks. Runs a deterministic hygiene pre-pass (lorem ipsum, hidden slides, comments, speaker-note junk, filename smell), then renders every slide to PNG silently (LibreOffice headless; on Windows without LibreOffice, PowerPoint opened read-only without a window, never closing the user's decks), reads each PNG zone-by-zone with vision, and produces a unified Critical / Major / Advisory report. Override-with-reason flow for Majors; Criticals are hard stops. Opt-in PowerPoint COM pass for pixel-perfect final fidelity. Invoke after a build completes."
+description: "QC reviewer for built PPTX decks. Runs a deterministic hygiene pre-pass (lorem ipsum, hidden slides, comments, speaker-note junk, filename smell), then renders every slide to PNG silently (PowerPoint on Windows, opened read-only without a window, never closing the user's decks; LibreOffice headless on a Mac or as the backup), reads each PNG zone-by-zone with vision, and produces a unified Critical / Major / Advisory report. Override-with-reason flow for Majors; Criticals are hard stops. Invoke after a build completes."
 ---
 
 # Slide QC
 
 You are the QC reviewer. You look at every slide. You report what is wrong. The user does not open the PPTX until you give them the all-clear.
 
-> **Windows vs macOS/Linux.** Commands here use `py -3` (Windows). On **macOS/Linux**, run them with **`python3`** instead. LibreOffice is found automatically on all three OSes (macOS `/Applications/LibreOffice.app`, Linux via PATH); the PowerPoint COM engine (`--engine ppt`) is Windows-only — the LibreOffice default is the cross-platform path.
+> **Windows vs macOS/Linux.** Commands here use `py -3` (Windows). On **macOS/Linux**, run them with **`python3`** instead. PowerPoint draws the slides on Windows when it is installed (the default there); on a Mac, LibreOffice does (found automatically: macOS `/Applications/LibreOffice.app`, Linux via PATH).
 
 **MANDATORY — the two rules that bind every QC run.** Past QC failures cost user trust; these are the guardrail:
 
-1. **Render the real PPTX, never an approximation.** This skill renders the actual deck — LibreOffice headless by default, or PowerPoint COM for pixel-perfect final fidelity (opt-in). Never substitute an HTML preview or python-pptx text inspection — those are approximations.
+1. **Render the real PPTX, never an approximation.** This skill renders the actual deck — through PowerPoint itself on Windows (the default since 2026-10-09), LibreOffice headless on a Mac. Never substitute an HTML preview or python-pptx text inspection — those are approximations.
 2. **Per-zone inspection — rendering is not QC, *reading* is QC.** Glancing at a thumbnail and saying "looks fine" is what broke trust. For every slide PNG, walk through every zone (title, sub-headline, every text block, every numeral, every chart label/annotation, footer/source, page number). Read the words. Check size, color, alignment, overlap, clipping, legibility. If you cannot truthfully say "I read every zone on every slide" — the QC is not done.
 
 ---
@@ -94,28 +94,19 @@ Run the silent renderer. Replace `<SKILL_DIR>` with the absolute path to this sk
 py -3 <SKILL_DIR>/scripts/render_slides.py "<pptx_path>" "<session_folder>/_qc/"
 ```
 
-By default this uses **LibreOffice headless in an isolated process** — it never touches the user's running PowerPoint, never opens visible windows, never asks for permission, and works whether or not PowerPoint is open. Output lands in `_session/_qc/slide_01.png`, `slide_02.png`, etc.
+**Before you run it, tell the user in one plain line:** *"PowerPoint may pause for a few seconds while Slide Lab renders slides; editing in PowerPoint during that time slows the build."* (Windows with PowerPoint; the script prints the same line once.)
+
+**Which program draws the slides.** On Windows with PowerPoint installed, PowerPoint does (owner's decision, 2026-10-09): what you review is what the recipient's PowerPoint shows, including its fonts and its text layout. It goes through `scripts/ppt_safe.py`: the deck is opened read-only without a window, only that deck is closed, and PowerPoint is quit only if this run started it and nothing else is open in it (the user may open PowerPoint while it runs). It never closes, saves or touches another presentation, and renders run one at a time. Never kill `POWERPNT.EXE`, never use `Stop-Process`; the user's open decks are not yours to close. On a Mac (or Windows without PowerPoint) LibreOffice headless draws them, in its own process. Output lands in `_session/_qc/slide_01.png`, `slide_02.png`, etc. (hidden slides included, so `slide_NN` is always slide NN).
 
 **Always the same `_qc` folder.** A re-run replaces the previous images there. Never create `_qc2`, `_qc3`, `_qc_editable`, … for a new round: each copy is another full set of slide images (one session piled up six of them, about 110 MB), and nothing reads the old ones.
 
-- LibreOffice opens the actual PPTX (same XML, same master inheritance, same layout resolution). It is a **real renderer**, not an HTML approximation. Layout overflow, master inheritance, text overlap, color, and structural issues all render faithfully.
-- The font fidelity gap: if a slide uses a font that LibreOffice doesn't have installed (e.g. a proprietary brand typeface), LibreOffice substitutes a similar sans-serif. Letter shapes differ; **letter widths are close but not identical**, which can mask 2-3 character title-overflow cases.
-
-### When to ALSO run a PowerPoint COM pass
-
-For final pixel-perfect brand-fidelity QC — typically the last QC before sign-off, or when the deck uses heavy custom fonts:
-
-```
-py -3 <SKILL_DIR>/scripts/render_slides.py "<pptx_path>" "<session_folder>/_qc_ppt/" --engine ppt
-```
-
-This works while the user has PowerPoint open (since 2026-10-08; it used to refuse). It goes through `scripts/ppt_safe.py`: the deck is opened read-only without a window, only that deck is closed, and PowerPoint is quit only if this run started it and nothing else is open in it (the user may open PowerPoint while it runs). It never closes, saves or touches another presentation, and renders run one at a time. Still: never kill `POWERPNT.EXE`, never use `Stop-Process`; the user's open decks are not yours to close.
-
-`scripts/export_slides.py` does the same through the same safe path (it used to start its own PowerPoint and quit it); either is fine.
+- Both are **real renderers** of the actual PPTX (same XML, same master inheritance, same layout resolution), not an HTML approximation.
+- LibreOffice's font gap: a font it does not have (a proprietary brand typeface) is replaced by a similar sans-serif with close but not identical letter widths, which can mask 2-3 character title overflows. PowerPoint uses the installed fonts, so on Windows this gap is gone.
+- `--engine libre` starts with LibreOffice and `--engine ppt` with PowerPoint (`slide-builder/settings.json` `renderer` sets the default; `SLIDE_LAB_RENDERER` for one run). If one fails twice, the other takes over when it is installed. `scripts/export_slides.py` renders through PowerPoint the same safe way.
 
 ### Rendering rules
-- Width 1920px (COM) or DPI 150 (LibreOffice ≈ 1700px wide) is the minimum. Do not lower — at 1280px small text (footnotes, chart annotations, numerals) is unreadable and small-text bugs slip past QC.
-- If LibreOffice is not installed (Windows), `render_slides.py` draws the slides with PowerPoint by itself, the same safe way, and says so ("PowerPoint, because LibreOffice is not installed"); renders are serial and can be slower. Set `SLIDE_LAB_NO_LIBREOFFICE=1` to force that path (tests, or a broken LibreOffice). Without LibreOffice AND PowerPoint, tell the user how to install LibreOffice. Never substitute python-pptx text inspection or HTML preview: those ARE approximations and the rule against them stands.
+- DPI 150 (≈ 2000px wide; `--width 1920` gives 1920px) is the minimum. Do not lower — at 1280px small text (footnotes, chart annotations, numerals) is unreadable and small-text bugs slip past QC.
+- Without PowerPoint AND LibreOffice, tell the user how to install LibreOffice. Never substitute python-pptx text inspection or HTML preview: those ARE approximations and the rule against them stands.
 - Do not continue to Step 4 until the export succeeds and all PNG files exist.
 
 ---
