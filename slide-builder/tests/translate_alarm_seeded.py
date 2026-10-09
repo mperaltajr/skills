@@ -4,7 +4,7 @@
 Takes real designs from replay work dirs, translates each, then plants ONE
 realistic defect in one visible element (moved, resized, recolored, deleted,
 wrong weight, squeezed so it wraps, misaligned, ...). Every planted slide is
-rendered with LibreOffice and the alarm is run against the untouched design.
+rendered (--engine; PowerPoint by default on Windows) and the alarm is run against the untouched design.
 A defect counts as caught when the alarm fires on that exact element.
 
 A plant that changes nothing visible (fading a white card on a white page) is
@@ -14,7 +14,7 @@ direct test of the font choice instead (run_translate_smoke).
 
 The go/no-go bar: at least 19 of 20 visible defects caught (95%).
 
-  py -3 tests/translate_alarm_seeded.py --work <replay dir> [--per 2] [--seed 1]
+  py -3 tests/translate_alarm_seeded.py --work <replay dir> [--per 2] [--seed 1] [--engine powerpoint]
 Writes <work>/alarm_seeded.json.
 """
 from __future__ import annotations
@@ -187,6 +187,8 @@ def main(argv=None) -> int:
     ap.add_argument("--work", required=True, type=Path, action="append")
     ap.add_argument("--per", type=int, default=2, help="defects planted per design")
     ap.add_argument("--seed", type=int, default=1)
+    ap.add_argument("--engine", default="auto", choices=("auto", "libreoffice", "powerpoint"),
+                    help="the program that renders (auto: PowerPoint on Windows when installed)")
     args = ap.parse_args(argv)
     rng = random.Random(args.seed)
     items = plans_for(args.work)
@@ -225,11 +227,12 @@ def main(argv=None) -> int:
             prs, _ = build({"version": "seeded", "ops": p["_ops"]})
             paths.append(Path(td) / f"p{k:04d}.pptx")
             prs.save(str(paths[-1]))
-        out = A.render_full(paths)
+        out = A.render_full(paths, engine=args.engine)
+        engines = dict(A.LAST_RENDER_ENGINES)    # which program drew each page
     clean, planted = out[:len(items)], out[len(items):]
 
     rows = []
-    for p, got in zip(plants, planted):
+    for j, (p, got) in enumerate(zip(plants, planted)):
         name, plan, design = items[p["k"]]
         if not got or not clean[p["k"]]:
             rows.append({"option": p["option"], "defect": p["defect"], "result": "render failed"})
@@ -242,7 +245,7 @@ def main(argv=None) -> int:
         if int((diff > 60).sum()) < 20:
             rows.append({"option": p["option"], "defect": p["defect"], "result": "not visible"})
             continue
-        res = A.compare(plan.ops, design, native, chars)
+        res = A.compare(plan.ops, design, native, chars, engine=engines.get(len(items) + j))
         hit = next((r for r in res if r["i"] == p["index"]), None)
         ok = bool(hit and hit["fired"])
         rows.append({"option": p["option"], "defect": p["defect"], "element": p["element"],

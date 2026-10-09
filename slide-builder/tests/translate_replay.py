@@ -99,15 +99,28 @@ def main(argv=None) -> int:
     (work / "blind").mkdir(parents=True, exist_ok=True)
 
     # Dedupe identical designs (one session folder was copied wholesale).
-    seen, jobs = set(), []
+    # The work folder is named after the option's whole path below the folder
+    # given (session folder included): given a client folder ("Flux"), every
+    # session has a slide_01/option_A, and naming by the given folder alone
+    # made them all one work folder, so only 101 of 263 options were scored.
+    seen, jobs, keys = set(), [], set()
     for sess in args.sessions:
-        tag = re.sub(r"[^A-Za-z0-9]+", "_", sess.name)[:40]
         for html, npy in find_options(sess):
-            key = html.read_bytes()
-            if key in seen:
+            data = html.read_bytes()
+            if data in seen:
                 continue
-            seen.add(key)
-            jobs.append((tag, html, npy))
+            seen.add(data)
+            try:
+                rel = html.relative_to(sess).with_suffix("")
+                parts = [sess.name] + list(rel.parts)
+            except ValueError:
+                parts = list(html.with_suffix("").parts[-4:])
+            key = "__".join(re.sub(r"[^A-Za-z0-9]+", "_", p).strip("_") for p in parts if p)
+            base, n = key, 2
+            while key.lower() in keys:          # still unique on a case-blind disk
+                key, n = f"{base}_{n}", n + 1
+            keys.add(key.lower())
+            jobs.append((key, html, npy))
     if args.limit:
         jobs = jobs[:args.limit]
     print(f"{len(jobs)} unique translated options")
@@ -123,8 +136,7 @@ def main(argv=None) -> int:
         from _browser import launch
         browser = launch(pw)
         page = browser.new_page(viewport={"width": 1280, "height": 720})
-        for i, (tag, html, npy) in enumerate(jobs, 1):
-            key = f"{tag}__{html.parent.name}__{html.stem}"
+        for i, (key, html, npy) in enumerate(jobs, 1):
             wd = work / "opts" / key
             res = {"key": key, "html": str(html)}
             try:

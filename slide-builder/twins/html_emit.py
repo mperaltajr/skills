@@ -67,6 +67,41 @@ def _fill(shape, color, alpha: float = 1.0) -> None:
         srgb.append(srgb.makeelement(qn("a:alpha"), {"val": str(int(round(alpha * 100000)))}))
 
 
+MAX_STOPS = 10          # PowerPoint's own gradient editor holds at most 10 stops
+
+
+def _stops_for_powerpoint(stops: list) -> list:
+    """The CSS stops plus in-between stops, so PowerPoint's blend matches the
+    browser's. Chrome and LibreOffice blend two stops evenly in sRGB;
+    PowerPoint blends in linear light, so a two-stop white-to-navy gradient
+    stayed light for longer and its middle was ~50 RGB levels off (measured
+    2026-10-09). In-between stops computed the browser's way leave PowerPoint
+    only short, near-straight stretches to blend. Each stretch gets pieces in
+    proportion to how far its colors are apart, within MAX_STOPS."""
+    def rgb(h):
+        return [int(h[i:i + 2], 16) for i in (0, 2, 4)]
+    segs = []
+    for (p0, c0, a0), (p1, c1, a1) in zip(stops, stops[1:]):
+        d = max(max(abs(x - y) for x, y in zip(rgb(c0), rgb(c1))), 255 * abs(a0 - a1))
+        segs.append(d if p1 > p0 else 0.0)
+    spare = MAX_STOPS - len(stops)
+    extra = [0] * len(segs)
+    if spare > 0:
+        for k in sorted(range(len(segs)), key=lambda k: -segs[k]):
+            n = min(spare, int(round(segs[k] / 40.0)))     # about one piece per 40 levels
+            extra[k] = max(0, n)
+            spare -= extra[k]
+    out = [list(stops[0])]
+    for k, ((p0, c0, a0), (p1, c1, a1)) in enumerate(zip(stops, stops[1:])):
+        n = extra[k] + 1
+        for j in range(1, n):
+            t = j / n
+            c = "".join(f"{int(round(x + (y - x) * t)):02X}" for x, y in zip(rgb(c0), rgb(c1)))
+            out.append([p0 + (p1 - p0) * t, c, a0 + (a1 - a0) * t])
+        out.append([p1, c1, a1])
+    return out
+
+
 def _gradient(shape, grad: dict, alpha: float = 1.0) -> None:
     """A CSS linear gradient as a native gradient fill.
 
@@ -79,7 +114,7 @@ def _gradient(shape, grad: dict, alpha: float = 1.0) -> None:
     gs_lst = grad_fill.find(qn("a:gsLst"))
     for child in list(gs_lst):
         gs_lst.remove(child)
-    for pos, color, a in grad["stops"]:
+    for pos, color, a in _stops_for_powerpoint(grad["stops"]):
         gs = gs_lst.makeelement(qn("a:gs"), {"pos": str(int(round(pos * 100000)))})
         clr = gs.makeelement(qn("a:srgbClr"), {"val": color})
         a = a * alpha

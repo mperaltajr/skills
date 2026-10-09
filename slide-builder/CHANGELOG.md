@@ -160,9 +160,101 @@ All notable changes to this skill. Versioning follows [Semantic Versioning](http
   converter places them for, plus gradient and chart-bar colors. These are
   real differences in what PowerPoint shows, but the limits were set on
   LibreOffice; recalibrating them (or the converter's text placement) for
-  PowerPoint is an open decision. `run_translate_smoke.py` and
-  `run_native_tables_lists_smoke.py` run their self-check on LibreOffice
-  when it is installed for that reason.
+  PowerPoint is an open decision. (Resolved the same day: see "The sketch
+  converter places text for PowerPoint" below; the self-check now runs on
+  the default renderer.)
+
+### The sketch converter places text for PowerPoint (owner's decision)
+
+- **What was wrong, measured** (fictional test slides: 9 fonts, 9 to 72 pt,
+  line spacing 0.69 to 2.3 x the size, both programs, read from the glyph
+  origins in each program's PDF and checked against the pixels):
+  - **Most of the "5 px lower" was the check, not the slide.** The
+    self-check found each letter from the letter box in the PDF. LibreOffice
+    writes the font's Windows metrics there (as Chrome uses), PowerPoint its
+    typographic ones (Arial: 0.73 em above the baseline, not 0.91), so in a
+    PowerPoint PDF the box's middle sat 0.09 em lower with the letters in the
+    same place: 6 px on a 72 px numeral. In pixels, large numerals with tight
+    spacing were within 1 to 3 px.
+  - **Real differences in where PowerPoint sets text.** PowerPoint rounds
+    exact line spacing to whole points (the pitch too: 13.65 pt is set at
+    14). With spacing L above its "single" line (L > floor(1.2 x size) pt)
+    the first baseline is 0.75 L below the box top, for every font; at or
+    below it, max(0.75 L, L - D), D = 1.2 x size x descent / (ascent +
+    descent). LibreOffice puts it at L - 0.2 x size for every font and does
+    not round. The converter had been placing text by LibreOffice's rule, so
+    in PowerPoint text with loose spacing sat high: 16 px too high for 96 px
+    type at line-height 1.5, 3 to 5 px for body text.
+  - **`line-height: normal` was taken as 1.15 em for every font**; Chrome
+    uses the font's own (Segoe UI 1.33, Calibri 1.22).
+- **What changed** (`scripts/translate_html.py`): line spacing is written in
+  whole points, so both programs set the same pitch; every text box's top is
+  set from PowerPoint's rule (`ppt_first_baseline`, `place_first_line`) and
+  Chrome's first baseline (the first line's box top plus the font's ascent
+  share); a one-line text box gets spacing 0.8 x its size, the one spacing
+  at which PowerPoint and LibreOffice put the baseline in the same place
+  (checked: no letter is cut off); `normal` uses the font's own line height
+  (`vertical_metrics`); SVG text uses the same placement. On a LibreOffice
+  render, text on several lines sits lower than in PowerPoint by
+  LibreOffice's own rule (0.25 L - 0.2 x size: about 3 px for 16 px body
+  text at 1.5, more for large loose headings); each text op records it
+  (`_dy_lo`) and the self-check expects it there.
+- **Gradients** (`twins/html_emit.py`): PowerPoint blends gradient stops in
+  linear light, Chrome and LibreOffice in sRGB, so a white-to-navy gradient
+  was up to ~50 RGB levels off in the middle (mean 31 per pixel). The
+  converter now adds in-between stops computed the browser's way (at most 10
+  stops, PowerPoint's own limit): mean error per pixel on 8 test gradients
+  0.3 to 2.6 in PowerPoint (was 0.6 to 31), LibreOffice unchanged (0.2 to
+  0.8). A gradient with transparent stops was also faded twice (its middle
+  stop's transparency applied to every stop, so a 90% to 10% navy fade came
+  out nearly white in both programs); fixed.
+- **The self-check** (`scripts/translate_alarm.py`): text is located by its
+  baseline and size from the PDF (the same in both programs) with Chrome's
+  letter box built around it; the program that drew each page is read from
+  the PDF (the other one takes over when the first fails twice). On a
+  PowerPoint render, the pixel rows a filled shape's fractional edge only
+  partly covers are left out of its color and ink checks: PowerPoint draws
+  every straight edge on a whole pixel and rounds where it likes (a 7.1 px
+  bar drew 8 px tall), which moved a thin chart bar's average color by up to
+  29 levels with the bar drawn right. Shapes with an outline and table cells
+  keep those rows. The limits are unchanged. (Rounding the shapes' edges to
+  whole pixels instead was tried and dropped: it made LibreOffice worse on
+  half-pixel edges.)
+- **The self-check renders with the default renderer** (PowerPoint on
+  Windows); `run_translate_smoke.py` and `run_native_tables_lists_smoke.py`
+  no longer pin it to LibreOffice. `run_translate_smoke.py` gains a
+  placement check on every program installed (6 texts in 5 fonts within
+  1.5 px of where expected, the transparent gradient's alpha).
+- **The go/no-go replay scores every option.** Work folders were named after
+  the folder given plus `slide_NN/option_X`, so given a client folder every
+  session's `slide_01/option_A` shared one folder and only 101 of 263
+  options were scored. They are now named after the option's whole path
+  (session folder included). `translate_gonogo.py --engine` defaults to the
+  default renderer; `translate_alarm_seeded.py` gains `--engine`.
+- **Measured, 263 past options** (`translate_replay.py` +
+  `translate_gonogo.py`; bars: 0 open failures, no lost text, at least 98%
+  same lines, at most 15% need the agent):
+
+  | | LibreOffice before | LibreOffice after | PowerPoint before | PowerPoint after |
+  |---|---|---|---|---|
+  | needs the agent | 35 (13.31%) | 36 (13.69%) | 82 (31.18%) | 33 (12.55%) |
+  | elements flagged | 159 | 161 | 298 | 151 |
+  | of which position | 10 | 10 | 112 | 11 |
+  | of which color | 124 | 126 | 154 | 120 |
+  | open failures | 0 | 0 | 0 | 0 |
+  | same lines | 99.67% | 99.67% | 99.70% | 99.70% |
+  | options with lost text | 1 | 1 | 1 | 1 |
+
+  The one option with lost text is unchanged (87 characters in an element
+  left to the agent, known since 2026-10-08). Planted defects
+  (`translate_alarm_seeded.py`, 526 planted, 467 visible): caught 96.8% on
+  PowerPoint and 97.2% on LibreOffice leaving out bold flipped (bar 95%),
+  with the limits unchanged.
+- **Open:** LibreOffice pictures (the Mac renderer and the backup) now show
+  text on several lines a little lower than the sketch (about 3 px for body
+  text, up to 16 px for 96 px type at line-height 1.5), because the text is
+  placed for PowerPoint; one-line text is unchanged. PowerPoint for Mac was
+  not measured.
 
 ## 2026-10-09: smaller session folders, one deck, title load
 

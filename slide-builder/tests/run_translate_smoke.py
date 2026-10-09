@@ -17,7 +17,11 @@ One small design exercises the rules that went wrong in real decks:
     this clean design, and a deliberately broken plan does trip it
   - weight mapping: 400 regular, 600/700 bold, 800+ heavy face when installed
 
-Needs Playwright's Chromium and LibreOffice, like the other render smokes.
+  - text lands where PowerPoint draws it (and LibreOffice where the
+    self-check expects), on every program installed
+The self-check renders with the default renderer (PowerPoint on Windows when
+installed, else LibreOffice; SLIDE_LAB_RENDERER overrides it).
+Needs Playwright's Chromium and PowerPoint or LibreOffice.
 Run:  py -3 slide-builder/tests/run_translate_smoke.py
 Prints "SMOKE PASSED." on success; raises AssertionError otherwise.
 """
@@ -166,21 +170,66 @@ def _weights_survive_theme() -> None:
     print("    ok: bold on the theme font for 600-900; Medium, Light and 400 stay regular")
 
 
-def _pin_self_check_to_libreoffice() -> None:
-    """The self-check's limits were set on LibreOffice's noise; through
-    PowerPoint (the default on Windows since 2026-10-09) large numerals sit
-    about 5 px lower, gradients export a little differently and a nested
-    bullet's glyph moves, so this fixture's verdicts differ (see the
-    CHANGELOG and the go/no-go replay). This test checks the converter's
-    logic, so it runs the self-check on LibreOffice when it is installed."""
-    import os
+PLACEMENT = """<!doctype html><html><head><meta charset="utf-8"><style>
+body { margin: 0; }
+.slide-canvas { position: relative; width: 1280px; height: 720px; background: #fff; color: #111; }
+p { position: absolute; margin: 0; white-space: nowrap; }
+.fade { position: absolute; left: 1000px; top: 500px; width: 200px; height: 150px;
+  background: linear-gradient(180deg, rgba(11, 31, 51, 0.9), rgba(11, 31, 51, 0.1)); }
+</style></head><body><div class="slide-canvas">
+<p data-shape-id="p1" style="left:20px;top:20px;font:96px Arial;line-height:1">42%</p>
+<p data-shape-id="p2" style="left:330px;top:20px;font:700 72px 'Segoe UI';line-height:1.5">Hx<br>Bq</p>
+<p data-shape-id="p3" style="left:640px;top:20px;font:48px Georgia;line-height:1.2">Two<br>lines</p>
+<p data-shape-id="p4" style="left:20px;top:420px;font:16px Arial;line-height:1.5">Body text<br>on two lines</p>
+<p data-shape-id="p5" style="left:330px;top:420px;font:28px Calibri">Normal line height<br>second</p>
+<p data-shape-id="p6" style="left:640px;top:420px;font:900 64px Arial">$4.8B</p>
+<div class="fade" data-shape-id="fade"></div>
+</div></body></html>"""
+
+
+def _placement_rules() -> None:
+    """Text lands where PowerPoint draws it, and LibreOffice where the
+    self-check expects (translate_html.ppt_first_baseline, measured
+    2026-10-09). Rendered on every program installed; the baseline is read
+    from the glyph origins, which both programs write the same way."""
+    print("[placement] first baselines on PowerPoint and LibreOffice")
+    # the measured rules
+    assert T.line_spacing_pt(24.0, 54.0, True) == 43            # one line: 0.8 x size
+    assert T.line_spacing_pt(24.0, 12.0, False) == 18           # more lines: whole points
+    S, L = 72 / 0.75, 81 / 0.75                                 # 72 pt type, 81 pt spacing: below 1.2 x 72
+    assert abs(T.ppt_first_baseline(L, S, 0.905, 0.212) - (L - 1.2 * S * 0.212 / 1.117)) < 1e-6
+    L = 88 / 0.75                                               # past PowerPoint's single line
+    assert abs(T.ppt_first_baseline(L, S, 0.905, 0.212) - 0.75 * L) < 1e-6
     import render_slides
-    if render_slides.libreoffice_available():
-        os.environ.setdefault("SLIDE_LAB_RENDERER", "libreoffice")
+    from playwright.sync_api import sync_playwright
+    with tempfile.TemporaryDirectory() as td:
+        html = Path(td) / "place.html"
+        html.write_text(PLACEMENT, encoding="utf-8")
+        with sync_playwright() as pw:
+            from _browser import launch
+            br = launch(pw)
+            page = br.new_page(viewport={"width": 1280, "height": 720})
+            data = T.extract(page, html, True)
+            br.close()
+        plan, _ = T.plan_from_extract(data, True)
+        fade = next(o for o in plan.ops if o.get("name") == "fade")
+        assert fade.get("gradient") and fade["alpha"] == 1.0, fade   # stops carry their own alpha
+        texts = [o for o in plan.ops if o["op"] == "text"]
+        engines = [e for e, ok in (("powerpoint", render_slides.powerpoint_available()),
+                                   ("libreoffice", render_slides.libreoffice_available())) if ok]
+        for eng in engines:
+            (img, chars), = T._render_plans([plan], engine=eng)
+            found = A.match_text(texts, chars)
+            for i, o in enumerate(texts):
+                assert i in found, (eng, o["name"])
+                geo = A.text_geometry(o, [chars[j] for j in found[i]])
+                want = o["_dy_lo"] if eng == "libreoffice" else 0.0
+                assert abs(geo["offset_y"] - want) <= 1.5, (eng, o["name"], geo["offset_y"], want)
+                assert geo["lines_native"] == geo["lines_design"], (eng, o["name"], geo)
+            print(f"    ok: {eng}: {len(texts)} texts within 1.5 px of where expected")
 
 
 def main() -> int:
-    _pin_self_check_to_libreoffice()
     with tempfile.TemporaryDirectory() as td:
         td = Path(td)
         html = td / "option_A.html"
@@ -237,7 +286,15 @@ def main() -> int:
         assert not check_openability(prs), check_openability(prs)
         g_sh = next(sh for sh in prs.slides[0].shapes if sh.name == "gbar")
         gf = g_sh._element.spPr.find(qn("a:gradFill"))
-        assert gf is not None and len(gf.find(qn("a:gsLst"))) == 2, "gradient not native"
+        assert gf is not None, "gradient not native"
+        # the design's 2 stops at the ends, plus in-between stops so PowerPoint
+        # (which blends in linear light) blends like the browser (sRGB)
+        gs = list(gf.find(qn("a:gsLst")))
+        assert 2 <= len(gs) <= 10, len(gs)
+        assert gs[0].get("pos") == "0" and gs[-1].get("pos") == "100000", \
+            [g.get("pos") for g in gs]
+        poss = [int(g.get("pos")) for g in gs]
+        assert poss == sorted(poss), poss
         assert gf.find(qn("a:lin")).get("ang") == "0", "90deg (left to right) must be ang 0"
         for sh in prs.slides[0].shapes:
             eff = sh._element.find(".//" + qn("a:effectRef"))
@@ -285,6 +342,7 @@ def main() -> int:
         T._FACES = saved
 
     _weights_survive_theme()
+    _placement_rules()
 
     # alarm limits are the calibrated ones (a change here needs a re-run of
     # translate_alarm_calibrate.py and translate_alarm_seeded.py)
