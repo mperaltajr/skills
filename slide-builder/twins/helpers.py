@@ -64,7 +64,8 @@ BRAND_PRIMARY     = RGBColor(0x46, 0x00, 0x73)
 BRAND_PRIMARY_MID = RGBColor(0x75, 0x00, 0xC0)
 # dk2  = #A100FF  Electric Purple — accent moments (one per slide)
 BRAND_ACCENT      = RGBColor(0xA1, 0x00, 0xFF)
-# accent2 = #C2A3FF  Light Purple  — soft accents, borders
+# accent2 = #C2A3FF  Light Purple  — soft accents (tints, tracks, gridlines,
+# light fills). Themed to a light tint of the client's accent color.
 BRAND_ACCENT_SOFT = RGBColor(0xC2, 0xA3, 0xFF)
 # dk1  = #000000  Black            — primary body text
 TEXT_DARK         = RGBColor(0x00, 0x00, 0x00)
@@ -79,8 +80,11 @@ TEXT_FAINT_ON_DARK  = RGBColor(0xC8, 0xC8, 0xC8)
 SLIDE_BG          = RGBColor(0xFF, 0xFF, 0xFF)
 # accent3 = #E6DCFF  Very Light Purple — card / tile fills
 CARD_BG           = RGBColor(0xE6, 0xDC, 0xFF)
-# accent2 = #C2A3FF  Light Purple — card borders
-CARD_BORDER       = RGBColor(0xC2, 0xA3, 0xFF)
+# Card borders: #C2A3FE, one step off BRAND_ACCENT_SOFT so it looks the same
+# here but is its own code. Theming matches colors by their exact code, and
+# the two used to share C2A3FF, so every soft accent was themed to the border
+# gray (2026-10-09). Themed to a subtle neutral gray.
+CARD_BORDER       = RGBColor(0xC2, 0xA3, 0xFE)
 DRAFT_BG          = RGBColor(0xFF, 0xD6, 0x00)
 DRAFT_TEXT        = RGBColor(0xB7, 0x1C, 0x1C)
 WHITE             = RGBColor(0xFF, 0xFF, 0xFF)

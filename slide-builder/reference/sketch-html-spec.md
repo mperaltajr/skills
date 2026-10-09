@@ -339,7 +339,9 @@ Supported field names:
 - `footer` → template footer placeholder (the template's Source slot when it has one). Put the brief's **Source:** line here word for word; prep passes it in `_prompt.md` § 1 and records it in `_meta.json` (`source`). The review card flags a sketch whose brief gives a source but which has no footer element (`SOURCE_LINE_MISSING`)
 - `page_number` → template page-number placeholder
 
-The brief's **Section tag:** reaches the worker as text only. It is not a field yet: do not draw it (a fixed-style tag slot drawn by Slide Lab is planned).
+The brief's **Section tag:** reaches the worker as text only. Slide Lab draws it; do not draw it. Finalize puts it just above the title in the template's accent color and fixed style (2026-10-09). Do not mark it as a template field either: only `title`, `subtitle`, `footer` and `page_number` are fields, and the converter warns about (and leaves out) any other `data-template-field`.
+
+Reserved shape ids (2026-10-09): `subtitle` is the takeaway under the title, `source-...` the source line and `footnote-...` a footnote; Slide Lab moves and restyles those (a `source-...` / `footnote-...` box only when it sits in the bottom quarter of the page or its text starts "Source", "Note", "1." or "*"). Name a bottom band or so-what card `band-...` or `so-what-...`, never `takeaway-...`.
 
 **The `data-visual-form` attribute** goes on `.slide-canvas` and names the page's main visual form, one of: `cards`, `table`, `chart`, `flow`, `timeline`, `matrix`, `hero-number`, `diagram`, `comparison`, `text`, `quote`, `image`, `map`. It draws nothing. The review page counts the forms across the deck ("Visual forms" strip) and warns when one form is on at least half of the pages or on three neighbors in a row; a sketch without it is reported as "unknown". Example: `<div class="slide-canvas" data-visual-form="flow">`.
 

@@ -154,6 +154,21 @@ CHROME_NOTE_FONT_PT: int = 9
 CHROME_NOTE_GAP_PX: int = 2
 CHROME_PAGE_NUMBER_GAP_PX: int = 8
 
+# Section tag (owner's decision, 2026-10-09): the brief's small label above
+# the title ("THE MARKET"), drawn by Slide Lab, never by the designer. Left at
+# the title's text edge, its box bottom this gap above the title box top, in
+# the template's accent color (white on a dark slide), bold small caps, the
+# template's body font. A template with no room above its title box stops the
+# build with a plain message instead of guessing a place.
+SECTION_TAG_NAME: str = "section-tag"
+SECTION_TAG_FONT_PT: float = 10.5
+SECTION_TAG_H_PX: int = 20
+SECTION_TAG_GAP_PX: int = 6
+# Page types that never carry the tag (also: bespoke layouts without a page
+# number, which are covers and dividers).
+SECTION_TAG_SKIP_PAGE_TYPES: tuple[str, ...] = (
+    "cover", "divider", "section-divider", "section", "closing", "end", "back-cover")
+
 CANONICAL_BODY_TOP_Y: int = 110
 CANONICAL_BODY_BOTTOM_Y: int = 660
 
@@ -190,6 +205,113 @@ def slot_role_from_name(name: str | None) -> tuple[str, int] | None:
         if n == key or n.startswith(key + " ") or n.endswith(" " + key):
             return "source", (0 if rank < 2 else 1)
     return None
+
+
+# ---------------------------------------------------------------------------
+# Which loose shape on a finished slide is the page takeaway, the source line
+# or a footnote (one rule, used by chrome_rules.normalize_chrome and finalize)
+# ---------------------------------------------------------------------------
+#
+# The chrome placement moves and restyles these shapes. It used to take ANY
+# loose text box whose name started "subtitle" or "takeaway" as the takeaway,
+# and "source" / "footnote" as a source line or footnote, so a designer's
+# bottom band named "takeaway-bar" was pulled up under the title, restyled, or
+# deleted as a "second copy" (2026-10-09). Now:
+#
+#   page takeaway  the layout's registered takeaway slot, a SUBTITLE
+#                  placeholder, a loose box named exactly "subtitle" (anywhere),
+#                  or a "subtitle-..." / "subtitle_..." / "Subtitle 2" name only
+#                  when it sits in the top 35% of the page. A name starting
+#                  "takeaway" never counts (that is a bottom band or card).
+#   source/footnote  a loose box named "source..." / "footnote..." only when it
+#                  sits in the bottom 25% of the page or its text starts like
+#                  one ("Source", "Note", "1.", "*").
+# Names "subtitle", "source-..." and "footnote-..." are reserved for those
+# jobs; designers name a bottom band "band-..." or "so-what-...".
+
+TAKEAWAY_TOP_SHARE: float = 0.35
+NOTE_BOTTOM_SHARE: float = 0.75
+_SUBTITLE_VARIANT_RE = None
+_NOTE_TEXT_RE = None
+
+
+def _shape_ph(shape) -> tuple[int | None, int | None]:
+    """(placeholder type, idx), or (None, None) for a loose shape."""
+    try:
+        if not shape.is_placeholder:
+            return None, None
+        pf = shape.placeholder_format
+        return int(pf.type or 0), int(pf.idx)
+    except Exception:
+        return None, None
+
+
+def _shape_name(shape) -> str:
+    try:
+        return (shape.name or "").strip().lower()
+    except Exception:
+        return ""
+
+
+def _shape_text(shape) -> str:
+    try:
+        return (shape.text_frame.text or "").strip() if shape.has_text_frame else ""
+    except Exception:
+        return ""
+
+
+def slide_height_emu(slide, default: int = 720 * EMU_PER_PX_AT_1280) -> int:
+    """The height of the presentation `slide` belongs to (EMU)."""
+    try:
+        return int(slide.part.package.presentation_part.presentation.slide_height) or default
+    except Exception:
+        return default
+
+
+def is_page_takeaway(shape, slide_h_emu: int, takeaway_idx: int | None = None) -> bool:
+    """True when `shape` is the slide's page takeaway (the line under the
+    title), by the one rule above."""
+    import re as _re
+    global _SUBTITLE_VARIANT_RE
+    t, idx = _shape_ph(shape)
+    if t is not None:
+        return (takeaway_idx is not None and idx == takeaway_idx) or t == 4   # 4 = SUBTITLE
+    name = _shape_name(shape)
+    if name == "subtitle":
+        return True
+    if _SUBTITLE_VARIANT_RE is None:
+        _SUBTITLE_VARIANT_RE = _re.compile(r"^subtitle[\s\-_\d]")
+    if not _SUBTITLE_VARIANT_RE.match(name):
+        return False
+    try:
+        return shape.top is not None and int(shape.top) < TAKEAWAY_TOP_SHARE * slide_h_emu
+    except Exception:
+        return False
+
+
+def note_role(shape, slide_h_emu: int) -> str | None:
+    """'source' / 'footnote' for a loose shape that is the slide's source line
+    or a footnote by the rule above; None otherwise (placeholders: None, the
+    caller reads their slot type)."""
+    import re as _re
+    global _NOTE_TEXT_RE
+    t, _idx = _shape_ph(shape)
+    if t is not None:
+        return None
+    name = _shape_name(shape)
+    role = "source" if name.startswith("source") else (
+        "footnote" if name.startswith("footnote") else None)
+    if role is None:
+        return None
+    try:
+        low = shape.top is not None and int(shape.top) >= NOTE_BOTTOM_SHARE * slide_h_emu
+    except Exception:
+        low = False
+    if low:
+        return role
+    if _NOTE_TEXT_RE is None:
+        _NOTE_TEXT_RE = _re.compile(r"^\s*(sources?\b|notes?\b|\d{1,2}\.|\*)", _re.I)
+    return role if _NOTE_TEXT_RE.match(_shape_text(shape)) else None
 
 
 def canonical_title_box() -> "BoxPx":
@@ -598,6 +720,442 @@ def count_wrapped_lines(text: str, ttf_path: str | None,
     if current:
         lines += 1
     return lines
+
+
+# ---------------------------------------------------------------------------
+# Text fit: does every text box, table cell and placeholder fit as PowerPoint
+# sets it? (owner's decision, 2026-10-09)
+# ---------------------------------------------------------------------------
+#
+# Measured with the template's own font files (brand.yml), from each font's
+# advance widths, without a renderer, so a check takes milliseconds per slide.
+# It replaced finalize's character-count guess (characters x 0.6 x size, only
+# boxes under 200 px, never table cells), which missed "FY2 H1" at 14 pt bold
+# in a 68 px column: 66 px of text, and PowerPoint wrapped it (slide 38,
+# 2026-10-09). Findings:
+#   broken_word     a word wider than its box: PowerPoint breaks it mid-word (stop)
+#   table_overflow  a table that grows past its frame or the body area (stop)
+#   short_label_wraps  a label of two words or fewer that wraps (flag)
+#   near_limit      one-line text that uses more than FIT_NEAR_LIMIT (92%) of the
+#                   usable width, or the last line of wrapped text past
+#                   FIT_NEAR_LIMIT_WRAPPED (98%): PowerPoint may wrap it (flag)
+#   row_grows       a table row whose text is taller than the row's set height, or a
+#                   table that grows into empty space below it (flag)
+# A table that grows into another shape, past the body area or off the page is
+# table_overflow (stop).
+#
+# Checked 2026-10-09 against PowerPoint itself: "FY2 H1" (Arial Bold 12 pt) set
+# in 64 to 78 px cells and text boxes wrapped where these widths say (fits at
+# 97% of the room, wraps at 100.4%), and row heights matched PowerPoint's
+# within a pixel (lines x 1.2 x size, less a fifth of the size, plus margins).
+# But the slide 38 page that shipped wrapped had "FY2 H1" at 14 pt bold in a
+# 68 px room: 63.3 px by these widths (93%), and PowerPoint still wrapped it.
+# So one-line text is flagged from 92% (the owner's number; 95% would miss
+# that page). On the 71-slide Kinfield v3.1 deck that flags about 90 one-line
+# texts (spot-checked in PowerPoint pictures: they fit), so a near-limit line
+# is an Advisory flag, never a Major and never fixed automatically. The last
+# line of text that already wraps counts only from 98% (at 92% it added
+# about 40 more flags on long sentences in wide boxes).
+
+FIT_NEAR_LIMIT: float = 0.92
+FIT_NEAR_LIMIT_WRAPPED: float = 0.98
+FIT_STOP_KINDS: tuple[str, ...] = ("broken_word", "table_overflow")
+_FIT_DEFAULT_INSET_EMU = 91440        # PowerPoint's default left/right text margin
+_FIT_DEFAULT_TB_INSET_EMU = 45720     # and top/bottom
+_FIT_CELL_LR_EMU = 91440              # table cell margins when the cell sets none
+_FIT_CELL_TB_EMU = 45720
+_FIT_TOLERANCE_PX = 2.0
+
+
+class TextMeasurer:
+    """Text width (px at 96 DPI) from a font file's own advance widths: exact
+    at any size (Pillow rounds each letter to whole pixels at small sizes)."""
+    _metrics: dict = {}
+
+    def __init__(self, ttf_path: str, size_pt: float, spacing_pt: float = 0.0):
+        if ttf_path not in TextMeasurer._metrics:
+            from fontTools.ttLib import TTFont
+            f = TTFont(ttf_path, lazy=True, fontNumber=0)
+            adv = {g: m[0] for g, m in f["hmtx"].metrics.items()}
+            upm = f["head"].unitsPerEm
+            TextMeasurer._metrics[ttf_path] = (f.getBestCmap() or {}, adv, upm,
+                                               adv.get(".notdef", upm // 2))
+        self.cmap, self.adv, upm, self.default = TextMeasurer._metrics[ttf_path]
+        self.k = float(size_pt) * 96.0 / 72.0 / upm
+        self.spc = float(spacing_pt) * 96.0 / 72.0      # letter spacing per character
+
+    def getlength(self, s: str) -> float:
+        return (sum(self.adv.get(self.cmap.get(ord(ch)), self.default) for ch in s) * self.k
+                + self.spc * len(s))
+
+
+def fit_fonts(heading: str = "", body: str = "", heading_ttf: str = "",
+              heading_bold_ttf: str = "", body_ttf: str = "", body_bold_ttf: str = "") -> dict:
+    """The template's fonts for the fit check: names and font files (brand.yml
+    paths first, the installed faces of the family second)."""
+    out = {"heading": heading or "", "body": body or ""}
+    for role, reg, bold in (("heading", heading_ttf, heading_bold_ttf),
+                            ("body", body_ttf, body_bold_ttf)):
+        fam = out[role]
+        faces = pick_family_faces(fam) if fam else {}
+        r = reg if reg and Path(reg).is_file() else (faces.get("regular") or _find_brand_ttf(fam))
+        b = bold if bold and Path(bold).is_file() else (faces.get("bold") or bold_ttf_for(r) or r)
+        out[role + "_regular"], out[role + "_bold"] = r, b
+    if not out.get("body_regular"):
+        out["body_regular"], out["body_bold"] = out.get("heading_regular"), out.get("heading_bold")
+    if not out.get("heading_regular"):
+        out["heading_regular"], out["heading_bold"] = out.get("body_regular"), out.get("body_bold")
+    return out
+
+
+def _fit_attr_chain(shape, para, run, attr: str):
+    """A run attribute (sz / b) as PowerPoint inherits it: the run, the
+    paragraph's defaults, the shape's list style, then the layout and master
+    placeholder it inherits from, then the master's text styles."""
+    from pptx.oxml.ns import qn
+    if run is not None:
+        rpr = run._r.find(qn("a:rPr"))
+        if rpr is not None and rpr.get(attr) is not None:
+            return rpr.get(attr)
+    ppr = para._p.find(qn("a:pPr"))
+    lvl = int(ppr.get("lvl", "0")) + 1 if ppr is not None else 1
+    if ppr is not None:
+        d = ppr.find(qn("a:defRPr"))
+        if d is not None and d.get(attr) is not None:
+            return d.get(attr)
+    chain = [shape._element]
+    try:
+        base = shape._base_placeholder if shape.is_placeholder else None
+        while base is not None:
+            chain.append(base._element)
+            base = getattr(base, "_base_placeholder", None)
+    except Exception:
+        pass
+    for el in chain:
+        lst = el.find(".//" + qn("a:lstStyle"))
+        if lst is not None:
+            d = lst.find(qn(f"a:lvl{lvl}pPr") + "/" + qn("a:defRPr"))
+            if d is not None and d.get(attr) is not None:
+                return d.get(attr)
+    try:
+        if shape.is_placeholder:
+            t = int(shape.placeholder_format.type or 0)
+            master = shape.part.slide_layout.slide_master._element
+            ts = master.find(qn("p:txStyles"))
+            style = ts.find(qn("p:titleStyle") if t in (1, 3) else qn("p:bodyStyle"))
+            d = style.find(qn(f"a:lvl{lvl}pPr") + "/" + qn("a:defRPr"))
+            if d is not None and d.get(attr) is not None:
+                return d.get(attr)
+    except Exception:
+        pass
+    return None
+
+
+def _fit_shape_inset(shape, attr: str) -> int:
+    """A text margin (EMU): the shape's own, else the layout's and master's
+    placeholder it inherits from, else PowerPoint's default."""
+    from pptx.oxml.ns import qn
+    chain = [shape._element]
+    try:
+        base = shape._base_placeholder if shape.is_placeholder else None
+        while base is not None:
+            chain.append(base._element)
+            base = getattr(base, "_base_placeholder", None)
+    except Exception:
+        pass
+    for el in chain:
+        bp = el.find(".//" + qn("a:bodyPr"))
+        if bp is not None and bp.get(attr) is not None:
+            try:
+                return int(bp.get(attr))
+            except ValueError:
+                pass
+    return _FIT_DEFAULT_INSET_EMU
+
+
+def _fit_line_px(para, size_pt: float) -> float:
+    """One line's height in px: the paragraph's exact spacing, else its
+    percentage of PowerPoint's single line (1.2 x the size)."""
+    from pptx.oxml.ns import qn
+    ppr = para._p.find(qn("a:pPr"))
+    ln = ppr.find(qn("a:lnSpc")) if ppr is not None else None
+    if ln is not None:
+        pts = ln.find(qn("a:spcPts"))
+        if pts is not None and pts.get("val"):
+            return int(pts.get("val")) / 100 * 96 / 72
+        pct = ln.find(qn("a:spcPct"))
+        if pct is not None and pct.get("val"):
+            return size_pt * 1.2 * int(pct.get("val")) / 100000 * 96 / 72
+    return size_pt * 1.2 * 96 / 72
+
+
+def _fit_paragraphs(shape, frame, fonts: dict, heading: bool):
+    """[(text, measurer, size_pt, line_px)] per non-empty paragraph, measured
+    in the template font of its biggest run; None measurer when no font file."""
+    out = []
+    for para in frame.paragraphs:
+        # a line break inside the paragraph (a:br) reads as "\v": a new line
+        text = (para.text or "").replace("\v", "\n")
+        if not text.strip():
+            continue
+        best = None
+        for r in para.runs:
+            if not r.text.strip():
+                continue
+            sz = _fit_attr_chain(shape, para, r, "sz")
+            pt = int(sz) / 100 if sz else 18.0
+            try:
+                from twins.helpers import snap_font_pt
+                pt = snap_font_pt(pt) or pt
+            except Exception:
+                pass
+            b = _fit_attr_chain(shape, para, r, "b") in ("1", "true")
+            face = (r.font.name or "").strip()
+            is_head = heading or face.startswith("+mj") or (
+                face and face.lower() == (fonts.get("heading") or "").lower()
+                and face.lower() != (fonts.get("body") or "").lower())
+            try:
+                spc = int(_fit_attr_chain(shape, para, r, "spc") or 0) / 100
+            except ValueError:
+                spc = 0.0
+            if best is None or pt > best[0]:
+                best = (pt, b, is_head, spc)
+        if best is None:
+            continue
+        pt, b, is_head, spc = best
+        role = "heading" if is_head else "body"
+        path = fonts.get(role + ("_bold" if b else "_regular")) or fonts.get(role + "_regular")
+        try:
+            m = TextMeasurer(path, pt, spc) if path else None
+        except Exception:
+            m = None
+        out.append((text, m, pt, _fit_line_px(para, pt)))
+    return out
+
+
+def _fit_wrap(text: str, m: "TextMeasurer", width_px: float) -> tuple[list[float], float]:
+    """Greedy word wrap as PowerPoint does it: (width of each line, widest
+    single word), in px."""
+    widths, cur, widest = [], 0.0, 0.0
+    space = m.getlength(" ")
+    for hard in text.split("\n"):
+        cur = 0.0
+        for word in hard.split():
+            wl = m.getlength(word)
+            widest = max(widest, wl)
+            if cur and cur + space + wl > width_px:
+                widths.append(cur)
+                cur = wl
+            else:
+                cur = cur + space + wl if cur else wl
+        widths.append(cur)
+    return widths, widest
+
+
+def _fit_shapes(shapes, depth=0):
+    for sh in shapes:
+        try:
+            if sh.shape_type == 6:                       # a group: look inside
+                yield from _fit_shapes(sh.shapes, depth + 1)
+                continue
+        except Exception:
+            pass
+        yield sh, depth
+
+
+def _fit_label(shape) -> str:
+    try:
+        return shape.name or "<unnamed>"
+    except Exception:
+        return "<unnamed>"
+
+
+def fit_findings(slide, fonts: dict, body_bottom_px: float | None = None,
+                 near_limit: float = FIT_NEAR_LIMIT,
+                 near_limit_wrapped: float = FIT_NEAR_LIMIT_WRAPPED) -> dict:
+    """Measure every text box, table cell and placeholder on `slide`.
+
+    fonts: fit_fonts(...). body_bottom_px: the bottom of the layout's body
+    area (a table may not grow past it). Returns {"findings": [{"kind",
+    "shape", "text", "detail", "stop"}], "measured": n, "unmeasured": n}."""
+    findings: list[dict] = []
+    seen = {"measured": 0, "unmeasured": 0}
+
+    def add(kind, shape_name, text, detail):
+        findings.append({"kind": kind, "shape": shape_name, "text": text[:60],
+                         "detail": detail, "stop": kind in FIT_STOP_KINDS})
+
+    def check_frame(sh, frame, width_px, heading, where, cell=False):
+        if width_px <= 4:
+            return
+        from pptx.oxml.ns import qn
+        bp = frame._txBody.find(qn("a:bodyPr")) if hasattr(frame, "_txBody") else None
+        is_cell = cell is not False
+        if not is_cell and bp is not None and bp.get("wrap") == "none":
+            return          # a text box that does not wrap (a table cell always wraps)
+        if bp is not None and bp.get("vert") not in (None, "horz"):
+            return          # vertical text: not measured across
+        if hasattr(cell, "get") and cell.get("vert") not in (None, "horz"):
+            return
+        for text, m, pt, _lh in _fit_paragraphs(sh, frame, fonts, heading):
+            if m is None:
+                seen["unmeasured"] += 1
+                continue
+            seen["measured"] += 1
+            for seg in (x for x in text.split("\n") if x.strip()):
+                lines, widest = _fit_wrap(seg, m, width_px)
+                words = seg.split()
+                if widest > width_px + 0.5:
+                    add("broken_word", where, seg,
+                        f"a word {widest:.0f} px wide in {width_px:.0f} px at {pt:g} pt: "
+                        f"PowerPoint breaks it in the middle")
+                elif len(words) <= 2 and len(lines) > 1:
+                    add("short_label_wraps", where, seg,
+                        f"a {len(words)}-word label wraps onto {len(lines)} lines "
+                        f"({width_px:.0f} px at {pt:g} pt)")
+                elif lines and lines[-1] > (near_limit if len(lines) == 1
+                                            else near_limit_wrapped) * width_px:
+                    add("near_limit", where, seg,
+                        (f"it uses {100 * lines[-1] / width_px:.0f}% of the {width_px:.0f} px "
+                         f"width at {pt:g} pt: PowerPoint may wrap it onto a second line")
+                        if len(lines) == 1 else
+                        (f"its last line uses {100 * lines[-1] / width_px:.0f}% of the "
+                         f"{width_px:.0f} px width at {pt:g} pt: PowerPoint may add a line"))
+
+    def rows_needed(sh, tbl):
+        """[(set height px, needed height px)] per row."""
+        out = []
+        spans = []        # (first row, rows spanned, needed px) for vertically merged cells
+        cols = [int(c.width or 0) / EMU_PER_PX_AT_1280 for c in tbl.columns]
+        for r in tbl.rows:
+            set_h = int(r.height or 0) / EMU_PER_PX_AT_1280
+            need = 0.0
+            for ci, cell in enumerate(r.cells):
+                try:
+                    tc = cell._tc
+                    if tc.get("hMerge") or tc.get("vMerge"):
+                        continue
+                    span = int(tc.get("gridSpan", "1"))
+                    rspan = int(tc.get("rowSpan", "1"))
+                except Exception:
+                    span, rspan = 1, 1
+                w = sum(cols[ci:ci + span]) - (
+                    int(cell.margin_left if cell.margin_left is not None else _FIT_CELL_LR_EMU)
+                    + int(cell.margin_right if cell.margin_right is not None else _FIT_CELL_LR_EMU)
+                ) / EMU_PER_PX_AT_1280
+                label = f"{_fit_label(sh)} row {len(out) + 1} col {ci + 1}"
+                tcpr = tc.find("{http://schemas.openxmlformats.org/drawingml/2006/main}tcPr")
+                check_frame(sh, cell.text_frame, w, False, label,
+                            cell=tcpr if tcpr is not None else True)
+                h = (int(cell.margin_top if cell.margin_top is not None else _FIT_CELL_TB_EMU)
+                     + int(cell.margin_bottom if cell.margin_bottom is not None else _FIT_CELL_TB_EMU)
+                     ) / EMU_PER_PX_AT_1280
+                # PowerPoint's row: margins + each line's pitch, less a fifth of
+                # the last line's size (measured on Arial 10 to 16 pt, 2026-10-09)
+                last_pt = 0.0
+                for text, m, pt, lh in _fit_paragraphs(sh, cell.text_frame, fonts, False):
+                    n = len(_fit_wrap(text, m, w)[0]) if m is not None else text.count("\n") + 1
+                    h += n * lh
+                    last_pt = pt
+                if last_pt:
+                    h -= 0.2 * last_pt * 96 / 72
+                if rspan > 1:
+                    spans.append((len(out), rspan, h))     # shared by the rows it spans
+                else:
+                    need = max(need, h)
+            out.append((set_h, need))
+        # a merged cell grows only the last row it spans, and only by what the
+        # spanned rows together lack
+        for first, rspan, h in spans:
+            rows = out[first:first + rspan]
+            have = sum(max(s, n) for s, n in rows)
+            if rows and h > have:
+                s, n = rows[-1]
+                out[first + len(rows) - 1] = (s, max(s, n) + (h - have))
+        return out
+
+    slide_h_px = slide_height_emu(slide) / EMU_PER_PX_AT_1280
+    tops = []           # top-level shapes with text or a fill: what a growing table can run into
+    for o in slide.shapes:
+        try:
+            ox, oy = int(o.left or 0) / EMU_PER_PX_AT_1280, int(o.top or 0) / EMU_PER_PX_AT_1280
+            ow, oh = int(o.width or 0) / EMU_PER_PX_AT_1280, int(o.height or 0) / EMU_PER_PX_AT_1280
+        except Exception:
+            continue
+        if ow <= 0 or oh <= 0 or (ow >= 1200 and oh >= 700):
+            continue
+        tops.append((o._element, ox, oy, ox + ow, oy + oh, _fit_label(o)))
+
+    for sh, depth in _fit_shapes(slide.shapes):
+        name = _fit_label(sh)
+        try:
+            ph_t = int(sh.placeholder_format.type) if sh.is_placeholder else None
+        except Exception:
+            ph_t = None
+        if ph_t == 13 or name.lower().startswith("page-number"):
+            continue                                       # the template's page number
+        if getattr(sh, "has_table", False) and sh.has_table:
+            rows = rows_needed(sh, sh.table)
+            grows = [(i + 1, s, n) for i, (s, n) in enumerate(rows) if n > s + _FIT_TOLERANCE_PX]
+            if grows:
+                i, s, n = grows[0]
+                add("row_grows", name, "",
+                    f"{len(grows)} row(s) need more height than set (row {i}: "
+                    f"{n:.0f} px of text in a {s:.0f} px row): PowerPoint makes them taller")
+            frame_h = int(sh.height or 0) / EMU_PER_PX_AT_1280
+            total = sum(max(s, n) for s, n in rows)
+            top = int(sh.top or 0) / EMU_PER_PX_AT_1280
+            left = int(sh.left or 0) / EMU_PER_PX_AT_1280
+            right = left + int(sh.width or 0) / EMU_PER_PX_AT_1280
+            grown = top + total
+            if depth == 0 and grows and total > frame_h + _FIT_TOLERANCE_PX:
+                # Growing into empty space below is only a flag (row_grows);
+                # growing into another shape, past the body area or off the
+                # page is a stop.
+                hit = None
+                for o in tops:
+                    if o[0] is sh._element:
+                        continue
+                    ox0, oy0, ox1, oy1, oname = o[1:]
+                    if (top + frame_h - _FIT_TOLERANCE_PX <= oy0 < grown - _FIT_TOLERANCE_PX
+                            and min(ox1, right) - max(ox0, left) > 4):
+                        hit = (oname, oy0)
+                        break
+                limit = body_bottom_px or slide_h_px
+                if hit:
+                    add("table_overflow", name, "",
+                        f"the table grows from {frame_h:.0f} to {total:.0f} px tall and runs into "
+                        f"{hit[0]!r} (which starts at {hit[1]:.0f} px)")
+                elif grown > limit + _FIT_TOLERANCE_PX:
+                    add("table_overflow", name, "",
+                        f"the table grows from {frame_h:.0f} to {total:.0f} px tall, its bottom "
+                        f"at {grown:.0f} px, past the "
+                        f"{'body area bottom' if body_bottom_px else 'page bottom'} at {limit:.0f} px")
+            continue
+        if not getattr(sh, "has_text_frame", False) or not sh.has_text_frame:
+            continue
+        if not (sh.text_frame.text or "").strip():
+            continue
+        try:
+            w_emu = int(sh.width or 0)
+        except Exception:
+            w_emu = 0
+        l_in = _fit_shape_inset(sh, "lIns")
+        r_in = _fit_shape_inset(sh, "rIns")
+        width_px = (w_emu - l_in - r_in) / EMU_PER_PX_AT_1280
+        check_frame(sh, sh.text_frame, width_px, ph_t in (1, 3) or name.lower() == "title", name)
+    return {"findings": findings, **seen}
+
+
+def fit_problem_line(f: dict) -> str:
+    """One plain line for a fit finding."""
+    what = {"broken_word": "Word broken in the middle",
+            "table_overflow": "Table runs past its space",
+            "short_label_wraps": "Short label wraps",
+            "near_limit": "Text close to wrapping",
+            "row_grows": "Table rows taller than set"}.get(f.get("kind"), "Text fit")
+    txt = f" \"{f['text']}\"" if f.get("text") else ""
+    return f"{what}: {f.get('shape')}{txt}, {f.get('detail')}"
 
 
 # ---------------------------------------------------------------------------

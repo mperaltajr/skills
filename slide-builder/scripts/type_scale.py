@@ -46,11 +46,15 @@ _A = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
 EXEMPT_NAME = re.compile(
     r"(^|[-_ ])(chart|axis|tick|ticks|ylab|xlab|legend|leg|gridline|source|sources|"
     r"footnote|footnotes|fn)([-_ \d]|$)", re.I)
-TEMPLATE_NAME = re.compile(r"^(subtitle|takeaway|title)$", re.I)
+TEMPLATE_NAME = re.compile(r"^(subtitle|title)$", re.I)
+# "Takeaway" is skipped only as a template placeholder (a registered takeaway
+# slot); a designer's loose box named "takeaway" is a bottom band or card and is
+# checked like any text (2026-10-09).
+TEMPLATE_SLOT_NAME = re.compile(r"^takeaway$", re.I)
 # Shapes Slide Lab itself stamps on a compiled deck (review labeling, not
 # content). Exact names only, so a worker cannot dodge the check by naming a
 # shape chrome-something. Add a name here when a script starts stamping one.
-PIPELINE_CHROME_NAMES = frozenset({"chrome-option-badge", "section-tag"})  # section-tag: the kicker above the title (add_sources_tags_native / assemble)
+PIPELINE_CHROME_NAMES = frozenset({"chrome-option-badge", "section-tag"})  # section-tag: the label finalize draws above the title (chrome_rules.place_section_tag)
 SOURCE_TEXT = re.compile(r"^\s*(source|sources|note|notes)\b", re.I)
 FOOTNOTE_TEXT = re.compile(r"^\s*(\d{1,2}[.)]|\*|†)\s")
 # placeholder types: 1 title, 3 centered title, 4 subtitle, 13 slide number,
@@ -94,6 +98,8 @@ def check_slide(slide, slide_h: int) -> dict:
             continue
         name = sh.name or ""
         if TEMPLATE_NAME.match(name) or name in PIPELINE_CHROME_NAMES:
+            continue
+        if TEMPLATE_SLOT_NAME.match(name) and sh.is_placeholder:
             continue
         exempt_shape = bool(EXEMPT_NAME.search(name))
         bottom = (sh.top or 0) > slide_h * 0.85

@@ -19,7 +19,7 @@ Placeholders rendered by `build_deck.py`:
 | `{{VISUAL_RHYTHM}}` | Optional steering: the dominance pattern the brief wants (e.g. `conclusion-dominant`, `contrast-dominant`). Honor it when set; else use your judgment. |
 | `{{PINNED_SOURCE_PAGE}}` | A page the user supplied to be reproduced on this slide, or `(none)`. When set, option A must reproduce it. |
 | `{{SOURCE_LINE}}` | The brief's `**Source:**` line for this page, or `(none in the brief)`. It goes in the footer / Source slot. |
-| `{{SECTION_TAG}}` | The brief's `**Section tag:**` for this page, or `(none)`. Text only for now: the finishing step will draw it in a fixed style later; designers do not draw it. |
+| `{{SECTION_TAG}}` | The brief's `**Section tag:**` for this page, or `(none)`. Slide Lab draws it; do not draw it. The finishing step puts it just above the title in the template's fixed style (2026-10-09); a drawn copy, or one marked as a template field, is not used. |
 | `{{MANDATORY_SHAPE}}` | Optional steering: a layout shape the brief requires (e.g. `two-column`, `three-column`). When set, the picked pattern MUST satisfy it. |
 | `{{FORBIDDEN_PATTERNS}}` | Optional steering: pattern stems the brief excludes. Do NOT pick any pattern named here. |
 | `{{ACCENT_PLACEMENT}}` | Optional steering: where the accent color should land on this slide. Honor it when set. |
@@ -81,7 +81,7 @@ You are one of {{SLIDE_TOTAL}} parallel agents dispatched from the same parent s
 Put this text, word for word, in the footer / Source slot (see § 8). When it says `(none in the brief)`, use the deck-level notes' source line if they set one; otherwise leave the source out. Never invent one.
 
 **Section tag:** {{SECTION_TAG}}
-For your information only: Slide Lab will draw the tag in one fixed style later. Do not draw it, and do not invent any other label.
+For your information only: Slide Lab draws it; do not draw it. Finalize puts it just above the title in the template's fixed style. Do not invent any other label.
 
 ### Per-slide steering (honor when set; otherwise use your own judgment)
 
@@ -361,7 +361,7 @@ finalize_deck.py reads line 1. Token prefix decides routing:
 
 **Tables and lists (sketch path).** Draw a table as an HTML `<table>` with the header row in `<thead>` (body rows in `<tbody>`, `colspan`/`rowspan` for merged cells, `text-align: right` for numbers, a background on the `<tr>` for a highlighted row). Write bullet points as `<ul>`/`<ol>` with one `<li>` per point (a nested `<ul>` for a sub-point, `<b>` for a bold lead-in); custom markers drawn with `li::before` are fine. Slide Lab turns these into a real PowerPoint table and one text box with real bullets. Do not build a table from loose `<div>` boxes or a list from one box per line; if you must use a `<div>` grid, mark it `data-native="table"` (see `reference/sketch-html-spec.md` § 6b).
 
-**Fonts, footnotes and source (sketch path).** Never use `@font-face`; name the font in `font-family`. Give footnotes `data-shape-id="footnote-1"`, `"footnote-2"` ...; the source goes in the footer template field (or a `source-` id). Slide Lab places the takeaway, footnotes and source itself in fixed positions, so leave room above the source line.
+**Fonts, footnotes and source (sketch path).** Never use `@font-face`; name the font in `font-family`. Give footnotes `data-shape-id="footnote-1"`, `"footnote-2"` ...; the source goes in the footer template field (or a `source-` id). Slide Lab places the takeaway, footnotes and source itself in fixed positions, so leave room above the source line. The ids `subtitle`, `source-...` and `footnote-...` are reserved for those three jobs (a `source-...` / `footnote-...` box is moved to the source stack when it sits in the bottom quarter of the page or its text starts "Source", "Note", "1." or "*"); name a bottom band or so-what card `band-...` or `so-what-...`, never `takeaway-...` or `source-...`.
 
 **Source and footnote (sketch path).** Put the brief's source line (§ 1, **Source line:** `{{SOURCE_LINE}}`) in the element with `data-template-field="footer"`, word for word. If the brief's deck-level notes set one source line for every slide (for example "Illustrative data, not real"), use it. If the brief gives no source, leave the footer element out. **Never write `[add source here or delete]` or `[add footnote here or delete]`.** If the brief and the pattern fundamentally disagree (Hardline #5), write no HTML for that option; write `option_X.py` whose line 1 is `# SKELETON_REJECTED: <reason>` and whose body is `import sys; sys.exit(0)`, and stop.
 <!-- /only -->
@@ -389,6 +389,11 @@ finalize_deck.py reads line 1. Token prefix decides routing:
   - **Sketch path (HTML):** CSS uses px; px = pt × 4⁄3. Size text so it maps to the grid — e.g. **8pt→10.67px, 9pt→12px, 10.5pt→14px, 12pt→16px, 14pt→18.67px, 18pt→24px, 24pt→32px, 32pt→42.67px**. Body text (bullets, labels, eyebrows, table cells) is 12pt (16px) by default, 10.5pt (14px) at the very lowest when the content cannot be cut, in at most 3 sizes; only sources, footnotes and chart text may go down to 9pt (12px). See `reference/sketch-html-spec.md` § "Font-size grid".
 <!-- /only -->
 - **Title, subtitle and bottom band: one job each (owner's rule, 2026-10-08).** Each must add something the others do not say. Do not fill a template's takeaway or so-what band with a restatement of the title; leave it empty unless it adds new information (the number or consequence the title does not state). A two-line title is allowed, but with a two-line title prefer no subtitle; a subtitle suits a one-line title. QC flags a subtitle or band that repeats the title as Major.
+- **Reserved shape names (2026-10-09).** `subtitle` is the takeaway under the title, `source-...` the source line and `footnote-...` a footnote: Slide Lab moves and restyles those. Name a bottom band or so-what card `band-...` or `so-what-...` (never `takeaway-...`), and body rows anything but `source-...` / `footnote-...`.
+- **Section tag: Slide Lab draws it; do not draw it.** The small label above the title (§ 1 **Section tag:**) is added at finalize in the template's style. Leave the space above the title empty.
+<!-- only:direct -->
+- **Text fit: you MUST run the fit check on every option before finishing** (owner's decision, 2026-10-09). After the script saves `option_X.pptx`, run `py -3 "{{HELPERS_MODULE_PATH}}/scripts/check_fit.py" "{{OUTPUT_DIR}}/option_X.pptx"`. It measures every text box and table cell with the client template's own fonts, in under a second. Fix every `STOP` (a word PowerPoint would break in the middle, a table that grows into other content or past the body area) by widening the box or column, shortening the word, or giving rows room; finalize refuses the build otherwise. Fix `FLAG` lines where you can (one-line text using more than 92% of its box width, a label of two words or fewer that wraps, a table row that grows). Say in the build report that you ran it.
+<!-- /only -->
 - **Insertion order = paint order.** Background fills first, foreground/text last.
 
 ---

@@ -219,6 +219,8 @@ def slide_lines(slide, slide_w: int, slide_h: int) -> dict:
     for sh in slide.shapes:
         if sh is title or _ph_type(sh) in skip:
             continue
+        if (sh.name or "").strip().lower() == "section-tag":
+            continue        # the section tag Slide Lab draws above the title
         txt = _text(sh)
         if not txt or sh.top is None or sh.width is None:
             continue

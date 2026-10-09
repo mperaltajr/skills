@@ -456,6 +456,7 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
         page_type = page_type.split("\n")[0].strip()
 
     options = []
+    slide_content_lines: list = []     # content findings shown once per slide
     # Only render tiles for options that were ACTUALLY built for this slide. A
     # slide built with a single option must show ONE tile, not one tile plus
     # empty B/C "missing" slots.
@@ -497,6 +498,10 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
         qc_path = themed_dir / _p.option_qc_json_name(letter)
         qc_summary = None
         qc_failed_checks: list = []
+        # Findings that get their own plain line on the card (owner's decision,
+        # 2026-10-09): type-scale breaks ("fix it, or give a reason"), text
+        # fit, and, once per slide, a takeaway that repeats the title.
+        qc_plain: list = []
         if qc_path.exists():
             try:
                 qc_data = json.loads(qc_path.read_text(encoding="utf-8"))
@@ -504,6 +509,17 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
                 for c in qc_data.get("checks", []):
                     if not c.get("pass"):
                         qc_failed_checks.append(f"{c.get('check')} [{c.get('severity')}]: {c.get('detail', '')}")
+                        lines = [str(x) for x in (c.get("plain") or []) if x]
+                        if not lines:
+                            continue
+                        if c.get("slide_level"):
+                            for x in lines:
+                                if x not in slide_content_lines:
+                                    slide_content_lines.append(x)
+                        else:
+                            qc_plain.append({"block": c.get("severity") == "block",
+                                             "advisory": bool(c.get("advisory")),
+                                             "lines": lines})
             except Exception:
                 qc_summary = None
 
@@ -570,6 +586,7 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
             "themed_size": themed_pptx.stat().st_size if themed_exists else 0,
             "qc_summary": qc_summary,
             "qc_failed_checks": qc_failed_checks,
+            "qc_plain": qc_plain,
             "pattern": pattern,
             "classification": classification,
             # Sketch-path translation QC fields
@@ -633,6 +650,7 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
         "prompt_path": src_dir / _p.PROMPT_MD,
         "prompt_found": prompt.get("found", False),
         "options": options,
+        "content_lines": slide_content_lines,
         "stamp": slide_stamp,
         "pinned": (slide_meta or {}).get("pinned_source_page") or "",
         "context_present": context_present,
@@ -917,6 +935,21 @@ def render_option_tile(slide: dict, opt: dict, themed_path_str: str) -> str:
         'title="All options in one deck: keep this option in it, or leave it out">'
         'Kept in the all-options deck</button>')
 
+    # Each finding that matters gets its own plain line under the picture
+    # (not only the badge's hover text): a stop in red, a "fix it, or give a
+    # reason" Major in amber. At most 4 lines per check, then a count.
+    qc_lines_html = ""
+    rows = []
+    for grp in opt.get("qc_plain") or []:
+        lines = grp.get("lines") or []
+        cls = ("qc-line block" if grp.get("block") else
+               "qc-line advisory" if grp.get("advisory") else "qc-line major")
+        rows += [f'<div class="{cls}">{html.escape(x)}</div>' for x in lines[:4]]
+        if len(lines) > 4:
+            rows.append(f'<div class="{cls}">and {len(lines) - 4} more like it</div>')
+    if rows:
+        qc_lines_html = '<div class="qc-lines">' + "".join(rows) + "</div>"
+
     return f"""
 <div class="option" data-slide="{sid}" data-letter="{letter}" data-pptx="{html.escape(themed_path_str)}">
   <div class="option-frame">{thumb}{qc_badge}{class_badge_html}</div>
@@ -926,6 +959,7 @@ def render_option_tile(slide: dict, opt: dict, themed_path_str: str) -> str:
     {vqc_btn}
     {keep_btn}
   </div>
+  {qc_lines_html}
 </div>
 """
 
@@ -1105,6 +1139,11 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
         f'title="Leave this slide out of the deck">LEAVE OUT</button>'
     )
     more_picker = ""
+    # A content finding (the takeaway repeats the title): once per slide, as
+    # its own line; the user's wording choice, never fixed automatically.
+    content_html = "".join(
+        '<div class="content-line">Your call (wording): ' + html.escape(x) + "</div>"
+        for x in slide.get("content_lines") or [])
     n_opts = len(slide["options"])
     layout = "solo" if n_opts == 1 else "multi"
     # per-card inline rule: multi mode uses one column per option
@@ -1134,6 +1173,7 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
   </div>
 
   {adjacency_banner}
+  {content_html}
   {render_sketch_notes(slide)}
   {context_chip}
   {('<div class="redo-note" style="display:block;">&#128204; <strong>Option A reproduces the page you supplied</strong> (' + html.escape(slide["pinned"]) + '). Its figures are checked against the brief before anything compiles.</div>') if slide.get("pinned") else ""}
@@ -1365,6 +1405,11 @@ code { font-family: Consolas, monospace; font-size: 12px; color: var(--text-dim)
 .qc-badge.ok    { background: var(--approve); color: #fff; }
 .qc-badge.warn  { background: var(--tweak);   color: #fff; }
 .qc-badge.block { background: var(--reject);  color: #fff; }
+.qc-lines { margin-top: 6px; display: flex; flex-direction: column; gap: 3px; }
+.qc-line { font-size: 12px; line-height: 1.35; padding: 3px 6px; border-left: 3px solid var(--tweak); background: rgba(0,0,0,0.03); }
+.qc-line.block { border-left-color: var(--reject); }
+.qc-line.advisory { border-left-color: var(--border); color: var(--text-dim); }
+.content-line { font-size: 13px; line-height: 1.4; margin: 6px 0; padding: 6px 10px; border-left: 3px solid var(--tweak); background: rgba(0,0,0,0.03); }
 
 .card-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 14px 20px 18px; border-top: 1px solid var(--border); }
 .decision-buttons { display: flex; flex-wrap: wrap; gap: 6px; }

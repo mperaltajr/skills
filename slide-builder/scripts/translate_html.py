@@ -2280,6 +2280,23 @@ def plan_from_extract(data: dict, subtitle_as_shape: bool,
                   f"installed font, the one the finished slide uses")
     fields = {k: v for k, v in (data.get("fields") or {}).items()
               if not (k == "subtitle" and subtitle_as_shape)}
+    # Template fields the graft fills are title, subtitle, footer and page
+    # number. Anything else marked data-template-field is not drawn: say so
+    # rather than drop it silently. The section tag is drawn by finalize from
+    # the brief (owner's decision, 2026-10-09), so the design's copy is left out.
+    for k, v in (data.get("fields") or {}).items():
+        if k in ("title", "subtitle", "footer", "page_number"):
+            continue
+        low = k.lower().replace("_", "-")
+        if "section" in low or low in ("kicker", "eyebrow", "tag"):
+            plan.warn("SECTION_TAG_FIELD",
+                      f"the design marks {v!r} as template field {k!r}: Slide Lab draws the "
+                      "section tag itself from the brief, above the title, so this copy is "
+                      "not drawn. Do not draw or mark the section tag in the design")
+        else:
+            plan.warn("UNKNOWN_TEMPLATE_FIELD",
+                      f"the design marks {v!r} as template field {k!r}, which no template "
+                      "slot takes (only title, subtitle, footer, page_number): it is not drawn")
     cv = data.get("canvas") or {}
     if abs((cv.get("w") or CANVAS_W) - CANVAS_W) > 1 or abs((cv.get("h") or CANVAS_H) - CANVAS_H) > 1:
         # Not on the fixed 1280x720 canvas the design spec requires (an older

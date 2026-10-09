@@ -90,6 +90,16 @@ Follow the procedure in your `_prompt.md` verbatim:
 
    The finalizer (`finalize_deck.py`) executes each script with CWD set to the slide directory, then looks for `option_A.pptx` / `option_B.pptx` / `option_C.pptx` next to the `.py` file. Using `sys.argv[1]` will crash with `IndexError: list index out of range` because the finalizer passes no arguments.
 
+   **Text fit check (direct path): you MUST run it on every option before finishing** (owner's decision, 2026-10-09). Run the script, then:
+
+   ```
+   py -3 <skill_root>/scripts/check_fit.py <out_dir>/slide_NN/option_A.pptx
+   ```
+
+   It measures every text box, table cell and placeholder with the client template's own fonts (no renderer, under a second). Fix every `STOP` (a word PowerPoint would break in the middle; a table whose rows grow into other content, past the body area or off the page) by widening the box or column, shortening the word or giving rows room: finalize refuses the build on those. Fix `FLAG` lines where you can (one-line text using more than 92% of its box width, a label of two words or fewer that wraps, a table row that grows). Mention the result in the build report. On the sketch path the translator runs it on the converted slide.
+
+   Reserved names (both paths): `subtitle` is the takeaway under the title, `source-...` the source line, `footnote-...` a footnote; Slide Lab moves and restyles them. Name a bottom band or so-what card `band-...` or `so-what-...` (never `takeaway-...`). Do not draw the section tag (the small label above the title): Slide Lab draws it.
+
    ### Charts and final periods (both paths; owner's rules, 2026-10-09)
 
    - **Chart header line.** Every chart has a header line at its top left, starting at the chart's left edge: `Chart title, [Unit]`. The title is bold; the comma and the unit in square brackets are regular weight (not bold); an optional footnote mark goes right after the title as a superscript digit (use the characters ¹ ² ³ so it survives the conversion). Name it `chart-title` (`chart-title-2` and so on when the slide has more than one chart). Sketch: `<div data-shape-id="chart-title"><b>Revenue by region</b>¹, [$B]</div>`. Direct: `add_text(slide, "chart-title", "<strong>Revenue by region</strong>¹, [$B]", ..., bold=False)`. Axis titles go on each axis that carries a unit (`chart-axis-title-x`, `chart-axis-title-y`).
@@ -119,7 +129,8 @@ Follow the procedure in your `_prompt.md` verbatim:
    - Put `data-visual-form="<form>"` on `.slide-canvas` (cards, table, chart, flow, timeline, matrix, hero-number, diagram, comparison, text, quote, image, map); the review page counts them and warns when most pages look alike
    - Icons: `<i data-icon-name="NAME" style="width:32px;height:32px;color:...">`, with NAME from `slide-builder/icons/checked-icons.json` only. `render_html.py` draws them; do not write your own icon drawings or preview scripts. Your temporary files go in your own `slide_NN/` folder, never a shared scratch folder
    - The brief's source line (in `_prompt.md` § 1) goes, word for word, in the `data-template-field="footer"` element
-   - Never use `@font-face`; name the font in `font-family`. Give footnotes `data-shape-id="footnote-1"`, `"footnote-2"` ...; the source goes in the footer template field (or a `source-` id). Slide Lab places the takeaway, footnotes and source itself in fixed positions, so leave room above the source line
+   - Never use `@font-face`; name the font in `font-family`. Give footnotes `data-shape-id="footnote-1"`, `"footnote-2"` ...; the source goes in the footer template field (or a `source-` id). Slide Lab places the takeaway, footnotes and source itself in fixed positions, so leave room above the source line. The ids `subtitle`, `source-...` and `footnote-...` are reserved for those jobs; name a bottom band or so-what card `band-...` or `so-what-...`, never `takeaway-...`
+   - The brief's section tag: Slide Lab draws it; do not draw it (finalize puts it above the title), and do not mark it as a template field
    - Use ONLY the CSS properties permitted by sketch-html-spec.md §7 (no gradients in body, no shadows, no filters, no text-decoration on body text)
 
    **Worker self-check before declaring done (sketch path) — TWO mandatory checks:**
