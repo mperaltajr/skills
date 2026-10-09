@@ -96,7 +96,7 @@ def build(n: int, env: dict, check: bool = True) -> dict:
         t0 = time.monotonic()
         r = _ok(H.run("compile_picks.py", "--out", out, "--final-token", tok, **env), "compile")
         t["compile"] = time.monotonic() - t0
-        deck = out / "final_deck.pptx"
+        deck = _state.compiled_deck(out)
         if check:
             assert "PowerPoint opens it cleanly" in r.stdout, r.stdout[-1500:]
             assert (r.stdout + r.stderr).count(RS.NOTICE) == 1

@@ -99,7 +99,7 @@ def main() -> int:
         assert "42 percent" not in fixes[0]["findings"]
         assert not [a for a in st.get("chat_approvals") or [] if a["kind"] == "qc_fix"], \
             "an automatic fix was recorded as the user's approval"
-        assert (out / "final_deck.pptx").exists()
+        assert _state.compiled_deck(out).exists()
         print("    ok: recorded as fixed automatically, deck compiled")
 
         print("[4] round 2 runs; a third round is refused")
