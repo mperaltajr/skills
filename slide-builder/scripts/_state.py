@@ -72,6 +72,14 @@ def record_prep(out_dir, content_hash: str, canonical_out: str) -> None:
     state.setdefault("stages", {})["prep"] = {"at": _now(), "rev": _bump(state)}
     state.pop("review", None)       # any (re)prep invalidates prior approval
     state.pop("final_check", None)  # ...and the final look at the finished picks
+    # The agent files Claude Code runs right now (prep has just checked they
+    # are the repo's). compile and check_done compare against this and stop
+    # when they changed mid-build (owner-approved fix, 2026-10-09).
+    try:
+        import _install
+        state["agents"] = {"at": _now(), "installed": _install.installed_fingerprints()}
+    except Exception:
+        pass
     _write(out_dir, state)
 
 
@@ -589,7 +597,16 @@ def file_digest(path) -> str:
 
 def record_vision_qc(out_dir, deck: str, slides_reviewed: int, findings: int = 0,
                      criticals: int = 0, majors: int = 0, advisories: int = 0) -> None:
-    """Record that a real page-by-page VISION pass ran over the compiled deck.
+    """The whole-deck summary of a vision pass (legacy shape).
+
+    Since 2026-10-09 the record check_done relies on is per page
+    (state["vision_pages"], written by qc_pages.record through
+    record_vision_qc.py, with proof each page's picture was opened) plus the
+    deck-wide look (state["vision_deck_look"]). This summary alone no longer
+    makes a deck deliverable; qc_pages.record writes it alongside them for
+    display and for older readers.
+
+    Record that a real page-by-page VISION pass ran over the compiled deck.
 
     "Done" used to be an orchestrator claim backed by the deterministic
     self-check, which is structurally blind to overlaps and whitespace. This

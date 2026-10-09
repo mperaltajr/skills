@@ -37,6 +37,8 @@ from pptx.util import Inches  # noqa: E402
 
 import _state  # noqa: E402
 from compile_picks import assert_package_integrity  # noqa: E402
+sys.path.insert(0, str(HERE))
+import _qc_helper as Q  # noqa: E402
 
 
 def main() -> int:
@@ -207,6 +209,12 @@ def main() -> int:
             _state.record_compile(d, kind=kind, output=deck, slides=n, options=opts)
             return d, deck
 
+        def _qc(d, deck):
+            """An honest quality-check round over every page of deck."""
+            Q.fake_render(d, deck)
+            rc, o, _ = Q.read_round(d)
+            assert rc == 0, o
+
         def _done(d, *extra) -> tuple[int, str]:
             r = subprocess.run(
                 [sys.executable, str(SCRIPTS / "check_done.py"), "--out", str(d), *extra],
@@ -221,16 +229,32 @@ def main() -> int:
         d, deck = _build("done")
         rc, o = _done(d)
         assert rc == 1 and "no vision pass recorded" in o, o
-        _state.record_vision_qc(d, deck, 2)                       # partial look
+        # The vision record is per page since 2026-10-09: each page's reviewed
+        # image must be the current render's image of that page, with proof
+        # the page's picture was opened (tests/_qc_helper.py reads honestly).
+        Q.fake_render(d, deck)
+        rc, o, _ = Q.read_round(d, skip_pages=(3,))               # partial look
+        assert rc == 3 and "no verified note: 3" in o, o
         rc, o = _done(d)
-        assert rc == 1 and "2 slide(s) reviewed; the deck has 3" in o, o
-        _state.record_vision_qc(d, deck, 3, criticals=0, majors=1, advisories=2)
+        assert rc == 1 and "no vision pass recorded" in o, "a refused round records nothing: " + o
+        adv = {"severity": "Advisory", "issue": "tight spacing"}
+        maj = {"severity": "Major", "category": "chrome", "issue": "source line moved"}
+        rc, o, _ = Q.read_round(d, findings={2: [maj, adv], 3: [adv]})
+        assert rc == 0, o
         rc, o = _done(d)
         assert rc == 1 and "1 Major" in o, "an open Major must refuse (decision 6)"
-        _state.record_vision_qc(d, deck, 3, criticals=0, majors=0, advisories=2)
+        rc, o, _ = Q.read_round(d, also=[2], findings={2: [adv]})   # fixed: re-read page 2
+        assert rc == 0, o
         rc, o = _done(d)
         assert rc == 0, f"clean chain, only Advisory open, must be deliverable: {o}"
-        print("    ok: none / partial / open Major refuse; Advisory-only passes")
+        assert "2 Advisory open" in o, "the Advisory carried on page 3 stays open: " + o
+        Q.fake_render(d, deck, vary={2: "moved"})                 # page 2 now looks different
+        rc, o = _done(d)
+        assert rc == 1 and "never reviewed as they look in this deck: page 2" in o, o
+        Q.fake_render(d, deck)
+        assert _done(d)[0] == 0
+        print("    ok: none / partial / open Major refuse; Advisory-only passes; "
+              "a page that looks different is unreviewed")
 
         print("[6] a later finalize block on a shipped option re-opens 'done'")
         _state.record_option_qc(d, {K(2, "A"): {"blocks": 1, "reasons": ["chrome_buried"]}})
@@ -250,7 +274,7 @@ def main() -> int:
 
         print("[8] re-prepping after compile makes the deck stale")
         d, deck = _build("reprep")
-        _state.record_vision_qc(d, deck, 3)
+        _qc(d, deck)
         assert _done(d)[0] == 0
         _state.record_prep(d, "h2-edited-brief", d)
         rc, o = _done(d)
@@ -259,7 +283,7 @@ def main() -> int:
 
         print("[9] a hand-made deck passed with --deck is refused")
         d, deck = _build("wrongdeck")
-        _state.record_vision_qc(d, deck, 3)
+        _qc(d, deck)
         other = _deck(tmp / "handmade.pptx", 3)
         hm = _P(str(other))
         hm.slides[0].shapes.add_textbox(Inches(1), Inches(1), Inches(2), Inches(1))
@@ -290,26 +314,28 @@ def main() -> int:
             "the audit got DELIVERABLE for a file containing 'not a pptx': " + o)
         print("    ok")
 
-        print("[11] record_vision_qc refuses a count larger than the deck")
+        print("[11] record_vision_qc refuses a count larger than the notes prove")
         d, deck = _build("overcount")
+        Q.fake_render(d, deck)
+        rc, o, _ = Q.read_round(d, record_args=("--slides-reviewed", 999))
+        assert rc == 3 and "claims more pages than the notes prove (3)" in o, o
         r = subprocess.run(
             [sys.executable, str(SCRIPTS / "record_vision_qc.py"), "--out", str(d),
-             "--deck", str(deck), "--slides-reviewed", "999",
-             "--criticals", "0", "--majors", "0"],
+             "--deck", str(deck), "--criticals", "0", "--majors", "0"],
             capture_output=True, text=True)
-        assert r.returncode == 2, r.stdout
-        print("    ok")
+        assert r.returncode == 2 and "no longer typed" in r.stdout, r.stdout
+        print("    ok: an over-claim and typed counts are refused")
 
         print("[12] the all-options and splice decks are checkable and labeled")
         d, deck = _build("allvar", kind="all_variations")
-        _state.record_vision_qc(d, deck, 3)
+        _qc(d, deck)
         rc, o = _done(d)
         assert rc == 0 and "all-options comparison deck" in o, o
         d, _ = _build("splice", kind="splice")
         elsewhere = _deck(tmp / "client_deck_slidelab.pptx", 3)   # next to the original
         _state.record_compile(d, kind="splice", output=elsewhere, slides=3,
                               options=[K(1, "A")])
-        _state.record_vision_qc(d, elsewhere, 3)
+        _qc(d, elsewhere)
         rc, o = _done(d)
         assert rc == 0 and "spliced deck" in o, (
             "the spliced deck lives next to the original; check_done must find it "

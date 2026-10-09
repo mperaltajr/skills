@@ -32,6 +32,7 @@ sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parent / "scripts"))
 import _e2e_harness as H  # noqa: E402
 import _state  # noqa: E402
+import _qc_helper as Q  # noqa: E402
 
 
 def _chat_picks(out: Path, words: str, picks: str):
@@ -146,7 +147,8 @@ def main() -> int:
         print("    ok: compiled; the words are bound to the page's token and digests")
 
         print("[8] check_done lists them as chat approvals, not as overrides")
-        _state.record_vision_qc(out, str(deck), slides_reviewed=2)
+        rc, o, _ = Q.read_round(out)      # every page, over compile's own render
+        assert rc == 0, o
         r = H.run("check_done.py", "--out", out)
         assert r.returncode == 0, r.stdout
         assert "chat approvals: 2 recorded" in r.stdout, r.stdout

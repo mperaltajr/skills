@@ -15,8 +15,16 @@ So this checks one unbroken chain of recorded facts, each tied to the last:
   3. it was built from the CURRENT brief (nothing re-prepped since)
   4. it opens, and has no structure PowerPoint refuses
   5. every option in it was finalized with no blocking findings
-  6. a VISION pass was recorded over these same bytes, covering every slide
-  7. that pass left no open Critical or Major findings (only Advisory may remain)
+  6. every page's REVIEWED image is that page's image in the current render
+     of this exact deck (render_manifest.json in <out>/_qc, bound to the
+     deck's bytes; reviews of unchanged pages carry forward), each review
+     recorded with proof the page's picture was opened (qc_pages.py), and a
+     deck-wide look was recorded for this exact deck (owner's definition of
+     done, 2026-10-09)
+  7. no Critical or Major finding is open on any page, including findings
+     carried on unchanged pages (only Advisory may remain, or a Major the
+     user kept with their reason)
+  7b. the agent files Claude Code runs are the ones recorded at prep
   8. every figure on a replicated supplied page was reconciled
   9. every comment the user made on a pick was applied (none pending)
 
@@ -41,6 +49,9 @@ HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 sys.path.insert(0, str(HERE.parents[1] / "slide-qc" / "scripts"))
 import _state  # noqa: E402
+import _install  # noqa: E402
+import qc_pages  # noqa: E402
+import render_manifest as RM  # noqa: E402
 
 
 def _same_file(a, b) -> bool:
@@ -156,32 +167,63 @@ def main(argv=None) -> int:
         if not ok:
             problems.append(why)
 
-    # 6 + 7. A vision pass over these bytes, every slide, nothing open above Advisory.
+    # 6 + 7. The owner's definition of done (2026-10-09): every page's reviewed
+    # image is that page's image in the current render of THIS deck, a
+    # deck-wide look was recorded for this deck, nothing open above Advisory.
     vq = state.get("vision_qc") or {}
-    if not vq:
+    vp = state.get("vision_pages") or {}
+    look = state.get("vision_deck_look") or {}
+    qc = qc_pages.qc_dir(args.out)
+    man = RM.read(qc)
+    if not vq and not vp:
         problems.append(
             "no vision pass recorded — the deterministic self-check does NOT "
             "count. Run slide-qc over the compiled deck; it records the pass.")
+    elif not vp:
+        problems.append(
+            "the vision pass was recorded the old way (a typed page count, no proof "
+            "the pages were opened). Run slide-qc again: qc_pages.py plan, then "
+            "record_vision_qc.py with the page notes.")
+    elif not man or man.get("deck_digest") != digest:
+        problems.append(
+            f"there is no render of this exact deck in {qc} (it was edited, "
+            "recompiled, or rendered elsewhere), so no page review can be matched "
+            f"to it. Render it there (render_slides.py \"{deck}\" \"{qc}\") and run "
+            "slide-qc on the pages that changed.")
     else:
-        if vq.get("digest") != digest:
+        bad = RM.verify_images(man, qc)
+        if bad:
             problems.append(
-                "the recorded vision pass was over different bytes than this deck "
-                "(it was edited, recompiled, or the pass looked at another file). "
-                "Re-run slide-qc on the deck you are sending.")
-        seen = int(vq.get("slides_reviewed") or 0)
-        if n_deck and seen != n_deck:
+                f"{len(bad)} page image(s) in {qc} were changed after the render "
+                f"({', '.join(bad[:4])}); render again with --fresh and re-run slide-qc.")
+        if n_deck and int(man.get("slides") or 0) != n_deck:
+            problems.append(f"the render has {man.get('slides')} page(s); the deck has "
+                            f"{n_deck}. Render again and re-run slide-qc.")
+        unrev = qc_pages.unreviewed_pages(state, man)
+        if unrev:
             problems.append(
-                f"the vision pass records {seen} slide(s) reviewed; the deck has "
-                f"{n_deck}. A partial look is how defects shipped last time.")
-        crit, maj = int(vq.get("criticals") or 0), int(vq.get("majors") or 0)
-        if "criticals" not in vq:
-            problems.append("the vision pass predates severity tracking; re-run "
-                            "slide-qc so Critical and Major counts are recorded")
-        elif crit or maj:
+                f"{len(unrev)} page(s) were never reviewed as they look in this deck: "
+                f"page {', '.join(map(str, unrev[:15]))}{' ...' if len(unrev) > 15 else ''}. "
+                "A partial look is how defects shipped last time. Run slide-qc "
+                "(qc_pages.py plan lists exactly these pages).")
+        if look.get("deck_digest") != digest:
+            problems.append(
+                "no deck-wide look (thumbnail sheets, changed pages beside unchanged "
+                "ones, whole-file hygiene and type-scale check) was recorded for this "
+                "exact deck. Run slide-qc; every round records one.")
+        cnt = qc_pages.open_counts(state)
+        crit, maj = cnt["Critical"], cnt["Major"]
+        if crit or maj:
             problems.append(
                 f"the vision pass left {crit} Critical and {maj} Major finding(s) "
-                "open. Everything above Advisory must be fixed (or corrected to "
-                "'not a defect' if the finding was wrong), then QC re-run.")
+                "open (findings on unchanged pages carry forward and stay open). "
+                "Everything above Advisory must be fixed (or corrected to 'not a "
+                "defect' if the finding was wrong), then QC re-run.")
+
+    # 6b. The agent files Claude Code runs are the ones this build was prepared with.
+    _agents = _install.changed_since_prep(state)
+    if _agents:
+        problems.append(_agents)
 
     # 8. Supplied-page figures.
     sl = state.get("source_ledger") or {}
@@ -207,8 +249,20 @@ def main(argv=None) -> int:
              "splice": "spliced deck"}.get(kind, kind)
     print(f"DELIVERABLE ({label}): {deck}")
     print(f"  compiled at   : {comp.get('at')}  ({n_deck} slides)")
-    print(f"  vision pass   : {vq.get('slides_reviewed')} slide(s), "
-          f"{vq.get('advisories', 0)} Advisory open, {vq.get('at')}")
+    cnt = qc_pages.open_counts(state)
+    print(f"  vision pass   : all {n_deck} page(s) reviewed as they look in this deck "
+          f"({vq.get('slides_reviewed')} read in the last round, {vq.get('carried', 0)} "
+          f"carried from earlier rounds); {cnt['Advisory']} Advisory open; deck-wide "
+          f"look {look.get('at')}")
+    if vq.get("no_text_pages"):
+        print(f"                  {len(vq['no_text_pages'])} page(s) had no readable text "
+              "(pictures): for those only the check code proved the page was opened.")
+    kept = [f for f in qc_pages.all_findings(state) if f.get("user_reason")]
+    if kept:
+        print(f"  kept by user  : {len(kept)} Major finding(s) kept with the user's reason:")
+        for f in kept:
+            print(f"                  - page {','.join(map(str, f.get('pages') or []))}: "
+                  f"{f.get('issue', '')[:90]} (\"{f['user_reason'][:90]}\")")
     # Every gate that was deliberately passed over in this build. They were
     # recorded and then never shown to anyone; delivery is where the user sees
     # what the deck did NOT go through.

@@ -8,7 +8,7 @@ Prints one table: piece / OK or NOT OK / what to do. Exit 0 when everything a
 build needs is in place, 1 otherwise.
 
 `fix` only does local, low-risk things: copies the two agent files Claude Code
-runs, adds Slide Lab's permissions to ~/.claude/settings.json (merging, never
+runs (backing up the installed ones first, into ~/.claude/agents/_backup_<date>/), adds Slide Lab's permissions to ~/.claude/settings.json (merging, never
 overwriting), and creates the local work folder plus a Desktop shortcut. It
 never downloads or installs anything. Package installs and the browser
 download are printed as commands so Claude runs each one visibly, where the
@@ -207,10 +207,12 @@ def _digest(p: Path) -> str:
 
 
 def check_agents(rows):
-    from _install import check_installed_agents
+    from _install import check_installed_agents, NEW_SESSION
     problems = check_installed_agents()
     _row(rows, "Slide Lab agents", not problems,
-         "" if not problems else "Run:  " + f"{PY} \"{Path(__file__)}\" fix")
+         "" if not problems else " | ".join(problems) + " | Run:  "
+         + f"{PY} \"{Path(__file__)}\" fix  (backs up the installed files first). "
+         + NEW_SESSION)
 
 
 def _settings_path() -> Path:
@@ -271,17 +273,24 @@ def run_checks() -> list[dict]:
 
 # ---------------------------------------------------------------- fixes
 def fix_agents() -> str:
-    from _install import AGENT_NAMES, installed_agents_dir
+    """Copy the repo's agent files over the installed ones, backing the
+    installed ones up first (~/.claude/agents/_backup_<date>/<name>.md.bak;
+    the last few backups are kept). Only from main, after a merge: a worktree
+    builder never installs (owner's rule 2026-10-09)."""
+    from _install import AGENT_NAMES, installed_agents_dir, backup_installed, NEW_SESSION
     dest = installed_agents_dir()
     dest.mkdir(parents=True, exist_ok=True)
-    copied = []
-    for name in AGENT_NAMES:
-        src = SKILL / "agents" / f"{name}.md"
-        if src.exists() and (not (dest / src.name).exists()
-                             or _digest(src) != _digest(dest / src.name)):
-            shutil.copy2(src, dest / src.name)
-            copied.append(name)
-    return ("copied " + ", ".join(copied) + " (restart Claude to load them)") if copied else ""
+    todo = [name for name in AGENT_NAMES
+            if (SKILL / "agents" / f"{name}.md").exists()
+            and (not (dest / f"{name}.md").exists()
+                 or _digest(SKILL / "agents" / f"{name}.md") != _digest(dest / f"{name}.md"))]
+    if not todo:
+        return ""
+    bdir = backup_installed(dest)
+    for name in todo:
+        shutil.copy2(SKILL / "agents" / f"{name}.md", dest / f"{name}.md")
+    kept = f"; the earlier files are in {bdir}" if bdir else ""
+    return f"copied {', '.join(todo)}{kept}. {NEW_SESSION}"
 
 
 def fix_settings() -> str:
