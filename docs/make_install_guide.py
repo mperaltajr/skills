@@ -19,7 +19,7 @@ from docx.shared import Inches, Pt, RGBColor
 REPO = Path(__file__).resolve().parents[1]
 OUT = Path(__file__).resolve().parents[1] / "Slide-Lab-Install-Guide.docx"
 OUT.parent.mkdir(exist_ok=True)
-AS_OF = "Accurate as of 5 October 2026"
+AS_OF = "Accurate as of 9 October 2026"
 REPO_URL = "https://github.com/mperaltajr/skills"
 ACC = "0B3C49"; ACCENT = RGBColor(0x0B, 0x3C, 0x49)
 TEXT = RGBColor(0x22, 0x22, 0x22); MUTED = RGBColor(0x5A, 0x5A, 0x5A)
@@ -230,8 +230,7 @@ def build():
     p = doc.add_paragraph(style="Title") if False else doc.add_paragraph()
     pf = p.paragraph_format; pf.space_after = Pt(4); exact(pf, 28)
     r = p.add_run("Slide Lab install guide"); r.bold = True; r.font.size = Pt(24); r.font.color.rgb = ACCENT
-    p = para(doc, ["Three steps, about 20 to 45 minutes the first time, plus however long your "
-                   "software portal takes to approve and install LibreOffice."], size=12, lead=16, after=10, color=MUTED)
+    p = para(doc, ["Three steps, about 20 to 45 minutes the first time."], size=12, lead=16, after=10, color=MUTED)
     p = para(doc, ["Slide Lab is an add-on for Claude that turns your message, notes and numbers "
                    "into a finished PowerPoint deck on your client's own template, with their "
                    "colors, fonts and layouts. It helps you shape the storyline, shows you three "
@@ -239,8 +238,8 @@ def build():
                    "slide before you open it."], after=0)
     pborder(p, {"bottom": 8}, 8, ACC, {"bottom": 10})
 
-    heading(doc, "Step 1. Install three programs yourself", before=10)
-    callout(doc, [("Request LibreOffice on day one. ", "b"), "On company computers it can need approval."])
+    heading(doc, "Step 1. Install these programs yourself", before=10)
+    callout(doc, [("On a Mac, request LibreOffice on day one. ", "b"), "It can need approval."])
     para(doc, ["Install these yourself from your company's software portal (Software Center, "
                "Self Service or similar). If you are not on a company computer, use the official sites."], after=6, kwn=True)
     table(doc, ["Program", "Why Slide Lab needs it", "Where to get it"], [
@@ -248,7 +247,7 @@ def build():
          ["However your company provides Claude; otherwise ", ("claude.ai/code", "link:https://claude.ai/code")]],
         ["Python 3.10 or newer", "Runs the build steps behind the scenes",
          ["Software portal, or ", ("python.org", "link:https://www.python.org/downloads/")]],
-        ["LibreOffice", "Draws slide previews. Required on a Mac; on Windows, PowerPoint can stand in (slower)",
+        ["LibreOffice (Mac only)", "Draws slide previews on a Mac (Windows uses PowerPoint)",
          ["Software portal, or ", ("libreoffice.org", "link:https://www.libreoffice.org/download/")]],
     ], [1.45, 2.15, 2.1])
 
@@ -262,7 +261,8 @@ def build():
 
     heading(doc, "Step 3. Restart Claude")
     para(doc, ["Close and reopen Claude so it loads Slide Lab. Then type ",
-               ("/slide-lab", "b"), " or just ask for a deck."], after=0)
+               ("/slide-lab", "b"), " or just ask for a deck."])
+    para(doc, ["On Windows, PowerPoint may pause briefly while Slide Lab draws previews."], after=0)
 
     # Page 2
     h = heading(doc, "Your first deck", before=0); h.paragraph_format.page_break_before = True

@@ -160,7 +160,21 @@ def ppt_names():
         return None
 
 
+def _pin_self_check_to_libreoffice() -> None:
+    """The self-check's limits were set on LibreOffice's noise; through
+    PowerPoint (the default on Windows since 2026-10-09) large numerals sit
+    about 5 px lower, gradients export a little differently and a nested
+    bullet's glyph moves, so this fixture's verdicts differ (see the
+    CHANGELOG and the go/no-go replay). This test checks the converter's
+    logic, so it runs the self-check on LibreOffice when it is installed."""
+    import os
+    import render_slides
+    if render_slides.libreoffice_available():
+        os.environ.setdefault("SLIDE_LAB_RENDERER", "libreoffice")
+
+
 def main() -> int:
+    _pin_self_check_to_libreoffice()
     from playwright.sync_api import sync_playwright
     from pptx import Presentation
     from pptx_openability import check_openability

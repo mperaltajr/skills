@@ -65,10 +65,10 @@ def main(argv=None) -> int:
     if not pages:
         print("ERROR: give --pages, e.g. --pages 4,5,33,37")
         return 2
-    from render_slides import render_libre
+    from render_slides import render as render_default
     with tempfile.TemporaryDirectory() as td:
         try:
-            render_libre(args.source, Path(td), dpi=96)
+            render_default(args.source, Path(td), dpi=96)
         except Exception as exc:
             print(f"ERROR: could not render the deck ({type(exc).__name__}: {exc})")
             return 1

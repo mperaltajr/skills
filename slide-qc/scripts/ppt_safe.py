@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """ppt_safe.py — render with PowerPoint without disturbing the user's PowerPoint.
 
-Every Slide Lab path that draws slides with PowerPoint goes through here:
-the fallback when LibreOffice is not installed, the converter's self-check,
-and slide-qc's optional PowerPoint pass. The rules, in one place:
+Every Slide Lab path that uses PowerPoint goes through here: every render on
+Windows (PowerPoint is the default renderer there, see render_slides.py), the
+converter's self-check, slide-qc, and the opens-cleanly check run before a
+deck is called done (check_opens). The rules, in one place:
 
   - attach to PowerPoint (start it if it is not running); never a second copy
   - open OUR file read-only, without a window
@@ -143,10 +144,14 @@ def export_pngs(pptx: Path, out_dir: Path, width_px: int) -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
     for p in out_dir.glob("slide_*.png"):
         p.unlink()
-    height_px = int(width_px * 9 / 16)
     n = 0
     with session() as (app, _):
         with opened(app, pptx) as pres:
+            try:
+                ratio = float(pres.PageSetup.SlideHeight) / float(pres.PageSetup.SlideWidth)
+            except Exception:
+                ratio = 9 / 16
+            height_px = int(round(width_px * ratio))
             for i in range(1, pres.Slides.Count + 1):
                 pres.Slides(i).Export(str((out_dir / f"slide_{i:02d}.png").resolve()),
                                       "PNG", width_px, height_px)
@@ -178,6 +183,56 @@ def export_pdf(pptx: Path, pdf: Path) -> bool:
         except Exception:
             return False
     return pdf.exists()
+
+
+def check_opens(pptx: Path, expected_slides: int | None = None,
+                timeout_s: float = 300) -> dict:
+    """Does PowerPoint itself open this deck cleanly?
+
+    Opens it read-only without a window (never touching the user's decks) and
+    reads its slide count. Returns {"ok", "slides", "error"}:
+      - PowerPoint refuses the file, or asks to repair it (with alerts off,
+        as Office runs under automation, the repair question comes back as
+        an error instead of a dialog)  -> ok False, error = PowerPoint's words
+      - it opens with a different slide count than expected (a silent
+        repair dropped slides)                                -> ok False
+      - PowerPoint does not answer within timeout_s           -> ok False
+    The open runs on its own thread so a stuck PowerPoint cannot hang the
+    caller; nothing is closed or killed."""
+    pptx = Path(pptx).resolve()
+    res = {"ok": False, "slides": None, "error": None}
+
+    def go():
+        try:
+            with session() as (app, _):
+                with opened(app, pptx) as pres:
+                    res["slides"] = int(pres.Slides.Count)
+        except Exception as exc:  # noqa: BLE001
+            res["error"] = _com_message(exc)
+
+    th = threading.Thread(target=go, daemon=True)
+    th.start()
+    th.join(timeout_s)
+    if th.is_alive():
+        res["error"] = (f"PowerPoint did not answer within {int(timeout_s)} s "
+                        f"(it may be showing a message; look at PowerPoint)")
+        return res
+    if res["error"] is None and expected_slides is not None and res["slides"] != expected_slides:
+        res["error"] = (f"PowerPoint opened it with {res['slides']} slide(s), "
+                        f"but the deck has {expected_slides}: it repaired the file")
+    res["ok"] = res["error"] is None
+    return res
+
+
+def _com_message(exc) -> str:
+    """PowerPoint's own words from a COM error, else the error text."""
+    try:
+        info = exc.args[2]
+        if info and info[2]:
+            return str(info[2]).strip()
+    except Exception:
+        pass
+    return f"{type(exc).__name__}: {exc}"
 
 
 if __name__ == "__main__":

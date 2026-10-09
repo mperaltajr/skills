@@ -13,9 +13,10 @@ and copies the result to `option_X_native.png`.
 It then runs the arrow-end check on the drawn slide (scripts/arrow_ends.py)
 and records what it finds in `option_X_translation_report.json`.
 
-LibreOffice when installed; without it (Windows) PowerPoint draws the slide the
-safe way (slide-qc/scripts/ppt_safe.py: read-only, no window, closes only this
-file, never the user's decks).
+Drawn by the default renderer (render_slides.render): PowerPoint on Windows
+when it is installed, the safe way (slide-qc/scripts/ppt_safe.py: read-only,
+no window, closes only this file, never the user's decks); else LibreOffice.
+slide-builder/settings.json "renderer" overrides it.
 
 Run:
   py -3 scripts/selfcheck_render.py <slide_dir>/option_X_native.pptx
@@ -49,8 +50,8 @@ def render_option(pptx: Path, dpi: int = DPI) -> Path:
         shutil.rmtree(folder, ignore_errors=True)
     folder.mkdir(parents=True, exist_ok=True)
     with contextlib.redirect_stdout(io.StringIO()):
-        # LibreOffice, else PowerPoint (render_libre's safe fallback)
-        RS.render_libre(pptx.resolve(), folder.resolve(), dpi)
+        # the default renderer; the other one takes over if it fails twice
+        RS.render(pptx.resolve(), folder.resolve(), dpi)
     got = folder / "slide_01.png"
     if not got.exists():
         raise RuntimeError(f"the render produced no slide_01.png in {folder}")

@@ -22,8 +22,12 @@ What it does:
      (twins.composer.copy_shape_with_parts: each shape with the pictures,
      charts, workbooks and media it points at).
   4. Save to --final.
-  5. Render every slide of the final deck to PNG via render_libre → output to
-     <out>/final_pngs/.
+     Before it replaces the previous deck, the saved file must pass the
+     offline integrity checks AND PowerPoint's own opens-cleanly check
+     (opened read-only without a window: no repair question, same slide
+     count), when PowerPoint is on this computer.
+  5. Render every slide of the final deck to PNG with the default renderer
+     (PowerPoint on Windows, else LibreOffice) → output to <out>/final_pngs/.
   6. Write <out>/COMPILED.md summarizing picks, output path, slide count,
      render success/fail, opens-cleanly status.
 
@@ -124,6 +128,48 @@ def _report_integrity(path: Path) -> int:
           "  LibreOffice read it. It usually means the package was edited outside\n"
           "  the pipeline. Rebuild through compile_picks/--splice-into rather than\n"
           "  patching the saved file; those paths keep the structure valid.")
+    return 6
+
+
+def powerpoint_opens(path: Path) -> tuple[Optional[bool], str]:
+    """PowerPoint's own opens-cleanly check: open the deck read-only without a
+    window (slide-qc/scripts/ppt_safe.py, never the user's decks), with no
+    repair question and the same slide count python-pptx reads.
+    Returns (True, "") when it opens cleanly, (False, PowerPoint's words) when
+    it does not, (None, why) when PowerPoint is not on this computer (Mac,
+    or Windows without PowerPoint): the offline checks are all there is."""
+    from render_slides import powerpoint_available, powerpoint_notice
+    if not powerpoint_available():
+        return None, "PowerPoint is not installed on this computer"
+    try:
+        expected = len(Presentation(str(path)).slides)
+    except Exception as exc:  # noqa: BLE001
+        return False, f"python-pptx could not read it: {type(exc).__name__}: {exc}"
+    import ppt_safe
+    powerpoint_notice()
+    res = ppt_safe.check_opens(path, expected)
+    return (True, "") if res["ok"] else (False, res["error"] or "PowerPoint refused it")
+
+
+_PPT_OPENS = "not checked"
+
+
+def _report_powerpoint_opens(path: Path) -> int:
+    """Print the PowerPoint check. Returns 0 (opens, or no PowerPoint here)
+    or 6 (PowerPoint refuses or repairs it: not a deliverable)."""
+    ok, why = powerpoint_opens(path)
+    global _PPT_OPENS
+    _PPT_OPENS = {True: "yes", False: "NO", None: f"not checked ({why})"}[ok]
+    if ok is None:
+        print(f"  PowerPoint opens-cleanly check: not run ({why})")
+        return 0
+    if ok:
+        print("  PowerPoint opens it cleanly (read-only, no repair, slide count matches)")
+        return 0
+    print("\nREFUSED: PowerPoint itself does not open the saved deck cleanly.")
+    print(f"  PowerPoint says: {why}")
+    print("  The offline checks passed, so this is a defect they do not know yet.\n"
+          "  Rebuild through the pipeline; do not deliver this file.")
     return 6
 
 
@@ -473,6 +519,7 @@ Final deck: `{final}`
 
 - Final slide count: **{slide_count}**
 - Opens cleanly (python-pptx reload): **{opens}**
+- Opens in PowerPoint (read-only, no repair, slide count matches): **{ppt_opens}**
 - Renders attempted: **{render_total}**
 - Renders succeeded: **{render_ok}**
 - Renders failed   : **{render_fail}**
@@ -591,7 +638,7 @@ def run_splice(out_dir: Path, meta: dict, picks: dict, template_path: Path,
               f"(is it open in PowerPoint?)")
         return 3
     _dedupe_zip_entries(out)
-    _rc = _report_integrity(out)
+    _rc = _report_integrity(out) or _report_powerpoint_opens(out)
     if _rc:
         return _rc
 
@@ -1026,7 +1073,7 @@ def main() -> int:
     # as corrupt. Run an unconditional zip rewrite that keeps the LAST
     # occurrence of each name. Cheap on size, unbreakable for downstream readers.
     _dedupe_zip_entries(incoming)
-    _rc = _report_integrity(incoming)
+    _rc = _report_integrity(incoming) or _report_powerpoint_opens(incoming)
     if _rc:
         rejected = final_path.with_name(f"{final_path.stem}.REJECTED{final_path.suffix}")
         try:
@@ -1085,8 +1132,8 @@ def main() -> int:
     render_ok = 0
     render_fail = 0
     try:
-        from render_slides import render_libre
-        render_libre(final_path, pngs_dir, dpi=120)
+        from render_slides import render as _render
+        _render(final_path, pngs_dir, dpi=120)
         pngs = sorted(pngs_dir.glob("slide_*.png"))
         render_total = max(slide_count, len(pngs))
         render_ok = len(pngs)
@@ -1109,6 +1156,7 @@ def main() -> int:
         rows="\n".join(rows) if rows else "| (no picks) |",
         slide_count=slide_count,
         opens="yes" if opens else "NO",
+        ppt_opens=_PPT_OPENS,
         render_total=render_total,
         render_ok=render_ok,
         render_fail=render_fail,
@@ -1121,7 +1169,7 @@ def main() -> int:
     print("\n" + "=" * 72)
     print("DONE - compile complete.")
     print(f"  Copied  : {copied_count} / {len(picks)}")
-    print(f"  Opens   : {'yes' if opens else 'NO'}")
+    print(f"  Opens   : {'yes' if opens else 'NO'} (PowerPoint: {_PPT_OPENS})")
     print(f"  Slides  : {slide_count}")
     print(f"  Renders : {render_ok} / {render_total}")
     print(f"  Report  : {compiled_md}")

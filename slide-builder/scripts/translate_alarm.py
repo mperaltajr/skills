@@ -4,7 +4,7 @@
 The translator agent looked at its own render and fixed what was off. The
 script can't look, so this does the looking for it, one element at a time:
 inside each element's box it compares the design (Chrome's screenshot) with
-the PowerPoint render (LibreOffice) on three things:
+the rendered slide (PowerPoint by default on Windows, else LibreOffice) on three things:
 
   color     the average color of the box (wrong fill, wrong text color,
             a missing shape)
@@ -67,94 +67,64 @@ def load_rgb(src) -> np.ndarray:
 
 
 def render_many(pptxs: list[Path]) -> list[np.ndarray | None]:
-    """Render page 1 of each PPTX with LibreOffice, all in one soffice call."""
+    """Page 1 of each PPTX, all rendered as one deck (see render_full)."""
     return [r[0] if r else None for r in render_full(pptxs)]
-
-
-def _powerpoint_pdfs(pptxs: list[Path]) -> None:
-    """PDF beside each PPTX, exported by PowerPoint itself (Windows). Safe with
-    the user's PowerPoint open: each file is opened read-only without a window
-    and only that file is closed (slide-qc/scripts/ppt_safe.py). A file
-    PowerPoint refuses gets no PDF."""
-    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "slide-qc" / "scripts"))
-    import ppt_safe
-    ppt_safe.export_pdfs(pptxs)
 
 
 def libreoffice_available() -> bool:
     sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "slide-qc" / "scripts"))
-    from render_slides import _resolve_soffice
-    try:
-        _resolve_soffice()
-        return True
-    except Exception:
-        return False
+    from render_slides import libreoffice_available as _avail
+    return _avail()
 
 
 def pick_engine(engine: str = "auto") -> str:
-    """"libreoffice" or "powerpoint". auto = LibreOffice when installed, else
-    PowerPoint when it can be driven (Windows), else LibreOffice (which then
-    fails with the install hint)."""
-    if engine in ("libreoffice", "powerpoint"):
-        return engine
-    if libreoffice_available():
-        return "libreoffice"
+    """"libreoffice" or "powerpoint": the program the render starts with.
+    auto = slide-builder/settings.json "renderer" (its auto: PowerPoint on
+    Windows when installed, else LibreOffice). See render_slides.pick_renderer."""
     sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "slide-qc" / "scripts"))
-    from render_slides import powerpoint_available
-    return "powerpoint" if powerpoint_available() else "libreoffice"
+    from render_slides import pick_renderer
+    return pick_renderer(engine)
+
+
+# {index into the last render_full's pptxs: why it did not render}
+LAST_RENDER_ERRORS: dict[int, str] = {}
 
 
 def render_full(pptxs: list[Path], engine: str = "auto") -> list[tuple[np.ndarray, list] | None]:
-    """(image, characters) for page 1 of each PPTX, from one render pass.
-    The characters are where the renderer actually put each letter.
-    engine: "auto" (LibreOffice, else PowerPoint when LibreOffice is not
-    installed), "libreoffice" or "powerpoint" (safe with PowerPoint open)."""
-    engine = pick_engine(engine)
-    import sys
-    sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "slide-qc" / "scripts"))
-    from render_slides import _resolve_soffice
+    """(image, characters) for page 1 of each PPTX, from ONE render: every
+    slide goes into one temporary deck (scripts/one_deck.py), rendered once
+    and split back page by page. The characters are where the renderer
+    actually put each letter. A slide that does not render is None (its
+    reason in LAST_RENDER_ERRORS); the others still come back.
+    engine: "auto" (the default renderer: PowerPoint on Windows, else
+    LibreOffice), "libreoffice" or "powerpoint" (the one to start with; the
+    other takes over if it fails twice)."""
+    import one_deck
     import pypdfium2 as pdfium
+    LAST_RENDER_ERRORS.clear()
     out: list = []
     with tempfile.TemporaryDirectory() as td:
-        td = Path(td)
-        staged = []
-        for i, p in enumerate(pptxs):
-            dst = td / f"s{i:04d}.pptx"
-            dst.write_bytes(Path(p).read_bytes())
-            staged.append(dst)
-        if engine == "powerpoint":
-            _powerpoint_pdfs(staged)
-        else:
-            # A render that leaves no PDF is retried once, with a fresh
-            # profile (it usually works the second time, 2026-10-08).
-            for attempt, todo in enumerate((staged, None)):
-                if todo is None:
-                    todo = [s for s in staged if not s.with_suffix(".pdf").exists()]
-                    if not todo:
-                        break
-                prof = td / f"lo_profile{attempt}"
-                for i in range(0, len(todo), 20):
-                    try:
-                        subprocess.run([_resolve_soffice(),
-                                        f"-env:UserInstallation=file:///{prof.as_posix()}",
-                                        "--headless", "--norestore", "--nologo", "--nodefault",
-                                        "--convert-to", "pdf", "--outdir", str(td),
-                                        *[str(s) for s in todo[i:i + 20]]],
-                                       capture_output=True, timeout=600)
-                    except subprocess.TimeoutExpired:
-                        pass
-        for s in staged:
-            pdf = s.with_suffix(".pdf")
-            if not pdf.exists():
-                out.append(None)
-                continue
-            doc = pdfium.PdfDocument(str(pdf))
-            page = doc[0]
-            bmp = page.render(scale=W / page.get_width())
-            im = bmp.to_pil().convert("RGB")
-            chars = _page_chars(page)
-            page.close(); doc.close()
-            out.append((load_rgb_from_pil(im), chars))
+        got = one_deck.pdf_pages([Path(p) for p in pptxs], Path(td),
+                                 renderer=pick_engine(engine))
+        docs: dict = {}
+        try:
+            for i, g in enumerate(got):
+                if not isinstance(g, tuple):
+                    LAST_RENDER_ERRORS[i] = str(g)
+                    out.append(None)
+                    continue
+                pdf, k = g
+                if pdf not in docs:
+                    docs[pdf] = pdfium.PdfDocument(str(pdf))
+                page = docs[pdf][k]
+                bmp = page.render(scale=W / page.get_width())
+                im = bmp.to_pil().convert("RGB")
+                chars = _page_chars(page)
+                page.close()
+                out.append((load_rgb_from_pil(im), chars))
+        finally:
+            for d in docs.values():
+                d.close()
     return out
 
 
@@ -254,7 +224,7 @@ def line_breaks(cs: list[dict]) -> list[int]:
 
 
 def text_geometry(o: dict, cs: list[dict]) -> dict | None:
-    """Where LibreOffice put this text's characters vs where Chrome drew them.
+    """Where the renderer put this text's characters vs where Chrome drew them.
 
     Each line in the render should be the design's line moved and, because
     sizes snap to the allowed list, scaled by a known amount. Per line:

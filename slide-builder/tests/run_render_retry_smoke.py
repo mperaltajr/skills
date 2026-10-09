@@ -53,6 +53,11 @@ def _input_of(cmd: list) -> str:
 
 
 def main() -> int:
+    # LibreOffice's own retry is under test: with PowerPoint present it would
+    # take over after the second failure (run_renderer_default_smoke.py covers
+    # that hand-over), so act as if PowerPoint were not installed here.
+    import os
+    os.environ["SLIDE_LAB_NO_POWERPOINT"] = "1"
     real = R._run_soffice
     with tempfile.TemporaryDirectory() as td:
         td = Path(td)

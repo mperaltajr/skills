@@ -82,6 +82,88 @@ All notable changes to this skill. Versioning follows [Semantic Versioning](http
   approval, the content one refused for asking, no third round, undo restores
   the slide).
 
+### Rendering through PowerPoint
+
+- **PowerPoint is the default renderer on Windows** (owner's decision). When
+  PowerPoint is installed, every render goes through it: the converter's
+  self-check, finalize (and so the final check page), compile, slide-qc,
+  the template setup's preview, layout thumbnails and sample slide, and the
+  style-reference pictures. LibreOffice is only a backup there; a Mac stays on
+  LibreOffice. All PowerPoint use goes through `slide-qc/scripts/ppt_safe.py`
+  (read-only, no window, closes only its own file, quits only a PowerPoint it
+  started with nothing else open in it). New setting
+  `settings.json::renderer` = `auto` (PowerPoint on Windows when installed,
+  else LibreOffice) | `powerpoint` | `libreoffice`; `SLIDE_LAB_RENDERER`
+  overrides it for one run. `render_slides.render()` / `to_pdf()` are the one
+  entry point; `render_slides.py --engine` now defaults to `auto`.
+- **One deck per round.** The converter's self-check
+  (`translate_alarm.render_full`, so `translate_html.self_check` and its
+  re-renders after a step-down) and finalize's renders put every slide of the
+  round into ONE temporary deck, render it once and hand each page back to
+  its slide (`scripts/one_deck.py`). Re-renders after a fix render only the
+  changed slides, also as one deck. Slides merge only with decks built on the
+  same template (masters, layouts, theme, table styles, slide size, default
+  text); hidden slides are shown in the render deck and the page count is
+  checked before any page is handed back. When the merged deck fails (one bad
+  slide makes PowerPoint refuse the whole file), it is halved until the bad
+  slide stands alone, so only that slide is reported as failed, with its own
+  reason (`SELF_CHECK_SKIPPED` now says why; finalize marks only that option).
+- **A render that fails twice is handed to the other program.** LibreOffice
+  failing twice -> PowerPoint takes over for that render; PowerPoint failing
+  twice -> LibreOffice, when installed. Both failing -> one error with both
+  reasons.
+- **Hidden slides no longer shift the pictures.** A PDF leaves hidden slides
+  out, so `slide_05.png` showed slide 6; renders now include them, so
+  `slide_NN` is always slide NN (the hygiene pass still reports them).
+- **PowerPoint's own opens-cleanly check before a deck is done.**
+  `compile_picks.py` (and `--splice-into`) opens the saved deck in
+  PowerPoint, read-only and without a window, before it replaces the previous
+  deck: a file PowerPoint refuses or asks to repair (with alerts off, the
+  repair question comes back as an error), or opens with a different slide
+  count, is refused (exit 6, kept as `.REJECTED.pptx`), so it is never
+  recorded as compiled and `check_done.py` never calls it done. COMPILED.md
+  gains "Opens in PowerPoint". On a computer without PowerPoint it says the
+  check did not run. (Measured: PowerPoint refuses an incomplete `<p:style>`;
+  it opens a deck with duplicate shape ids, which the offline check still
+  refuses.) `ppt_safe.check_opens` runs the open on its own thread with a
+  timeout, so a stuck PowerPoint cannot hang compile.
+- **The user is told before PowerPoint renders.** Before a step that renders
+  through PowerPoint (stages 6, 8, 9, 11 and template registration; slide-qc),
+  Claude says in one line that PowerPoint may pause for a few seconds and that
+  editing in PowerPoint meanwhile slows the build. The scripts print the same
+  line once per command (child processes stay quiet).
+- **Setup.** `doctor.py`: PowerPoint is the renderer row on Windows (tested
+  with a real render); LibreOffice is optional there (backup) and required on
+  a Mac. README's install section and the install guide (still 2 pages) say
+  LibreOffice is needed on a Mac and optional on Windows.
+- **PowerPoint export height follows the deck's slide size** (it assumed
+  16:9).
+- Test switches: `SLIDE_LAB_NO_POWERPOINT=1` (act as if PowerPoint were not
+  installed, e.g. a Mac) beside `SLIDE_LAB_NO_LIBREOFFICE=1`.
+- New smokes: `run_one_deck_render_smoke.py` (page-to-slide mapping on both
+  renderers, one render per template, a failing slide reported alone, real
+  PowerPoint refusing one slide), `run_renderer_default_smoke.py` (the
+  default and overrides, PowerPoint with LibreOffice present and missing, the
+  twice-failed hand-over both ways, the notice once),
+  `run_powerpoint_opens_smoke.py` (the opens-cleanly check),
+  `run_powerpoint_e2e_smoke.py` (a fictional build end to end on PowerPoint
+  only; `--time N` times an N-slide build on both renderers). Each records the
+  user's open presentations before and after and requires them unchanged.
+- **Measured.** A 20-slide fictional build end to end: PowerPoint 53.8 s
+  (finalize's render 5.3 s, compile 6.5 s, slide-qc render 2.9 s) vs
+  LibreOffice 82.5 s (18.1 s, 15.9 s, 15.2 s). Go/no-go replay of the
+  converter on 101 past options, self-check on LibreOffice vs PowerPoint:
+  open failures 0 / 0, lost text 0 / 0, same lines 99.71% / 99.85%, needs the
+  agent 17.8% / 35.6% (bar: at most 15%, missed on both). Through PowerPoint
+  the self-check fires mostly on `position` (64 elements vs 2): large
+  numerals and hero text sit about 5 px lower in PowerPoint than the
+  converter places them for, plus gradient and chart-bar colors. These are
+  real differences in what PowerPoint shows, but the limits were set on
+  LibreOffice; recalibrating them (or the converter's text placement) for
+  PowerPoint is an open decision. `run_translate_smoke.py` and
+  `run_native_tables_lists_smoke.py` run their self-check on LibreOffice
+  when it is installed for that reason.
+
 ## 2026-10-08: native tables and PowerPoint-only rendering
 
 ### Native tables and one-box lists (sketch path)

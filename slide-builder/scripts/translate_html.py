@@ -2574,11 +2574,14 @@ def self_check(items: list[tuple["Plan", dict]], engine: str = "auto",
     never dropped on the way.
 
     items: (plan, extracted data) pairs; plans are changed in place.
-    engine: "auto" (LibreOffice, else PowerPoint when LibreOffice is not
-    installed), "libreoffice" or "powerpoint". hand_over=False (the go/no-go
-    harness) keeps fired elements in the plan and only records them.
-    If the render can't run, every plan gets a SELF_CHECK_SKIPPED warning and
-    keeps all its elements.
+    engine: "auto" (the default renderer: PowerPoint on Windows when it is
+    installed, else LibreOffice; slide-builder/settings.json "renderer"),
+    "libreoffice" or "powerpoint". Each round renders all its slides as ONE
+    deck (translate_alarm.render_full); a later round renders only the slides
+    that changed. hand_over=False (the go/no-go harness) keeps fired elements
+    in the plan and only records them.
+    A slide that does not render gets a SELF_CHECK_SKIPPED warning (with the
+    reason) and keeps all its elements; the other slides are still checked.
     """
     import translate_alarm as A
     judge: dict[int, set | None] = {k: None for k in range(len(items))}
@@ -2597,10 +2600,13 @@ def self_check(items: list[tuple["Plan", dict]], engine: str = "auto",
                                  f"could not render to compare ({type(exc).__name__})")
             return
         nxt = []
-        for k, got in zip(todo, rendered):
+        why_not = dict(A.LAST_RENDER_ERRORS)
+        for j, (k, got) in enumerate(zip(todo, rendered)):
             plan, data = items[k]
             if not got:
-                plan.warn("SELF_CHECK_SKIPPED", "the slide did not render")
+                reason = (why_not.get(j) or "").strip().splitlines()
+                plan.warn("SELF_CHECK_SKIPPED", "the slide did not render"
+                          + (f" ({reason[-1][:200]})" if reason else ""))
                 continue
             native, chars = got
             plan._last_render = got
@@ -2656,7 +2662,7 @@ def self_check(items: list[tuple["Plan", dict]], engine: str = "auto",
 def translate_many(jobs: list[tuple], check: bool = True) -> list[dict]:
     """jobs: (html, emit_dir, letter, subtitle_as_shape[, title_text_span[, template_bg]]);
     job_for() builds one for a build's slide. One browser for all, then one
-    LibreOffice pass for the self-check."""
+    render of every slide, as one deck, for the self-check."""
     from playwright.sync_api import sync_playwright
     done = []
     with sync_playwright() as pw:

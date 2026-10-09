@@ -125,45 +125,81 @@ def check_browser(rows):
              f"is blocked, install Microsoft Edge or Google Chrome instead)")
 
 
-def check_libreoffice(rows):
+def _test_render(engine: str) -> bool:
+    """Draw one test slide with exactly this program (no backup)."""
     try:
-        from render_slides import _resolve_soffice, render_libre
-        _resolve_soffice()
-    except Exception:
-        try:
-            from render_slides import powerpoint_available
-            if powerpoint_available():
-                _row(rows, "LibreOffice (optional here)", True, required=False, todo=(
-                     "Not installed; optional on this computer because PowerPoint "
-                     "draws the previews instead. Your open decks are never closed or "
-                     "touched (Slide Lab opens its own files read-only, without a "
-                     "window). Renders run one at a time, so a build's previews are "
-                     "slower than with LibreOffice."))
-                return
-        except Exception:
-            pass
-        _row(rows, "LibreOffice", False,
-             "Install LibreOffice from the company software portal (or "
-             "libreoffice.org). It is required here (no PowerPoint was found to "
-             "stand in for it): template registration, the final check page and the quality check all use it.")
-        return
-    try:
+        import render_slides as RS
         from pptx import Presentation
         with tempfile.TemporaryDirectory() as td:
             deck = Path(td) / "doctor.pptx"
             prs = Presentation()
             prs.slides.add_slide(prs.slide_layouts[0]).shapes.title.text = "Slide Lab check"
             prs.save(str(deck))
+            out = Path(td) / "png"
+            out.mkdir()
             import contextlib, io
             with contextlib.redirect_stdout(io.StringIO()):
-                render_libre(deck, Path(td) / "png", 40)
-            ok = any((Path(td) / "png").glob("*.png"))
+                if engine == "powerpoint":
+                    RS._ppt_pngs(deck, out, 533)
+                else:
+                    RS._libre_pngs(deck, out, 40)
+            return any(out.glob("*.png"))
     except Exception:
-        ok = False
-    _row(rows, "LibreOffice", ok,
-         "" if ok else "LibreOffice is installed but could not convert a test "
-                       "slide. Close any open LibreOffice windows and run this "
-                       "check again.")
+        return False
+
+
+def check_renderers(rows):
+    """PowerPoint draws slides on Windows when it is installed (the default
+    there; LibreOffice is an optional backup). A Mac needs LibreOffice."""
+    try:
+        import render_slides as RS
+    except Exception as exc:  # noqa: BLE001
+        _row(rows, "Slide renderer", False,
+             f"slide-qc/scripts/render_slides.py did not load ({type(exc).__name__}); "
+             f"reinstall Slide Lab")
+        return
+    has_ppt = RS.powerpoint_available()
+    has_lo = RS.libreoffice_available()
+    setting = RS.renderer_setting()
+    if has_ppt:
+        ok = _test_render("powerpoint")
+        _row(rows, "PowerPoint (draws the slides)", ok,
+             ("Default renderer here. Your open decks are never closed or touched "
+              "(Slide Lab opens its own files read-only, without a window); "
+              "PowerPoint may pause for a few seconds while slides render.")
+             if ok else "PowerPoint is installed but could not draw a test slide. "
+                        "Run this check again; if it keeps failing, install "
+                        "LibreOffice as the backup.")
+    if has_ppt:
+        if has_lo:
+            ok = _test_render("libreoffice")
+            _row(rows, "LibreOffice (optional backup here)", True, required=False,
+                 todo="" if ok else "Installed but could not convert a test slide; "
+                                    "PowerPoint covers every render, so nothing to do.")
+        else:
+            _row(rows, "LibreOffice (optional here)", True, required=False, todo=(
+                 "Not installed; optional on this computer because PowerPoint draws "
+                 "the slides. Install it only as a backup."))
+    elif has_lo:
+        ok = _test_render("libreoffice")
+        _row(rows, "LibreOffice (draws the slides)", ok,
+             "" if ok else "LibreOffice is installed but could not convert a test "
+                           "slide. Close any open LibreOffice windows and run this "
+                           "check again.")
+    else:
+        _row(rows, "LibreOffice", False,
+             "Install LibreOffice from the company software portal (or "
+             "libreoffice.org). It is required on this computer (no PowerPoint to "
+             "draw the slides): template registration, the final check page and "
+             "the quality check all use it.")
+    if setting != "auto":
+        eng = RS.pick_renderer()
+        _row(rows, "Renderer setting", True, required=False,
+             todo=f"settings.json renderer = {setting}; slides are drawn with "
+                  f"{'PowerPoint' if eng == 'powerpoint' else 'LibreOffice'}.")
+
+
+check_libreoffice = check_renderers   # older name
 
 
 def _digest(p: Path) -> str:
@@ -226,7 +262,7 @@ def run_checks() -> list[dict]:
     check_python(rows)
     check_packages(rows)
     check_browser(rows)
-    check_libreoffice(rows)
+    check_renderers(rows)
     check_agents(rows)
     check_settings(rows)
     check_work_folder(rows)
