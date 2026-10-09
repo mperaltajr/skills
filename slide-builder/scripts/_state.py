@@ -316,6 +316,32 @@ def mark_auto_fix_undone(out_dir, slide_n: int) -> dict | None:
     return None
 
 
+# ---------------------------------------------------------------------------
+# Parent direct edits (owner's decision, 2026-10-09). For a color, a font
+# size or wording the user gave word for word, on a direct-path page (the
+# picked option_X.py), the main session may edit the script itself instead of
+# dispatching a worker. Each such edit is recorded here (record_picks.py
+# --edits-done or apply_qc_fix.py --approved, with --edited-by-parent) and
+# check_done lists it at delivery as "edited by parent".
+# ---------------------------------------------------------------------------
+
+def record_parent_edit(out_dir, slides: str, what: str, via: str, words: str = "") -> dict:
+    state = read_state(out_dir)
+    entry = {"slides": slides, "what": what, "via": via, "at": _now()}
+    if words:
+        entry["words"] = words
+    state.setdefault("parent_edits", []).append(entry)
+    _write(out_dir, state)
+    return entry
+
+
+def direct_path_letter(slide_dir, letter: str) -> bool:
+    """A direct-path option: its design is option_X.py, with no sketch
+    (option_X.html) behind it. Only these may be edited by the parent."""
+    sd = Path(slide_dir)
+    return (sd / f"option_{letter}.py").is_file() and not (sd / f"option_{letter}.html").exists()
+
+
 def record_final_check(out_dir, digests: dict) -> str:
     """The final-check page was built over these finished files. Returns the
     token its Build command carries; compile refuses unless the files still have

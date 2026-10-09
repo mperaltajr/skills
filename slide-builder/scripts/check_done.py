@@ -29,7 +29,8 @@ So this checks one unbroken chain of recorded facts, each tied to the last:
   9. every comment the user made on a pick was applied (none pending)
 
 On delivery it also lists the user's comments with how each was applied, and
-every QC finding fixed automatically (apply_qc_fix.py --auto), with any undo.
+every QC finding fixed automatically (apply_qc_fix.py --auto), with any undo,
+and every edit the main session made itself ("edited by parent").
 
 It is deliberately dumb: it verifies recorded facts, it does not re-run QC.
 On a deliverable deck it also lists every gate passed over (overrides) and,
@@ -284,6 +285,8 @@ def main(argv=None) -> int:
         print(line)
     for line in auto_fix_lines(state.get("auto_fixes") or []):
         print(line)
+    for line in parent_edit_lines(state.get("parent_edits") or []):
+        print(line)
     line = supplied_page_line(sl)
     if line:
         print(line)
@@ -325,6 +328,20 @@ def comment_lines(comments: list) -> list[str]:
         how = c.get("applied_how") or "NOT APPLIED"
         out.append(f"                  - {c.get('slide')}: \"{c.get('text', '')}\" -> {how}")
     out.append("                  Tell the user how their comments were applied.")
+    return out
+
+
+def parent_edit_lines(edits: list) -> list[str]:
+    """Delivery lines for edits the main session made itself, no worker (a
+    color, a font size or the user's exact words on a direct-path page;
+    owner's decision 2026-10-09)."""
+    if not edits:
+        return []
+    out = [f"  edited by parent: {len(edits)} edit(s) made by the main session, no worker:"]
+    for e in edits:
+        out.append(f"                  - {e.get('slides')}: {e.get('what', '')} "
+                   f"({e.get('via', '')}, {e.get('at', '')})")
+    out.append("                  List these when you deliver.")
     return out
 
 

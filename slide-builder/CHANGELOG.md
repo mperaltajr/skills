@@ -4,7 +4,6 @@ All notable changes to this skill. Versioning follows [Semantic Versioning](http
 
 ## 2026-10-09: validated fixes from the Kinfield v3.1 session report
 
-<<<<<<< HEAD
 ### Agent files and quality-check records
 
 Owner approved every recommendation (items 5 and 8, and the side finding of
@@ -82,7 +81,6 @@ item 7: a session recorded 71 pages reviewed after opening about 9).
   stands in for a reviewer; `run_qc_gates_smoke.py`, `run_chat_approval_smoke.py`,
   `run_one_deck_smoke.py`, `run_pipeline_e2e_smoke.py` and
   `run_powerpoint_e2e_smoke.py` use the new record.
-=======
 ### Finalize, chrome and checks
 
 Owner-approved recommendations from the validation of the Kinfield v3.1
@@ -153,7 +151,60 @@ session report (items 2, 4a, 4b, 6, 9 and 10).
   final check and QC read the finished picture, and five such runs in one
   session had to be redone.
 - Test: `tests/run_finalize_chrome_checks_smoke.py`.
->>>>>>> worktree-agent-ab2a803d498756606
+### QC fixes and picks
+
+Each change below was checked by a confirmer, a challenger and a judge, and
+approved by the owner.
+
+- **A slide keeping one of several designs takes a QC fix.** On an
+  all-options deck where the user kept only A of A, B and C (13 of 49 slides
+  in the session), `apply_qc_fix.py` refused every fix, saying the user had
+  "not chosen between" options they had chosen between. Now the kept design
+  is edited in place and `--slides N` (or `NA`) converts only it; the slide's
+  pick is left unchanged, so B and C stay out of the deck. It is still
+  refused for a letter the user did not keep, and when another option of the
+  slide was designed after the last compile (a new alternative the user has
+  not seen; only the designer's files `option_X.html` / `option_X.py` count).
+  The refusal messages now say which case it is. Unpicked options are still
+  kept at compile on an all-options deck.
+- **A QC fix no longer ships another slide's unpicked redesign.** A slide
+  redesigned with `build_deck.py --slide N` after the last compile, and not
+  picked yet, had its new option A shipped by any QC fix to another slide
+  (its letter matched the old pick). `apply_qc_fix.py` now refuses while a
+  slide that is not being fixed has a `slide_NN/_prev/<time>/` folder newer
+  than the last compile; the slides being fixed are exempt.
+- **QC findings are classified by their tag and severity in place.**
+  `qc_fix_policy.py`: findings are split only where `;` or a new line is
+  followed by `slide N` (fix detail after a `;` stayed behind as an
+  untagged piece and the whole `--auto` run was refused); the severity is
+  read only from its place after the tag (the word "critical" anywhere used
+  to auto-fix content findings, and "advisory" anywhere dropped layout ones);
+  tags are normalized (lowercase, `-` and spaces to `_`) with aliases
+  (`template-sample-text`, `placeholder-prompt`, `placeholder-residue` ->
+  `sample_text`, `buzzword` -> `buzzwords`, new ask keys `repeats_title` and
+  `title_load`); a tag can only make a decision more cautious (a layout tag
+  on text that reads like content is asked); no tag or an unknown tag is
+  never automatic, and `--auto` lists the valid keys; a content finding is
+  asked even when marked Critical (owner's decision); `--auto` refuses a
+  finding for a slide not in `--slides` or for no slide. The 2026-10-09 keys
+  `final_period`, `chart_header` and `legend_position` stay automatic.
+  slide-qc's SKILL.md lists the aliases and the finding format.
+- **The parent may make a literal edit itself.** For a color, a font size or
+  wording the user gave word for word, on a direct-path page (the picked
+  `option_X.py`), the main session edits the script with no worker: brand
+  color names, not hex; a new number or claim goes back to the user; layout
+  changes and sketch pages keep the worker route. It is recorded with
+  `record_picks.py --edits-done --edited-by-parent "N: <what changed>"`
+  before compile or `apply_qc_fix.py --approved ... --edited-by-parent
+  "<what changed>"` after; both refuse a sketch page, print the new
+  pictures to look at (confirm the colors can be told apart), and store the
+  edit in `_state.json` (`parent_edits`). `check_done.py` lists each one at
+  delivery as "edited by parent".
+- Tests: `run_qc_fix_smoke.py` step [8] (one kept of three, the stray
+  letter, the unpicked redesign elsewhere, a new B after the compile; step
+  [4] still refuses), `run_auto_qc_fix_smoke.py` step [0] (30 findings
+  from the validation and 5 splits) and new refusals in [2], new
+  `run_parent_edit_smoke.py`.
 
 ## 2026-10-09: chart header, legend, no final periods
 

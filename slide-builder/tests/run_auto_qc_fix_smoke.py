@@ -4,10 +4,16 @@
 A fictional 3-slide deck with one Critical, two layout Majors and one content
 Major:
 
+  0. qc_fix_policy reads the tag and the severity only from their place,
+     splits only before "slide N", never goes automatic without a known tag,
+     asks a Critical content finding, and lets a tag only make a decision more
+     cautious (every string from the 2026-10-09 validation of item 3)
   1. qc_fix_policy classes the Critical and the two layout Majors "auto" and
      the content Major "ask" (tags and untagged text both)
   2. apply_qc_fix.py --auto refuses the content finding (the user decides it)
-     and refuses a slide whose design was not kept first (--snapshot)
+     and refuses a slide whose design was not kept first (--snapshot), an
+     untagged finding (listing the valid keys), and a finding for a slide
+     not in --slides or for no slide
   3. after --snapshot and the rebuild, --auto fixes the three without any
      approval: recorded as an automatic fix with the finding text (not as a
      chat approval), the deck compiled, before/after pictures printed
@@ -36,8 +42,92 @@ import qc_fix_policy as P  # noqa: E402
 
 CRIT = "slide 1 [overflow] Critical: body text cut off at the bottom edge"
 MAJ1 = "slide 2 [text_size] Major: body text under the size floor"
-MAJ2 = "slide 3 Major: an arrowhead runs into the box it points at"
+MAJ2 = "slide 3 [arrow_into_box] Major: an arrowhead runs into the box it points at"
 CONTENT = "slide 3 Major: the 42 percent figure is not in the brief"
+
+# (finding, expected decision, expected category) for every string in the
+# 2026-10-09 validation of item 3 (confirmer, challenger, judge).
+POLICY_CASES = [
+    # the word "critical" in the text is not the severity
+    ("slide 4 [headline] Major: headline misses the critical number", "ask", "headline"),
+    ("slide 4 [number_not_in_brief] Major: the 12% is critical for the ask", "ask",
+     "number_not_in_brief"),
+    ("slide 4 Major: bullets not parallel, the critical bullet", "ask", "bullets_parallel"),
+    # the word "advisory" in the text does not drop a layout finding
+    ("slide 4 [overflow] Major: the advisory note box is cut off", "auto", "overflow"),
+    # a wrong layout tag on a content finding is asked
+    ("slide 4 [overflow] Major: 42% not in brief", "ask", "overflow"),
+    ("slide 4 [overflow] Major: \"42%\" is not in the brief", "ask", "overflow"),
+    ("slide 4 [palette] Major: headline is a topic label, rewrite", "ask", "palette"),
+    ("slide 4 [text_size] Major: 4 body sizes -> reword the headline to fit", "ask",
+     "text_size"),
+    ("slide 4 [arrow_into_box] Major: wrong number in the arrow label", "ask",
+     "arrow_into_box"),
+    # untagged phrase matches never go automatic
+    ("slide 4 Major: wrong number in the arrow label", "ask", "number_not_in_brief"),
+    ("slide 4 Major: placeholder for the revenue number", "ask", "sample_text"),
+    ("slide 4 Major: an arrowhead runs into the box", "ask", "arrow_into_box"),
+    ("slide 4 Critical: body text cut off at the bottom", "ask", "overflow"),
+    ("slide 4 Advisory: whitespace uneven", "none", ""),
+    # a Critical content finding is asked (owner's decision)
+    ("slide 4 [headline] Critical: title is a topic label", "ask", "headline"),
+    # slide-qc's hyphenated / spaced tags and the aliases
+    ("slide 4 [text-size] Major: 4 body text sizes", "auto", "text_size"),
+    ("slide 4 [text size] Major: body text under the size floor", "auto", "text_size"),
+    ("slide 4 [template-sample-text] Critical: <Customize with your text> left on the slide",
+     "auto", "sample_text"),
+    ("slide 4 [placeholder-prompt] Major: [add source here or delete] left on the slide",
+     "auto", "sample_text"),
+    ("slide 4 [buzzword] Major: synergy, leverage", "ask", "buzzwords"),
+    ("slide 4 [repeats-title] Major: the takeaway under the title repeats the title", "ask",
+     "repeats_title"),
+    ("slide 4 [title-load] Advisory: a 2-line title, a takeaway and a band", "ask",
+     "title_load"),
+    ("slide 4 [Overflow] MAJOR: text cut off", "auto", "overflow"),
+    # the real retry from the Kinfield v3.1 session
+    ("slide 38 [text_size] Major: 4 body text sizes (10.5, 12, 14, 16 pt) on option A",
+     "auto", "text_size"),
+    # unknown tag, no severity in its place: never automatic
+    ("slide 4 [spacing] Major: uneven gaps", "ask", ""),
+    ("slide 4 [overflow] text cut off", "ask", "overflow"),
+    ("slide 4 [overflow] Advisory: tight right margin", "none", "overflow"),
+    # the 2026-10-09 chart and period keys stay automatic
+    ("slide 4 [final_period] Major: 2 text items end with a final period", "auto",
+     "final_period"),
+    ("slide 4 [chart_header] Major: the chart has no header line", "auto", "chart_header"),
+    ("slide 4 [legend_position] Major: the legend is at the bottom", "auto",
+     "legend_position"),
+]
+
+
+def _policy() -> None:
+    print("[0] the policy reads tag and severity only from their place")
+    for text, want_d, want_c in POLICY_CASES:
+        got = P.decide(text)
+        assert got == (want_d, want_c), f"{text!r}: got {got}, want {(want_d, want_c)}"
+    # splitting: only before "slide N"; fix detail stays with its finding
+    rows = P.classify("slide 38 [text_size] Major: 4 body sizes; fix: shorten the labels "
+                      "to 12 pt; slide 39 [overflow] Major: text cut off")
+    assert [(r["slide"], r["decision"]) for r in rows] == [(38, "auto"), (39, "auto")], rows
+    assert "shorten the labels" in rows[0]["finding"], rows
+    rows = P.classify("slide 38 [text_size] Major: 4 body sizes\nfix: keep 12 and 14 pt\n"
+                      "slide 40 [chrome] Major: takeaway not under the title")
+    assert [(r["slide"], r["decision"]) for r in rows] == [(38, "auto"), (40, "auto")], rows
+    assert "keep 12 and 14" in rows[0]["finding"]
+    rows = P.classify("slide 38 [text_size] Major: 4 body sizes (shorten the labels; "
+                      "keep the chart)")
+    assert len(rows) == 1 and rows[0]["decision"] == "auto", rows
+    rows = P.classify("slide 38 [text_size] Major: 4 body sizes; reword the headline to fit")
+    assert len(rows) == 1 and rows[0]["decision"] == "ask", \
+        "fix detail that rewrites words did not make the finding a question"
+    rows = P.classify("slide 3 [overflow] Major: text cut off; Slide 5 [headline] Major: "
+                      "topic label")
+    assert [(r["slide"], r["decision"]) for r in rows] == [(3, "auto"), (5, "ask")], rows
+    assert P.parse("slide 4 [overflow] Major: x")["severity"] == "major", "severity not read"
+    assert P.normalize_tag("Template-Sample Text") == "sample_text"
+    for alias, key in P.ALIASES.items():
+        assert key in P.CATEGORIES, alias
+    print(f"    ok ({len(POLICY_CASES)} findings, 5 splits)")
 
 
 def _rebuild(out: Path, n: int, size: int) -> None:
@@ -49,6 +139,7 @@ def _rebuild(out: Path, n: int, size: int) -> None:
 
 
 def main() -> int:
+    _policy()
     print("[1] the policy: Critical + layout Majors automatic, content Major asked")
     rows = P.classify("; ".join([CRIT, MAJ1, MAJ2, CONTENT]))
     assert [r["decision"] for r in rows] == ["auto", "auto", "auto", "ask"], rows
@@ -81,7 +172,17 @@ def main() -> int:
         assert r.returncode == 5 and "not automatic fixes" in r.stdout, r.stdout[-800:]
         r = H.run("apply_qc_fix.py", "--out", out, "--slides", "1", "--auto", CRIT)
         assert r.returncode == 5 and "--snapshot" in r.stdout, r.stdout[-800:]
-        print("    ok")
+        r = H.run("apply_qc_fix.py", "--out", out, "--slides", "3", "--auto",
+                  "slide 3 Major: an arrowhead runs into the box it points at")
+        assert r.returncode == 5 and "never fixed automatically" in r.stdout and \
+            "arrow_into_box" in r.stdout and "final_period" in r.stdout, r.stdout[-800:]
+        r = H.run("apply_qc_fix.py", "--out", out, "--slides", "1", "--auto", MAJ1)
+        assert r.returncode == 5 and "must name one of the slides" in r.stdout, r.stdout[-800:]
+        r = H.run("apply_qc_fix.py", "--out", out, "--slides", "1", "--auto",
+                  "[overflow] Critical: body text cut off")
+        assert r.returncode == 5 and "must name one of the slides" in r.stdout, r.stdout[-800:]
+        print("    ok (also: an untagged finding, with the valid keys listed, and a finding "
+              "for a slide not in --slides or for no slide)")
 
         print("[3] round 1: the three automatic findings fixed without approval")
         r = H.run("apply_qc_fix.py", "--out", out, "--slides", "1,2,3", "--snapshot")

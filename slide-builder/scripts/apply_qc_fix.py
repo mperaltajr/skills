@@ -35,11 +35,26 @@ On a slide where the user kept several options (an all-options deck, or
 (or 1BC). Only those are converted again; the slide's other kept options stay
 as they are, and the slide keeps all of them.
 
+On a slide where the user kept ONE option of several still on disk (an
+all-options deck keeps the others), the kept design is edited in place and
+--slides 5 (or 5A) converts only it; the slide's pick is left as it is. That
+is refused when another option of the slide was designed after the last
+compile (a new alternative the user has not seen), and for a letter the user
+did not keep (2026-10-09).
+
+--edited-by-parent "<what changed>" (with --approved): the main session made
+the edit itself (a color, a font size, or the user's exact words) in the
+picked option_X.py of a direct-path page. Refused for a sketch page. Recorded,
+and check_done lists it at delivery as "edited by parent".
+
 It
   1. refuses unless a deck was already compiled from this build (a first build
-     still goes through both pages); a plain slide number needs exactly one
-     option on disk (the redesign), a slide with several kept options needs
-     the fixed letters, which must be among the kept ones;
+     still goes through both pages), and while a slide NOT being fixed got a
+     new design after the last compile that nobody picked (slide_NN/_prev/
+     newer than the compile: the fix would ship it unseen); a plain slide
+     number needs exactly one option on disk (the redesign) or the one kept
+     option edited in place, a slide with several kept options needs the
+     fixed letters, which must be among the kept ones;
   2. keeps every other slide's recorded pick and picks the redesign for the
      fixed slides, recording the user's words (a chat approval) or the
      finding (an automatic fix);
@@ -82,6 +97,49 @@ def _letters(slide_dir: Path) -> list[str]:
         if m and p.is_file():
             found.add(m.group(1))
     return sorted(found)
+
+
+def _compile_time(state: dict) -> float | None:
+    """When the last compile ran (seconds since the epoch), or None."""
+    at = ((state.get("stages") or {}).get("compile") or {}).get("at")
+    try:
+        return datetime.fromisoformat(at).timestamp()
+    except (TypeError, ValueError):
+        return None
+
+
+def _design_newer(slide_dir: Path, letter: str, t: float | None) -> bool:
+    """Was this option's design (option_X.html / option_X.py, the designer's
+    files only) written after time t? Unknown time: yes (refuse, fail safe)."""
+    if t is None:
+        return True
+    return any(f.is_file() and f.stat().st_mtime > t
+               for f in (slide_dir / f"option_{letter}.html", slide_dir / f"option_{letter}.py"))
+
+
+def _fresh_redesigns(out: Path, t: float | None, exempt: set[str]) -> list[str]:
+    """Slides (other than the exempt ones) redesigned after the last compile
+    and not picked yet: build_deck.py --slide N moved their old options to
+    slide_NN/_prev/<time>/. A QC fix compiles every slide as it is now, so it
+    would ship that unseen design (its new option A has the letter the old
+    pick named)."""
+    hits = []
+    for sd in sorted(out.glob("slide_[0-9][0-9]")):
+        if sd.name in exempt or not (sd / "_prev").is_dir():
+            continue
+        for d in (sd / "_prev").iterdir():
+            if not d.is_dir():
+                continue
+            try:
+                when = datetime.strptime(d.name[:15], "%Y%m%dT%H%M%S").timestamp()
+            except ValueError:
+                when = d.stat().st_mtime
+            # The folder name is to the second, like the compile time: the
+            # same second counts as after (fail safe).
+            if t is None or when >= t:
+                hits.append(sd.name)
+                break
+    return hits
 
 
 def _run(*args) -> int:
@@ -175,6 +233,10 @@ def main(argv=None) -> int:
                     help="Before rebuilding for an automatic fix: keep the slides' current design.")
     ap.add_argument("--undo", type=int, default=None,
                     help="Restore slide N's design from before its automatic fix, and compile.")
+    ap.add_argument("--edited-by-parent", default=None, dest="edited_by_parent",
+                    help="With --approved: the main session edited the fixed slides' picked "
+                         "option_X.py itself (a color, a font size or the user's exact words; "
+                         "direct-path pages only). Say what changed; check_done lists it.")
     args = ap.parse_args(argv)
     out = args.out
 
@@ -182,6 +244,15 @@ def main(argv=None) -> int:
     if modes > 1:
         print("ERROR: use one of --auto, --snapshot or --undo.")
         return 2
+    if args.edited_by_parent is not None:
+        if modes or not (args.approved or "").strip():
+            print("ERROR: --edited-by-parent goes with --approved (a fix the user approved), "
+                  "not with --auto, --snapshot or --undo.")
+            return 2
+        if not args.edited_by_parent.strip():
+            print("ERROR: --edited-by-parent needs what changed, e.g. "
+                  "\"bar color to brand Teal; title 28 pt\".")
+            return 2
     named: dict[int, str] = {}
     if args.undo is None:
         named = _parse_slides(args.slides)
@@ -211,6 +282,16 @@ def main(argv=None) -> int:
         return 5
 
     snaps = (state.get("auto_qc") or {}).get("snapshots") or {}
+    compiled_at = _compile_time(state)
+    exempt = {_p.slide_key(n) for n in ([args.undo] if args.undo is not None else named)}
+    fresh = _fresh_redesigns(out, compiled_at, exempt)
+    if fresh:
+        print(f"REFUSED: {', '.join(fresh)} got a new design after the last compile "
+              "(its old options are in slide_NN/_prev/) and the user has not picked it. "
+              "A QC fix compiles every slide as it is now, so it would ship that design "
+              "unseen. Finish that slide first (REVIEW.html, or redesign_round.py finish), "
+              "or name it in --slides if it is one of the slides being fixed.")
+        return 5
     if args.undo is not None:
         return undo(out, args.undo, args.approved, state, picks)
 
@@ -227,6 +308,17 @@ def main(argv=None) -> int:
                   "decides them, in one table with proposed fixes:")
             for r in asked:
                 print(f"  - [{r['category'] or 'unrecognized'}] {r['finding']}")
+            if any(not r["known_tag"] for r in asked):
+                print("A finding with no tag, or a tag that is not a key, is never fixed "
+                      "automatically. Write each one \"slide N [key] Severity: finding\" with "
+                      f"a key from: {qc_fix_policy.valid_keys()}.")
+            return 5
+        stray = [r for r in rows if r["slide"] is None or r["slide"] not in named]
+        if stray:
+            print("REFUSED: each automatic finding must name one of the slides in --slides "
+                  f"({', '.join(map(str, sorted(named)))}):")
+            for r in stray:
+                print(f"  - {r['finding']}")
             return 5
         if _state.auto_qc_rounds(state) >= _state.AUTO_QC_MAX_ROUNDS:
             print(f"REFUSED: {_state.AUTO_QC_MAX_ROUNDS} automatic rounds are done. Do not "
@@ -268,11 +360,40 @@ def main(argv=None) -> int:
                 return 5
             to_convert += [(n, L) for L in letters]
             continue
+        if len(kept) == 1 and kept[0] in on_disk and len(on_disk) > 1:
+            # The user kept one option of several (an all-options deck keeps
+            # the others on disk): it is fixed by editing the kept design in
+            # place. Convert it only and leave the slide's pick as it is
+            # (falling through would put every option on disk into the
+            # deck). If another option's design was written after the last
+            # compile, it is a new design the user has not seen: refuse.
+            L = kept[0]
+            newer = [M for M in on_disk if M != L and _design_newer(out / key, M, compiled_at)]
+            if newer:
+                print(f"REFUSED: slide {n} has {len(on_disk)} options ({', '.join(on_disk)}). "
+                      f"The user kept {L}, but {', '.join(newer)} "
+                      f"{'was' if len(newer) == 1 else 'were'} designed after the last "
+                      "compile: new alternatives the user has not seen. A QC fix rebuilds "
+                      "the options the user already kept; new alternatives are picked in "
+                      "REVIEW.html.")
+                return 5
+            stray = [M for M in letters if M != L]
+            if stray:
+                print(f"REFUSED: slide {n} keeps option {L}, not {', '.join(stray)}. "
+                      "A fix rebuilds kept options only.")
+                return 5
+            to_convert.append((n, L))
+            continue
         # One option on disk: the redesign (build_deck.py --slide N).
         if len(on_disk) != 1:
-            print(f"REFUSED: slide {n} has {len(on_disk)} options ({', '.join(on_disk) or 'none'}) "
-                  "that the user has not chosen between. A QC fix rebuilds the options "
-                  "the user already kept; new alternatives are picked in REVIEW.html.")
+            if kept:
+                why = (f"they are not the option(s) the user kept ({', '.join(kept)}), so "
+                       "they are new alternatives the user has not chosen between")
+            else:
+                why = "the user has not chosen between them"
+            print(f"REFUSED: slide {n} has {len(on_disk)} options ({', '.join(on_disk) or 'none'}); "
+                  f"{why}. A QC fix rebuilds the options the user already kept; new "
+                  "alternatives are picked in REVIEW.html.")
             return 5
         if letters and letters != on_disk:
             print(f"REFUSED: slide {n} has only option {on_disk[0]}.")
@@ -284,6 +405,14 @@ def main(argv=None) -> int:
             if L != "-" and L not in _letters(out / k):
                 print(f"REFUSED: {k} no longer has option {L}; pick in REVIEW.html.")
                 return 5
+    if args.edited_by_parent is not None:
+        sketch = [f"{n}{L}" for n, L in to_convert
+                  if not _state.direct_path_letter(out / _p.slide_key(n), L)]
+        if sketch:
+            print(f"REFUSED: --edited-by-parent is for direct-path pages only (the picked "
+                  f"option_X.py); {', '.join(sketch)} is a sketch page. Sketch pages keep "
+                  "the worker route (edit option_X.html, then convert).")
+            return 5
 
     _state.record_review(out)                 # a review token for the current content
     _state.record_picks(out, picks, all_options=all_options,
@@ -301,6 +430,11 @@ def main(argv=None) -> int:
                                     {"slides": what, "after_compile_rev":
                                      int(((state.get("stages") or {}).get("compile") or {}).get("rev") or 0)})
         _state.reset_auto_qc_rounds(out)      # the user replied: a new QC cycle
+        if args.edited_by_parent is not None:
+            _state.record_parent_edit(out, what, args.edited_by_parent.strip(),
+                                      "apply_qc_fix.py --approved", args.approved.strip())
+            print(f"[ok] recorded as edited by the parent (no worker): "
+                  f"{args.edited_by_parent.strip()}")
         print(f"[ok] recorded the fix for slide(s) {what} as approved in chat; "
               + ("the slide's other kept options and " if any(named.values()) else "")
               + "other picks kept.")
@@ -312,6 +446,11 @@ def main(argv=None) -> int:
             for L in sorted({L for m, L in to_convert if m == n}):
                 print(f"  slide {n} option {L}: before {snap / _p.option_png_name(L)}")
                 print(f"  slide {n} option {L}: after  {out / sid / _p.option_png_name(L)}")
+    if rc == 0 and args.edited_by_parent is not None:
+        print("Edited by the parent: look at each new picture now and confirm the colors "
+              "can be told apart (and the text fits):")
+        for n, L in to_convert:
+            print(f"  {out / _p.slide_key(n) / _p.option_png_name(L)}")
     return rc
 
 
