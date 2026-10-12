@@ -330,8 +330,23 @@ def _pdf_to_pngs(pdf_path: pathlib.Path, out_dir: pathlib.Path, dpi: int,
     return n
 
 
+def _scratch_tmp(prefix: str = "render_"):
+    """A temporary folder under the Slide Lab scratch root (C:\\Temp\\slidelab;
+    slide-builder/scripts/_scratch.py), deleted after use. It holds the
+    LibreOffice profile and the local copy of a OneDrive deck. Falls back to
+    the system temp folder when slide-builder is not beside slide-qc."""
+    try:
+        sb = str(pathlib.Path(__file__).resolve().parents[2] / "slide-builder" / "scripts")
+        if sb not in sys.path:
+            sys.path.append(sb)
+        import _scratch
+        return _scratch.temp_dir(prefix)
+    except Exception:
+        return tempfile.TemporaryDirectory()
+
+
 def _libre_pngs(pptx: pathlib.Path, out_dir: pathlib.Path, dpi: int, quiet: bool = False) -> int:
-    with tempfile.TemporaryDirectory() as td:
+    with _scratch_tmp() as td:
         td_p = pathlib.Path(td)
         pdf_path = _convert_to_pdf(_shown_copy(pptx, td_p), td_p)
         return _pdf_to_pngs(pdf_path, out_dir, dpi, quiet)

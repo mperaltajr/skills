@@ -2,6 +2,7 @@
 """Smoke test: prep refuses when the dispatched agents are not the repo's.
 
 Claude Code dispatches the worker and translator from ~/.claude/agents/, not
+import _test_temp  # noqa: F401,E402  (temp folders under the scratch root, deleted at exit)
 from slide-builder/agents/. On 2026-09-30 the installed copies were three months
 stale, so every translator fix since June existed only in the repo and had never
 reached a running agent. build_deck.py now compares the two before dispatch.

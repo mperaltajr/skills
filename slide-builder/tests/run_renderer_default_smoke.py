@@ -23,6 +23,7 @@ Run:  py -3 slide-builder/tests/run_renderer_default_smoke.py
 """
 from __future__ import annotations
 
+import _test_temp  # noqa: F401,E402  (temp folders under the scratch root, deleted at exit)
 import os
 import subprocess
 import sys

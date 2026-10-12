@@ -98,7 +98,8 @@ def render_html_to_png(
 
     png_path.parent.mkdir(parents=True, exist_ok=True)
 
-    with sync_playwright() as pw:
+    from _browser import scratch_env
+    with scratch_env(), sync_playwright() as pw:
         try:
             from _browser import launch
             browser = launch(pw, headless=True)
@@ -134,8 +135,9 @@ def render_html_to_png(
                 # Screenshot to a local temp file, then copy into place. Writing
                 # straight into a OneDrive folder timed out while OneDrive held
                 # the new file, and workers retried renders over and over.
-                import tempfile
-                with tempfile.TemporaryDirectory() as td:
+                import tempfile  # noqa: F401  (the folder itself comes from _scratch)
+                import _scratch
+                with _scratch.temp_dir("render_") as td:
                     tmp_png = Path(td) / "render.png"
                     page.screenshot(
                         path=str(tmp_png),

@@ -30,12 +30,24 @@ Record findings that are OPEN after fixes. A finding that turned out to be
 wrong is not open: leave it out (to clear one carried on an unchanged page,
 plan with --also N and read that page again).
 
+The whole-file hygiene and type-scale check BLOCKS done (owner's decision
+2026-10-09): each Critical or Major it finds stops check_done.py until it is
+gone on a later round (fixed) or, for a Major the user decides to keep, the
+user's exact words are recorded:
+  py -3 scripts/record_vision_qc.py --out <build> --keep-file-check KEY
+      --user-words "<what the user said>"
+KEY is printed beside each finding when the round is recorded. A Critical
+cannot be kept. Advisory never blocks. check_done lists every kept one at
+delivery.
+
 What the proof shows and does not show is in qc_pages.py's docstring: a right
 code shows the picture was opened; nothing shows it was inspected carefully.
 
 Run:
   py -3 scripts/record_vision_qc.py --out <build dir> [--deck <deck>]
       [--notes <_qc/page_notes.json>] [--slides-reviewed N]
+  py -3 scripts/record_vision_qc.py --out <build dir> --keep-file-check KEY
+      --user-words "<the user's exact words>"
 """
 from __future__ import annotations
 
@@ -66,12 +78,32 @@ def main(argv=None) -> int:
     ap.add_argument("--slides-reviewed", type=int, default=None,
                     help="Optional: how many pages you opened this round. Refused "
                          "when it is more than the notes prove.")
+    ap.add_argument("--keep-file-check", default=None, metavar="KEY",
+                    help="Keep one Major from the whole-file checks (key printed by the "
+                         "last round), with --user-words. Records nothing else.")
+    ap.add_argument("--user-words", default=None,
+                    help="With --keep-file-check: the user's exact words.")
     for gone in ("--criticals", "--majors", "--advisories"):
         ap.add_argument(gone, type=int, default=None, help=argparse.SUPPRESS)
     args = ap.parse_args(argv)
 
     if not args.out.exists():
         print(f"ERROR: out dir not found: {args.out}")
+        return 2
+    if args.keep_file_check:
+        try:
+            rec = qc_pages.keep_file_check(args.out, args.keep_file_check, args.user_words)
+        except qc_pages.PlanError as exc:
+            print(f"REFUSED: {exc}")
+            return 3
+        print(f"[ok] kept {args.keep_file_check} (Major, {rec['category']}): "
+              f"{rec['issue'][:100]}")
+        print(f"     the user's words: \"{rec['words']}\". check_done lists it at delivery.")
+        left = qc_pages.open_file_checks(_state.read_state(args.out))
+        print(f"     whole-file findings still blocking: {len(left)}")
+        return 0
+    if args.user_words:
+        print("ERROR: --user-words goes with --keep-file-check KEY.")
         return 2
     if any(v is not None for v in (args.criticals, args.majors, args.advisories)):
         print("ERROR: finding counts are no longer typed. Write each open finding on "
@@ -129,13 +161,28 @@ def main(argv=None) -> int:
     print(f"     deck-wide look: {len(plan.get('sheets') or [])} sheet(s), "
           f"{len(plan.get('pairs') or [])} pair(s); whole-file hygiene and type-scale "
           f"check: {hyg['criticals']} Critical, {hyg['majors']} Major, "
-          f"{hyg['advisories']} Advisory (each Critical and Major there goes in the "
-          "report; one still open goes in its page's findings).")
-    print(f"     open now: {vq['criticals']} Critical, {vq['majors']} Major, "
-          f"{vq['advisories']} Advisory")
-    if vq["criticals"] or vq["majors"]:
+          f"{hyg['advisories']} Advisory.")
+    print(f"     open now (pages and deck-wide look): {vq['criticals']} Critical, "
+          f"{vq['majors']} Major, {vq['advisories']} Advisory")
+    st = _state.read_state(args.out)
+    files = qc_pages.file_check_findings(st)
+    blocking = [f for f in files if not f.get("kept_words")]
+    kept = [f for f in files if f.get("kept_words")]
+    if blocking:
+        print(f"     whole-file checks BLOCK done: {len(blocking)} Critical/Major "
+              "(fix each and run the next round, or, for a Major the user keeps, "
+              "--keep-file-check KEY --user-words \"<their exact words>\"):")
+        for f in blocking[:30]:
+            where = f"slide {f['slide']}" if f.get("slide") else "whole deck"
+            print(f"       - {f['severity']} [{f['key']}] {where}: {str(f.get('issue', ''))[:110]}")
+        if len(blocking) > 30:
+            print(f"       ... and {len(blocking) - 30} more")
+    if kept:
+        print(f"     kept by the user (listed at delivery): {len(kept)} whole-file Major(s)")
+    if vq["criticals"] or vq["majors"] or blocking:
         print("     check_done.py will refuse until the Critical and Major findings "
-              "are fixed and the changed pages are read again.")
+              "are fixed (and the changed pages are read again) or a Major is kept "
+              "with the user's reason.")
     return 0
 
 

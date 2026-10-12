@@ -30,6 +30,7 @@ Exit 0 = all assertions pass. Non-zero = at least one phase failed.
 """
 from __future__ import annotations
 
+import _test_temp  # noqa: F401,E402  (temp folders under the scratch root, deleted at exit)
 import argparse
 import sys
 import traceback

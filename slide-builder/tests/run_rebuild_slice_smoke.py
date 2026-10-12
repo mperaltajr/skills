@@ -14,6 +14,7 @@ Prints "SMOKE PASSED." on success; raises AssertionError otherwise.
 """
 from __future__ import annotations
 
+import _test_temp  # noqa: F401,E402  (temp folders under the scratch root, deleted at exit)
 import json
 import shutil
 import subprocess

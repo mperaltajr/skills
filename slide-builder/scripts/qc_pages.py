@@ -36,6 +36,11 @@ So the script, not the agent, decides what to read and checks it was read:
           page that changed, every sheet and pair code is given, and any
           --slides-reviewed count is no larger than the pages the notes prove.
           It also runs the whole-file hygiene and type-scale check itself.
+          Each Critical or Major from that check BLOCKS done (owner's decision
+          2026-10-09) until it is gone on a later round or, for a Major, the
+          user keeps it: record_vision_qc.py --keep-file-check KEY
+          --user-words "<the user's exact words>". A Critical cannot be kept.
+          Advisory never blocks.
 
 WHAT THE PROOF CAN AND CANNOT SHOW (honestly):
   - A page code exists only in the pixels of that page's to_read image; it is
@@ -538,18 +543,84 @@ def verify_notes(out, deck, notes: dict, slides_reviewed: int | None = None) -> 
                       "look_findings": look_findings, "no_text": no_text}
 
 
+def file_check_key(v: dict) -> str:
+    """A short name for one whole-file finding that stays the same from round
+    to round while the finding does: category, slide (or 'deck') and a hash
+    of the issue text. A changed issue is a new finding."""
+    slide = v.get("slide")
+    where = f"s{int(slide)}" if isinstance(slide, int) or str(slide or "").isdigit() else "deck"
+    h = hashlib.sha1(str(v.get("issue", "")).encode("utf-8")).hexdigest()[:6]
+    cat = re.sub(r"[^a-z0-9-]+", "-", str(v.get("category") or "check").lower()).strip("-")
+    return f"{cat or 'check'}:{where}:{h}"
+
+
 def run_hygiene(deck) -> dict:
     """The whole-file hygiene and type-scale pass (slide-qc's
-    check_pptx_hygiene.py, which runs type_scale.py), run by the script."""
+    check_pptx_hygiene.py, which runs type_scale.py), run by the script.
+    Every Critical and Major is kept in the record (they block done); the
+    Advisory list is cut at 60."""
     try:
         import check_pptx_hygiene as H
         res = H.run_all_checks(Path(deck))
-        v = res.get("violations") or []
+        v = [{**x, "key": file_check_key(x)} for x in (res.get("violations") or [])]
         cnt = {s: sum(1 for x in v if x.get("severity") == s) for s in SEVERITIES}
+        blocking = [x for x in v if x.get("severity") in ("Critical", "Major")]
+        advisory = [x for x in v if x.get("severity") not in ("Critical", "Major")]
         return {"ran": True, "criticals": cnt["Critical"], "majors": cnt["Major"],
-                "advisories": cnt["Advisory"], "violations": v[:60]}
+                "advisories": cnt["Advisory"],
+                "violations": blocking + advisory[:max(0, 60 - len(blocking))]}
     except Exception as exc:
         return {"ran": False, "error": f"{type(exc).__name__}: {exc}"}
+
+
+def file_check_findings(state: dict) -> list[dict]:
+    """The Critical and Major findings of the whole-file checks of the last
+    recorded round, each with its key and, when the user kept it, their
+    words ("kept_words"). A finding gone from the last round is fixed."""
+    hyg = (state.get("vision_deck_look") or {}).get("hygiene") or {}
+    kept = state.get("file_checks_kept") or {}
+    out = []
+    for v in hyg.get("violations") or []:
+        if v.get("severity") not in ("Critical", "Major"):
+            continue
+        key = v.get("key") or file_check_key(v)
+        rec = {**v, "key": key}
+        k = kept.get(key)
+        if k and v.get("severity") == "Major":
+            rec["kept_words"] = k.get("words", "")
+            rec["kept_at"] = k.get("at", "")
+        out.append(rec)
+    return out
+
+
+def open_file_checks(state: dict) -> list[dict]:
+    """The whole-file Critical and Major findings still blocking done."""
+    return [f for f in file_check_findings(state) if not f.get("kept_words")]
+
+
+def keep_file_check(out, key: str, words: str) -> dict:
+    """Record that the user keeps one whole-file Major, with their exact
+    words. Refuses a Critical, an unknown key and empty words."""
+    out = Path(out)
+    st = _state.read_state(out)
+    words = str(words or "").strip()
+    if not words:
+        raise PlanError("give the user's exact words with --user-words (why they keep it)")
+    match = [f for f in file_check_findings(st) if f["key"] == key]
+    if not match:
+        keys = [f["key"] for f in file_check_findings(st)]
+        raise PlanError(f"no Critical or Major from the last round's whole-file checks has "
+                        f"the key {key!r}. Open ones: {', '.join(keys) or 'none'}")
+    f = match[0]
+    if f.get("severity") == "Critical":
+        raise PlanError(f"{key} is a Critical; a Critical cannot be kept, it must be fixed "
+                        f"(\"{str(f.get('issue', ''))[:80]}\")")
+    rec = {"words": words[:500], "at": datetime.now().isoformat(timespec="seconds"),
+           "severity": f.get("severity"), "category": f.get("category", ""),
+           "slide": f.get("slide"), "issue": str(f.get("issue", ""))[:300]}
+    st.setdefault("file_checks_kept", {})[key] = rec
+    _state._write(out, st)
+    return rec
 
 
 def open_counts(state: dict) -> dict:
