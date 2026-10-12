@@ -85,6 +85,17 @@ def _cleanup() -> None:
     tempfile.tempdir = None
     # A log file the test process still holds open (build.log) is closed
     # first; logging would otherwise close it only after this runs.
+    # A pipeline script called in this process may still tee its output to
+    # <out>/build.log (scripts/_log.py); close that log first.
+    lg = sys.modules.get("_log")
+    h = getattr(lg, "_attached", {}).get("handle") if lg else None
+    if h is not None:
+        try:
+            sys.stdout = getattr(sys, "__stdout__", sys.stdout)
+            sys.stderr = getattr(sys, "__stderr__", sys.stderr)
+            h.close()
+        except Exception:
+            pass
     if "logging" in sys.modules:
         try:
             sys.modules["logging"].shutdown()
