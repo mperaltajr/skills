@@ -66,7 +66,8 @@ def main(argv=None) -> int:
         print("ERROR: give --pages, e.g. --pages 4,5,33,37")
         return 2
     from render_slides import render as render_default
-    with tempfile.TemporaryDirectory() as td:
+    import _scratch
+    with _scratch.temp_dir("style_refs_") as td:
         try:
             render_default(args.source, Path(td), dpi=96)
         except Exception as exc:

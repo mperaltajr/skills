@@ -131,7 +131,8 @@ def render_full(pptxs: list[Path], engine: str = "auto") -> list[tuple[np.ndarra
     LAST_RENDER_ERRORS.clear()
     LAST_RENDER_ENGINES.clear()
     out: list = []
-    with tempfile.TemporaryDirectory() as td:
+    import _scratch
+    with _scratch.temp_dir("alarm_") as td:
         got = one_deck.pdf_pages([Path(p) for p in pptxs], Path(td),
                                  renderer=pick_engine(engine))
         docs: dict = {}

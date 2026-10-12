@@ -10,6 +10,7 @@ deliberately plain slide so the test is about the plumbing, not the design.
 """
 from __future__ import annotations
 
+import _test_temp  # noqa: F401,E402  (temp folders under the scratch root, deleted at exit)
 import os
 import shutil
 import subprocess

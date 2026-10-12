@@ -68,7 +68,7 @@ The script emits a JSON document to stdout with this shape:
 }
 ```
 
-Parse this and hold the violations in memory. They will be merged with the visual-pass findings into a single unified Critical / Major / Advisory table at Step 5.
+On a Slide Lab build, `record_vision_qc.py` runs this same check itself every round and records it; its Critical and Major findings block done (see Hard rules). Parse this and hold the violations in memory. They will be merged with the visual-pass findings into a single unified Critical / Major / Advisory table at Step 5.
 
 **What this script catches (deterministic, no vision needed):**
 - Lorem ipsum / placeholder residue (`[Insert ...]`, "Subtitle goes here", TODO/FIXME/XXX) → Critical
@@ -305,6 +305,8 @@ When a reason is given, record it alongside the QC report in `_session/_qc/qc-fl
 
 ## Hard rules
 
+- **Scratch files: one place.** Put any scratch files (copies, renders, checks) under C:\Temp\slidelab\<session>\ (scripts/_scratch.py); never invent new folders in C:\Temp. Render into the build's `_qc` folder as usual; anything else (a local copy, a test render, a check) goes in the session's scratch folder (`py -3 slide-builder/scripts/_scratch.py --session "<session folder>"` prints it).
+- **The whole-file checks block done.** Every Critical or Major from the hygiene and type-scale check that `record_vision_qc.py` runs each round stops `check_done.py` until it is gone on a later round (fixed), or, for a Major the user decides to keep, their exact words are recorded: `record_vision_qc.py --out <build> --keep-file-check KEY --user-words "<what they said>"` (the KEY is printed beside each finding). A Critical cannot be kept. Advisory never blocks. check_done lists every kept one at delivery (owner's decision 2026-10-09).
 - **Never say "looks good" without reading the PNGs.** Running the export and reporting without using the Read tool on the images is a silent QC failure — it is worse than not running QC at all.
 - **Per-zone inspection is the hard gate, not the categorical checks.** The visual categorical checks (Step 5b) only catch coarse failures. Small-text bugs (washed-out chart annotations, clipped numerals, sub-headlines inheriting master color, footer fills that shouldn't be there) only get caught by walking through every zone of every slide and reading what is rendered. **You must produce a quote-back for each zone on each slide** (Step 5a). If you cannot quote what you saw, you didn't read it — and the QC is a lie regardless of what severity you report.
 - **Severity discipline.** Critical issues block ship and cannot be overridden — they have to be fixed. Major issues can be shipped with a written reason from the user (no shortcut keyword — they must explain). Advisory issues are judgment calls and never block. Do not promote an Advisory to Major to force the user to engage, and do not demote a real Major to Advisory to avoid friction.

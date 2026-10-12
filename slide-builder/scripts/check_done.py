@@ -24,6 +24,11 @@ So this checks one unbroken chain of recorded facts, each tied to the last:
   7. no Critical or Major finding is open on any page, including findings
      carried on unchanged pages (only Advisory may remain, or a Major the
      user kept with their reason)
+  7a. no Critical or Major from the whole-file hygiene and type-scale checks
+      of the last round is open (owner's decision 2026-10-09: they block, as
+      page findings do); a Major the user kept, with their exact words
+      recorded (record_vision_qc.py --keep-file-check), does not block and is
+      listed at delivery. A Critical cannot be kept. Advisory never blocks.
   7b. the agent files Claude Code runs are the ones recorded at prep
   8. every figure on a replicated supplied page was reconciled
   9. every comment the user made on a pick was applied (none pending)
@@ -220,6 +225,26 @@ def main(argv=None) -> int:
                 "open (findings on unchanged pages carry forward and stay open). "
                 "Everything above Advisory must be fixed (or corrected to 'not a "
                 "defect' if the finding was wrong), then QC re-run.")
+        if look.get("deck_digest") == digest:
+            if not (look.get("hygiene") or {}).get("ran"):
+                problems.append(
+                    "the whole-file hygiene and type-scale check was not recorded for "
+                    "this deck. Run slide-qc again; record_vision_qc.py runs it.")
+            else:
+                fopen = qc_pages.open_file_checks(state)
+                if fopen:
+                    crit_f = sum(1 for f in fopen if f.get("severity") == "Critical")
+                    problems.append(
+                        f"the whole-file checks (hygiene and type scale) of the last round "
+                        f"found {crit_f} Critical and {len(fopen) - crit_f} Major still open: "
+                        + "; ".join(
+                            f"[{f['key']}] {'slide ' + str(f['slide']) if f.get('slide') else 'deck'}: "
+                            f"{str(f.get('issue', ''))[:90]}" for f in fopen[:4])
+                        + (" ..." if len(fopen) > 4 else "")
+                        + ". Fix each and run the next QC round, or, for a Major the user "
+                          "decides to keep, record their exact words: record_vision_qc.py "
+                          "--out <build> --keep-file-check KEY --user-words \"...\" "
+                          "(a Critical cannot be kept).")
 
     # 6b. The agent files Claude Code runs are the ones this build was prepared with.
     _agents = _install.changed_since_prep(state)
@@ -264,6 +289,8 @@ def main(argv=None) -> int:
         for f in kept:
             print(f"                  - page {','.join(map(str, f.get('pages') or []))}: "
                   f"{f.get('issue', '')[:90]} (\"{f['user_reason'][:90]}\")")
+    for line in file_check_kept_lines(qc_pages.file_check_findings(state)):
+        print(line)
     # Every gate that was deliberately passed over in this build. They were
     # recorded and then never shown to anyone; delivery is where the user sees
     # what the deck did NOT go through.
@@ -291,6 +318,21 @@ def main(argv=None) -> int:
     if line:
         print(line)
     return 0
+
+
+def file_check_kept_lines(findings: list) -> list[str]:
+    """Delivery lines for whole-file Majors the user kept, with their words."""
+    kept = [f for f in findings if f.get("kept_words")]
+    if not kept:
+        return []
+    out = [f"  kept file checks: {len(kept)} Major finding(s) from the whole-file checks "
+           "kept with the user's words:"]
+    for f in kept:
+        where = f"slide {f['slide']}" if f.get("slide") else "whole deck"
+        out.append(f"                  - [{f['key']}] {where}: {str(f.get('issue', ''))[:90]} "
+                   f"(\"{f['kept_words'][:120]}\", {f.get('kept_at', '')})")
+    out.append("                  Tell the user about these when you deliver.")
+    return out
 
 
 _CHAT_KIND = {"picks": "picks, with REVIEW.html open",

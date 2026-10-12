@@ -389,6 +389,7 @@ Adjacency (Hardline #3 — no 3+ consecutive same-split) is **surfaced post-buil
     ```powershell
     py -3 scripts/publish_cleanup.py --out <out>
     ```
+    It also deletes the session's scratch folder under `C:\Temp\slidelab\` (the dry run lists it with its size). For "clean up my finished decks", `--scan <folder>` lists the decks and `--temp` lists Slide Lab scratch folders not changed for 7 days, with sizes; delete only the ones the user names (`--temp --delete "<name>" ...`, or `--temp --all-listed` when they say all of them). Folders in use are skipped and the output says so.
     It keeps the deck, the final-check page, the storyline, the brief, decisions and the user's own files in `_session/`, the deck's records, and per slide only what a rebuild needs: the picked option's design and script (`option_X.html`, `option_X.py` or `option_X_native.py`, its `.plan.json` and translation report), its pictures in `img/`, any file the kept script names, and `_prior_feedback.md`. It deletes everything else: unpicked options, every image and per-option PowerPoint file, `_prompt.md` and `_context.md` (`build_deck.py --slide N` writes them again), the quality-check render folders (`_qc*`, written notes in them are kept), final page images, replaced options, `_session/old-decks/` and a rejected deck (typically about 90% of the folder). Tell the user how much it freed. The deck can still be edited later: a rebuild or insert works as usual, and the next finalize regenerates the images and files from the kept designs. Run it only on that say-so, never on your own judgment that the deck is finished; `--dry-run` shows what would go without deleting. For decks finished earlier, `--scan <sessions folder>` lists every finished deck with the space it would free; the user picks which to clean.
 
 Rebuild individual slides with "rebuild slide N". This re-prep + re-finalize touches only slide N and grafts it back into the existing deck — every other slide's prompt, themed PPTX, and pick are left exactly as they were:
@@ -526,6 +527,8 @@ Under **the direct path**, curved containers route to `# SKELETON_REJECTED:` —
 ---
 
 ## File paths
+
+**Scratch files: one place.** Put any scratch files (copies, renders, checks) under C:\Temp\slidelab\<session>\ (scripts/_scratch.py); never invent new folders in C:\Temp. `py -3 scripts/_scratch.py --session "<session folder>"` prints (and makes) the session's folder; on a Mac it is the system temp folder plus `slidelab/`. Slide Lab's own scripts already put their temporary folders, browser profiles and LibreOffice profiles there and delete them after use (owner's decision 2026-10-09). "The deck is good" (publish_cleanup.py) deletes the session's scratch folder too.
 
 ```
 Skill root:        C:\Users\m.a.peralta\.claude\skills\slide-builder\

@@ -132,6 +132,18 @@ sys.path.insert(0, str(SKILL_ROOT))
 sys.path.insert(0, str(QC_SCRIPTS))
 
 from pptx import Presentation  # noqa: E402
+
+
+def _scratch_tmp():
+    """A temporary folder under the Slide Lab scratch root (deleted after)."""
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import _scratch
+        return _scratch.temp_dir("register_")
+    except Exception:
+        return tempfile.TemporaryDirectory()
+
+
 from pptx.util import Emu, Pt  # noqa: E402
 from pptx.dml.color import RGBColor  # noqa: E402
 from pptx.enum.shapes import MSO_SHAPE, PP_PLACEHOLDER  # noqa: E402
@@ -768,7 +780,7 @@ def render_pptx_to_png(pptx_path: Path, png_path: Path) -> bool:
     except ImportError as e:
         print(f"WARNING: could not import PIL: {e}")
         return False
-    with tempfile.TemporaryDirectory() as td:
+    with _scratch_tmp() as td:
         tmp = Path(td)
         try:
             render_default(pptx_path, tmp, dpi=120)
@@ -846,7 +858,7 @@ def render_layout_thumbnails(template_path: Path, out_dir: Path,
     tmp_pptx = out_dir / "_layout_thumbnails.pptx"
     prs.save(str(tmp_pptx))
 
-    with tempfile.TemporaryDirectory() as td:
+    with _scratch_tmp() as td:
         tmp = Path(td)
         try:
             render_default(tmp_pptx, tmp, dpi=dpi)
@@ -917,7 +929,7 @@ def render_slide_thumbnails(template_path: Path, out_dir: Path,
         except Exception:
             layout_names.append("")
 
-    with tempfile.TemporaryDirectory() as td:
+    with _scratch_tmp() as td:
         tmp = Path(td)
         try:
             render_default(template_path, tmp, dpi=dpi)
@@ -4504,7 +4516,7 @@ def _render_mock_page_selftest(tpl: Path) -> tuple[list[str], list[str]]:
         try:
             from render_slides import render as render_default
             dest = _p.selftest_png(tpl)
-            with tempfile.TemporaryDirectory() as td:
+            with _scratch_tmp() as td:
                 tmp = Path(td)
                 render_default(mock_pptx, tmp, dpi=120)
                 pngs = sorted(tmp.glob("slide_*.png"))

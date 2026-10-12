@@ -28,6 +28,7 @@ Run:  py -3 slide-builder/tests/run_incremental_qc_smoke.py
 """
 from __future__ import annotations
 
+import _test_temp  # noqa: F401,E402  (temp folders under the scratch root, deleted at exit)
 import contextlib
 import io
 import json

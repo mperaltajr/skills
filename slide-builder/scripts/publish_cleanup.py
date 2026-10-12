@@ -38,6 +38,11 @@ DELETED:
     Lab's own earlier compiles, written only by compile_picks.py),
     __pycache__/
 
+ALSO DELETED (owner's decision 2026-10-09, one scratch area): the session's
+scratch folder under the Slide Lab scratch root, C:/Temp/slidelab/<session>/
+(scripts/_scratch.py), unless a process is using it right now (then it is
+skipped and the output says so). The dry run lists it with its size.
+
 Editing the deck later still works: rebuild or insert a slide as usual; the
 next finalize rebuilds the images and PowerPoint files from the kept designs.
 
@@ -45,9 +50,21 @@ compile_picks.py also calls compile_cleanup() after every successful compile:
 it removes only what is clearly temporary (render scratch folders and the
 options the user did not pick), so a QC fix can still rebuild the picked ones.
 
+"Clean up my finished decks" has a second part, the scratch folders: --temp
+lists every folder under the scratch root not changed for 7 days, with its
+size, and deletes nothing. The user says which ones go; --temp --delete NAME
+[NAME ...] deletes only those (each must be on that list), --temp --all-listed
+deletes the whole list. Nothing outside the scratch root is ever touched, and
+a folder in use (its lock file names a running process, or anything in it
+changed within the last hour) is skipped, with the reason printed.
+
 Run:  py -3 scripts/publish_cleanup.py --out <session folder> [--dry-run]
       py -3 scripts/publish_cleanup.py --scan <folder>    (list finished decks; deletes nothing)
-Exit: 0 cleaned (or dry run) | 2 not a session folder | 5 nothing published yet
+      py -3 scripts/publish_cleanup.py --temp             (list old scratch folders; deletes nothing)
+      py -3 scripts/publish_cleanup.py --temp --delete "<name>" ["<name>" ...]
+      py -3 scripts/publish_cleanup.py --temp --all-listed
+Exit: 0 cleaned (or dry run, or a list) | 2 not a session folder / a name not
+      on the list | 5 nothing published yet
 """
 from __future__ import annotations
 
@@ -62,6 +79,10 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 import _state  # noqa: E402
+import _scratch  # noqa: E402
+
+TEMP_MIN_AGE_DAYS = 7          # scratch folders listed for cleanup
+TEMP_BUSY_SECONDS = 3600       # changed within this long: in use, skipped
 
 ROOT_DELETE_DIRS = ("final_pngs", "_raw", "_render_tmp", "__pycache__")
 ROOT_DELETE_FILES = ("REVIEW.html", "GATE3-PREVIEW.html")
@@ -303,6 +324,149 @@ def compile_cleanup(out: Path, picks: dict, remove_unpicked: bool = True) -> str
             f"goes when the user says the deck is good: publish_cleanup.py)")
 
 
+# ---------------------------------------------------------------- scratch root
+def _scratch_root_ok(r: Path) -> bool:
+    """Never treat a drive, the home folder or a bare temp folder as the root."""
+    r = r.resolve()
+    bad = {Path(r.anchor).resolve(), Path.home().resolve(), Path("C:/Temp").resolve()}
+    try:
+        import tempfile
+        bad.add(Path(tempfile.gettempdir()).resolve())
+    except Exception:
+        pass
+    return r not in bad and len(r.parts) >= 2
+
+
+def _busy(folder: Path, now: float | None = None) -> str:
+    """Why a scratch folder must not be deleted now ('' when it may be)."""
+    import time
+    holder = _scratch.lock_holder(folder)
+    if holder:
+        return (f"in use (its lock file names process {holder}, which is running)"
+                if holder > 0 else "in use (it has a lock file that cannot be read)")
+    try:
+        age = (now or time.time()) - _scratch.latest_change(folder)
+    except OSError:
+        return "could not be read"
+    if age < TEMP_BUSY_SECONDS:
+        return f"in use (something in it changed {int(age // 60)} minute(s) ago)"
+    return ""
+
+
+def _is_link(p: Path) -> bool:
+    try:
+        return p.is_symlink() or bool(getattr(p, "is_junction", lambda: False)())
+    except OSError:
+        return True
+
+
+def _inside_root(p: Path, root: Path) -> bool:
+    try:
+        return p.resolve().parent == root.resolve() and not _is_link(p)
+    except OSError:
+        return False
+
+
+def session_scratch_plan(out: Path) -> list[tuple[Path, int, str]]:
+    """(folder, bytes, why it is skipped or '') for the session's scratch."""
+    root = _scratch.root()
+    if not _scratch_root_ok(root):
+        return []
+    rows = []
+    for f in _scratch.find_session_scratch(out):
+        if not _inside_root(f, root):
+            continue
+        holder = _scratch.lock_holder(f)
+        why = (f"in use (process {holder} is using it)" if holder else "")
+        rows.append((f, _scratch.size(f), why))
+    return rows
+
+
+def temp_list(min_age_days: float = TEMP_MIN_AGE_DAYS) -> tuple[list, list]:
+    """(old folders [(path, bytes, last change)], skipped [(path, why)]) under
+    the scratch root. Only direct children of the root; the font cache is
+    never listed."""
+    import time
+    root = _scratch.root()
+    if not _scratch_root_ok(root):
+        return [], [(root, "the scratch root is not a Slide Lab folder; nothing listed")]
+    now = time.time()
+    rows, skipped = [], []
+    for f in sorted(root.iterdir(), key=lambda p: p.name.lower()):
+        if not f.is_dir() or f.name == _scratch.CACHE:
+            continue
+        if _is_link(f):
+            skipped.append((f, "a link to another folder; never followed"))
+            continue
+        try:
+            latest = _scratch.latest_change(f)
+        except OSError:
+            skipped.append((f, "could not be read"))
+            continue
+        if now - latest < min_age_days * 86400:
+            continue
+        why = _busy(f, now)
+        if why:
+            skipped.append((f, why))
+            continue
+        rows.append((f, _scratch.size(f), latest))
+    return rows, skipped
+
+
+def temp_cmd(delete: list[str] | None, all_listed: bool) -> int:
+    root = _scratch.root()
+    rows, skipped = temp_list()
+    listed = {r[0].name: r for r in rows}
+    if not delete and not all_listed:
+        if not rows:
+            print(f"No Slide Lab scratch folders older than {TEMP_MIN_AGE_DAYS} days under {root}.")
+        else:
+            print(f"{len(rows)} Slide Lab scratch folder(s) under {root} not changed for "
+                  f"{TEMP_MIN_AGE_DAYS} days (largest first):")
+            for f, b, latest in sorted(rows, key=lambda r: -r[1]):
+                owner = _scratch._owner(f)
+                print(f"  {b / 1e6:8.1f} MB  {f.name}  (last changed "
+                      f"{datetime.fromtimestamp(latest).strftime('%Y-%m-%d')}"
+                      + (f"; session {owner}" if owner else "") + ")")
+            print(f"Total: {sum(r[1] for r in rows) / 1e6:.1f} MB. Nothing was deleted. Ask the "
+                  "user which to delete, then run --temp --delete \"<name>\" ... (or "
+                  "--temp --all-listed for the whole list).")
+        for f, why in skipped:
+            print(f"  skipped {f.name}: {why}")
+        return 0
+    names = list(listed) if all_listed else list(delete or [])
+    unknown = [n for n in names if n not in listed]
+    if unknown:
+        print("REFUSED: not on the list of old scratch folders (nothing was deleted): "
+              + ", ".join(unknown) + ". Run --temp to see the list.")
+        for f, why in skipped:
+            if f.name in unknown:
+                print(f"  {f.name}: {why}")
+        return 2
+    freed = 0
+    for n in names:
+        f = listed[n][0]
+        if not _inside_root(f, root):
+            print(f"  skipped {n}: not directly inside {root}")
+            continue
+        why = _busy(f)               # checked again right before deleting
+        if why:
+            print(f"  skipped {n}: {why}")
+            continue
+        b = _scratch.size(f)
+        shutil.rmtree(f, ignore_errors=True)
+        if f.exists():
+            left = _scratch.size(f)
+            print(f"  {n}: partly deleted ({(b - left) / 1e6:.1f} MB freed; some files are "
+                  "held open by another program)")
+            freed += b - left
+        else:
+            print(f"  deleted {n} ({b / 1e6:.1f} MB)")
+            freed += b
+    print(f"[ok] freed {freed / 1e6:.1f} MB from {root}.")
+    return 0
+
+
 def scan(root: Path) -> int:
     """List every finished deck (a session folder with a .pptx at its top)
     under root, with what a cleanup would free. Deletes nothing: the user
@@ -320,6 +484,7 @@ def scan(root: Path) -> int:
         rows.append((sum(_size(v) for v in victims), _size(sess), sess, latest, compiled))
     if not rows:
         print(f"No finished, uncleaned decks under {root}.")
+        _temp_hint()
         return 0
     rows.sort(key=lambda r: -r[0])
     print(f"{len(rows)} finished deck(s) under {root} (largest saving first):")
@@ -333,7 +498,20 @@ def scan(root: Path) -> int:
         print(f"  {freed / 1e6:7.1f} MB of {total / 1e6:7.1f} MB  {sess}  ({status}; {when})")
     print(f"Total that could be freed: {sum(r[0] for r in rows) / 1e6:.1f} MB. Ask the user which "
           "decks are final, then run --out on each.")
+    _temp_hint()
     return 0
+
+
+def _temp_hint() -> None:
+    """--scan also says how much old scratch there is (the --temp list)."""
+    try:
+        rows, _sk = temp_list()
+    except Exception:
+        return
+    if rows:
+        print(f"Also: {len(rows)} Slide Lab scratch folder(s) not changed for "
+              f"{TEMP_MIN_AGE_DAYS} days, {sum(r[1] for r in rows) / 1e6:.1f} MB, under "
+              f"{_scratch.root()}. Run --temp to list them.")
 
 
 def main(argv=None) -> int:
@@ -341,7 +519,18 @@ def main(argv=None) -> int:
     ap.add_argument("--out", type=Path, help="The deck's session folder.")
     ap.add_argument("--scan", type=Path, help="List finished decks under this folder; delete nothing.")
     ap.add_argument("--dry-run", action="store_true", help="Show what would go; delete nothing.")
+    ap.add_argument("--temp", action="store_true",
+                    help="List Slide Lab scratch folders older than 7 days (deletes nothing "
+                         "unless --delete or --all-listed is given).")
+    ap.add_argument("--delete", nargs="+", metavar="NAME",
+                    help="With --temp: delete only these listed scratch folders.")
+    ap.add_argument("--all-listed", action="store_true",
+                    help="With --temp: delete every folder --temp lists.")
     args = ap.parse_args(argv)
+    if (args.delete or args.all_listed) and not args.temp:
+        ap.error("--delete and --all-listed go with --temp")
+    if args.temp:
+        return temp_cmd(args.delete, args.all_listed)
     if args.scan:
         return scan(args.scan.resolve())
     if not args.out:
@@ -381,6 +570,13 @@ def main(argv=None) -> int:
         groups[key] = groups.get(key, 0) + _size(p)
     for k, v in sorted(groups.items(), key=lambda x: -x[1]):
         print(f"  {v / 1e6:8.1f} MB  {k}")
+    scratch = session_scratch_plan(out)
+    for f, b, why in scratch:
+        if why:
+            print(f"  scratch folder {f} ({b / 1e6:.1f} MB) is skipped: {why}")
+        else:
+            print(f"  {b / 1e6:8.1f} MB  scratch folder {f}"
+                  + (" (would be deleted)" if args.dry_run else ""))
     if args.dry_run:
         return 0
 
@@ -397,6 +593,13 @@ def main(argv=None) -> int:
     except Exception:
         pass
     print(f"[ok] freed {freed / 1e6:.1f} MB; folder is now {_size(out) / 1e6:.1f} MB.")
+    for f, b, why in scratch:
+        if why:
+            continue
+        shutil.rmtree(f, ignore_errors=True)
+        left = _scratch.size(f) if f.exists() else 0
+        print(f"     scratch folder {f}: freed {(b - left) / 1e6:.1f} MB"
+              + (" (some files are held open by another program and stayed)" if left else ""))
     print("     To edit this deck later, rebuild or insert a slide as usual; the next "
           "finalize regenerates the page images and PowerPoint files from the kept designs.")
     return 0

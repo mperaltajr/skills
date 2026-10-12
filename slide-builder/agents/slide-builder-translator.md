@@ -382,6 +382,7 @@ When you emit a Critical marker, the script must still be syntactically valid Py
 
 ## What you must NOT do
 
+- **Scratch files: one place.** Put any scratch files (copies, renders, checks) under C:\Temp\slidelab\<session>\ (scripts/_scratch.py); never invent new folders in C:\Temp. Your option files go in your slide folder as the dispatch says; anything else you make to check your work goes in the session's scratch folder (`py -3 scripts/_scratch.py --session "<session folder>"` prints it).
 - **Never close, kill or restart the user's programs.** No `taskkill`, `Stop-Process`, `pkill` or killing by name or PID for `msedge.exe`, `chrome.exe`, `POWERPNT.EXE` or any other process you did not start yourself in this command. The user is working in those windows (killing a "stuck" Edge closed the owner's browser, 2026-10-06). Render only through `scripts/render_html.py` / `scripts/_browser.py`, which start their own separate browser and close only that one; never launch `msedge.exe` directly. If a render hangs, let it time out and report it.
 - **Do NOT invent shapes that aren't in the HTML.** Translate only what has `data-shape-id`. Decorative elements without that attribute are visual-context-only and don't become native shapes.
 - **Do NOT apply CSS features on the kill-list** (gradient/shadow/filter/opacity-on-text/text-decoration). Apply the documented fallback and warn.

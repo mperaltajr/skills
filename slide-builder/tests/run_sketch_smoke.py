@@ -44,6 +44,7 @@ Exit
 """
 from __future__ import annotations
 
+import _test_temp  # noqa: F401,E402  (temp folders under the scratch root, deleted at exit)
 import io
 import json
 import os

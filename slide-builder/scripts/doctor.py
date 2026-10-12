@@ -104,7 +104,8 @@ def check_browser(rows):
     for name in ("chromium", "edge", "chrome"):
         os.environ["SLIDE_LAB_BROWSER"] = name
         try:
-            with sync_playwright() as pw:
+            from _browser import scratch_env
+            with scratch_env(), sync_playwright() as pw:
                 b = launch(pw)
                 b.close()
             tried[name] = True
@@ -130,7 +131,8 @@ def _test_render(engine: str) -> bool:
     try:
         import render_slides as RS
         from pptx import Presentation
-        with tempfile.TemporaryDirectory() as td:
+        import _scratch
+        with _scratch.temp_dir("doctor_") as td:
             deck = Path(td) / "doctor.pptx"
             prs = Presentation()
             prs.slides.add_slide(prs.slide_layouts[0]).shapes.title.text = "Slide Lab check"

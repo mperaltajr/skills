@@ -899,8 +899,8 @@ def _family_index() -> dict:
     global _FAMILIES
     if _FAMILIES is not None:
         return _FAMILIES
-    import tempfile
-    cache = Path(tempfile.gettempdir()) / "slidelab_font_families.json"
+    import _scratch
+    cache = _scratch.cache_dir() / "slidelab_font_families.json"
     try:
         _FAMILIES = {tuple(k.split("|", 1)): v for k, v in
                      json.loads(cache.read_text(encoding="utf-8")).items()}
@@ -939,8 +939,8 @@ def _face_table() -> dict:
     global _FACES
     if _FACES is not None:
         return _FACES
-    import tempfile
-    cache = Path(tempfile.gettempdir()) / "slidelab_font_faces.json"
+    import _scratch
+    cache = _scratch.cache_dir() / "slidelab_font_faces.json"
     try:
         _FACES = json.loads(cache.read_text(encoding="utf-8"))
         return _FACES
@@ -2633,10 +2633,10 @@ def font_ratio_message(font: str, ratio: float, installed: bool | None = None) -
 
 def _render_plans(plans: list["Plan"], engine: str = "auto") -> list:
     """(image, characters) per plan, from one render pass (translate_alarm)."""
-    import tempfile
+    import _scratch
     import translate_alarm as A
     from twins.html_emit import build
-    with tempfile.TemporaryDirectory() as td:
+    with _scratch.temp_dir("alarm_") as td:
         paths = []
         for k, plan in enumerate(plans):
             prs, _s = build(_public_plan(plan))
@@ -2758,7 +2758,8 @@ def translate_many(jobs: list[tuple], check: bool = True) -> list[dict]:
     render of every slide, as one deck, for the self-check."""
     from playwright.sync_api import sync_playwright
     done = []
-    with sync_playwright() as pw:
+    from _browser import scratch_env
+    with scratch_env(), sync_playwright() as pw:
         from _browser import launch
         browser = launch(pw)
         page = browser.new_page(viewport={"width": CANVAS_W, "height": CANVAS_H})

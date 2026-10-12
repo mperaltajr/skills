@@ -504,7 +504,11 @@ def font_faces(dirs: list | tuple | None = None) -> list[dict]:
     sig = hashlib.sha1("|".join(paths).encode("utf-8", "replace")).hexdigest()[:16]
     if ("installed", sig) in _FACES_MEM:
         return _FACES_MEM[("installed", sig)]
-    cache = Path(tempfile.gettempdir()) / "slidelab_font_name_tables.json"
+    try:
+        import _scratch
+        cache = _scratch.cache_dir() / "slidelab_font_name_tables.json"
+    except Exception:
+        cache = Path(tempfile.gettempdir()) / "slidelab_font_name_tables.json"
     faces = None
     try:
         data = json.loads(cache.read_text(encoding="utf-8"))

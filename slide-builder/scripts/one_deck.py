@@ -139,7 +139,8 @@ def render_pngs(srcs: list[Path], pngs: list[Path], dpi: int = 120,
     errors: dict[int, str] = {}
     if not srcs:
         return errors
-    with tempfile.TemporaryDirectory() as tdn:
+    import _scratch
+    with _scratch.temp_dir("one_deck_") as tdn:
         td = Path(tdn)
         k = [0]
 

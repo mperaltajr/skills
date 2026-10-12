@@ -206,6 +206,67 @@ approved by the owner.
   from the validation and 5 splits) and new refusals in [2], new
   `run_parent_edit_smoke.py`.
 
+### Temp folders and blocking file checks
+
+Approved by the owner.
+
+- **One scratch area.** Every scratch file Slide Lab makes outside a session
+  folder now goes under `C:\Temp\slidelab\<session or task>\` (on a Mac or
+  without `C:\Temp`, the system temp folder plus `slidelab/`), through the
+  new `scripts/_scratch.py` (`scratch_dir(name)`, `session_scratch(folder)`
+  named after the session folder, `temp_dir()`, `cache_dir()`;
+  `SLIDE_LAB_SCRATCH_ROOT` overrides the root). Sessions and scripts had
+  been inventing their own folders in `C:\Temp`. Moved there: the headless
+  browser's profile (`_browser.scratch_env()`, used by `render_html.py`,
+  `translate_html.py` and `doctor.py`; the profile is made under
+  `<root>\_browser\` and deleted after the render), the LibreOffice profile
+  and the local copy of a OneDrive deck (`render_slides.py`), the screenshot
+  staging file, the temporary folders of `one_deck.py`, `translate_alarm.py`,
+  `translate_html.py`, `doctor.py`, `add_style_refs.py` and
+  `register_template.py` (all still deleted after use), and the font caches
+  (`<root>\_cache\`). Left as it was: the PowerPoint render lock file in the
+  system temp folder (it coordinates every Slide Lab process, including
+  copies installed before this change) and `_contract.py`'s self-test.
+  A one-line rule in slide-builder and slide-qc SKILL.md and both agent
+  files: put scratch files under `C:\Temp\slidelab\<session>\`, never new
+  folders in `C:\Temp`.
+- **"The deck is good" deletes the session's scratch folder too.**
+  `publish_cleanup.py --out` lists it with its size on a dry run, deletes it
+  and prints the size freed; a folder a running process has locked is
+  skipped and the output says so.
+- **"Clean up my finished decks" covers scratch folders.**
+  `publish_cleanup.py --temp` lists the folders under the scratch root not
+  changed for 7 days, with sizes, and deletes nothing; `--temp --delete
+  "<name>" ...` deletes only the ones the user names (each must be on that
+  list), `--temp --all-listed` the whole list. It never touches anything
+  outside the root or the font cache, never follows a link, and skips a
+  folder in use (a lock file naming a running process, or anything in it
+  changed within the last hour), saying why. `--scan` points at `--temp`
+  when there is old scratch.
+- **Tests delete their own temporary folders.** `tests/_test_temp.py`,
+  imported by every smoke test and the e2e harness, puts each test run's
+  temporary folders and scratch root in one folder under
+  `<root>\_tests\` and deletes it when the test ends.
+  `SLIDE_LAB_KEEP_TEST_TEMP=1` keeps it for debugging. Folders left in the
+  system temp folder by earlier test runs were not deleted.
+- **The whole-file checks block "done".** The hygiene and type-scale check
+  `record_vision_qc.py` runs every round used to be printed and recorded
+  only. Now each Critical or Major from it stops `check_done.py` until it is
+  gone on a later round (fixed) or, for a Major the user keeps, their exact
+  words are recorded: `record_vision_qc.py --out <build> --keep-file-check
+  KEY --user-words "..."` (the key, category:slide:hash of the issue, is
+  printed beside each finding and stays the same while the finding does). A
+  Critical cannot be kept, as for page findings. Advisory never blocks.
+  `check_done.py` lists every kept one, with the user's words, at delivery.
+  Every Critical and Major is now stored in the round's record (only the
+  Advisory list is cut at 60).
+- Tests: new `run_scratch_area_smoke.py` (scratch root, session folders,
+  browser profile made under the root and deleted, the deck-is-good cleanup,
+  `--temp` listing and deleting, test folders deleted) and
+  `run_file_checks_block_smoke.py` (a Major blocks, kept with the user's
+  words, a Critical cannot be kept, fixed on the next round, Advisory never
+  blocks, an older record still checked).
+
 ## 2026-10-09: chart header, legend, no final periods
 
 Three owner-approved rules, with the guidance, an automatic fix and QC checks.

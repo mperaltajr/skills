@@ -14,12 +14,55 @@ the review picture and the conversion were drawn about a quarter narrower
 than the finished slide (2026-10-08). The installed font is what PowerPoint
 uses, so it is what the sketch must be drawn in. Each removal is printed as a
 warning and recorded on the page as window.__slidelabFontFaceRemoved.
+
+The browser's own profile (Playwright makes a fresh one for every launch, in
+the temp folder of its driver process) goes under the Slide Lab scratch root
+and is deleted afterwards: wrap sync_playwright() in scratch_env() (owner's
+decision 2026-10-09, one scratch area).
 """
 from __future__ import annotations
 
+import contextlib
 import json
 import os
+import shutil
 import sys
+
+_TEMP_VARS = ("TMP", "TEMP", "TMPDIR")
+
+
+@contextlib.contextmanager
+def scratch_env():
+    """For the with-block: the temp folder seen by processes started now (the
+    Playwright driver, which makes the browser profile there) is a fresh
+    folder under the scratch root, marked in use; it is deleted afterwards.
+
+        with scratch_env(), sync_playwright() as pw:
+            browser = launch(pw, headless=True)
+    """
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+        import _scratch
+        import tempfile
+        folder = __import__("pathlib").Path(
+            tempfile.mkdtemp(prefix=f"{os.getpid()}_", dir=str(_scratch.scratch_dir("_browser"))))
+    except Exception:
+        yield None                                     # no scratch root: change nothing
+        return
+    saved = {k: os.environ.get(k) for k in _TEMP_VARS}
+    try:
+        with _scratch.in_use(folder):
+            for k in _TEMP_VARS:
+                os.environ[k] = str(folder)
+            yield folder
+    finally:
+        for k, v in saved.items():
+            if v is None:
+                os.environ.pop(k, None)
+            else:
+                os.environ[k] = v
+        shutil.rmtree(folder, ignore_errors=True)
+
 
 _CHANNELS = {"chromium": None, "edge": "msedge", "chrome": "chrome"}
 

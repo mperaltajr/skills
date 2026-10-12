@@ -24,6 +24,7 @@ Run:  py -3 slide-builder/tests/run_agent_versions_smoke.py
 """
 from __future__ import annotations
 
+import _test_temp  # noqa: F401,E402  (temp folders under the scratch root, deleted at exit)
 import contextlib
 import io
 import os
