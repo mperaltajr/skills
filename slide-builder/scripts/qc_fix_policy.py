@@ -61,6 +61,12 @@ CATEGORIES: dict[str, tuple[str, str, tuple[str, ...]]] = {
                     ("sample text", "placeholder", "lorem", "[add ")),
     "footer_page_number": ("auto", "Missing footer or page number",
                            ("footer", "page number")),
+    # Owner's rule (2026-10-12): page numbers are never hardcoded. A typed
+    # number in a page-number box (slide-qc/scripts/check_pptx_hygiene.py);
+    # fix: scripts/fix_page_numbers.py, or recompile.
+    "page_number_field": ("auto", "Page number typed as text, not a slide-number field",
+                          ("typed page number", "not a slide-number field",
+                           "slide-number field", "hardcoded page number")),
     "axis_unit": ("auto", "Chart axis without a unit", ("axis", "no unit", "missing unit")),
     # The three chart and punctuation rules (owner's rules, 2026-10-09;
     # slide-builder/scripts/chart_rules.py finds them)

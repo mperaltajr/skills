@@ -753,13 +753,18 @@ def add_footer(slide, page_num, source=None, footnote=None, *,
 
     if chrome.has_page_number and not _inherit_chrome:
         pn_box = _chrome_box_for(chrome, "page_number")
-        add_text(
+        pn = add_text(
             slide, "page-number", f"{page_num}",
             x_px=pn_box.x_px, y_px=pn_box.y_px,
             w_px=pn_box.w_px, h_px=pn_box.h_px,
             font_size_px=CANONICAL_PAGE_NUMBER_FONT_PX, color=faint_color,
             align="right",
         )
+        # A slide-number field, never a literal number (owner's rule
+        # 2026-10-12): PowerPoint renumbers it when slides move. The run's
+        # formatting carries over onto the field.
+        from twins.composer import stamp_page_number
+        stamp_page_number(pn, page_num)
 
 
 def _subtitle_geom_for(chrome):

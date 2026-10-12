@@ -158,12 +158,15 @@ def main() -> int:
         compile_picks._restamp_page_number(sl, 7)
         got = _slide_number_ph(sl).text_frame.text
         assert got == "7", f"page number not re-stamped: {got!r}"
+        from twins.composer import has_slidenum_field
+        assert has_slidenum_field(_slide_number_ph(sl)), \
+            "re-stamp left a typed number; it must be a slide-number field (2026-10-12)"
         # a non-numeric placeholder (empty / auto field) must be left alone
         _slide_number_ph(sl).text_frame.text = ""
         compile_picks._restamp_page_number(sl, 9)
         got2 = _slide_number_ph(sl).text_frame.text
         assert got2 == "", f"empty page-number placeholder should be left alone, got {got2!r}"
-        print("    ok: baked '3' -> '7' by position; empty/field left alone")
+        print("    ok: typed '3' -> field showing '7' by position; empty box left alone")
 
         print("\nSMOKE PASSED.")
         return 0

@@ -19,6 +19,8 @@ Detects:
     layout Majors, fixed automatically)
   - File name patterns that signal workspace dumps
     ("Final_final_v3.pptx", "Copy of...", "deck (3).pptx")
+  - A page number typed as plain text instead of a slide-number field
+    (Major, fixed automatically; owner's rule 2026-10-12: never hardcoded)
 
 Footer / page-number presence is NOT detected here — it lives in the
 visual QC pass instead, because most decks inherit those from the
@@ -426,6 +428,52 @@ def check_speaker_notes(slide, slide_num: int) -> list[dict]:
     return []
 
 
+_PAGE_NUMBER_NAME_RE = re.compile(
+    r"^\s*(page[\s_-]*(number|num|no)|slide[\s_-]*(number|num|no))", re.I)
+_BARE_NUMBER_RE = re.compile(r"^\s*\d{1,4}\s*$")
+
+
+def check_page_number_fields(slide, slide_num: int) -> list[dict]:
+    """Major (automatic fix, qc_fix_policy key page_number_field): a page
+    number typed as plain text. Owner's rule (2026-10-12): page numbers are
+    never hardcoded. In a slide-number placeholder, or a shape named like a
+    page number, a bare number with no slide-number field (<a:fld
+    type="slidenum">) stays the same when slides are moved, added or deleted,
+    so the deck shows wrong numbers. Fix: slide-builder/scripts/
+    fix_page_numbers.py (or recompile)."""
+    from pptx.oxml.ns import qn
+    hits: list[str] = []
+    for shape in slide.shapes:
+        if not getattr(shape, "has_text_frame", False):
+            continue
+        is_pn = False
+        try:
+            is_pn = bool(shape.is_placeholder and int(shape.placeholder_format.type) == 13)
+        except Exception:
+            pass
+        if not is_pn and not _PAGE_NUMBER_NAME_RE.match(shape.name or ""):
+            continue
+        for para in shape.text_frame.paragraphs:
+            if not _BARE_NUMBER_RE.match(para.text or ""):
+                continue
+            if any((f.get("type") or "").lower() == "slidenum"
+                   for f in para._p.findall(qn("a:fld"))):
+                continue
+            hits.append(f"{shape.name!r} shows {para.text.strip()!r}")
+    if not hits:
+        return []
+    return [{
+        "slide": slide_num,
+        "severity": "Major",
+        "category": "page_number_field",
+        "auto_fix": True,
+        "issue": (f"Slide {slide_num}: the page number is typed text, not a slide-number "
+                  f"field ({'; '.join(hits[:2])}), so it goes wrong when slides are moved, "
+                  f"added or deleted. Fix: py -3 slide-builder/scripts/fix_page_numbers.py "
+                  f"<deck> (or recompile)."),
+    }]
+
+
 # Footer / page-number detection was attempted here as a python-pptx pass but
 # produced too many false positives — most decks inherit the footer from the
 # slide master or layout, and python-pptx does not see the inherited text at
@@ -458,6 +506,7 @@ def run_all_checks(pptx_path: pathlib.Path) -> dict:
         violations.extend(check_banned_words(slide, i))
         violations.extend(check_type_scale(slide, i, prs.slide_height))
         violations.extend(check_speaker_notes(slide, i))
+        violations.extend(check_page_number_fields(slide, i))
 
     # Sort: Critical first, then Major, then Advisory; within severity by slide number
     severity_order = {"Critical": 0, "Major": 1, "Advisory": 2}

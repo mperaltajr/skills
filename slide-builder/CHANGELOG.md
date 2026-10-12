@@ -2,6 +2,53 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## 2026-10-12: page numbers are real fields
+
+Owner's rule: page numbers are never hardcoded. Every page of the Kinfield
+v3.1 all-options deck (71 slides, 60 with a page number) had a typed "5" or
+"30" in its Slide Number box instead of a slide-number field, so moving,
+adding or deleting a slide in PowerPoint left every later number wrong.
+Cause: finalize's graft (`twins/composer.py` `_populate_layout_placeholders`
+through `write_literal_run_preserving_field`) replaced the template's field
+with a typed run, and compile (`compile_picks.py` `_restamp_page_number`)
+re-typed it by position. The reason given, that LibreOffice does not draw
+slide-number fields, does not hold for a field on the slide itself: tested on
+the v3.1 deck with its slides reversed, LibreOffice and PowerPoint both show
+the right number on every page (they compute it; neither reads the stored
+text).
+
+- **Finalize** keeps the template's slide-number field (`<a:fld
+  type="slidenum">`, its id and its formatting, which on many templates is
+  the only carrier of size, color and font) and sets only the number it
+  stores to the slide's position. A placeholder with no field gets a new one
+  (fresh id), keeping the typed run's formatting. Text beside the field
+  ("Page ") is kept. (`twins/composer.py` `write_slide_number_field`,
+  `stamp_page_number`.)
+- **Compile** sets only the field's stored number to the slide's place in the
+  compiled deck (picks deck, all-options deck, splice-into an external deck);
+  a typed number (an older finalize, a copied page) is turned into a field.
+  A cover or any box with no number is left alone. presentation.xml's
+  `firstSlideNum` is honored.
+- `twins/helpers.py` `add_footer`: its page-number box holds a field too.
+- **New converter** `scripts/fix_page_numbers.py <deck.pptx> [--out <new>]
+  [--in-place] [--check]`: turns typed page numbers in a finished deck into
+  fields (stored number = position), writes a new file (never the input
+  unless `--in-place`), prints each change. On a copy of the v3.1 deck: 60
+  boxes converted, every one a field with the right number and the old
+  formatting, PowerPoint opens it cleanly with 71 slides, and every other
+  part of the file is byte-identical.
+- **slide-qc hygiene check**: a slide-number placeholder, or a shape named
+  like a page number, holding a bare number with no slide-number field is a
+  Major, category `page_number_field`, `"auto_fix": true`; it blocks done like
+  the other file-check Majors. New key in `scripts/qc_fix_policy.py`
+  (automatic).
+- Tests: new `tests/run_page_number_field_smoke.py` (a fictional build
+  through the normal pipeline; every page a field with the right number;
+  reorder the compiled slides, fields survive; PowerPoint and LibreOffice
+  show 1, 2, 3 on the reordered deck; hygiene and converter). Updated
+  `run_page_number_smoke.py`, `run_page_number_format_smoke.py` and
+  `run_insert_slice_smoke.py`, which asserted typed numbers.
+
 ## 2026-10-09: validated fixes from the Kinfield v3.1 session report
 
 ### Agent files and quality-check records
