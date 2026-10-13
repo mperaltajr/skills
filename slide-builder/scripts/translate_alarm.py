@@ -32,6 +32,7 @@ pixel rows a filled shape's fractional edge only partly covers are left out
 from __future__ import annotations
 
 import io
+import math
 import subprocess
 import sys
 import tempfile
@@ -589,19 +590,88 @@ def expand_ops(ops: list[dict]) -> tuple[list[dict], list[int]]:
 
 
 def compare(ops: list[dict], design: np.ndarray, native: np.ndarray,
-            chars: list[dict] | None = None, engine: str | None = None) -> list[dict]:
+            chars: list[dict] | None = None, engine: str | None = None,
+            masks: list | None = None) -> list[dict]:
     """One row per judged element (see expand_ops); row["i"] is the plan op
-    it belongs to, row["sub"] its place in the expanded list."""
+    it belongs to, row["sub"] its place in the expanded list.
+
+    masks: (x0, y0, x1, y1) areas the translator agent draws (pictures,
+    drawings, rotated elements; translate_html._agent_masks). The design shows
+    them and the converter's render does not yet, so they are left out of
+    every element's pixels, as text is left out of a shape's: a photo on a
+    card made the card, and the label pill on it, look wrong (2026-10-13)."""
     flat, owner = expand_ops(ops)
-    rows = _compare_flat(flat, design, native, chars, engine)
+    rows = _compare_flat(flat, design, native, chars, engine, masks)
     for r in rows:
         r["sub"] = r["i"]
         r["i"] = owner[r["i"]]
     return rows
 
 
+def _core(img: np.ndarray, w: np.ndarray):
+    """The marks' own color, weighted toward their solid core (cubed
+    weights): smoothed letter edges blend with the background and hid a
+    recolor in plain averages. None when there are no marks."""
+    w3 = w ** 3
+    if w3.sum() <= 1:
+        return None
+    return (img * w3[..., None]).sum((0, 1)) / w3.sum()
+
+
+def _core_distance(D, N, wD, wN) -> float:
+    a, b = _core(D, wD), _core(N, wN)
+    return float(np.linalg.norm(a - b)) if a is not None and b is not None else 0.0
+
+
+# Thin letters (an arrow "→", a light weight at a small size) have no solid
+# pixel: every pixel of the stroke is part letter, part background, and how
+# much of each depends on where the program puts the stroke against the pixel
+# grid. Chrome and LibreOffice then show the same color at different
+# strengths, and the marks' color differed by 54 RGB levels on arrows the
+# converter drew right (5 of 7 on one page, 2026-10-13). A mark this much
+# weaker than a solid pixel of its own color is thin.
+THIN_CORE = 0.85
+
+
+def _ink_color(o: dict, D, N, wD, wN, bg) -> float:
+    """Text: the distance between the letters' core colors in the design and
+    the render. For thin letters only the color's direction from the
+    background counts (a different color), not its strength (how much of the
+    stroke covers a pixel)."""
+    a, b = _core(D, wD), _core(N, wN)
+    if a is None or b is None:
+        return 0.0
+    d = float(np.linalg.norm(a - b))
+    if d <= TEXT_INK_COLOR_LIMIT:
+        return d
+    col = next((r.get("color") for p in o.get("paragraphs") or [] for r in p
+                if r.get("t", "").strip() and r.get("color")), None)
+    try:
+        rgb = np.array([int(col[k:k + 2], 16) for k in (0, 2, 4)], dtype=np.float32)
+    except (TypeError, ValueError):
+        return d
+    full = float(np.linalg.norm(rgb - bg))       # a solid pixel of the text's color
+    if full < 50:
+        return d
+    va, vb = a - bg, b - bg
+    na, nb = float(np.linalg.norm(va)), float(np.linalg.norm(vb))
+    if min(na, nb) >= THIN_CORE * full or na < 1 or nb < 1:
+        return d                     # both letters have a solid core: a real difference
+    m = max(na, nb)
+    return float(np.linalg.norm(va / na * m - vb / nb * m))
+
+
+def _cut(mask: np.ndarray, rect, x0: int, y0: int, x1: int, y1: int) -> None:
+    """Leave rect (x0, y0, x1, y1 on the slide) out of a region's mask."""
+    a0, b0 = max(int(rect[0]), x0) - x0, max(int(rect[1]), y0) - y0
+    a1, b1 = min(int(math.ceil(rect[2])), x1) - x0, min(int(math.ceil(rect[3])), y1) - y0
+    if a1 > a0 and b1 > b0:
+        mask[b0:b1, a0:a1] = False
+
+
 def _compare_flat(ops: list[dict], design: np.ndarray, native: np.ndarray,
-                  chars: list[dict] | None = None, engine: str | None = None) -> list[dict]:
+                  chars: list[dict] | None = None, engine: str | None = None,
+                  masks: list | None = None) -> list[dict]:
     """One row per element: its numbers and whether it trips the alarm.
 
     Text is judged by where its letters landed (from the PDF's characters)
@@ -675,24 +745,23 @@ def _compare_flat(ops: list[dict], design: np.ndarray, native: np.ndarray,
                         mask[b0:b1, a0:a1] = False
         if engine == "powerpoint" and not is_text:
             _mask_edge_pixels(mask, o, x0, y0)
-        if mask.sum() < 4:
-            continue
+        for m in masks or ():
+            _cut(mask, m, x0, y0, x1, y1)
+        pixels = mask.sum() >= 4
+        if not pixels and not is_text:
+            continue           # all of it under something the agent draws
         ring = np.concatenate([D[0], D[-1], D[:, 0], D[:, -1]])
         bg = np.median(ring, axis=0)
-        color = float(np.linalg.norm(D[mask].mean(0) - N[mask].mean(0)))
-        wD = _weights(D, bg) * mask
-        wN = _weights(N, bg) * mask
-        n = mask.sum()
-        cD, cN = wD.sum() / n, wN.sum() / n
-        ink_rel = abs(cD - cN) / max(cD, cN, 1e-6)
-        # The marks' own color, weighted toward their solid core (cubed
-        # weights): smoothed letter edges blend with the background and hid
-        # a recolor in plain averages.
-        ink_color = 0.0
-        cD3, cN3 = wD ** 3, wN ** 3
-        if cD3.sum() > 1 and cN3.sum() > 1:
-            ink_color = float(np.linalg.norm((D * cD3[..., None]).sum((0, 1)) / cD3.sum()
-                                             - (N * cN3[..., None]).sum((0, 1)) / cN3.sum()))
+        color = ink_color = 0.0
+        cD = cN = ink_rel = 0.0
+        if pixels:
+            color = float(np.linalg.norm(D[mask].mean(0) - N[mask].mean(0)))
+            wD = _weights(D, bg) * mask
+            wN = _weights(N, bg) * mask
+            n = mask.sum()
+            cD, cN = wD.sum() / n, wN.sum() / n
+            ink_rel = abs(cD - cN) / max(cD, cN, 1e-6)
+            ink_color = _ink_color(o, D, N, wD, wN, bg) if is_text else _core_distance(D, N, wD, wN)
         row = {"i": i, "name": _name(o, i), "op": o["op"], "box": r,
                "color": round(color, 2), "ink_color": round(ink_color, 2),
                "ink_design": round(float(cD), 4), "ink_native": round(float(cN), 4),

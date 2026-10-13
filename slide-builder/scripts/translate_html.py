@@ -404,7 +404,7 @@ EXTRACT_JS = r"""
   // decorated in a way shapes cannot carry, sends the whole SVG to the agent.
   function readSvg(svg, sid) {
     const r = svg.getBoundingClientRect();
-    const res = {id: sid, ...R(r), order: order++, items: [], unsupported: [], arrows: []};
+    const res = {id: sid, ...R(r), order: order++, items: [], unsupported: [], arrows: [], rects: []};
     const pt = (el, x, y) => { const m = el.getScreenCTM(); const p = new DOMPoint(x, y).matrixTransform(m); return [p.x - ox, p.y - oy]; };
     for (const el of svg.querySelectorAll('*')) {
       const tag = el.tagName.toLowerCase();
@@ -414,6 +414,12 @@ EXTRACT_JS = r"""
       }
       const cs = getComputedStyle(el);
       if (!visible(cs)) continue;
+      if (!el.closest('defs, marker, symbol, clipPath, mask')) {
+        // where each drawn piece is, so the self-check can leave out exactly
+        // what the agent will draw when the whole drawing goes to it
+        const q = el.getBoundingClientRect();
+        if (q.width > 0 || q.height > 0) res.rects.push(R(q));
+      }
       const mEnd = !!el.getAttribute('marker-end') || cs.markerEnd !== 'none';
       const mStart = !!el.getAttribute('marker-start') || cs.markerStart !== 'none';
       if (mEnd || mStart) {
@@ -1390,7 +1396,8 @@ def _plan_svg(plan: Plan, s: dict) -> None:
     if s["unsupported"]:
         plan.fallbacks.append({"kind": "svg", "id": s.get("id") or "", "x": s["x"], "y": s["y"],
                                "w": s["w"], "h": s["h"],
-                               "reason": "svg with " + ", ".join(sorted(set(s["unsupported"])))})
+                               "reason": "svg with " + ", ".join(sorted(set(s["unsupported"]))),
+                               "_order": s["order"], "_rects": s.get("rects") or None})
         return
     for i, it in enumerate(s["items"]):
         k = s["order"] + 0.0001 * (i + 1)
@@ -2313,7 +2320,8 @@ def plan_from_extract(data: dict, subtitle_as_shape: bool,
     for w in data.get("icon_warnings") or []:
         plan.warn(w["code"], w["detail"])
     for f in data["fallbacks"]:
-        plan.fallbacks.append({k: f.get(k) for k in ("kind", "id", "x", "y", "w", "h", "reason")})
+        plan.fallbacks.append(dict({k: f.get(k) for k in ("kind", "id", "x", "y", "w", "h", "reason")},
+                                   _order=f.get("order")))
     for _, kind, it in sorted(items, key=lambda z: z[0]):
         n0 = len(plan.ops)
         _plan_item(plan, kind, it, subtitle_as_shape)
@@ -2403,7 +2411,7 @@ def write_outputs(html: Path, emit_dir: Path, letter: str, plan: Plan, fields: d
         "css_kill_list_applied": plan.kill,
         "warnings": plan.warnings,
         "counts": plan.counts,
-        "fallback": plan.fallbacks,
+        "fallback": _public_fallbacks(plan),
         "self_check": plan.self_check,
         "needs_agent": bool(plan.fallbacks),
         "html_sha256": _sha256(html),
@@ -2413,6 +2421,10 @@ def write_outputs(html: Path, emit_dir: Path, letter: str, plan: Plan, fields: d
     (emit_dir / f"option_{letter}_translation_report.json").write_text(
         json.dumps(report, indent=1), encoding="utf-8")
     return report
+
+
+def _public_fallbacks(plan: "Plan") -> list[dict]:
+    return [{k: v for k, v in f.items() if not k.startswith("_")} for f in plan.fallbacks]
 
 
 def _sha256(path: Path) -> str:
@@ -2652,6 +2664,30 @@ def _render_plans(plans: list["Plan"], engine: str = "auto") -> list:
         return A.render_full(paths, engine=engine)
 
 
+# Pictures, drawings, rotated and vertical elements the agent draws: their
+# areas (x0, y0, x1, y1), a little wider than the element so its softened
+# edge is left out too. Elements handed over by the self-check itself are not
+# here: they are out of the plan, nothing is judged against them.
+AGENT_MASK_PAD = 2.0
+
+
+def _agent_masks(plan: "Plan") -> list[tuple]:
+    out = []
+    for f in plan.fallbacks:
+        if f.get("kind") == "self-check":
+            continue
+        rects = f.get("_rects") or [{"x": f.get("x"), "y": f.get("y"), "w": f.get("w"),
+                                     "h": f.get("h")}]
+        for q in rects:
+            try:
+                x, y, w, h = (float(q[k]) for k in ("x", "y", "w", "h"))
+            except (TypeError, ValueError, KeyError):
+                continue
+            p = AGENT_MASK_PAD
+            out.append((x - p, y - p, x + w + p, y + h + p))
+    return out
+
+
 SELF_CHECK_ROUNDS = 4    # a group steps down at most twice, plus a last look
 
 
@@ -2703,7 +2739,8 @@ def self_check(items: list[tuple["Plan", dict]], engine: str = "auto",
             native, chars = got
             plan._last_render = got
             rows = [r for r in A.compare(plan.ops, A.load_rgb(data["_shot"]), native, chars,
-                                         engine=A.LAST_RENDER_ENGINES.get(j))
+                                         engine=A.LAST_RENDER_ENGINES.get(j),
+                                         masks=_agent_masks(plan))
                     if r["fired"]]
             if rnd == 0:
                 for font, ratio in (getattr(A.compare, "font_ratios", None) or {}).items():
