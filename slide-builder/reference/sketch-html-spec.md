@@ -336,7 +336,7 @@ Every sketch-path worker HTML file follows this exact structure:
 Supported field names:
 - `title` → template title placeholder
 - `subtitle` → template subtitle/so-what placeholder
-- `footer` → template footer placeholder (the template's Source slot when it has one). Put the brief's **Source:** line here word for word; prep passes it in `_prompt.md` § 1 and records it in `_meta.json` (`source`). The review card flags a sketch whose brief gives a source but which has no footer element (`SOURCE_LINE_MISSING`)
+- `footer` → template footer placeholder (the template's Source slot when it has one). Put the brief's **Source:** line here word for word, without a "Source:" label (finalize writes "Source: " in front once, not before a "Note" or "Illustrative data" line, and names the slot `source`; 2026-10-13); prep passes it in `_prompt.md` § 1 and records it in `_meta.json` (`source`). The review card flags a sketch whose brief gives a source but which has no footer element (`SOURCE_LINE_MISSING`)
 - `page_number` → template page-number placeholder
 
 The brief's **Section tag:** reaches the worker as text only. Slide Lab draws it; do not draw it. Finalize puts it just above the title in the template's accent color and fixed style (2026-10-09). Do not mark it as a template field either: only `title`, `subtitle`, `footer` and `page_number` are fields, and the converter warns about (and leaves out) any other `data-template-field`.

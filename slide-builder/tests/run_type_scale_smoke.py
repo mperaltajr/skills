@@ -15,6 +15,11 @@ body sizes, exceptions 9pt+).
      chrome-foo is still flagged (exact names only)
   8. a real all-options compile with --badge passes slide-qc's hygiene check
      with no text-size Major
+  9. a placeholder in the layout's Source or Foot Note slot (old decks name
+     the slide shape "Text Placeholder 4"), with no "Source:" label, is a
+     source: 9 pt passes, 8 pt is still flagged (2026-10-13)
+ 10. text counts as a source only with the colon: a 9 pt "Sources, five-year
+     total" heading is body text; "Sources: company filings" is a source
 
 Run:  py -3 slide-builder/tests/run_type_scale_smoke.py
 Prints "SMOKE PASSED." on success; raises AssertionError otherwise.
@@ -99,6 +104,46 @@ def _all_options_compile() -> None:
         H.cleanup(tmp)
 
 
+def _source_slots(td: Path) -> None:
+    """[9] the template's Source slot is a source, whatever its text says."""
+    print("[9] a placeholder in the layout's Source / Foot Note slot is a source")
+    for slot_name in ("Source", "Foot Note"):
+        prs = Presentation()
+        prs.slide_width, prs.slide_height = Inches(13.333), Inches(7.5)
+        layout = prs.slide_layouts[1]          # Title and Content: idx 1 body slot
+        lph = [p for p in layout.placeholders if p.placeholder_format.idx == 1][0]
+        lph.name = slot_name
+        cases = [("Kinfield model, 10/08 build", 9), ("Kinfield model, 10/08 build", 8)]
+        for text, pt in cases:
+            s = prs.slides.add_slide(layout)
+            ph = [p for p in s.placeholders if p.placeholder_format.idx == 1][0]
+            ph.name = "Text Placeholder 4"     # what finalize leaves on old decks
+            ph.top = Inches(7.0)
+            run = ph.text_frame.paragraphs[0].add_run()
+            run.text = text                     # no "Source:" label
+            run.font.size = Pt(pt)
+            for b in GOOD[:3]:
+                _box(s, *b)
+        d = td / f"slot_{slot_name.replace(' ', '_')}.pptx"
+        prs.save(str(d))
+        res = dict(type_scale.check_pptx(d))
+        assert res[1] == [], f"{slot_name} slot at 9 pt flagged as body text: {res[1]}"
+        assert any("under 9 pt" in p for p in res[2]), (
+            f"{slot_name} slot at 8 pt was not flagged under the 9 pt floor: {res[2]}")
+        assert not any("under 10.5 pt" in p for p in res[2]), res[2]
+    print("    ok: Source and Foot Note slots at 9 pt pass; 8 pt still flagged")
+
+    print("[10] only 'Source:' with a colon marks text as a source")
+    d = td / "colon.pptx"
+    _deck(d, [GOOD + [("heading-2", "Sources, five-year total, $B", 9)],
+              GOOD + [("box-9", "Sources: company filings", 9)]])
+    res = dict(type_scale.check_pptx(d))
+    assert any("under 10.5 pt" in p for p in res[1]), (
+        f"a 9 pt title starting 'Sources,' escaped the body floor: {res[1]}")
+    assert res[2] == [], f"'Sources:' with a colon was not taken as a source: {res[2]}"
+    print("    ok")
+
+
 def main() -> int:
     with tempfile.TemporaryDirectory() as td:
         deck = Path(td) / "t.pptx"
@@ -170,6 +215,7 @@ def main() -> int:
                and v["severity"] == "Major"]
         assert {v["slide"] for v in maj} == {2}, maj
         print("    ok")
+        _source_slots(Path(td))
     _all_options_compile()
     print("SMOKE PASSED.")
     return 0

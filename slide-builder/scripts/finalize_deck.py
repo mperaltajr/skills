@@ -1899,7 +1899,7 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
         # The sketch path captures the source line as template field 'footer';
         # write it into the layout's FOOTER placeholder when one exists
         # (it was previously dropped, so source lines vanished from the deck).
-        footer=((template_fields_override or {}).get("footer") or None),
+        footer=(source_label((template_fields_override or {}).get("footer") or "") or None),
         page_num=str(slide_n),
         title_idx=_title_idx,
         subtitle_idx=_subtitle_idx,
@@ -1913,7 +1913,7 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
     # slot is an ordinary text slot, or there is none) was dropped with no
     # word (2026-10-06). Draw it at the template's source position instead,
     # and say so.
-    _footer_text = ((template_fields_override or {}).get("footer") or "").strip()
+    _footer_text = source_label((template_fields_override or {}).get("footer") or "")
     if _footer_text and not found.get("footer"):
         _draw_source_line_fallback(new_slide, layout_chrome, _footer_text, slide_n)
 
@@ -1990,6 +1990,25 @@ def _apply_body_canonical_finishing(new_slide, prs, layout_chrome,
     # Title/band overlap issues collected above — graft records these on
     # st.title_overlaps; main() refuses the build after all options finish.
     return _title_overlap_issues
+
+
+# House style (owner's decision, 2026-10-13): the source line reads
+# "Source: ...". The brief's **Source:** line reaches the worker without its
+# label and the worker copies it word for word, so finalize adds the label
+# once here. A line that already starts "Source", "Sources", "Note" or
+# "Notes", or a deck note such as "Illustrative data, not real", is left as
+# it is (no "Source: Source: ...", no "Source: Illustrative ...").
+_SOURCE_LABELED_RE = re.compile(r"^\s*(sources?|notes?)\b", re.I)
+_SOURCE_NO_LABEL_RE = re.compile(r"^\s*(illustrative|hypothetical|for illustration)\b", re.I)
+
+
+def source_label(text: str) -> str:
+    """The source line as it goes on the slide: "Source: " added once when
+    the line has no label and is not a deck note; "" stays ""."""
+    t = (text or "").strip()
+    if not t or _SOURCE_LABELED_RE.match(t) or _SOURCE_NO_LABEL_RE.match(t):
+        return t
+    return "Source: " + t
 
 
 def _draw_source_line_fallback(slide, layout_chrome, text: str, slide_n: int) -> None:

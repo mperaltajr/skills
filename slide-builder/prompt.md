@@ -78,7 +78,7 @@ You are one of {{SLIDE_TOTAL}} parallel agents dispatched from the same parent s
 {{CHART_DATA}}
 
 **Source line:** {{SOURCE_LINE}}
-Put this text, word for word, in the footer / Source slot (see § 8). When it says `(none in the brief)`, use the deck-level notes' source line if they set one; otherwise leave the source out. Never invent one.
+Put this text, word for word, in the footer / Source slot (see § 8). When it says `(none in the brief)`, use the deck-level notes' source line if they set one; otherwise leave the source out. Never invent one. Do not add a "Source:" label yourself: Slide Lab writes "Source: " in front of the line when the deck is finished (not before a "Note" or an "Illustrative data" line).
 
 **Section tag:** {{SECTION_TAG}}
 For your information only: Slide Lab draws it; do not draw it. Finalize puts it just above the title in the template's fixed style. Do not invent any other label.

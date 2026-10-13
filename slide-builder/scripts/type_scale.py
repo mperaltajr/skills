@@ -18,9 +18,14 @@
 
 Which text is an exception is read from the shape's name (designers name
 chart pieces chart-..., sources source-..., footnotes footnote-...; common
-older names such as tick-label, c-ylab, legend are recognized too) and from
-the text itself (a line starting "Source" or "Note", or a numbered footnote
-in the bottom band).
+older names such as tick-label, c-ylab, legend are recognized too), from the
+template slot a placeholder fills (a layout slot named "Source", "Sources",
+"Footnote" or "Foot Note", by the same naming rule template registration
+uses, _chrome_schema.slot_role_from_name; 2026-10-13: finalize writes the
+brief's source into that slot, so the slot, not the words, says it is a
+source), and from the text itself (a line starting "Source:", "Sources:",
+"Note:" or "Notes:" WITH the colon, so a chart title "Sources, five-year
+total" is body text; or a numbered footnote in the bottom band).
 
 Used by build_review.py (FINAL-CHECK.html), finalize and slide-qc's
 hygiene check (Major findings: fix, or give a reason to keep it; notes are
@@ -55,7 +60,7 @@ TEMPLATE_SLOT_NAME = re.compile(r"^takeaway$", re.I)
 # content). Exact names only, so a worker cannot dodge the check by naming a
 # shape chrome-something. Add a name here when a script starts stamping one.
 PIPELINE_CHROME_NAMES = frozenset({"chrome-option-badge", "section-tag"})  # section-tag: the label finalize draws above the title (chrome_rules.place_section_tag)
-SOURCE_TEXT = re.compile(r"^\s*(source|sources|note|notes)\b", re.I)
+SOURCE_TEXT = re.compile(r"^\s*(source|sources|note|notes)\s*:", re.I)
 FOOTNOTE_TEXT = re.compile(r"^\s*(\d{1,2}[.)]|\*|†)\s")
 # placeholder types: 1 title, 3 centered title, 4 subtitle, 13 slide number,
 # 15 footer, 16 date
@@ -81,6 +86,32 @@ def _shapes(shapes):
             yield sh
 
 
+def _is_source_slot(slide, sh) -> bool:
+    """True when `sh` is a placeholder filling the layout's Source / Footnote
+    slot (the layout placeholder with the same idx is named like one), or is
+    itself named like one ("Foot Note", "Sources 3")."""
+    if not getattr(sh, "is_placeholder", False):
+        return False
+    try:
+        from _chrome_schema import slot_role_from_name
+    except Exception:
+        return False
+    names = [sh.name or ""]
+    try:
+        idx = sh.placeholder_format.idx
+        for lp in slide.slide_layout.placeholders:
+            if lp.placeholder_format.idx == idx:
+                names.append(lp.name or "")
+                break
+    except Exception:
+        pass
+    for n in names:
+        role = slot_role_from_name(n)
+        if role and role[0] == "source":
+            return True
+    return False
+
+
 def check_slide(slide, slide_h: int) -> dict:
     """{'small_body': [(pt, text)] under 10.5, 'below_default': [(pt, text)]
         10.5 to 11, 'small_exception': [(pt, text)], 'body_sizes': [pt, ...],
@@ -101,7 +132,7 @@ def check_slide(slide, slide_h: int) -> dict:
             continue
         if TEMPLATE_SLOT_NAME.match(name) and sh.is_placeholder:
             continue
-        exempt_shape = bool(EXEMPT_NAME.search(name))
+        exempt_shape = bool(EXEMPT_NAME.search(name)) or _is_source_slot(slide, sh)
         bottom = (sh.top or 0) > slide_h * 0.85
         for para in (p for tf in frames for p in tf.paragraphs):
             text = "".join(r.text for r in para.runs).strip()
