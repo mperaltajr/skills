@@ -30,13 +30,6 @@ text).
   A cover or any box with no number is left alone. presentation.xml's
   `firstSlideNum` is honored.
 - `twins/helpers.py` `add_footer`: its page-number box holds a field too.
-- **New converter** `scripts/fix_page_numbers.py <deck.pptx> [--out <new>]
-  [--in-place] [--check]`: turns typed page numbers in a finished deck into
-  fields (stored number = position), writes a new file (never the input
-  unless `--in-place`), prints each change. On a copy of the v3.1 deck: 60
-  boxes converted, every one a field with the right number and the old
-  formatting, PowerPoint opens it cleanly with 71 slides, and every other
-  part of the file is byte-identical.
 - **slide-qc hygiene check**: a slide-number placeholder, or a shape named
   like a page number, holding a bare number with no slide-number field is a
   Major, category `page_number_field`, `"auto_fix": true`; it blocks done like

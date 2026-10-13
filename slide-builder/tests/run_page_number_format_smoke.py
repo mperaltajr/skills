@@ -14,8 +14,7 @@ The places that write a page number:
   1. twins/composer.py::write_slide_number_field (finalize's graft, via
      _populate_layout_placeholders)
   2. scripts/compile_picks.py::_restamp_page_number (re-stamps position at compile)
-  3. twins/composer.py::stamp_page_number (the converter fix_page_numbers.py and
-     helpers.add_footer's page-number box)
+  3. twins/composer.py::stamp_page_number (helpers.add_footer's page-number box)
 A fix to only one lets another re-introduce the defect. This test covers all.
 
 Run:  py -3 slide-builder/tests/run_page_number_format_smoke.py

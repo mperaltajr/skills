@@ -439,8 +439,8 @@ def check_page_number_fields(slide, slide_num: int) -> list[dict]:
     never hardcoded. In a slide-number placeholder, or a shape named like a
     page number, a bare number with no slide-number field (<a:fld
     type="slidenum">) stays the same when slides are moved, added or deleted,
-    so the deck shows wrong numbers. Fix: slide-builder/scripts/
-    fix_page_numbers.py (or recompile)."""
+    so the deck shows wrong numbers. Fix: recompile (finalize and compile
+    write real fields)."""
     from pptx.oxml.ns import qn
     hits: list[str] = []
     for shape in slide.shapes:
@@ -469,8 +469,8 @@ def check_page_number_fields(slide, slide_num: int) -> list[dict]:
         "auto_fix": True,
         "issue": (f"Slide {slide_num}: the page number is typed text, not a slide-number "
                   f"field ({'; '.join(hits[:2])}), so it goes wrong when slides are moved, "
-                  f"added or deleted. Fix: py -3 slide-builder/scripts/fix_page_numbers.py "
-                  f"<deck> (or recompile)."),
+                  f"added or deleted. Fix: recompile the deck (finalize and compile write "
+                  f"real fields)."),
     }]
 
 

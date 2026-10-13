@@ -9,12 +9,10 @@ Then:
      (<a:fld type="slidenum">) whose stored number is the slide's position,
      and no typed number
   2  the slides are reordered in the compiled file (python-pptx sldIdLst):
-     each page still holds a field (so PowerPoint renumbers it), and
-     fix_page_numbers.py then sets the stored numbers to the new positions
-     without changing anything else
+     each page still holds a field (so PowerPoint renumbers it)
   3  the hygiene check finds nothing on the compiled deck; on a copy with
      typed numbers it reports a Major tagged page_number_field, which
-     qc_fix_policy.py fixes automatically, and fix_page_numbers.py clears it
+     qc_fix_policy.py fixes automatically (by recompiling)
   4  a placeholder whose template has no field gets a new one (valid id)
   5  when PowerPoint is installed: the reordered deck, opened read-only
      through ppt_safe, shows 1, 2, 3 (the user's open presentations are the
@@ -153,14 +151,7 @@ def main() -> int:
         # shows below is computed from the field, not read from the stored text
         assert [r[0]["stored"] for r in after if r] == [["3"], ["1"], ["2"]][:len(numbered)] \
             or len(numbered) < 3, after
-        fixed = tmp / "reordered_fixed.pptx"
-        _ok(H.run("fix_page_numbers.py", moved, "--out", fixed), "fix_page_numbers")
-        assert moved.exists(), "the input was touched"
-        for i, rows in enumerate(page_numbers(fixed), 1):
-            for row in rows:
-                assert row["stored"] == [str(i)] and row["fields"] == 1, f"slide {i}: {row}"
-        assert non_pn_xml(moved) == non_pn_xml(fixed), "the converter changed other XML"
-        print("    ok: fields survive the reorder; the converter re-stores 1, 2, 3 and nothing else")
+        print("    ok: fields survive the reorder")
 
         print("[3] hygiene: none on the compiled deck; a typed copy is a Major, fixed automatically")
         assert hygiene(deck) == [], hygiene(deck)
@@ -179,11 +170,7 @@ def main() -> int:
         d, cat = qc_fix_policy.decide(f"slide {found[0]['slide']} [page_number_field] Major: "
                                       f"{found[0]['issue']}")
         assert (d, cat) == ("auto", "page_number_field"), (d, cat)
-        refixed = tmp / "typed_fixed.pptx"
-        r = _ok(H.run("fix_page_numbers.py", typed, "--out", refixed), "fix_page_numbers")
-        assert "typed number -> field" in r.stdout, r.stdout
-        assert hygiene(refixed) == [], "the converter did not clear the finding"
-        print(f"    ok: {len(found)} Major(s) -> auto; converter clears them")
+        print(f"    ok: {len(found)} Major(s) -> auto")
 
         print("[4] a placeholder whose template has no field gets a new one")
         from twins.composer import (_populate_layout_placeholders,

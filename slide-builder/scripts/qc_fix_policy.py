@@ -63,7 +63,7 @@ CATEGORIES: dict[str, tuple[str, str, tuple[str, ...]]] = {
                            ("footer", "page number")),
     # Owner's rule (2026-10-12): page numbers are never hardcoded. A typed
     # number in a page-number box (slide-qc/scripts/check_pptx_hygiene.py);
-    # fix: scripts/fix_page_numbers.py, or recompile.
+    # fix: recompile (finalize and compile write real fields).
     "page_number_field": ("auto", "Page number typed as text, not a slide-number field",
                           ("typed page number", "not a slide-number field",
                            "slide-number field", "hardcoded page number")),
