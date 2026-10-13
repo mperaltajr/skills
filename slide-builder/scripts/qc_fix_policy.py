@@ -72,9 +72,11 @@ CATEGORIES: dict[str, tuple[str, str, tuple[str, ...]]] = {
     # slide-builder/scripts/chart_rules.py finds them)
     "final_period": ("auto", "A text item ends with a final period",
                      ("final period", "ends with a period", "trailing period")),
-    "chart_header": ("auto", "Chart without its header line (\"Chart title, [Unit]\") or "
-                             "without a unit",
-                     ("chart header", "header line", "no chart title")),
+    "chart_header": ("auto", "Chart without its header line (\"Chart title, Unit\", the "
+                             "unit plain after a comma), without a unit, or with the unit "
+                             "written in brackets",
+                     ("chart header", "header line", "no chart title",
+                      "unit written in brackets")),
     "legend_position": ("auto", "Chart legend not one row at the chart's top right",
                         ("legend",)),
     "palette": ("auto", "Color palette drift", ("palette", "off-brand color", "off-brand colour")),

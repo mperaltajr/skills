@@ -2,6 +2,34 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## 2026-10-13: chart unit without brackets
+
+Owner's correction to the 2026-10-09 chart header rule. "[Unit]" in the
+owner's reference image was a placeholder, not brackets to type. The unit is
+written plainly after a comma, in regular weight: "NVIDIA GPUs retiring each
+year, by generation, M GPUs" or "Who owns the GPUs that retire, M GPUs" (the
+title bold, ", M GPUs" not bold). No square brackets and no parentheses
+around the unit.
+
+- **Guidance** corrected everywhere it was stated: the worker agent, the
+  slide-builder prompt and its context rules in `build_deck.py`,
+  `reference/layouts.md` (Chart), `reference/anti-patterns.md` (Chrome 3 and
+  Encoding 3), slide-builder's and slide-qc's `SKILL.md`, the hygiene check's
+  description, `qc_fix_policy.py`'s label for `chart_header`, and the
+  tutorial (rebuilt).
+- **Check** (`scripts/chart_rules.py`): a header with a plain unit after a
+  comma ("Title, M GPUs", "Title, $B", "Title, %") counts as having a unit,
+  and a plain "Title, Unit" text box is recognized as a header. A unit in
+  square brackets or parentheses at the end of the header ("Title, [M
+  GPUs]", "Title (M GPUs)"), on a drawn or a native chart, is a new
+  `chart_header` Major, fixed automatically: "unit written in brackets; write
+  it plainly after a comma". A year in parentheses ("(2026-2030)") is not
+  taken for a unit. Units in the tick labels ($, %) count as before.
+- Tests: `tests/run_chart_header_periods_smoke.py` now uses plain units for
+  the correct charts and adds three slides (drawn chart with "[millions]",
+  drawn chart with "(millions)", native chart with "(millions)"), each
+  flagged once as `chart_header`.
+
 ## 2026-10-12: page numbers are real fields
 
 Owner's rule: page numbers are never hardcoded. Every page of the Kinfield
@@ -318,7 +346,7 @@ Three owner-approved rules, with the guidance, an automatic fix and QC checks.
   `build_deck.py` (the context rules), `prompt.md`, the worker agent,
   `reference/layouts.md` (Chart) and `reference/anti-patterns.md` (Chrome 3).
   A chart with one series has no legend.
-- **Chart header line: "Chart title, [Unit]".** Every chart has one line at
+- **Chart header line: "Chart title, [Unit]"** (corrected 2026-10-13: no brackets). Every chart has one line at
   its top left: the title bold, the comma and the unit in square brackets
   regular weight, an optional footnote mark after the title as a superscript
   digit (¹), axis titles where an axis carries a unit. Shape names are fixed

@@ -10,8 +10,12 @@ A fictional deck ("Northwind Bakeries", made-up numbers):
      sentences, ellipses, abbreviations (Co., e.g., U.S., a single capital
      "J."), list numbers ("3.") and text that never had one
   2. after the strip nothing is left for the QC check to flag
-  3. a correct drawn chart (chart-title "Title, [Unit]" top left, legend one
-     row top right) passes
+  3. a correct drawn chart (chart-title "Title, Unit" top left with the unit
+     written plainly after a comma, legend one row top right) passes; a
+     header with the unit in square brackets ("Title, [Unit]") or in
+     parentheses ("Title (Unit)") is flagged as a chart_header Major
+     ("unit written in brackets"), drawn or native (owner's correction,
+     2026-10-13); "Title, $B" and "Title, %" count as having a unit
   4. a legend under the chart is flagged; a stacked legend at the top right
      is flagged; a header with no unit over a value axis is flagged; a chart
      with no header line is flagged
@@ -185,7 +189,7 @@ def main() -> int:
 
         # ---- slide 2: a correct drawn chart ----
         s2 = _blank(prs)
-        _drawn_chart(s2, header="Loaves sold¹, [millions]")
+        _drawn_chart(s2, header="Loaves sold¹, millions")
         # ---- slide 3: legend under the chart, header without a unit ----
         s3 = _blank(prs)
         _drawn_chart(s3, header="Loaves sold by region", legend="bottom")
@@ -198,7 +202,16 @@ def main() -> int:
         _native_chart(s5, title=None, legend_pos=XL_LEGEND_POSITION.BOTTOM)
         # ---- slide 6: native chart done right ----
         s6 = _blank(prs)
-        _native_chart(s6, title="Loaves sold, [millions]", legend_pos=XL_LEGEND_POSITION.TOP)
+        _native_chart(s6, title="Loaves sold, millions", legend_pos=XL_LEGEND_POSITION.TOP)
+        # ---- slide 7: drawn chart, unit in square brackets ----
+        s7 = _blank(prs)
+        _drawn_chart(s7, header="Loaves sold, [millions]")
+        # ---- slide 8: drawn chart, unit in parentheses ----
+        s8 = _blank(prs)
+        _drawn_chart(s8, header="Loaves sold (millions)")
+        # ---- slide 9: native chart, unit in parentheses ----
+        s9 = _blank(prs)
+        _native_chart(s9, title="Loaves sold (millions)", legend_pos=XL_LEGEND_POSITION.TOP)
         deck = td / "northwind.pptx"
         prs.save(str(deck))
         prs = Presentation(str(deck))
@@ -206,6 +219,22 @@ def main() -> int:
         print("[3] a correct drawn chart passes")
         p2 = chart_rules.chart_problems(prs.slides[1])
         assert p2 == [], p2
+        for t in ("NVIDIA GPUs retiring each year, by generation, M GPUs",
+                  "Who owns the GPUs that retire, M GPUs", "Revenue, $B", "Share, %"):
+            assert chart_rules.UNIT_IN_TEXT.search(t), t
+            assert chart_rules.bracketed_unit(t) == "", t
+            assert chart_rules.HEADER_TEXT.match(t), t
+        for t in ("Title, [M GPUs]", "Title (M GPUs)", "Title¹, [$B]", "Title, ($B)"):
+            assert chart_rules.bracketed_unit(t), t
+        assert chart_rules.bracketed_unit("Revenue by year (2026-2030)") == ""
+        print("    ok")
+
+        print("[3b] a unit in square brackets or parentheses is flagged")
+        for idx in (6, 7, 8):
+            pb = chart_rules.chart_problems(prs.slides[idx])
+            assert [p["kind"] for p in pb] == ["unit_brackets"], (idx + 1, pb)
+            assert "unit written in brackets; write it plainly after a comma" in pb[0]["detail"], pb
+            assert 'write ", millions"' in pb[0]["detail"], pb
         print("    ok")
 
         print("[4] misplaced legend, missing unit, stacked legend, missing header")
@@ -232,6 +261,10 @@ def main() -> int:
         assert (4, "final_period") in by, by
         assert not any(s == 1 for s, _ in by), f"slide 1 was already cleaned: {by}"
         assert not any(s in (2, 6) for s, _ in by), f"correct charts flagged: {by}"
+        assert {(7, "chart_header"), (8, "chart_header"), (9, "chart_header")} <= by, by
+        assert not any(s in (7, 8, 9) and c != "chart_header" for s, c in by), by
+        br = [v for v in mine if v["slide"] in (7, 8, 9)]
+        assert all("unit written in brackets" in v["issue"] for v in br), br
         assert {(3, "legend_position"), (3, "chart_header"), (4, "legend_position"),
                 (4, "chart_header"), (5, "chart_header"), (5, "legend_position")} <= by, by
         assert all(v["severity"] == "Major" and v.get("auto_fix") for v in mine), mine
