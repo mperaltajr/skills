@@ -14,9 +14,11 @@ Detects:
   - Comments left attached to slides
   - Speaker notes with non-substantive content
   - A text item ending with a final period; a chart without its header line
-    ("Chart title, [Unit]") or unit; a legend not one row at the chart's top
-    right (owner's rules 2026-10-09, slide-builder/scripts/chart_rules.py;
-    layout Majors, fixed automatically)
+    ("Chart title, Unit", the unit plain after a comma) or unit, or with the
+    unit written in brackets or parentheses; a legend not one row at the
+    chart's top right (owner's rules 2026-10-09, corrected 2026-10-13: no
+    brackets; slide-builder/scripts/chart_rules.py; layout Majors, fixed
+    automatically)
   - File name patterns that signal workspace dumps
     ("Final_final_v3.pptx", "Copy of...", "deck (3).pptx")
   - A page number typed as plain text instead of a slide-number field
@@ -367,8 +369,9 @@ def check_chart_and_period_rules(prs) -> list[dict]:
       final_period     a text item ends with a period (periods between
                        sentences, ellipses, abbreviations and list numbers
                        are fine)
-      chart_header     a chart without its header line "Chart title, [Unit]",
-                       or with a value axis and no unit
+      chart_header     a chart without its header line "Chart title, Unit",
+                       with a value axis and no unit, or with the unit in
+                       brackets or parentheses ("Title, [M GPUs]")
       legend_position  a legend that is not one row at the chart's top right
     Drawn charts are found by shape name (chart-...); a deck whose chart
     pieces are not named that way is not flagged here (the vision pass still

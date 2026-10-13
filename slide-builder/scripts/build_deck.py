@@ -1052,13 +1052,16 @@ expect (one way of writing each kind of number across all slides).
   ACCENTURE/DRAFT/CONFIDENTIAL tags.
 - **Chart header line (owner's rule, 2026-10-09):** every chart has a header
   line at its top left, starting at the chart's left edge: "Chart title,
-  [Unit]", the title bold, the comma and the unit in square brackets regular
-  weight, an optional footnote mark right after the title as a superscript
-  digit (the characters ¹ ² ³). Name it `chart-title` (`chart-title-2` for a
+  Unit", e.g. "Who owns the GPUs that retire, M GPUs": the title bold, the
+  comma and the unit regular weight, the unit written plainly after the
+  comma (no square brackets, no parentheses; corrected 2026-10-13), an
+  optional footnote mark right after the title as a superscript digit (the
+  characters ¹ ² ³). Name it `chart-title` (`chart-title-2` for a
   second chart), the legend pieces `chart-legend-<series>` and
   `chart-legend-swatch-<series>`, axis titles `chart-axis-title-x` /
   `chart-axis-title-y`, and every other chart piece `chart-...`. QC flags a
-  missing header line, a missing unit and a misplaced legend as Major.
+  missing header line, a missing unit, a unit in brackets and a misplaced
+  legend as Major.
 - **Title bottom-anchor:** title bottom-y is fixed; 2-line titles grow
   UPWARD into the chrome zone, never displacing the subtitle.
 - **No inline run formatting on placeholders.** Title/subtitle inherit

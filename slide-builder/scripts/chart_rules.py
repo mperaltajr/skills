@@ -5,10 +5,13 @@
   1. Legend: every chart's legend is one row at the top right of the chart,
      on the chart's header line, right-aligned to the chart's right edge. A
      chart with one series has no legend.
-  2. Chart header: every chart has a header line "Chart title, [Unit]" at the
-     chart's top left: the title bold, the unit regular in square brackets
-     after a comma, an optional superscript footnote mark after the title.
-     Axis titles where an axis carries a unit.
+  2. Chart header: every chart has a header line "Chart title, Unit" at the
+     chart's top left, e.g. "NVIDIA GPUs retiring each year, by generation,
+     M GPUs": the title bold, the unit written plainly after a comma in
+     regular weight (no square brackets, no parentheses), an optional
+     superscript footnote mark after the title. Axis titles where an axis
+     carries a unit. (Corrected 2026-10-13: the "[Unit]" in the owner's
+     reference image was a placeholder, not brackets to type.)
   3. No final periods: no text item ends with a period (titles, subtitles,
      takeaways, labels, bullets, panels, callouts, table cells, chart labels,
      footnotes, sources). Periods BETWEEN sentences stay.
@@ -26,8 +29,9 @@ What this file does:
       own ("3."). Text inside native chart objects is not touched.
   leftover_periods(slide)     the same test without changing anything.
   chart_problems(slide)       charts without a header line, without a unit
-      (when they have a value axis), or with a legend that is not one row at
-      the top right.
+      (when they have a value axis), with the unit written in brackets or
+      parentheses ("Title, [M GPUs]", "Title (M GPUs)"), or with a legend
+      that is not one row at the top right.
   deck_findings(prs)          slide-qc's hygiene findings for all three
       (layout Majors, fixed automatically; keys final_period, chart_header,
       legend_position in qc_fix_policy.py).
@@ -195,9 +199,22 @@ PANEL_TOKENS = {"panel", "bg", "background", "card", "frame", "divider", "note",
 VALUE_TICK_RE = re.compile(
     r"(^|[-_ ])(ylab|ylabel|ytick|yticks|yval|y[-_]?tick)([-_ \d]|$)|(^|[-_ ])axis[-_ ]?y[-_ ]?\d", re.I)
 UNIT_TOKENS = {"unit", "units"}
-# A unit in the header: "[$B]", "($B)", "$", "%", or ", <unit>" after the title
+# A unit in the header: ", <unit>" after the title ("Title, M GPUs",
+# "Title, $B", "Title, %"), or a currency / percent sign. A unit written in
+# brackets ("[M GPUs]", "(M GPUs)") also counts as a unit here, so it is not
+# reported as missing: it is reported as written in brackets instead.
 UNIT_IN_TEXT = re.compile(r"\[[^\]]+\]|\([^)]+\)|[$%€£¥]|,\s*\S")
-HEADER_TEXT = re.compile(r"^[^\n]{2,160},\s*\[[^\]]+\]\s*$")
+# A unit written in brackets or parentheses at the end of the header
+# ("Title, [M GPUs]", "Title (M GPUs)", "Title, ($B)"), before any footnote
+# mark. A year or year range in parentheses ("(2026)", "(2026-2030)") is not
+# a unit.
+BRACKETED_UNIT = re.compile(r"(\[[^\]\n]{1,30}\]|\([^)\n]{1,30}\))[\s¹²³⁴⁵⁶⁷⁸⁹⁰*†]*$")
+_YEARISH = re.compile(r"^[(\[][\d\s\-–/,]+[)\]]$")
+# A text box that reads as a chart header: "Title, Unit" (a short unit after
+# the last comma), or the same with the unit in brackets or parentheses.
+HEADER_TEXT = re.compile(
+    r"^[^\n]{2,160}(?:,\s*(?:\[[^\]\n]{1,30}\]|\([^)\n]{1,30}\)|[^,.\n\[\]()]{1,20})"
+    r"|\s\([^)\n]{1,30}\))\s*$")
 GROUP_GAP_IN = 0.35
 HEADER_REACH_IN = 3.5
 ONE_ROW_TOL_IN = 0.15
@@ -310,6 +327,33 @@ def _cluster(items, gap):
     return groups
 
 
+def bracketed_unit(text: str) -> str:
+    """The unit written in brackets or parentheses at the end of a chart
+    header ("[M GPUs]" in "Title, [M GPUs]", "(M GPUs)" in "Title (M GPUs)"),
+    or '' when the unit is written plainly. A year in parentheses is not a
+    unit."""
+    t = (text or "").strip()
+    m = BRACKETED_UNIT.search(t)
+    if not m or m.start() == 0:
+        return ""
+    unit = m.group(1)
+    if _YEARISH.match(unit):
+        return ""
+    return unit
+
+
+BRACKET_DETAIL = "unit written in brackets; write it plainly after a comma"
+
+
+def _bracket_problem(label: str, text: str) -> dict | None:
+    bu = bracketed_unit(text)
+    if not bu:
+        return None
+    return {"kind": "unit_brackets", "chart": label,
+            "detail": (f"{label}: {BRACKET_DETAIL} (\"{text}\": drop the {bu[0]}{bu[-1]} "
+                       f"and write \", {bu[1:-1].strip()}\")")}
+
+
 def _is_title_placeholder(sh) -> bool:
     try:
         return bool(sh.is_placeholder and sh.placeholder_format.type in (1, 3, 4))
@@ -341,7 +385,8 @@ def _drawn_chart_problems(slide) -> list[dict]:
     legends = [p for p in pieces if p[2] == "legend"]
     headers = [p for p in pieces if p[2] == "header"]
     units = [p for p in pieces if p[2] in ("unit", "axis_title")]
-    # fallback header: a text box written as "Title, [Unit]"
+    # fallback header: a text box written as "Title, Unit" (or with the unit
+    # in brackets, which is then flagged)
     for sh, box in _walk(slide.shapes):
         if (not _role(getattr(sh, "name", "") or "") and not _is_title_placeholder(sh)
                 and HEADER_TEXT.match(_text_of(sh))):
@@ -398,7 +443,12 @@ def _drawn_chart_problems(slide) -> list[dict]:
         if not hdr:
             out.append({"kind": "header", "chart": label,
                         "detail": f"{label} has no header line (a shape named chart-title "
-                                  f"reading \"Chart title, [Unit]\" at its top left)"})
+                                  f"reading \"Chart title, Unit\" at its top left, e.g. "
+                                  f"\"GPUs retiring each year, M GPUs\")"})
+        for h in hdr:
+            bp = _bracket_problem(label, _text_of(h[0]))
+            if bp:
+                out.append(bp)
         has_value_axis = sum(1 for p in g if p[2] == "tick") >= 2
         if has_value_axis:
             unit_ok = bool(hdr_text and UNIT_IN_TEXT.search(hdr_text))
@@ -410,7 +460,7 @@ def _drawn_chart_problems(slide) -> list[dict]:
             if not unit_ok:
                 out.append({"kind": "unit", "chart": label,
                             "detail": f"{label} has a value axis but no unit: write it in the "
-                                      f"header as \", [Unit]\" or in the axis title"})
+                                      f"header plainly after a comma (\"Title, M GPUs\") or in the axis title"})
         lg = legend_of[i]
         if lg:
             lb = _union([p[1] for p in lg])
@@ -467,8 +517,12 @@ def _native_chart_problems(slide) -> list[dict]:
                     break
         if not title_text:
             out.append({"kind": "header", "chart": label,
-                        "detail": f"{label} has no header line (a title \"Chart title, [Unit]\" "
-                                  f"at its top left)"})
+                        "detail": f"{label} has no header line (a title \"Chart title, Unit\" "
+                                  f"at its top left, e.g. \"GPUs retiring each year, M GPUs\")"})
+        else:
+            bp = _bracket_problem(label, title_text)
+            if bp:
+                out.append(bp)
         value_axis = None
         try:
             value_axis = chart.value_axis
@@ -491,7 +545,7 @@ def _native_chart_problems(slide) -> list[dict]:
             if not unit_ok:
                 out.append({"kind": "unit", "chart": label,
                             "detail": f"{label} has a value axis but no unit: write it in the "
-                                      f"header as \", [Unit]\" or in the axis title"})
+                                      f"header plainly after a comma (\"Title, M GPUs\") or in the axis title"})
         try:
             has_legend = chart.has_legend
         except Exception:
@@ -528,7 +582,8 @@ def _native_chart_problems(slide) -> list[dict]:
 
 
 def chart_problems(slide) -> list[dict]:
-    """[{kind: header | unit | legend, chart, detail}] for the slide."""
+    """[{kind: header | unit | unit_brackets | legend, chart, detail}] for
+    the slide (header, unit and unit_brackets are chart_header findings)."""
     out: list[dict] = []
     try:
         out += _drawn_chart_problems(slide)
