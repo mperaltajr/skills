@@ -73,7 +73,7 @@ EXTRACT_JS = r"""
   };
   const glyphCount = (t) => { let n = 0; for (let i = 0; i < t.length; i++) { if (/\s/.test(t[i])) continue; if (t.codePointAt(i) > 0xffff) i++; n++; } return n; };
   const transparent = (c) => !c || c === 'transparent' || /rgba\([^)]*,\s*0\)$/.test(c);
-  const out = {boxes: [], texts: [], svgs: [], icons: [], fallbacks: [], fields: {}, notes: [],
+  const out = {boxes: [], texts: [], svgs: [], icons: [], pictures: [], fallbacks: [], fields: {}, notes: [],
     canvas: {w: cr.width, h: cr.height}};
   let order = 0;
 
@@ -285,7 +285,40 @@ EXTRACT_JS = r"""
       out.fallbacks.push({kind: 'vertical-text', reason: 'vertical writing mode', id: sid, ...R(r), g: grp(el), order: order++});
       markSubtree(el); continue;
     }
-    if (tag === 'img' || tag === 'canvas' || tag === 'video' || tag === 'iframe' || tag === 'picture') {
+    if (tag === 'img') {
+      // A picture from a file next to the design, cropped and shaped as the
+      // browser drew it, is a native picture (2026-10-13); anything the
+      // picture tool can't carry (a web address, a filter, see-through, a
+      // border, clipped by its container, inside a table or list) stays
+      // with the agent.
+      const src = el.currentSrc || el.src || '';
+      let why = '';
+      if (!/^file:/i.test(src)) why = /^data:/i.test(src) ? 'embedded picture data' : 'picture from a web address';
+      else if (!el.complete || !el.naturalWidth || !el.naturalHeight) why = 'picture did not load';
+      else if (cs.filter && cs.filter !== 'none') why = 'filtered picture';
+      else if (effOpacity(el) < 0.999) why = 'see-through picture';
+      else if (sidesOf(cs).some(s => s.w > 0 && s.s !== 'none' && s.s !== 'hidden' && !transparent(s.c))) why = 'picture with a border';
+      else if (el.closest('[data-pm-tbl], [data-pm-list]')) why = 'picture inside a table or list';
+      else if (cs.clipPath && cs.clipPath !== 'none') why = 'clipped picture';
+      else {
+        for (let a = el.parentElement; a && a !== canvas.parentElement; a = a.parentElement) {
+          const acs = getComputedStyle(a);
+          if (acs.overflowX !== 'visible' || acs.overflowY !== 'visible' || (acs.clipPath && acs.clipPath !== 'none')) {
+            const ar = a.getBoundingClientRect();
+            if (r.left < ar.left - 0.5 || r.top < ar.top - 0.5 || r.right > ar.right + 0.5 || r.bottom > ar.bottom + 0.5 || (radiusOf(acs) > 0.5 && a !== canvas)) { why = 'picture clipped by its container'; break; }
+          }
+        }
+      }
+      if (!why) {
+        out.pictures.push({...R(r), src, nw: el.naturalWidth, nh: el.naturalHeight, fit: cs.objectFit,
+          pos: cs.objectPosition, radii: [cs.borderTopLeftRadius, cs.borderTopRightRadius, cs.borderBottomRightRadius, cs.borderBottomLeftRadius],
+          shadow: cs.boxShadow !== 'none', id: sid, g: grp(el), order: order++});
+      } else {
+        out.fallbacks.push({kind: tag, reason: 'img element (' + why + ')', id: sid, ...R(r), g: grp(el), order: order++});
+      }
+      markSubtree(el); continue;
+    }
+    if (tag === 'canvas' || tag === 'video' || tag === 'iframe' || tag === 'picture') {
       out.fallbacks.push({kind: tag, reason: tag + ' element', id: sid, ...R(r), g: grp(el), order: order++});
       markSubtree(el); continue;
     }
@@ -1365,6 +1398,100 @@ def _plan_text(plan: Plan, t: dict, order_key, name=None) -> None:
     plan.counts["texts"] += 1
 
 
+# --- pictures --------------------------------------------------------------
+
+PICTURE_TYPES = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tif", ".tiff"}
+
+
+def _file_path(src: str) -> Path | None:
+    """The file a file:// address points at, or None."""
+    from urllib.parse import unquote, urlparse
+    from urllib.request import url2pathname
+    try:
+        u = urlparse(src)
+        if u.scheme.lower() != "file":
+            return None
+        if u.netloc:
+            return Path(url2pathname(f"//{u.netloc}{u.path}"))
+        return Path(url2pathname(u.path))
+    except Exception:
+        return None
+
+
+def _object_offset(tok: str, room: float) -> float:
+    """One object-position value as px from the box's left/top edge."""
+    tok = (tok or "").strip().lower()
+    named = {"left": 0.0, "top": 0.0, "center": 0.5, "right": 1.0, "bottom": 1.0}
+    if tok in named:
+        return named[tok] * room
+    if tok.endswith("%"):
+        return float(tok[:-1]) / 100 * room
+    return _px(tok)
+
+
+def _plan_picture(plan: "Plan", pc: dict) -> None:
+    """A picture from a file, drawn as a native picture: the part of it the
+    browser showed (object-fit and object-position as a crop) and its shape
+    (round corners, or an oval for 50%). Before 2026-10-13 every picture went
+    to the agent, which drew exactly this by hand."""
+    x, y, w, h = pc["x"], pc["y"], pc["w"], pc["h"]
+
+    def agent(why):
+        plan.fallbacks.append({"kind": "img", "id": pc.get("id") or "", "x": x, "y": y, "w": w,
+                               "h": h, "reason": f"img element ({why})", "_order": pc["order"]})
+    if w < 1 or h < 1:
+        return
+    path = _file_path(pc.get("src") or "")
+    if path is None or not path.is_file():
+        return agent("picture file not found")
+    if path.suffix.lower() not in PICTURE_TYPES:
+        return agent(f"{path.suffix or 'this kind of'} picture can't be placed natively")
+    nw, nh = float(pc["nw"]), float(pc["nh"])
+    fit = (pc.get("fit") or "fill").lower()
+    if fit == "cover":
+        k = max(w / nw, h / nh)
+        dw, dh = nw * k, nh * k
+    elif fit in ("contain", "scale-down"):
+        k = min(w / nw, h / nh)
+        if fit == "scale-down":
+            k = min(1.0, k)
+        dw, dh = nw * k, nh * k
+    elif fit == "none":
+        dw, dh = nw, nh
+    else:                                 # fill: stretched to the box
+        dw, dh = w, h
+    toks = (pc.get("pos") or "50% 50%").split()
+    if len(toks) == 1:
+        toks.append("50%")
+    ox = _object_offset(toks[0], w - dw)
+    oy = _object_offset(toks[1], h - dh)
+    # the picture as drawn, cut to the box
+    px0, py0, px1, py1 = x + ox, y + oy, x + ox + dw, y + oy + dh
+    vx0, vy0, vx1, vy1 = max(x, px0), max(y, py0), min(x + w, px1), min(y + h, py1)
+    if vx1 - vx0 < 1 or vy1 - vy0 < 1:
+        return
+    crop = [(vx0 - px0) / dw, (vy0 - py0) / dh, (px1 - vx1) / dw, (py1 - vy1) / dh]
+    radii = [_px(r_, min(w, h)) for r_ in pc.get("radii") or []]
+    rad = max(radii or [0.0])
+    geom, ratio = "rect", None
+    if rad > 0.5:
+        if len({round(r_) for r_ in radii}) > 1:
+            return agent("picture with mixed corner radii")
+        if (vx1 - vx0) < w - 0.5 or (vy1 - vy0) < h - 0.5:
+            return agent("rounded picture that doesn't fill its box")
+        if rad >= min(w, h) / 2 - 0.5:
+            geom = "ellipse"
+        else:
+            geom, ratio = "roundRect", min(0.5, rad / max(1.0, min(w, h)))
+    if pc.get("shadow"):
+        plan.kill["shadows_stripped"] += 1
+    plan.ops.append({"op": "picture", "path": str(path), "x": vx0, "y": vy0, "w": vx1 - vx0,
+                     "h": vy1 - vy0, "crop": [round(c, 6) for c in crop], "geom": geom,
+                     "radius_ratio": ratio, "name": pc.get("id") or None,
+                     "_order": pc["order"], "_box": (vx0, vy0, vx1 - vx0, vy1 - vy0)})
+    plan.counts["pictures"] = plan.counts.get("pictures", 0) + 1
+
+
 # --- svg -------------------------------------------------------------------
 
 def _plan_icon(plan: Plan, ic: dict) -> None:
@@ -2082,7 +2209,7 @@ def _list_group(plan: "Plan", L: dict, data: dict):
     if any(_g(b).get("list") == k and _g(b).get("item") and not _g(b).get("marker")
            for b in data.get("boxes") or []):
         return None, "its items are drawn as panels or have their own borders"
-    if any(_g(f).get("list") == k for f in data.get("fallbacks") or []):
+    if any(_g(f).get("list") == k for f in (data.get("fallbacks") or []) + (data.get("pictures") or [])):
         return None, "it holds a picture or an element left to the agent"
     texts = [t for t in data.get("texts") or [] if _g(t).get("list") == k]
     if any(not _g(t).get("item") for t in texts):
@@ -2317,6 +2444,7 @@ def plan_from_extract(data: dict, subtitle_as_shape: bool,
     items += [(t["order"], "text", t) for t in data["texts"]]
     items += [(s["order"], "svg", s) for s in data["svgs"]]
     items += [(ic["order"], "icon", ic) for ic in data.get("icons") or []]
+    items += [(pc["order"], "picture", pc) for pc in data.get("pictures") or []]
     for w in data.get("icon_warnings") or []:
         plan.warn(w["code"], w["detail"])
     for f in data["fallbacks"]:
@@ -2347,6 +2475,8 @@ def _plan_item(plan: Plan, kind: str, it: dict, subtitle_as_shape: bool) -> None
         _plan_text(plan, it, it["order"], name=name)
     elif kind == "icon":
         _plan_icon(plan, it)
+    elif kind == "picture":
+        _plan_picture(plan, it)
     else:
         _plan_svg(plan, it)
 

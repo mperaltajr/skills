@@ -9,8 +9,10 @@ fix to how something is drawn applies to every slide on the next finalize.
 Each op kind maps to plain python-pptx: rectangles, rounded rectangles, ovals,
 triangles, freeform polygons and polylines, straight connectors, text boxes
 with styled runs (a whole list is one text box with real bullets), native
-tables (graphicFrame), and library icons (inserted as their vector shapes
-through icon_helper). No charts, no embedded objects, no pictures of text.
+tables (graphicFrame), library icons (inserted as their vector shapes
+through icon_helper), and photos and other pictures from files (cropped and
+shaped as the design showed them). No charts, no embedded objects, no
+pictures of text.
 
 The rules that used to live as prose in the translator agent's instructions are
 code here, applied the same way every time:
@@ -377,8 +379,39 @@ def _icon(slide, op) -> None:
     icon_helper.insert_icon(name, slide, *args, accent_color="#" + (op.get("color") or "000000"))
 
 
+def _picture(slide, op) -> None:
+    """A picture from a file, cropped to the part the design showed, in the
+    design's shape (an oval for a round photo, round corners)."""
+    path = Path(op["path"])
+    if not path.is_file():
+        raise FileNotFoundError(
+            f"the picture {path} is not there any more; put it back, or convert the "
+            "slide again so the converter reads where the picture is now")
+    pic = slide.shapes.add_picture(str(path), E(op["x"]), E(op["y"]),
+                                   E(max(op["w"], 1)), E(max(op["h"], 1)))
+    left, top, right, bottom = (op.get("crop") or [0, 0, 0, 0])[:4]
+    if left or top or right or bottom:
+        pic.crop_left, pic.crop_top, pic.crop_right, pic.crop_bottom = left, top, right, bottom
+    geom = op.get("geom") or "rect"
+    if geom != "rect":
+        prst = pic._element.spPr.find(qn("a:prstGeom"))
+        if prst is not None:
+            prst.set("prst", geom)
+            av = prst.find(qn("a:avLst"))
+            if av is None:
+                av = prst.makeelement(qn("a:avLst"), {})
+                prst.append(av)
+            for gd in list(av):
+                av.remove(gd)
+            if geom == "roundRect" and op.get("radius_ratio") is not None:
+                av.append(av.makeelement(qn("a:gd"), {
+                    "name": "adj", "fmla": f"val {int(round(op['radius_ratio'] * 100000))}"}))
+    if op.get("name"):
+        pic.name = op["name"]
+
+
 _DRAW = {"shape": _shape, "freeform": _freeform, "connector": _connector, "text": _text,
-         "icon": _icon, "table": _table}
+         "icon": _icon, "table": _table, "picture": _picture}
 
 
 def build(plan: dict):
