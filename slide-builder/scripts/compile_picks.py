@@ -240,10 +240,11 @@ def copy_picked_slide_into(dst_prs, src_pptx: Path,
     drives the layout pick. Otherwise this falls back to the blank-layout
     behavior (blank layout, strip placeholders).
 
-    `page_position` (1-based) re-stamps the slide-number placeholder to the
-    slide's actual position in the compiled deck. finalize bakes the page number
-    at build time from the slide's original number, so after a rebuild/insert
-    renumber the baked value can be stale; compile order is the source of truth.
+    `page_position` (1-based) re-stamps the slide-number field's cached number
+    to the slide's actual position in the compiled deck. finalize sets the
+    cached number at build time from the slide's original number, so after a
+    rebuild/insert renumber it can be stale; compile order is the source of
+    truth for the cached text, and PowerPoint recomputes the field anyway.
     """
     src_prs = Presentation(str(src_pptx))
     src_slide = src_prs.slides[0]
@@ -307,7 +308,8 @@ def copy_picked_slide_into(dst_prs, src_pptx: Path,
         remove_empty_placeholders(new_slide)
         remove_duplicate_chrome_text(new_slide)
     if page_position is not None:
-        _restamp_page_number(new_slide, page_position)
+        from twins.composer import slide_number_offset
+        _restamp_page_number(new_slide, page_position, slide_number_offset(dst_prs))
     return count
 
 
@@ -375,42 +377,26 @@ def _stamp_option_badge(slide, prs, label: str) -> bool:
     return True
 
 
-def _restamp_page_number(slide, position: int) -> None:
-    """Set the slide-number placeholder's text to `position` (its 1-based place
-    in the compiled deck). Only re-stamps a placeholder that currently holds a
-    bare integer — the literal finalize bakes in — so auto-number fields and
-    cover slides (no page-number placeholder) are left alone. Preserves the
-    existing run's formatting by editing the run text in place."""
-    from pptx.enum.shapes import PP_PLACEHOLDER
+def _restamp_page_number(slide, position: int, offset: int = 0) -> None:
+    """Make every page-number shape on the slide (the slide-number placeholder,
+    or a box named like a page number) hold a slide-number FIELD whose cached
+    number is `position` + `offset` (its 1-based place in the compiled deck,
+    plus presentation.xml's firstSlideNum - 1).
+
+    Owner's rule (2026-10-12): page numbers are never hardcoded. A field is
+    kept as it is (its id and formatting) with only its cached number set; a
+    literal number (an older finalize, a copied page) is turned into a field
+    that keeps the run's formatting. A shape with no number and no field (a
+    cover's empty slot) is left alone, and so is a cover with no page-number
+    shape at all."""
+    from twins.composer import is_page_number_shape, stamp_page_number
     for shape in slide.shapes:
         try:
-            if not shape.is_placeholder:
+            if not (getattr(shape, "has_text_frame", False) and is_page_number_shape(shape)):
                 continue
-            if shape.placeholder_format.type != PP_PLACEHOLDER.SLIDE_NUMBER:
-                continue
+            stamp_page_number(shape, position + offset)
         except Exception:
             continue
-        try:
-            tf = shape.text_frame
-            if (tf.text or "").strip().isdigit():
-                paras = tf.paragraphs
-                if paras and paras[0].runs:
-                    paras[0].runs[0].text = str(position)
-                    for extra in paras[0].runs[1:]:
-                        extra.text = ""
-                elif paras:
-                    # Field-only placeholder: python-pptx reports the <a:fld>'s
-                    # cached text, so .isdigit() passed above, but there are no
-                    # runs. Assigning tf.text here would drop the field AND the
-                    # rPr it carries, re-creating the unformatted-page-number
-                    # defect at COMPILE time even after finalize did it right.
-                    from twins.composer import write_literal_run_preserving_field
-                    write_literal_run_preserving_field(paras[0], position)
-                else:
-                    tf.text = str(position)
-        except Exception:
-            pass
-        return
 
 
 def _dedupe_zip_entries(pptx_path: Path) -> int:

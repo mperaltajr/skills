@@ -2,13 +2,15 @@
 """Smoke test for page-number rendering on grafted slides.
 
 python-pptx's add_slide clones only title/body placeholders — it skips the
-SLIDE_NUMBER placeholder (treated as inherited chrome). The inherited auto-number
-field also doesn't render under LibreOffice headless. So page numbers silently
-vanished on every body-canonical build. The fix:
+SLIDE_NUMBER placeholder (treated as inherited chrome), and LibreOffice headless
+does not draw the layout's own copy. So page numbers silently vanished on every
+body-canonical build. The fix:
   - composer.clone_missing_chrome_placeholders() clones the SLIDE_NUMBER
     placeholder onto the slide, and
-  - _populate_layout_placeholders() (PAGE_NUM_TYPES = {13} = SLIDE_NUMBER) writes
-    a LITERAL page number into it, clearing any auto-field so it renders.
+  - _populate_layout_placeholders() (PAGE_NUM_TYPES = {13} = SLIDE_NUMBER) keeps
+    the layout's slide-number FIELD and sets its stored number (owner's rule
+    2026-10-12: page numbers are never typed text, so PowerPoint renumbers
+    them when slides move; LibreOffice draws the field on the slide too).
 
 This test proves both, using python-pptx's default template (its Blank layout
 carries a slide-number placeholder).
@@ -58,15 +60,16 @@ def main() -> int:
     assert _has_slide_number_ph(slide), "slide-number placeholder not present after clone"
     print(f"    ok: cloned {n}; slide now has a slide-number placeholder")
 
-    print("[3] _populate writes a literal page number (no auto-field)")
+    print("[3] _populate keeps a slide-number field and stores the number")
     found = _populate_layout_placeholders(slide, page_num="7")
     assert found["page_number"], "page number did not populate"
     ph = next(p for p in slide.placeholders if int(p.placeholder_format.type) == SLIDE_NUMBER)
     assert ph.text_frame.text == "7", f"page number text wrong: {ph.text_frame.text!r}"
-    # no residual auto-field (<a:fld>) that LibreOffice wouldn't render
-    flds = ph._element.findall(".//" + qn("a:fld"))
-    assert not flds, f"auto-field left in slide-number placeholder ({len(flds)})"
-    print("    ok: slide number = '7', no auto-field")
+    flds = [f for f in ph._element.findall(".//" + qn("a:fld")) if f.get("type") == "slidenum"]
+    assert len(flds) == 1, f"expected one slide-number field, found {len(flds)}"
+    assert flds[0].findtext(qn("a:t")) == "7", "field's stored number is not 7"
+    assert not ph._element.findall(".//" + qn("a:r")), "a typed run was left beside the field"
+    print("    ok: one slidenum field, stored number '7', no typed run")
 
     print("[4] remove_empty_placeholders drops empty prompts, keeps populated ones")
     remove_empty_placeholders(slide)

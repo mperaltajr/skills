@@ -41,15 +41,19 @@ def write_literal_run_preserving_field(para, text):
     """Replace `para`'s content with ONE literal run carrying `text`, keeping the
     character formatting of any `<a:fld>` being replaced. Returns the new run.
 
-    Auto-number fields (`<a:fld type="slidenum">`) do not render under LibreOffice
-    headless, so the pipeline writes literal text instead. But on many templates
-    the field's own `<a:rPr>` is the ONLY carrier of size / color / typeface: the
-    layout AND the master can both ship an empty `<a:lstStyle/>`, leaving no
-    placeholder cascade to inherit from. Dropping the field therefore silently
-    discarded all three and the run fell back to the presentation default
-    (`<p:otherStyle>`, ~13pt black), which is the "page numbers render huge and
-    stack vertically" defect. Capture the field's rPr and re-apply it verbatim so
-    the template's own chrome formatting survives, whatever that template is.
+    For ordinary text placeholders (title, subtitle, footer / source line) that
+    a layout seeded with a field (a date, say). NEVER for page numbers: those
+    are written by write_slide_number_field, which keeps the slide-number field
+    (owner's rule 2026-10-12: page numbers are never hardcoded; a literal "5"
+    stays "5" when slides are moved, added or deleted in PowerPoint).
+
+    On many templates the field's own `<a:rPr>` is the ONLY carrier of size /
+    color / typeface: the layout AND the master can both ship an empty
+    `<a:lstStyle/>`, leaving no placeholder cascade to inherit from. Dropping
+    the field therefore silently discarded all three and the run fell back to
+    the presentation default (`<p:otherStyle>`, ~13pt black). Capture the
+    field's rPr and re-apply it verbatim so the template's own chrome
+    formatting survives, whatever that template is.
     """
     for r in list(para.runs):
         r._r.getparent().remove(r._r)
@@ -68,6 +72,176 @@ def write_literal_run_preserving_field(para, text):
             run._r.remove(existing)
         run._r.insert(0, fld_rpr)  # rPr must be the first child of <a:r>
     return run
+
+
+# ---------------------------------------------------------------------------
+# Page numbers are real slide-number fields (owner's rule, 2026-10-12)
+# ---------------------------------------------------------------------------
+# A page number is NEVER written as plain text. It is an
+# `<a:fld type="slidenum">` whose cached `<a:t>` holds the slide's current
+# number. PowerPoint and LibreOffice both compute the number from the field
+# when they draw the page (tested 2026-10-12 on a 71-slide deck with its
+# slides reversed: right number on every page in both), so it follows moved,
+# added and deleted slides; anything that only reads the cached text
+# (python-pptx, a search) sees the number as of the last build. Before this,
+# every page carried a typed "5", and a reordered deck kept its old numbers.
+SLIDENUM = "slidenum"
+_PAGE_NUMBER_NAME_RE = re.compile(r"^\s*(page[\s_-]*(number|num|no)|slide[\s_-]*(number|num|no))",
+                                  re.I)
+_BARE_NUMBER_RE = re.compile(r"^\s*\d{1,4}\s*$")
+
+
+def new_field_id() -> str:
+    """A fresh field id in the `{GUID}` form PowerPoint writes."""
+    import uuid
+    return "{" + str(uuid.uuid4()).upper() + "}"
+
+
+def is_page_number_shape(shape) -> bool:
+    """A slide-number placeholder, or a shape named like a page number
+    ("page-number", "Slide Number 3", "Page Num")."""
+    try:
+        if shape.is_placeholder and int(shape.placeholder_format.type) == 13:
+            return True
+    except Exception:
+        pass
+    try:
+        return bool(_PAGE_NUMBER_NAME_RE.match(shape.name or ""))
+    except Exception:
+        return False
+
+
+def _slidenum_fields(p_el):
+    return [f for f in p_el.findall(qn("a:fld")) if (f.get("type") or "").lower() == SLIDENUM]
+
+
+def has_slidenum_field(shape) -> bool:
+    try:
+        return any(_slidenum_fields(p) for p in shape.text_frame._txBody.findall(qn("a:p")))
+    except Exception:
+        return False
+
+
+def slide_number_offset(prs) -> int:
+    """What PowerPoint adds to a slide's 1-based position to get its number
+    (presentation.xml firstSlideNum, default 1)."""
+    try:
+        return int(prs.part._element.get("firstSlideNum") or 1) - 1
+    except Exception:
+        return 0
+
+
+def _set_field_text(fld, text: str) -> None:
+    t = fld.find(qn("a:t"))
+    if t is None:
+        from pptx.oxml.xmlchemy import OxmlElement
+        t = OxmlElement("a:t")
+        fld.append(t)
+    t.text = text
+
+
+def write_slide_number_field(para, number):
+    """Make `para` show the slide's number through a slide-number field, with
+    `number` as the field's cached text. Returns the `<a:fld>` element.
+
+      - The paragraph already has a slide-number field (the template's own,
+        cloned from the layout): keep it, with its id and its `<a:rPr>` (on
+        many templates the only carrier of size, color and typeface), and set
+        only its cached text. Other text in the line ("Page ") is kept; a stale
+        literal number next to it is removed.
+      - No field: a run holding a bare number becomes the field, keeping that
+        run's `<a:rPr>`. With no such run, a new field is added (fresh id,
+        formatting from the first run, or another field, if there is one) and
+        empty runs are dropped.
+    """
+    p = para._p
+    text = "" if number is None else str(number)
+    flds = _slidenum_fields(p)
+    if flds:
+        fld = flds[0]
+        for extra in flds[1:]:
+            p.remove(extra)
+        for r in p.findall(qn("a:r")):
+            t = r.find(qn("a:t"))
+            if t is None or (t.text or "") == "" or _BARE_NUMBER_RE.match(t.text or ""):
+                p.remove(r)
+        _set_field_text(fld, text)
+        return fld
+
+    # OxmlElement, not a bare lxml element: python-pptx only sees its own
+    # element classes (a bare one is invisible to paragraph.text).
+    from pptx.oxml.xmlchemy import OxmlElement
+    fld = OxmlElement("a:fld")
+    fld.set("id", new_field_id())
+    fld.set("type", SLIDENUM)
+    runs = p.findall(qn("a:r"))
+    num_run = next((r for r in runs
+                    if _BARE_NUMBER_RE.match((r.findtext(qn("a:t")) or ""))), None)
+    src_rpr = None
+    if num_run is not None:
+        src_rpr = num_run.find(qn("a:rPr"))
+    else:
+        for r in runs:
+            if r.find(qn("a:rPr")) is not None:
+                src_rpr = r.find(qn("a:rPr"))
+                break
+        if src_rpr is None:
+            other = p.find(qn("a:fld"))
+            if other is not None:
+                src_rpr = other.find(qn("a:rPr"))
+    if src_rpr is not None:
+        fld.append(copy.deepcopy(src_rpr))
+    else:
+        rpr = OxmlElement("a:rPr")
+        rpr.set("lang", "en-US")
+        fld.append(rpr)
+    t_el = OxmlElement("a:t")
+    t_el.text = text
+    fld.append(t_el)
+    if num_run is not None:
+        num_run.addprevious(fld)
+        p.remove(num_run)
+        # Any other bare-number run left over is a stale copy.
+        for r in p.findall(qn("a:r")):
+            if _BARE_NUMBER_RE.match(r.findtext(qn("a:t")) or ""):
+                p.remove(r)
+    else:
+        for r in runs:
+            if not (r.findtext(qn("a:t")) or "").strip():
+                p.remove(r)
+        end = p.find(qn("a:endParaRPr"))
+        if end is not None:
+            end.addprevious(fld)
+        else:
+            p.append(fld)
+    return fld
+
+
+def stamp_page_number(shape, number, *, only_if_numbered: bool = True):
+    """Give a page-number shape a slide-number field showing `number`.
+
+    The paragraph used is the one holding a slide-number field, else the one
+    whose text is a bare number. With only_if_numbered (the default) a shape
+    with neither (an empty box, a cover's blank slot) is left alone; without
+    it the first paragraph gets a new field. Returns "kept" (the field was
+    there; only its cached number was set), "converted" (a literal number
+    became a field), "added", or "" (nothing done)."""
+    try:
+        paras = list(shape.text_frame.paragraphs)
+    except Exception:
+        return ""
+    for para in paras:
+        if _slidenum_fields(para._p):
+            write_slide_number_field(para, number)
+            return "kept"
+    for para in paras:
+        if _BARE_NUMBER_RE.match(para.text or ""):
+            write_slide_number_field(para, number)
+            return "converted"
+    if only_if_numbered or not paras:
+        return ""
+    write_slide_number_field(paras[0], number)
+    return "added"
 
 
 class TemplatePlaceholderEmptyError(RuntimeError):
@@ -203,7 +377,8 @@ def _populate_layout_placeholders(slide, *, title=None, subtitle=None,
     found = {"title": False, "subtitle": False,
              "footer": False, "page_number": False}
 
-    def _write(ph, text, *, anchor_bottom: bool = False, font_pt=None):
+    def _write(ph, text, *, anchor_bottom: bool = False, font_pt=None,
+               page_number: bool = False):
         tf = ph.text_frame
         # Replace existing paragraph text in the first paragraph; clear extras.
         if not tf.paragraphs:
@@ -238,6 +413,17 @@ def _populate_layout_placeholders(slide, *, title=None, subtitle=None,
                 f"    5. Re-register the template:\n"
                 f"         py -3 scripts/register_template.py propose <your-template.pptx>"
             )
+        if page_number:
+            # A page number is a slide-number field, never literal text (owner's
+            # rule 2026-10-12). Keep the paragraph holding the template's field
+            # (with its formatting) and set only its cached number.
+            paras = list(tf.paragraphs)
+            keep = next((p for p in paras if _slidenum_fields(p._p)), paras[0])
+            for _extra in paras:
+                if _extra is not keep:
+                    _extra._p.getparent().remove(_extra._p)
+            write_slide_number_field(keep, text)
+            return
         first = tf.paragraphs[0]
         # Drop trailing paragraphs so stale template lines cannot survive. The
         # comment above has always promised "clear extras"; the code never did it.
@@ -345,7 +531,7 @@ def _populate_layout_placeholders(slide, *, title=None, subtitle=None,
             found["footer"] = True
             continue
         if page_num is not None and not found["page_number"] and t in PAGE_NUM_TYPES:
-            _write(ph, page_num)
+            _write(ph, page_num, page_number=True)
             found["page_number"] = True
             continue
     return found
@@ -447,8 +633,10 @@ def clone_missing_chrome_placeholders(slide, layout):
     skips SLIDE_NUMBER / FOOTER / DATE (treated as inherited chrome). But those
     aren't reliably rendered from the master by LibreOffice headless, so the
     page number silently vanished on every body-canonical build. Cloning the
-    real placeholder here lets _populate_layout_placeholders write a literal
-    page number into it (and compile_picks re-stamp it to the compile position).
+    real placeholder here (with the layout's own slide-number field) lets
+    _populate_layout_placeholders set the field's cached number (and
+    compile_picks re-stamp it to the compile position). The field itself is
+    kept, so PowerPoint renumbers the page when slides move.
     Returns the number of placeholders cloned.
     """
     from copy import deepcopy
