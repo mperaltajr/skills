@@ -15,7 +15,7 @@ that stores only the user's exact words, keyed on fixed slide ids, cannot.
 Also here:
   - the transcript reader shared by every "the user's own words" check
     (add_ruling.py, map_source_pages.py approve, steer_checks.py approve);
-  - announce(): every pipeline script prints `RULINGS: <path>` when it ends,
+  - announce(): every pipeline script prints `RULINGS: <path>` when it starts,
     so the path is in front of the chat after a compaction too;
   - compact_hint(): the /compact suggestion at the two stage boundaries.
 """
@@ -304,8 +304,11 @@ _announced: dict = {}
 
 
 def announce(out=None, brief=None, stream=None) -> None:
-    """Print `RULINGS: <path>` when this script ends (also on an error exit),
-    once per process. Never raises: a script must not fail over this line."""
+    """Print `RULINGS: <path>` once per process, when the script starts.
+    Printed first, not last: every refusal and next-step message keeps its
+    commands in its LAST two lines (sessions read only the tail of an
+    output), and a trailing RULINGS line pushed them out. Never raises: a
+    script must not fail over this line."""
     if _announced.get("on"):
         return
     try:
@@ -323,7 +326,7 @@ def announce(out=None, brief=None, stream=None) -> None:
             print(f"RULINGS: {rulings_md(sd)} {tail}", file=stream or sys.stdout)
         except Exception:
             pass
-    atexit.register(_say)
+    _say()
 
 
 def compact_hint(sd: Path, stage: str) -> list[str]:

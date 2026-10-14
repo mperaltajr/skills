@@ -114,7 +114,7 @@ def main(argv=None) -> int:
     for gone in ("--criticals", "--majors", "--advisories"):
         ap.add_argument(gone, type=int, default=None, help=argparse.SUPPRESS)
     args = ap.parse_args(argv)
-    try:  # prints RULINGS: <path> when the script ends (2026-10-14)
+    try:  # prints RULINGS: <path> when the script starts (2026-10-14)
         import _rulings
         _rulings.announce(out=args.out)
     except Exception:

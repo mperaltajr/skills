@@ -243,7 +243,7 @@ def main(argv=None) -> int:
     f = sub.add_parser("finish")
     f.add_argument("--out", required=True, type=Path)
     a = ap.parse_args(argv)
-    try:  # prints RULINGS: <path> when the script ends (2026-10-14)
+    try:  # prints RULINGS: <path> when the script starts (2026-10-14)
         import _rulings
         _rulings.announce(out=a.out)
     except Exception:

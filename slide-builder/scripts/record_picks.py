@@ -265,7 +265,7 @@ def main(argv=None) -> int:
                          'a sketch page or a direct-path page): "N: <what changed>" (repeat per '
                          'slide). A sketch page is converted again; check_done lists it.')
     args = ap.parse_args(argv)
-    try:  # prints RULINGS: <path> when the script ends (2026-10-14)
+    try:  # prints RULINGS: <path> when the script starts (2026-10-14)
         import _rulings
         _rulings.announce(out=args.out)
     except Exception:

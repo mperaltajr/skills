@@ -724,7 +724,7 @@ def main(argv=None) -> int:
     ap.add_argument("--also", default="", help="Unchanged pages to read again too, e.g. 5,7 "
                                                "(to correct a finding carried on them).")
     args = ap.parse_args(argv)
-    try:  # prints RULINGS: <path> when the script ends (2026-10-14)
+    try:  # prints RULINGS: <path> when the script starts (2026-10-14)
         import _rulings
         _rulings.announce(out=args.out)
     except Exception:
