@@ -2,6 +2,52 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## 2026-10-13: edits after conversion reach the deck; the agent's drawing survives (items 7 and 8 steps 5-6)
+
+From the 10/12 Leo deck report: 11 picked slides shipped from plans older
+than their designs, chat edits were never converted, and converting again
+erased what the translator agent drew (it was not even kept in `_prev`).
+
+- **One update step, `translate_html.refresh_stale(out, items)`.** For each
+  picked sketch option whose design changed since it was converted (or was
+  never converted): a, it converts the same, so the script is kept and the
+  fingerprint updated; b, only the template's text (title, takeaway) changed,
+  so the `__template_fields__` header is rewritten and the drawing kept; c,
+  the body changed and the agent drew nothing, so it is replaced; d, the
+  agent drew, so its block is kept only when the same elements are left to it,
+  each with the same fingerprint, and the script with the kept block still
+  runs and names a shape after each element. Otherwise the option waits on
+  the agent (FALLBACK MODE) with the old block pasted in as comments to
+  adapt ("PREVIOUS DRAWING"). All or nothing, no element kept on its own.
+  One line per slide says which. `convert_picked` (apply_qc_fix,
+  redesign_round) is now this.
+- **Per-element fingerprint** (`fp` on each report `fallback` entry): the
+  element's HTML, its box to the pixel and the bytes of every picture it
+  shows; for an element the self-check handed over, the plan step the design
+  gave it (never where the render put it).
+- **The old script is copied first**, every time, to
+  `slide_NN/_prev_translation/<time>/` (a separate folder: `slide_NN/_prev/`
+  means "an earlier design" to apply_qc_fix).
+- **Every entry point calls it.** `record_picks.py`'s pick path converts a
+  pick whose design changed (not only one with no script yet).
+  `--edits-done` no longer stops with "Nothing to do" when no comment waits:
+  it converts every picked design edited since (a chat edit) and says
+  "nothing changed" when none was. `finalize_deck.py` runs it first (a-c
+  automatic; d stops with the existing FALLBACK MODE step).
+- **Compile refuses a design changed after finalize.** finalize records each
+  option's design fingerprint (`design_sha`, the same sha256 the report keeps);
+  compile names the options and prints the finalize command.
+- **Parent edits on sketch pages** (owner's decision D2): `--edited-by-parent`
+  on `record_picks.py --edits-done` and `apply_qc_fix.py` accepts a sketch page
+  (only the user's exact wording, a font size or a brand color), which is
+  converted again; look at its new picture after finalize.
+- **A hand run of `translate_html.py --slide` over the agent's drawing is
+  refused** unless `--force`, with the route to use instead.
+- Translator agent: what keeps its work, and how to adapt a pasted previous
+  drawing. SKILL.md (parent edit, conversion, finalize, compile) and
+  slide-qc's parent-edit line updated. Test: `tests/run_refresh_stale_smoke.py`;
+  `run_qc_fix_smoke` and `run_parent_edit_smoke` updated to the new behavior.
+
 ## 2026-10-13: converter round (fewer agent hand-overs, stacking, bullets, line breaks, text box tops)
 
 From the 10/12 Leo deck report. Measured on the 263-option replay

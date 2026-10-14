@@ -131,7 +131,7 @@ SKETCH_WITH_FALLBACK = (
     'font-size:16px">{text}</p>'
     # rotated text: the script cannot draw it, so it goes to the translator agent
     '<div data-shape-id="tag" style="position:absolute;left:700px;top:300px;'
-    'transform:rotate(-20deg);font-size:16px">Rotated tag</div>'
+    'transform:rotate(-20deg);font-size:16px">{tag}</div>'
     '</div></body></html>')
 
 AGENT_BLOCK = (
@@ -142,11 +142,12 @@ AGENT_BLOCK = (
     "    _m.name = \"agent-drawn-mark\"\n")
 
 
-def write_sketch(out: Path, n: int, letter: str = "A", text: str = "A short note.") -> Path:
+def write_sketch(out: Path, n: int, letter: str = "A", text: str = "A short note.",
+                 tag: str = "Rotated tag") -> Path:
     """Stand in for a sketch-path worker: a design with one element only the
-    translator agent can draw."""
+    translator agent can draw (the rotated `tag`)."""
     p = out / f"slide_{n:02d}" / f"option_{letter}.html"
-    p.write_text(SKETCH_WITH_FALLBACK.format(text=text), encoding="utf-8")
+    p.write_text(SKETCH_WITH_FALLBACK.format(text=text, tag=tag), encoding="utf-8")
     return p
 
 

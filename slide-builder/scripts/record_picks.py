@@ -44,7 +44,13 @@ re-rendered, and then
   py -3 scripts/record_picks.py --out <out_dir> --edits-done
 
 checks every such slide's design changed, marks its comments applied, and
-converts the edited picks together in one call. A comment that asks for a
+converts the edited picks together in one call. It also runs with no comment
+waiting: then it converts again every picked design that changed since it was
+converted (an edit made in chat), keeping what the translator agent drew when
+the elements it draws are unchanged (translate_html.refresh_stale). A change
+the main session made itself (only the user's exact wording, a font size or a
+brand color) is recorded with --edited-by-parent "N: <what changed>", on a
+sketch page too (owner's decision, 2026-10-13). A comment that asks for a
 different design ("try a chart instead", the "Wrong layout / structure" chip)
 is a Replace request instead: the slide's pick is not kept, the comment goes
 to slide_NN/_prior_feedback.md, and a redesign round is recorded (one new
@@ -254,9 +260,10 @@ def main(argv=None) -> int:
                     help="The picked slides with comments were edited in place: check, mark "
                          "the comments applied, convert them together.")
     ap.add_argument("--edited-by-parent", action="append", default=[], dest="edited_by_parent",
-                    help='With --edits-done: a slide the main session edited itself, no worker '
-                         '(a color, a font size or the user\'s exact words, direct-path pages '
-                         'only): "N: <what changed>" (repeat per slide). check_done lists it.')
+                    help='With --edits-done: a picked slide the main session edited itself, no '
+                         'worker (only the user\'s exact wording, a font size or a brand color; '
+                         'a sketch page or a direct-path page): "N: <what changed>" (repeat per '
+                         'slide). A sketch page is converted again; check_done lists it.')
     args = ap.parse_args(argv)
     out = args.out
     if not out.exists():
@@ -450,6 +457,7 @@ def main(argv=None) -> int:
 
     # What happens next. Only picked sketch designs are translated, and not
     # yet on a slide whose comments come first.
+    import translate_html
     held = set(edit_sids) | set(redesign_sids)
     to_translate = []
     for k, v in picks.items():
@@ -459,7 +467,10 @@ def main(argv=None) -> int:
             if L == "-":
                 continue
             sd = out / k
-            if (sd / f"option_{L}.html").exists() and not (sd / f"option_{L}_native.py").exists():
+            # Not yet converted, or the design changed since it was (an edit
+            # in chat before the picks were recorded): checked by fingerprint.
+            if (sd / f"option_{L}.html").exists() and translate_html.needs_conversion(
+                    sd / f"option_{L}.html", sd, L):
                 to_translate.append(f"{k}/option_{L}.html")
     n_opts = sum(len(v) if isinstance(v, list) else (0 if v == "-" else 1)
                  for v in picks.values())
@@ -567,9 +578,12 @@ def _print_finish_steps(out: Path, meta: dict, picks: dict, step: int) -> None:
 
 def _parent_edits(out: Path, entries: list, sids: list, picks: dict):
     """Check the --edited-by-parent entries ("N: what changed"). Returns
-    ({sid: what}, "") or (None, reason). Only a direct-path pick (option_X.py
-    with no sketch behind it) may be edited by the parent; a sketch page keeps
-    the worker route (owner's decision, 2026-10-09)."""
+    ({sid: what}, "") or (None, reason). The slide must be a picked slide
+    waiting on an edit from the user's comments, or one whose picked design
+    changed since it was picked (an edit made in chat). Sketch pages may be
+    edited by the parent too (owner's decision, 2026-10-13: only the user's
+    exact wording, a font size or a brand color; the page is converted again
+    and its new picture looked at); before that, direct-path pages only."""
     got: dict[str, str] = {}
     for e in entries or []:
         m = re.fullmatch(r"\s*(\d{1,3})\s*:\s*(.+?)\s*", e or "", re.S)
@@ -578,27 +592,36 @@ def _parent_edits(out: Path, entries: list, sids: list, picks: dict):
                           f"\"19: bar color to brand Teal\"; got {e!r}.")
         sid = _p.slide_key(int(m.group(1)))
         if sid not in sids:
-            return None, (f"{sid} is not waiting on an edit from the user's comments "
-                          f"(waiting: {', '.join(sids)}).")
+            return None, (f"{sid} is not waiting on an edit from the user's comments and its "
+                          "picked design has not changed since it was picked"
+                          + (f" (waiting or changed: {', '.join(sids)})." if sids else ".")
+                          + " Edit the picked design first, then run this again.")
         v = picks.get(sid)
         letters = [L for L in (v if isinstance(v, list) else [v]) if L and L != "-"]
-        sketch = [L for L in letters if not _state.direct_path_letter(out / sid, L)]
-        if not letters or sketch:
-            return None, (f"{sid} option {', '.join(sketch or letters) or '?'} is not a "
-                          "direct-path page (option_X.py with no option_X.html). A parent "
-                          "edit is for direct-path pages only; sketch pages keep the worker "
-                          "route.")
+        if not letters:
+            return None, f"{sid} has no picked option (it is left out)."
         got[sid] = (got[sid] + "; " if sid in got else "") + m.group(2)
     return got, ""
 
 
+def _changed_since_pick(out: Path, picks: dict, skip=()) -> list[str]:
+    """Picked slides whose design files changed since the pick was recorded
+    (or since the last edit in place was recorded)."""
+    mem = (_state.read_state(out).get("pick_memory") or {})
+    hits = []
+    for sid, v in sorted(picks.items()):
+        if sid in skip or v == "-" or sid not in mem:
+            continue
+        if mem[sid].get("stamp") and mem[sid]["stamp"] != _state.option_files_stamp(out / sid):
+            hits.append(sid)
+    return hits
+
+
 def edits_done(out: Path, parent_entries: list | None = None) -> int:
-    """The edit-first slides were edited in place: verify, record, convert."""
+    """The picked designs were edited (from the user's comments, or in chat):
+    verify, record, and convert again what changed (translate_html.refresh_stale)."""
     state = _state.read_state(out)
     pend = _state.pending_comments(state, "edit")
-    if not pend:
-        print("Nothing to do: no picked slide is waiting on an edit from the user's comments.")
-        return 0
     try:
         picks = json.loads((out / "picks.json").read_text(encoding="utf-8"))
     except (OSError, ValueError):
@@ -619,28 +642,47 @@ def edits_done(out: Path, parent_entries: list | None = None) -> int:
                   f"{letters_now}). An edit in place keeps the picked option and its letter; "
                   "new designs are a Replace round.")
             return 5
-    by_parent, why = _parent_edits(out, parent_entries or [], sids, picks)
+    # Edits made in chat, with no comment waiting (2026-10-13: these were
+    # skipped with "Nothing to do" and the deck kept the old conversion).
+    chat_sids = _changed_since_pick(out, picks, skip=set(sids))
+    by_parent, why = _parent_edits(out, parent_entries or [], sids + chat_sids, picks)
     if by_parent is None:
         print(f"REFUSED: {why}")
         return 5
-    # The edit workers ran with the agent files installed now: keep them in
-    # the build's agent history (compile judges every version used).
-    _changed = _state.record_agents(out, "edits-done")
-    if _changed:
-        print(f"NOTE: the agent files changed since this build's last step "
-              f"({', '.join(_changed)}); recorded. Compile accepts it only when every "
-              "version used is on main. Do not copy or restore agent files from this "
-              "session.")
-    for sid in sids:
+    if sids:
+        # The edit workers ran with the agent files installed now: keep them
+        # in the build's agent history (compile judges every version used).
+        _changed = _state.record_agents(out, "edits-done")
+        if _changed:
+            print(f"NOTE: the agent files changed since this build's last step "
+                  f"({', '.join(_changed)}); recorded. Compile accepts it only when every "
+                  "version used is on main. Do not copy or restore agent files from this "
+                  "session.")
+    sketch_parent = []
+    for sid in sids + chat_sids:
         v = picks.get(sid)
         letters = ", ".join(v) if isinstance(v, list) else str(v)
-        who = "by the parent, no worker" if sid in by_parent else "same layout"
-        _state.mark_comments_applied(out, sid, f"edited in place (option {letters} kept, "
-                                     f"{who}, the comments applied)", "edit")
+        if sid in sids:
+            who = "by the parent, no worker" if sid in by_parent else "same layout"
+            _state.mark_comments_applied(out, sid, f"edited in place (option {letters} kept, "
+                                         f"{who}, the comments applied)", "edit")
+        elif sid not in by_parent:
+            print(f"NOTE: {sid}'s picked design changed with no edit recorded. If the main "
+                  "session changed it, record what changed: --edited-by-parent "
+                  f"\"{int(sid.split('_')[1])}: <what changed>\" (only the user's exact "
+                  "wording, a font size or a brand color; anything else is a worker edit "
+                  "from a comment). It is converted again either way.")
+            continue
         if sid in by_parent:
             _state.record_parent_edit(out, sid, by_parent[sid], "record_picks.py --edits-done")
+            is_sketch = any((out / sid / f"option_{L}.html").exists()
+                            for L in (v if isinstance(v, list) else [v]))
+            if is_sketch:
+                sketch_parent.append(sid)
             print(f"[ok] {sid}: recorded as edited by the parent: {by_parent[sid]}. After "
-                  "finalize, look at its new picture and confirm the colors can be told apart.")
+                  "finalize, look at its new picture and confirm the change shows as asked"
+                  + (" and the colors can be told apart." if not is_sketch else
+                     " (the sketch page is converted again below)."))
         _state.mark_edited_in_place(out, sid)
         # The review record's stamps move on too: the user's pick stands.
         st = _state.read_state(out)
@@ -651,9 +693,11 @@ def edits_done(out: Path, parent_entries: list | None = None) -> int:
         rq = out / sid / "_edit_request.md"
         if rq.exists():
             rq.replace(rq.with_name("_edit_request.applied.md"))
-    print(f"[ok] comments applied on {len(sids)} slide(s): {', '.join(sids)}; picks kept.")
+    if sids:
+        print(f"[ok] comments applied on {len(sids)} slide(s): {', '.join(sids)}; picks kept.")
     # Convert every pick whose design has not been converted from its current
-    # version, in one call (one browser, one self-check pass).
+    # version, in one call (one browser, one self-check pass). Held slides
+    # (comments still waiting) are none here: every waiting one was checked.
     import translate_html
     to_translate = []
     for k, v in picks.items():
@@ -661,9 +705,20 @@ def edits_done(out: Path, parent_entries: list | None = None) -> int:
             html = out / k / f"option_{L}.html"
             if L != "-" and html.exists() and translate_html.needs_conversion(html, out / k, L):
                 to_translate.append(f"{k}/option_{L}.html")
+    if not sids and not to_translate:
+        print("[ok] nothing changed: no slide waits on an edit from the user's comments, and "
+              "every picked design is converted from its current version.")
+    elif not sids:
+        print(f"[ok] {len(to_translate)} picked design(s) changed since they were converted; "
+              "converting them again.")
     meta = json.loads(_p.meta_json(out).read_text(encoding="utf-8"))
     print("\nNext:")
     step = _convert_and_list(out, to_translate)
+    if sketch_parent:
+        print(f"  {step}. After finalize, open the new picture of "
+              + ", ".join(sketch_parent)
+              + " (slide_NN/option_X.png) and confirm the parent's change shows as asked.")
+        step += 1
     rr = _state.read_state(out).get("redesign_round") or {}
     if rr.get("slides"):
         print(f"  {step}. A redesign is still recorded for slide(s) "
@@ -681,25 +736,30 @@ def _convert_and_list(out: Path, to_translate: list) -> int:
     if to_translate and _p.translator_mode() == "script":
         # Translate the picked sketches right here: a script, seconds each, no
         # agents. Only elements it can't draw go to the agent (fallback mode).
+        # refresh_stale keeps what the agent drew when nothing it draws changed.
         import translate_html
-        jobs = []
+        items = []
         for t in to_translate:
             slide_key, html_name = t.split("/")
-            n = int(slide_key.split("_")[1])
-            letter = html_name.split("_")[1].split(".")[0]
-            jobs.append(translate_html.job_for(out, n, letter))
-        reports = translate_html.translate_many(jobs)
-        pending = [r for r in reports if r["needs_agent"]]
-        print(f"  translated {len(reports)} picked sketch design(s) with translate_html.py"
-              + (f"; {len(pending)} still need the agent for some elements" if pending else ""))
-        if pending:
+            items.append((int(slide_key.split("_")[1]), html_name.split("_")[1].split(".")[0]))
+        waiting = translate_html.refresh_stale(out, items, quiet=True)
+        print(f"  translated {len(items)} picked sketch design(s) with translate_html.py"
+              + (f"; {len(waiting)} still need the agent for some elements" if waiting else ""))
+        if waiting:
             print(f"  {step}. Dispatch slide-builder-translator in FALLBACK MODE on each of "
                   f"these (it draws only the listed elements; at most 20 at a time):")
-            for r in pending:
-                html = Path(r["html"])
-                print(f"       {html.with_name(html.stem + '_native.py')}  "
-                      f"({len(r['fallback'])} element(s): "
-                      + "; ".join(f["reason"] for f in r["fallback"][:3]) + ")")
+            for native in waiting:
+                letter = native.stem.split("_")[1]
+                try:
+                    rep = json.loads((native.parent / f"option_{letter}_translation_report.json")
+                                     .read_text(encoding="utf-8"))
+                except Exception:
+                    rep = {}
+                fb = rep.get("fallback") or []
+                prev = (rep.get("retranslation") or {}).get("drawing") == "pending"
+                print(f"       {native}  ({len(fb)} element(s): "
+                      + "; ".join(f.get("reason", "") for f in fb[:3]) + ")"
+                      + ("; its previous drawing is pasted in: adapt it" if prev else ""))
             step += 1
     elif to_translate:
         print(f"  {step}. Dispatch slide-builder-translator on each of these "
