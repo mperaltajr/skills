@@ -19,6 +19,10 @@ other 14 unchecked (a silent false pass). Now, on the real pipeline:
      approval answers every row the table showed ("kept on the final check");
      COMPILED.md lists each copied page
   5. a pin that cannot be read is a plain error, never a crash
+  6. a page pinned to a slide of a .pptx is COPIED as is, pictures included
+     (owner's decision 2026-10-14): finalize waits until the worker in edit
+     mode has changed the text the brief changes, an old text that is not on
+     the page stops the build, and the rest of the page is as supplied
 
 Made-up pages only. Run:  py -3 slide-builder/tests/run_copied_pages_smoke.py
 """
@@ -55,6 +59,67 @@ def _option(out: Path, n: int, body_text: str) -> None:
     body = H.OPTION_SCRIPT.format(n=n, L="A", skill=str(H.SKILL)).replace(
         "Point one\\nPoint two\\nPoint three", body_text)
     H.write_option(out, n, body=body)
+
+
+def copy_path(root: Path) -> None:
+    """Owner's decision 2026-10-14 (speed verdict Q3, item 3): a page pinned to
+    a slide of a .pptx is COPIED (twins.composer.copy_shape_with_parts), and a
+    worker in edit mode changes only the text the brief changes."""
+    print("[6] a pinned .pptx page is copied as is; the worker changes only its text")
+    from PIL import Image
+    png = root / "dot.png"
+    Image.new("RGB", (40, 40), (31, 78, 121)).save(png)
+    prs = Presentation()
+    s = prs.slides.add_slide(prs.slide_layouts[6])
+    for i, t in enumerate(["Market reaches $300B", "Lead time is 6-12 months"]):
+        tb = s.shapes.add_textbox(Inches(0.5), Inches(1.4 + 0.8 * i), Inches(6), Inches(0.6))
+        tb.text_frame.text = t
+    s.shapes.add_picture(str(png), Inches(7), Inches(1.4), Inches(1), Inches(1))
+    prs.save(str(root / "deck_c.pptx"))
+    s1 = H.SLIDE.format(n=1).replace(
+        "**Slide type:** Content",
+        "**Slide type:** Content\n**Pinned source page:** deck_c.pptx slide 1").replace(
+        "- Point one for slide 1", "- The market reaches $450B")
+    brief = root / "brief_copy.md"
+    brief.write_text(H.BRIEF.format(slides=s1 + H.SLIDE.format(n=2)), encoding="utf-8")
+    assert H.run("seal_brief.py", "--brief", brief, "--accepted", "test").returncode == 0
+    out = root / "out_copy"
+    r = H.run("build_deck.py", "--brief", brief, "--template", H.TEMPLATE,
+              "--out", out, "--pattern", "direct", "--confirm-template")
+    assert r.returncode == 0, r.stderr[-1500:]
+    assert "copies deck_c.pptx slide 1 as is. Send its worker in EDIT MODE" in r.stdout, \
+        r.stdout[-2000:]
+    sd = out / "slide_01"
+    opt = sd / "option_A.py"
+    req = (sd / "_edit_request.md").read_text(encoding="utf-8")
+    assert "COPIED PAGE" in req and "Market reaches $300B" in req, req
+    assert (sd / "_prompt.md").read_text(encoding="utf-8").startswith("# EDIT MODE ONLY")
+    meta = json.loads((out / "_meta.json").read_text(encoding="utf-8"))
+    assert meta["slides"][0]["options"] == ["A"] and \
+        meta["slides"][0]["page_copy"]["source_slide"] == 1, meta["slides"][0]
+    H.write_option(out, 2)
+
+    r = H.finalize(out)
+    assert r.returncode == 11 and "EDIT MODE" in r.stdout, r.stdout[-1500:]
+
+    src = opt.read_text(encoding="utf-8")
+    src = "\n".join(ln for ln in src.splitlines() if not ln.startswith("# COPY_EDIT_PENDING:"))
+    bad = src.replace("TEXT_CHANGES = {\n}", 'TEXT_CHANGES = {\n    "Not on the page": "x",\n}')
+    opt.write_text(bad + "\n", encoding="utf-8")
+    r = H.finalize(out)
+    assert r.returncode != 0, "an old text that is not on the page was accepted"
+    good = src.replace("TEXT_CHANGES = {\n}", 'TEXT_CHANGES = {\n    "Market reaches $300B": '
+                                              '"The market reaches $450B",\n}')
+    opt.write_text(good + "\n", encoding="utf-8")
+    r = H.finalize(out)
+    assert r.returncode == 0, r.stdout[-2500:] + r.stderr[-1500:]
+    done = Presentation(str(sd / "option_A.pptx")).slides[0]
+    texts = [sh.text_frame.text for sh in done.shapes if getattr(sh, "has_text_frame", False)]
+    assert "The market reaches $450B" in texts and "Lead time is 6-12 months" in texts, texts
+    assert "Market reaches $300B" not in texts
+    assert any(sh.shape_type == 13 for sh in done.shapes), "the picture did not come across"
+    print("    ok: copied with its picture; finalize waits for the edit; a wrong old text "
+          "stops it; the changed line is on the page, the rest as supplied")
 
 
 def main() -> int:
@@ -171,6 +236,7 @@ def main() -> int:
         assert r.returncode == 2 and "not found" in r.stderr and "Traceback" not in r.stderr, \
             r.stderr
         print("    ok")
+        copy_path(root)
     finally:
         H.cleanup(root)
     print("\nSMOKE PASSED.")

@@ -351,6 +351,7 @@ _DIR_TEMPLATE_REFS = {
     "slide_NN/", "out/", "dont/", "exemplars/",
     "_templates/", "_session/",
     "slide_NN/_prev/",  # where a rebuild moves a slide's old options
+    "slide_NN/_prev_copy/",  # a hand-edited page copy, kept aside (clone_pages.py)
     # build-folder dirs named by the cleanup docs (publish_cleanup.py)
     "img/", "headshots/", "_raw/", "_render_tmp/", "_qc_tmp/", "_qc_pre/",
 }
@@ -403,6 +404,8 @@ _RUNTIME_ARTIFACTS = {
     "FINAL-CHECK.html", "final_deck_all_variations.pptx",
     "final_deck.incoming.pptx", "final_deck.REJECTED.pptx",
     "_prior_feedback.md",  # per-slide QC direction for a rebuild
+    # Edit-mode requests and page copies (record_picks.py, clone_pages.py)
+    "_edit_request.md", "_edit_request.applied.md", "_page_copy.json",
 }
 
 # Per-option files follow one naming scheme (option_<letter>[_native].<ext>,

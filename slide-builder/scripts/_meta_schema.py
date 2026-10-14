@@ -97,6 +97,10 @@ class SlideMeta(BaseModel):
     # (text only for now; no drawn slot yet).
     source: Optional[str] = None
     section_tag: Optional[str] = None
+    # A page designed once and copied by script (clone_pages.py, 2026-10-14):
+    # {kind, role: master|copy|pinned, master, values, ...}. None for a page
+    # with its own designer.
+    page_copy: Optional[dict[str, Any]] = None
 
 
 class DeckMeta(BaseModel):

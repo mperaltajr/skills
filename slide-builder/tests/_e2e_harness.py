@@ -22,6 +22,9 @@ HERE = Path(__file__).resolve().parent
 SKILL = HERE.parent
 SCRIPTS = SKILL / "scripts"
 TEMPLATE = HERE / "fixtures" / "layout_diverse_template.pptx"
+# One folder per test run (under the scratch root _test_temp deletes at exit).
+PAGE_MASTERS = os.environ.get("SLIDE_LAB_PAGE_MASTERS_DIR") or tempfile.mkdtemp(
+    prefix="slidelab_page_masters_")
 
 BRIEF = """---
 deck_type: client-pitch
@@ -76,7 +79,10 @@ def env(**extra) -> dict:
          "SLIDE_LAB_OPTIONS_PER_SLIDE": "1",
          "SLIDE_LAB_NO_OPEN": "1",
          # Never let a test write into the user's real template pick-list.
-         "SLIDE_LAB_REGISTRY": str(Path(tempfile.gettempdir()) / "slidelab_test_registry.json")}
+         "SLIDE_LAB_REGISTRY": str(Path(tempfile.gettempdir()) / "slidelab_test_registry.json"),
+         # Designs kept for a template (clone_pages.py) go to this run's own
+         # scratch folder, never next to the test template.
+         "SLIDE_LAB_PAGE_MASTERS_DIR": PAGE_MASTERS}
     e.update({k: str(v) for k, v in extra.items()})
     # each stage is its own command, as in a build: it prints its own
     # PowerPoint notice (a render in the test process would silence it)

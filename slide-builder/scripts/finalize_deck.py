@@ -2861,6 +2861,42 @@ def _refresh_picked(args) -> list:
     return items
 
 
+def _page_copies_step(args, expected_pairs: set) -> int:
+    """Pages designed once and copied by script (clone_pages.py, owner's
+    decision 2026-10-14): make every copy current from its master before the
+    options are discovered, so each copy is built, fit-checked and rendered
+    like any page. A copy whose master is not written yet is not counted as
+    missing (the master is). Returns an exit code, 0 to go on."""
+    try:
+        import clone_pages
+        rep = clone_pages.refresh(args.out, only=args.slide)
+    except Exception as exc:
+        print(f"\nERROR: the copied pages could not be made ({type(exc).__name__}: {exc}). "
+              f"Run py -3 scripts/clone_pages.py refresh --out \"{args.out}\" to see why.",
+              file=sys.stderr)
+        return EXIT_MISSING_OUTPUT
+    # Copies this --slide run changed are finalized at its end (step [8]).
+    args._page_copies_changed = sorted({n for n, _L in rep.get("written") or []})
+    lines = clone_pages.report_lines(rep, args.out, None, args.slide)
+    probs = clone_pages.problem_lines(rep, args.out)
+    if lines or probs:
+        print("\n[0b] Pages copied by script (clone_pages.py)")
+        for ln in lines:
+            print(ln)
+    for n, L, _why in rep.get("waiting") or []:
+        expected_pairs.discard((n, L))
+    if probs and not args.allow_missing:
+        print("\nERROR: some copied pages cannot be made yet:", file=sys.stderr)
+        for ln in probs:
+            print(ln, file=sys.stderr)
+        for ln in probs:
+            print("  next:" + ln[1:])
+        return EXIT_MISSING_OUTPUT
+    for ln in probs:
+        print(ln)
+    return 0
+
+
 def _run_and_record(args) -> int:
     """Run finalize and record how it ended, whatever happens.
 
@@ -2891,7 +2927,27 @@ def _run_and_record(args) -> int:
         _print_refused(rc)
     else:
         _auto_source_ledger(args)
+        rc = _finalize_changed_copies(args)
     return rc
+
+
+def _finalize_changed_copies(args) -> int:
+    """finalize --slide M on a page other pages copy (the first divider):
+    the copies it changed are finalized too, one --slide run each, so a fix on
+    the master (a comment, a QC fix) reaches every copy in the same command."""
+    copies = [n for n in getattr(args, "_page_copies_changed", []) if n != args.slide]
+    if args.slide is None or not copies:
+        return 0
+    print(f"\n[8] Finalizing the copies of slide {args.slide}: slide(s) "
+          + ", ".join(map(str, copies)))
+    for n in copies:
+        r = subprocess.run([sys.executable, str(Path(__file__).resolve()), "--out",
+                            str(args.out), "--template", str(args.template), "--slide", str(n)])
+        if r.returncode != 0:
+            print(f"  finalize_deck.py --slide {n} exited {r.returncode}; fix it and run "
+                  f"finalize_deck.py --slide {n} again.")
+            return r.returncode
+    return 0
 
 
 def _auto_source_ledger(args) -> None:
@@ -3105,6 +3161,9 @@ def _run(args) -> int:
     # converted again first (owner's decision D1, 2026-10-13); what the
     # translator agent drew is kept when nothing it draws changed, else the
     # option waits on the agent and is named below like any other.
+    _copy_rc = _page_copies_step(args, expected_pairs)
+    if _copy_rc:
+        return _copy_rc
     _refresh_picked(args)
     statuses = discover_options(args.out, expected=expected_pairs)
     import _state  # noqa: E402

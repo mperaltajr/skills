@@ -1294,6 +1294,15 @@ def main() -> int:
         _state.record_compile(
             out_dir, kind="all_variations" if args.all_variations else "picks",
             output=final_path, slides=slide_count, options=_ship)
+        # The picked cover, contents and executive summary are kept for the
+        # template; the next deck on it fills them by script (clone_pages.py,
+        # owner's decision 2026-10-14). Never fails a good compile.
+        try:
+            import clone_pages
+            for _ln in clone_pages.save_template_masters(out_dir):
+                print(_ln)
+        except Exception as exc:
+            print(f"  (keeping designs for the template skipped: {type(exc).__name__}: {exc})")
         # A newer deck passed: the rejected one is no longer worth keeping.
         if rejected.exists():
             try:
