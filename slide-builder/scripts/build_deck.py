@@ -1677,35 +1677,127 @@ def write_dispatch_plan(
         "compile); SKILL.md steps 6-10 describe the same order."
     )
 
-    # Dispatch waves. Twenty agents run at once; past that the extras are
-    # rejected, and a rejected dispatch is quiet — you find out later, when
-    # finalize exits 11 with seven slides missing because their workers were
-    # never actually sent. Spell the waves out so nobody has to remember.
-    if len(slides) > MAX_CONCURRENT_AGENTS:
-        nums = [s["slide_n"] for s in slides]
-        waves = [nums[i:i + MAX_CONCURRENT_AGENTS]
-                 for i in range(0, len(nums), MAX_CONCURRENT_AGENTS)]
-        lines.append("")
-        lines.append(f"### Dispatch in {len(waves)} waves")
-        lines.append("")
-        lines.append(
-            f"At most {MAX_CONCURRENT_AGENTS} agents run at once. Dispatches "
-            f"beyond that are rejected, and a rejected dispatch is quiet — you "
-            f"find out later when `finalize_deck.py` exits 11 with slides "
-            f"missing. Send each wave, wait for it to finish, then send the next."
-        )
-        lines.append("")
-        for i, wave in enumerate(waves, start=1):
-            lines.append(f"{i}. Slides {', '.join(str(n) for n in wave)} "
-                         f"({len(wave)} agent(s))")
-        lines.append("")
-        lines.append(
-            "The same limit applies to the `slide-builder-translator` fan-out at "
-            "Stage 3.5. That one is an agent per picked slide-option, so it can "
-            "be several times this list.")
-
+    lines.extend(dispatch_how_lines(out_dir, [s["slide_n"] for s in slides]))
     plan_path.write_text("\n".join(lines), encoding="utf-8")
     return plan_path
+
+
+def dispatch_how_lines(out_dir: Path, nums: list) -> list[str]:
+    """How to send the workers (owner's decision 2026-10-14, Q1).
+
+    Up to 20: one message of foreground agent calls (a trial; recommended),
+    so the main session waits once instead of waking for every finished
+    agent. More than 20: a rolling pool. Twenty agents run at once and a
+    21st dispatch is dropped without a word (a 29-slide deck lost slides
+    23-29 and finalize exited 11), so start 20 and start the next each time
+    one finishes; never wait for a whole group. Either way,
+    `build_deck.py --pending` after the last dispatch names any slide whose
+    worker never ran.
+    """
+    o = f'"{out_dir}"'
+    pending = f"py -3 scripts/build_deck.py --pending --out {o}"
+    lines = ["", "### How to send the workers", ""]
+    if len(nums) <= MAX_CONCURRENT_AGENTS:
+        lines.append(
+            f"Send all {len(nums)} worker(s) in ONE message, each agent call with "
+            "run_in_background false (recommended; a trial since 2026-10-14). The "
+            "main session then waits once and reads every result in one turn, "
+            "instead of waking about once per finished agent (22 extra turns and "
+            "10-20M tokens per 20-worker wave measured on 10-08 and 10-12). The "
+            "user cannot type to this session while the wave runs (about 12-18 "
+            "minutes); when they want to, send the workers in the background "
+            "instead.")
+    else:
+        lines.append(
+            f"Rolling pool: at most {MAX_CONCURRENT_AGENTS} agents run at once, "
+            "and a dispatch past that is dropped without any message. Start the "
+            f"first {MAX_CONCURRENT_AGENTS} on the list below (in the background); "
+            "each time one finishes, start the next on the list. Do not wait for "
+            "a whole group to finish before starting more.")
+        lines.append("")
+        lines.append("Order: slides " + ", ".join(str(n) for n in nums))
+    lines.append("")
+    lines.append(
+        f"After the last dispatch, before finalize, run `{pending}`. It lists "
+        "every slide with no worker output (a dispatch that was dropped or never "
+        "sent) in seconds; dispatch a worker for each one it lists, then run it "
+        "again until it prints none.")
+    lines.append("")
+    lines.append(
+        "The `slide-builder-translator` fan-out at Stage 3.5 (one agent per "
+        f"picked option, so it can be longer than this list) works the same way: "
+        f"up to {MAX_CONCURRENT_AGENTS} in one message of foreground calls, "
+        f"else a rolling pool of {MAX_CONCURRENT_AGENTS}.")
+    return lines
+
+
+# ---------------------------------------------------------------- --pending
+def pending_slides(out_dir: Path) -> tuple[list, list]:
+    """(slides with no worker output, [(slide, missing letters)] with some).
+
+    A slide counts when prep wrote its `_prompt.md` (so a worker was due) and
+    none of its option files (option_X.html or option_X.py, for the letters
+    the build froze in _meta.json) is there. A rejected design
+    (SKELETON_REJECTED) counts as output: the worker ran."""
+    import json as _json
+    try:
+        meta = _json.loads(_p.meta_json(out_dir).read_text(encoding="utf-8"))
+    except Exception:
+        meta = {}
+    entries = {int(e.get("n") or 0): e for e in meta.get("slides", []) if e.get("n")}
+    nums = set(entries)
+    for d in out_dir.glob("slide_[0-9][0-9]*"):
+        if d.is_dir() and d.name[6:].isdigit():
+            nums.add(int(d.name[6:]))
+    none, partial = [], []
+    for n in sorted(nums):
+        sd = _p.slide_dir(out_dir, n)
+        if not (sd / "_prompt.md").exists():
+            continue
+        letters = (entries.get(n) or {}).get("options") or list(_p.option_letters())
+        have = [L for L in letters
+                if (sd / f"option_{L}.html").exists() or (sd / f"option_{L}.py").exists()]
+        if not have:
+            none.append(n)
+        elif len(have) < len(letters):
+            partial.append((n, [L for L in letters if L not in have]))
+    return none, partial
+
+
+def pending_main(argv: list) -> int:
+    """build_deck.py --pending --out <out>: exit 0 when every slide has its
+    worker output, 1 when some do not (listed with the next step), 2 on a
+    bad folder."""
+    ap = argparse.ArgumentParser(
+        prog="build_deck.py --pending",
+        description="List the slides whose worker output is missing.")
+    ap.add_argument("--pending", action="store_true", required=True)
+    ap.add_argument("--out", required=True, type=Path, help="The build's output folder.")
+    args = ap.parse_args(argv)
+    out = args.out
+    if not out.is_dir():
+        print(f"ERROR: build folder not found: {out}. Give the --out folder prep wrote.")
+        return 2
+    none, partial = pending_slides(out)
+    if not none and not partial:
+        print(f"No slides pending: every slide in {out} has its worker output. "
+              "Next: finalize (the step prep printed).")
+        return 0
+    if none:
+        print(f"PENDING: {len(none)} slide(s) have no worker output: "
+              + ", ".join(str(n) for n in none) + ".")
+        print("  Their worker was dropped or never sent. Next: dispatch one "
+              "slide-builder-worker for each, on its prompt:")
+        for n in none:
+            print(f"    {_p.slide_dir(out, n) / '_prompt.md'}")
+    if partial:
+        print(f"INCOMPLETE: {len(partial)} slide(s) have only some of their options: "
+              + "; ".join(f"slide {n} is missing option {', '.join(m)}" for n, m in partial)
+              + ".")
+        print("  If its worker has finished, dispatch it again for that slide; if it "
+              "is still running, wait for it.")
+    print(f"  Then run this again: py -3 scripts/build_deck.py --pending --out \"{out}\"")
+    return 1
 
 
 def regenerate_dispatch_plan_from_meta(out_dir: Path) -> Optional[Path]:
@@ -2044,8 +2136,10 @@ def review_sequence_lines(out_dir, template, slide_n=None) -> list[str]:
     o, t = f'"{out_dir}"', f'"{template}"'
     scope = f" --slide {slide_n}" if slide_n is not None else ""
     return [
-        "  a. Dispatch the slide-builder-worker(s) (at most 20 at a time; waves are",
-        "     in dispatch_plan.md). Sketch designs render to option_X.sketch.png.",
+        "  a. Dispatch the slide-builder-worker(s) as dispatch_plan.md says (up to 20:",
+        "     one message of foreground calls; more: a rolling pool of 20). Sketch",
+        "     designs render to option_X.sketch.png. Then run, until it lists none:",
+        f"     py -3 scripts/build_deck.py --pending --out {o}",
         f"  b. py -3 scripts/finalize_deck.py --out {o} --template {t}{scope}",
         "     (puts direct-path options on the template; sketches wait for a pick)",
         f"  c. py -3 scripts/build_review.py --out {o}",
@@ -2816,6 +2910,10 @@ def confirm_template_choice(template_path: Path, auto_confirm: bool) -> int:
 # ----------------------------------------------------------------------
 
 def main() -> int:
+    # --pending --out <out>: which slides have no worker output (no template,
+    # no brief; owner's decision 2026-10-14).
+    if "--pending" in sys.argv[1:]:
+        return pending_main(sys.argv[1:])
     parser = argparse.ArgumentParser(
         description="Prep a narrative brief for parallel-agent fanout.",
         formatter_class=argparse.RawDescriptionHelpFormatter,

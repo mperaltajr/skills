@@ -575,7 +575,7 @@ def _print_comment_steps(out: Path, meta: dict, edit_sids, redesign_sids, step: 
     tpl = meta.get("template") or "<template>"
     if edit_sids:
         print(f"  {step}. Edit first: dispatch one slide-builder-worker per slide in EDIT MODE "
-              "(at most 20 at a time), each on its _edit_request.md (edit the PICKED design "
+              "(up to 20 in one message of foreground calls; more: a rolling pool of 20, start the next as each finishes), each on its _edit_request.md (edit the PICKED design "
               "in place, same layout, apply the comments, letter unchanged), then render "
               "each edited sketch:")
         for sid in edit_sids:
@@ -788,7 +788,7 @@ def _convert_and_list(out: Path, to_translate: list) -> int:
               + (f"; {len(waiting)} still need the agent for some elements" if waiting else ""))
         if waiting:
             print(f"  {step}. Dispatch slide-builder-translator in FALLBACK MODE on each of "
-                  f"these (it draws only the listed elements; at most 20 at a time):")
+                  f"these (it draws only the listed elements; up to 20 in one message of foreground calls, more: a rolling pool of 20):")
             for native in waiting:
                 letter = native.stem.split("_")[1]
                 try:
@@ -804,7 +804,7 @@ def _convert_and_list(out: Path, to_translate: list) -> int:
             step += 1
     elif to_translate:
         print(f"  {step}. Dispatch slide-builder-translator on each of these "
-              f"({len(to_translate)}; at most 20 at a time):")
+              f"({len(to_translate)}; up to 20 in one message of foreground calls, more: a rolling pool of 20, start the next as each finishes):")
         for t in to_translate:
             print(f"       {out / t}")
         step += 1

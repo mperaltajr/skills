@@ -2,6 +2,60 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## 2026-10-14: render slots, one browser run per worker, rolling pool and --pending (speed Q1, Q2 item 4)
+
+Twenty workers rendering at once crowded the computer (single renders took a
+median of 110 s under load), and on a 29-slide deck slides 23-29 were dropped
+without a word because only 20 agents run at once.
+
+- **Render slots.** Every render first takes one of the computer's render
+  slots (new `slide-qc/scripts/render_slot.py`): `render_html.py`, the browser
+  part of `translate_html.py`, and `render_slides.render` / `to_pdf` (so the
+  self-check, finalize, compile and QC renders through PowerPoint or
+  LibreOffice). Slots are operating-system file locks in
+  `C:\Temp\slidelab\render_slots\`, so an ended render frees its slot by
+  itself. Default **16** (`SLIDE_LAB_RENDER_SLOTS`; 0 or off = no limit),
+  set by the bench below, not the 6 the verdict expected. A render inside a
+  render (same process, or a command a holder started) never waits on itself.
+  `render_slot.py --status` shows how many are in use; `publish_cleanup --temp`
+  never lists the slot folder.
+- **Waiting is not render time.** The slot is taken before the time limit
+  starts. A wait over 2 s prints "waiting for a render slot, N in use"; a wait
+  over 150 s (`SLIDE_LAB_RENDER_SLOT_WAIT`) exits **75** with its own "busy,
+  re-run" message.
+- **One browser run for a worker's options.** `render_html.py a.html b.html
+  c.html` draws each to `option_X.sketch.png` in one browser run and one slot
+  (html/png pairs still work). The time limit is 120 s for the start and the
+  first page plus 60 s per extra page (`SLIDE_LAB_RENDER_PAGE_TIMEOUT`), and
+  each page has its own limit: a stuck page fails alone, the others are drawn,
+  and the message gives the command to re-run just that page.
+- **Rolling pool, not waves.** `dispatch_plan.md` now says how to send the
+  workers: up to 20, ONE message of agent calls with `run_in_background`
+  false (recommended, a trial: the main session waits once instead of waking
+  for each finished agent); more than 20, start 20 and start the next as each
+  finishes. The same wording for the translator and EDIT MODE fan-outs
+  (record_picks, finalize).
+- **`build_deck.py --pending --out <out>`** lists the slides whose worker
+  output is missing (prep wrote `_prompt.md`, no `option_X.html` / `.py`), with
+  each prompt path; run it after the last dispatch, before finalize. Exit 1
+  while any are missing.
+- **Agent files**: workers render all options in one command; both agents run
+  render commands with the Bash timeout at 300000 (a slot wait plus a render
+  can pass the default 2 minutes) and know exit 75. Copy both to
+  `~/.claude/agents` after merging.
+- **Bench** (no tokens; 20 parallel loops of `render_html.py` on 20 designs
+  from the 10-08 FULL deck, 5 renders each; total wall time, median and
+  slowest 10% per render including the wait, time-outs). The computer was
+  shared with other builds, so only runs side by side compare:
+  run 1: off 180 s (median 30, p90 48), 4 slots 328 s, 6 slots 317 s (3 busy
+  exits), 8 slots 316 s; run 2: 12 slots 324 s, off 248 s, 6 slots 542 s
+  (9 busy exits); run 3: 16 slots 238 s (0 time-outs), off 453 s (29
+  time-outs), 20 slots 373 s (9 time-outs); run 4: off 316 s (4 time-outs),
+  16 slots 212 s (median 37, p90 60, 0 time-outs). Small limits slow the
+  browser renders (they spend most of their time waiting, not computing, on a
+  16-thread computer); 16 was fastest in both runs it was in and never timed
+  out. Test: `tests/run_render_slots_smoke.py`.
+
 ## 2026-10-14: repeated pages are designed once and copied by script (speed verdict Q3)
 
 Owner's decision 10/14. On the Leo deck 9 of 30 pages were the same page

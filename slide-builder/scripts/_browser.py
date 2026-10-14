@@ -33,6 +33,11 @@ the run ends ONLY the processes it started and recorded (the driver and its
 browser, never anything found by name), deletes its scratch folder and exits
 4 with "timed out, re-run". Six leftover headless browsers from earlier days
 were found on the owner's computer before this.
+
+Before the time limit starts, every render takes one of the computer's render
+slots (render_slot(), from slide-qc/scripts/render_slot.py; default 16 at once,
+SLIDE_LAB_RENDER_SLOTS). The slot goes outside render_deadline(), so waiting
+for one is never counted as render time (owner's decision 2026-10-14).
 """
 from __future__ import annotations
 
@@ -205,6 +210,25 @@ class _Deadline:
         except Exception:
             pass
         os._exit(4)
+
+
+def render_slot(what: str = "the render"):
+    """One of the computer's render slots (slide-qc/scripts/render_slot.py),
+    held for the with-block. Put it OUTSIDE render_deadline(), so time spent
+    waiting for a slot does not count toward the time limit:
+
+        with render_slot("render_html.py"), render_deadline("render_html.py"), \\
+                scratch_env(), sync_playwright() as pw:
+    """
+    qc = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(
+        os.path.abspath(__file__)))), "slide-qc", "scripts")
+    if qc not in sys.path:
+        sys.path.append(qc)
+    try:
+        import render_slot as _rs
+    except ImportError:                        # slide-qc not beside slide-builder
+        return contextlib.nullcontext()
+    return _rs.render_slot(what)
 
 
 @contextlib.contextmanager

@@ -3274,8 +3274,8 @@ def _run(args) -> int:
                         f"  py -3 scripts/translate_html.py --out \"{args.out}\" --slide "
                         f"{int(t[6:8])} --letter {t[-1]}\n" for t in needs_translate)
                 else:
-                    how = ("Dispatch slide-builder-translator on each (at most 20 at a "
-                           "time):\n" + "".join(f"  {t}.html\n" for t in needs_translate))
+                    how = ("Dispatch slide-builder-translator on each (up to 20 at once; a rolling pool past that, "
+                           "starting the next as each finishes):\n" + "".join(f"  {t}.html\n" for t in needs_translate))
                 sys.stderr.write(
                     "\nDesigned but not yet translated (the HTML is there, the "
                     "native script is not). " + how)

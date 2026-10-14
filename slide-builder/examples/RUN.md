@@ -55,7 +55,7 @@ py -3 "$skill\scripts\build_deck.py" --brief "$session\brief.md" `
     --template "$template" --out "$session\out"
 ```
 
-**3. Designs (Claude does this).** Ask Claude to dispatch one `slide-builder-worker` per slide from `dispatch_plan.md` (at most 20 at a time). Each writes its option(s): `.py` for direct-path slides, `.html` for sketch-path slides (rendered to `option_X.sketch.png`).
+**3. Designs (Claude does this).** Ask Claude to dispatch one `slide-builder-worker` per slide from `dispatch_plan.md` (up to 20 in one message; past 20 a rolling pool of 20), then run `build_deck.py --pending --out <out>` to catch any slide whose worker never ran. Each writes its option(s): `.py` for direct-path slides, `.html` for sketch-path slides (rendered to `option_X.sketch.png`).
 
 ```powershell
 # 4. Put the direct-path options on the template, so the review shows them finished
