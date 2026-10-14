@@ -2171,8 +2171,14 @@ def _glyph_box(ch: str, face: str = "Arial"):
 _SHOT_CACHE: dict = {}
 
 
-def _ink_box(data: dict, x0: float, y0: float, x1: float, y1: float):
-    """(x, y, w, h) of the marks inside a region of the design's picture, or None."""
+def _ink_box(data: dict, x0: float, y0: float, x1: float, y1: float, bg=None,
+             near: tuple | None = None):
+    """(x, y, w, h) of the marks inside a region of the design's picture, or None.
+
+    bg: the background color there ('RRGGBB'), when known; else the median of
+    the region's border. near: (x, y) on the slide; only the connected mark
+    closest to it counts (a letter's smoothed edge beside a bullet is not the
+    bullet)."""
     import io
     import numpy as np
     from PIL import Image
@@ -2189,9 +2195,14 @@ def _ink_box(data: dict, x0: float, y0: float, x1: float, y1: float):
     if x1 - x0 < 2 or y1 - y0 < 2:
         return None
     crop = arr[y0:y1, x0:x1]
-    ring = np.concatenate([crop[0], crop[-1], crop[:, 0], crop[:, -1]])
-    bg = np.median(ring, axis=0)
-    mask = np.linalg.norm(crop - bg, axis=2) > 60
+    if bg is not None:
+        bgv = np.array([int(bg[k:k + 2], 16) for k in (0, 2, 4)], dtype=np.float32)
+    else:
+        ring = np.concatenate([crop[0], crop[-1], crop[:, 0], crop[:, -1]])
+        bgv = np.median(ring, axis=0)
+    mask = np.linalg.norm(crop - bgv, axis=2) > 60
+    if near is not None and mask.any():
+        mask = _blob_nearest(mask, near[0] - x0, near[1] - y0)
     ys, xs = np.nonzero(mask)
     if not len(xs):
         return None
@@ -2199,7 +2210,60 @@ def _ink_box(data: dict, x0: float, y0: float, x1: float, y1: float):
             float(xs.max() - xs.min() + 1), float(ys.max() - ys.min() + 1))
 
 
-def _bullet_for(it: dict, op: dict, marker_texts: dict, data: dict | None = None):
+def _blob_nearest(mask, cx: float, cy: float):
+    """The connected part of mask (8-neighbors) with the pixel nearest (cx, cy)."""
+    import numpy as np
+    ys, xs = np.nonzero(mask)
+    k = int(np.argmin((xs - cx) ** 2 + (ys - cy) ** 2))
+    h, w = mask.shape
+    keep = np.zeros_like(mask)
+    todo = [(int(ys[k]), int(xs[k]))]
+    keep[todo[0]] = True
+    while todo:
+        y, x = todo.pop()
+        for dy in (-1, 0, 1):
+            for dx in (-1, 0, 1):
+                ny, nx = y + dy, x + dx
+                if 0 <= ny < h and 0 <= nx < w and mask[ny, nx] and not keep[ny, nx]:
+                    keep[ny, nx] = True
+                    todo.append((ny, nx))
+    return keep
+
+
+# A disc, circle or square bullet read off the design's picture must be
+# between these shares of the text size; outside, the reading is wrong (a
+# strip of the page beside a dark panel read as one 1,200% bullet,
+# 2026-10-13) and the browser's own marker size and place are used instead.
+BULLET_MIN_PCT, BULLET_MAX_PCT = 60.0, 200.0
+
+
+def _fill_under(data: dict | None, px: float, py: float, before) -> dict | None:
+    """The smallest filled box of the design under point (px, py), painted
+    before `before` (an order number), or None."""
+    best = None
+    for b in (data or {}).get("boxes") or []:
+        if b.get("order") is not None and before is not None and b["order"] >= before:
+            continue
+        if not (b["x"] <= px <= b["x"] + b["w"] and b["y"] <= py <= b["y"] + b["h"]):
+            continue
+        if not (parse_color(b.get("bg")) or (b.get("bgimg") and "gradient" in b["bgimg"])):
+            continue
+        if best is None or b["w"] * b["h"] < best["w"] * best["h"]:
+            best = b
+    return best
+
+
+def _bg_hex(box: dict | None, data: dict | None) -> str:
+    """The color behind a list marker: its filled box's, else the slide's."""
+    for b in ([box] if box else []) + [b for b in (data or {}).get("boxes") or [] if b.get("canvas")]:
+        col = parse_color(b.get("bg")) or (_gradient_mid(b.get("bgimg")) if b.get("bgimg") else None)
+        if col:
+            return col[0] if col[1] >= 0.999 else _mix(col[0], "FFFFFF", col[1])
+    return "FFFFFF"
+
+
+def _bullet_for(it: dict, op: dict, marker_texts: dict, data: dict | None = None,
+                warn: list | None = None):
     """The PowerPoint bullet for one list item: (spec, bullet x, region the
     marker covers in the design), "keep" when the marker has to stay a shape,
     or None when the item has no marker."""
@@ -2212,11 +2276,27 @@ def _bullet_for(it: dict, op: dict, marker_texts: dict, data: dict | None = None
         style = m.get("style") or ""
         pct = 100.0 * float(m.get("fs") or text_px) / text_px
         # Where the marker's ink is, read off the design's own picture: the
-        # browser does not report where it drew a list marker.
+        # browser does not report where it drew a list marker. Read only the
+        # marker's own space first, against the color actually behind it
+        # (its filled box's), keeping the mark nearest the marker; widen
+        # toward the left only inside that box. The old wide strip crossed a
+        # dark panel's edge and read the page beside it as the bullet, and
+        # it caught the first letter's smoothed edge ("A": 404%).
         fs = float(m.get("fs") or text_px)
         right = m["x"] + m["w"]
-        ink = _ink_box(data, right - max(m["w"], 3 * fs), m["y"] - 2, right - 0.5,
-                       m["y"] + m["h"] + 2) if data is not None else None
+        cy = m["y"] + m["h"] / 2
+        holder = _fill_under(data, m["x"] + m["w"] / 2, cy, op.get("_order"))
+        bg = _bg_hex(holder, data)
+        lo = (holder["x"] + 1) if holder else 0.0
+        ink = None
+        if data is not None:
+            ink = _ink_box(data, max(lo, m["x"]), m["y"] - 2, right - 2, m["y"] + m["h"] + 2,
+                           bg=bg, near=(m["x"] + m["w"] / 2, cy))
+            if ink is None:
+                ink = _ink_box(data, max(lo, right - max(m["w"], 3 * fs)), m["y"] - 2, right - 2,
+                               m["y"] + m["h"] + 2, bg=bg, near=(right - fs / 2, cy))
+        why = None
+        lbox = it.get("_L")
         if style in _AUTONUM:
             spec = {"autonum": _AUTONUM[style], "start": int(m.get("value") or 1)}
             bx = ink[0] if ink else m["x"]
@@ -2226,10 +2306,26 @@ def _bullet_for(it: dict, op: dict, marker_texts: dict, data: dict | None = None
             bx = m["x"]
             if ink and gb:
                 size_px = ink[2] / gb[1]
-                pct = 100.0 * size_px / text_px
-                bx = ink[0] - gb[0] * size_px
+                got = 100.0 * size_px / text_px
+                if not BULLET_MIN_PCT <= got <= BULLET_MAX_PCT:
+                    why = f"read as {got:.0f}% of the text size"
+                else:
+                    pct = got
+                    bx = ink[0] - gb[0] * size_px
         else:
             return "unsupported"
+        if why is None and ink:
+            if lbox and bx < lbox[0] - 1:
+                why = f"read {lbox[0] - bx:.0f} px left of the list"
+            elif holder and not (holder["x"] - 1 <= ink[0] and ink[0] + ink[2] <= holder["x"] + holder["w"] + 1):
+                why = "read outside the panel the list sits on"
+        if why:
+            # the browser's own marker place and size instead
+            bx, pct = m["x"], 100.0 * fs / text_px
+            ink = None
+            if warn is not None:
+                warn.append(f"item {it.get('i', 0) + 1}: the bullet {why}; used the browser's marker "
+                            f"position and size instead")
         spec.update(color=col[0] if col else None, pct=pct)
         region = (ink[0], ink[1], ink[2], ink[3]) if ink else (m["x"], m["y"], max(1.0, m["w"]), m["h"])
         return spec, bx, region
@@ -2357,7 +2453,7 @@ def _list_group(plan: "Plan", L: dict, data: dict):
     plain_blocks, bullet_blocks = [], []
     bullets_ok = True
     for it in items:
-        it = dict(it, _k=k)
+        it = dict(it, _k=k, _L=(L["x"], L["y"], L["w"], L["h"]))
         ts = sorted((t for t in by_item.get(f"{k}:{it['i']}", [])
                      if not (t.get("covered") or t.get("clipped"))), key=lambda t: t["order"])
         first = True
@@ -2371,7 +2467,10 @@ def _list_group(plan: "Plan", L: dict, data: dict):
             op_bul = _scratch_text(dict(stripped, listItem=False))
             if op_plain is None or op_bul is None:
                 continue
-            bul = _bullet_for(it, op_bul, marker_texts, data) if first else None
+            notes = []
+            bul = _bullet_for(it, op_bul, marker_texts, data, notes) if first else None
+            for n_ in notes:
+                plan.warn("BULLET_FALLBACK", f"{name}: {n_}")
             if bul in ("keep", "unsupported"):
                 bullets_ok = False
                 if bul == "unsupported":
@@ -2968,6 +3067,43 @@ def _render_plans(plans: list["Plan"], engine: str = "auto") -> list:
         return A.render_full(paths, engine=engine)
 
 
+def _bullet_rows(plan: "Plan") -> list[dict]:
+    """Self-check rule for one-box lists: a bullet bigger than
+    BULLET_MAX_PCT of its text, or starting outside the filled panel its text
+    sits on, is wrong whatever the render looks like (the render is compared
+    with the same design the bullet was misread from). The list steps down to
+    markers drawn as shapes, like any other list that came out different."""
+    import translate_alarm as A
+    fills = [o for o in plan.ops if o.get("op") == "shape" and o.get("_filled") and o.get("_box")]
+    rows = []
+    for i, o in enumerate(plan.ops):
+        if o.get("op") != "text" or not o.get("para") or not o.get("_ink"):
+            continue
+        ix, iy, iw, ih = o["_ink"]
+        holders = [b for b in fills if b.get("_order", 0) < o.get("_order", 0)
+                   and b["_box"][0] - 1 <= ix and ix + iw <= b["_box"][0] + b["_box"][2] + 1
+                   and b["_box"][1] - 1 <= iy and iy + ih <= b["_box"][1] + b["_box"][3] + 1]
+        holder = min(holders, key=lambda b: b["_box"][2] * b["_box"][3]) if holders else None
+        bad = None
+        for pr in o["para"]:
+            b = pr.get("bullet")
+            if not b:
+                continue
+            left = o["x"] + (pr.get("marL_px") or 0) + (pr.get("indent_px") or 0)
+            if not b.get("autonum") and float(b.get("pct") or 100) > BULLET_MAX_PCT:
+                bad = f"a bullet is {float(b['pct']):.0f}% of its text"
+            elif holder and not (holder["_box"][0] - 1 <= left <= holder["_box"][0] + holder["_box"][2]):
+                bad = "a bullet starts outside the panel its text sits on"
+            if bad:
+                break
+        if bad:
+            r = A.region(o)
+            if r:
+                rows.append({"i": i, "name": o.get("name") or f"text#{i}", "op": "text", "box": r,
+                             "fired": ["bullet"], "detail": bad})
+    return rows
+
+
 # Pictures, drawings, rotated and vertical elements the agent draws: their
 # areas (x0, y0, x1, y1), a little wider than the element so its softened
 # edge is left out too. Elements handed over by the self-check itself are not
@@ -3046,6 +3182,7 @@ def self_check(items: list[tuple["Plan", dict]], engine: str = "auto",
                                          engine=A.LAST_RENDER_ENGINES.get(j),
                                          masks=_agent_masks(plan))
                     if r["fired"]]
+            rows += _bullet_rows(plan)
             if rnd == 0:
                 for font, ratio in (getattr(A.compare, "font_ratios", None) or {}).items():
                     plan.warn("RENDER_FONT_RATIO", font_ratio_message(font, ratio))
