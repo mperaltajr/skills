@@ -558,7 +558,8 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
                     detail = w.get("detail") or w.get("message") or ""
                     if "CRITICAL" in code or code in ("EDITABILITY_VIOLATION", "TRANSLATOR_BLOCKED"):
                         sev = "Critical"
-                    elif "MAJOR" in code or "MISMATCH" in code or "BELOW_MAJOR" in code:
+                    elif "MAJOR" in code or "MISMATCH" in code or "BELOW_MAJOR" in code \
+                            or code == "WRAP_RISK":     # text may run onto an extra line
                         sev = "Major"
                     else:
                         sev = "Advisory"

@@ -1281,7 +1281,10 @@ def _snapped_px(size_px: float) -> float:
 def _wrapped_lines(paragraphs, width_px: float) -> int | None:
     """Greedy word-wrap line count, measured with the real font files (as
     PowerPoint will set the text, which is slightly wider than Chrome). None if
-    a font is missing."""
+    a font is missing. A line may end at a space, or inside a word after a
+    hyphen or dash (_chrome_schema.hyphen_pieces), as PowerPoint and Chrome
+    both do."""
+    from _chrome_schema import hyphen_pieces
     total = 0
     for para in paragraphs:
         words, widths = [], []
@@ -1291,9 +1294,11 @@ def _wrapped_lines(paragraphs, width_px: float) -> int | None:
             if f is None:
                 return None
             for wd in re.split(r"(\s+)", r["t"]):
-                if wd:
-                    words.append(wd)
-                    widths.append(f.getlength(wd) + (r.get("letter_spacing_px") or 0) * len(wd))
+                for piece in ([wd] if not wd or wd.isspace() else hyphen_pieces(wd)):
+                    if piece:
+                        words.append(piece)
+                        widths.append(f.getlength(piece)
+                                      + (r.get("letter_spacing_px") or 0) * len(piece))
         lines, cur = 1, 0.0
         for wd, wl in zip(words, widths):
             if wd.isspace():
@@ -1407,7 +1412,11 @@ def _plan_text(plan: Plan, t: dict, order_key, name=None) -> None:
                 for r in t["runs"] if not r.get("br"))
 
     # Will PowerPoint wrap it into more lines than Chrome did? Measured with
-    # the real font files. Widen a little first, then step the font down one.
+    # the real font files. Widen a little; if that is not enough, keep the
+    # design's size and say so (WRAP_RISK, shown on the review page). The
+    # font used to be stepped down one size silently: 12 pt body text shipped
+    # at 11 pt on a misprediction, and at 11 pt the predictor still saw the
+    # extra line (2026-10-13).
     if wrap:
         predicted = _wrapped_lines(paras, w)
         if predicted is not None and predicted > lines:
@@ -1421,16 +1430,16 @@ def _plan_text(plan: Plan, t: dict, order_key, name=None) -> None:
                         x -= nw - w
                     w, grown = nw, True
                     break
-            if not grown:
-                from twins.helpers import snap_font_pt
-                for p in paras:
-                    for r in p:
-                        pt = snap_font_pt(r["size_px"] * 0.75)
-                        r["size_px"] = max(8.0, pt - 1) / 0.75
-            plan.counts["wrap_adjusted"] += 1
-            plan.warn("WRAP_ADJUSTED", f"{t.get('id') or 'text'}: would wrap to "
-                      f"{predicted} lines in PowerPoint vs {lines} in the design; "
-                      + ("widened" if grown else "font stepped down one size"))
+            if grown:
+                plan.counts["wrap_adjusted"] += 1
+                plan.warn("WRAP_ADJUSTED", f"{t.get('id') or 'text'}: would wrap to "
+                          f"{predicted} lines in PowerPoint vs {lines} in the design; widened")
+            else:
+                plan.counts["wrap_risk"] = plan.counts.get("wrap_risk", 0) + 1
+                plan.warn("WRAP_RISK", f"{t.get('id') or 'text'}: may wrap to {predicted} lines "
+                          f"in PowerPoint vs {lines} in the design, even 6% wider; kept at the "
+                          "design's size. Check this text in the finished slide; if it runs onto "
+                          "an extra line, shorten it or give its box more room in the design")
         elif predicted is not None and predicted < lines:
             # Fits on fewer lines than the design (Chrome broke at a width the
             # PowerPoint text just clears): narrow the box toward the design's

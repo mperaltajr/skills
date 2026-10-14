@@ -344,8 +344,9 @@ def text_geometry(o: dict, cs: list[dict]) -> dict | None:
         try:
             from twins.helpers import snap_font_pt  # noqa: E402
             px = max(from_px)
-            # vs the design's size: covers both the snap to the allowed list
-            # and a deliberate one-size step down to keep the line breaks
+            # vs the design's size: covers the snap to the allowed list (the
+            # converter no longer steps a size down to keep line breaks; it
+            # warns WRAP_RISK instead, 2026-10-13)
             exp = snap_font_pt(px * 0.75) / (float(o.get("_design_px") or px) * 0.75)
         except Exception:
             exp = 1.0
