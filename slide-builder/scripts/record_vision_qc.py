@@ -62,13 +62,41 @@ sys.path.insert(0, str(HERE.parents[1] / "slide-qc" / "scripts"))
 import _state  # noqa: E402
 import qc_pages  # noqa: E402
 
+DESCRIPTION = (
+    "Record a quality-check round. This is slide-qc's last step; it never takes "
+    "typed finding counts. First run qc_pages.py plan --out <build>, open every "
+    "picture it writes into <build>/_qc/to_read/ (page_NN.png, sheet_NN.png, "
+    "pair_NN.png) and fill in <build>/_qc/page_notes.json; then run this.")
+
+
+def next_steps(out: Path) -> list[str]:
+    """The exact steps, with real paths. The last 2 lines carry the commands:
+    sessions often read only the last few lines of a command's output, and a
+    session can run on an old copy of the skill text (2026-10-13), so this
+    output is the one channel that is always current."""
+    out = Path(out).resolve()
+    qc = qc_pages.qc_dir(out)
+    plan = f"py -3 \"{HERE / 'qc_pages.py'}\" plan --out \"{out}\""
+    rec = f"py -3 \"{HERE / 'record_vision_qc.py'}\" --out \"{out}\""
+    return [
+        "How a round is recorded (the current slide-qc steps):",
+        f"  1. {plan}",
+        f"  2. Open every picture in {qc / qc_pages.READ_DIR} (page_NN.png, sheet_NN.png, "
+        "pair_NN.png; not the plain slide_NN.png renders) and fill in "
+        f"{qc / qc_pages.NOTES}: each page's check code, a short quote of its own text, "
+        "and its open findings.",
+        f"  3. {rec}",
+        f"Next: {plan}",
+        f"then fill {qc / qc_pages.NOTES} from {qc / qc_pages.READ_DIR}, then: {rec}",
+    ]
+
 
 def main(argv=None) -> int:
     try:
         sys.stdout.reconfigure(encoding="utf-8")
     except Exception:
         pass
-    ap = argparse.ArgumentParser(description="Record a quality-check round.")
+    ap = argparse.ArgumentParser(description=DESCRIPTION)
     ap.add_argument("--out", required=True, type=Path, help="Build output dir.")
     ap.add_argument("--deck", default=None,
                     help="The deck that was reviewed (default: the deck the last "
@@ -106,9 +134,14 @@ def main(argv=None) -> int:
         print("ERROR: --user-words goes with --keep-file-check KEY.")
         return 2
     if any(v is not None for v in (args.criticals, args.majors, args.advisories)):
-        print("ERROR: finding counts are no longer typed. Write each open finding on "
-              "its page in _qc/page_notes.json (severity, issue); the record counts "
-              "them, and keeps the ones on pages that did not change.")
+        print("REFUSED: finding counts are no longer typed (changed 2026-10-09). This is "
+              "slide-qc's recording step. If your instructions showed --criticals, "
+              "--majors or --advisories, they are an old copy of slide-qc: invoke the "
+              "slide-qc skill again for the current steps. Each open finding goes on its "
+              "page in _qc/page_notes.json (severity, issue); the record counts them, and "
+              "keeps the ones on pages that did not change. Nothing was recorded.")
+        for line in next_steps(args.out):
+            print(line)
         return 2
     deck = Path(args.deck) if args.deck else _state.compiled_deck(args.out)
     if not deck.exists():
@@ -127,8 +160,10 @@ def main(argv=None) -> int:
         notes = json.loads(Path(notes_p).read_text(encoding="utf-8"))
     except Exception as exc:
         print(f"ERROR: could not read the notes at {notes_p} ({type(exc).__name__}: "
-              f"{exc}). Run qc_pages.py plan --out \"{args.out}\" and fill in the file "
-              "it writes.")
+              f"{exc}). Nothing was recorded. If you have not run slide-qc, invoke the "
+              "slide-qc skill; this is its recording step.")
+        for line in next_steps(args.out):
+            print(line)
         return 2
     try:
         problems, result = qc_pages.verify_notes(args.out, deck, notes, args.slides_reviewed)

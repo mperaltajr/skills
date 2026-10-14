@@ -255,7 +255,8 @@ def _load_skill_settings() -> dict[str, Any]:
         raw = json.loads(_SETTINGS_JSON_PATH.read_text(encoding="utf-8"))
         if not isinstance(raw, dict):
             return {}
-        return raw
+        # This computer's settings.local.json wins (_paths.settings()).
+        return {**raw, **_p.settings()}
     except (OSError, json.JSONDecodeError):
         # Don't crash on a malformed settings.json; warn and fall back.
         sys.stderr.write(
@@ -1991,6 +1992,53 @@ def update_meta_for_rebuild(
     return meta_path
 
 
+def record_storyline(out_dir: Path, brief_path: Optional[Path],
+                     override: Optional[Path] = None) -> Optional[str]:
+    """Record the approved storyline in _meta.json["storyline"]: its path,
+    size, last-changed time and fingerprint (owner's decision 2026-10-13).
+    The path comes from --storyline, else the brief's front matter
+    `approved_storyline:`; nothing is ever searched for by name. REVIEW.html
+    shows that file, and warns when it changed after this prep. Returns a
+    line to print, or None when there is no pointer."""
+    path_txt = str(override) if override else ""
+    if not path_txt and brief_path and Path(brief_path).exists():
+        try:
+            fm, _ = extract_front_matter(read_text_safe(Path(brief_path)))
+        except Exception:
+            fm = {}
+        path_txt = (fm.get("approved_storyline") or "").strip()
+    mp = _p.meta_json(out_dir)
+    try:
+        meta = json.loads(mp.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if not path_txt:
+        if meta.pop("storyline", None) is not None:
+            mp.write_text(json.dumps(meta, indent=2), encoding="utf-8")
+        return None
+    sp = Path(path_txt)
+    if not sp.is_absolute() and brief_path:
+        sp = (Path(brief_path).parent / sp)
+    rec: dict[str, Any] = {"path": str(sp.resolve()), "recorded_at": datetime.now().isoformat(
+        timespec="seconds")}
+    if sp.exists():
+        data = sp.read_bytes()
+        rec.update({"size": len(data), "mtime": sp.stat().st_mtime,
+                    "sha256": hashlib.sha256(data).hexdigest()})
+        line = f"Approved storyline recorded: {sp.resolve()}"
+    else:
+        rec["missing"] = True
+        line = (f"WARNING: the approved storyline {sp} does not exist; the review page "
+                "will say so. Fix approved_storyline in the brief's front matter.")
+    meta["storyline"] = rec
+    mp.write_text(json.dumps(meta, indent=2), encoding="utf-8")
+    return line
+
+
+def read_text_safe(p: Path) -> str:
+    return p.read_bytes().decode("utf-8", errors="replace").replace("\r\n", "\n").lstrip("﻿")
+
+
 def _shift_build_for_insert(out_dir: Path, insert_n: int, old_count: int) -> None:
     """Make room at position `insert_n` for a new slide by shifting slides
     >= insert_n up by one on disk: rename `slide_NN/` dirs (highest first, so
@@ -1999,7 +2047,12 @@ def _shift_build_for_insert(out_dir: Path, insert_n: int, old_count: int) -> Non
     inserting at the end (insert_n == old_count + 1).
 
     Self-reversing: if any rename fails partway, the renames already done are
-    undone before re-raising, so the build is never left half-shifted."""
+    undone before re-raising, so the build is never left half-shifted.
+
+    A folder Windows will not rename (WinError 32: a program or a File Explorer
+    window is sitting in it) is tried 3 more times, then FolderLocked is raised
+    naming that folder (2026-10-13: an agent shell left in slide_20 stopped
+    three inserts)."""
     renamed: list[tuple[Path, Path]] = []  # (current, original) to undo on failure
     try:
         for k in range(old_count, insert_n - 1, -1):
@@ -2008,7 +2061,7 @@ def _shift_build_for_insert(out_dir: Path, insert_n: int, old_count: int) -> Non
             if src.exists():
                 if dst.exists():
                     raise OSError(f"insert shift collision: {dst} already exists")
-                src.rename(dst)
+                _rename_with_retry(src, dst)
                 renamed.append((dst, src))
 
         picks_path = out_dir / "picks.json"
@@ -2032,13 +2085,88 @@ def _shift_build_for_insert(out_dir: Path, insert_n: int, old_count: int) -> Non
         # and picked up a clean record, and a verifier shipped it as DELIVERABLE.
         _state.shift_option_records(out_dir, insert_n)
     except OSError:
-        # Undo the dir renames we managed so the build isn't half-shifted.
+        # Undo the dir renames we managed so the build isn't half-shifted. A
+        # failed undo used to pass silently; say which folder is out of place.
         for current, original in reversed(renamed):
             try:
-                current.rename(original)
-            except OSError:
-                pass
+                _rename_with_retry(current, original)
+            except OSError as undo_exc:
+                sys.stderr.write(
+                    f"  ERROR: could not move {current.name} back to {original.name} "
+                    f"({undo_exc}). Rename {current} to {original} by hand once the "
+                    "folder is free, before any other step.\n")
         raise
+
+
+class FolderLocked(OSError):
+    """A slide folder Windows would not rename because something is using it."""
+
+    def __init__(self, folder: Path, exc: OSError):
+        super().__init__(f"{folder} is in use: {exc}")
+        self.folder = folder
+
+
+def _is_lock_error(exc: OSError) -> bool:
+    return getattr(exc, "winerror", None) in (5, 32, 33) or isinstance(exc, PermissionError)
+
+
+def _rename_with_retry(src: Path, dst: Path, tries: int = 4) -> None:
+    """Rename, trying 3 more times (about 3 s in all) while the folder is in use."""
+    import time as _time
+    for i in range(tries):
+        try:
+            src.rename(dst)
+            return
+        except OSError as exc:
+            if not _is_lock_error(exc):
+                raise
+            if i == tries - 1:
+                raise FolderLocked(src, exc) from exc
+            _time.sleep(0.5 * (i + 1))
+
+
+def locked_folder_message(out_dir: Path, folder: Path, argv: list[str]) -> list[str]:
+    """The plain stop message for a folder in use: what holds it (read-only)
+    and what to do. Nothing is ended here (owner's decision 2026-10-13)."""
+    here = Path(__file__).resolve().parent
+    lines = [
+        "ERROR: the insert stopped because Windows would not rename the folder",
+        f"  {folder}",
+        "  A program or File Explorer window is sitting in this folder (for example an",
+        "  agent's shell that ran cd into it, a render, or an Explorer window open on it).",
+        "  Nothing was changed: every folder is back where it was.",
+    ]
+    rows = []
+    try:
+        if str(here) not in sys.path:
+            sys.path.insert(0, str(here))
+        import _procs
+        rows = _procs.mentioning(str(Path(out_dir).resolve()))
+        listing = _procs.describe(rows)
+    except Exception:
+        listing = []
+    if rows:
+        lines.append("  Processes whose command line mentions this build folder (listed only; "
+                     "nothing was ended):")
+        lines += listing
+    else:
+        lines.append("  No process names this build folder in its command line, so it is most "
+                     "likely a File Explorer window or a program with the folder open.")
+    lines.append("Next:")
+    if rows:
+        pids = " ".join(str(r["pid"]) for r in rows)
+        lines += [
+            "  1. Ask the user to close any File Explorer window or program open in that",
+            "     folder, or to say yes to ending exactly the PIDs listed above. Only after",
+            "     their yes, end ONLY those PIDs (never anything by its name):",
+            f'     py -3 "{here / "_procs.py"}" --mentioning "{Path(out_dir).resolve()}" --end {pids}',
+        ]
+    else:
+        lines.append("  1. Ask the user to close any File Explorer window or program open in "
+                     "that folder.")
+    lines.append("  2. Then run the same insert again:")
+    lines.append("     py -3 " + " ".join(f'"{a}"' if " " in a else a for a in argv))
+    return lines
 
 
 def update_meta_for_insert(
@@ -2551,9 +2679,17 @@ def main() -> int:
                              "from its build path, and re-classifying would silently re-route N.")
     parser.add_argument("--options",  required=False, type=int, default=None,
                         help="How many design options to build per slide (1-3), overriding "
-                             "settings.json. Default: options_per_slide for a full build or an "
-                             "insert; options_per_slide_revision (1) for a --slide rebuild, "
-                             "where the user has already said what they want changed.")
+                             "settings. Default: options_per_slide for a full build or an "
+                             "insert (1 out of the box; settings.local.json can set 3); "
+                             "options_per_slide_revision (1) for a --slide rebuild, or 3 when "
+                             "the user marked the slide +3 designs in REVIEW.html "
+                             "(redesign_round.py start --three). Use --options 3 only when "
+                             "the user asked for three.")
+    parser.add_argument("--storyline", required=False, type=Path, default=None,
+                        help="The storyline file the user approved (.html, .md or .docx), "
+                             "shown on REVIEW.html as written. Overrides the brief's front "
+                             "matter line approved_storyline: (emit_dot_dash.py writes that "
+                             "line; for a prose storyline written by hand, add it yourself).")
     parser.add_argument("--insert",   required=False, type=int, default=None,
                         help="Insert a NEW slide at position N into an existing build: shift "
                              "slides >= N (dirs, _meta entries, picks) up by one, prep only the "
@@ -2624,17 +2760,30 @@ def main() -> int:
         sys.stderr.write("ERROR: use --slide OR --insert, not both.\n")
         return 1
     single_slide_mode = rebuild_slide_n is not None or insert_slide_n is not None
-    # How many options this run builds. A rebuild follows the user's feedback, so
-    # one option is enough and three times faster; a first look (full build or a
-    # new inserted slide) gets the full spread. --options overrides both; a value
-    # already pinned in the environment (tests) is left alone.
+    # How many options this run builds. A full build or a new inserted slide
+    # uses options_per_slide (1 out of the box, owner's decision 2026-10-13;
+    # a computer's settings.local.json may set 3); a rebuild follows the user's
+    # feedback and builds one, or three when they asked for +3 designs on that
+    # slide. --options overrides all; a value already pinned in the environment
+    # (tests) is left alone.
     if args.options is not None:
         if not 1 <= args.options <= 3:
             sys.stderr.write("ERROR: --options must be 1, 2 or 3.\n")
             return 1
         os.environ["SLIDE_LAB_OPTIONS_PER_SLIDE"] = str(args.options)
     elif rebuild_slide_n is not None and not os.environ.get("SLIDE_LAB_OPTIONS_PER_SLIDE"):
-        os.environ["SLIDE_LAB_OPTIONS_PER_SLIDE"] = str(_p.options_per_slide_revision())
+        # "+3 designs" on the slide's card in REVIEW.html (or three asked for in
+        # chat) is recorded by redesign_round.py start --three; it wins here.
+        try:
+            import redesign_round as _rr
+            _three = _rr.three_for(args.out, rebuild_slide_n)
+        except Exception:
+            _three = False
+        os.environ["SLIDE_LAB_OPTIONS_PER_SLIDE"] = (
+            "3" if _three else str(_p.options_per_slide_revision()))
+        if _three:
+            sys.stderr.write(f"  slide {rebuild_slide_n}: three new designs (the user asked "
+                             "for +3 designs on this slide).\n")
     # The current on-disk slide count (needed by --insert to shift slides); read
     # from the existing manifest below.
     existing_slide_count = 0
@@ -2860,6 +3009,11 @@ def main() -> int:
     if insert_slide_n is not None:
         try:
             _shift_build_for_insert(args.out, insert_slide_n, existing_slide_count)
+        except FolderLocked as exc:
+            for _ln in locked_folder_message(args.out, exc.folder,
+                                             [str(Path(sys.argv[0]).resolve())] + sys.argv[1:]):
+                sys.stderr.write(_ln + "\n")
+            return 5
         except OSError as exc:
             sys.stderr.write(f"ERROR: could not shift build for insert: {exc}\n")
             return 5
@@ -2934,6 +3088,9 @@ def main() -> int:
         for _ln in review_sequence_lines(args.out, args.template, rebuild_slide_n):
             print(_ln)
         record_prep_with_notice(args.out, _deck_hash, "rebuild")
+        _sl = record_storyline(args.out, args.brief, getattr(args, "storyline", None))
+        if _sl:
+            print(_sl)
         return 0
 
     # Insert mode: dirs + picks were already shifted; splice the new slide's entry
@@ -2963,6 +3120,18 @@ def main() -> int:
             print(f"Renumbered dispatch plan:")
             print(f"  {plan_path.resolve()}")
         print()
+        # Say the frozen count out loud (2026-10-13: workers were told "option A
+        # only" while their _prompt.md said three; finalize then refused eight
+        # slides for 16 missing options).
+        _letters = list(_p.option_letters())
+        print(f"Slide {insert_slide_n} is set up for {len(_letters)} design(s): option "
+              f"{', '.join(_letters)} (frozen in _meta.json; its _prompt.md says the same).")
+        print("  The worker builds exactly that many. Never tell a worker a different number.")
+        _other = 1 if len(_letters) > 1 else 3
+        print(f"  To change it, prep this slide again before any worker runs: py -3 "
+              f"scripts/build_deck.py --template \"{args.template}\" --out \"{args.out}\" "
+              f"--slide {insert_slide_n} --options {_other}")
+        print()
         print(f"Next, to build the inserted slide {insert_slide_n} (its worker reads "
               f"{ins_dir / '_context.md'} then {ins_dir / '_prompt.md'}):")
         for _ln in review_sequence_lines(args.out, args.template, insert_slide_n):
@@ -2972,6 +3141,9 @@ def main() -> int:
         print(f"  refreshes on the next FULL finalize (finalize_deck.py --out <out> with no")
         print(f"  --slide). The single-slide finalize in step b writes RESULT-slide-{insert_slide_n:02d}.md.")
         record_prep_with_notice(args.out, _deck_hash, "insert")
+        _sl = record_storyline(args.out, args.brief, getattr(args, "storyline", None))
+        if _sl:
+            print(_sl)
         return 0
 
     # Deck manifest (_meta.json) — single source of truth for downstream
@@ -3043,6 +3215,9 @@ def main() -> int:
     for _ln in pinned_pages_note(slides):
         print(_ln)
     record_prep_with_notice(args.out, _deck_hash, "prep")
+    _sl = record_storyline(args.out, args.brief, getattr(args, "storyline", None))
+    if _sl:
+        print(_sl)
     return 0
 
 

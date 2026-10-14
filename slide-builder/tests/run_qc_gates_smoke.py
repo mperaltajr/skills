@@ -325,7 +325,21 @@ def main() -> int:
              "--deck", str(deck), "--criticals", "0", "--majors", "0"],
             capture_output=True, text=True)
         assert r.returncode == 2 and "no longer typed" in r.stdout, r.stdout
-        print("    ok: an over-claim and typed counts are refused")
+        # The refusal carries the current steps with real paths, the commands in
+        # its LAST two lines (sessions read only the tail, and may run an old
+        # copy of the slide-qc text), and says to invoke slide-qc again.
+        tail = r.stdout.strip().splitlines()[-2:]
+        assert "invoke the slide-qc skill again" in r.stdout, r.stdout
+        assert "qc_pages.py\" plan --out" in tail[0] and str(d.resolve()) in tail[0], tail
+        assert "record_vision_qc.py\" --out" in tail[1] and "to_read" in tail[1], tail
+        assert "page_notes.json" in tail[1], tail
+        h = subprocess.run([sys.executable, str(SCRIPTS / "record_vision_qc.py"), "--help"],
+                           capture_output=True, text=True)
+        assert "qc_pages.py plan" in " ".join(h.stdout.split()), h.stdout
+        d2, _ = _build("noqc_steps")
+        rc, o = _done(d2)
+        assert rc == 1 and "qc_pages.py\" plan --out" in o and "slide-qc skill" in o, o
+        print("    ok: an over-claim and typed counts are refused, with the exact next steps")
 
         print("[12] the all-options and splice decks are checkable and labeled")
         d, deck = _build("allvar", kind="all_variations")

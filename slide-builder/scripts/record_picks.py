@@ -47,8 +47,8 @@ checks every such slide's design changed, marks its comments applied, and
 converts the edited picks together in one call. A comment that asks for a
 different design ("try a chart instead", the "Wrong layout / structure" chip)
 is a Replace request instead: the slide's pick is not kept, the comment goes
-to slide_NN/_prior_feedback.md, and a redesign round is recorded (ask the user
-one or three new designs, three preselected). Every comment is recorded in the
+to slide_NN/_prior_feedback.md, and a redesign round is recorded (one new
+design; three only when the user asked for three). Every comment is recorded in the
 build record and listed at delivery by check_done.py; none is dropped.
 
 Run (the page gives you this exact command):
@@ -535,11 +535,13 @@ def _print_comment_steps(out: Path, meta: dict, edit_sids, redesign_sids, step: 
     if redesign_sids:
         nums = ",".join(str(int(s.split("_")[1])) for s in redesign_sids)
         print(f"  {step}. Slide(s) {nums}: the comment asks for a different design, so it is "
-              "a Replace request; that pick is not kept. ASK THE USER: \"One new design or "
-              "three?\" with THREE preselected (owner's decision, 2026-10-08). The comment is "
-              "in slide_NN/_prior_feedback.md; the redesign round is recorded.")
+              "a Replace request; that pick is not kept. It gets ONE new design (owner's "
+              "decision, 2026-10-13; do not ask). Three only if the user asked for three "
+              "in their own words. The comment is in slide_NN/_prior_feedback.md; the "
+              "redesign round is recorded.")
         print(f"     For each: py -3 scripts/build_deck.py --slide N --out \"{out}\" "
-              f"--template \"{tpl}\" --options 3 (or 1), its worker, the sketch render.")
+              f"--template \"{tpl}\" (add --options 3 only if the user asked for three), "
+              "its worker, the sketch render.")
         print(f"     Three: py -3 scripts/build_review.py --out \"{out}\" --open (the other "
               "picks are preselected); one: py -3 scripts/redesign_round.py finish "
               f"--out \"{out}\"" + (" after --edits-done." if edit_sids else "."))

@@ -833,7 +833,9 @@ This produces **two** files at the session root — a one-line-per-slide project
 - `dot-dash-[topic].md` — markdown form, good for version control + editor view
 - `dot-dash-[topic].html` — rendered form, good for screen-share + sending to reviewers
 
-**The dot-dash is also embedded directly into the REVIEW.html** that slide-builder produces — collapsed by default at the top of the page. The user does NOT need to open the standalone files to proceed; they exist for sharing with stakeholders who don't have Claude Code in front of them.
+**The approved storyline is shown, as written, at the top of the REVIEW.html** that slide-builder produces (collapsed by default). `emit_dot_dash.py` records which file that is: it writes `approved_storyline: <path to dot-dash-[topic].html>` into the brief's front matter (the seal does not count that line, so the brief stays sealed). **If the user approved a prose storyline written by hand** (not the emitter's file), add that line yourself, with the absolute path of the file they approved (.html, .md, or .docx, which is linked rather than shown), then prep; the emitter keeps a pointer that names another file. Never pick the file by its name or date. Without the line, the review page shows the slide headlines only. The user does NOT need to open the standalone files to proceed; they exist for sharing with stakeholders who don't have Claude Code in front of them.
+
+**No designer wording in the brief's bullets** (owner's decision, 2026-10-13). `emit_dot_dash.py` and `seal_brief.py` refuse a slide bullet with "Supporting points:" or a plain ALL CAPS label and a dash or colon ("SECTION LIST - show all six sections"): those are notes for the designer and they showed up in the storyline the user read. Write the bullet as a plain sentence, give it a **bold label** (that form is fine), or move the note into the slide's **Editorial emphasis:** field.
 
 After running the script, **do not** ask the user to read the dot-dash. Instead, print a tight inline executive summary in chat:
 
@@ -904,6 +906,7 @@ session_folder: <absolute path to _session>    # optional — helps slide-builde
 storyline_gate_passed: true                   # written by seal_brief.py — never typed by hand
 storyline_gate_at: 2026-06-02T14:00:00Z       # written by seal_brief.py
 storyline_gate_sha: 3f9a0c1d2b4e5f60          # written by seal_brief.py — fingerprint of the brief text
+approved_storyline: <absolute path>           # written by emit_dot_dash.py; set by hand for a prose storyline written by hand; the seal ignores it
 # density: executive                          # OPTIONAL opt-out — headline-led/sparse deck; relaxes the content-floor gate. Omit for the dense default (pages useful on their own).
 # mode: template-fill                          # OR set mode: to skip the gate (PMO / rebuild flows)
 ---
@@ -1070,7 +1073,7 @@ Do not hand off. Say: "I need to finish the brief first — the slide builder ne
 
 If the user picks Edit, ask what they want to change. If the user picks Review, run the full nine-part gate + cross-cutting rules sweep against the existing brief and produce the review-and-save section Review output (table + conversational Major prompts). No new file is written until the user resolves Criticals and chooses fix-or-override on Majors. Once they do, save the brief and re-run `emit_dot_dash.py`.
 
-**User wants to add a slide to an existing deck Slide Lab built.** Don't rebuild the whole narrative. Read the existing brief, insert the new slide (governing thought + takeaway + evidence) at the right position and **renumber the later slide headers** so the brief has exactly one more slide, re-run the gate, save the updated brief, and re-seal it (`seal_brief.py`). Then slide-builder inserts it for real: `build_deck.py --insert N` shifts slides ≥ N (dirs, `_meta`, picks) up by one and preps only the new slide N; dispatch one worker for slide N, run `finalize_deck.py --slide N`, then the same review sequence as any build (REVIEW.html → `record_picks.py` → translate a picked sketch → finalize → FINAL-CHECK.html → compile with its token). (Adding a page to an *external* `.pptx` Slide Lab didn't build is a `pptx`-skill edit, not this flow.)
+**User wants to add a slide to an existing deck Slide Lab built.** Don't rebuild the whole narrative. Read the existing brief, insert the new slide (governing thought + takeaway + evidence) at the right position and **renumber the later slide headers** so the brief has exactly one more slide, re-run the gate, save the updated brief, and re-seal it (`seal_brief.py`). Then slide-builder inserts it for real: `build_deck.py --insert N` shifts slides ≥ N (dirs, `_meta`, picks) up by one and preps only the new slide N. The design count comes from settings (1 out of the box); do not ask. Add `--options 3` only when the user asks for three (never tell a worker a different count than its `_prompt.md`; re-prep with `--slide N --options 3` to change it). Dispatch one worker for slide N, run `finalize_deck.py --slide N`, then the same review sequence as any build (REVIEW.html → `record_picks.py` → translate a picked sketch → finalize → FINAL-CHECK.html → compile with its token). (Adding a page to an *external* `.pptx` Slide Lab didn't build is a `pptx`-skill edit, not this flow.)
 
 **User's answer to "what's the argument?" is a topic.** Foundation Check. Don't proceed to sequencing until the governing thought is a declarative sentence.
 

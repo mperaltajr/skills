@@ -7,7 +7,11 @@ Picking the only option on a second review page added nothing, so:
   1. Before redesigning, record the picks the user kept (the review page puts
      them in its message as "Keep: 1B 3A ... (check 1a2b3c4d)"):
        py -3 scripts/redesign_round.py start --out <out> --slides 2,5 --kept "<Keep line>"
-     (omit --kept when no slide was picked yet). For "rebuild slide N" on a
+     (omit --kept when no slide was picked yet). Each slide gets ONE new
+     design; add --three 5 for a slide the user marked "+3 designs" on the
+     page (its "Three designs for:" line) or asked three for in chat, and
+     build_deck.py --slide 5 then builds three (owner's decision 2026-10-13).
+     For "rebuild slide N" on a
      deck already built, use --keep-previous instead: the other slides keep
      the picks in picks.json from the last build.
   2. Redesign each slide as usual (build_deck.py --slide N, one worker each,
@@ -71,7 +75,21 @@ def _parse_keep(line: str):
     return picks, m.group(2).lower()
 
 
-def start(out: Path, slides: list[int], kept_line: str, keep_previous: bool = False) -> int:
+def three_for(out: Path, n: int) -> bool:
+    """True when the redesign round in progress asks three designs for slide n
+    ("+3 designs" on its card in REVIEW.html, or the user asked in chat).
+    build_deck.py --slide N reads this when no --options is given."""
+    rr = _state.read_state(out).get("redesign_round") or {}
+    return n in (rr.get("slides") or []) and n in (rr.get("three") or [])
+
+
+def start(out: Path, slides: list[int], kept_line: str, keep_previous: bool = False,
+          three: list[int] | None = None) -> int:
+    three = sorted(set(three or []))
+    if [n for n in three if n not in slides]:
+        print("REFUSED: --three names slide(s) not in --slides: "
+              + ", ".join(str(n) for n in three if n not in slides))
+        return 5
     state = _state.read_state(out)
     kept: dict = {}
     if keep_previous:
@@ -94,12 +112,28 @@ def start(out: Path, slides: list[int], kept_line: str, keep_previous: bool = Fa
             print("REFUSED: the kept picks do not match their check code (changed after "
                   "the user clicked, or copied from another review page).")
             return 5
-    state["redesign_round"] = {"slides": sorted(slides), "kept": kept}
+    state["redesign_round"] = {"slides": sorted(slides), "kept": kept, "three": three}
     _state._write(out, state)
     # New designs for these slides: their old picks are not preselected again.
     _state.forget_picks(out, [_p.slide_key(n) for n in slides])
     print(f"[ok] kept {len(kept)} pick(s); redesigning slide(s) "
           f"{', '.join(map(str, sorted(slides)))}. Rebuild them, then run finish.")
+    try:
+        tpl = json.loads(_p.meta_json(out).read_text(encoding="utf-8")).get("template")
+    except (OSError, ValueError):
+        tpl = None
+    tpl = tpl or "<template>"
+    for n in sorted(slides):
+        k = 3 if n in three else 1
+        print(f"  slide {n}: {k} new design{'s' if k > 1 else ''}"
+              + (" (+3 designs asked for)" if k > 1 else "") + ":  py -3 \""
+              + str(HERE / "build_deck.py") + f"\" --template \"{tpl}\" --out \"{out}\" "
+              f"--slide {n}")
+    if three:
+        print("  Then build_review.py --out <out> --open: the user picks among the three "
+              "(finish refuses a slide with more than one design).")
+    else:
+        print(f"  Then: py -3 \"{HERE / 'redesign_round.py'}\" finish --out \"{out}\"")
     return 0
 
 
@@ -202,19 +236,27 @@ def main(argv=None) -> int:
     s.add_argument("--kept", default="")
     s.add_argument("--keep-previous", action="store_true",
                    help="keep the other slides' picks from the last build (rebuild slide N)")
+    s.add_argument("--three", default="",
+                   help="slides (e.g. 5 or 2,5) that get THREE new designs instead of one: "
+                        "the page's 'Three designs for:' line, or slides the user asked "
+                        "three for in chat. build_deck.py --slide N then builds three.")
     f = sub.add_parser("finish")
     f.add_argument("--out", required=True, type=Path)
     a = ap.parse_args(argv)
     if a.cmd == "start":
         try:
-            slides = [int(x) for x in a.slides.split(",") if x.strip()]
+            slides = [int(x) for x in re.findall(r"\d+", a.slides)]
+            three = [int(x) for x in re.findall(r"\d+", a.three)]
         except ValueError:
+            print("ERROR: --slides and --three take numbers, e.g. 2,5")
+            return 2
+        if not slides:
             print("ERROR: --slides takes numbers, e.g. 2,5")
             return 2
         if a.kept.strip() and a.keep_previous:
             print("ERROR: use --kept or --keep-previous, not both")
             return 2
-        return start(a.out, slides, a.kept, a.keep_previous)
+        return start(a.out, slides, a.kept, a.keep_previous, three)
     return finish(a.out)
 
 

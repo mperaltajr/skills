@@ -243,7 +243,9 @@ def parse_brief(brief_path: Path) -> dict:
                 elif ls.startswith("  - ") or ls.startswith("\t- "):
                     if bullets:
                         bullets[-1] += " <em>" + _md_inline_to_html(ls.lstrip("- \t")) + "</em>"
-        out["slides"].append({"n": num, "title": f"Slide {num} — {title}", "gov": gov, "bullets": bullets})
+        # The headline as written: no "Slide N" prefix and no dash added (the
+        # panel used to add 30 em-dashes of its own, 2026-10-13).
+        out["slides"].append({"n": num, "title": title, "gov": gov, "bullets": bullets})
     return out
 
 
@@ -759,56 +761,15 @@ def render_preview_banner(slides: list) -> str:
     return out
 
 
-def render_storyline_html(storyline: dict, slides: list) -> str:
-    brief_slides = storyline.get("slides") or []
-    by_num = {s["n"]: s for s in brief_slides}
-
-    def _slide_block(slide: dict) -> str:
-        n = slide["n"]
-        brief_s = by_num.get(n)
-        title = (brief_s or {}).get("title") or f"Slide {n} — {slide.get('title') or ''}".strip(" —")
-        gov = (brief_s or {}).get("gov") or slide.get("governing") or ""
-        bullets = (brief_s or {}).get("bullets") or slide.get("bullets") or []
-        parts = [f'<div class="dd-slide-title">{html.escape(title)}</div>']
-        if gov and not (gov.startswith("[") and gov.endswith("]")):
-            parts.append(f'<div class="dd-gov">{html.escape(gov)}</div>')
-        elif gov:
-            parts.append(f'<div class="dd-gov missing">{html.escape(gov)}</div>')
-        else:
-            parts.append('<div class="dd-gov missing">(no governing thought in brief)</div>')
-        if bullets:
-            items = "".join(f"<li>{b}</li>" for b in bullets)
-            parts.append(f'<ul class="dd-bullets">{items}</ul>')
-        return f'<div class="dd-slide">{"".join(parts)}</div>'
-
-    blocks = "".join(_slide_block(s) for s in slides)
-    topic = html.escape(storyline.get("topic") or "Slide Lab deck")
-    deck_type = html.escape(storyline.get("deck_type") or "—")
-    gov = html.escape(storyline.get("governing") or "—")
-    audience = html.escape(storyline.get("audience") or "—")
-    bbreak = html.escape(storyline.get("belief_break") or "—")
-    bleave = html.escape(storyline.get("belief_leave") or "—")
-    sback = html.escape(storyline.get("say_back") or "—")
-    return f"""
-<details class="storyline-section">
-<summary><span class="storyline-summary-text">▶ The storyline (one line per slide): click to open</span></summary>
-<div class="storyline-body">
-  <div class="dd-container">
-    <h1 class="dd-title">Dot-dash storyline: {topic}</h1>
-    <div class="dd-deck-meta">
-      <div class="lbl">Deck type</div><div class="val">{deck_type}</div>
-      <div class="lbl">Governing thought</div><div class="val gov">{gov}</div>
-      <div class="lbl">Audience</div><div class="val">{audience}</div>
-      <div class="lbl">Belief to break</div><div class="val">{bbreak}</div>
-      <div class="lbl">Belief to leave with</div><div class="val">{bleave}</div>
-      <div class="lbl">Room should say back</div><div class="val">{sback}</div>
-    </div>
-    <div class="dd-callout">Read the slide headlines top to bottom: they should tell the deck's whole argument.</div>
-    {blocks}
-  </div>
-</div>
-</details>
-"""
+def render_storyline_html(storyline: dict, slides: list, meta: Optional[dict] = None) -> str:
+    """The storyline panel: the approved storyline file as written, or the
+    slide headlines alone (scripts/review_storyline.py, owner's decision
+    2026-10-13). What it must show is kept in storyline["_panel"] for the
+    check main() runs after writing the page."""
+    import review_storyline
+    panel = review_storyline.build_panel(meta, storyline, slides)
+    storyline["_panel"] = panel
+    return panel["html"]
 
 
 # ---------------------------------------------------------------------------
@@ -1168,8 +1129,14 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
     # then hid whatever did get built.
     none_btn = (
         f'<button class="none" onclick="pickNone(\'{sid}\')" '
-        f'title="Discard these options and design new ones for this slide">'
+        f'title="Discard these options and design one new one for this slide">'
         '&#8635; REPLACE THESE</button>'
+        # One new design by default; "+3 designs" asks three for this slide
+        # only (owner's decision 2026-10-13). The page's message carries a
+        # "Three designs for:" line that redesign_round.py start --three records.
+        f'<button class="none three" onclick="pickThree(\'{sid}\')" '
+        f'title="Three new designs instead of one: takes longer and uses more tokens">'
+        '+3 DESIGNS</button>'
         # Leaving a slide out is the user's call, recorded with their picks.
         # It replaced compile --drop, which let a slide be dropped with no
         # approval at all, down to an empty deck reported as deliverable.
@@ -1230,7 +1197,7 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
         {pick_buttons}
         {none_btn}
       </div>
-      <div class="hint-text">Pick an option, or Replace these to get new designs for this slide.</div>
+      <div class="hint-text">Pick an option, or Replace these to get one new design for this slide. +3 designs gets three new designs to choose from instead; it takes longer and uses more tokens.</div>
       {more_picker}
 
       <div class="redo-note" id="regen-{sid}" style="display:none;">
@@ -1310,6 +1277,22 @@ code { font-family: Consolas, monospace; font-size: 12px; color: var(--text-dim)
 .storyline-section summary:hover .storyline-summary-text { color: var(--text); }
 .storyline-section[open] summary { border-bottom: 1px solid var(--border); margin-bottom: 12px; }
 .storyline-body { max-width: 1200px; margin: 0 auto; padding: 8px 0; }
+/* The approved storyline, shown as written: its own styles are dropped and
+   these style it (review_storyline.py). */
+.sl-embed { font-family: 'Inter', sans-serif; font-size: 14px; line-height: 1.55; color: var(--text); max-width: 860px; }
+.sl-embed h1 { font-size: 22px; font-weight: 800; margin: 0 0 12px; }
+.sl-embed h2 { font-size: 17px; font-weight: 700; margin: 18px 0 8px; }
+.sl-embed h3, .sl-embed h4 { font-size: 14px; font-weight: 700; margin: 14px 0 6px; }
+.sl-embed p { margin: 6px 0; }
+.sl-embed ul, .sl-embed ol { margin: 4px 0 8px; padding-left: 24px; }
+.sl-embed li { margin: 3px 0; }
+.sl-embed table { border-collapse: collapse; margin: 8px 0; font-size: 13px; }
+.sl-embed th, .sl-embed td { border: 1px solid var(--border); padding: 4px 8px; text-align: left; vertical-align: top; }
+.sl-embed .dot, .sl-embed .dd-gov { font-weight: 700; margin-top: 12px; }
+.sl-embed .note, .sl-embed .bridge { color: var(--text-dim); }
+.sl-embed .sl-gov { font-weight: 700; color: var(--accent-soft); margin-bottom: 10px; }
+.sl-embed .sl-heads li { font-weight: 600; padding: 2px 0; }
+.sl-warn { margin: 0 0 8px; padding: 7px 12px; background: rgba(202,138,4,0.14); border-left: 3px solid var(--tweak); color: #78350F; font-size: 12px; line-height: 1.4; }
 .dd-container { font-family: 'Inter', sans-serif; line-height: 1.5; color: var(--text); }
 .dd-title { font-size: 22px; font-weight: 800; color: var(--text); margin: 0 0 14px; }
 .dd-deck-meta { display: grid; grid-template-columns: max-content 1fr; gap: 4px 14px; font-size: 13px; margin-bottom: 16px; }
@@ -1568,6 +1551,9 @@ function loadPicks()  { return loadJson(PICKS_KEY); }
 function savePicks(p) { saveJson(PICKS_KEY, p); }
 function loadRegens() { return loadJson(REGEN_KEY); }
 function saveRegens(r){ saveJson(REGEN_KEY, r); }
+function loadThrees() { return loadJson(REGEN_KEY + "_three"); }
+function saveThrees(r){ saveJson(REGEN_KEY + "_three", r); }
+function isThree(sid) { return isReplace(sid) && loadThrees()[sid] === STAMPS[sid]; }
 function loadFb()     { return loadJson(FB_KEY); }
 function loadKeep()   { return loadJson(KEEP_KEY); }
 function saveKeep(k)  { saveJson(KEEP_KEY, k); }
@@ -1622,14 +1608,17 @@ function renderSlideState(sid) {
         const btn = card.querySelector(`.decision-buttons button.pick[data-letter="${letter}"]`);
         if (btn) btn.classList.add("active");
     } else if (isNone) {
-        const btn = card.querySelector(".decision-buttons button.none");
+        const btn = card.querySelector(isThree(sid) ? ".decision-buttons button.none.three"
+                                                    : ".decision-buttons button.none:not(.three)");
         if (btn) btn.classList.add("active");
     }
 
     const badge = document.getElementById("badge-" + sid);
     badge.classList.remove("pending", "picked", "none");
     if (letter) { badge.classList.add("picked"); badge.textContent = letter === "-" ? "Left out" : "Picked " + letter; }
-    else if (isNone) { badge.classList.add("none"); badge.textContent = "New designs requested"; }
+    else if (isNone) { badge.classList.add("none");
+                       badge.textContent = isThree(sid) ? "Three new designs requested"
+                                                        : "One new design requested"; }
     else { badge.classList.add("pending"); badge.textContent = "Not decided yet"; }
 
     const kept = document.getElementById("kept-" + sid);
@@ -1747,15 +1736,36 @@ function pickOption(sid, letter) {
 }
 
 function pickNone(sid) {
+    // Replace these: ONE new design (the default). From "+3 designs" it
+    // switches back to one; clicked again it clears the request.
     const regens = loadRegens();
-    if (isReplace(sid)) { delete regens[sid]; }
+    const threes = loadThrees();
+    if (isReplace(sid) && !isThree(sid)) { delete regens[sid]; }
     else {
         regens[sid] = STAMPS[sid];
         const picks = loadPicks();
         picks[sid] = { l: null, s: STAMPS[sid] };
         savePicks(picks);
     }
-    saveRegens(regens);
+    delete threes[sid];
+    saveRegens(regens); saveThrees(threes);
+    renderSlideState(sid); updateCounts();
+}
+
+function pickThree(sid) {
+    // +3 designs: three new designs for this slide instead of one. Clicked
+    // again it clears the request.
+    const regens = loadRegens();
+    const threes = loadThrees();
+    if (isThree(sid)) { delete regens[sid]; delete threes[sid]; }
+    else {
+        regens[sid] = STAMPS[sid];
+        threes[sid] = STAMPS[sid];
+        const picks = loadPicks();
+        picks[sid] = { l: null, s: STAMPS[sid] };
+        savePicks(picks);
+    }
+    saveRegens(regens); saveThrees(threes);
     renderSlideState(sid); updateCounts();
 }
 
@@ -1845,10 +1855,18 @@ async function buildDeck() {
         let cmd = "Redesign some slides in my Slide Lab deck.\n";
         cmd += "Folder: " + window.__OUT_DIR__ + "\n";
         cmd += "New designs for: " + replace.map(s => "slide " + parseInt(s.replace("slide_", ""), 10)).join(", ") + "\n";
+        // One new design each unless the user clicked +3 designs on that slide.
+        const threes = replace.filter(isThree);
+        if (threes.length)
+            cmd += "Three designs for: " + threes.map(s => "slide " + parseInt(s.replace("slide_", ""), 10)).join(", ") + "\n";
         // Check-coded like the build line, so redesign_round.py can record
         // them before the redesign and skip a second picking page.
         if (Object.keys(picks).length)
             cmd += plainPicks(canonicalPicks(picks)).replace(/^Picks:/, "Keep:") + "\n";
+        const nums = s => s.map(x => parseInt(x.replace("slide_", ""), 10)).join(",");
+        cmd += "(Claude: record it with redesign_round.py start --out <Folder> --slides " +
+               nums(replace) + (threes.length ? " --three " + nums(threes) : "") +
+               (Object.keys(picks).length ? " --kept \"<the Keep line>\"" : "") + ")\n";
         cmd += feedbackText();
         return copyOut(cmd, "Update command copied. Paste into Claude Code.",
                        "Update command (Ctrl+C to copy)");
@@ -1997,7 +2015,7 @@ def build_html(out_dir: Path, meta: Optional[dict], slides: list, storyline: dic
         or client_slug_raw
     )
 
-    storyline_html = render_storyline_html(storyline, slides)
+    storyline_html = render_storyline_html(storyline, slides, meta)
     qc_html = render_qc_banner(out_dir)
     font_html = render_font_banner(out_dir)
     preview_html = render_preview_banner(slides)
@@ -2455,8 +2473,31 @@ def main(argv: list[str]) -> int:
     print(f"[ok] wrote {review_path}")
     print(f"     {len(slides)} slides, {total_opts} option tiles")
     print(f"     missing PNGs: {missing_png}, missing themed PPTX: {missing_themed}")
-    print(f"     storyline parsed from brief: {storyline.get('found')}")
+    panel = storyline.get("_panel") or {}
+    print(f"     storyline panel: {panel.get('source') if panel.get('source') != 'headlines' else 'the slide headlines (no approved storyline file recorded)'}")
+    for w in panel.get("warnings") or []:
+        print(f"     WARNING: {re.sub(r'<[^>]+>', '', w)}")
     print(f"     size: {fmt_bytes(review_path.stat().st_size)}")
+    # The panel must show the storyline as written (owner's decision
+    # 2026-10-13): its text equal to the source, and none of the designer
+    # wording the old panel showed. Checked on the page as written.
+    import review_storyline
+    probs = review_storyline.check_panel(review_path.read_text(encoding="utf-8"),
+                                         panel.get("expected") or "")
+    if probs:
+        src = panel.get("source") or "the slide headlines"
+        print(f"STOPPED: the storyline panel in {review_path} is not right: "
+              + "; ".join(probs) + ".")
+        print(f"  It shows {src}. The page was written but NOT opened.")
+        if src == "headlines":
+            print("  Next: fix that wording in the slide headlines of the brief "
+                  f"({(meta or {}).get('brief') or 'the brief'}), re-seal it, prep again, "
+                  "then run build_review.py again.")
+        else:
+            print(f"  Next: fix that wording in {src} (or point approved_storyline in the "
+                  "brief's front matter at the storyline the user approved), prep again "
+                  "(build_deck.py records it), then run build_review.py again.")
+        return 6
     if args.open:
         how = _open_page(review_path)
         if how:

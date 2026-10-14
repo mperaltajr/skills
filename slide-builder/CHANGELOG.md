@@ -2,6 +2,76 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## 2026-10-13: render time limit, locked folders, one design by default, QC steps, the approved storyline on the review page
+
+From the Leo-narrative session report (items 5, 6, 14 and 16; owner's
+decisions of 2026-10-13).
+
+- **Renders stop themselves** (item 5). `_browser.render_deadline()` gives
+  each render 120 s in all (`SLIDE_LAB_RENDER_TIMEOUT`) and each slow step 30 s
+  (`SLIDE_LAB_RENDER_STEP_TIMEOUT`; closing the browser gets twice that, since
+  on a busy computer it took over 30 s with nothing stuck). Past either, the
+  run ends only the processes it started and recorded (the driver and its
+  browser, checked by start time, never anything found by name), deletes its
+  scratch folder and exits 4 "timed out, re-run". Used by `render_html.py`,
+  `translate_html.py` (plus 15 s per extra slide) and `doctor.py`. The driver
+  and browser now start with their working folder in their scratch folder,
+  never in a slide folder. New `_procs.py`: a read-only process list, and
+  ending exactly named PIDs only while they still mention a folder.
+- **A locked slide folder** (item 5). `build_deck.py --insert` tries a rename
+  3 more times; then it stops (exit 5) with nothing changed, names the
+  folder, lists read-only the processes whose command line mentions the build
+  folder (PID, start, command) and says to ask the user before ending exactly
+  those PIDs (`_procs.py --mentioning <folder> --end <PIDs>`). A failed undo is
+  now reported instead of passed over. Workers and translators never `cd`
+  into a session or slide folder (agent files).
+- **doctor.py lists leftovers** (item 5): scratch folders of renders that were
+  stopped and render programs running over 30 minutes, read-only; it never
+  ends a program, and `doctor.py clear-leftovers` deletes the folders only
+  after the user says yes.
+- **One design per slide by default** (item 6, owner's decision changed
+  2026-10-13). `settings.json options_per_slide` ships at 1 (was 3), for a
+  full build, an insert and a redesign. New per-computer file
+  `slide-builder/settings.local.json` (git-ignored, never published): its
+  keys win over settings.json, read by `_paths.settings()` for the option
+  counts, the translator, the renderer and build_deck's settings;
+  `SLIDE_LAB_OPTIONS_PER_SLIDE` still wins over both; tests ignore the local
+  file. Three designs only when the user asks in chat (`--options 3`) or
+  clicks the new **+3 DESIGNS** button on a slide's card in REVIEW.html
+  (plain note: takes longer, uses more tokens). The page's message then
+  carries `Three designs for: slide N` and the exact `redesign_round.py
+  start ... --three N` command; `build_deck.py --slide N` builds three for a
+  slide recorded that way. Replace these makes one. Nobody is asked "one or
+  three". The insert prints the frozen count and how to change it; finalize's
+  exit 11 for a slide with option A but not B and C prints the exact
+  `build_deck.py --slide N --options 1` command and warns that it moves option
+  A aside. Tutorial facts updated to match.
+- **QC refusals say what to do** (item 14). `record_vision_qc.py` refuses typed
+  counts with "this is slide-qc's recording step; an old copy of slide-qc
+  showed those flags: invoke the skill again", and the real `qc_pages.py
+  plan`, `_qc\to_read` and `page_notes.json` steps, the commands in its last
+  two lines (sessions read only the tail and may run an old copy of the
+  skill text). Same for missing notes; `--help` describes the plan step;
+  `check_done.py` names the skill and the three commands; compile says the
+  pictures are already drawn in `<out>\_qc` and not to draw them elsewhere.
+- **The review page shows the approved storyline as written** (item 16). The
+  brief's front matter `approved_storyline: <path>` (written by
+  `emit_dot_dash.py`, set by hand for a prose storyline written by hand, or
+  `build_deck.py --storyline`) is recorded at prep with its size, time and
+  fingerprint; the seal ignores the line and a re-seal keeps it. REVIEW.html
+  shows that file inline (own styles, scripts and handlers dropped, a short
+  list of plain tags kept, styled by the page; .md converted, .docx linked),
+  labelled with its name and last change, with one-line warnings (missing,
+  changed after prep, brief newer, headline drift by text). With no pointer
+  it shows the headlines only, the governing thought once, with no "Slide N"
+  prefix and no repeats. After writing the page, `build_review.py` checks
+  the panel's text equals the file's and has no ALL CAPS designer label, no
+  "Supporting points:" and no em-dash, else exit 6, page not opened. New
+  `review_storyline.py`. Decision D: `emit_dot_dash.py` and `seal_brief.py`
+  refuse designer wording in a brief bullet.
+- Tests: new `run_insert_options_smoke.py`, `run_review_storyline_smoke.py`;
+  `run_qc_gates_smoke.py` [11] and `run_brief_fields_smoke.py` [6] extended.
+
 ## 2026-10-13: sketch titles match the deck, source lines, preview page numbers
 
 From the 10/13 feedback report on the Kinfield Leo deck. New decks only;

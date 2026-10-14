@@ -2758,13 +2758,19 @@ def translate_many(jobs: list[tuple], check: bool = True) -> list[dict]:
     render of every slide, as one deck, for the self-check."""
     from playwright.sync_api import sync_playwright
     done = []
-    from _browser import scratch_env
-    with scratch_env(), sync_playwright() as pw:
+    from _browser import scratch_env, render_deadline, render_timeout, step
+    # Time limit (scripts/_browser.py): 120 s (SLIDE_LAB_RENDER_TIMEOUT) plus
+    # 15 s for each slide after the first, 30 s to read any one slide. Past it,
+    # only this run's own browser is ended and the run exits 4: re-run.
+    limit = render_timeout() + 15 * max(0, len(jobs) - 1)
+    with render_deadline("translate_html.py", seconds=limit), \
+            scratch_env(), sync_playwright() as pw:
         from _browser import launch
         browser = launch(pw)
         page = browser.new_page(viewport={"width": CANVAS_W, "height": CANVAS_H})
         for html, emit_dir, letter, sas, *rest in jobs:
-            data = extract(page, html, sas)
+            with step(f"reading the design {Path(html).parent.name}/{Path(html).name}"):
+                data = extract(page, html, sas)
             plan, fields = plan_from_extract(data, sas, rest[1] if len(rest) > 1 else None)
             done.append((html, emit_dir, letter, plan, fields, data, rest[0] if rest else None))
         browser.close()

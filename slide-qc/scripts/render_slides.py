@@ -133,10 +133,16 @@ def renderer_setting() -> str:
     val = os.environ.get("SLIDE_LAB_RENDERER", "").strip().lower()
     if not val:
         try:
-            val = str(json.loads(SETTINGS_JSON.read_text(encoding="utf-8"))
-                      .get("renderer", "auto")).strip().lower()
+            # settings.json with this computer's settings.local.json on top
+            sys.path.insert(0, str(SETTINGS_JSON.parent / "scripts"))
+            import _paths
+            val = str(_paths.settings().get("renderer", "auto")).strip().lower()
         except Exception:
-            val = "auto"
+            try:
+                val = str(json.loads(SETTINGS_JSON.read_text(encoding="utf-8"))
+                          .get("renderer", "auto")).strip().lower()
+            except Exception:
+                val = "auto"
     val = {"ppt": "powerpoint", "libre": "libreoffice", "lo": "libreoffice"}.get(val, val)
     return val if val in RENDERERS else "auto"
 

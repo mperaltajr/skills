@@ -120,6 +120,23 @@ def main() -> int:
         print("[5] the stale prior-patterns sentence is gone")
         assert "patterns picked for the previous two slides" not in p1
         print("    ok")
+
+        print("[6] with no approved storyline, REVIEW shows the headlines only")
+        import review_storyline as RS
+        for n in (1, 2):
+            H.write_option(out, n)
+        r = H.run("build_review.py", "--out", out)
+        assert r.returncode == 0, r.stdout[-1500:] + r.stderr[-1500:]
+        page = (out / "REVIEW.html").read_text(encoding="utf-8")
+        panel = page[page.find(RS.START):page.find(RS.END)]
+        lines = RS.text_of(panel).splitlines()
+        heads = ["Claim number 1 is stated plainly here", "Claim number 2 is stated plainly here"]
+        assert lines[1:] == heads, lines            # one plain line per slide, in order
+        assert not any(ln.startswith("Slide ") for ln in lines), lines   # no "Slide N" prefix
+        assert len(lines) == len(set(lines)), lines                       # nothing twice
+        for word in ("Point one", "Mood board", RS.EM_DASH, "Deck type"):
+            assert word not in panel, word                                # no bullets, no block
+        print("    ok")
         print("SMOKE PASSED.")
         return 0
     finally:

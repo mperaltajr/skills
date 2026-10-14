@@ -69,15 +69,60 @@ def slide_key(n: int) -> str:
 _ALL_OPTION_LETTERS = ("A", "B", "C")
 
 
+SETTINGS_JSON = Path(__file__).resolve().parents[1] / "settings.json"
+# One computer's own choices (owner's decision 2026-10-13): same keys as
+# settings.json, each one it sets wins over the published file. Never
+# published (.gitignore), so the shipped defaults stay what every other user
+# gets: one design per slide, the cheap default. SLIDE_LAB_SETTINGS_LOCAL
+# points at another file ("none" = no local file; the tests set that so the
+# owner's own choices never change a test).
+SETTINGS_LOCAL_JSON = SETTINGS_JSON.with_name("settings.local.json")
+
+
+def settings_local_path() -> Path | None:
+    import os
+    env = (os.environ.get("SLIDE_LAB_SETTINGS_LOCAL") or "").strip()
+    if env.lower() == "none":
+        return None
+    return Path(env) if env else SETTINGS_LOCAL_JSON
+
+
+def settings() -> dict:
+    """slide-builder/settings.json with settings.local.json's keys on top.
+    Never raises: a missing or broken file counts as empty (a broken local
+    file is named in a warning)."""
+    import json
+    out: dict = {}
+    try:
+        raw = json.loads(SETTINGS_JSON.read_text(encoding="utf-8"))
+        if isinstance(raw, dict):
+            out.update(raw)
+    except Exception:
+        pass
+    local = settings_local_path()
+    if local is not None and local.exists():
+        try:
+            raw = json.loads(local.read_text(encoding="utf-8-sig"))
+            if isinstance(raw, dict):
+                out.update({k: v for k, v in raw.items() if not str(k).startswith("_")})
+        except Exception as exc:
+            import sys
+            sys.stderr.write(f"  WARN: could not read {local} ({type(exc).__name__}); "
+                             "using settings.json alone. Fix or delete that file.\n")
+    return out
+
+
 def options_per_slide(default: int = 1) -> int:
     """How many design options to build per slide, from
-    slide-builder/settings.json::options_per_slide (clamped 1-3; 1 if the file
-    is missing). Never raises — a missing/malformed settings file yields the
-    default.
+    settings.json::options_per_slide (settings.local.json wins; clamped 1-3;
+    1 if missing). Ships at 1 (owner's decision 2026-10-13): three designs
+    cost more tokens and time, so a slide gets three only when the user asks
+    (in chat, or "+3 designs" on its card in REVIEW.html), or a computer's
+    settings.local.json sets 3. Never raises.
 
-    SLIDE_LAB_OPTIONS_PER_SLIDE overrides the file. Tests set it so they do not
-    depend on whatever the user's live settings say; three tests failed the day
-    the live value changed from 1 to 3."""
+    SLIDE_LAB_OPTIONS_PER_SLIDE overrides both files. Tests set it so they do
+    not depend on whatever the user's live settings say; three tests failed
+    the day the live value changed from 1 to 3."""
     import os
     env = os.environ.get("SLIDE_LAB_OPTIONS_PER_SLIDE")
     if env:
@@ -87,9 +132,7 @@ def options_per_slide(default: int = 1) -> int:
         except ValueError:
             pass
     try:
-        import json
-        settings = Path(__file__).resolve().parents[1] / "settings.json"
-        v = int(json.loads(settings.read_text(encoding="utf-8")).get("options_per_slide", default))
+        v = int(settings().get("options_per_slide", default))
         return v if 1 <= v <= len(_ALL_OPTION_LETTERS) else default
     except Exception:
         return default
@@ -103,9 +146,7 @@ def translator_mode() -> str:
     if env in ("script", "agent"):
         return env
     try:
-        import json
-        settings = Path(__file__).resolve().parents[1] / "settings.json"
-        v = str(json.loads(settings.read_text(encoding="utf-8")).get("translator", "agent")).lower()
+        v = str(settings().get("translator", "agent")).lower()
         return v if v in ("script", "agent") else "agent"
     except Exception:
         return "agent"
@@ -115,12 +156,10 @@ def options_per_slide_revision(default: int = 1) -> int:
     """Options to build when a slide is rebuilt after the user's feedback
     (build_deck.py --slide N), from settings.json::options_per_slide_revision.
     The user has already said what to change, so one focused option is enough;
-    three tripled the wait on every revision round (9-20 min a page)."""
+    three tripled the wait on every revision round (9-20 min a page).
+    settings.local.json wins over settings.json."""
     try:
-        import json
-        settings = Path(__file__).resolve().parents[1] / "settings.json"
-        v = int(json.loads(settings.read_text(encoding="utf-8")).get(
-            "options_per_slide_revision", default))
+        v = int(settings().get("options_per_slide_revision", default))
         return v if 1 <= v <= len(_ALL_OPTION_LETTERS) else default
     except Exception:
         return default
