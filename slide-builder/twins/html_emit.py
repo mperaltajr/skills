@@ -139,6 +139,19 @@ def _line(shape, line) -> None:
     shape.line.width = E(line["w"])
     if line.get("dash") in _DASH:
         shape.line.dash_style = _DASH[line["dash"]]
+    # arrowheads: headEnd at the line's start, tailEnd at its end (after the
+    # fill and dash, as the schema orders them)
+    ln = None
+    for key, tag in (("head", "a:headEnd"), ("tail", "a:tailEnd")):
+        spec = line.get(key)
+        if not spec:
+            continue
+        ln = ln if ln is not None else shape._element.spPr.get_or_add_ln()
+        for old in ln.findall(qn(tag)):
+            ln.remove(old)
+        ln.append(ln.makeelement(qn(tag), {"type": spec.get("type") or "triangle",
+                                            "w": spec.get("w") or "med",
+                                            "len": spec.get("len") or "med"}))
 
 
 def _shape(slide, op) -> None:

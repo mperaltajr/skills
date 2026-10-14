@@ -435,6 +435,58 @@ EXTRACT_JS = r"""
   // SVG: map the primitives these designs use (line, polyline, polygon, rect,
   // circle, ellipse, text, straight-segment paths). Anything else, or anything
   // decorated in a way shapes cannot carry, sends the whole SVG to the agent.
+  // How many screen px one unit of an svg element's own drawing is (its
+  // viewBox and transforms): line widths are in those units.
+  function ctmScale(el) { try { const m = el.getScreenCTM(); return m ? Math.sqrt(Math.abs(m.a * m.d - m.b * m.c)) || 1 : 1; } catch (e) { return 1; } }
+  // A marker that is one plain triangle pointing along the line, in the
+  // line's color: {len, wid, ext (px past the line's end to the tip), fill}.
+  function arrowHead(el, cs, which, sw) {
+    const ref = el.getAttribute('marker-' + which) || (which === 'end' ? cs.markerEnd : cs.markerStart) || '';
+    const m = /url\(\s*["']?#([^"')]+)["']?\s*\)/.exec(ref);
+    const mk = m ? document.getElementById(m[1]) : null;
+    if (!mk || mk.tagName.toLowerCase() !== 'marker') return null;
+    const kids = Array.from(mk.children).filter(k => !['title', 'desc'].includes(k.tagName.toLowerCase()));
+    if (kids.length !== 1) return null;
+    const k = kids[0], kt = k.tagName.toLowerCase();
+    if (k.getAttribute('transform')) return null;
+    let v = [];
+    if (kt === 'polygon') {
+      const nums = (k.getAttribute('points') || '').trim().split(/[\s,]+/).map(parseFloat);
+      for (let i = 0; i + 1 < nums.length; i += 2) v.push([nums[i], nums[i + 1]]);
+    } else if (kt === 'path') {
+      const d = k.getAttribute('d') || '';
+      if (/[^MLZmlz\d\s,.\-e]/.test(d) || /[ml]/.test(d.replace(/e-?\d/g, ''))) return null;
+      const nums = (d.match(/-?[\d.]+(?:e-?\d+)?/g) || []).map(parseFloat);
+      for (let i = 0; i + 1 < nums.length; i += 2) v.push([nums[i], nums[i + 1]]);
+      if (v.length === 4 && Math.abs(v[3][0] - v[0][0]) < 1e-6 && Math.abs(v[3][1] - v[0][1]) < 1e-6) v.pop();
+    } else return null;
+    if (v.length !== 3) return null;
+    const orient = (mk.getAttribute('orient') || '0').trim();
+    if (orient !== 'auto' && orient !== 'auto-start-reverse') return null;
+    const units = mk.getAttribute('markerUnits') || 'strokeWidth';
+    let scale = (units === 'strokeWidth' ? sw : 1) * ctmScale(el);
+    const vb = mk.viewBox && mk.viewBox.baseVal;
+    if (vb && vb.width > 0 && vb.height > 0) {
+      const mw = parseFloat(mk.getAttribute('markerWidth') || 3), mh = parseFloat(mk.getAttribute('markerHeight') || 3);
+      if (Math.abs(mw / vb.width - mh / vb.height) > 1e-3) return null;
+      scale *= mw / vb.width;
+    }
+    // the tip: the corner farthest along x from the other two, which share an x
+    let best = null;
+    for (let i = 0; i < 3; i++) {
+      const o = v.filter((_, j) => j !== i);
+      const bx = (o[0][0] + o[1][0]) / 2, len = Math.abs(v[i][0] - bx), wid = Math.abs(o[0][1] - o[1][1]);
+      if (!best || len > best.len) best = {tip: v[i], bx, len, wid, spread: Math.abs(o[0][0] - o[1][0]), my: (o[0][1] + o[1][1]) / 2};
+    }
+    if (!best || best.len <= 0 || best.wid <= 0 || best.spread > 0.25 * best.len || Math.abs(best.tip[1] - best.my) > 0.25 * best.wid) return null;
+    const dir = Math.sign(best.tip[0] - best.bx);
+    const outward = which === 'end' ? dir > 0 : (orient === 'auto-start-reverse' ? dir > 0 : dir < 0);
+    if (!outward) return null;
+    const refX = parseFloat(mk.getAttribute('refX') || 0);
+    const ext = (which === 'start' && orient === 'auto' ? refX - best.tip[0] : best.tip[0] - refX) * scale;
+    return {len: best.len * scale, wid: best.wid * scale, ext, fill: getComputedStyle(k).fill};
+  }
+
   function readSvg(svg, sid) {
     const r = svg.getBoundingClientRect();
     const res = {id: sid, ...R(r), order: order++, items: [], unsupported: [], arrows: [], rects: []};
@@ -442,9 +494,11 @@ EXTRACT_JS = r"""
     for (const el of svg.querySelectorAll('*')) {
       const tag = el.tagName.toLowerCase();
       if (['defs','title','desc','g','style','tspan','lineargradient','radialgradient','stop','clippath','mask','marker','symbol'].includes(tag)) {
-        if (['lineargradient','radialgradient','clippath','mask','marker','symbol'].includes(tag)) res.unsupported.push(tag);
+        // a marker is judged where it is used (arrowHead below)
+        if (['lineargradient','radialgradient','clippath','mask','symbol'].includes(tag)) res.unsupported.push(tag);
         continue;
       }
+      if (el.closest('marker')) continue;      // an arrowhead's own drawing
       const cs = getComputedStyle(el);
       if (!visible(cs)) continue;
       if (!el.closest('defs, marker, symbol, clipPath, mask')) {
@@ -455,9 +509,9 @@ EXTRACT_JS = r"""
       }
       const mEnd = !!el.getAttribute('marker-end') || cs.markerEnd !== 'none';
       const mStart = !!el.getAttribute('marker-start') || cs.markerStart !== 'none';
+      let heads = null;
       if (mEnd || mStart) {
         // Where the arrow's ends are, for the arrow-end check (scripts/arrow_ends.py).
-        // The element itself still goes to the agent.
         try {
           if (!el.closest('defs, marker, symbol') && typeof el.getTotalLength === 'function') {
             const L = el.getTotalLength(), pts = [];
@@ -465,14 +519,21 @@ EXTRACT_JS = r"""
             res.arrows.push({pts, start: mStart, end: mEnd, id: el.getAttribute('data-shape-id') || el.id || ''});
           }
         } catch (e) {}
-        res.unsupported.push('arrow marker'); continue;
+        // A straight line with a plain triangle arrowhead is drawn natively
+        // (a line with a PowerPoint arrowhead, 2026-10-13); any other marker
+        // sends the drawing to the agent.
+        const sw0 = parseFloat(cs.strokeWidth) || 1;
+        const hs = {start: mStart ? arrowHead(el, cs, 'start', sw0) : null, end: mEnd ? arrowHead(el, cs, 'end', sw0) : null};
+        if (['line', 'path', 'polyline'].includes(tag) && (!mStart || hs.start) && (!mEnd || hs.end)) heads = hs;
+        else { res.unsupported.push('arrow marker'); continue; }
       }
       if (cs.strokeDasharray && cs.strokeDasharray !== 'none' && (tag === 'circle' || tag === 'ellipse')) { res.unsupported.push('dashed ring'); continue; }
       const st = {fill: cs.fill, fillOp: parseFloat(cs.fillOpacity) * parseFloat(cs.opacity), stroke: cs.stroke,
-                  sw: parseFloat(cs.strokeWidth) || 0, dash: cs.strokeDasharray && cs.strokeDasharray !== 'none',
+                  sw: (parseFloat(cs.strokeWidth) || 0) * ctmScale(el), dash: cs.strokeDasharray && cs.strokeDasharray !== 'none',
                   def: !!el.closest('defs, marker, symbol')};
       if (/url\(/.test(st.fill) || /url\(/.test(st.stroke)) { res.unsupported.push('gradient paint'); continue; }
       const A = (n) => parseFloat(el.getAttribute(n) || 0);
+      const n0 = res.items.length;
       if (tag === 'line') res.items.push({k: 'poly', closed: false, pts: [pt(el, A('x1'), A('y1')), pt(el, A('x2'), A('y2'))], ...st});
       else if (tag === 'polyline' || tag === 'polygon') {
         const nums = (el.getAttribute('points') || '').trim().split(/[\s,]+/).map(parseFloat);
@@ -503,11 +564,20 @@ EXTRACT_JS = r"""
           if (cur) cur.pts.push([x, y]);
         }
         for (const s of subs) res.items.push({k: 'poly', closed: s.closed, pts: s.pts.map(p => pt(el, p[0], p[1])), ...st});
-      } else if (tag === 'text') {
+      }
+      if (heads) {
+        const got = res.items.slice(n0);
+        if (got.length !== 1 || got[0].k !== 'poly' || got[0].closed || got[0].pts.length !== 2) {
+          res.items.length = n0; res.unsupported.push('arrow marker'); continue;
+        }
+        got[0].heads = heads;
+        continue;
+      }
+      if (tag === 'text') {
         const bb = el.getBoundingClientRect();
         res.items.push({k: 'text', t: el.textContent.replace(/\s+/g, ' ').trim(), x: bb.left - ox, y: bb.top - oy, w: bb.width, h: bb.height,
           fs: parseFloat(cs.fontSize), ff: cs.fontFamily, fw: cs.fontWeight, color: cs.fill, anchor: cs.textAnchor || el.getAttribute('text-anchor') || 'start'});
-      } else res.unsupported.push(tag);
+      } else if (!['line', 'polyline', 'polygon', 'rect', 'circle', 'ellipse', 'path'].includes(tag)) res.unsupported.push(tag);
     }
     return res;
   }
@@ -1519,7 +1589,37 @@ def _plan_icon(plan: Plan, ic: dict) -> None:
     plan.counts["icons"] = plan.counts.get("icons", 0) + 1
 
 
+# PowerPoint's arrowhead sizes, as multiples of the line's width.
+_HEAD_SIZES = (("sm", 2.0), ("med", 3.0), ("lg", 5.0))
+HEAD_COLOR_LIMIT = 30.0     # RGB distance: an arrowhead in another color stays the agent's
+
+
+def _head_size(px: float, line_w: float) -> str:
+    k = px / max(0.5, line_w)
+    return min(_HEAD_SIZES, key=lambda s_: abs(math.log(k / s_[1])) if k > 0 else 9)[0]
+
+
+def _head_fits(hd: dict, line_w: float) -> bool:
+    """Is a PowerPoint arrowhead close to this size (small 2x the line's
+    width, large 5x)? A 16 px head on a 2 px line (8x) came out half size."""
+    lw = max(0.5, line_w)
+    return all(1.6 <= hd[k] / lw <= 6.0 for k in ("len", "wid"))
+
+
+def _arrow_heads_ok(s: dict) -> bool:
+    for it in s.get("items") or []:
+        for hd in (it.get("heads") or {}).values():
+            if not hd:
+                continue
+            fill, stroke = parse_color(hd.get("fill")), parse_color(it.get("stroke"))
+            if not fill or not stroke or _color_distance(fill[0], stroke[0]) > HEAD_COLOR_LIMIT:
+                return False
+    return True
+
+
 def _plan_svg(plan: Plan, s: dict) -> None:
+    if not s["unsupported"] and not _arrow_heads_ok(s):
+        s = dict(s, unsupported=["arrowhead in another color than its line"])
     if s["unsupported"]:
         plan.fallbacks.append({"kind": "svg", "id": s.get("id") or "", "x": s["x"], "y": s["y"],
                                "w": s["w"], "h": s["h"],
@@ -1534,7 +1634,41 @@ def _plan_svg(plan: Plan, s: dict) -> None:
             if stroke and it.get("sw", 0) > 0 else None
         if it["k"] == "poly":
             if len(it["pts"]) == 2 and not it["closed"]:
-                plan.ops.append({"op": "connector", "points": it["pts"], "line": line, "_order": k})
+                pts = [list(it["pts"][0]), list(it["pts"][1])]
+                heads = it.get("heads") or {}
+                if line and any(heads.values()):
+                    # PowerPoint puts the arrow's tip on the line's end: move
+                    # each end out to where the design's tip is
+                    dx, dy = pts[1][0] - pts[0][0], pts[1][1] - pts[0][1]
+                    n = math.hypot(dx, dy) or 1.0
+                    ux, uy = dx / n, dy / n
+                    line = dict(line)
+                    own = []          # arrowheads PowerPoint can't size: drawn as triangles
+                    for which, key, j, sgn in (("start", "head", 0, -1), ("end", "tail", 1, 1)):
+                        hd = heads.get(which)
+                        if not hd:
+                            continue
+                        e = float(hd.get("ext") or 0)
+                        tip = [pts[j][0] + sgn * ux * e, pts[j][1] + sgn * uy * e]
+                        if _head_fits(hd, line["w"]):
+                            pts[j] = tip
+                            line[key] = {"type": "triangle", "w": _head_size(hd["wid"], line["w"]),
+                                         "len": _head_size(hd["len"], line["w"])}
+                        else:
+                            bx, by = tip[0] - sgn * ux * hd["len"], tip[1] - sgn * uy * hd["len"]
+                            hw = hd["wid"] / 2
+                            own.append([tip, [bx - uy * hw, by + ux * hw], [bx + uy * hw, by - ux * hw]])
+                    plan.counts["native_arrowheads"] = plan.counts.get("native_arrowheads", 0) + 1
+                else:
+                    own = []
+                name = (s.get("id") or None) if len(s["items"]) == 1 else None
+                plan.ops.append({"op": "connector", "points": pts, "line": line, "_order": k,
+                                 "name": name})
+                for n_, tri in enumerate(own):
+                    plan.ops.append({"op": "freeform", "points": tri, "closed": True,
+                                     "fill": line["color"], "alpha": 1.0, "line": None,
+                                     "_order": k + 0.00001 * (n_ + 1),
+                                     "name": f"{name}-head-{n_ + 1}" if name else None})
             else:
                 plan.ops.append({"op": "freeform", "points": it["pts"], "closed": it["closed"],
                                  "fill": fill[0] if fill and it["closed"] else None,

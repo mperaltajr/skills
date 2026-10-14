@@ -462,6 +462,11 @@ def region(o: dict) -> tuple[int, int, int, int] | None:
         xs = [p[0] for p in o["points"]]
         ys = [p[1] for p in o["points"]]
         x0, y0, x1, y1 = min(xs), min(ys), max(xs), max(ys)
+        ln = o.get("line") or {}
+        if ln.get("head") or ln.get("tail"):
+            # an arrowhead is up to 5 line widths wide: keep it in the box
+            r_ = 2.5 * float(ln.get("w") or 1)
+            x0, y0, x1, y1 = x0 - r_, y0 - r_, x1 + r_, y1 + r_
     elif o["op"] == "text":
         # The design's ink, plus a line below and a little to the right: an
         # extra wrapped line or a run-on shows up there.
