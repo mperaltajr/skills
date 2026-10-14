@@ -58,6 +58,10 @@ SCRATCH.mkdir(exist_ok=True)
 # a child keeps its own run folder but shares nothing else.
 tempfile.tempdir = str(RUN_DIR)
 os.environ["SLIDE_LAB_SCRATCH_ROOT"] = str(SCRATCH)
+# This computer's own settings.local.json (say, three designs per slide) must
+# not change what a test sees: tests run on the published settings.json. A
+# test that wants a local file points this at its own.
+os.environ.setdefault("SLIDE_LAB_SETTINGS_LOCAL", "none")
 
 
 def _writable_retry(func, path, *_exc) -> None:

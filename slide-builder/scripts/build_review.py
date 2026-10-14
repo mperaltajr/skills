@@ -1129,8 +1129,14 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
     # then hid whatever did get built.
     none_btn = (
         f'<button class="none" onclick="pickNone(\'{sid}\')" '
-        f'title="Discard these options and design new ones for this slide">'
+        f'title="Discard these options and design one new one for this slide">'
         '&#8635; REPLACE THESE</button>'
+        # One new design by default; "+3 designs" asks three for this slide
+        # only (owner's decision 2026-10-13). The page's message carries a
+        # "Three designs for:" line that redesign_round.py start --three records.
+        f'<button class="none three" onclick="pickThree(\'{sid}\')" '
+        f'title="Three new designs instead of one: takes longer and uses more tokens">'
+        '+3 DESIGNS</button>'
         # Leaving a slide out is the user's call, recorded with their picks.
         # It replaced compile --drop, which let a slide be dropped with no
         # approval at all, down to an empty deck reported as deliverable.
@@ -1191,7 +1197,7 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
         {pick_buttons}
         {none_btn}
       </div>
-      <div class="hint-text">Pick an option, or Replace these to get new designs for this slide.</div>
+      <div class="hint-text">Pick an option, or Replace these to get one new design for this slide. +3 designs gets three new designs to choose from instead; it takes longer and uses more tokens.</div>
       {more_picker}
 
       <div class="redo-note" id="regen-{sid}" style="display:none;">
@@ -1529,6 +1535,9 @@ function loadPicks()  { return loadJson(PICKS_KEY); }
 function savePicks(p) { saveJson(PICKS_KEY, p); }
 function loadRegens() { return loadJson(REGEN_KEY); }
 function saveRegens(r){ saveJson(REGEN_KEY, r); }
+function loadThrees() { return loadJson(REGEN_KEY + "_three"); }
+function saveThrees(r){ saveJson(REGEN_KEY + "_three", r); }
+function isThree(sid) { return isReplace(sid) && loadThrees()[sid] === STAMPS[sid]; }
 function loadFb()     { return loadJson(FB_KEY); }
 function loadKeep()   { return loadJson(KEEP_KEY); }
 function saveKeep(k)  { saveJson(KEEP_KEY, k); }
@@ -1583,14 +1592,17 @@ function renderSlideState(sid) {
         const btn = card.querySelector(`.decision-buttons button.pick[data-letter="${letter}"]`);
         if (btn) btn.classList.add("active");
     } else if (isNone) {
-        const btn = card.querySelector(".decision-buttons button.none");
+        const btn = card.querySelector(isThree(sid) ? ".decision-buttons button.none.three"
+                                                    : ".decision-buttons button.none:not(.three)");
         if (btn) btn.classList.add("active");
     }
 
     const badge = document.getElementById("badge-" + sid);
     badge.classList.remove("pending", "picked", "none");
     if (letter) { badge.classList.add("picked"); badge.textContent = letter === "-" ? "Left out" : "Picked " + letter; }
-    else if (isNone) { badge.classList.add("none"); badge.textContent = "New designs requested"; }
+    else if (isNone) { badge.classList.add("none");
+                       badge.textContent = isThree(sid) ? "Three new designs requested"
+                                                        : "One new design requested"; }
     else { badge.classList.add("pending"); badge.textContent = "Not decided yet"; }
 
     const kept = document.getElementById("kept-" + sid);
@@ -1708,15 +1720,36 @@ function pickOption(sid, letter) {
 }
 
 function pickNone(sid) {
+    // Replace these: ONE new design (the default). From "+3 designs" it
+    // switches back to one; clicked again it clears the request.
     const regens = loadRegens();
-    if (isReplace(sid)) { delete regens[sid]; }
+    const threes = loadThrees();
+    if (isReplace(sid) && !isThree(sid)) { delete regens[sid]; }
     else {
         regens[sid] = STAMPS[sid];
         const picks = loadPicks();
         picks[sid] = { l: null, s: STAMPS[sid] };
         savePicks(picks);
     }
-    saveRegens(regens);
+    delete threes[sid];
+    saveRegens(regens); saveThrees(threes);
+    renderSlideState(sid); updateCounts();
+}
+
+function pickThree(sid) {
+    // +3 designs: three new designs for this slide instead of one. Clicked
+    // again it clears the request.
+    const regens = loadRegens();
+    const threes = loadThrees();
+    if (isThree(sid)) { delete regens[sid]; delete threes[sid]; }
+    else {
+        regens[sid] = STAMPS[sid];
+        threes[sid] = STAMPS[sid];
+        const picks = loadPicks();
+        picks[sid] = { l: null, s: STAMPS[sid] };
+        savePicks(picks);
+    }
+    saveRegens(regens); saveThrees(threes);
     renderSlideState(sid); updateCounts();
 }
 
@@ -1806,10 +1839,18 @@ async function buildDeck() {
         let cmd = "Redesign some slides in my Slide Lab deck.\n";
         cmd += "Folder: " + window.__OUT_DIR__ + "\n";
         cmd += "New designs for: " + replace.map(s => "slide " + parseInt(s.replace("slide_", ""), 10)).join(", ") + "\n";
+        // One new design each unless the user clicked +3 designs on that slide.
+        const threes = replace.filter(isThree);
+        if (threes.length)
+            cmd += "Three designs for: " + threes.map(s => "slide " + parseInt(s.replace("slide_", ""), 10)).join(", ") + "\n";
         // Check-coded like the build line, so redesign_round.py can record
         // them before the redesign and skip a second picking page.
         if (Object.keys(picks).length)
             cmd += plainPicks(canonicalPicks(picks)).replace(/^Picks:/, "Keep:") + "\n";
+        const nums = s => s.map(x => parseInt(x.replace("slide_", ""), 10)).join(",");
+        cmd += "(Claude: record it with redesign_round.py start --out <Folder> --slides " +
+               nums(replace) + (threes.length ? " --three " + nums(threes) : "") +
+               (Object.keys(picks).length ? " --kept \"<the Keep line>\"" : "") + ")\n";
         cmd += feedbackText();
         return copyOut(cmd, "Update command copied. Paste into Claude Code.",
                        "Update command (Ctrl+C to copy)");

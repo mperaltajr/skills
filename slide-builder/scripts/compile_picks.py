@@ -1240,6 +1240,14 @@ def main() -> int:
     print("A self-rendered PDF is not QC. Run the reviewer on the compiled deck:")
     print(f"  invoke the slide-qc skill on:  {final_path}")
     print("Do not tell the user the deck is finished or 'QC'd' until slide-qc has run.")
+    _qcd = out_dir.resolve() / "_qc"
+    _here = Path(__file__).resolve().parent
+    print(f"The page pictures are already drawn in {_qcd}; do not draw them again in")
+    print("another folder (a review of pictures elsewhere cannot be recorded).")
+    print("slide-qc starts with:  py -3 \"" + str(_here / "qc_pages.py")
+          + f"\" plan --out \"{out_dir.resolve()}\"")
+    print("and ends with:  py -3 \"" + str(_here / "record_vision_qc.py")
+          + f"\" --out \"{out_dir.resolve()}\"")
 
     rc = 0 if (opens and render_fail == 0 and not failures) else 1
     # Record the compile only when it succeeded, and record exactly what it

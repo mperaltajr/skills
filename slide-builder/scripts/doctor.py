@@ -3,6 +3,13 @@
 
   py -3 slide-builder/scripts/doctor.py          check only, changes nothing
   py -3 slide-builder/scripts/doctor.py fix      check, then fix the local pieces
+  py -3 slide-builder/scripts/doctor.py clear-leftovers
+                       delete the scratch folders of renders that were stopped
+                       (only after the user said yes to the list the check shows)
+
+The check also lists, read-only, leftovers from earlier renders: scratch
+folders nothing uses any more, and render programs (headless browser, its
+driver, render scripts) running for over 30 minutes. It never ends a program.
 
 Prints one table: piece / OK or NOT OK / what to do. Exit 0 when everything a
 build needs is in place, 1 otherwise.
@@ -104,8 +111,9 @@ def check_browser(rows):
     for name in ("chromium", "edge", "chrome"):
         os.environ["SLIDE_LAB_BROWSER"] = name
         try:
-            from _browser import scratch_env
-            with scratch_env(), sync_playwright() as pw:
+            from _browser import scratch_env, render_deadline
+            with render_deadline(f"doctor.py (starting {name})"), \
+                    scratch_env(), sync_playwright() as pw:
                 b = launch(pw)
                 b.close()
             tried[name] = True
@@ -261,7 +269,108 @@ def check_work_folder(rows):
          f"(creates {WORK_DIR} and a Desktop shortcut)", required=False)
 
 
-def run_checks() -> list[dict]:
+# ---------------------------------------------------------------- leftovers
+# Read-only (owner's decision 2026-10-13): a render that was stopped from
+# outside leaves its scratch folder, and a render with no time limit could
+# leave its browser running for days. doctor lists both; it never ends a
+# program, and deletes the folders only after the user says yes
+# (doctor.py clear-leftovers).
+LIVE_MINUTES = 30
+LIVE_MARKERS = ("ms-playwright", "playwright\\driver", "playwright/driver",
+                "render_html.py", "translate_html.py")
+
+
+def _browser_scratch_dir() -> Path | None:
+    try:
+        import _scratch
+        return _scratch.root() / "_browser"
+    except Exception:
+        return None
+
+
+def dead_scratch_folders() -> list[Path]:
+    """_browser scratch folders whose render is no longer running."""
+    import re as _re
+    import _scratch
+    bdir = _browser_scratch_dir()
+    out = []
+    if not bdir or not bdir.is_dir():
+        return out
+    for f in sorted(bdir.iterdir()):
+        if not f.is_dir():
+            continue
+        m = _re.match(r"(\d+)_", f.name)
+        pid = int(m.group(1)) if m else 0
+        if _scratch.lock_holder(f) is None and not _scratch._pid_alive(pid):
+            out.append(f)
+    return out
+
+
+def live_leftovers() -> list[dict]:
+    """Render programs (browser, driver, render scripts) running over 30 minutes."""
+    import time as _time
+    import _procs
+    markers = list(LIVE_MARKERS)
+    bdir = _browser_scratch_dir()
+    if bdir:
+        markers.append(str(bdir))
+    now = _time.time()
+    return [r for r in _procs.mentioning(markers)
+            if r.get("started") and now - r["started"] > LIVE_MINUTES * 60]
+
+
+def check_leftovers(rows, details: list[str]) -> None:
+    try:
+        dead = dead_scratch_folders()
+    except Exception:
+        dead = []
+    try:
+        live = live_leftovers()
+    except Exception:
+        live = []
+    if not dead and not live:
+        _row(rows, "Leftovers from earlier renders", True, required=False)
+        return
+    import _procs
+    import _scratch
+    bits = []
+    if dead:
+        mb = sum(_scratch.size(f) for f in dead) / 1e6
+        bits.append(f"{len(dead)} scratch folder(s) from renders that were stopped ({mb:.0f} MB)")
+    if live:
+        bits.append(f"{len(live)} render program(s) running over {LIVE_MINUTES} minutes")
+    _row(rows, "Leftovers from earlier renders", False,
+         "; ".join(bits) + ". See the list below the table.", required=False)
+    if dead:
+        details.append("Scratch folders left by renders that were stopped (nothing is "
+                       "using them):")
+        details += [f"    {f}" for f in dead]
+        details.append("  Ask the user before deleting them. If they say yes, run:")
+        details.append(f"    {PY} \"{Path(__file__)}\" clear-leftovers")
+    if live:
+        details.append(f"Render programs running for over {LIVE_MINUTES} minutes "
+                       "(listed only; doctor ends nothing):")
+        details += _procs.describe(live)
+        details.append("  Tell the user. They can close them, or say yes to ending exactly "
+                       "these PIDs; then run:")
+        pids = " ".join(str(r["pid"]) for r in live)
+        marks = " ".join(f'"{m}"' for m in list(LIVE_MARKERS)
+                         + ([str(_browser_scratch_dir())] if _browser_scratch_dir() else []))
+        details.append(f"    {PY} \"{HERE / '_procs.py'}\" --mentioning {marks} --end {pids}")
+
+
+def clear_leftovers() -> int:
+    dead = dead_scratch_folders()
+    if not dead:
+        print("  No leftover render scratch folders.")
+        return 0
+    for f in dead:
+        shutil.rmtree(f, ignore_errors=True)
+        print(f"  {'deleted' if not f.exists() else 'could not delete'}: {f}")
+    return 0 if all(not f.exists() for f in dead) else 1
+
+
+def run_checks(details: list[str] | None = None) -> list[dict]:
     rows: list[dict] = []
     check_python(rows)
     check_packages(rows)
@@ -270,6 +379,7 @@ def run_checks() -> list[dict]:
     check_agents(rows)
     check_settings(rows)
     check_work_folder(rows)
+    check_leftovers(rows, details if details is not None else [])
     return rows
 
 
@@ -373,9 +483,11 @@ def main(argv=None) -> int:
     except Exception:
         pass
     argv = sys.argv[1:] if argv is None else argv
-    if argv and argv[0] not in ("check", "fix"):
+    if argv and argv[0] not in ("check", "fix", "clear-leftovers"):
         print(__doc__)
         return 2
+    if argv and argv[0] == "clear-leftovers":
+        return clear_leftovers()
     if argv and argv[0] == "fix":
         for fn in (fix_agents, fix_settings, fix_work_folder):
             try:
@@ -384,8 +496,13 @@ def main(argv=None) -> int:
                 msg = f"{fn.__name__} failed: {type(exc).__name__}: {exc}"
             if msg:
                 print(f"  [fixed] {msg}")
-    rows = run_checks()
+    details: list[str] = []
+    rows = run_checks(details)
     print_table(rows)
+    for line in details:
+        print(f"  {line}")
+    if details:
+        print()
     bad = [r for r in rows if r["required"] and not r["ok"]]
     if bad:
         print("  Slide Lab is NOT ready yet. Do the steps above in order, then "

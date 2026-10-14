@@ -18,7 +18,9 @@ Exit codes
     0 — PNG written successfully
     2 — bad usage / source HTML missing
     3 — Playwright not installed / Chromium not installed
-    4 — render failed (page goto / screenshot exception)
+    4 — render failed (page goto / screenshot exception), or timed out
+        (whole render over SLIDE_LAB_RENDER_TIMEOUT seconds, default 120, or
+        one step over 30 s; only this run's own browser is ended; re-run)
 
 Install
 -------
@@ -98,8 +100,12 @@ def render_html_to_png(
 
     png_path.parent.mkdir(parents=True, exist_ok=True)
 
-    from _browser import scratch_env
-    with scratch_env(), sync_playwright() as pw:
+    from _browser import scratch_env, render_deadline, step
+    # A time limit for the whole render (120 s, SLIDE_LAB_RENDER_TIMEOUT) and
+    # each slow step (30 s): past it, only this run's own browser is ended and
+    # the run exits 4 (scripts/_browser.py).
+    with render_deadline(f"render_html.py ({html_path.name})"), \
+            scratch_env(), sync_playwright() as pw:
         try:
             from _browser import launch
             browser = launch(pw, headless=True)
@@ -126,7 +132,9 @@ def render_html_to_png(
                 # are drawn from the shipped SVG previews in the designer's color.
                 # They used to render as blank gaps. An unknown name gets a
                 # labeled placeholder and a warning here, never a silent gap.
-                for w in draw_icons_safe(page):
+                with step("drawing the library icons"):
+                    icon_warnings = draw_icons_safe(page)
+                for w in icon_warnings:
                     sys.stderr.write(f"WARNING {w['code']}: {w['detail']}\n")
                 # `clip` forces the screenshot to exactly the locked canvas
                 # box regardless of HTML overflow. `full_page=False` is the

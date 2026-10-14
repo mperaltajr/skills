@@ -3129,6 +3129,28 @@ def _run(args) -> int:
                     "otherwise re-dispatch slide-builder-worker with that slide's "
                     "_prompt.md:\n"
                     + "".join(f"  {t}\n" for t in needs_worker))
+                # Option A is there and only B/C are missing: the slide was set
+                # up for more designs than its worker built (2026-10-13: workers
+                # told "option A only" against their _prompt.md). Say how to
+                # make it a one-design slide, and what that costs.
+                _only_bc: list[int] = []
+                for _n in sorted({int(t[6:8]) for t in needs_worker}):
+                    _sd = _p.slide_dir(args.out, _n)
+                    _miss = set(missing_groups.get(_n, []))
+                    if "A" not in _miss and ((_sd / "option_A.html").exists()
+                                             or (_sd / "option_A.py").exists()):
+                        _only_bc.append(_n)
+                if _only_bc:
+                    sys.stderr.write(
+                        "\nOption A exists but the other designs this slide was set up for "
+                        "do not (slide " + ", ".join(str(n) for n in _only_bc) + "). Either "
+                        "dispatch the worker again for the missing designs, or, if the user "
+                        "wants one design for this slide, prep it again for one:\n"
+                        + "".join(f"  py -3 scripts/build_deck.py --template \"{args.template}\" "
+                                  f"--out \"{args.out}\" --slide {n} --options 1\n"
+                                  for n in _only_bc)
+                        + "  WARNING: that moves the existing option A files to "
+                        "slide_NN\\_prev\\<time>\\ and the worker then builds one new design.\n")
             sys.stderr.write(
                 f"\nThen re-run finalize_deck.py. Override with --allow-missing to "
                 f"proceed with gaps (those options are recorded as blocked, and "

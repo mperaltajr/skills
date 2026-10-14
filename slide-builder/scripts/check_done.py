@@ -181,15 +181,21 @@ def main(argv=None) -> int:
     look = state.get("vision_deck_look") or {}
     qc = qc_pages.qc_dir(args.out)
     man = RM.read(qc)
+    _qc_steps = (
+        f" Invoke the slide-qc skill (again, if your copy of its steps is old). Its "
+        f"steps: py -3 \"{HERE / 'qc_pages.py'}\" plan --out \"{Path(args.out).resolve()}\"; "
+        f"open every picture in {qc / qc_pages.READ_DIR} and fill in "
+        f"{qc / qc_pages.NOTES}; then py -3 \"{HERE / 'record_vision_qc.py'}\" --out "
+        f"\"{Path(args.out).resolve()}\".")
     if not vq and not vp:
         problems.append(
-            "no vision pass recorded — the deterministic self-check does NOT "
-            "count. Run slide-qc over the compiled deck; it records the pass.")
+            "no vision pass recorded: the deterministic self-check does NOT "
+            "count, and neither does a look at pictures that was not recorded."
+            + _qc_steps)
     elif not vp:
         problems.append(
             "the vision pass was recorded the old way (a typed page count, no proof "
-            "the pages were opened). Run slide-qc again: qc_pages.py plan, then "
-            "record_vision_qc.py with the page notes.")
+            "the pages were opened)." + _qc_steps)
     elif not man or man.get("deck_digest") != digest:
         problems.append(
             f"there is no render of this exact deck in {qc} (it was edited, "
