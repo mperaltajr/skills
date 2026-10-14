@@ -696,6 +696,7 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
         "stamp": slide_stamp,
         "pinned": (slide_meta or {}).get("pinned_source_page") or "",
         "fixed_id": (slide_meta or {}).get("slide_id") or "",
+        "page_copy": (slide_meta or {}).get("page_copy") or {},
         "context_present": context_present,
         "context_has_reference": context_has_reference,
         "context_ack_present": ack_present,
@@ -1167,6 +1168,26 @@ def render_sketch_qc_section(slide: dict) -> str:
     )
 
 
+def _page_copy_note(slide: dict) -> str:
+    """One line on the card of a page made by script (clone_pages.py,
+    2026-10-14): what it is a copy of, and where a comment on it goes."""
+    pc = slide.get("page_copy") or {}
+    role, m = pc.get("role"), pc.get("master")
+    if role == "copy" and isinstance(m, int):
+        txt = (f"<strong>A copy of slide {m}'s design</strong>, with this page's own words. "
+               f"Pick the same design as slide {m}; a comment here is applied to slide {m}, "
+               "and every copy is made again from it.")
+    elif role == "copy":
+        txt = ("<strong>Filled from the design kept for this template</strong>, word for word "
+               "from the storyline. Comment to change it, or ask for a new design.")
+    elif role == "master" and pc.get("copies"):
+        txt = (f"<strong>Designed once for every section divider</strong>: slides "
+               f"{', '.join(map(str, pc['copies']))} are copies of this design.")
+    else:
+        return ""
+    return f'<div class="redo-note" style="display:block;">{txt}</div>'
+
+
 def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
     sid = slide["slide_id"]
     n = slide["n"]
@@ -1254,6 +1275,7 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
   {context_chip}
   {render_steer_receipt(slide)}
   {('<div class="redo-note" style="display:block;">&#128204; <strong>Option A reproduces the page you supplied</strong> (' + html.escape(slide["pinned"]) + '). Its figures are checked against the brief before anything compiles.</div>') if slide.get("pinned") else ""}
+  {_page_copy_note(slide)}
 
   <div class="card-body">
   <div class="options-row" data-count="{n_opts}"{row_style}>

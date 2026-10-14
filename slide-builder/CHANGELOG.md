@@ -2,6 +2,53 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## 2026-10-14: repeated pages are designed once and copied by script (speed verdict Q3)
+
+Owner's decision 10/14. On the Leo deck 9 of 30 pages were the same page
+repeated (cover, executive summary, contents, six dividers), and 10 or more
+"copy slide N from v2" pages each cost a full design run. Content pages stay
+with designers: no script tables, charts, risk or sources-and-uses pages.
+
+- **New `scripts/clone_pages.py`.** Section dividers: only the first goes to a
+  designer; its `_prompt.md` has a section 0 with a PAGE VALUES block
+  (section number, name, one-line description, section list) the design keeps
+  at the top of its file. Finalize (step [0b]) writes every other divider from
+  it with its own words; each copy is built, fit-checked, rendered, reviewed
+  and QC-read like any page. The other dividers' prompts start with "NO WORKER
+  FOR THIS SLIDE" and prep prints which slides get no worker.
+- **Comments and picks.** A copy takes its master's pick (`record_picks.py`
+  refuses a different letter). A comment on a copy goes to the master in edit
+  mode, and the copies are made again from it at the next finalize. A rebuild
+  of a copy is refused, naming the master. A hand edit on a copy is undone at
+  finalize with a warning (kept in `slide_NN/_prev_copy/`).
+  `finalize_deck.py --slide <master>` also finalizes every copy it changed
+  (step [8]), so a QC fix on the master reaches every divider in one command.
+- **Cover, contents, executive summary: once per template.** Designed with the
+  same section 0; when the deck compiles, the picked design is kept in
+  `<template folder>/page_masters/`. The next deck on that template sends no
+  designer for them and fills them from its own storyline, word for word
+  (contents page ranges from its sections; a contents line whose page range
+  disagrees with the sections is warned about at prep). `--slide N` always
+  sends a designer; an in-place edit becomes the kept design.
+- **Pinned .pptx pages are copied, not redrawn.** Prep writes `option_A.py`
+  (the supplied slide's shapes, pictures and charts, via
+  `twins.composer.copy_shape_with_parts`) and an `_edit_request.md`; the
+  worker in EDIT MODE fills only `TEXT_CHANGES`. Finalize refuses (exit 11)
+  until it has; an old text not on the page stops the build. PDF and picture
+  pins are unchanged.
+- These pages are always on the direct path (prep says when it moves one).
+  New brief field `**Section description:**` (optional).
+- **Measurement for the next deck with sections:** `scripts/measure_page_tokens.py
+  --out <build> --transcripts <session subagents folder>` prints builder
+  tokens (common unit: cache read x0.1, cache write x1.25, output x5) and time
+  per page, split designed / copied. Target: at least 20% fewer builder tokens,
+  and no new QC finding on the copied pages.
+- Hooks: `build_deck.py` (plan_page_copies and helpers), `finalize_deck.py`
+  (`_page_copies_step`), `record_picks.py` (two calls), `build_review.py`
+  (`_page_copy_note`), `compile_picks.py` (keeps the designs), `_meta_schema.py`
+  (`page_copy`). Worker agent file: section 0, NO WORKER and COPIED PAGE.
+- Tests: new `run_clone_pages_smoke.py`; `run_copied_pages_smoke.py` step 6.
+
 ## 2026-10-14: QC reading in a reader agent, content reviews on picked pages, line-spacing check, agent-file warning, number-check tagging
 
 From the speed verdict Q2 (owner approved every recommendation, 2026-10-14).

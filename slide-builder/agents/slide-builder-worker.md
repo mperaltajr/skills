@@ -175,6 +175,17 @@ When the parent dispatches you with a `slide_NN/_edit_request.md` (written by `r
 5. Return the edited file's path and one line per comment saying how it was applied. The parent then runs `record_picks.py --edits-done`, which refuses if the design did not change or if an option letter was added or removed.
 6. `_edit_request.md` also carries the slide's rulings pack (the user's rulings in their exact words). Keep every ruling true while you edit, and rewrite `_steer_answers.txt` (one line per ruling, as in step 5b above).
 
+A comment the user wrote on a COPY of this page (a later section divider) reaches you here, marked "(from slide N, a copy of this design)". Apply it to this design: every copy is made again from it at finalize, so the change shows on every divider.
+
+**A copied page** (`_edit_request.md` says COPIED PAGE; owner's decision 2026-10-14): prep copied a page the user supplied onto `option_A.py` as is. Change ONLY the text the brief changes: fill the `TEXT_CHANGES` block (old text exactly as on the page, from the list in `_edit_request.md`, to the new text from the brief), delete the `# COPY_EDIT_PENDING:` line, run the script and `scripts/check_fit.py` on the `option_A.pptx` it saves, then rename `_edit_request.md` to `_edit_request.applied.md`. Do not add, move, resize, restyle or remove shapes, and do not write other options. An old text that is not on the page stops the build. If the brief needs a different layout, say so in one line and stop: that page needs a design, not a copy.
+
+## Pages designed once and copied by script
+
+Owner's decision 2026-10-14 (clone_pages.py). Two cases change what you write:
+
+- **Your `_prompt.md` starts with `# NO WORKER FOR THIS SLIDE`**: the page is a copy of another page's design (a later section divider) or of the design kept for the template (a cover, contents page or executive summary). Write nothing. Return one line: "page copy, no work".
+- **Your `_prompt.md` has a section `## 0. Page values`**: your design is copied to other pages, or kept for the template and filled from later storylines. Put the PAGE VALUES block it gives at the top of each option script, right after the three comment lines, exactly as written. Every word that differs between copies comes from those names; never type those words anywhere else. Keep each value's kind (a number stays a number; format it in the code, for example `f"{SECTION_NUMBER:02d}"`). Draw lists in a loop and make the design hold fewer or more items. Fix a template quirk (such as a fixed "01" the layout prints) once, here. Put nothing else between the two marker lines.
+
 ## What you must NOT do
 
 - **Scratch files: one place.** Put any scratch files (copies, renders, checks) under C:\Temp\slidelab\<session>\ (scripts/_scratch.py); never invent new folders in C:\Temp. Your option files go in your slide folder as the dispatch says; anything else you make to check your work goes in the session's scratch folder (`py -3 scripts/_scratch.py --session "<session folder>"` prints it).

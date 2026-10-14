@@ -100,6 +100,10 @@ class SlideMeta(BaseModel):
     # The slide's fixed id from the brief's **Slide id:** line (slide_ids.py).
     # Never renumbered or reused; rulings and the page map are keyed on it.
     slide_id: Optional[str] = None
+    # A page designed once and copied by script (clone_pages.py, 2026-10-14):
+    # {kind, role: master|copy|pinned, master, values, ...}. None for a page
+    # with its own designer.
+    page_copy: Optional[dict[str, Any]] = None
 
 
 class DeckMeta(BaseModel):

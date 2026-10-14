@@ -194,6 +194,9 @@ FIELD_LABELS = {
     # approved; owner's decision 2026-10-14). Numbers move when a slide is
     # inserted; the id never does, so rulings stay on the right page.
     "slide_id":            ("slide id",),
+    # A section divider's one line (clone_pages.py, 2026-10-14). Optional: the
+    # takeaway or the first bullet stands in when it is absent.
+    "section_description": ("section description",),
 }
 
 # Bold labels a slide block may carry that prep knows but does not pass on as
@@ -663,6 +666,8 @@ def parse_brief(brief_path: Path, bypass_gate: bool = False) -> dict[str, Any]:
             "source": " ".join(extract_field(block, FIELD_LABELS["source"]).split()),
             "section_tag": " ".join(extract_field(block, FIELD_LABELS["section_tag"]).split()),
             "slide_id": extract_field(block, FIELD_LABELS["slide_id"]).strip("` ").lower(),
+            "section_description": " ".join(
+                extract_field(block, FIELD_LABELS["section_description"]).split()),
         }
         slides.append(slide)
     _dupes = sorted({s["slide_id"] for s in slides if s["slide_id"]
@@ -1915,6 +1920,119 @@ def pinned_pages_note(slides) -> list[str]:
             "answer. The pins stay; never remove one to get past the check."]
 
 
+# ----------------------------------------------------------------------
+# Pages designed once and copied by script (clone_pages.py; owner's decision
+# 2026-10-14, speed verdict Q3). Only the first section divider gets a
+# designer, the others are copies of it; the cover, contents and executive
+# summary are filled from the design kept for the template when there is one;
+# a page pinned to a slide of a .pptx is copied as is and a worker in EDIT MODE
+# changes only its text. Content pages are never built by script.
+# ----------------------------------------------------------------------
+
+def plan_page_copies(args, slides, pattern_per_slide, rebuild_slide_n, insert_slide_n):
+    """(plan, exit code). Forces every page in the plan onto the direct path
+    (a copy is made from a script). Refuses a rebuild of a divider copy."""
+    import clone_pages
+    keep: set = set()
+    if rebuild_slide_n is not None or insert_slide_n is not None:
+        try:
+            _old = json.loads(_p.meta_json(args.out).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            _old = {}
+        for _e in _old.get("slides") or []:
+            if (_e.get("page_copy") or {}).get("role") == "master" and isinstance(_e.get("n"), int):
+                _n = _e["n"]
+                if insert_slide_n is not None and _n >= insert_slide_n:
+                    _n += 1
+                keep.add(_n)
+    fresh = {rebuild_slide_n} if rebuild_slide_n is not None else set()
+    bases = [Path(args.brief).resolve().parent, Path(args.out).resolve()]
+    plan, warns = clone_pages.plan(slides, template=args.template, bases=bases,
+                                   design_fresh=fresh, keep_masters=keep)
+    if rebuild_slide_n is not None and clone_pages.is_deck_copy(plan.get(rebuild_slide_n)):
+        _m = plan[rebuild_slide_n]["master"]
+        sys.stderr.write(
+            f"ERROR: slide {rebuild_slide_n} is a copy of slide {_m}'s design (a section "
+            f"divider), so it has no design of its own to rebuild. To change how the "
+            f"dividers look, rebuild slide {_m}: py -3 scripts/build_deck.py --slide {_m} "
+            f"--out \"{args.out}\" --template \"{args.template}\"; every copy is made again "
+            "from it at finalize. To change this divider's words, edit the brief and prep "
+            "again.\n")
+        return plan, 2
+    for _w in warns:
+        print(f"WARNING (brief): {_w}")
+    # "Make slide N look like slide M" (--like-slide) keeps M's build path, so
+    # the rebuilt page is designed as asked and is not a design kept for copies.
+    if (rebuild_slide_n is not None and getattr(args, "like_slide", None) is not None
+            and (plan.get(rebuild_slide_n) or {}).get("role") == "master"
+            and not plan[rebuild_slide_n].get("copies")):
+        plan.pop(rebuild_slide_n)
+    if pattern_per_slide:
+        moved = [n for n in sorted(plan) if pattern_per_slide.get(str(n)) != "direct"]
+        for n in plan:
+            pattern_per_slide[str(n)] = "direct"
+        if moved:
+            sys.stderr.write(
+                f"  slide(s) {', '.join(map(str, moved))}: set to the direct path, because "
+                "they are copied by script (clone_pages.py) or are the design the copies "
+                "come from.\n")
+    return plan, 0
+
+
+def page_copy_prompt(slide_dir: Path, slide: dict, rendered: str, plan: dict) -> str:
+    """The slide's _prompt.md with the page-copy section or banner; for a
+    copied supplied page, also writes its option_A.py and _edit_request.md."""
+    import clone_pages
+    n = slide["slide_n"]
+    pc = (plan or {}).get(n)
+    if not pc:
+        return rendered
+    if pc["role"] == "master":
+        sec = clone_pages.master_prompt_section(n, pc, plan)
+        anchor = "## 1. Brief content (only this slide)"
+        i = rendered.find(anchor)
+        return rendered[:i] + sec + rendered[i:] if i >= 0 else sec + rendered
+    if pc["role"] == "copy":
+        return clone_pages.copy_prompt_banner(n, pc) + rendered
+    if pc["role"] == "pinned":
+        clone_pages.write_pinned_copy(slide_dir, n, pc)
+        return clone_pages.pinned_prompt_banner(n, pc) + rendered
+    return rendered
+
+
+def record_page_copies(meta_path: Path, plan: dict) -> None:
+    import clone_pages
+    clone_pages.apply_to_meta(Path(meta_path), plan or {})
+
+
+def page_copy_lines(plan: dict, out_dir: Path, template, plan_path=None) -> list[str]:
+    """What prep says about copied pages; also added to dispatch_plan.md."""
+    import clone_pages
+    lines = clone_pages.prep_lines(plan or {}, Path(out_dir).resolve(), template)
+    if lines and plan_path is not None:
+        try:
+            with open(plan_path, "a", encoding="utf-8") as fh:
+                fh.write("\n\n## Pages made by script\n" + "\n".join(lines[1:]) + "\n")
+        except OSError:
+            pass
+    return lines
+
+
+def page_copy_target_lines(plan: dict, slide_n, out_dir: Path) -> list[str]:
+    """After a single-slide prep: what the copied pages need now."""
+    import clone_pages
+    pc = (plan or {}).get(slide_n) or {}
+    if pc.get("role") == "master" and pc.get("copies"):
+        return [f"Slide {slide_n} is the design slides {', '.join(map(str, pc['copies']))} are "
+                "copied from: finalize_deck.py makes the copies again from the new design "
+                "(clone_pages.py). Do not send workers for them."]
+    if pc.get("role") == "pinned":
+        return [f"Slide {slide_n} copies {Path(pc['source']).name} slide {pc['source_slide']} "
+                "as is: send its worker in EDIT MODE on "
+                f"{_p.slide_dir(out_dir, slide_n) / clone_pages.EDIT_REQUEST}, not a designer."]
+    return []
+
+
 def review_sequence_lines(out_dir, template, slide_n=None) -> list[str]:
     """The steps after the workers, in order. ONE copy, printed by every exit of
     prep and pointed at by the docs. Rebuild, insert, full build and 6b each used
@@ -3047,6 +3165,13 @@ def main() -> int:
                 f"found); keeping the classifier's choice for slide {rebuild_slide_n}.\n"
             )
 
+    # Pages designed once and copied by script (clone_pages.py, owner's
+    # decision 2026-10-14): worked out before anything on disk changes.
+    copy_plan, _rc = plan_page_copies(args, slides, pattern_per_slide,
+                                      rebuild_slide_n, insert_slide_n)
+    if _rc:
+        return _rc
+
     # Insert mode: make room at position N by shifting slides >= N (dirs + picks)
     # up by one BEFORE rendering, so the new slide N renders into the freed slot
     # and the shifted slides keep their built output. Must run before the render.
@@ -3092,6 +3217,7 @@ def main() -> int:
             density_note=_density_note,
         )
         rendered = render_prompt(template_text, placeholders)
+        rendered = page_copy_prompt(slide_dir, slide, rendered, copy_plan)
         _p.prompt_md(args.out, slide_n).write_text(rendered, encoding="utf-8")
         # Write a `_context.md` sibling that bundles the canonical reference,
         # design rules, brief metadata, and feedback ledger for the
@@ -3120,6 +3246,7 @@ def main() -> int:
         )
         if meta_path is None:
             return 2
+        record_page_copies(meta_path, copy_plan)
         rb_dir = _p.slide_dir(args.out, rebuild_slide_n)
         print(f"Re-prepped slide {rebuild_slide_n} at:")
         print(f"  {rb_dir.resolve()}")
@@ -3130,6 +3257,8 @@ def main() -> int:
         print(f"Next, to rebuild slide {rebuild_slide_n} (its worker reads "
               f"{rb_dir / '_context.md'} then {rb_dir / '_prompt.md'}):")
         for _ln in review_sequence_lines(args.out, args.template, rebuild_slide_n):
+            print(_ln)
+        for _ln in page_copy_target_lines(copy_plan, rebuild_slide_n, args.out):
             print(_ln)
         record_prep_with_notice(args.out, _deck_hash, "rebuild")
         _sl = record_storyline(args.out, args.brief, getattr(args, "storyline", None))
@@ -3151,6 +3280,7 @@ def main() -> int:
         )
         if meta_path is None:
             return 2
+        record_page_copies(meta_path, copy_plan)
         # Keep the human-readable dispatch plan's numbering in sync with the
         # shifted _meta.json (best-effort; never fails the insert).
         plan_path = regenerate_dispatch_plan_from_meta(args.out)
@@ -3184,6 +3314,8 @@ def main() -> int:
         print(f"  Note: the deck-level RESULT.md still shows the pre-insert numbering — it")
         print(f"  refreshes on the next FULL finalize (finalize_deck.py --out <out> with no")
         print(f"  --slide). The single-slide finalize in step b writes RESULT-slide-{insert_slide_n:02d}.md.")
+        for _ln in page_copy_target_lines(copy_plan, insert_slide_n, args.out):
+            print(_ln)
         record_prep_with_notice(args.out, _deck_hash, "insert")
         _sl = record_storyline(args.out, args.brief, getattr(args, "storyline", None))
         if _sl:
@@ -3204,6 +3336,7 @@ def main() -> int:
         effective_pattern=effective_pattern,
         pattern_per_slide=pattern_per_slide,
     )
+    record_page_copies(meta_path, copy_plan)
 
     # Dispatch plan
     plan_path = write_dispatch_plan(
@@ -3215,6 +3348,7 @@ def main() -> int:
         brief_path=args.brief.resolve(),
         client_template_path=args.template.resolve(),
     )
+    _copy_lines = page_copy_lines(copy_plan, args.out, args.template, plan_path)
 
     # Console summary (paths as plain text)
     print(f"Prepped {slide_total} slides at:")
@@ -3257,6 +3391,8 @@ def main() -> int:
     for _ln in review_sequence_lines(args.out, args.template):
         print(_ln)
     for _ln in pinned_pages_note(slides):
+        print(_ln)
+    for _ln in _copy_lines:
         print(_ln)
     record_prep_with_notice(args.out, _deck_hash, "prep")
     _sl = record_storyline(args.out, args.brief, getattr(args, "storyline", None))

@@ -398,6 +398,14 @@ def main(argv=None) -> int:
         else:
             picks = dict(raw)
 
+    # A copy of a page in this deck (a section divider) takes its master's
+    # design (clone_pages.py, 2026-10-14).
+    import clone_pages
+    why = clone_pages.check_copy_picks(meta, picks)
+    if why:
+        print("REFUSED: " + why)
+        return 5
+
     # The user's comments, per slide (the page's Feedback block, or what they
     # typed in chat). Read before anything is converted.
     if chat_bound:
@@ -407,6 +415,11 @@ def main(argv=None) -> int:
             return 5
     else:
         fb = parse_feedback(args.approved or "")
+    # A comment on a copy is applied to its master; the copies are made again.
+    fb, copy_notes, why = clone_pages.route_copy_feedback(meta, fb, picks)
+    if why:
+        print("REFUSED: " + why)
+        return 5
     unknown = sorted(k for k in fb if k not in picks)
     if unknown:
         print(f"REFUSED: comments for {', '.join(unknown)}, which is not a slide of this "
@@ -488,6 +501,8 @@ def main(argv=None) -> int:
           + (" from the user's words in chat" if chat_bound else "")
           + f": {n_opts} option(s) across {len(picks) - n_out} slide(s)"
           + (f"; {n_out} slide(s) left out by the user." if n_out else "."))
+    for ln in copy_notes:
+        print(f"  {ln}")
     for c in stored:
         label = {"edit": "EDIT FIRST (not converted yet)",
                  "redesign": "asks for a different design: a Replace request",
