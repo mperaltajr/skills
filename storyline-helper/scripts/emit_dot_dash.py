@@ -30,7 +30,14 @@ Output:
   → writes `<root>/dot-dash-<topic>.docx` + .md + .html
 - Otherwise → writes all three next to the brief
 
-The script never modifies the brief.
+The brief's content is never changed. One front-matter line is written:
+`approved_storyline: <the .html written here>`, so the review page shows
+this file as the approved storyline (the seal does not count that line). It
+is left alone when it already points at a storyline written by hand.
+
+It refuses (exit 2, nothing written) when a slide's bullets carry notes for
+the designer ("Supporting points:", a plain ALL CAPS label and a dash): they
+would show up in the storyline as they are. A **bold label** is fine.
 
 Public API (callable from review_html.py):
   parse_brief_for_dot_dash(brief_text) -> {header, slides}
@@ -820,6 +827,121 @@ def dot_dash_css() -> str:
 
 
 # ---------------------------------------------------------------------------
+# Designer wording in the brief's bullets (owner's decision D, 2026-10-13)
+# ---------------------------------------------------------------------------
+# A brief's bullets are read by people too: the storyline, the review page.
+# Notes for the designer typed into them ("Supporting points:", a plain
+# "SECTION LIST — show all six sections") came out as "Claude speak" in the
+# storyline the owner read. A bold label (**Why it grows** — ...) is the
+# brief's own structure and is fine: this file strips it to prose.
+_SLIDE_HEAD_RE = re.compile(r"^#{2,3}\s+Slide\s+(\d+)\b", re.M)
+_BULLET_RE = re.compile(r"^\s*(?:[-*+]|\d+[.)])\s+(.+?)\s*$")
+_CAPS_LABEL_RE = re.compile(r"^([A-Z][A-Z0-9&/'’.]*(?:\s+[A-Z0-9&/'’.]+)*)\s*[—–:]\s*|"
+                            r"^([A-Z][A-Z0-9&/'’.]*(?:\s+[A-Z0-9&/'’.]+)*)\s+-\s+")
+
+
+def designer_wording(brief_text: str) -> List[Dict[str, Any]]:
+    """Bullets in the slide sections that carry designer wording:
+    [{"slide": n, "text": bullet, "why": plain reason}]."""
+    hits: List[Dict[str, Any]] = []
+    heads = list(_SLIDE_HEAD_RE.finditer(brief_text))
+    for i, h in enumerate(heads):
+        n = int(h.group(1))
+        block = brief_text[h.end(): heads[i + 1].start() if i + 1 < len(heads) else len(brief_text)]
+        block = re.split(r"(?m)^#{1,2}\s(?!Slide\b)", block)[0]
+        for line in block.splitlines():
+            m = _BULLET_RE.match(line)
+            if not m:
+                continue
+            text = m.group(1)
+            if re.search(r"supporting points\s*:", text, re.I):
+                hits.append({"slide": n, "text": text,
+                             "why": '"Supporting points:" is a note for the designer, not '
+                                    "storyline wording"})
+                continue
+            plain = text.lstrip("\"'“")
+            if plain.startswith("**"):
+                continue                      # a bold label: the brief's own structure
+            cm = _CAPS_LABEL_RE.match(plain)
+            if cm:
+                label = (cm.group(1) or cm.group(2) or "").strip()
+                words = label.split()
+                if len(words) >= 2 or (words and len(re.sub(r"\W", "", words[0])) >= 7):
+                    hits.append({"slide": n, "text": text,
+                                 "why": f'starts with the ALL CAPS label "{label}" and a '
+                                        "dash or colon, a note for the designer"})
+    return hits
+
+
+def designer_wording_message(hits: List[Dict[str, Any]], brief_path) -> str:
+    lines = [f"NOT WRITTEN: {len(hits)} bullet(s) in {brief_path} carry notes for the "
+             "designer, which would show up in the storyline as they are:"]
+    for h in hits[:30]:
+        lines.append(f"  slide {h['slide']}: {h['why']}: {h['text'][:110]}")
+    if len(hits) > 30:
+        lines.append(f"  ... and {len(hits) - 30} more")
+    lines += [
+        "Next: rewrite each one as a plain sentence, give it a bold label instead "
+        "(**Why it grows** - ...), or move the note for the designer into the slide's "
+        "**Editorial emphasis:** field. Then re-run the gate, re-seal the brief "
+        "(seal_brief.py) and run this again.",
+    ]
+    return "\n".join(lines)
+
+
+# ---------------------------------------------------------------------------
+# The approved_storyline pointer in the brief's front matter
+# ---------------------------------------------------------------------------
+_FM_RE = re.compile(r"\A(﻿?---[ \t]*\r?\n)(.*?)(\r?\n---[ \t]*\r?\n)", re.S)
+
+
+def front_matter_value(brief_text: str, key: str) -> str:
+    m = _FM_RE.match(brief_text)
+    if not m:
+        return ""
+    for ln in m.group(2).splitlines():
+        k, sep, v = ln.partition(":")
+        if sep and k.strip() == key:
+            return v.strip().strip("'\"")
+    return ""
+
+
+def set_front_matter_value(brief_text: str, key: str, value: str) -> str | None:
+    """The brief with `key: value` set in its front matter (replaced or
+    added); None when the brief has no front matter."""
+    m = _FM_RE.match(brief_text)
+    if not m:
+        return None
+    nl = "\r\n" if "\r\n" in brief_text else "\n"
+    lines = m.group(2).replace("\r\n", "\n").split("\n")
+    lines = [ln for ln in lines if ln.partition(":")[0].strip() != key]
+    lines.append(f"{key}: {value}")
+    return m.group(1) + nl.join(lines) + m.group(3) + brief_text[m.end():]
+
+
+def record_storyline_pointer(brief_path: pathlib.Path, html_path: pathlib.Path) -> str:
+    """Point the brief at the storyline the user approves (the review page
+    shows that file). Left alone when it already points at a different file
+    (a prose storyline someone wrote by hand). Returns a line to print."""
+    raw = brief_path.read_bytes().decode("utf-8")
+    cur = front_matter_value(raw, "approved_storyline")
+    want = str(html_path.resolve())
+    if cur and pathlib.Path(cur).name.lower() != html_path.name.lower() \
+            and not pathlib.Path(cur).name.lower().startswith("dot-dash-"):
+        return (f"  Kept approved_storyline: {cur} (the brief points at a storyline written "
+                "by hand; change that line if this file is the approved one now).")
+    if cur == want:
+        return f"  approved_storyline: {want} (already set)"
+    new = set_front_matter_value(raw, "approved_storyline", want)
+    if new is None:
+        return ("  The brief has no front matter, so approved_storyline was not recorded; "
+                "the review page will show the headlines only.")
+    brief_path.write_bytes(new.encode("utf-8"))
+    return (f"  approved_storyline: {want} (recorded in the brief's front matter; the seal "
+            "does not count this line)")
+
+
+# ---------------------------------------------------------------------------
 # CLI
 # ---------------------------------------------------------------------------
 
@@ -861,6 +983,10 @@ def main() -> int:
         return 1
 
     brief_text = brief_path.read_text(encoding="utf-8")
+    hits = designer_wording(brief_text)
+    if hits:
+        print(designer_wording_message(hits, brief_path))
+        return 2
     data = parse_brief_for_dot_dash(brief_text)
 
     md_path = _output_path(brief_path)
@@ -885,6 +1011,12 @@ def main() -> int:
     print(f"  {docx_path if 'SKIPPED' not in docx_status else docx_status}")
     print(f"  {md_path}")
     print(f"  {html_path}")
+    # The review page shows the approved storyline itself; point the brief at it.
+    try:
+        print(record_storyline_pointer(brief_path, html_path))
+    except OSError as exc:
+        print(f"  Could not record approved_storyline in the brief ({exc}); add the line "
+              f"approved_storyline: {html_path} to its front matter by hand.")
     return 0
 
 

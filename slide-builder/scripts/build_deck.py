@@ -1877,6 +1877,53 @@ def update_meta_for_rebuild(
     return meta_path
 
 
+def record_storyline(out_dir: Path, brief_path: Optional[Path],
+                     override: Optional[Path] = None) -> Optional[str]:
+    """Record the approved storyline in _meta.json["storyline"]: its path,
+    size, last-changed time and fingerprint (owner's decision 2026-10-13).
+    The path comes from --storyline, else the brief's front matter
+    `approved_storyline:`; nothing is ever searched for by name. REVIEW.html
+    shows that file, and warns when it changed after this prep. Returns a
+    line to print, or None when there is no pointer."""
+    path_txt = str(override) if override else ""
+    if not path_txt and brief_path and Path(brief_path).exists():
+        try:
+            fm, _ = extract_front_matter(read_text_safe(Path(brief_path)))
+        except Exception:
+            fm = {}
+        path_txt = (fm.get("approved_storyline") or "").strip()
+    mp = _p.meta_json(out_dir)
+    try:
+        meta = json.loads(mp.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if not path_txt:
+        if meta.pop("storyline", None) is not None:
+            mp.write_text(json.dumps(meta, indent=2), encoding="utf-8")
+        return None
+    sp = Path(path_txt)
+    if not sp.is_absolute() and brief_path:
+        sp = (Path(brief_path).parent / sp)
+    rec: dict[str, Any] = {"path": str(sp.resolve()), "recorded_at": datetime.now().isoformat(
+        timespec="seconds")}
+    if sp.exists():
+        data = sp.read_bytes()
+        rec.update({"size": len(data), "mtime": sp.stat().st_mtime,
+                    "sha256": hashlib.sha256(data).hexdigest()})
+        line = f"Approved storyline recorded: {sp.resolve()}"
+    else:
+        rec["missing"] = True
+        line = (f"WARNING: the approved storyline {sp} does not exist; the review page "
+                "will say so. Fix approved_storyline in the brief's front matter.")
+    meta["storyline"] = rec
+    mp.write_text(json.dumps(meta, indent=2), encoding="utf-8")
+    return line
+
+
+def read_text_safe(p: Path) -> str:
+    return p.read_bytes().decode("utf-8", errors="replace").replace("\r\n", "\n").lstrip("﻿")
+
+
 def _shift_build_for_insert(out_dir: Path, insert_n: int, old_count: int) -> None:
     """Make room at position `insert_n` for a new slide by shifting slides
     >= insert_n up by one on disk: rename `slide_NN/` dirs (highest first, so
@@ -2523,6 +2570,11 @@ def main() -> int:
                              "the user marked the slide +3 designs in REVIEW.html "
                              "(redesign_round.py start --three). Use --options 3 only when "
                              "the user asked for three.")
+    parser.add_argument("--storyline", required=False, type=Path, default=None,
+                        help="The storyline file the user approved (.html, .md or .docx), "
+                             "shown on REVIEW.html as written. Overrides the brief's front "
+                             "matter line approved_storyline: (emit_dot_dash.py writes that "
+                             "line; for a prose storyline written by hand, add it yourself).")
     parser.add_argument("--insert",   required=False, type=int, default=None,
                         help="Insert a NEW slide at position N into an existing build: shift "
                              "slides >= N (dirs, _meta entries, picks) up by one, prep only the "
@@ -2920,6 +2972,9 @@ def main() -> int:
               f"{rb_dir / '_context.md'} then {rb_dir / '_prompt.md'}):")
         for _ln in review_sequence_lines(args.out, args.template, rebuild_slide_n):
             print(_ln)
+        _sl = record_storyline(args.out, args.brief, getattr(args, "storyline", None))
+        if _sl:
+            print(_sl)
         _state.record_prep(args.out, _deck_hash, args.out)
         return 0
 
@@ -2970,6 +3025,9 @@ def main() -> int:
         print(f"  Note: the deck-level RESULT.md still shows the pre-insert numbering — it")
         print(f"  refreshes on the next FULL finalize (finalize_deck.py --out <out> with no")
         print(f"  --slide). The single-slide finalize in step b writes RESULT-slide-{insert_slide_n:02d}.md.")
+        _sl = record_storyline(args.out, args.brief, getattr(args, "storyline", None))
+        if _sl:
+            print(_sl)
         _state.record_prep(args.out, _deck_hash, args.out)
         return 0
 
@@ -3039,6 +3097,9 @@ def main() -> int:
     print("Next (each worker reads _context.md first, then _prompt.md, in its slide_NN/):")
     for _ln in review_sequence_lines(args.out, args.template):
         print(_ln)
+    _sl = record_storyline(args.out, args.brief, getattr(args, "storyline", None))
+    if _sl:
+        print(_sl)
     _state.record_prep(args.out, _deck_hash, args.out)
     return 0
 

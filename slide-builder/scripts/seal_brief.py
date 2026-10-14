@@ -40,11 +40,18 @@ from pathlib import Path
 FM_RE = re.compile(r"\A(﻿?---\s*\r?\n)(.*?)(\r?\n---\s*\r?\n)", re.S)
 GATE_KEYS = ("storyline_gate_passed", "storyline_gate_at", "storyline_gate_sha",
              "storyline_gate_accepted")
+# Not part of the brief's content, so not in the fingerprint either: the path
+# of the storyline the user approved (owner's decision 2026-10-13). It is
+# written after the seal (emit_dot_dash.py, or by hand for a prose storyline
+# written by hand); counting it would break the seal it follows. Unlike the
+# gate keys, a re-seal keeps it.
+POINTER_KEYS = ("approved_storyline",)
+FINGERPRINT_IGNORES = GATE_KEYS + POINTER_KEYS
 
 
 def brief_fingerprint(front_matter: dict, body: str) -> str:
-    """Fingerprint of a brief: every front-matter field except the gate's own,
-    plus the text below it.
+    """Fingerprint of a brief: every front-matter field except the gate's own
+    (and the approved_storyline pointer), plus the text below it.
 
     The front matter must be the dict build_deck.extract_front_matter returns,
     so prep and this script read the brief the same way. Line endings and
@@ -52,7 +59,7 @@ def brief_fingerprint(front_matter: dict, body: str) -> str:
     count as edits; any change a person would call an edit does.
     """
     fm = "\n".join(f"{k}={str(v).strip()}" for k, v in sorted(front_matter.items())
-                   if k not in GATE_KEYS)
+                   if k not in FINGERPRINT_IGNORES)
     lines = [ln.rstrip() for ln in body.replace("\r\n", "\n").split("\n")]
     text = "\n".join(lines).strip("\n")
     return hashlib.sha256(f"{fm}\n\x00\n{text}".encode("utf-8")).hexdigest()[:16]
@@ -98,6 +105,17 @@ def main(argv=None) -> int:
     except Exception as exc:  # the check must never stop a seal by crashing
         issues = []
         print(f"  (brief check skipped: {type(exc).__name__}: {exc})")
+    # Designer wording typed into the brief's bullets ("Supporting points:",
+    # a plain ALL CAPS label and a dash) reached the storyline the user reads
+    # (2026-10-13; owner's decision D). Same rule as emit_dot_dash.py.
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "storyline-helper" / "scripts"))
+        import emit_dot_dash
+        for hit in emit_dot_dash.designer_wording(raw):
+            issues.append({"level": "issue", "slide": hit["slide"], "field": "bullet",
+                           "problem": hit["why"], "text": hit["text"]})
+    except Exception as exc:
+        print(f"  (designer-wording check skipped: {type(exc).__name__}: {exc})")
     recs = [i for i in issues if i.get("level") == "recommendation"]
     issues = [i for i in issues if i.get("level") != "recommendation"]
     if recs:
