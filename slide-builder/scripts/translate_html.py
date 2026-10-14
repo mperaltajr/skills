@@ -73,7 +73,7 @@ EXTRACT_JS = r"""
   };
   const glyphCount = (t) => { let n = 0; for (let i = 0; i < t.length; i++) { if (/\s/.test(t[i])) continue; if (t.codePointAt(i) > 0xffff) i++; n++; } return n; };
   const transparent = (c) => !c || c === 'transparent' || /rgba\([^)]*,\s*0\)$/.test(c);
-  const out = {boxes: [], texts: [], svgs: [], icons: [], fallbacks: [], fields: {}, notes: [],
+  const out = {boxes: [], texts: [], svgs: [], icons: [], pictures: [], fallbacks: [], fields: {}, notes: [],
     canvas: {w: cr.width, h: cr.height}};
   let order = 0;
 
@@ -285,7 +285,40 @@ EXTRACT_JS = r"""
       out.fallbacks.push({kind: 'vertical-text', reason: 'vertical writing mode', id: sid, ...R(r), g: grp(el), order: order++});
       markSubtree(el); continue;
     }
-    if (tag === 'img' || tag === 'canvas' || tag === 'video' || tag === 'iframe' || tag === 'picture') {
+    if (tag === 'img') {
+      // A picture from a file next to the design, cropped and shaped as the
+      // browser drew it, is a native picture (2026-10-13); anything the
+      // picture tool can't carry (a web address, a filter, see-through, a
+      // border, clipped by its container, inside a table or list) stays
+      // with the agent.
+      const src = el.currentSrc || el.src || '';
+      let why = '';
+      if (!/^file:/i.test(src)) why = /^data:/i.test(src) ? 'embedded picture data' : 'picture from a web address';
+      else if (!el.complete || !el.naturalWidth || !el.naturalHeight) why = 'picture did not load';
+      else if (cs.filter && cs.filter !== 'none') why = 'filtered picture';
+      else if (effOpacity(el) < 0.999) why = 'see-through picture';
+      else if (sidesOf(cs).some(s => s.w > 0 && s.s !== 'none' && s.s !== 'hidden' && !transparent(s.c))) why = 'picture with a border';
+      else if (el.closest('[data-pm-tbl], [data-pm-list]')) why = 'picture inside a table or list';
+      else if (cs.clipPath && cs.clipPath !== 'none') why = 'clipped picture';
+      else {
+        for (let a = el.parentElement; a && a !== canvas.parentElement; a = a.parentElement) {
+          const acs = getComputedStyle(a);
+          if (acs.overflowX !== 'visible' || acs.overflowY !== 'visible' || (acs.clipPath && acs.clipPath !== 'none')) {
+            const ar = a.getBoundingClientRect();
+            if (r.left < ar.left - 0.5 || r.top < ar.top - 0.5 || r.right > ar.right + 0.5 || r.bottom > ar.bottom + 0.5 || (radiusOf(acs) > 0.5 && a !== canvas)) { why = 'picture clipped by its container'; break; }
+          }
+        }
+      }
+      if (!why) {
+        out.pictures.push({...R(r), src, nw: el.naturalWidth, nh: el.naturalHeight, fit: cs.objectFit,
+          pos: cs.objectPosition, radii: [cs.borderTopLeftRadius, cs.borderTopRightRadius, cs.borderBottomRightRadius, cs.borderBottomLeftRadius],
+          shadow: cs.boxShadow !== 'none', id: sid, g: grp(el), order: order++});
+      } else {
+        out.fallbacks.push({kind: tag, reason: 'img element (' + why + ')', id: sid, ...R(r), g: grp(el), order: order++});
+      }
+      markSubtree(el); continue;
+    }
+    if (tag === 'canvas' || tag === 'video' || tag === 'iframe' || tag === 'picture') {
       out.fallbacks.push({kind: tag, reason: tag + ' element', id: sid, ...R(r), g: grp(el), order: order++});
       markSubtree(el); continue;
     }
@@ -402,23 +435,83 @@ EXTRACT_JS = r"""
   // SVG: map the primitives these designs use (line, polyline, polygon, rect,
   // circle, ellipse, text, straight-segment paths). Anything else, or anything
   // decorated in a way shapes cannot carry, sends the whole SVG to the agent.
+  // How many screen px one unit of an svg element's own drawing is (its
+  // viewBox and transforms): line widths are in those units.
+  function ctmScale(el) { try { const m = el.getScreenCTM(); return m ? Math.sqrt(Math.abs(m.a * m.d - m.b * m.c)) || 1 : 1; } catch (e) { return 1; } }
+  // A marker that is one plain triangle pointing along the line, in the
+  // line's color: {len, wid, ext (px past the line's end to the tip), fill}.
+  function arrowHead(el, cs, which, sw) {
+    const ref = el.getAttribute('marker-' + which) || (which === 'end' ? cs.markerEnd : cs.markerStart) || '';
+    const m = /url\(\s*["']?#([^"')]+)["']?\s*\)/.exec(ref);
+    const mk = m ? document.getElementById(m[1]) : null;
+    if (!mk || mk.tagName.toLowerCase() !== 'marker') return null;
+    const kids = Array.from(mk.children).filter(k => !['title', 'desc'].includes(k.tagName.toLowerCase()));
+    if (kids.length !== 1) return null;
+    const k = kids[0], kt = k.tagName.toLowerCase();
+    if (k.getAttribute('transform')) return null;
+    let v = [];
+    if (kt === 'polygon') {
+      const nums = (k.getAttribute('points') || '').trim().split(/[\s,]+/).map(parseFloat);
+      for (let i = 0; i + 1 < nums.length; i += 2) v.push([nums[i], nums[i + 1]]);
+    } else if (kt === 'path') {
+      const d = k.getAttribute('d') || '';
+      if (/[^MLZmlz\d\s,.\-e]/.test(d) || /[ml]/.test(d.replace(/e-?\d/g, ''))) return null;
+      const nums = (d.match(/-?[\d.]+(?:e-?\d+)?/g) || []).map(parseFloat);
+      for (let i = 0; i + 1 < nums.length; i += 2) v.push([nums[i], nums[i + 1]]);
+      if (v.length === 4 && Math.abs(v[3][0] - v[0][0]) < 1e-6 && Math.abs(v[3][1] - v[0][1]) < 1e-6) v.pop();
+    } else return null;
+    if (v.length !== 3) return null;
+    const orient = (mk.getAttribute('orient') || '0').trim();
+    if (orient !== 'auto' && orient !== 'auto-start-reverse') return null;
+    const units = mk.getAttribute('markerUnits') || 'strokeWidth';
+    let scale = (units === 'strokeWidth' ? sw : 1) * ctmScale(el);
+    const vb = mk.viewBox && mk.viewBox.baseVal;
+    if (vb && vb.width > 0 && vb.height > 0) {
+      const mw = parseFloat(mk.getAttribute('markerWidth') || 3), mh = parseFloat(mk.getAttribute('markerHeight') || 3);
+      if (Math.abs(mw / vb.width - mh / vb.height) > 1e-3) return null;
+      scale *= mw / vb.width;
+    }
+    // the tip: the corner farthest along x from the other two, which share an x
+    let best = null;
+    for (let i = 0; i < 3; i++) {
+      const o = v.filter((_, j) => j !== i);
+      const bx = (o[0][0] + o[1][0]) / 2, len = Math.abs(v[i][0] - bx), wid = Math.abs(o[0][1] - o[1][1]);
+      if (!best || len > best.len) best = {tip: v[i], bx, len, wid, spread: Math.abs(o[0][0] - o[1][0]), my: (o[0][1] + o[1][1]) / 2};
+    }
+    if (!best || best.len <= 0 || best.wid <= 0 || best.spread > 0.25 * best.len || Math.abs(best.tip[1] - best.my) > 0.25 * best.wid) return null;
+    const dir = Math.sign(best.tip[0] - best.bx);
+    const outward = which === 'end' ? dir > 0 : (orient === 'auto-start-reverse' ? dir > 0 : dir < 0);
+    if (!outward) return null;
+    const refX = parseFloat(mk.getAttribute('refX') || 0);
+    const ext = (which === 'start' && orient === 'auto' ? refX - best.tip[0] : best.tip[0] - refX) * scale;
+    return {len: best.len * scale, wid: best.wid * scale, ext, fill: getComputedStyle(k).fill};
+  }
+
   function readSvg(svg, sid) {
     const r = svg.getBoundingClientRect();
-    const res = {id: sid, ...R(r), order: order++, items: [], unsupported: [], arrows: []};
+    const res = {id: sid, ...R(r), order: order++, items: [], unsupported: [], arrows: [], rects: []};
     const pt = (el, x, y) => { const m = el.getScreenCTM(); const p = new DOMPoint(x, y).matrixTransform(m); return [p.x - ox, p.y - oy]; };
     for (const el of svg.querySelectorAll('*')) {
       const tag = el.tagName.toLowerCase();
       if (['defs','title','desc','g','style','tspan','lineargradient','radialgradient','stop','clippath','mask','marker','symbol'].includes(tag)) {
-        if (['lineargradient','radialgradient','clippath','mask','marker','symbol'].includes(tag)) res.unsupported.push(tag);
+        // a marker is judged where it is used (arrowHead below)
+        if (['lineargradient','radialgradient','clippath','mask','symbol'].includes(tag)) res.unsupported.push(tag);
         continue;
       }
+      if (el.closest('marker')) continue;      // an arrowhead's own drawing
       const cs = getComputedStyle(el);
       if (!visible(cs)) continue;
+      if (!el.closest('defs, marker, symbol, clipPath, mask')) {
+        // where each drawn piece is, so the self-check can leave out exactly
+        // what the agent will draw when the whole drawing goes to it
+        const q = el.getBoundingClientRect();
+        if (q.width > 0 || q.height > 0) res.rects.push(R(q));
+      }
       const mEnd = !!el.getAttribute('marker-end') || cs.markerEnd !== 'none';
       const mStart = !!el.getAttribute('marker-start') || cs.markerStart !== 'none';
+      let heads = null;
       if (mEnd || mStart) {
         // Where the arrow's ends are, for the arrow-end check (scripts/arrow_ends.py).
-        // The element itself still goes to the agent.
         try {
           if (!el.closest('defs, marker, symbol') && typeof el.getTotalLength === 'function') {
             const L = el.getTotalLength(), pts = [];
@@ -426,14 +519,21 @@ EXTRACT_JS = r"""
             res.arrows.push({pts, start: mStart, end: mEnd, id: el.getAttribute('data-shape-id') || el.id || ''});
           }
         } catch (e) {}
-        res.unsupported.push('arrow marker'); continue;
+        // A straight line with a plain triangle arrowhead is drawn natively
+        // (a line with a PowerPoint arrowhead, 2026-10-13); any other marker
+        // sends the drawing to the agent.
+        const sw0 = parseFloat(cs.strokeWidth) || 1;
+        const hs = {start: mStart ? arrowHead(el, cs, 'start', sw0) : null, end: mEnd ? arrowHead(el, cs, 'end', sw0) : null};
+        if (['line', 'path', 'polyline'].includes(tag) && (!mStart || hs.start) && (!mEnd || hs.end)) heads = hs;
+        else { res.unsupported.push('arrow marker'); continue; }
       }
       if (cs.strokeDasharray && cs.strokeDasharray !== 'none' && (tag === 'circle' || tag === 'ellipse')) { res.unsupported.push('dashed ring'); continue; }
       const st = {fill: cs.fill, fillOp: parseFloat(cs.fillOpacity) * parseFloat(cs.opacity), stroke: cs.stroke,
-                  sw: parseFloat(cs.strokeWidth) || 0, dash: cs.strokeDasharray && cs.strokeDasharray !== 'none',
+                  sw: (parseFloat(cs.strokeWidth) || 0) * ctmScale(el), dash: cs.strokeDasharray && cs.strokeDasharray !== 'none',
                   def: !!el.closest('defs, marker, symbol')};
       if (/url\(/.test(st.fill) || /url\(/.test(st.stroke)) { res.unsupported.push('gradient paint'); continue; }
       const A = (n) => parseFloat(el.getAttribute(n) || 0);
+      const n0 = res.items.length;
       if (tag === 'line') res.items.push({k: 'poly', closed: false, pts: [pt(el, A('x1'), A('y1')), pt(el, A('x2'), A('y2'))], ...st});
       else if (tag === 'polyline' || tag === 'polygon') {
         const nums = (el.getAttribute('points') || '').trim().split(/[\s,]+/).map(parseFloat);
@@ -464,11 +564,20 @@ EXTRACT_JS = r"""
           if (cur) cur.pts.push([x, y]);
         }
         for (const s of subs) res.items.push({k: 'poly', closed: s.closed, pts: s.pts.map(p => pt(el, p[0], p[1])), ...st});
-      } else if (tag === 'text') {
+      }
+      if (heads) {
+        const got = res.items.slice(n0);
+        if (got.length !== 1 || got[0].k !== 'poly' || got[0].closed || got[0].pts.length !== 2) {
+          res.items.length = n0; res.unsupported.push('arrow marker'); continue;
+        }
+        got[0].heads = heads;
+        continue;
+      }
+      if (tag === 'text') {
         const bb = el.getBoundingClientRect();
         res.items.push({k: 'text', t: el.textContent.replace(/\s+/g, ' ').trim(), x: bb.left - ox, y: bb.top - oy, w: bb.width, h: bb.height,
           fs: parseFloat(cs.fontSize), ff: cs.fontFamily, fw: cs.fontWeight, color: cs.fill, anchor: cs.textAnchor || el.getAttribute('text-anchor') || 'start'});
-      } else res.unsupported.push(tag);
+      } else if (!['line', 'polyline', 'polygon', 'rect', 'circle', 'ellipse', 'path'].includes(tag)) res.unsupported.push(tag);
     }
     return res;
   }
@@ -1164,6 +1273,91 @@ def place_first_line(ink_top: float, first_h: float, run: dict | None, lh_px: fl
     return base - b, L, lo_first_baseline(L, S) - b
 
 
+_CAP_CACHE: dict = {}
+PAD_STEP_EMU = 360          # the top inset is written in whole steps of this
+
+
+def cap_height(face: str, bold: bool) -> float:
+    """Capital-letter height in em: the font's OS/2 sCapHeight, else Arial's 0.716."""
+    key = (face.lower(), bold)
+    if key not in _CAP_CACHE:
+        got = 0.716
+        path = _face_path(face, bold)
+        if path:
+            try:
+                from fontTools.ttLib import TTFont
+                f = TTFont(path, lazy=True)
+                cap = getattr(f["OS/2"], "sCapHeight", 0) or 0
+                if cap > 0:
+                    got = cap / f["head"].unitsPerEm
+            except Exception:
+                pass
+        _CAP_CACHE[key] = got
+    return _CAP_CACHE[key]
+
+
+def top_pad_px(run: dict | None, L: float) -> float:
+    """How far the capitals of a top-anchored text box (top inset 0, exact
+    line spacing L px) reach above the box in PowerPoint, rounded up to whole
+    PAD_STEP_EMU; 0 when they don't.
+
+    One-line boxes get spacing 0.8 x size (TIGHT_SINGLE), which puts the
+    first baseline 0.6 x size below the box top, so capitals (~0.72 x size)
+    stuck out above the box and its selection frame looked wrong
+    (2026-10-13). The box is then drawn this much higher and taller with
+    this much top inset (html_emit._text): the text itself stays put."""
+    if not run:
+        return 0.0
+    asc, desc, _n = vertical_metrics(run["font"], run["bold"])
+    S = _snapped_px(run["size_px"])
+    k = cap_height(run["font"], run["bold"]) * S - ppt_first_baseline(L, S, asc, desc)
+    if k <= 0:
+        return 0.0
+    return math.ceil(k * 9525 / PAD_STEP_EMU - 1e-9) * PAD_STEP_EMU / 9525
+
+
+CAPS_ABOVE_LIMIT_PX = 1.0
+
+
+def caps_above_frame(slide) -> list[dict]:
+    """Advisory check on a built slide: top-anchored text boxes with exact
+    line spacing whose capitals reach more than CAPS_ABOVE_LIMIT_PX above the
+    box (where PowerPoint draws its selection frame). Each finding: {"shape",
+    "text", "above_px"}. Fired on 427 boxes of the 10/12 deck; boxes drawn
+    with top_pad_px don't fire."""
+    from pptx.oxml.ns import qn
+    out = []
+
+    def walk(shapes):
+        for sh in shapes:
+            if getattr(sh, "shape_type", None) == 6:
+                yield from walk(sh.shapes)
+            else:
+                yield sh
+    for sh in walk(slide.shapes):
+        if not getattr(sh, "has_text_frame", False) or not sh.text_frame.text.strip():
+            continue
+        body = sh._element.find(".//" + qn("a:bodyPr"))
+        if body is None or (body.get("anchor") or "t") != "t":
+            continue
+        tins = int(body.get("tIns") if body.get("tIns") is not None else 45720) / 9525
+        p0 = sh.text_frame.paragraphs[0]
+        spc = p0._p.find(qn("a:pPr") + "/" + qn("a:lnSpc") + "/" + qn("a:spcPts"))
+        runs = [r for r in p0.runs if r.text.strip() and r.font.size]
+        if spc is None or not runs:
+            continue
+        big = max(runs, key=lambda r: r.font.size)
+        S_px = big.font.size.pt / 0.75
+        L_px = int(spc.get("val")) / 100 / 0.75
+        face = big.font.name or "Arial"
+        bold = bool(big.font.bold)
+        asc, desc, _n = vertical_metrics(face, bold)
+        above = cap_height(face, bold) * S_px - (tins + ppt_first_baseline(L_px, S_px, asc, desc))
+        if above > CAPS_ABOVE_LIMIT_PX:
+            out.append({"shape": sh.name, "text": sh.text_frame.text[:40], "above_px": round(above, 1)})
+    return out
+
+
 def _snapped_px(size_px: float) -> float:
     from twins.helpers import snap_font_pt
     return snap_font_pt(size_px * 0.75) / 0.75
@@ -1172,7 +1366,10 @@ def _snapped_px(size_px: float) -> float:
 def _wrapped_lines(paragraphs, width_px: float) -> int | None:
     """Greedy word-wrap line count, measured with the real font files (as
     PowerPoint will set the text, which is slightly wider than Chrome). None if
-    a font is missing."""
+    a font is missing. A line may end at a space, or inside a word after a
+    hyphen or dash (_chrome_schema.hyphen_pieces), as PowerPoint and Chrome
+    both do."""
+    from _chrome_schema import hyphen_pieces
     total = 0
     for para in paragraphs:
         words, widths = [], []
@@ -1182,9 +1379,11 @@ def _wrapped_lines(paragraphs, width_px: float) -> int | None:
             if f is None:
                 return None
             for wd in re.split(r"(\s+)", r["t"]):
-                if wd:
-                    words.append(wd)
-                    widths.append(f.getlength(wd) + (r.get("letter_spacing_px") or 0) * len(wd))
+                for piece in ([wd] if not wd or wd.isspace() else hyphen_pieces(wd)):
+                    if piece:
+                        words.append(piece)
+                        widths.append(f.getlength(piece)
+                                      + (r.get("letter_spacing_px") or 0) * len(piece))
         lines, cur = 1, 0.0
         for wd, wl in zip(words, widths):
             if wd.isspace():
@@ -1298,7 +1497,11 @@ def _plan_text(plan: Plan, t: dict, order_key, name=None) -> None:
                 for r in t["runs"] if not r.get("br"))
 
     # Will PowerPoint wrap it into more lines than Chrome did? Measured with
-    # the real font files. Widen a little first, then step the font down one.
+    # the real font files. Widen a little; if that is not enough, keep the
+    # design's size and say so (WRAP_RISK, shown on the review page). The
+    # font used to be stepped down one size silently: 12 pt body text shipped
+    # at 11 pt on a misprediction, and at 11 pt the predictor still saw the
+    # extra line (2026-10-13).
     if wrap:
         predicted = _wrapped_lines(paras, w)
         if predicted is not None and predicted > lines:
@@ -1312,16 +1515,16 @@ def _plan_text(plan: Plan, t: dict, order_key, name=None) -> None:
                         x -= nw - w
                     w, grown = nw, True
                     break
-            if not grown:
-                from twins.helpers import snap_font_pt
-                for p in paras:
-                    for r in p:
-                        pt = snap_font_pt(r["size_px"] * 0.75)
-                        r["size_px"] = max(8.0, pt - 1) / 0.75
-            plan.counts["wrap_adjusted"] += 1
-            plan.warn("WRAP_ADJUSTED", f"{t.get('id') or 'text'}: would wrap to "
-                      f"{predicted} lines in PowerPoint vs {lines} in the design; "
-                      + ("widened" if grown else "font stepped down one size"))
+            if grown:
+                plan.counts["wrap_adjusted"] += 1
+                plan.warn("WRAP_ADJUSTED", f"{t.get('id') or 'text'}: would wrap to "
+                          f"{predicted} lines in PowerPoint vs {lines} in the design; widened")
+            else:
+                plan.counts["wrap_risk"] = plan.counts.get("wrap_risk", 0) + 1
+                plan.warn("WRAP_RISK", f"{t.get('id') or 'text'}: may wrap to {predicted} lines "
+                          f"in PowerPoint vs {lines} in the design, even 6% wider; kept at the "
+                          "design's size. Check this text in the finished slide; if it runs onto "
+                          "an extra line, shorten it or give its box more room in the design")
         elif predicted is not None and predicted < lines:
             # Fits on fewer lines than the design (Chrome broke at a width the
             # PowerPoint text just clears): narrow the box toward the design's
@@ -1356,7 +1559,104 @@ def _plan_text(plan: Plan, t: dict, order_key, name=None) -> None:
                      "_ink": (ink["x"], ink["y"], ink["w"], ink["h"]), "_single": single,
                      "_lines": lines, "_id": t.get("id") or "", "_glyphs": t.get("glyphs") or [],
                      "_design_px": design_px, "_cased": cased, "_dy_lo": dy_lo})
+    pad = top_pad_px(big, L)
+    if pad:
+        plan.ops[-1]["pad_top_px"] = pad
     plan.counts["texts"] += 1
+
+
+# --- pictures --------------------------------------------------------------
+
+PICTURE_TYPES = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".tif", ".tiff"}
+
+
+def _file_path(src: str) -> Path | None:
+    """The file a file:// address points at, or None."""
+    from urllib.parse import unquote, urlparse
+    from urllib.request import url2pathname
+    try:
+        u = urlparse(src)
+        if u.scheme.lower() != "file":
+            return None
+        if u.netloc:
+            return Path(url2pathname(f"//{u.netloc}{u.path}"))
+        return Path(url2pathname(u.path))
+    except Exception:
+        return None
+
+
+def _object_offset(tok: str, room: float) -> float:
+    """One object-position value as px from the box's left/top edge."""
+    tok = (tok or "").strip().lower()
+    named = {"left": 0.0, "top": 0.0, "center": 0.5, "right": 1.0, "bottom": 1.0}
+    if tok in named:
+        return named[tok] * room
+    if tok.endswith("%"):
+        return float(tok[:-1]) / 100 * room
+    return _px(tok)
+
+
+def _plan_picture(plan: "Plan", pc: dict) -> None:
+    """A picture from a file, drawn as a native picture: the part of it the
+    browser showed (object-fit and object-position as a crop) and its shape
+    (round corners, or an oval for 50%). Before 2026-10-13 every picture went
+    to the agent, which drew exactly this by hand."""
+    x, y, w, h = pc["x"], pc["y"], pc["w"], pc["h"]
+
+    def agent(why):
+        plan.fallbacks.append({"kind": "img", "id": pc.get("id") or "", "x": x, "y": y, "w": w,
+                               "h": h, "reason": f"img element ({why})", "_order": pc["order"]})
+    if w < 1 or h < 1:
+        return
+    path = _file_path(pc.get("src") or "")
+    if path is None or not path.is_file():
+        return agent("picture file not found")
+    if path.suffix.lower() not in PICTURE_TYPES:
+        return agent(f"{path.suffix or 'this kind of'} picture can't be placed natively")
+    nw, nh = float(pc["nw"]), float(pc["nh"])
+    fit = (pc.get("fit") or "fill").lower()
+    if fit == "cover":
+        k = max(w / nw, h / nh)
+        dw, dh = nw * k, nh * k
+    elif fit in ("contain", "scale-down"):
+        k = min(w / nw, h / nh)
+        if fit == "scale-down":
+            k = min(1.0, k)
+        dw, dh = nw * k, nh * k
+    elif fit == "none":
+        dw, dh = nw, nh
+    else:                                 # fill: stretched to the box
+        dw, dh = w, h
+    toks = (pc.get("pos") or "50% 50%").split()
+    if len(toks) == 1:
+        toks.append("50%")
+    ox = _object_offset(toks[0], w - dw)
+    oy = _object_offset(toks[1], h - dh)
+    # the picture as drawn, cut to the box
+    px0, py0, px1, py1 = x + ox, y + oy, x + ox + dw, y + oy + dh
+    vx0, vy0, vx1, vy1 = max(x, px0), max(y, py0), min(x + w, px1), min(y + h, py1)
+    if vx1 - vx0 < 1 or vy1 - vy0 < 1:
+        return
+    crop = [(vx0 - px0) / dw, (vy0 - py0) / dh, (px1 - vx1) / dw, (py1 - vy1) / dh]
+    radii = [_px(r_, min(w, h)) for r_ in pc.get("radii") or []]
+    rad = max(radii or [0.0])
+    geom, ratio = "rect", None
+    if rad > 0.5:
+        if len({round(r_) for r_ in radii}) > 1:
+            return agent("picture with mixed corner radii")
+        if (vx1 - vx0) < w - 0.5 or (vy1 - vy0) < h - 0.5:
+            return agent("rounded picture that doesn't fill its box")
+        if rad >= min(w, h) / 2 - 0.5:
+            geom = "ellipse"
+        else:
+            geom, ratio = "roundRect", min(0.5, rad / max(1.0, min(w, h)))
+    if pc.get("shadow"):
+        plan.kill["shadows_stripped"] += 1
+    plan.ops.append({"op": "picture", "path": str(path), "x": vx0, "y": vy0, "w": vx1 - vx0,
+                     "h": vy1 - vy0, "crop": [round(c, 6) for c in crop], "geom": geom,
+                     "radius_ratio": ratio, "name": pc.get("id") or None,
+                     "_order": pc["order"], "_box": (vx0, vy0, vx1 - vx0, vy1 - vy0)})
+    plan.counts["pictures"] = plan.counts.get("pictures", 0) + 1
 
 
 # --- svg -------------------------------------------------------------------
@@ -1386,11 +1686,42 @@ def _plan_icon(plan: Plan, ic: dict) -> None:
     plan.counts["icons"] = plan.counts.get("icons", 0) + 1
 
 
+# PowerPoint's arrowhead sizes, as multiples of the line's width.
+_HEAD_SIZES = (("sm", 2.0), ("med", 3.0), ("lg", 5.0))
+HEAD_COLOR_LIMIT = 30.0     # RGB distance: an arrowhead in another color stays the agent's
+
+
+def _head_size(px: float, line_w: float) -> str:
+    k = px / max(0.5, line_w)
+    return min(_HEAD_SIZES, key=lambda s_: abs(math.log(k / s_[1])) if k > 0 else 9)[0]
+
+
+def _head_fits(hd: dict, line_w: float) -> bool:
+    """Is a PowerPoint arrowhead close to this size (small 2x the line's
+    width, large 5x)? A 16 px head on a 2 px line (8x) came out half size."""
+    lw = max(0.5, line_w)
+    return all(1.6 <= hd[k] / lw <= 6.0 for k in ("len", "wid"))
+
+
+def _arrow_heads_ok(s: dict) -> bool:
+    for it in s.get("items") or []:
+        for hd in (it.get("heads") or {}).values():
+            if not hd:
+                continue
+            fill, stroke = parse_color(hd.get("fill")), parse_color(it.get("stroke"))
+            if not fill or not stroke or _color_distance(fill[0], stroke[0]) > HEAD_COLOR_LIMIT:
+                return False
+    return True
+
+
 def _plan_svg(plan: Plan, s: dict) -> None:
+    if not s["unsupported"] and not _arrow_heads_ok(s):
+        s = dict(s, unsupported=["arrowhead in another color than its line"])
     if s["unsupported"]:
         plan.fallbacks.append({"kind": "svg", "id": s.get("id") or "", "x": s["x"], "y": s["y"],
                                "w": s["w"], "h": s["h"],
-                               "reason": "svg with " + ", ".join(sorted(set(s["unsupported"])))})
+                               "reason": "svg with " + ", ".join(sorted(set(s["unsupported"]))),
+                               "_order": s["order"], "_rects": s.get("rects") or None})
         return
     for i, it in enumerate(s["items"]):
         k = s["order"] + 0.0001 * (i + 1)
@@ -1400,7 +1731,41 @@ def _plan_svg(plan: Plan, s: dict) -> None:
             if stroke and it.get("sw", 0) > 0 else None
         if it["k"] == "poly":
             if len(it["pts"]) == 2 and not it["closed"]:
-                plan.ops.append({"op": "connector", "points": it["pts"], "line": line, "_order": k})
+                pts = [list(it["pts"][0]), list(it["pts"][1])]
+                heads = it.get("heads") or {}
+                if line and any(heads.values()):
+                    # PowerPoint puts the arrow's tip on the line's end: move
+                    # each end out to where the design's tip is
+                    dx, dy = pts[1][0] - pts[0][0], pts[1][1] - pts[0][1]
+                    n = math.hypot(dx, dy) or 1.0
+                    ux, uy = dx / n, dy / n
+                    line = dict(line)
+                    own = []          # arrowheads PowerPoint can't size: drawn as triangles
+                    for which, key, j, sgn in (("start", "head", 0, -1), ("end", "tail", 1, 1)):
+                        hd = heads.get(which)
+                        if not hd:
+                            continue
+                        e = float(hd.get("ext") or 0)
+                        tip = [pts[j][0] + sgn * ux * e, pts[j][1] + sgn * uy * e]
+                        if _head_fits(hd, line["w"]):
+                            pts[j] = tip
+                            line[key] = {"type": "triangle", "w": _head_size(hd["wid"], line["w"]),
+                                         "len": _head_size(hd["len"], line["w"])}
+                        else:
+                            bx, by = tip[0] - sgn * ux * hd["len"], tip[1] - sgn * uy * hd["len"]
+                            hw = hd["wid"] / 2
+                            own.append([tip, [bx - uy * hw, by + ux * hw], [bx + uy * hw, by - ux * hw]])
+                    plan.counts["native_arrowheads"] = plan.counts.get("native_arrowheads", 0) + 1
+                else:
+                    own = []
+                name = (s.get("id") or None) if len(s["items"]) == 1 else None
+                plan.ops.append({"op": "connector", "points": pts, "line": line, "_order": k,
+                                 "name": name})
+                for n_, tri in enumerate(own):
+                    plan.ops.append({"op": "freeform", "points": tri, "closed": True,
+                                     "fill": line["color"], "alpha": 1.0, "line": None,
+                                     "_order": k + 0.00001 * (n_ + 1),
+                                     "name": f"{name}-head-{n_ + 1}" if name else None})
             else:
                 plan.ops.append({"op": "freeform", "points": it["pts"], "closed": it["closed"],
                                  "fill": fill[0] if fill and it["closed"] else None,
@@ -1422,6 +1787,9 @@ def _plan_svg(plan: Plan, s: dict) -> None:
             plan.ops.append({"op": "text", "x": it["x"], "y": ty, "w": it["w"] + 4, "h": it["h"],
                              "align": align, "line_height_px": L, "_lh_design": it["h"],
                              "wrap": False, "paragraphs": [[run]], "_order": k, "_dy_lo": dy_lo})
+            pad = top_pad_px(run, L)
+            if pad:
+                plan.ops[-1]["pad_top_px"] = pad
         plan.counts["svg_items"] += 1
 
 
@@ -1903,8 +2271,14 @@ def _glyph_box(ch: str, face: str = "Arial"):
 _SHOT_CACHE: dict = {}
 
 
-def _ink_box(data: dict, x0: float, y0: float, x1: float, y1: float):
-    """(x, y, w, h) of the marks inside a region of the design's picture, or None."""
+def _ink_box(data: dict, x0: float, y0: float, x1: float, y1: float, bg=None,
+             near: tuple | None = None):
+    """(x, y, w, h) of the marks inside a region of the design's picture, or None.
+
+    bg: the background color there ('RRGGBB'), when known; else the median of
+    the region's border. near: (x, y) on the slide; only the connected mark
+    closest to it counts (a letter's smoothed edge beside a bullet is not the
+    bullet)."""
     import io
     import numpy as np
     from PIL import Image
@@ -1921,9 +2295,14 @@ def _ink_box(data: dict, x0: float, y0: float, x1: float, y1: float):
     if x1 - x0 < 2 or y1 - y0 < 2:
         return None
     crop = arr[y0:y1, x0:x1]
-    ring = np.concatenate([crop[0], crop[-1], crop[:, 0], crop[:, -1]])
-    bg = np.median(ring, axis=0)
-    mask = np.linalg.norm(crop - bg, axis=2) > 60
+    if bg is not None:
+        bgv = np.array([int(bg[k:k + 2], 16) for k in (0, 2, 4)], dtype=np.float32)
+    else:
+        ring = np.concatenate([crop[0], crop[-1], crop[:, 0], crop[:, -1]])
+        bgv = np.median(ring, axis=0)
+    mask = np.linalg.norm(crop - bgv, axis=2) > 60
+    if near is not None and mask.any():
+        mask = _blob_nearest(mask, near[0] - x0, near[1] - y0)
     ys, xs = np.nonzero(mask)
     if not len(xs):
         return None
@@ -1931,7 +2310,60 @@ def _ink_box(data: dict, x0: float, y0: float, x1: float, y1: float):
             float(xs.max() - xs.min() + 1), float(ys.max() - ys.min() + 1))
 
 
-def _bullet_for(it: dict, op: dict, marker_texts: dict, data: dict | None = None):
+def _blob_nearest(mask, cx: float, cy: float):
+    """The connected part of mask (8-neighbors) with the pixel nearest (cx, cy)."""
+    import numpy as np
+    ys, xs = np.nonzero(mask)
+    k = int(np.argmin((xs - cx) ** 2 + (ys - cy) ** 2))
+    h, w = mask.shape
+    keep = np.zeros_like(mask)
+    todo = [(int(ys[k]), int(xs[k]))]
+    keep[todo[0]] = True
+    while todo:
+        y, x = todo.pop()
+        for dy in (-1, 0, 1):
+            for dx in (-1, 0, 1):
+                ny, nx = y + dy, x + dx
+                if 0 <= ny < h and 0 <= nx < w and mask[ny, nx] and not keep[ny, nx]:
+                    keep[ny, nx] = True
+                    todo.append((ny, nx))
+    return keep
+
+
+# A disc, circle or square bullet read off the design's picture must be
+# between these shares of the text size; outside, the reading is wrong (a
+# strip of the page beside a dark panel read as one 1,200% bullet,
+# 2026-10-13) and the browser's own marker size and place are used instead.
+BULLET_MIN_PCT, BULLET_MAX_PCT = 60.0, 200.0
+
+
+def _fill_under(data: dict | None, px: float, py: float, before) -> dict | None:
+    """The smallest filled box of the design under point (px, py), painted
+    before `before` (an order number), or None."""
+    best = None
+    for b in (data or {}).get("boxes") or []:
+        if b.get("order") is not None and before is not None and b["order"] >= before:
+            continue
+        if not (b["x"] <= px <= b["x"] + b["w"] and b["y"] <= py <= b["y"] + b["h"]):
+            continue
+        if not (parse_color(b.get("bg")) or (b.get("bgimg") and "gradient" in b["bgimg"])):
+            continue
+        if best is None or b["w"] * b["h"] < best["w"] * best["h"]:
+            best = b
+    return best
+
+
+def _bg_hex(box: dict | None, data: dict | None) -> str:
+    """The color behind a list marker: its filled box's, else the slide's."""
+    for b in ([box] if box else []) + [b for b in (data or {}).get("boxes") or [] if b.get("canvas")]:
+        col = parse_color(b.get("bg")) or (_gradient_mid(b.get("bgimg")) if b.get("bgimg") else None)
+        if col:
+            return col[0] if col[1] >= 0.999 else _mix(col[0], "FFFFFF", col[1])
+    return "FFFFFF"
+
+
+def _bullet_for(it: dict, op: dict, marker_texts: dict, data: dict | None = None,
+                warn: list | None = None):
     """The PowerPoint bullet for one list item: (spec, bullet x, region the
     marker covers in the design), "keep" when the marker has to stay a shape,
     or None when the item has no marker."""
@@ -1944,11 +2376,27 @@ def _bullet_for(it: dict, op: dict, marker_texts: dict, data: dict | None = None
         style = m.get("style") or ""
         pct = 100.0 * float(m.get("fs") or text_px) / text_px
         # Where the marker's ink is, read off the design's own picture: the
-        # browser does not report where it drew a list marker.
+        # browser does not report where it drew a list marker. Read only the
+        # marker's own space first, against the color actually behind it
+        # (its filled box's), keeping the mark nearest the marker; widen
+        # toward the left only inside that box. The old wide strip crossed a
+        # dark panel's edge and read the page beside it as the bullet, and
+        # it caught the first letter's smoothed edge ("A": 404%).
         fs = float(m.get("fs") or text_px)
         right = m["x"] + m["w"]
-        ink = _ink_box(data, right - max(m["w"], 3 * fs), m["y"] - 2, right - 0.5,
-                       m["y"] + m["h"] + 2) if data is not None else None
+        cy = m["y"] + m["h"] / 2
+        holder = _fill_under(data, m["x"] + m["w"] / 2, cy, op.get("_order"))
+        bg = _bg_hex(holder, data)
+        lo = (holder["x"] + 1) if holder else 0.0
+        ink = None
+        if data is not None:
+            ink = _ink_box(data, max(lo, m["x"]), m["y"] - 2, right - 2, m["y"] + m["h"] + 2,
+                           bg=bg, near=(m["x"] + m["w"] / 2, cy))
+            if ink is None:
+                ink = _ink_box(data, max(lo, right - max(m["w"], 3 * fs)), m["y"] - 2, right - 2,
+                               m["y"] + m["h"] + 2, bg=bg, near=(right - fs / 2, cy))
+        why = None
+        lbox = it.get("_L")
         if style in _AUTONUM:
             spec = {"autonum": _AUTONUM[style], "start": int(m.get("value") or 1)}
             bx = ink[0] if ink else m["x"]
@@ -1958,10 +2406,26 @@ def _bullet_for(it: dict, op: dict, marker_texts: dict, data: dict | None = None
             bx = m["x"]
             if ink and gb:
                 size_px = ink[2] / gb[1]
-                pct = 100.0 * size_px / text_px
-                bx = ink[0] - gb[0] * size_px
+                got = 100.0 * size_px / text_px
+                if not BULLET_MIN_PCT <= got <= BULLET_MAX_PCT:
+                    why = f"read as {got:.0f}% of the text size"
+                else:
+                    pct = got
+                    bx = ink[0] - gb[0] * size_px
         else:
             return "unsupported"
+        if why is None and ink:
+            if lbox and bx < lbox[0] - 1:
+                why = f"read {lbox[0] - bx:.0f} px left of the list"
+            elif holder and not (holder["x"] - 1 <= ink[0] and ink[0] + ink[2] <= holder["x"] + holder["w"] + 1):
+                why = "read outside the panel the list sits on"
+        if why:
+            # the browser's own marker place and size instead
+            bx, pct = m["x"], 100.0 * fs / text_px
+            ink = None
+            if warn is not None:
+                warn.append(f"item {it.get('i', 0) + 1}: the bullet {why}; used the browser's marker "
+                            f"position and size instead")
         spec.update(color=col[0] if col else None, pct=pct)
         region = (ink[0], ink[1], ink[2], ink[3]) if ink else (m["x"], m["y"], max(1.0, m["w"]), m["h"])
         return spec, bx, region
@@ -2058,7 +2522,8 @@ def _list_op(name: str, blocks: list, order) -> dict | None:
             "_glyphs": [q for b in blocks for q in (b[2].get("_glyphs") or [])],
             "_design_px": max(b[2].get("_design_px") or 0 for b in blocks),
             "_cased": any(b[2].get("_cased") for b in blocks), "_list": True,
-            "_dy_lo": first_op.get("_dy_lo") or 0.0}
+            "_dy_lo": first_op.get("_dy_lo") or 0.0,
+            **({"pad_top_px": first_op["pad_top_px"]} if first_op.get("pad_top_px") else {})}
 
 
 def _list_group(plan: "Plan", L: dict, data: dict):
@@ -2075,7 +2540,7 @@ def _list_group(plan: "Plan", L: dict, data: dict):
     if any(_g(b).get("list") == k and _g(b).get("item") and not _g(b).get("marker")
            for b in data.get("boxes") or []):
         return None, "its items are drawn as panels or have their own borders"
-    if any(_g(f).get("list") == k for f in data.get("fallbacks") or []):
+    if any(_g(f).get("list") == k for f in (data.get("fallbacks") or []) + (data.get("pictures") or [])):
         return None, "it holds a picture or an element left to the agent"
     texts = [t for t in data.get("texts") or [] if _g(t).get("list") == k]
     if any(not _g(t).get("item") for t in texts):
@@ -2089,7 +2554,7 @@ def _list_group(plan: "Plan", L: dict, data: dict):
     plain_blocks, bullet_blocks = [], []
     bullets_ok = True
     for it in items:
-        it = dict(it, _k=k)
+        it = dict(it, _k=k, _L=(L["x"], L["y"], L["w"], L["h"]))
         ts = sorted((t for t in by_item.get(f"{k}:{it['i']}", [])
                      if not (t.get("covered") or t.get("clipped"))), key=lambda t: t["order"])
         first = True
@@ -2103,7 +2568,10 @@ def _list_group(plan: "Plan", L: dict, data: dict):
             op_bul = _scratch_text(dict(stripped, listItem=False))
             if op_plain is None or op_bul is None:
                 continue
-            bul = _bullet_for(it, op_bul, marker_texts, data) if first else None
+            notes = []
+            bul = _bullet_for(it, op_bul, marker_texts, data, notes) if first else None
+            for n_ in notes:
+                plan.warn("BULLET_FALLBACK", f"{name}: {n_}")
             if bul in ("keep", "unsupported"):
                 bullets_ok = False
                 if bul == "unsupported":
@@ -2310,10 +2778,12 @@ def plan_from_extract(data: dict, subtitle_as_shape: bool,
     items += [(t["order"], "text", t) for t in data["texts"]]
     items += [(s["order"], "svg", s) for s in data["svgs"]]
     items += [(ic["order"], "icon", ic) for ic in data.get("icons") or []]
+    items += [(pc["order"], "picture", pc) for pc in data.get("pictures") or []]
     for w in data.get("icon_warnings") or []:
         plan.warn(w["code"], w["detail"])
     for f in data["fallbacks"]:
-        plan.fallbacks.append({k: f.get(k) for k in ("kind", "id", "x", "y", "w", "h", "reason")})
+        plan.fallbacks.append(dict({k: f.get(k) for k in ("kind", "id", "x", "y", "w", "h", "reason")},
+                                   _order=f.get("order")))
     for _, kind, it in sorted(items, key=lambda z: z[0]):
         n0 = len(plan.ops)
         _plan_item(plan, kind, it, subtitle_as_shape)
@@ -2339,13 +2809,46 @@ def _plan_item(plan: Plan, kind: str, it: dict, subtitle_as_shape: bool) -> None
         _plan_text(plan, it, it["order"], name=name)
     elif kind == "icon":
         _plan_icon(plan, it)
+    elif kind == "picture":
+        _plan_picture(plan, it)
     else:
         _plan_svg(plan, it)
 
 
 def _public_plan(plan: Plan) -> dict:
-    return {"version": TRANSLATOR_VERSION,
-            "ops": [{k: v for k, v in o.items() if not k.startswith("_")} for o in plan.ops]}
+    out = {"version": TRANSLATOR_VERSION,
+           "ops": [{k: v for k, v in o.items() if not k.startswith("_")} for o in plan.ops]}
+    if plan.fallbacks:
+        _fallback_stacking(plan)
+        out["fallbacks"] = [{k: f.get(k) for k in ("id", "draw_under", "draw_after_n")}
+                            for f in plan.fallbacks]
+    return out
+
+
+def _fallback_stacking(plan: Plan) -> None:
+    """Where each element left to the agent sits in the design's stacking
+    order, so html_emit.restack_fallbacks can put the agent's shapes there.
+    The agent's code runs after the plan is drawn, so everything it drew
+    landed on top: an arrow drawn over its label (2026-10-12).
+
+    Every entry gets an id (the design's, else "fallback-N"), "draw_after_n"
+    (how many plan steps come before it) and "draw_under" (the name of the
+    first plan shape drawn after it, when it has one). Both are None for an
+    element on top of everything."""
+    ops = plan.ops
+    for n, f in enumerate(plan.fallbacks, 1):
+        if not f.get("id"):
+            f["id"] = f"fallback-{n}"
+        order = f.get("_order")
+        if order is None:
+            f["draw_after_n"] = f["draw_under"] = None
+            continue
+        later = [i for i, o in enumerate(ops) if o.get("_order") is not None and o["_order"] > order]
+        if not later:
+            f["draw_after_n"] = f["draw_under"] = None
+            continue
+        f["draw_after_n"] = later[0]
+        f["draw_under"] = ops[later[0]].get("name") or None
 
 
 NATIVE_TEMPLATE = '''# {name} -- translated by translate_html.py ({version}), deterministic.
@@ -2356,7 +2859,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, r"{skill}")
-from twins.html_emit import build  # noqa: E402
+from twins.html_emit import build, restack_fallbacks  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 PLAN = json.loads((HERE / "{plan_name}").read_text(encoding="utf-8"))
@@ -2367,6 +2870,8 @@ def build_slide():
     # --- FALLBACK ELEMENTS: drawn by slide-builder-translator (agent) ---
     # (none)
     # --- END FALLBACK ELEMENTS ---
+    # Puts the agent's shapes where the design stacks them (by their names).
+    restack_fallbacks(slide, PLAN)
     return prs
 
 
@@ -2391,19 +2896,34 @@ def write_outputs(html: Path, emit_dir: Path, letter: str, plan: Plan, fields: d
     (emit_dir / plan_name).write_text(json.dumps(_public_plan(plan), indent=1), encoding="utf-8")
     fb = ""
     if plan.fallbacks:
+        _fallback_stacking(plan)
         fb = (f"# FALLBACK_PENDING: {len(plan.fallbacks)} element(s) need the "
               f"slide-builder-translator agent; see option_{letter}_translation_report.json\n")
+        for f in plan.fallbacks:
+            where = (f"stacked under {f['draw_under']!r}" if f.get("draw_under")
+                     else f"stacked after plan step {f['draw_after_n']}"
+                     if f.get("draw_after_n") is not None else "on top of everything")
+            fb += (f"#   {f['id']}: name its shapes {f['id']}, {f['id']}-1, {f['id']}-2 ...; "
+                   f"{where} (set for you)\n")
     (emit_dir / f"{stem}.py").write_text(NATIVE_TEMPLATE.format(
         name=f"{stem}.py", version=TRANSLATOR_VERSION, plan_name=plan_name,
         fields_block=_fields_block(fields), fallback_line=fb, skill=str(SKILL)), encoding="utf-8")
     plan.counts.update(native_counts(plan))
+    try:
+        from twins.html_emit import build as _build
+        _prs, _sl = _build(_public_plan(plan))
+        for hit in caps_above_frame(_sl):
+            plan.warn("TEXT_ABOVE_FRAME", f"{hit['shape']}: capitals reach {hit['above_px']} px "
+                      "above the text box (its frame when selected); advisory")
+    except Exception:
+        pass
     report = {
         "translator": TRANSLATOR_VERSION,
         "html": str(html),
         "css_kill_list_applied": plan.kill,
         "warnings": plan.warnings,
         "counts": plan.counts,
-        "fallback": plan.fallbacks,
+        "fallback": _public_fallbacks(plan),
         "self_check": plan.self_check,
         "needs_agent": bool(plan.fallbacks),
         "html_sha256": _sha256(html),
@@ -2413,6 +2933,10 @@ def write_outputs(html: Path, emit_dir: Path, letter: str, plan: Plan, fields: d
     (emit_dir / f"option_{letter}_translation_report.json").write_text(
         json.dumps(report, indent=1), encoding="utf-8")
     return report
+
+
+def _public_fallbacks(plan: "Plan") -> list[dict]:
+    return [{k: v for k, v in f.items() if not k.startswith("_")} for f in plan.fallbacks]
 
 
 def _sha256(path: Path) -> str:
@@ -2652,6 +3176,67 @@ def _render_plans(plans: list["Plan"], engine: str = "auto") -> list:
         return A.render_full(paths, engine=engine)
 
 
+def _bullet_rows(plan: "Plan") -> list[dict]:
+    """Self-check rule for one-box lists: a bullet bigger than
+    BULLET_MAX_PCT of its text, or starting outside the filled panel its text
+    sits on, is wrong whatever the render looks like (the render is compared
+    with the same design the bullet was misread from). The list steps down to
+    markers drawn as shapes, like any other list that came out different."""
+    import translate_alarm as A
+    fills = [o for o in plan.ops if o.get("op") == "shape" and o.get("_filled") and o.get("_box")]
+    rows = []
+    for i, o in enumerate(plan.ops):
+        if o.get("op") != "text" or not o.get("para") or not o.get("_ink"):
+            continue
+        ix, iy, iw, ih = o["_ink"]
+        holders = [b for b in fills if b.get("_order", 0) < o.get("_order", 0)
+                   and b["_box"][0] - 1 <= ix and ix + iw <= b["_box"][0] + b["_box"][2] + 1
+                   and b["_box"][1] - 1 <= iy and iy + ih <= b["_box"][1] + b["_box"][3] + 1]
+        holder = min(holders, key=lambda b: b["_box"][2] * b["_box"][3]) if holders else None
+        bad = None
+        for pr in o["para"]:
+            b = pr.get("bullet")
+            if not b:
+                continue
+            left = o["x"] + (pr.get("marL_px") or 0) + (pr.get("indent_px") or 0)
+            if not b.get("autonum") and float(b.get("pct") or 100) > BULLET_MAX_PCT:
+                bad = f"a bullet is {float(b['pct']):.0f}% of its text"
+            elif holder and not (holder["_box"][0] - 1 <= left <= holder["_box"][0] + holder["_box"][2]):
+                bad = "a bullet starts outside the panel its text sits on"
+            if bad:
+                break
+        if bad:
+            r = A.region(o)
+            if r:
+                rows.append({"i": i, "name": o.get("name") or f"text#{i}", "op": "text", "box": r,
+                             "fired": ["bullet"], "detail": bad})
+    return rows
+
+
+# Pictures, drawings, rotated and vertical elements the agent draws: their
+# areas (x0, y0, x1, y1), a little wider than the element so its softened
+# edge is left out too. Elements handed over by the self-check itself are not
+# here: they are out of the plan, nothing is judged against them.
+AGENT_MASK_PAD = 2.0
+
+
+def _agent_masks(plan: "Plan") -> list[tuple]:
+    out = []
+    for f in plan.fallbacks:
+        if f.get("kind") == "self-check":
+            continue
+        rects = f.get("_rects") or [{"x": f.get("x"), "y": f.get("y"), "w": f.get("w"),
+                                     "h": f.get("h")}]
+        for q in rects:
+            try:
+                x, y, w, h = (float(q[k]) for k in ("x", "y", "w", "h"))
+            except (TypeError, ValueError, KeyError):
+                continue
+            p = AGENT_MASK_PAD
+            out.append((x - p, y - p, x + w + p, y + h + p))
+    return out
+
+
 SELF_CHECK_ROUNDS = 4    # a group steps down at most twice, plus a last look
 
 
@@ -2703,8 +3288,10 @@ def self_check(items: list[tuple["Plan", dict]], engine: str = "auto",
             native, chars = got
             plan._last_render = got
             rows = [r for r in A.compare(plan.ops, A.load_rgb(data["_shot"]), native, chars,
-                                         engine=A.LAST_RENDER_ENGINES.get(j))
+                                         engine=A.LAST_RENDER_ENGINES.get(j),
+                                         masks=_agent_masks(plan))
                     if r["fired"]]
+            rows += _bullet_rows(plan)
             if rnd == 0:
                 for font, ratio in (getattr(A.compare, "font_ratios", None) or {}).items():
                     plan.warn("RENDER_FONT_RATIO", font_ratio_message(font, ratio))
@@ -2739,7 +3326,8 @@ def self_check(items: list[tuple["Plan", dict]], engine: str = "auto",
                         "kind": "self-check", "id": o.get("name") or "",
                         "x": x0, "y": y0, "w": x1 - x0, "h": y1 - y0,
                         "reason": "came out looking different from the design ("
-                                  + ", ".join(sorted({w for r in rs for w in r["fired"]})) + ")"})
+                                  + ", ".join(sorted({w for r in rs for w in r["fired"]})) + ")",
+                        "_order": o.get("_order")})
                 gone = {id(o) for o, _ in handed}
                 plan.ops = [o for o in plan.ops if id(o) not in gone]
                 plan.counts["self_check_handed_over"] += len(handed)

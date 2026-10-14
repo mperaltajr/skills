@@ -9,8 +9,10 @@ fix to how something is drawn applies to every slide on the next finalize.
 Each op kind maps to plain python-pptx: rectangles, rounded rectangles, ovals,
 triangles, freeform polygons and polylines, straight connectors, text boxes
 with styled runs (a whole list is one text box with real bullets), native
-tables (graphicFrame), and library icons (inserted as their vector shapes
-through icon_helper). No charts, no embedded objects, no pictures of text.
+tables (graphicFrame), library icons (inserted as their vector shapes
+through icon_helper), and photos and other pictures from files (cropped and
+shaped as the design showed them). No charts, no embedded objects, no
+pictures of text.
 
 The rules that used to live as prose in the translator agent's instructions are
 code here, applied the same way every time:
@@ -137,6 +139,19 @@ def _line(shape, line) -> None:
     shape.line.width = E(line["w"])
     if line.get("dash") in _DASH:
         shape.line.dash_style = _DASH[line["dash"]]
+    # arrowheads: headEnd at the line's start, tailEnd at its end (after the
+    # fill and dash, as the schema orders them)
+    ln = None
+    for key, tag in (("head", "a:headEnd"), ("tail", "a:tailEnd")):
+        spec = line.get(key)
+        if not spec:
+            continue
+        ln = ln if ln is not None else shape._element.spPr.get_or_add_ln()
+        for old in ln.findall(qn(tag)):
+            ln.remove(old)
+        ln.append(ln.makeelement(qn(tag), {"type": spec.get("type") or "triangle",
+                                            "w": spec.get("w") or "med",
+                                            "len": spec.get("len") or "med"}))
 
 
 def _shape(slide, op) -> None:
@@ -263,11 +278,20 @@ def _paragraphs(tf, op, default_lh_px: float, end_size: bool = False) -> None:
 
 
 def _text(slide, op) -> None:
-    tb = slide.shapes.add_textbox(E(op["x"]), E(op["y"]), E(max(op["w"], 1)), E(max(op["h"], 1)))
+    # pad_top_px: the box starts this much higher, is this much taller and
+    # has this much top inset, so the capitals sit inside the box (its
+    # selection frame) while the text stays exactly where it was placed
+    # (translate_html.top_pad_px). Only top-anchored text boxes, which all of
+    # these are; tables are not touched.
+    pad = Emu(int(round(float(op.get("pad_top_px") or 0) * 9525)))
+    tb = slide.shapes.add_textbox(E(op["x"]), Emu(E(op["y"]) - pad), E(max(op["w"], 1)),
+                                  Emu(E(max(op["h"], 1)) + pad))
     if op.get("name"):
         tb.name = op["name"]
     tf = tb.text_frame
     tf.margin_left = tf.margin_right = tf.margin_top = tf.margin_bottom = 0
+    if pad:
+        tf.margin_top = pad
     tf.vertical_anchor = MSO_ANCHOR.TOP
     tf.auto_size = MSO_AUTO_SIZE.NONE
     # One-line text never wraps. PowerPoint and LibreOffice set a font slightly
@@ -377,8 +401,39 @@ def _icon(slide, op) -> None:
     icon_helper.insert_icon(name, slide, *args, accent_color="#" + (op.get("color") or "000000"))
 
 
+def _picture(slide, op) -> None:
+    """A picture from a file, cropped to the part the design showed, in the
+    design's shape (an oval for a round photo, round corners)."""
+    path = Path(op["path"])
+    if not path.is_file():
+        raise FileNotFoundError(
+            f"the picture {path} is not there any more; put it back, or convert the "
+            "slide again so the converter reads where the picture is now")
+    pic = slide.shapes.add_picture(str(path), E(op["x"]), E(op["y"]),
+                                   E(max(op["w"], 1)), E(max(op["h"], 1)))
+    left, top, right, bottom = (op.get("crop") or [0, 0, 0, 0])[:4]
+    if left or top or right or bottom:
+        pic.crop_left, pic.crop_top, pic.crop_right, pic.crop_bottom = left, top, right, bottom
+    geom = op.get("geom") or "rect"
+    if geom != "rect":
+        prst = pic._element.spPr.find(qn("a:prstGeom"))
+        if prst is not None:
+            prst.set("prst", geom)
+            av = prst.find(qn("a:avLst"))
+            if av is None:
+                av = prst.makeelement(qn("a:avLst"), {})
+                prst.append(av)
+            for gd in list(av):
+                av.remove(gd)
+            if geom == "roundRect" and op.get("radius_ratio") is not None:
+                av.append(av.makeelement(qn("a:gd"), {
+                    "name": "adj", "fmla": f"val {int(round(op['radius_ratio'] * 100000))}"}))
+    if op.get("name"):
+        pic.name = op["name"]
+
+
 _DRAW = {"shape": _shape, "freeform": _freeform, "connector": _connector, "text": _text,
-         "icon": _icon, "table": _table}
+         "icon": _icon, "table": _table, "picture": _picture}
 
 
 def build(plan: dict):
@@ -386,9 +441,118 @@ def build(plan: dict):
     prs = Presentation()
     prs.slide_width, prs.slide_height = E(CANVAS_W), E(CANVAS_H)
     slide = prs.slides.add_slide(prs.slide_layouts[6])
+    tree = slide.shapes._spTree
+    drawn = []                 # the top-level shapes of each plan step
     for op in plan["ops"]:
+        before = len(_top_shapes(tree))
         _DRAW[op["op"]](slide, op)
+        drawn.append(_top_shapes(tree)[before:])
+    # kept on the slide's part (one python object per slide while the deck is
+    # open) for restack_fallbacks; the lists hold the elements themselves
+    slide.part._slidelab_plan_shapes = drawn
     return prs, slide
+
+
+_SHAPE_TAGS = {qn(t) for t in ("p:sp", "p:grpSp", "p:graphicFrame", "p:cxnSp", "p:pic",
+                               "p:contentPart")}
+# finalize's own shapes: never moved
+_CHROME_NAMES = ("subtitle", "source", "footnote")
+
+
+def _top_shapes(tree) -> list:
+    return [el for el in tree.iterchildren() if el.tag in _SHAPE_TAGS]
+
+
+def _shape_name(el) -> str:
+    nv = el.find(".//" + qn("p:cNvPr"))
+    return (nv.get("name") if nv is not None else "") or ""
+
+
+def _is_placeholder(el) -> bool:
+    return el.find(".//" + qn("p:nvPr") + "/" + qn("p:ph")) is not None
+
+
+class FallbackStackError(RuntimeError):
+    """A shape the translator agent drew can't be matched to an element."""
+
+
+def restack_fallbacks(slide, plan: dict) -> list[str]:
+    """Move the shapes the translator agent drew (everything added after
+    build()) to where the design stacks each element, so a drawing under a
+    label stays under it. Each element left to the agent is in
+    plan["fallbacks"] with its id, "draw_under" (the plan shape it sits
+    under) and "draw_after_n" (how many plan steps come before it);
+    translate_html._fallback_stacking writes them.
+
+    A shape belongs to an element when it is named after it: the element's id,
+    or the id followed by "-" and anything ("leo-photo", "leo-photo-1").
+    With one element, every new shape is that element's. Shapes of an element
+    on top of everything are left where they are. Running it again changes
+    nothing. Placeholders and finalize's chrome shapes are never moved.
+
+    A new shape that can't be matched (several elements, a name that is none
+    of theirs) stays on top and stops the build (FallbackStackError) with the
+    fix: on a slide with a drawing under a label, a shape on top in the
+    wrong place is a defect nobody's check would catch (2026-10-12)."""
+    fbs = [f for f in plan.get("fallbacks") or [] if f.get("id")]
+    if not fbs:
+        return []
+    tree = slide.shapes._spTree
+    drawn = getattr(slide.part, "_slidelab_plan_shapes", None)
+    tops = _top_shapes(tree)
+    if drawn is None:
+        # not drawn by build() in this process: the plan's steps come first
+        n = len(plan.get("ops") or [])
+        drawn = [[el] for el in tops[:n]]
+    mine = [el for step in drawn for el in step]
+    new = [el for el in tops if not any(el is m for m in mine)
+           and not _is_placeholder(el)
+           and not _shape_name(el).lower().startswith(_CHROME_NAMES)]
+    if not new:
+        return []
+    ids = sorted((f["id"] for f in fbs), key=len, reverse=True)   # longest first
+
+    def owner(name: str):
+        if len(fbs) == 1:
+            return fbs[0]["id"]
+        for i in ids:
+            if name == i or name.startswith(i + "-"):
+                return i
+        return None
+
+    groups: dict = {}
+    unmatched = []
+    for el in new:
+        o = owner(_shape_name(el))
+        if o is None:
+            unmatched.append(_shape_name(el) or "(no name)")
+        else:
+            groups.setdefault(o, []).append(el)
+    for f in fbs:
+        els = groups.get(f["id"])
+        if not els:
+            continue
+        anchor = None
+        if f.get("draw_under"):
+            hits = [el for el in mine if _shape_name(el) == f["draw_under"]]
+            if len(hits) == 1:
+                anchor = hits[0]
+        if anchor is None and f.get("draw_after_n") is not None:
+            later = [step[0] for step in drawn[int(f["draw_after_n"]):] if step]
+            anchor = later[0] if later else None
+        if anchor is None:
+            continue                     # on top of everything, as designed
+        for el in els:
+            anchor.addprevious(el)
+    if unmatched:
+        names = ", ".join(sorted({f["id"] for f in fbs}))
+        raise FallbackStackError(
+            f"STOP: shape(s) {', '.join(unmatched)} drawn in the FALLBACK ELEMENTS block are "
+            f"not named after an element left to the translator agent ({names}), so they "
+            "can't be put in their place in the stacking order. Fix: in option_X_native.py "
+            "set shape.name = '<element id>' or '<element id>-1', '-2' ... on every shape "
+            "you draw, then run the script again.")
+    return []
 
 
 def build_and_save(plan: dict, out_path) -> None:

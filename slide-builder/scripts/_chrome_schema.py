@@ -37,6 +37,8 @@ which versions readers accept. Re-register every template to repopulate.
 """
 from __future__ import annotations
 
+import re
+
 from pathlib import Path
 from typing import Any, Literal
 
@@ -937,21 +939,39 @@ def _fit_paragraphs(shape, frame, fonts: dict, heading: bool):
     return out
 
 
+_HYPHEN_BREAK = re.compile(r"(?<=[^\W\d_]-)(?=[^\W\d_])|(?<=[\u2013\u2014])(?=\S)")
+
+
+def hyphen_pieces(word: str) -> list[str]:
+    """A word cut where PowerPoint may end a line inside it: after an ordinary
+    hyphen with a letter on both sides ("multi-|year"), and after an en or em
+    dash. Never after a non-breaking hyphen (U+2011), between digits
+    ("2025-2030"), at a word's start ("-5%"), or after "/" ("and/or"; not
+    confirmed in PowerPoint). Chrome breaks after the hyphen too, so a
+    predictor that didn't saw "Whole fleets, under multi-year" as one more
+    line than the design and shrank the text a size (2026-10-13)."""
+    parts = _HYPHEN_BREAK.split(word)
+    return [q for q in parts if q]
+
+
 def _fit_wrap(text: str, m: "TextMeasurer", width_px: float) -> tuple[list[float], float]:
     """Greedy word wrap as PowerPoint does it: (width of each line, widest
-    single word), in px."""
+    piece that can't be broken), in px. A line may end at a space or after a
+    hyphen or dash inside a word (hyphen_pieces)."""
     widths, cur, widest = [], 0.0, 0.0
     space = m.getlength(" ")
     for hard in text.split("\n"):
         cur = 0.0
         for word in hard.split():
-            wl = m.getlength(word)
-            widest = max(widest, wl)
-            if cur and cur + space + wl > width_px:
-                widths.append(cur)
-                cur = wl
-            else:
-                cur = cur + space + wl if cur else wl
+            for k, piece in enumerate(hyphen_pieces(word)):
+                wl = m.getlength(piece)
+                widest = max(widest, wl)
+                gap = space if (k == 0 and cur) else 0.0
+                if cur and cur + gap + wl > width_px:
+                    widths.append(cur)
+                    cur = wl
+                else:
+                    cur = cur + gap + wl
         widths.append(cur)
     return widths, widest
 
