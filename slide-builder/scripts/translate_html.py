@@ -3662,12 +3662,16 @@ def translate_many(jobs: list[tuple], check: bool = True) -> list[dict]:
     render of every slide, as one deck, for the self-check."""
     from playwright.sync_api import sync_playwright
     done = []
-    from _browser import scratch_env, render_deadline, render_timeout, step
+    from _browser import scratch_env, render_deadline, render_slot, render_timeout, step
     # Time limit (scripts/_browser.py): 120 s (SLIDE_LAB_RENDER_TIMEOUT) plus
     # 15 s for each slide after the first, 30 s to read any one slide. Past it,
     # only this run's own browser is ended and the run exits 4: re-run.
+    # The browser part holds one of the computer's render slots, taken BEFORE
+    # the time limit starts, so waiting for it is free (slide-qc/scripts/
+    # render_slot.py). The self-check render below takes its own slot.
     limit = render_timeout() + 15 * max(0, len(jobs) - 1)
-    with render_deadline("translate_html.py", seconds=limit), \
+    with render_slot(f"translate_html.py ({len(jobs)} design(s))"), \
+            render_deadline("translate_html.py", seconds=limit), \
             scratch_env(), sync_playwright() as pw:
         from _browser import launch
         browser = launch(pw)

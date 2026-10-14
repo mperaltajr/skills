@@ -136,11 +136,13 @@ Follow the procedure in your `_prompt.md` verbatim:
 
    **Worker self-check before declaring done (sketch path) — TWO mandatory checks:**
 
-   **Check 1 — render + read.** Render your HTML to PNG via the project's render wrapper and READ the resulting PNG before emitting your done marker:
+   **Check 1 — render + read.** Render your HTML to PNG via the project's render wrapper and READ the resulting PNG before emitting your done marker. Render ALL your options in ONE command (one browser run, one render slot; each `option_X.html` is drawn to `option_X.sketch.png` beside it):
 
    ```
-   py -3 <skill_root>/scripts/render_html.py <out_dir>/slide_NN/option_A.html <out_dir>/slide_NN/option_A.sketch.png
+   py -3 <skill_root>/scripts/render_html.py <out_dir>/slide_NN/option_A.html [<out_dir>/slide_NN/option_B.html <out_dir>/slide_NN/option_C.html]
    ```
+
+   **Run every render command with the Bash tool's `timeout` set to `300000`** (5 minutes). A render may first wait up to 150 s for a free render slot (at most 16 renders run at once on the computer) before its own time limit starts, and the default 2-minute command limit cuts that off. A page that fails in a batch fails alone: the others are drawn, and the message gives the command to re-run just that one. Exit 75 means every render slot stayed busy ("busy, re-run"): run the same command once more.
 
    Look at the PNG. Cite what you saw in `_context_ack.txt` (per step 5). If the visual doesn't match your intent, fix the HTML and re-render.
 
@@ -169,14 +171,14 @@ When the parent dispatches you with a `slide_NN/_edit_request.md` (written by `r
 1. Read `_edit_request.md`: it names the picked file(s) (`option_B.html`, or `option_B.py` on the direct path) and lists the user's comments, verbatim. Read `_context.md` and `_prompt.md` as usual for the brief and the rules.
 2. **Edit that file in place.** Keep the same layout and structure (same pattern, same arrangement of the main shapes), keep the option letter, and apply **every** comment. Do not write any other option file, do not rename the file, and do not move it.
 3. A comment you cannot apply without changing the layout (it really asks for a different design) is not yours to decide: leave the file as it is for that comment and say so in one line in your return; the parent turns it into a redesign.
-4. On the sketch path, re-render the edited sketch with `scripts/render_html.py <option_X.html> <option_X.sketch.png>` and look at it before you report.
+4. On the sketch path, re-render the edited sketch with `scripts/render_html.py <option_X.html> <option_X.sketch.png>` (Bash `timeout` 300000, as above) and look at it before you report.
 5. Return the edited file's path and one line per comment saying how it was applied. The parent then runs `record_picks.py --edits-done`, which refuses if the design did not change or if an option letter was added or removed.
 
 ## What you must NOT do
 
 - **Scratch files: one place.** Put any scratch files (copies, renders, checks) under C:\Temp\slidelab\<session>\ (scripts/_scratch.py); never invent new folders in C:\Temp. Your option files go in your slide folder as the dispatch says; anything else you make to check your work goes in the session's scratch folder (`py -3 scripts/_scratch.py --session "<session folder>"` prints it).
 - **Never `cd` into the session folder or a slide folder.** Give every file as a full absolute path and run commands from the skill folder (slide-builder) or C:\Temp\slidelab; a shell left sitting in `slide_NN` locks that folder on Windows, and an insert could not rename it (2026-10-13).
-- **Never close, kill or restart the user's programs.** No `taskkill`, `Stop-Process`, `pkill` or killing by name or PID for `msedge.exe`, `chrome.exe`, `POWERPNT.EXE` or any other process you did not start yourself in this command. The user is working in those windows (killing a "stuck" Edge closed the owner's browser, 2026-10-06). Render only through `scripts/render_html.py` / `scripts/_browser.py`, which start their own separate browser and close only that one; never launch `msedge.exe` directly. A render stops itself after 120 s and exits 4 ("timed out, re-run"), ending only its own browser: run it once more, then report it.
+- **Never close, kill or restart the user's programs.** No `taskkill`, `Stop-Process`, `pkill` or killing by name or PID for `msedge.exe`, `chrome.exe`, `POWERPNT.EXE` or any other process you did not start yourself in this command. The user is working in those windows (killing a "stuck" Edge closed the owner's browser, 2026-10-06). Render only through `scripts/render_html.py` / `scripts/_browser.py`, which start their own separate browser and close only that one; never launch `msedge.exe` directly. A render stops itself after 120 s (plus 60 s per extra page in one command) and exits 4 ("timed out, re-run"), ending only its own browser: run it once more, then report it. Waiting for a render slot does not count toward that limit; exit 75 ("busy, re-run") means no slot came free in 150 s: run it once more.
 - **Do NOT modify any reference file** (layouts.md, anti-patterns.md, prompt.md, SKILL.md, helpers.py). They are the spec; you are the worker.
 - **Do NOT read or modify other slides' content.** You see only your slide. Cross-slide coordination is the orchestrator's job, not yours.
 - **Do NOT invent an 8th directive verb.** The 7-verb vocabulary is closed by design. Emit SKELETON_REJECTED if the brief doesn't map.

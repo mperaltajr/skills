@@ -17,6 +17,11 @@ When a render fails twice on one program, the other one takes over for that
 render (when it is installed). The first time a command renders through
 PowerPoint it prints one line telling the user PowerPoint may pause.
 
+Every render and PDF takes one of the computer's render slots first
+(render_slot.py: default 16 renders at once across all Slide Lab commands,
+SLIDE_LAB_RENDER_SLOTS; a command that waits 150 s for one exits 75, "busy,
+re-run"; owner's decision 2026-10-14).
+
 Test switches: SLIDE_LAB_NO_LIBREOFFICE=1 acts as if LibreOffice were not
 installed; SLIDE_LAB_NO_POWERPOINT=1 acts as if PowerPoint were not.
 
@@ -408,6 +413,14 @@ def _ppt_pdf(pptx: pathlib.Path, td_p: pathlib.Path) -> pathlib.Path:
 # ---------------------------------------------------------------------------
 # Public: render with the default program, the other one as backup
 # ---------------------------------------------------------------------------
+def _slot(what: str):
+    """One of the computer's render slots for a PowerPoint or LibreOffice
+    render (render_slot.py; default 16 renders at once, SLIDE_LAB_RENDER_SLOTS).
+    A render inside one that already holds a slot does not take another."""
+    from render_slot import render_slot
+    return render_slot(what)
+
+
 def _with_backup(first: str, run):
     """run(engine) with `first`; when it fails (twice, inside run) and the
     other program is installed, the other one takes over. Returns
@@ -469,7 +482,8 @@ def render(pptx: pathlib.Path, out_dir: pathlib.Path, dpi: int = 150,
             RM.manifest_path(out_dir).unlink()     # never left describing old images
         except OSError:
             pass
-    n, eng = _with_backup(first, run)
+    with _slot(f"render_slides ({pptx.name})"):
+        n, eng = _with_backup(first, run)
     if manifest:
         RM.write(out_dir, pptx, eng, dpi, writer=writer or "render_slides")
     if not quiet:
@@ -497,7 +511,8 @@ def to_pdf(pptx: pathlib.Path, workdir: pathlib.Path,
     first = pick_renderer(renderer)
     if first == "libreoffice" and not libreoffice_available() and not powerpoint_available():
         _resolve_soffice()
-    return _with_backup(first, run)
+    with _slot(f"render_slides PDF ({pptx.name})"):
+        return _with_backup(first, run)
 
 
 def render_libre(pptx: pathlib.Path, out_dir: pathlib.Path, dpi: int):

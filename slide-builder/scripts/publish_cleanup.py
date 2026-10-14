@@ -393,7 +393,7 @@ def temp_list(min_age_days: float = TEMP_MIN_AGE_DAYS) -> tuple[list, list]:
     now = time.time()
     rows, skipped = [], []
     for f in sorted(root.iterdir(), key=lambda p: p.name.lower()):
-        if not f.is_dir() or f.name == _scratch.CACHE:
+        if not f.is_dir() or f.name in (_scratch.CACHE, "render_slots"):   # render_slot.py
             continue
         if _is_link(f):
             skipped.append((f, "a link to another folder; never followed"))
