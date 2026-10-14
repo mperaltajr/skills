@@ -1,3 +1,5 @@
-# Written by the tests on each run; never commit (fonts are licensed)
-*.ttf
-brand.css
+# Written by tests/run_layout_inheritance_smoke.py on each run, next to the
+# regenerated fixture template; storing them only goes stale (and the fonts
+# are licensed). Never commit anything here.
+*
+!.gitignore
