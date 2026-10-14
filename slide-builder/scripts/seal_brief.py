@@ -47,20 +47,46 @@ GATE_KEYS = ("storyline_gate_passed", "storyline_gate_at", "storyline_gate_sha",
 # gate keys, a re-seal keeps it.
 POINTER_KEYS = ("approved_storyline",)
 FINGERPRINT_IGNORES = GATE_KEYS + POINTER_KEYS
+# Slide lines written by scripts after the gate, so not counted either (owner's
+# decision, 2026-10-14): `**Slide id:**` (slide_ids.py, when the storyline is
+# approved) and `**Pinned source page:**` (map_source_pages.py, after the user
+# approves the page map in one answer). Counting them would break the seal each
+# time the build adds them. Runs of blank lines count as one, so taking a line
+# out leaves the same text.
+SCRIPT_LINE_RE = re.compile(
+    r"^\s*\*\*(?:slide id|pinned source page|supplied page)\s*:?\s*\*\*", re.I)
 
 
-def brief_fingerprint(front_matter: dict, body: str) -> str:
+def brief_fingerprint(front_matter: dict, body: str, legacy: bool = False) -> str:
     """Fingerprint of a brief: every front-matter field except the gate's own
-    (and the approved_storyline pointer), plus the text below it.
+    (and the approved_storyline pointer), plus the text below it, without the
+    slide id and pinned-page lines.
 
     The front matter must be the dict build_deck.extract_front_matter returns,
     so prep and this script read the brief the same way. Line endings and
     trailing spaces, which editors change without anyone meaning to, do not
     count as edits; any change a person would call an edit does.
+
+    legacy=True is the fingerprint seals used before 2026-10-14 (every body
+    line counted), taken after removing the slide id lines exactly as
+    slide_ids.py inserts them; prep accepts either, so a brief sealed before
+    still builds once it has its ids.
     """
     fm = "\n".join(f"{k}={str(v).strip()}" for k, v in sorted(front_matter.items())
                    if k not in FINGERPRINT_IGNORES)
-    lines = [ln.rstrip() for ln in body.replace("\r\n", "\n").split("\n")]
+    body = body.replace("\r\n", "\n")
+    if legacy:
+        body = re.sub(r"\n\n\*\*Slide id:\*\* [^\n]*", "", body)
+    lines = [ln.rstrip() for ln in body.split("\n")]
+    if not legacy:
+        kept: list[str] = []
+        for ln in lines:
+            if SCRIPT_LINE_RE.match(ln):
+                continue
+            if not ln and kept and not kept[-1]:
+                continue
+            kept.append(ln)
+        lines = kept
     text = "\n".join(lines).strip("\n")
     return hashlib.sha256(f"{fm}\n\x00\n{text}".encode("utf-8")).hexdigest()[:16]
 
@@ -91,6 +117,12 @@ def main(argv=None) -> int:
     if not p.exists():
         print(f"ERROR: no brief at {p}")
         return 2
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import _rulings
+        _rulings.announce(brief=p)
+    except Exception:
+        pass
     raw = p.read_bytes().decode("utf-8")
     nl = "\r\n" if "\r\n" in raw else "\n"
     try:
@@ -147,6 +179,8 @@ def main(argv=None) -> int:
     print(f"[ok] sealed {p.name}: storyline_gate_sha {sha}")
     print("     Any edit to the brief, front matter included, now needs the gate "
           "re-run and the brief re-sealed before build_deck.py will build it.")
+    print("     (Slide id lines and Pinned source page lines are not counted: "
+          "slide_ids.py and map_source_pages.py add them after the seal.)")
     return 0
 
 

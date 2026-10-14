@@ -190,6 +190,10 @@ FIELD_LABELS = {
     # out with no source (2026-10-08).
     "source":              ("source", "sources", "source line"),
     "section_tag":         ("section tag", "section label"),
+    # The slide's fixed id (slide_ids.py writes it when the storyline is
+    # approved; owner's decision 2026-10-14). Numbers move when a slide is
+    # inserted; the id never does, so rulings stay on the right page.
+    "slide_id":            ("slide id",),
 }
 
 # Bold labels a slide block may carry that prep knows but does not pass on as
@@ -423,7 +427,10 @@ def _enforce_storyline_gate(front_matter: dict[str, str], body: str,
                 "sealed, so nothing shows the gate actually ran.\n\n"
                 f"  Brief: {brief_path}\n\n" + _ask)
             sys.exit(10)
-        if sealed != brief_fingerprint(front_matter, body):
+        # Either fingerprint: today's (slide id and pinned-page lines not
+        # counted) or the one seals used before 2026-10-14.
+        if sealed not in (brief_fingerprint(front_matter, body),
+                          brief_fingerprint(front_matter, body, legacy=True)):
             sys.stderr.write(
                 "ERROR: the brief changed after it passed the storyline gate.\n\n"
                 f"  Brief: {brief_path}\n\n" + _ask)
@@ -655,8 +662,18 @@ def parse_brief(brief_path: Path, bypass_gate: bool = False) -> dict[str, Any]:
             "pinned_source_page": extract_field(block, FIELD_LABELS["pinned_source_page"]),
             "source": " ".join(extract_field(block, FIELD_LABELS["source"]).split()),
             "section_tag": " ".join(extract_field(block, FIELD_LABELS["section_tag"]).split()),
+            "slide_id": extract_field(block, FIELD_LABELS["slide_id"]).strip("` ").lower(),
         }
         slides.append(slide)
+    _dupes = sorted({s["slide_id"] for s in slides if s["slide_id"]
+                     and sum(1 for t in slides if t["slide_id"] == s["slide_id"]) > 1})
+    if _dupes:
+        sys.stderr.write(
+            "ERROR: two slides of the brief have the same slide id: "
+            + ", ".join(_dupes) + ". Ids must be unique; run "
+            f"py -3 scripts/slide_ids.py --brief \"{brief_path}\" --check to list them, "
+            "fix the brief, and run this again.\n")
+        sys.exit(2)
 
     # Deck-level governing thought + audience: storyline-helper writes these
     # as `## Governing thought (the whole deck)` / `## Audience` body
@@ -675,6 +692,7 @@ def parse_brief(brief_path: Path, bypass_gate: bool = False) -> dict[str, Any]:
         "deck_audience": deck_audience,
         "slides": slides,
         "slide_total": len(slides),
+        "brief_path": str(brief_path),
     }
 
 
@@ -1356,6 +1374,31 @@ def _deck_titles_block(deck: dict | None, slide_n: int) -> str:
     return "\n".join(rows) or "  (not available)"
 
 
+def _add_context_pack(content: str, slide: dict, slide_dir: Path,
+                      deck: dict | None) -> str:
+    """Put the slide's context pack (sources, number trail, the user's rulings
+    in their exact words) into _context.md, on every dispatch (owner's
+    decision, 2026-10-14). Never stops prep: without it the designer still has
+    the brief."""
+    try:
+        import _context_pack
+        content, dropped = _context_pack.drop_chat_direction(content)
+        if dropped:
+            print(f"  WARNING: slide {slide.get('slide_n')}: {slide_dir / '_prior_feedback.md'} "
+                  f"has {dropped} hand-written \"Direction from the user\" block(s). They were "
+                  "left out of _context.md: the user's direction reaches designers only in "
+                  "their exact words. Record each point with py -3 scripts/add_ruling.py --out "
+                  f"\"{slide_dir.parent}\" --id <slide id> --topic <topic> --quote \"<their "
+                  "words>\" --reading \"<what you understood>\", delete the block, and prep "
+                  "this slide again.")
+        return _context_pack.put_pack(content, _context_pack.pack_block(
+            slide_dir.parent, slide, brief=(deck or {}).get("brief_path")))
+    except Exception as exc:
+        print(f"  WARN: slide {slide.get('slide_n')}: could not add the rulings pack to "
+              f"_context.md ({type(exc).__name__}: {exc})")
+        return content
+
+
 def write_slide_context_md(slide: dict, brand: dict, slide_dir: Path,
                             slide_n: int, template_path=None,
                             deck: dict | None = None) -> Path:
@@ -1393,6 +1436,7 @@ def write_slide_context_md(slide: dict, brand: dict, slide_dir: Path,
         accent_hex=brand.get("accent_hex", "(unset)"),
         prior_feedback=_load_prior_feedback_for_slide(slide_dir),
     )
+    content = _add_context_pack(content, slide, slide_dir, deck)
     ctx_path = slide_dir / "_context.md"
     ctx_path.write_text(content, encoding="utf-8")
     return ctx_path
@@ -1745,7 +1789,7 @@ def _build_slide_meta_entry(slide: dict[str, Any], forecast: str,
     # Kept for the finishing step: the template's Source slot / footer can be
     # filled from here when the design left it out; the tag is text only for
     # now (no drawn slot yet).
-    for _k in ("source", "section_tag"):
+    for _k in ("source", "section_tag", "slide_id"):
         _v = (slide.get(_k) or "").strip()
         if _v:
             entry[_k] = _v

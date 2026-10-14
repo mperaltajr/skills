@@ -695,6 +695,7 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
         "content_lines": slide_content_lines,
         "stamp": slide_stamp,
         "pinned": (slide_meta or {}).get("pinned_source_page") or "",
+        "fixed_id": (slide_meta or {}).get("slide_id") or "",
         "context_present": context_present,
         "context_has_reference": context_has_reference,
         "context_ack_present": ack_present,
@@ -770,7 +771,23 @@ def render_storyline_html(storyline: dict, slides: list, meta: Optional[dict] = 
     import review_storyline
     panel = review_storyline.build_panel(meta, storyline, slides)
     storyline["_panel"] = panel
-    return panel["html"]
+    return panel["html"] + _page_map_section(meta)
+
+
+def _page_map_section(meta: Optional[dict]) -> str:
+    """"Pages you gave us" (map_source_pages.py) under the storyline panel,
+    outside its checked text: each supplied page, its picture, and the slide
+    it goes to or "not used" (owner's direction 2026-10-14: no page of its
+    own). Empty without a page map; never stops the page."""
+    try:
+        import _rulings
+        import map_source_pages
+        bp = (meta or {}).get("brief")
+        out = (meta or {}).get("out")
+        sd = _rulings.session_dir(out=out, brief=bp)
+        return map_source_pages.render_section(sd)
+    except Exception:
+        return ""
 
 
 # ---------------------------------------------------------------------------
@@ -1014,6 +1031,58 @@ def render_context_ack_chip(slide: dict) -> str:
     )
 
 
+def render_steer_receipt(slide: dict) -> str:
+    """The steer receipt (owner's decision, 2026-10-14): one row per ruling
+    the user gave for this slide (their exact words, from add_ruling.py)
+    beside the designer's one-line answer from _steer_answers.txt. A ruling
+    with no answer, or added after the design was made, is red, so the user
+    sees it before looking at the picture. Below it, what the automatic
+    checks from the user's repeated steers found (steer_checks.py). Empty
+    when the slide has neither. Never stops the page."""
+    try:
+        import _context_pack
+        import steer_checks
+        slide_dir = Path(slide["prompt_path"]).parent
+        out_dir = slide_dir.parent
+        rows = _context_pack.receipt(out_dir, slide["n"])
+        found = steer_checks.run_slide(out_dir, slide["n"])
+    except Exception:
+        return ""
+    if not rows and not found:
+        return ""
+    tr = []
+    for r in rows:
+        style = "" if r["ok"] else ' style="background:#fde8e8;"'
+        ans = html.escape(r["answer"]) if r["ok"] else (
+            '<strong style="color:#b42318;">Not answered: ' + html.escape(r["why"]) + "</strong>")
+        reading = (f'<div style="color:#667085;font-size:12px;">Chat\'s reading: '
+                   f'{html.escape(r["reading"])}</div>') if r.get("reading") else ""
+        tr.append(f'<tr{style}><td style="padding:4px 8px;vertical-align:top;">R{r["n"]}</td>'
+                  f'<td style="padding:4px 8px;vertical-align:top;">&ldquo;{html.escape(r["quote"])}'
+                  f'&rdquo;{reading}</td><td style="padding:4px 8px;vertical-align:top;">{ans}</td></tr>')
+    missing = sum(1 for r in rows if not r["ok"])
+    head = ""
+    if rows:
+        head = (f'<div class="field-label">Your rulings for this slide: {len(rows)}'
+                + (f', <span style="color:#b42318;">{missing} not answered by the designer</span>'
+                   if missing else ", each answered") + "</div>"
+                '<table style="border-collapse:collapse;width:100%;font-size:13px;">'
+                '<tr><th style="text-align:left;padding:4px 8px;">#</th>'
+                '<th style="text-align:left;padding:4px 8px;">What you said</th>'
+                '<th style="text-align:left;padding:4px 8px;">What the designer changed</th></tr>'
+                + "".join(tr) + "</table>")
+    checks = ""
+    if found:
+        checks = ('<div class="field-label" style="margin-top:6px;">Automatic checks from your '
+                  f'repeated steers: {len(found)} to look at</div><ul style="margin:2px 0 0 18px;">'
+                  + "".join(f"<li>{html.escape(f)}</li>" for f in found[:8])
+                  + (f"<li>... {len(found) - 8} more (steer_checks.py run)</li>" if len(found) > 8 else "")
+                  + "</ul>")
+    border = "#b42318" if (missing or found) else "#d0d5dd"
+    return (f'<div class="steer-receipt" style="border:1px solid {border};border-radius:6px;'
+            f'padding:8px 10px;margin:8px 0;">{head}{checks}</div>')
+
+
 def render_sketch_qc_section(slide: dict) -> str:
     """Per-slide block showing translator self-check results for any
     sketch-path options on this slide.
@@ -1172,7 +1241,7 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
 <div class="card" id="card-{sid}" data-slide="{sid}" data-stamp="{slide.get('stamp', '')}" data-layout="{layout}" data-count="{n_opts}">
   <div class="card-header-row">
     <div style="flex:1;">
-      <div class="card-num">SLIDE {n}</div>
+      <div class="card-num">SLIDE {n}{(' (' + html.escape(slide['fixed_id']) + ')') if slide.get('fixed_id') else ''}</div>
       <div class="card-name">{title}</div>
     </div>
     <div class="kept-mark" id="kept-{sid}" style="display:none;">Kept from last round</div>
@@ -1183,6 +1252,7 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
   {content_html}
   {render_sketch_notes(slide)}
   {context_chip}
+  {render_steer_receipt(slide)}
   {('<div class="redo-note" style="display:block;">&#128204; <strong>Option A reproduces the page you supplied</strong> (' + html.escape(slide["pinned"]) + '). Its figures are checked against the brief before anything compiles.</div>') if slide.get("pinned") else ""}
 
   <div class="card-body">

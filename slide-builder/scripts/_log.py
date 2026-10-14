@@ -56,6 +56,14 @@ def attach(out_dir: Path, script_name: str) -> None:
     """
     if _attached.get("active"):
         return
+    # Every pipeline script prints "RULINGS: <path>" when it ends, so the
+    # rulings file is in front of the chat after a compaction too (owner's
+    # decision, 2026-10-14).
+    try:
+        import _rulings
+        _rulings.announce(out=out_dir)
+    except Exception:
+        pass
     try:
         out_dir = Path(out_dir).resolve()
         out_dir.mkdir(parents=True, exist_ok=True)

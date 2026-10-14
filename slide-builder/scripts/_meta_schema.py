@@ -97,6 +97,9 @@ class SlideMeta(BaseModel):
     # (text only for now; no drawn slot yet).
     source: Optional[str] = None
     section_tag: Optional[str] = None
+    # The slide's fixed id from the brief's **Slide id:** line (slide_ids.py).
+    # Never renumbered or reused; rulings and the page map are keyed on it.
+    slide_id: Optional[str] = None
 
 
 class DeckMeta(BaseModel):

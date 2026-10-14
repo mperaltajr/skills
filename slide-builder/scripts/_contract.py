@@ -403,6 +403,10 @@ _RUNTIME_ARTIFACTS = {
     "FINAL-CHECK.html", "final_deck_all_variations.pptx",
     "final_deck.incoming.pptx", "final_deck.REJECTED.pptx",
     "_prior_feedback.md",  # per-slide QC direction for a rebuild
+    # Context design (2026-10-14): the user's rulings, slide ids, page map,
+    # sources, repeated-steer checks, and the designer's answers per slide.
+    "rulings.md", "rulings.json", "slide_ids.json", "page_map.json",
+    "sources.json", "steer_checks.json", "_steer_answers.txt", "_edit_request.md",
 }
 
 # Per-option files follow one naming scheme (option_<letter>[_native].<ext>,

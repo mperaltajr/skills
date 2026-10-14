@@ -537,6 +537,17 @@ def _closest(source_text: str, lines: list) -> str:
     return best[:160] + ("..." if len(best) > 160 else "")
 
 
+def _validated_source(out_dir: Path, deck: Path) -> dict | None:
+    """The deck_sources.py entry when the user marked this copied file as
+    validated, else None. Never raises."""
+    try:
+        import _rulings
+        import deck_sources
+        return deck_sources.is_validated(_rulings.session_dir(out=out_dir), deck)
+    except Exception:
+        return None
+
+
 # ---------------------------------------------------------------- building
 def build_section(out_dir: Path, n: int, deck: Path, src_n: int, letters: list,
                   meta: dict, prior: dict | None = None) -> dict:
@@ -554,8 +565,9 @@ def build_section(out_dir: Path, n: int, deck: Path, src_n: int, letters: list,
             on_design.setdefault(f, s["text"])
     whole, brief_lines = _brief_parts(meta, n)
     in_brief = {f for _r, f in figures(whole)}
+    vsrc = _validated_source(out_dir, deck)
     prior_rows = {r.get("id"): r for r in ((prior or {}).get("rows") or [])}
-    rows, matched, dropped, seen = [], [], 0, set()
+    rows, matched, dropped, seen, from_validated = [], [], 0, set(), []
     for s in surfaces:
         if _skip_surface(s):
             continue
@@ -568,6 +580,11 @@ def build_section(out_dir: Path, n: int, deck: Path, src_n: int, letters: list,
                 continue
             if f in in_brief:
                 matched.append(raw)       # counted, never listed or auto-resolved
+                continue
+            if vsrc:
+                # The user said this source is validated (deck_sources.py, in
+                # their words): counted, not asked about again (2026-10-14).
+                from_validated.append(raw)
                 continue
             row = {"id": f"{sid}:{f}", "slide": n, "figure": raw, "addr": s["addr"],
                    "kind": s.get("kind", ""), "shape_name": s.get("name", ""),
@@ -587,6 +604,8 @@ def build_section(out_dir: Path, n: int, deck: Path, src_n: int, letters: list,
             "source_kind": kind, "generated_at": _now(),
             "design": {"letters": list(letters), "fingerprint": fp}, "fingerprint": fp,
             "rows": rows, "brief_matches": len(matched), "brief_matched": matched,
+            "validated_source": (vsrc or {}).get("name", ""),
+            "validated_matches": len(from_validated), "validated_matched": from_validated,
             "not_on_design": dropped, "unreachable": unreachable}
 
 
@@ -793,6 +812,10 @@ def _print_section(sec: dict) -> None:
     print(f"     slide {n}: {c['rows']} figure(s) from {c['source']} came through onto the "
           f"picked design, {c['unresolved']} to answer; {c['brief_matches']} match the "
           f"brief (counted, not listed); {sec.get('not_on_design', 0)} not on the design.")
+    if sec.get("validated_matches"):
+        print(f"     slide {n}: {sec['validated_matches']} more come from "
+              f"\"{sec.get('validated_source')}\", which the user validated: counted, not "
+              "asked about again.")
     if c["unreachable"]:
         print(f"       {c['unreachable']} surface(s) could NOT be read (picture / SmartArt / "
               "embedded object); the slide-qc vision pass is responsible for them.")
@@ -901,6 +924,11 @@ def main(argv=None) -> int:
     s.add_argument("--out", required=True)
     s.set_defaults(func=cmd_status)
     args = ap.parse_args(argv)
+    try:
+        import _rulings
+        _rulings.announce(out=args.out)
+    except Exception:
+        pass
     return args.func(args)
 
 

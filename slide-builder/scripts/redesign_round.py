@@ -243,6 +243,11 @@ def main(argv=None) -> int:
     f = sub.add_parser("finish")
     f.add_argument("--out", required=True, type=Path)
     a = ap.parse_args(argv)
+    try:  # prints RULINGS: <path> when the script ends (2026-10-14)
+        import _rulings
+        _rulings.announce(out=a.out)
+    except Exception:
+        pass
     if a.cmd == "start":
         try:
             slides = [int(x) for x in re.findall(r"\d+", a.slides)]

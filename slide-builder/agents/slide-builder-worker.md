@@ -69,6 +69,8 @@ Follow the procedure in your `_prompt.md` verbatim:
 
    This is Gate 3 soft-enforcement (2026-06-08). The file's PRESENCE is the signal that you read context; its CONTENT is read by REVIEW.html and shown next to the slide. If you cannot cite a constraint, write `Context skipped — <reason>`. Honest skips are fine; silent skips erode trust in the tool. Do NOT fabricate a citation.
 
+5b. **Answer the user's rulings in `_steer_answers.txt`** (owner's decision, 2026-10-14). `_context.md` § 0b lists this slide's sources, its number trail and the user's rulings, each in their exact words (`R7: the user said "..."`; a line marked "Chat's reading" is the chat's understanding, not the user's words). Every ruling binds your design. Write `_steer_answers.txt` in the same `slide_NN/` folder, one line per ruling listed for this slide: `R7: <what you changed for it>` (or `R7: already true, <where on the page>`). REVIEW.html shows the user each ruling beside your answer; a ruling with no answer shows red. Deck-wide rulings bind too; answer them only when they change your page. Every number comes from the brief or a source listed in § 0b; when one has none, write `no source for <number>` in this file instead of guessing. A source marked validated by the user: take its numbers as they are, do not re-check them.
+
 6. **Write the option script(s) the prompt specifies** (the exact file list in the prompt's §8 Output contract — one by default) to the output directory. The output format depends on the `PATTERN` field in `_prompt.md` (or the dispatch message). Two branches:
 
    ### Direct path (default — python-pptx direct)
@@ -171,6 +173,7 @@ When the parent dispatches you with a `slide_NN/_edit_request.md` (written by `r
 3. A comment you cannot apply without changing the layout (it really asks for a different design) is not yours to decide: leave the file as it is for that comment and say so in one line in your return; the parent turns it into a redesign.
 4. On the sketch path, re-render the edited sketch with `scripts/render_html.py <option_X.html> <option_X.sketch.png>` and look at it before you report.
 5. Return the edited file's path and one line per comment saying how it was applied. The parent then runs `record_picks.py --edits-done`, which refuses if the design did not change or if an option letter was added or removed.
+6. `_edit_request.md` also carries the slide's rulings pack (the user's rulings in their exact words). Keep every ruling true while you edit, and rewrite `_steer_answers.txt` (one line per ruling, as in step 5b above).
 
 ## What you must NOT do
 

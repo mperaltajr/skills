@@ -33,7 +33,10 @@ Output:
 The brief's content is never changed. One front-matter line is written:
 `approved_storyline: <the .html written here>`, so the review page shows
 this file as the approved storyline (the seal does not count that line). It
-is left alone when it already points at a storyline written by hand.
+is left alone when it already points at a storyline written by hand. Each
+slide also gets its fixed `**Slide id:**` line (slide_ids.py; kept when it
+has one; the seal does not count these lines either), and the script prints
+the rulings path and the /compact suggestion (owner's decision, 2026-10-14).
 
 It refuses (exit 2, nothing written) when a slide's bullets carry notes for
 the designer ("Supporting points:", a plain ALL CAPS label and a dash): they
@@ -1017,7 +1020,40 @@ def main() -> int:
     except OSError as exc:
         print(f"  Could not record approved_storyline in the brief ({exc}); add the line "
               f"approved_storyline: {html_path} to its front matter by hand.")
+    _storyline_approved_steps(brief_path)
     return 0
+
+
+def _slide_builder_scripts() -> pathlib.Path:
+    return pathlib.Path(__file__).resolve().parents[2] / "slide-builder" / "scripts"
+
+
+def _storyline_approved_steps(brief_path: pathlib.Path) -> None:
+    """The storyline is approved: give every slide its fixed id, print the
+    rulings path and the /compact suggestion (owner's decision, 2026-10-14).
+    Never fails the emit."""
+    try:
+        sys.path.insert(0, str(_slide_builder_scripts()))
+        import _rulings
+        import slide_ids
+        _rulings.announce(brief=brief_path)
+        added, ids, problems = slide_ids.assign(brief_path)
+        if problems:
+            print("  Slide ids NOT added (fix the brief, then run emit again): "
+                  + "; ".join(problems))
+        else:
+            print(f"  Slide ids: {len(added)} added, {len(ids)} in all (fixed; never "
+                  "renumbered or reused; the seal does not count them).")
+        sd = _rulings.session_dir(brief=brief_path)
+        print(f"  Before the next storyline change, read {_rulings.rulings_md(sd)}; record "
+              "each new ruling from the user with add_ruling.py (their exact words).")
+        print(f"  Earlier decks to copy pages from? Map them before the build: py -3 "
+              f"\"{_slide_builder_scripts() / 'map_source_pages.py'}\" propose --brief "
+              f"\"{brief_path}\" --from \"<earlier deck>\"")
+        for line in _rulings.compact_hint(sd, "storyline approved"):
+            print(line)
+    except Exception as exc:  # pragma: no cover
+        print(f"  (slide ids / rulings step skipped: {type(exc).__name__}: {exc})")
 
 
 if __name__ == "__main__":

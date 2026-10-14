@@ -2,6 +2,67 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## 2026-10-14: the user's rulings in their own words, fixed slide ids, the page map, steer checks
+
+From the context verdict (decisions A-D, owner's approval 10/14): about 6 in
+10 of the user's steers on two decks repeated something already on record,
+and the chat's own retelling of three of them was wrong.
+
+- **`scripts/add_ruling.py`** is the only writer of `_session\rulings.md`
+  (and `rulings.json` beside it). The quote must be word for word in a
+  message the user typed (the live Claude Code transcripts under
+  `~/.claude/projects`; compaction summaries, tool results, agent threads and
+  injected notices do not count; pieces of one message join with `...`).
+  The chat's understanding goes on its own "Chat's reading" line. A newer
+  ruling on the same slide and topic strikes the older one (both shown); a
+  second ruling on a topic prints REPEAT with the steer_checks command.
+- **Fixed slide ids.** `scripts/slide_ids.py` adds `**Slide id:** risks` to
+  every brief block (emit_dot_dash.py runs it when the storyline is
+  approved); kept on a rerun, never reused (`_session\slide_ids.json`). Prep
+  stores it in `_meta.json`, duplicate ids stop prep (exit 2), REVIEW.html
+  shows "SLIDE 25 (risks)", and rulings follow the id through an insert. The
+  seal no longer counts `**Slide id:**` and `**Pinned source page:**` lines
+  (prep also accepts a seal made the old way).
+- **The context pack.** Every `_context.md` (and `_edit_request.md`) opens
+  with § 0b (under 2 KB): Source line, pinned page, the deck's sources with
+  their status, the number trail, the slide's rulings and the deck rulings,
+  verbatim. A hand-written "Direction from the user" block in
+  `_prior_feedback.md` is left out of `_context.md` with a warning naming the
+  add_ruling command. `scripts/deck_sources.py` records sources (validated
+  only in the user's words) and the number trail; the copied-page check
+  counts figures from a validated source instead of asking, and
+  source_check.py does not list them.
+- **The steer receipt on REVIEW.html**: one row per ruling of the slide with
+  the designer's answer from `slide_NN/_steer_answers.txt` (the worker agent
+  writes it); unanswered, or newer than the design, is red.
+- **`scripts/steer_checks.py`**: nine checks of repeated steers on every
+  design (five standing: final periods, legend top right, unit without
+  brackets, one summary line, option A on pinned slides; four per deck, on
+  only after the user approves them in their words: a word kept off main
+  slides, banned phrases, preferred terms, footnote-only names). The chat
+  proposes, the user approves. Findings show on each REVIEW.html card.
+- **`scripts/map_source_pages.py`**: proposes a source page (or new) for
+  every slide id from earlier decks and prints the list with the pages'
+  pictures for one answer; `set` for changes, `approve` (the user's words)
+  writes the pin lines. The map is data (`_session\page_map.json`), with no
+  page of its own: `render_section()` gives the "Pages you gave us" section
+  REVIEW.html shows under the storyline (each supplied page, its picture, the
+  slide it goes to or "not used"). On the Leo brief before its pins it proposed 9 of the 10 pages
+  the one-off pin script pinned (slide 21 missed), plus 9 slides the user then marks new.
+- **`RULINGS: <path>`** is printed when every pipeline script ends (via
+  `_log.attach` and in record_picks, redesign_round, apply_qc_fix,
+  check_done, qc_pages, record_vision_qc, source_ledger, seal_brief and the
+  new scripts). emit_dot_dash.py (storyline approved) and record_picks.py
+  (picks recorded) print the /compact suggestion with the keep-the-rulings
+  command.
+- **`scripts/replace_phrase.py`** (Q2): one wording change across the brief,
+  the storyline files (.md, .html, .docx) and every slide design; a dry run
+  first, `--apply` to change; HTML text only, converted scripts untouched.
+- **`scripts/build_status.py`** (Q2): the stage, the one next command, the
+  rulings count, repeats and red receipts; `--measure` counts the user's
+  "I said / I told you" messages.
+- Test: `tests/run_context_design_smoke.py`.
+
 ## 2026-10-13: edits after conversion reach the deck; the agent's drawing survives (items 7 and 8 steps 5-6)
 
 From the 10/12 Leo deck report: 11 picked slides shipped from plans older

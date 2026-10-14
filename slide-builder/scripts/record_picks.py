@@ -265,6 +265,11 @@ def main(argv=None) -> int:
                          'a sketch page or a direct-path page): "N: <what changed>" (repeat per '
                          'slide). A sketch page is converted again; check_done lists it.')
     args = ap.parse_args(argv)
+    try:  # prints RULINGS: <path> when the script ends (2026-10-14)
+        import _rulings
+        _rulings.announce(out=args.out)
+    except Exception:
+        pass
     out = args.out
     if not out.exists():
         print(f"ERROR: out dir not found: {out}")
@@ -492,9 +497,21 @@ def main(argv=None) -> int:
     step = _convert_and_list(out, to_translate)
     if redesign_sids or edit_sids:
         _print_comment_steps(out, meta, edit_sids, redesign_sids, step)
+        _print_compact_suggestion(out)
         return 0
     _print_finish_steps(out, meta, picks, step)
+    _print_compact_suggestion(out)
     return 0
+
+
+def _print_compact_suggestion(out: Path) -> None:
+    """After the picks, the /compact suggestion (owner's decision, 2026-10-14)."""
+    try:
+        import _rulings
+        for line in _rulings.compact_hint(_rulings.session_dir(out=out), "picks recorded"):
+            print(line)
+    except Exception:
+        pass
 
 
 def _write_edit_request(out: Path, sid: str, pick, comments: list) -> Path:
@@ -513,8 +530,17 @@ def _write_edit_request(out: Path, sid: str, pick, comments: list) -> Path:
              "sketch (scripts/render_html.py) for a sketch design.", "",
              "Files to edit:"] + [f"    {f}" for f in files] + ["", "Comments (the user's):"]
     lines += [f"- {c['text']}" for c in comments]
+    text = "\n".join(lines) + "\n"
+    try:  # the slide's rulings and sources, in the user's exact words (2026-10-14)
+        import _context_pack
+        n = int(sid.split("_")[1])
+        entry = dict(_context_pack.slide_entry(out, n))
+        entry.setdefault("n", n)
+        text = _context_pack.put_pack(text, _context_pack.pack_block(out, entry))
+    except Exception:
+        pass
     p = sd / "_edit_request.md"
-    p.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    p.write_text(text, encoding="utf-8")
     return p
 
 
