@@ -2114,6 +2114,26 @@ def build_final_check(out_dir: Path, meta: Optional[dict]) -> int:
         for name in (_p.option_pptx_name(L), _p.option_png_name(L)):
             if not (out_dir / k / name).exists():
                 problems.append(f"{k}/{name} is missing")
+    # Slides that copy a supplied page: their check must be made from the
+    # finished picks shown here (finalize makes it; this catches up a missing
+    # or older one). A pin that cannot be read stops the page.
+    cp_rows, cp_slides, cp_bind = [], [], {}
+    if not problems:
+        try:
+            import source_ledger
+            _stale = source_ledger.stale_slides(out_dir, state)
+            if _stale:
+                _built, _errs = source_ledger.build_slides(out_dir, only=set(_stale))
+                for _n, _why in _errs:
+                    problems.append(f"copied page, slide {_n}: {_why}")
+            _gp = [g for g in source_ledger.gate_problems(out_dir)
+                   if g[1] in ("missing", "stale")]
+            if _gp and not problems:
+                problems.append(source_ledger.gate_message(out_dir, _gp))
+            cp_rows, cp_slides, cp_bind = source_ledger.final_check_rows(out_dir)
+        except Exception as exc:
+            problems.append(f"the copied-page check could not run ({type(exc).__name__}: "
+                            f"{exc}); run source_ledger.py build --out <out> --all-picked")
     if problems:
         print("NOT READY for the final check:", file=sys.stderr)
         for p in problems[:12]:
@@ -2124,7 +2144,7 @@ def build_final_check(out_dir: Path, meta: Optional[dict]) -> int:
 
     digests = {key: _state.file_digest(out_dir / k / _p.option_pptx_name(L))
                for key, (k, L) in zip(keys, ship)}
-    token = _state.record_final_check(out_dir, digests)
+    token = _state.record_final_check(out_dir, digests, ledger=cp_bind)
 
     titles = {_p.slide_key(int(s["n"])): (s.get("title") or "")
               for s in (meta or {}).get("slides", []) if isinstance(s.get("n"), int)}
@@ -2174,6 +2194,7 @@ def build_final_check(out_dir: Path, meta: Optional[dict]) -> int:
         ts_block = type_scale.html_block(ts_rows)
     except Exception:
         ts_block = ""
+    cp_block = _copied_page_table(cp_rows, cp_slides)
     page = f"""<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8">
 <title>Final check</title><style>{FINAL_CSS}</style></head><body>
 <header><h1>Final check: this is exactly what will be built</h1>
@@ -2182,6 +2203,7 @@ takeaway and page number, which the sketches did not have. Look for anything
 overlapping, cut off or crowded. If it is right, click <b>Build it</b> (or
 just tell Claude "build it" while this page is open). If not, say what is wrong
 in the box instead.</p></header>
+{cp_block}
 {src_block}
 {ts_block}
 <div class="grid">{tiles}</div>
@@ -2199,10 +2221,20 @@ function toast(m) {{ const t = document.getElementById("toast"); t.textContent =
 async function copy(text, label) {{
   try {{ await navigator.clipboard.writeText(text); toast(label); }}
   catch (e) {{ prompt("Copy this:", text); }} }}
-document.getElementById("btn-go").onclick = () => copy(
-  "Build it: I checked the finished slides.\\nFolder: " + OUT +
-  "\\nFinal check: " + TOKEN + "\\n" + EXTRA,
-  "Copied. Paste it into Claude.");
+{_COPIED_PAGE_JS}
+document.getElementById("btn-go").onclick = () => {{
+  const cp = cpAnswers();
+  if (cp === null) return;
+  if (cp.replace.length) {{
+    copy("Fix these before building my Slide Lab deck.\\nFolder: " + OUT +
+         "\\nWhat is wrong: figures copied from the earlier page to replace:\\n" +
+         cp.replace.join("\\n") + "\\n", "Copied. Paste it into Claude.");
+    return;
+  }}
+  copy("Build it: I checked the finished slides.\\nFolder: " + OUT +
+       "\\nFinal check: " + TOKEN + "\\n" + cp.line + EXTRA,
+       "Copied. Paste it into Claude.");
+}};
 document.getElementById("btn-fix").onclick = () => {{
   const t = document.getElementById("fix").value.trim();
   if (!t) {{ toast("Say what needs fixing first."); return; }}
@@ -2217,6 +2249,81 @@ document.getElementById("btn-fix").onclick = () => {{
           "for the Build it message it copies, or for the user to say \"build it\" in "
           "chat once it is open (compile_picks.py --approved-in-chat).")
     return 0
+
+
+# The copied-page table (owner's decision, 2026-10-13, the lighter check):
+# the figures that came from a copied page onto a shipping slide and are not
+# in the brief word for word, one row each, answered Keep or Replace here.
+# Build it stays shut until every row is answered; a Replace turns the
+# message into a fix request. Approving this page answers every row on it.
+_COPIED_PAGE_JS = r"""
+function cpAnswers() {
+  const rows = Array.from(document.querySelectorAll("tr.cp-row"));
+  const replace = []; let missing = 0;
+  rows.forEach(tr => {
+    const v = (tr.querySelector("input[type=radio]:checked") || {}).value;
+    if (!v) { missing++; return; }
+    if (v === "replace") {
+      const w = (tr.querySelector("input.cp-with") || {}).value || "";
+      replace.push("- slide " + tr.dataset.slide + ": " + JSON.stringify(tr.dataset.figure) +
+                   " -> " + (w.trim() || "the brief's figure"));
+    }
+  });
+  if (missing) {
+    toast("Answer every row of the copied-page table first (Keep or Replace).");
+    document.getElementById("copied-pages").scrollIntoView({behavior: "smooth"});
+    return null;
+  }
+  const line = rows.length ? ("Copied-page figures: all " + rows.length + " kept\n") : "";
+  return {replace: replace, line: line};
+}
+"""
+
+
+def _copied_page_table(rows: list, slides: list) -> str:
+    """FINAL-CHECK.html's one table of figures that came from a copied page."""
+    if not slides:
+        return ""
+    esc = html.escape
+    notes = []
+    for c in slides:
+        if c.get("visual_only"):
+            notes.append(f"<li>Slide {c['slide']} copies {esc(c['source'])}, a PDF page or "
+                         "picture: nothing on it can be read by machine, so its figures are "
+                         "checked by eye only. Take every figure from the brief.</li>")
+        elif c.get("brief_matches"):
+            notes.append(f"<li>Slide {c['slide']}: {c['brief_matches']} more figure(s) from "
+                         f"{esc(c['source'])} match the brief (counted, not listed).</li>")
+    body = "".join(
+        f'<tr class="cp-row" data-slide="{r["slide"]}" data-figure="{esc(str(r["figure"]))}">'
+        f'<td>{r["slide"]}</td><td><b>{esc(str(r["figure"]))}</b></td>'
+        f'<td>{esc(str(r.get("source_text", ""))[:160])}<br><span class="cp-src">'
+        f'{esc(str(r.get("source", "")))}</span></td>'
+        f'<td>{esc(str(r.get("brief_value") or "")) or "<i>no figure in the brief for this slide</i>"}</td>'
+        f'<td class="cp-ans"><label><input type="radio" name="cp{i}" value="keep"> Keep</label> '
+        f'<label><input type="radio" name="cp{i}" value="replace"> Replace</label>'
+        f'<input class="cp-with" placeholder="with (blank = the brief\'s figure)"></td></tr>'
+        for i, r in enumerate(rows))
+    table = ("" if not rows else
+             '<table class="cp"><thead><tr><th>Slide</th><th>Figure</th>'
+             '<th>Where it was on the copied page</th><th>Closest line in the brief</th>'
+             f'<th>Your answer</th></tr></thead><tbody>{body}</tbody></table>')
+    head = (f"{len(rows)} figure(s) came from a page you supplied onto the slides being "
+            "built and are not in the brief word for word. Keep each one, or mark it "
+            "Replace (blank takes the brief's figure). <b>Build it</b> waits until every "
+            "row is answered; saying \"build it\" in chat keeps them all."
+            if rows else
+            "No figure from the copied pages needs an answer: every one that came through "
+            "matches the brief, or none came through.")
+    return (f'<section id="copied-pages" class="cp-box"><h2>Numbers copied from your '
+            f'pages</h2><p>{head}</p>{table}'
+            + (f"<ul>{''.join(notes)}</ul>" if notes else "")
+            + "<style>.cp-box{margin:12px 24px;padding:10px 14px;border:1px solid #c9c9c9;"
+              "background:#fafafa}.cp-box h2{font-size:15px;margin:0 0 6px}"
+              "table.cp{border-collapse:collapse;width:100%;font-size:12px}"
+              "table.cp th,table.cp td{border:1px solid #ddd;padding:4px 6px;"
+              "text-align:left;vertical-align:top}.cp-src{color:#777;font-size:11px}"
+              ".cp-with{width:150px;margin-top:3px;font-size:11px}</style></section>")
 
 
 # ---------------------------------------------------------------------------

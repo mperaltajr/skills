@@ -621,6 +621,14 @@ def edits_done(out: Path, parent_entries: list | None = None) -> int:
     if by_parent is None:
         print(f"REFUSED: {why}")
         return 5
+    # The edit workers ran with the agent files installed now: keep them in
+    # the build's agent history (compile judges every version used).
+    _changed = _state.record_agents(out, "edits-done")
+    if _changed:
+        print(f"NOTE: the agent files changed since this build's last step "
+              f"({', '.join(_changed)}); recorded. Compile accepts it only when every "
+              "version used is on main. Do not copy or restore agent files from this "
+              "session.")
     for sid in sids:
         v = picks.get(sid)
         letters = ", ".join(v) if isinstance(v, list) else str(v)

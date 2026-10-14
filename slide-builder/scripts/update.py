@@ -112,7 +112,9 @@ def after_pull() -> int:
     if restart:
         print("RESTART NEEDED: the agent files changed. Close and reopen Claude "
               "before building, or the next build stops with an agents-out-of-date "
-              "message.")
+              "message. A build already in progress can carry on: compile accepts two "
+              "versions that are both from main and notes it in COMPILED.md. Never put "
+              "the old agent files back by hand.")
     else:
         print("UPDATED: no restart needed.")
     return 1 if bad else 0

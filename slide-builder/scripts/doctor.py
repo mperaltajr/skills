@@ -213,8 +213,8 @@ def check_agents(rows):
     problems = check_installed_agents()
     _row(rows, "Slide Lab agents", not problems,
          "" if not problems else " | ".join(problems) + " | Run:  "
-         + f"{PY} \"{Path(__file__)}\" fix  (backs up the installed files first). "
-         + NEW_SESSION)
+         + f"{PY} \"{Path(__file__)}\" fix  (backs up the installed files first; "
+         "from a checkout of main, never from a build session). " + NEW_SESSION)
 
 
 def _settings_path() -> Path:
@@ -278,7 +278,9 @@ def fix_agents() -> str:
     """Copy the repo's agent files over the installed ones, backing the
     installed ones up first (~/.claude/agents/_backup_<date>/<name>.md.bak;
     the last few backups are kept). Only from main, after a merge: a worktree
-    builder never installs (owner's rule 2026-10-09)."""
+    builder never installs (owner's rule 2026-10-09). This is the one install
+    route besides update.py after-pull (which calls it); a build session
+    never copies or restores agent files, by hand or otherwise (2026-10-13)."""
     from _install import AGENT_NAMES, installed_agents_dir, backup_installed, NEW_SESSION
     dest = installed_agents_dir()
     dest.mkdir(parents=True, exist_ok=True)
