@@ -1042,8 +1042,8 @@ expect (one way of writing each kind of number across all slides).
   brand font, so it reflects PowerPoint, not the preview). At >2 lines the slide
   also drops its subtitle automatically. Keep titles to ≤2 visual lines and
   shorten an over-long title rather than counting on it to fit.
-- **Subtitle fit:** ~130 chars at 16pt in a ~12.5"×0.39" box. Above ~130
-  chars the subtitle will wrap and crowd the body zone.
+- **Takeaway fit:** keep the takeaway to one line; § 3 gives this layout's
+  takeaway size and about how many characters a line holds.
 - **Accent placement:** every chart's legend is one row at the top right of
   the chart, on the chart's header line, right-aligned to the chart's right
   edge (owner's rule, 2026-10-09); never below the chart, never stacked at
@@ -1066,7 +1066,8 @@ expect (one way of writing each kind of number across all slides).
   UPWARD into the chrome zone, never displacing the subtitle.
 - **No inline run formatting on placeholders.** Title/subtitle inherit
   fonts and colors from the master theme. Workers should not bake in
-  hardcoded colors.
+  hardcoded colors. On a sketch the title, takeaway and section tag are
+  styled by the pipeline (§ 3): mark them, don't style them.
 - **Charts tell the truth (QC flags these as Major):** bars and areas start at
   zero; every value axis has a title with its unit; a number called out in the
   title or a callout appears on the chart itself; one unit per kind of figure
@@ -1092,6 +1093,18 @@ expect (one way of writing each kind of number across all slides).
 - Section tag: {section_tag!r} (Slide Lab draws it; do not draw it. Finalize puts it
   just above the title in the template's fixed style)
 {body_geometry}
+
+**Title, takeaway and section tag on this layout (styled by Slide Lab, 2026-10-13):**
+
+{chrome_block}
+
+On a sketch, mark the title `data-template-field="title"` and the takeaway
+`data-template-field="subtitle"`, and do not style them (no font, size,
+color or position rules for them, and no section tag at all). Slide Lab adds
+`_chrome.css` (next to this file) last when it draws the picture, so every
+sketch shows the template's real title, takeaway and section tag, exactly as
+finalize puts them on the slide. Design the body for that: it starts at
+`--body-top`.
 
 ## 4. QC anchor
 
@@ -1276,6 +1289,63 @@ def _body_geometry_block(template_path, layout_name: str) -> str:
     )
 
 
+_CHROME_PRS_CACHE: dict = {}
+
+
+def _slide_chrome_style(template_path, slide: dict, brand: dict):
+    """The template's title, takeaway and section tag for this slide's
+    layout, as finalize will style them (twins/chrome_rules.chrome_style);
+    None for a cover, divider or other art-directed layout, or when the
+    template's sidecars cannot be read."""
+    layout_name = (slide.get("layout") or "").strip()
+    if not template_path or not layout_name:
+        return None
+    from pptx import Presentation
+    from twins.chrome_rules import chrome_style, template_takeaway_pt
+    from twins.client_theme import resolve_build_template
+    key = str(template_path)
+    if key not in _CHROME_SPEC_CACHE:
+        _CHROME_SPEC_CACHE[key] = load_chrome_yml(_p.chrome_yml(Path(template_path)))
+    spec = _CHROME_SPEC_CACHE[key]
+    lc = spec.layouts.get(layout_name)
+    if lc is None:
+        return None
+    if key not in _CHROME_PRS_CACHE:
+        prs = Presentation(str(resolve_build_template(Path(template_path))))
+        _CHROME_PRS_CACHE[key] = (prs, template_takeaway_pt(prs, spec))
+    prs, deck_takeaway_pt = _CHROME_PRS_CACHE[key]
+    page_type = ((slide.get("page_type") or "").strip()
+                 or _normalize_archetype_to_page_type(slide.get("archetype") or ""))
+    on_dark = True if (slide.get("variant") or "").strip().lower() == "dark" else None
+    return chrome_style(lc, prs, brand.get("accent_hex") or "", on_dark=on_dark,
+                        page_type=page_type, takeaway_pt=deck_takeaway_pt,
+                        section_tag=(slide.get("section_tag") or "").strip())
+
+
+def _write_chrome_css(slide: dict, brand: dict, slide_dir: Path, template_path,
+                      slide_n=None) -> str:
+    """Write slide_NN/_chrome.css (render_html.py adds it last when it draws
+    the sketch) and return the plain-words block for _context.md. A layout
+    with no fixed chrome gets no sheet (an old one is removed)."""
+    css_path = slide_dir / "_chrome.css"
+    try:
+        style = _slide_chrome_style(template_path, slide, brand)
+    except Exception as exc:  # noqa: BLE001 -- never break prep over the preview styling
+        sys.stderr.write(f"  WARN: could not read the template's title and takeaway style for "
+                         f"slide {slide_n}: {type(exc).__name__}: {exc}. The sketch "
+                         f"pictures will show the designer's own styling; finalize still styles "
+                         f"the slide. Re-register the template if this repeats.\n")
+        style = None
+    if style is None:
+        if css_path.exists():
+            css_path.unlink()
+        return ("This layout keeps its own art-directed title and lines (a cover, "
+                "divider or similar): design them as the layout shows them.")
+    from twins.chrome_rules import chrome_css, chrome_plain_words
+    css_path.write_text(chrome_css(style), encoding="utf-8")
+    return chrome_plain_words(style)
+
+
 def _deck_titles_block(deck: dict | None, slide_n: int) -> str:
     rows = []
     for s in (deck or {}).get("slides") or []:
@@ -1317,6 +1387,7 @@ def write_slide_context_md(slide: dict, brand: dict, slide_dir: Path,
         source=(slide.get("source") or "").strip() or "(none in the brief)",
         section_tag=(slide.get("section_tag") or "").strip() or "(none)",
         body_geometry=_body_geometry_block(template_path, layout),
+        chrome_block=_write_chrome_css(slide, brand, slide_dir, template_path, slide_n),
         primary_hex=brand.get("primary_hex", "(unset)"),
         accent_hex=brand.get("accent_hex", "(unset)"),
         prior_feedback=_load_prior_feedback_for_slide(slide_dir),

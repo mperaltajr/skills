@@ -14,6 +14,12 @@ On a COPY of the bundled test template (the fixture is never changed):
   2. the same layout with its footer slot turned into a BODY placeholder named
      "Source": the line appears as a shape named 'source' at the template's
      source position, and a warning names the slide and the layout
+  3. the same BODY "Source" slot registered in chrome.yml as the source slot
+     (as on the Kinfield template): the line goes into the slot, the slot
+     shape is named "source", the brief's unlabeled line reads "Source: ..."
+     once, and the type-scale check takes its 9 pt as a source (2026-10-13)
+  4. the "Source: " label is added once: never twice, never before a "Note"
+     or an "Illustrative data" deck note
 
 Run:  py -3 slide-builder/tests/run_source_line_fallback_smoke.py
 Prints "SMOKE PASSED." on success; raises AssertionError otherwise.
@@ -67,10 +73,14 @@ def _footer_to_body(src: Path, dst: Path) -> None:
     prs.save(str(dst))
 
 
-def _finish(template: Path):
+def _finish(template: Path, footer: str = SOURCE, source_idx=None):
     prs = Presentation(str(template))
     lay = next(l for l in prs.slide_layouts if l.name == LAYOUT)
     chrome = load_chrome_yml(CHROME).layouts[LAYOUT]
+    if source_idx is not None:
+        import copy as _copy
+        chrome = _copy.copy(chrome)
+        chrome.source_placeholder_idx = source_idx
     slide = prs.slides.add_slide(lay)
     clone_missing_chrome_placeholders(slide, lay)
     src = Presentation().slides.add_slide(Presentation().slide_layouts[6])
@@ -78,7 +88,7 @@ def _finish(template: Path):
     with contextlib.redirect_stdout(buf):
         fd._apply_body_canonical_finishing(
             slide, prs, chrome, src, 3,
-            template_fields_override={"title": "A test title", "footer": SOURCE})
+            template_fields_override={"title": "A test title", "footer": footer})
     return slide, chrome, buf.getvalue()
 
 
@@ -116,6 +126,32 @@ def main() -> int:
         assert "WARN" in out and "slide 3" in out and LAYOUT in out, out
         print(f"    ok: at x={text_left / 9525:.0f} (title's text edge), y={box.y_px} px; "
               f"{out.strip()[:90]}...")
+
+        print("[3] a registered BODY 'Source' slot: filled, named 'source', labeled once")
+        slide, chrome, out = _finish(body, footer="sample data for the test, not real",
+                                     source_idx=20)
+        slot = [s for s in slide.placeholders if s.placeholder_format.idx == 20]
+        assert slot, "the source line did not go into the registered Source slot"
+        assert slot[0].name == "source", slot[0].name
+        assert slot[0].text_frame.text == "Source: sample data for the test, not real", \
+            slot[0].text_frame.text
+        assert not [s for s in slide.shapes if s.name == "source" and not s.is_placeholder]
+        import type_scale
+        r = type_scale.check_slide(slide, Presentation(str(body)).slide_height)
+        assert not type_scale.problems(r), type_scale.problems(r)
+        print("    ok")
+
+        print("[4] the 'Source: ' label is added once, never before a note")
+        cases = {"Kinfield model": "Source: Kinfield model",
+                 "Source: Kinfield model": "Source: Kinfield model",
+                 "Sources: filings; model": "Sources: filings; model",
+                 "Note: rounded": "Note: rounded",
+                 "Notes - rounded": "Notes - rounded",
+                 "Illustrative data, not real": "Illustrative data, not real",
+                 "": ""}
+        for raw, want in cases.items():
+            assert fd.source_label(raw) == want, (raw, fd.source_label(raw), want)
+        print("    ok")
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     print("SMOKE PASSED.")

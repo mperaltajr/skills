@@ -170,7 +170,7 @@ For each slide, in addition to the per-zone walkthrough, evaluate these categori
 | **Unreadable overlap** | Critical | Text obscured by another element so it cannot be read |
 | **Background contrast** | Critical | White text on white background; same-color-on-same-color violations that hide content |
 | **Action title content** | Major | Title missing on a non-cover slide; title is a topic label not an action title (refer to storyline brief if available) |
-| **Text size** | Major | Body text under 10.5pt, more than 3 body text sizes on a slide, or a source, footnote or chart label under 9pt (the hygiene script runs `slide-builder/scripts/type_scale.py`). The fix is fewer words or split content, never smaller text; the user may give a reason to keep one. Body text at 10.5 to 11pt (below the 12pt default) is an Advisory note |
+| **Text size** | Major | Body text under 10.5pt, more than 3 body text sizes on a slide, or a source, footnote or chart label under 9pt (text in the template's Source or Foot Note slot counts as a source; the hygiene script runs `slide-builder/scripts/type_scale.py`). The fix is fewer words or split content, never smaller text; the user may give a reason to keep one. Body text at 10.5 to 11pt (below the 12pt default) is an Advisory note |
 | **Font size drift across same slide type** | Major | Slide N title is materially different size from slide M title where both are the same slide type |
 | **Missing footer / page number** | Major | No footer or page number on a non-cover slide (the visual pass catches this because rendered output resolves master inheritance) |
 | **Chart axis missing unit** | Major | Y-axis labeled "Value" / "Amount" with no unit — is it $M, count, percent? |

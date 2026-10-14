@@ -506,6 +506,14 @@ def _populate_layout_placeholders(slide, *, title=None, subtitle=None,
                 if ph.placeholder_format.idx == footer_idx:
                     _write(ph, footer)
                     _align_source_left(ph)
+                    # Name the slot for what it now holds (2026-10-13). A
+                    # BODY slot keeps a name like "Text Placeholder 4", and
+                    # the type-scale check read its 9 pt source as body text
+                    # under the 10.5 pt floor. Lookups go by idx, not name.
+                    try:
+                        ph.name = "source"
+                    except Exception:
+                        pass
                     found["footer"] = True
                     break
             except Exception:

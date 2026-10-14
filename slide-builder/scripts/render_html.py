@@ -29,10 +29,16 @@ Notes
 -----
 - Canvas and CSS conventions are fixed at 1280×720.
 - The PNG this produces is what gets compared via SSIM.
+- When the HTML's folder holds `_chrome.css` (prep writes one per slide,
+  2026-10-13), it is added last, so the picture shows the template's real
+  title, takeaway and section tag; the title's line count and any body shape
+  they cover go in `<png stem>.chrome.json` for the review page, and are
+  printed as warnings (TITLE_TOO_LONG, BODY_UNDER_CHROME).
 """
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from pathlib import Path
 
@@ -66,6 +72,102 @@ def draw_icons_safe(page) -> list[dict]:
     except Exception as exc:  # pragma: no cover
         return [{"code": "ICON_DRAW_FAILED", "name": "",
                  "detail": f"could not draw the library icons ({type(exc).__name__}: {exc})"}]
+
+
+# ---------------------------------------------------------------------------
+# The template's title, takeaway and section tag (2026-10-13)
+# ---------------------------------------------------------------------------
+# Prep writes slide_NN/_chrome.css (twins/chrome_rules.chrome_css): the
+# values finalize uses for the title, the takeaway and the section tag on
+# this slide's layout. It is added LAST, just before the screenshot, so the
+# sketch picture shows them as the finished slide will, whatever the
+# designer's own CSS says. The HTML file is never changed (the converter
+# reads it without this sheet). After it is added, the title's line count
+# and any body shape the title or takeaway now covers are measured and
+# written next to the picture (option_X.sketch.chrome.json) for the review
+# page (build_review.py).
+CHROME_CSS_NAME = "_chrome.css"
+
+_WRAP_TITLE_JS = """() => {
+  for (const el of document.querySelectorAll('[data-template-field="title"]')) {
+    if (el.querySelector(':scope > [data-chrome-inner]')) continue;
+    const s = document.createElement('span');
+    s.setAttribute('data-chrome-inner', '');
+    while (el.firstChild) s.appendChild(el.firstChild);
+    el.appendChild(s);
+  }
+}"""
+
+_MEASURE_JS = """() => {
+  const visible = el => { const cs = getComputedStyle(el);
+    return cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity || '1') > 0; };
+  const textRects = el => { const rg = document.createRange(); rg.selectNodeContents(el);
+    return Array.from(rg.getClientRects()).filter(r => r.width > 0.5 && r.height > 0.5); };
+  const lineCount = rects => { const bottoms = [];
+    for (const r of rects) if (!bottoms.some(b => Math.abs(b - r.bottom) < 3)) bottoms.push(r.bottom);
+    return bottoms.length; };
+  const union = rects => rects.length ? {
+    l: Math.min(...rects.map(r => r.left)), t: Math.min(...rects.map(r => r.top)),
+    r: Math.max(...rects.map(r => r.right)), b: Math.max(...rects.map(r => r.bottom))} : null;
+  const title = document.querySelector('[data-template-field="title"]');
+  const take = document.querySelector('[data-template-field="subtitle"]')
+            || document.querySelector('[data-shape-id="subtitle"]');
+  const out = {title_lines: 0, title_box: null, takeaway_lines: 0, takeaway_box: null, covered: []};
+  if (title && (title.textContent || '').trim()) {
+    const rs = textRects(title); out.title_lines = lineCount(rs); out.title_box = union(rs); }
+  if (take && (take.textContent || '').trim()) {
+    const rs = textRects(take); out.takeaway_lines = lineCount(rs); out.takeaway_box = union(rs); }
+  const boxes = [['title', out.title_box], ['takeaway', out.takeaway_box]].filter(b => b[1]);
+  const reserved = /^(subtitle$|footnote|source|page-number|section-tag)/i;
+  for (const el of document.querySelectorAll('[data-shape-id]')) {
+    const id = el.getAttribute('data-shape-id') || '';
+    if (reserved.test(id) || !visible(el)) continue;
+    if ((title && (el.contains(title) || title.contains(el))) ||
+        (take && (el.contains(take) || take.contains(el)))) continue;
+    const r = el.getBoundingClientRect();
+    if (r.width < 1 || r.height < 1) continue;
+    if (r.width >= 1200 && r.height >= 600) continue;          // a backdrop
+    for (const [by, b] of boxes) {
+      const w = Math.min(r.right, b.r) - Math.max(r.left, b.l);
+      const h = Math.min(r.bottom, b.b) - Math.max(r.top, b.t);
+      if (w > 2 && h > 2) { out.covered.push({id: id, by: by, top: Math.round(r.top)}); break; }
+    }
+  }
+  return out;
+}"""
+
+
+def chrome_check_path(png_path: Path) -> Path:
+    """option_A.sketch.png -> option_A.sketch.chrome.json"""
+    return png_path.with_name(png_path.stem + ".chrome.json")
+
+
+def apply_chrome_css(page, html_path: Path):
+    """Add the slide's _chrome.css (when prep wrote one) last, and measure
+    what it changed. Returns the measurement, or None when there is no
+    sheet. A failure is a warning, never a stopped render."""
+    css_path = html_path.parent / CHROME_CSS_NAME
+    if not css_path.exists():
+        return None
+    try:
+        css = css_path.read_text(encoding="utf-8")
+        page.evaluate(_WRAP_TITLE_JS)
+        page.add_style_tag(content=css)
+        try:
+            page.evaluate("() => document.fonts.ready.then(() => true)")
+        except Exception:
+            pass
+        data = page.evaluate(_MEASURE_JS) or {}
+        data["chrome_css"] = str(css_path.name)
+        m = re.search(r"--chrome-body-top:\s*([\d.]+)px", css)
+        data["body_top"] = float(m.group(1)) if m else None
+        return data
+    except Exception as exc:  # pragma: no cover
+        sys.stderr.write(f"WARNING CHROME_CSS_FAILED: could not apply {css_path.name} "
+                         f"({type(exc).__name__}: {exc}); the picture shows the design's own "
+                         f"title and takeaway styling. Re-run this render; if it fails again, "
+                         f"re-run prep for this slide (build_deck.py) to rewrite {css_path.name}\n")
+        return None
 
 
 def render_html_to_png(
@@ -128,6 +230,8 @@ def render_html_to_png(
                 # labeled placeholder and a warning here, never a silent gap.
                 for w in draw_icons_safe(page):
                     sys.stderr.write(f"WARNING {w['code']}: {w['detail']}\n")
+                # The template's title, takeaway and section tag, last.
+                chrome_check = apply_chrome_css(page, html_path)
                 # `clip` forces the screenshot to exactly the locked canvas
                 # box regardless of HTML overflow. `full_page=False` is the
                 # default but make it explicit so a future refactor can't
@@ -145,6 +249,22 @@ def render_html_to_png(
                         clip={"x": 0, "y": 0, "width": width, "height": height},
                     )
                     _copy_into_place(tmp_png, png_path)
+                check_path = chrome_check_path(png_path)
+                if chrome_check is not None:
+                    import json
+                    check_path.write_text(json.dumps(chrome_check, indent=1), encoding="utf-8")
+                    if chrome_check.get("title_lines", 0) > 2:
+                        sys.stderr.write(
+                            f"WARNING TITLE_TOO_LONG: in the template's title style the title "
+                            f"takes {chrome_check['title_lines']} lines; the template holds 2. "
+                            f"Shorten the title (ask the user before changing the brief's "
+                            f"wording)\n")
+                    for c in chrome_check.get("covered") or []:
+                        sys.stderr.write(
+                            f"WARNING BODY_UNDER_CHROME: shape {c['id']!r} sits under the "
+                            f"template's {c['by']}. Move it down to --body-top or lower\n")
+                elif check_path.exists():
+                    check_path.unlink()      # no sheet now: an old check would mislead
             except Exception as exc:
                 sys.stderr.write(f"render failed: {exc}\n")
                 sys.exit(4)

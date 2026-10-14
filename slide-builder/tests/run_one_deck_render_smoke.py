@@ -17,6 +17,11 @@ to the slide it came from (owner's decision, 2026-10-09).
   [5] the converter's self-check (translate_alarm.render_full) uses one render
       for a round, and returns the failing slide's reason
   [6] finalize's render_all marks only the failing option as not rendered
+  [7] page numbers in previews (2026-10-13): three option files whose
+      slide-number fields store 30, 10 and 2, merged out of order, show 30,
+      10 and 2 (not their place in the temporary deck); a one-slide render of
+      a file storing 18 shows 18 (not 1); the temporary deck holds plain runs
+      with the field's formatting; the option files keep their real fields
 
 Fictional files only; the user's open PowerPoint presentations are recorded
 before and after (attaching only) and must be unchanged.
@@ -68,6 +73,27 @@ def _deck(path: Path, color: str, label: str, hidden=False, four_three=False,
     if broken:
         st = r._element.find(qn("p:style"))
         st.remove(st.find(qn("a:effectRef")))     # PowerPoint refuses this file
+    prs.save(str(path))
+    return path
+
+
+def _numbered_deck(path: Path, number: int) -> Path:
+    """One slide with 'Page <slide-number field storing number>' at 21 pt."""
+    from pptx import Presentation
+    from pptx.util import Inches, Pt
+    from twins.composer import write_slide_number_field
+    prs = Presentation()
+    prs.slide_width, prs.slide_height = Inches(13.333), Inches(7.5)
+    s = prs.slides.add_slide(prs.slide_layouts[6])
+    tb = s.shapes.add_textbox(Inches(1), Inches(3), Inches(6), Inches(1))
+    para = tb.text_frame.paragraphs[0]
+    r = para.add_run()
+    r.text = "PageMark "
+    r.font.size = Pt(21)
+    r2 = para.add_run()
+    r2.text = "0"
+    r2.font.size = Pt(21)
+    write_slide_number_field(para, number)
     prs.save(str(path))
     return path
 
@@ -244,6 +270,44 @@ def main() -> int:
             [s.rendered for s in sts]
         assert "simulated" in sts[4].error
         print("    ok")
+
+        print("[7] previews show the page number each option file stores")
+        nums = [30, 10, 2]
+        nsrcs = [_numbered_deck(td / f"n{n}.pptx", n) for n in nums]
+        merged = td / "n_merged.pptx"
+        one_deck.merge(nsrcs, merged)
+        with zipfile.ZipFile(merged) as z:
+            xml = [z.read(f"ppt/slides/slide{i}.xml").decode("utf-8") for i in (1, 2, 3)]
+        for n, x in zip(nums, xml):
+            assert 'type="slidenum"' not in x, "the temporary deck still has a field"
+            assert f"<a:t>{n}</a:t>" in x, (n, x[-600:])
+            assert x.count('sz="2100"') >= 2, "the frozen number lost its formatting"
+        for src in nsrcs:
+            with zipfile.ZipFile(src) as z:
+                assert b'type="slidenum"' in z.read("ppt/slides/slide1.xml"),                     f"{src.name} lost its real field"
+        import pypdfium2 as pdfium
+
+        def page_texts(got):
+            out = []
+            for g in got:
+                assert isinstance(g, tuple), g
+                doc = pdfium.PdfDocument(str(g[0]))
+                page = doc[g[1]]
+                out.append(" ".join(page.get_textpage().get_text_range().split()))
+                page.close()
+                doc.close()
+            return out
+        for eng in engines:
+            texts = page_texts(one_deck.pdf_pages(nsrcs, td / f"npdf_{eng}", renderer=eng))
+            for n, t in zip(nums, texts):
+                assert f"PageMark {n}" in t, (eng, n, t)
+            single = _numbered_deck(td / "n18.pptx", 18)
+            t18 = page_texts(one_deck.pdf_pages([single], td / f"n18_{eng}", renderer=eng))
+            assert "PageMark 18" in t18[0], (eng, t18)
+            with zipfile.ZipFile(single) as z:
+                assert b'type="slidenum"' in z.read("ppt/slides/slide1.xml")
+            print(f"    ok ({eng}): merged previews show 30, 10, 2; a one-slide "
+                  f"preview shows 18; option files keep their fields")
 
     after = snapshot()
     assert before[1] == after[1], "the user's open presentations changed"

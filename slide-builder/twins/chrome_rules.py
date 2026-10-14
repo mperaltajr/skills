@@ -225,6 +225,17 @@ def source_top_emu(slide, layout_chrome) -> int:
     return int(box.y_px) * _EMU_PX
 
 
+def drawn_takeaway_top_emu(title_bottom_emu: int) -> int:
+    """Where a takeaway with no template slot goes: just under the title box."""
+    return int(title_bottom_emu) + CS.CHROME_TAKEAWAY_GAP_PX * _EMU_PX
+
+
+def section_tag_top_emu(title_top_emu: int) -> int:
+    """Top of the section tag box: just above the title box (may be < 0,
+    meaning there is no room)."""
+    return int(title_top_emu) - CS.SECTION_TAG_GAP_PX * _EMU_PX - CS.SECTION_TAG_H_PX * _EMU_PX
+
+
 def _set_runs(shape, *, size_pt=None, bold=None, color_scheme=None,
               clear_italic=False) -> None:
     for p in shape.text_frame.paragraphs:
@@ -339,7 +350,7 @@ def normalize_chrome(slide, layout_chrome=None, *, takeaway_pt: float | None = N
         if sh.is_placeholder and sh.top is not None:
             top, height = int(sh.top), int(sh.height or CS.CANONICAL_SUBTITLE_H * _EMU_PX)
         else:
-            top = title_bottom + CS.CHROME_TAKEAWAY_GAP_PX * _EMU_PX
+            top = drawn_takeaway_top_emu(title_bottom)
             height = max(int(sh.height or 0), CS.CANONICAL_SUBTITLE_H * _EMU_PX)
         _set_frame(sh, left=text_left, top=top, width=width, height=height)
         _set_runs(sh, size_pt=t_pt, bold=False, clear_italic=True,
@@ -430,7 +441,7 @@ def place_section_tag(slide, layout_chrome, text: str | None, *, accent_hex: str
         on_dark = getattr(layout_chrome, "text_role", "dark_on_light") == "light_on_dark"
     text_left, text_right, title_top, _bottom = _title_frame(slide, layout_chrome)
     h = CS.SECTION_TAG_H_PX * _EMU_PX
-    top = title_top - CS.SECTION_TAG_GAP_PX * _EMU_PX - h
+    top = section_tag_top_emu(title_top)
     if top < 0:
         lname = getattr(layout_chrome, "name", "(unknown)") if layout_chrome else "(unknown)"
         raise SectionTagNoRoomError(
@@ -465,3 +476,425 @@ def place_section_tag(slide, layout_chrome, text: str | None, *, accent_hex: str
     rpr.append(fill)
     rpr.append(rpr.makeelement(qn("a:latin"), {"typeface": "+mn-lt"}))
     return True
+
+
+
+# ---------------------------------------------------------------------------
+# The same chrome for the review sketches (2026-10-13)
+# ---------------------------------------------------------------------------
+#
+# Designers used to style the title and takeaway in their sketches by guess:
+# sizes from 26 to 37 px, tops from 30 to 62 px, takeaways in three colors,
+# because prep never gave them the template's values. The finished deck was
+# right (finalize styles these itself); the pictures the user picked from
+# were not. chrome_style() returns the values finalize uses, read from the
+# same places (the layout's title box, chrome.yml's title size, the
+# template's Subtitle-slot size, the theme's text color, the section tag's
+# fixed style). Prep writes them as slide_NN/_chrome.css (chrome_css) and in
+# plain words in _context.md (chrome_plain_words); render_html.py adds the
+# CSS last, so every sketch picture shows the template's real title,
+# takeaway and section tag. The HTML file is never changed, and the
+# converter reads it without this CSS.
+
+_A_NS = "http://schemas.openxmlformats.org/drawingml/2006/main"
+_DEFAULT_TB_INSET_EMU = 45720         # PowerPoint's default top/bottom margin, 0.05 in
+_SCHEME_TO_SLOT = {"tx1": "dk1", "tx2": "dk2", "bg1": "lt1", "bg2": "lt2"}
+
+
+def _theme_of(master) -> dict:
+    """{'colors': {dk1: 'RRGGBB', ...}, 'major': font, 'minor': font,
+    'clrmap': {tx1: dk1, ...}} for a slide master."""
+    from lxml import etree
+    from pptx.opc.constants import RELATIONSHIP_TYPE as RT
+    out = {"colors": {}, "major": "", "minor": "", "clrmap": dict(_SCHEME_TO_SLOT)}
+    try:
+        cm = master._element.find(qn("p:clrMap"))
+        if cm is not None:
+            for k in ("tx1", "tx2", "bg1", "bg2"):
+                if cm.get(k):
+                    out["clrmap"][k] = cm.get(k)
+    except Exception:
+        pass
+    try:
+        theme = etree.fromstring(master.part.part_related_by(RT.THEME).blob)
+    except Exception:
+        return out
+    a = "{%s}" % _A_NS
+    scheme = theme.find(f".//{a}clrScheme")
+    if scheme is not None:
+        for slot in scheme:
+            name = etree.QName(slot).localname
+            srgb = slot.find(f"{a}srgbClr")
+            sysc = slot.find(f"{a}sysClr")
+            if srgb is not None and srgb.get("val"):
+                out["colors"][name] = srgb.get("val").upper()
+            elif sysc is not None and sysc.get("lastClr"):
+                out["colors"][name] = sysc.get("lastClr").upper()
+    for kind, key in (("majorFont", "major"), ("minorFont", "minor")):
+        node = theme.find(f".//{a}{kind}/{a}latin")
+        if node is not None:
+            out[key] = node.get("typeface") or ""
+    return out
+
+
+def scheme_hex(val: str, theme: dict) -> str | None:
+    """A theme color name (tx1, bg1, accent1, dk2 ...) as 'RRGGBB'."""
+    slot = (theme.get("clrmap") or {}).get(val, _SCHEME_TO_SLOT.get(val, val))
+    return (theme.get("colors") or {}).get(slot)
+
+
+def _resolve_color(fill_parent, theme: dict) -> str | None:
+    """'RRGGBB' of the <a:solidFill> under fill_parent (an rPr / defRPr), or None."""
+    if fill_parent is None:
+        return None
+    fill = fill_parent.find(qn("a:solidFill"))
+    if fill is None:
+        return None
+    srgb = fill.find(qn("a:srgbClr"))
+    if srgb is not None and srgb.get("val"):
+        return srgb.get("val").upper()
+    sch = fill.find(qn("a:schemeClr"))
+    if sch is not None and sch.get("val"):
+        return scheme_hex(sch.get("val"), theme)
+    return None
+
+
+def _resolve_font(rpr, theme: dict) -> str | None:
+    if rpr is None:
+        return None
+    latin = rpr.find(qn("a:latin"))
+    if latin is None or not latin.get("typeface"):
+        return None
+    face = latin.get("typeface")
+    if face.startswith("+mj"):
+        return theme.get("major") or None
+    if face.startswith("+mn"):
+        return theme.get("minor") or None
+    return face
+
+
+def _title_style(layout, title_ph, theme: dict) -> dict:
+    """The template's own title text style: {size_pt, bold, color, font,
+    line_pct}, read from the layout's title slot, then the master's title
+    slot, then the master's title text style (as PowerPoint inherits it)."""
+    chain = []
+    if title_ph is not None:
+        lst = title_ph._element.find(".//" + qn("a:lstStyle"))
+        if lst is not None:
+            chain.append(lst.find(qn("a:lvl1pPr")))
+    master = layout.slide_master
+    for mp in master.placeholders:
+        if _ph_type(mp) in _TITLE_TYPES:
+            lst = mp._element.find(".//" + qn("a:lstStyle"))
+            if lst is not None:
+                chain.append(lst.find(qn("a:lvl1pPr")))
+            break
+    ts = master._element.find(qn("p:txStyles"))
+    if ts is not None:
+        chain.append(ts.find(qn("p:titleStyle") + "/" + qn("a:lvl1pPr")))
+    style = {"size_pt": None, "bold": None, "color": None, "font": None, "line_pct": None}
+    for ppr in chain:
+        if ppr is None:
+            continue
+        d = ppr.find(qn("a:defRPr"))
+        if d is not None:
+            if style["size_pt"] is None and d.get("sz"):
+                style["size_pt"] = int(d.get("sz")) / 100
+            if style["bold"] is None and d.get("b") is not None:
+                style["bold"] = d.get("b") in ("1", "true")
+            if style["color"] is None:
+                style["color"] = _resolve_color(d, theme)
+            if style["font"] is None:
+                style["font"] = _resolve_font(d, theme)
+        if style["line_pct"] is None:
+            sp = ppr.find(qn("a:lnSpc") + "/" + qn("a:spcPct"))
+            if sp is not None and sp.get("val"):
+                style["line_pct"] = int(sp.get("val")) / 100000
+    return style
+
+
+def _bp_inset(shape, attr: str, default: int) -> int:
+    chain = [shape._element]
+    try:
+        base = shape._base_placeholder if shape.is_placeholder else None
+        while base is not None:
+            chain.append(base._element)
+            base = getattr(base, "_base_placeholder", None)
+    except Exception:
+        pass
+    for el in chain:
+        bp = el.find(".//" + qn("a:bodyPr"))
+        if bp is not None and bp.get(attr) is not None:
+            try:
+                return int(bp.get(attr))
+            except ValueError:
+                pass
+    return default
+
+
+def chrome_style(layout_chrome, prs, accent_hex: str = "", *, on_dark: bool | None = None,
+                 page_type: str = "", takeaway_pt: float | None = None,
+                 section_tag: str | None = None) -> dict | None:
+    """The title, takeaway and section tag exactly as finalize styles them on
+    this layout, in px at 1280 x 720. None for a cover, divider or other
+    art-directed layout (they keep their own lines) or no layout at all.
+
+    {'layout', 'on_dark', 'body_top',
+     'title':    {left, top, width, height, pad_l, pad_r, pad_t, pad_b,
+                  size_pt, bold, color, font, line_height, anchor: 'bottom'},
+     'takeaway': {left, top, width, size_pt, bold: False, color, font,
+                  line_height, from_slot},
+     'section_tag': {text, left, top, width, height, size_pt, bold: True,
+                     small_caps: True, color, font} or None,
+     'section_tag_note': why there is none (or '')}"""
+    if layout_chrome is None or prs is None:
+        return None
+    if getattr(layout_chrome, "layout_class", "") == "bespoke" \
+            and not getattr(layout_chrome, "has_page_number", True):
+        return None
+    from twins.composer import _find_named_layout
+    layout = _find_named_layout(prs, getattr(layout_chrome, "name", ""))
+    if layout is None:
+        return None
+    layout_dark = getattr(layout_chrome, "text_role", "dark_on_light") == "light_on_dark"
+    if on_dark is None:
+        on_dark = layout_dark
+    theme = _theme_of(layout.slide_master)
+    t_idx = getattr(layout_chrome, "title_placeholder_idx", None)
+    title_ph = next((p for p in layout.placeholders
+                     if (t_idx is not None and _ph_idx(p) == t_idx)
+                     or _ph_type(p) in _TITLE_TYPES), None)
+    px = float(_EMU_PX)
+    if title_ph is not None and title_ph.left is not None and title_ph.width:
+        bl, bt = int(title_ph.left), int(title_ph.top or 0)
+        bw, bh = int(title_ph.width), int(title_ph.height or 0)
+        il = _bp_inset(title_ph, "lIns", _DEFAULT_INSET_EMU)
+        ir = _bp_inset(title_ph, "rIns", _DEFAULT_INSET_EMU)
+        it = _bp_inset(title_ph, "tIns", _DEFAULT_TB_INSET_EMU)
+        ib = _bp_inset(title_ph, "bIns", _DEFAULT_TB_INSET_EMU)
+    else:
+        tx = getattr(layout_chrome, "title_box_x_px", None)
+        ty = getattr(layout_chrome, "title_box_y_px", None)
+        tw = getattr(layout_chrome, "title_box_width_px", None)
+        th = getattr(layout_chrome, "title_box_height_px", None)
+        if None in (tx, ty, tw, th):
+            b = CS.canonical_title_box()
+            tx, ty, tw, th = b.x_px, b.y_px, b.w_px, b.h_px
+        bl, bt, bw, bh = tx * _EMU_PX, ty * _EMU_PX, tw * _EMU_PX, th * _EMU_PX
+        il = ir = _DEFAULT_INSET_EMU
+        it = ib = _DEFAULT_TB_INSET_EMU
+    ts = _title_style(layout, title_ph, theme)
+    title_pt = float(getattr(layout_chrome, "title_font_pt", None) or ts["size_pt"]
+                     or CS.CANONICAL_TITLE_FONT_PT)
+    if on_dark and not layout_dark:
+        title_color = "FFFFFF"          # a dark-variant page: finalize draws the title white
+    else:
+        title_color = (ts["color"] or scheme_hex("bg1" if on_dark else "tx1", theme)
+                       or ("FFFFFF" if on_dark else "000000"))
+    text_left, text_right = bl + il, bl + bw - ir
+    text_w = max(_EMU_PX * 40, text_right - text_left)
+    title = {"left": round(bl / px, 1), "top": round(bt / px, 1),
+             "width": round(bw / px, 1), "height": round(bh / px, 1),
+             "pad_l": round(il / px, 1), "pad_r": round(ir / px, 1),
+             "pad_t": round(it / px, 1), "pad_b": round(ib / px, 1),
+             "size_pt": title_pt, "bold": True if ts["bold"] is None else bool(ts["bold"]),
+             "color": title_color, "font": ts["font"] or theme.get("major") or "",
+             "line_height": round(1.2 * (ts["line_pct"] or 1.0), 3), "anchor": "bottom"}
+
+    # takeaway: the layout's slot keeps its own top; otherwise just under the title
+    s_idx = getattr(layout_chrome, "subtitle_placeholder_idx", None)
+    slot = next((p for p in layout.placeholders
+                 if (s_idx is not None and _ph_idx(p) == s_idx) or _ph_type(p) in _SUBTITLE_TYPES),
+                None)
+    if slot is not None and slot.top is not None:
+        t_top, from_slot = int(slot.top), True
+    else:
+        t_top, from_slot = drawn_takeaway_top_emu(bt + bh), False
+    t_pt = float(takeaway_pt or template_takeaway_pt(prs, None, layout_chrome))
+    if on_dark and not layout_dark:
+        t_color = "FFFFFF"
+    else:
+        t_color = scheme_hex("bg1" if on_dark else "tx1", theme) or ("FFFFFF" if on_dark else "000000")
+    takeaway = {"left": round(text_left / px, 1), "top": round(t_top / px, 1),
+                "width": round(text_w / px, 1),
+                "size_pt": t_pt, "bold": False, "color": t_color,
+                "font": theme.get("minor") or "", "line_height": 1.2, "from_slot": from_slot}
+
+    tag, tag_note = None, ""
+    text = " ".join((section_tag or "").split())
+    if not text or text.lower() in ("(none)", "none"):
+        tag_note = "the brief gives this page no section tag"
+    elif _no_tag_page(layout_chrome, page_type):
+        tag_note = "no section tag on a cover, divider or closing page"
+    else:
+        top = section_tag_top_emu(bt)
+        if top < 0:
+            tag_note = ("the title box sits too close to the top of the page for the section "
+                        "tag; finalize will stop and ask where it goes")
+        else:
+            color = "FFFFFF" if on_dark else ((accent_hex or "").lstrip("#").upper()[:6]
+                                              or scheme_hex("accent1", theme) or "000000")
+            tag = {"text": text, "left": round(text_left / px, 1), "top": round(top / px, 1),
+                   "width": round(text_w / px, 1),
+                   "height": float(CS.SECTION_TAG_H_PX), "size_pt": float(CS.SECTION_TAG_FONT_PT),
+                   "bold": True, "small_caps": True, "color": color,
+                   "font": theme.get("minor") or ""}
+    try:
+        from twins.helpers import body_zone_for_chrome
+        body_top = int(body_zone_for_chrome(layout_chrome)[0])
+    except Exception:
+        body_top = None
+    return {"layout": getattr(layout_chrome, "name", ""), "on_dark": bool(on_dark),
+            "body_top": body_top, "title": title, "takeaway": takeaway,
+            "section_tag": tag, "section_tag_note": tag_note}
+
+
+def _css_px(v: float) -> str:
+    return f"{float(v):.2f}".rstrip("0").rstrip(".") + "px"
+
+
+def _css_font(face: str, fallback_var: str) -> str:
+    face = (face or "").replace('"', "").replace("\\", "").strip()
+    return (f'"{face}", var({fallback_var}, sans-serif)' if face
+            else f"var({fallback_var}, sans-serif)")
+
+
+def _css_string(text: str) -> str:
+    out = []
+    for ch in text:
+        if ch in '"\\':
+            out.append("\\" + ch)
+        elif ord(ch) < 32:
+            out.append(" ")
+        else:
+            out.append(ch)
+    return '"' + "".join(out) + '"'
+
+
+# Selectors are doubled so they outrank a designer's class or id rule; every
+# value is !important and the sheet goes in last, so the template wins.
+CHROME_TITLE_SELECTOR = 'html body [data-template-field="title"][data-template-field="title"]'
+CHROME_TAKEAWAY_SELECTORS = (
+    'html body [data-template-field="subtitle"][data-template-field="subtitle"]',
+    'html body [data-shape-id="subtitle"][data-shape-id="subtitle"]')
+
+
+def chrome_css(style: dict) -> str:
+    """slide_NN/_chrome.css for a chrome_style() result. render_html.py adds
+    it last when it draws the sketch; nothing else reads it."""
+    t, k, g = style["title"], style["takeaway"], style.get("section_tag")
+    pt_px = 96 / 72
+    take_sel = ", ".join(CHROME_TAKEAWAY_SELECTORS)
+    take_kids = ", ".join(s + " *" for s in CHROME_TAKEAWAY_SELECTORS)
+    lines = [
+        "/* Slide Lab: the template's title, takeaway and section tag on this layout",
+        f"   ({style.get('layout') or 'layout'}). Written by prep (build_deck.py); render_html.py",
+        "   adds it last when it draws the sketch, so the picture shows what finalize",
+        "   puts on the slide. Do not edit, copy or restyle these: mark the title and",
+        "   takeaway with data-template-field and leave their styling to Slide Lab. */",
+        ":root {",
+        f"  --chrome-title-top: {_css_px(t['top'])};",
+        f"  --chrome-title-bottom: {_css_px(t['top'] + t['height'])};",
+        f"  --chrome-takeaway-top: {_css_px(k['top'])};",
+    ]
+    if style.get("body_top") is not None:
+        lines.append(f"  --chrome-body-top: {_css_px(style['body_top'])};")
+    lines += [
+        "}",
+        CHROME_TITLE_SELECTOR + " {",
+        "  position: fixed !important; transform: none !important; margin: 0 !important;",
+        f"  left: {_css_px(t['left'])} !important; top: {_css_px(t['top'])} !important;",
+        f"  width: {_css_px(t['width'])} !important; height: {_css_px(t['height'])} !important;",
+        "  min-height: 0 !important; max-height: none !important;",
+        "  box-sizing: border-box !important;",
+        f"  padding: {_css_px(t['pad_t'])} {_css_px(t['pad_r'])} {_css_px(t['pad_b'])} "
+        f"{_css_px(t['pad_l'])} !important;",
+        "  display: flex !important; flex-direction: column !important;",
+        "  justify-content: flex-end !important; align-items: stretch !important;",
+        f"  font-family: {_css_font(t['font'], '--brand-heading-font')} !important;",
+        f"  font-size: {_css_px(t['size_pt'] * pt_px)} !important;",
+        f"  font-weight: {700 if t['bold'] else 400} !important; font-style: normal !important;",
+        f"  line-height: {t['line_height']} !important; color: #{t['color']} !important;",
+        "  text-align: left !important; text-transform: none !important;",
+        "  letter-spacing: normal !important; white-space: normal !important;",
+        "  background: transparent !important; border: 0 !important; box-shadow: none !important;",
+        "  overflow: visible !important; visibility: visible !important; opacity: 1 !important;",
+        "  z-index: 2147483000 !important;",
+        "}",
+        CHROME_TITLE_SELECTOR + " * {",
+        "  font: inherit !important; color: inherit !important; letter-spacing: inherit !important;",
+        "  text-transform: none !important; margin: 0 !important; padding: 0 !important;",
+        "  background: transparent !important; border: 0 !important;",
+        "}",
+        take_sel + " {",
+        "  position: fixed !important; transform: none !important; margin: 0 !important;",
+        f"  left: {_css_px(k['left'])} !important; top: {_css_px(k['top'])} !important;",
+        f"  width: {_css_px(k['width'])} !important; height: auto !important;",
+        "  min-height: 0 !important; max-height: none !important;",
+        "  box-sizing: border-box !important; padding: 0 !important; display: block !important;",
+        f"  font-family: {_css_font(k['font'], '--brand-body-font')} !important;",
+        f"  font-size: {_css_px(k['size_pt'] * pt_px)} !important;",
+        "  font-weight: 400 !important; font-style: normal !important;",
+        f"  line-height: {k['line_height']} !important; color: #{k['color']} !important;",
+        "  text-align: left !important; text-transform: none !important;",
+        "  letter-spacing: normal !important; white-space: normal !important;",
+        "  background: transparent !important; border: 0 !important; box-shadow: none !important;",
+        "  overflow: visible !important; visibility: visible !important; opacity: 1 !important;",
+        "  z-index: 2147483000 !important;",
+        "}",
+        take_kids + " {",
+        "  font: inherit !important; color: inherit !important; letter-spacing: inherit !important;",
+        "  text-transform: none !important; background: transparent !important;",
+        "}",
+    ]
+    if g:
+        lines += [
+            "html body::after {",
+            f"  content: {_css_string(g['text'])} !important;",
+            "  position: fixed !important; box-sizing: border-box !important;",
+            f"  left: {_css_px(g['left'])} !important; top: {_css_px(g['top'])} !important;",
+            f"  width: {_css_px(g['width'])} !important; height: {_css_px(g['height'])} !important;",
+            "  display: flex !important; align-items: flex-end !important;",
+            "  margin: 0 !important; padding: 0 !important; overflow: visible !important;",
+            f"  font-family: {_css_font(g['font'], '--brand-body-font')} !important;",
+            f"  font-size: {_css_px(g['size_pt'] * pt_px)} !important;",
+            "  font-weight: 700 !important; font-style: normal !important;",
+            "  font-variant: small-caps !important; line-height: 1.2 !important;",
+            f"  color: #{g['color']} !important; white-space: nowrap !important;",
+            "  background: transparent !important; z-index: 2147483000 !important;",
+            "  pointer-events: none !important;",
+            "}",
+        ]
+    return "\n".join(lines) + "\n"
+
+
+def chrome_plain_words(style: dict) -> str:
+    """The same values in plain words, for _context.md."""
+    t, k, g = style["title"], style["takeaway"], style.get("section_tag")
+    line_px = t["size_pt"] * 96 / 72 * t["line_height"]
+    title_lines = max(1, int((t["height"] - t["pad_t"] - t["pad_b"] + 1) // line_px))
+    per_line = int(k["width"] / (k["size_pt"] * 96 / 72 * 0.5))
+    where = "the template's takeaway slot" if k["from_slot"] else "just under the title box"
+    out = [
+        f"- **Title:** {t['size_pt']:g} pt, {'bold' if t['bold'] else 'regular'}, "
+        f"color #{t['color']}{', ' + t['font'] if t['font'] else ''}, in the template's title box "
+        f"(left {t['left']:g} px, top {t['top']:g} px, {t['width']:g} x {t['height']:g} px), "
+        f"bottom-aligned: a longer title grows upward. The box holds about {title_lines} "
+        f"line(s) at this size. Keep the title to 2 lines at most: 3 or more lines is a "
+        f"Major finding on the review page.",
+        f"- **Takeaway:** {k['size_pt']:g} pt, regular, color #{k['color']}"
+        f"{', ' + k['font'] if k['font'] else ''}, from left {k['left']:g} px, top "
+        f"{k['top']:g} px ({where}), {k['width']:g} px wide: about {per_line} characters "
+        f"a line.",
+    ]
+    if g:
+        out.append(f"- **Section tag:** \"{g['text']}\", {g['size_pt']:g} pt bold small "
+                   f"capitals, color #{g['color']}, just above the title (top {g['top']:g} px). "
+                   f"Slide Lab draws it; do not draw it or mark it.")
+    else:
+        out.append(f"- **Section tag:** none on this page ({style.get('section_tag_note') or 'none'}).")
+    if style.get("body_top") is not None:
+        out.append(f"- Body content starts at or below `--body-top` ({style['body_top']} px). "
+                   f"Anything above it sits under the title or takeaway, in the picture and "
+                   f"on the slide; the review page flags it as Major.")
+    return "\n".join(out)

@@ -2,6 +2,54 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## 2026-10-13: sketch titles match the deck, source lines, preview page numbers
+
+From the 10/13 feedback report on the Kinfield Leo deck. New decks only;
+built decks are not touched.
+
+- **Sketch pictures show the template's real title, takeaway and section
+  tag.** Designers were never given the template's values, so the review
+  pictures styled the title and takeaway by guess (title sizes 26 to 37 px,
+  tops 30 to 62 px, takeaways in three colors, a session patch then made all
+  takeaways gray while the deck's are dark navy). The finished deck was
+  already right. Now one helper, `twins/chrome_rules.chrome_style()`, returns
+  the values finalize uses on a layout (title box, size, weight, color,
+  bottom-aligned; takeaway place, size and text color; the section tag's
+  place and style), sharing finalize's own placement helpers. Prep
+  (`build_deck.py`) writes them as `slide_NN/_chrome.css` and in plain words
+  in `_context.md` § 3 ("styled by Slide Lab; mark, don't style").
+  `render_html.py` adds the sheet last, with `!important`, just before the
+  screenshot; the HTML file is not changed and the converter reads it
+  without the sheet. The section tag is drawn at render time only. Covers,
+  dividers and other art-directed layouts get no sheet.
+- **Review card check against the template, not other pages.** The render
+  writes `option_X.sketch.chrome.json`; `build_review.py` shows a Major note
+  when the title takes 3 or more lines (`TITLE_TOO_LONG`) or a body shape
+  sits under the title or takeaway (`BODY_UNDER_CHROME`). The render also
+  prints both as warnings.
+- **A source line in the template's Source slot is a source.** The
+  type-scale check read the 9 pt source in a BODY slot named "Text
+  Placeholder 4" as body text under the 10.5 pt floor (20 false Majors on
+  the Leo deck). `type_scale.py` now looks up the layout slot the
+  placeholder fills and, when it is named like a source ("Source",
+  "Foot Note", by registration's `slot_role_from_name`), applies the 9 pt
+  source floor. Text counts as a source by its words only with a colon
+  ("Source:", "Notes:"), so a 9 pt heading "Sources, five-year total" is
+  body text. Finalize names the filled slot `source` and writes "Source: "
+  in front of the line once when it has no label (never before "Note" or
+  an "Illustrative data" line). Designers still copy the brief's line word
+  for word and do not add the label.
+- **Preview page numbers show the brief's number.** Since page numbers are
+  real fields, previews rendered several slides in one temporary deck showed
+  each slide's place in that deck (slide 2 showed 4), and one-slide renders
+  showed 1. `one_deck.py` now freezes every slide-number field in the
+  temporary deck to the number the option file stores (same formatting),
+  and a one-slide render draws a frozen temporary copy, never the option
+  file. Option files and the finished deck keep their real fields.
+- Tests: new `run_sketch_chrome_smoke.py`; new cases in
+  `run_type_scale_smoke.py` [9]-[10], `run_source_line_fallback_smoke.py`
+  [3]-[4], `run_one_deck_render_smoke.py` [7].
+
 ## 2026-10-13: every copied page is checked; agent versions per build step
 
 Leo narrative session report, items 3 and 4. Owner approved the recommended
