@@ -168,8 +168,9 @@ def direct_flow() -> None:
                        "  slide_03:\n    other: drop this one\n")
         r = H.run("record_picks.py", "--out", out, "--approved", msg)
         assert r.returncode == 0, r.stdout[-1500:]
-        assert "One new design or three" in r.stdout and "THREE preselected" in r.stdout, \
-            r.stdout[-1500:]
+        # owner's decision 2026-10-13: one new design by default, never asked
+        assert "ONE new design" in r.stdout and "do not ask" in r.stdout, r.stdout[-1500:]
+        assert "THREE preselected" not in r.stdout, r.stdout[-1500:]
         st = _state.read_state(out)
         assert st["redesign_round"]["slides"] == [2], st.get("redesign_round")
         assert st["redesign_round"]["kept"] == {"slide_01": "A", "slide_03": "-"}

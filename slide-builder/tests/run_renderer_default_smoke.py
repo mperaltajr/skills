@@ -117,11 +117,18 @@ def main() -> int:
         fake = Path(tdn) / "settings.json"
         fake.write_text('{"renderer": "libreoffice"}', encoding="utf-8")
         RS.SETTINGS_JSON = fake
+        # renderer_setting reads through _paths.settings() (settings.json with
+        # this computer's settings.local.json on top), so point both at the fake
+        sys.path.insert(0, str(real_settings.parent / "scripts"))
+        import _paths
+        real_paths_settings = _paths.SETTINGS_JSON
+        _paths.SETTINGS_JSON = fake
         try:
-            with _Env(SLIDE_LAB_RENDERER=None):
+            with _Env(SLIDE_LAB_RENDERER=None, SLIDE_LAB_SETTINGS_LOCAL="none"):
                 assert RS.renderer_setting() == "libreoffice"
         finally:
             RS.SETTINGS_JSON = real_settings
+            _paths.SETTINGS_JSON = real_paths_settings
     print(f"    ok: auto -> {auto}; overrides and give-way rules hold")
 
     with tempfile.TemporaryDirectory() as tdn:
