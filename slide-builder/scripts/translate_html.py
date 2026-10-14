@@ -2616,8 +2616,39 @@ def _plan_item(plan: Plan, kind: str, it: dict, subtitle_as_shape: bool) -> None
 
 
 def _public_plan(plan: Plan) -> dict:
-    return {"version": TRANSLATOR_VERSION,
-            "ops": [{k: v for k, v in o.items() if not k.startswith("_")} for o in plan.ops]}
+    out = {"version": TRANSLATOR_VERSION,
+           "ops": [{k: v for k, v in o.items() if not k.startswith("_")} for o in plan.ops]}
+    if plan.fallbacks:
+        _fallback_stacking(plan)
+        out["fallbacks"] = [{k: f.get(k) for k in ("id", "draw_under", "draw_after_n")}
+                            for f in plan.fallbacks]
+    return out
+
+
+def _fallback_stacking(plan: Plan) -> None:
+    """Where each element left to the agent sits in the design's stacking
+    order, so html_emit.restack_fallbacks can put the agent's shapes there.
+    The agent's code runs after the plan is drawn, so everything it drew
+    landed on top: an arrow drawn over its label (2026-10-12).
+
+    Every entry gets an id (the design's, else "fallback-N"), "draw_after_n"
+    (how many plan steps come before it) and "draw_under" (the name of the
+    first plan shape drawn after it, when it has one). Both are None for an
+    element on top of everything."""
+    ops = plan.ops
+    for n, f in enumerate(plan.fallbacks, 1):
+        if not f.get("id"):
+            f["id"] = f"fallback-{n}"
+        order = f.get("_order")
+        if order is None:
+            f["draw_after_n"] = f["draw_under"] = None
+            continue
+        later = [i for i, o in enumerate(ops) if o.get("_order") is not None and o["_order"] > order]
+        if not later:
+            f["draw_after_n"] = f["draw_under"] = None
+            continue
+        f["draw_after_n"] = later[0]
+        f["draw_under"] = ops[later[0]].get("name") or None
 
 
 NATIVE_TEMPLATE = '''# {name} -- translated by translate_html.py ({version}), deterministic.
@@ -2628,7 +2659,7 @@ import sys
 from pathlib import Path
 
 sys.path.insert(0, r"{skill}")
-from twins.html_emit import build  # noqa: E402
+from twins.html_emit import build, restack_fallbacks  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 PLAN = json.loads((HERE / "{plan_name}").read_text(encoding="utf-8"))
@@ -2639,6 +2670,8 @@ def build_slide():
     # --- FALLBACK ELEMENTS: drawn by slide-builder-translator (agent) ---
     # (none)
     # --- END FALLBACK ELEMENTS ---
+    # Puts the agent's shapes where the design stacks them (by their names).
+    restack_fallbacks(slide, PLAN)
     return prs
 
 
@@ -2663,8 +2696,15 @@ def write_outputs(html: Path, emit_dir: Path, letter: str, plan: Plan, fields: d
     (emit_dir / plan_name).write_text(json.dumps(_public_plan(plan), indent=1), encoding="utf-8")
     fb = ""
     if plan.fallbacks:
+        _fallback_stacking(plan)
         fb = (f"# FALLBACK_PENDING: {len(plan.fallbacks)} element(s) need the "
               f"slide-builder-translator agent; see option_{letter}_translation_report.json\n")
+        for f in plan.fallbacks:
+            where = (f"stacked under {f['draw_under']!r}" if f.get("draw_under")
+                     else f"stacked after plan step {f['draw_after_n']}"
+                     if f.get("draw_after_n") is not None else "on top of everything")
+            fb += (f"#   {f['id']}: name its shapes {f['id']}, {f['id']}-1, {f['id']}-2 ...; "
+                   f"{where} (set for you)\n")
     (emit_dir / f"{stem}.py").write_text(NATIVE_TEMPLATE.format(
         name=f"{stem}.py", version=TRANSLATOR_VERSION, plan_name=plan_name,
         fields_block=_fields_block(fields), fallback_line=fb, skill=str(SKILL)), encoding="utf-8")
@@ -3040,7 +3080,8 @@ def self_check(items: list[tuple["Plan", dict]], engine: str = "auto",
                         "kind": "self-check", "id": o.get("name") or "",
                         "x": x0, "y": y0, "w": x1 - x0, "h": y1 - y0,
                         "reason": "came out looking different from the design ("
-                                  + ", ".join(sorted({w for r in rs for w in r["fired"]})) + ")"})
+                                  + ", ".join(sorted({w for r in rs for w in r["fired"]})) + ")",
+                        "_order": o.get("_order")})
                 gone = {id(o) for o, _ in handed}
                 plan.ops = [o for o in plan.ops if id(o) not in gone]
                 plan.counts["self_check_handed_over"] += len(handed)

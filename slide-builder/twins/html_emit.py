@@ -432,9 +432,118 @@ def build(plan: dict):
     prs = Presentation()
     prs.slide_width, prs.slide_height = E(CANVAS_W), E(CANVAS_H)
     slide = prs.slides.add_slide(prs.slide_layouts[6])
+    tree = slide.shapes._spTree
+    drawn = []                 # the top-level shapes of each plan step
     for op in plan["ops"]:
+        before = len(_top_shapes(tree))
         _DRAW[op["op"]](slide, op)
+        drawn.append(_top_shapes(tree)[before:])
+    # kept on the slide's part (one python object per slide while the deck is
+    # open) for restack_fallbacks; the lists hold the elements themselves
+    slide.part._slidelab_plan_shapes = drawn
     return prs, slide
+
+
+_SHAPE_TAGS = {qn(t) for t in ("p:sp", "p:grpSp", "p:graphicFrame", "p:cxnSp", "p:pic",
+                               "p:contentPart")}
+# finalize's own shapes: never moved
+_CHROME_NAMES = ("subtitle", "source", "footnote")
+
+
+def _top_shapes(tree) -> list:
+    return [el for el in tree.iterchildren() if el.tag in _SHAPE_TAGS]
+
+
+def _shape_name(el) -> str:
+    nv = el.find(".//" + qn("p:cNvPr"))
+    return (nv.get("name") if nv is not None else "") or ""
+
+
+def _is_placeholder(el) -> bool:
+    return el.find(".//" + qn("p:nvPr") + "/" + qn("p:ph")) is not None
+
+
+class FallbackStackError(RuntimeError):
+    """A shape the translator agent drew can't be matched to an element."""
+
+
+def restack_fallbacks(slide, plan: dict) -> list[str]:
+    """Move the shapes the translator agent drew (everything added after
+    build()) to where the design stacks each element, so a drawing under a
+    label stays under it. Each element left to the agent is in
+    plan["fallbacks"] with its id, "draw_under" (the plan shape it sits
+    under) and "draw_after_n" (how many plan steps come before it);
+    translate_html._fallback_stacking writes them.
+
+    A shape belongs to an element when it is named after it: the element's id,
+    or the id followed by "-" and anything ("leo-photo", "leo-photo-1").
+    With one element, every new shape is that element's. Shapes of an element
+    on top of everything are left where they are. Running it again changes
+    nothing. Placeholders and finalize's chrome shapes are never moved.
+
+    A new shape that can't be matched (several elements, a name that is none
+    of theirs) stays on top and stops the build (FallbackStackError) with the
+    fix: on a slide with a drawing under a label, a shape on top in the
+    wrong place is a defect nobody's check would catch (2026-10-12)."""
+    fbs = [f for f in plan.get("fallbacks") or [] if f.get("id")]
+    if not fbs:
+        return []
+    tree = slide.shapes._spTree
+    drawn = getattr(slide.part, "_slidelab_plan_shapes", None)
+    tops = _top_shapes(tree)
+    if drawn is None:
+        # not drawn by build() in this process: the plan's steps come first
+        n = len(plan.get("ops") or [])
+        drawn = [[el] for el in tops[:n]]
+    mine = [el for step in drawn for el in step]
+    new = [el for el in tops if not any(el is m for m in mine)
+           and not _is_placeholder(el)
+           and not _shape_name(el).lower().startswith(_CHROME_NAMES)]
+    if not new:
+        return []
+    ids = sorted((f["id"] for f in fbs), key=len, reverse=True)   # longest first
+
+    def owner(name: str):
+        if len(fbs) == 1:
+            return fbs[0]["id"]
+        for i in ids:
+            if name == i or name.startswith(i + "-"):
+                return i
+        return None
+
+    groups: dict = {}
+    unmatched = []
+    for el in new:
+        o = owner(_shape_name(el))
+        if o is None:
+            unmatched.append(_shape_name(el) or "(no name)")
+        else:
+            groups.setdefault(o, []).append(el)
+    for f in fbs:
+        els = groups.get(f["id"])
+        if not els:
+            continue
+        anchor = None
+        if f.get("draw_under"):
+            hits = [el for el in mine if _shape_name(el) == f["draw_under"]]
+            if len(hits) == 1:
+                anchor = hits[0]
+        if anchor is None and f.get("draw_after_n") is not None:
+            later = [step[0] for step in drawn[int(f["draw_after_n"]):] if step]
+            anchor = later[0] if later else None
+        if anchor is None:
+            continue                     # on top of everything, as designed
+        for el in els:
+            anchor.addprevious(el)
+    if unmatched:
+        names = ", ".join(sorted({f["id"] for f in fbs}))
+        raise FallbackStackError(
+            f"STOP: shape(s) {', '.join(unmatched)} drawn in the FALLBACK ELEMENTS block are "
+            f"not named after an element left to the translator agent ({names}), so they "
+            "can't be put in their place in the stacking order. Fix: in option_X_native.py "
+            "set shape.name = '<element id>' or '<element id>-1', '-2' ... on every shape "
+            "you draw, then run the script again.")
+    return []
 
 
 def build_and_save(plan: dict, out_path) -> None:
