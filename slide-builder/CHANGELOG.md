@@ -2,6 +2,64 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## 2026-10-13: converter round (fewer agent hand-overs, stacking, bullets, line breaks, text box tops)
+
+From the 10/12 Leo deck report. Measured on the 263-option replay
+(`tests/translate_gonogo.py`, LibreOffice) before and after; see the
+builder's report for the numbers.
+
+- **The self-check leaves out what the agent draws.** Pictures, drawings,
+  rotated and vertical elements left to the agent are masked out of every
+  element's comparison (`translate_alarm.compare(masks=...)`,
+  `translate_html._agent_masks`; a whole drawing's pieces, not its canvas).
+  A photo on a card made the card and its "25+ years" pill look wrong (8 of
+  13 hand-overs on page 18).
+- **Thin letters.** A letter with no solid pixel (an arrow glyph) is judged
+  by the direction of its color from the background, not its strength
+  (`translate_alarm._ink_color`, `THIN_CORE`). Five arrows on page 25 the
+  converter drew right were handed over each time.
+- **Native pictures.** A local `<img>` is a picture: object-fit and
+  object-position become the crop, a 50% radius an oval, other radii round
+  corners (`html_emit._picture`, `translate_html._plan_picture`). Web
+  addresses, embedded data, filters, transparency, borders, clipping
+  containers and pictures inside tables or lists still go to the agent.
+- **Native arrowheads.** A line or two-point path whose marker is one
+  triangle in the line's color becomes a connector with a head or tail
+  arrow, tip where the design's tip is, in the stacking order (it used to
+  send the whole drawing to the agent, which drew it on top of its label).
+  A head far bigger than PowerPoint's largest (6x the line) is a filled
+  triangle. Line widths inside a scaled svg are now in screen pixels.
+- **Agent shapes keep the design's stacking order.** Every fallback keeps its
+  place (`id`, `draw_under`, `draw_after_n` in the plan, the report and the
+  script header); the generated script calls `html_emit.restack_fallbacks`
+  after the agent's block. Shapes named `<id>` / `<id>-N` move there; with
+  one element every new shape is its; a shape named after no element stops
+  the script (and so finalize) with the fix. Scripts written before this
+  are untouched. Translator agent rule added (name shapes, don't reorder).
+- **List bullets.** Read from the marker's own space against the color
+  behind it, nearest mark only, widening left only inside its panel; a
+  reading outside 60-200% of the text, left of the list or outside its panel
+  uses the browser's marker (`BULLET_FALLBACK`). New self-check rule: a
+  bullet over 200% or outside its panel steps the list down. A list 20 px
+  inside a navy panel read 900-1,200% bullets; an item starting "A" 404%.
+- **Line breaks after hyphens.** The predictor (`_wrapped_lines`) and the fit
+  check (`_chrome_schema._fit_wrap`) break after a hyphen between letters
+  and after en/em dashes (`_chrome_schema.hyphen_pieces`); never in
+  "2025-2030", "-5%", "and/or" or at a non-breaking hyphen.
+- **No silent shrink.** When widening 6% can't keep the design's line count
+  the text keeps its size and the report says `WRAP_RISK` (Major on the
+  review page) with what to check. It used to step every run down one size
+  (12 pt body shipped at 11 pt on page 9).
+- **Text box tops.** A top-anchored text box whose capitals reached above it
+  (one-line spacing 0.8 x size) is drawn `pad_top_px` higher and taller with
+  that top inset, in whole 360 EMU steps; spacing and text position are
+  unchanged (PowerPoint and LibreOffice renders: 0.00 / 0.04 px). Advisory
+  `TEXT_ABOVE_FRAME` (`translate_html.caps_above_frame`). Finalize's
+  chrome-zone check reads a text box's top from where its text starts.
+- Tests: `run_native_pictures_arrows_smoke.py`, `run_fallback_stacking_smoke.py`,
+  `run_list_bullets_smoke.py`, `run_wrap_hyphen_smoke.py`,
+  `run_text_top_pad_smoke.py`.
+
 ## 2026-10-12: page numbers are real fields
 
 Owner's rule: page numbers are never hardcoded. Every page of the Kinfield
