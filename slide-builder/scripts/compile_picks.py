@@ -525,7 +525,35 @@ No text item ends with a period (owner's rule, 2026-10-09); finalize removed the
 ## Failures
 
 {failures}
+
+## Agent files
+
+{agents}
+
+## Copied pages
+
+{copied}
 """
+
+
+def _copied_pages_note(out_dir: Path) -> str:
+    """COMPILED.md lines for the slides that copy a supplied page."""
+    sl = _state.read_state(out_dir).get("source_ledger") or {}
+    by = sl.get("by_slide") or {}
+    if not by:
+        return "- no slide copies a supplied page"
+    lines = []
+    for sid, c in sorted(by.items()):
+        n = int(sid.split("_")[-1])
+        if c.get("visual_only"):
+            lines.append(f"- slide {n}: copied from {c.get('source')}, a PDF page or "
+                         "picture: checked by eye only")
+            continue
+        lines.append(f"- slide {n}: copied from {c.get('source')}; {c.get('rows', 0)} "
+                     f"figure(s) came through and were answered ({c.get('kept', 0)} kept), "
+                     f"{c.get('brief_matches', 0)} match the brief, "
+                     f"{c.get('unreachable', 0)} surface(s) unreadable (vision pass)")
+    return "\n".join(lines)
 
 
 # ---------------------------------------------------------------------------
@@ -784,11 +812,15 @@ def main() -> int:
     # The agent files Claude Code runs must be the ones this build was
     # prepared with (recorded at prep). A swap and restore around prep once
     # made the prep check certify slides built by an unmerged agent.
+    # Since 2026-10-13 a difference between two versions that are both on main
+    # is accepted, with one line here and in COMPILED.md; anything else stops.
     import _install
-    _agents = _install.changed_since_prep(_state.read_state(out_dir))
-    if _agents:
+    _agents_ok, _agents, _agents_note = _install.versions_compatible(_state.read_state(out_dir))
+    if not _agents_ok:
         print("REFUSED: will not compile.\n  " + _agents)
         return 7
+    if _agents_note:
+        print(f"NOTE: agent files: {_agents_note}.")
 
     # ---- User-approval gate (Rule 2): a review token minted by build_review,
     # not a self-asserted flag. compile refuses unless the token supplied matches
@@ -834,24 +866,13 @@ def main() -> int:
         print(f"REFUSED: --out ({out_dir.resolve()}) is not the build's canonical "
               f"out dir recorded at prep ({_canon}).")
         return 5
-    ok, reason = _state.check_ledger(_state.read_state(out_dir))
+    # Every slide that copies a supplied page, one by one (2026-10-13): its
+    # own check, made from the design picked now, every figure answered. This
+    # used to look only at whether ANY ledger existed and at the last run's
+    # count, so with 15 pinned slides 14 shipped unchecked.
+    ok, reason = _state.check_ledger(_state.read_state(out_dir), out_dir)
     if not ok:
         print("REFUSED: will not compile.\n  " + reason)
-        return 5
-    # A pinned supplied page must have had its figures enumerated. Without this,
-    # skipping source_ledger.py meant the reconciliation gate never existed, and
-    # a replica could ship the supplied page's stale numbers.
-    try:
-        _meta_pins = [s for s in json.loads(_p.meta_json(out_dir).read_text(
-            encoding="utf-8")).get("slides", []) if s.get("pinned_source_page")]
-    except Exception:
-        _meta_pins = []
-    if _meta_pins and not _state.read_state(out_dir).get("source_ledger"):
-        print("REFUSED: will not compile.\n  "
-              f"{len(_meta_pins)} slide(s) reproduce a supplied page (slide "
-              f"{', '.join(str(s.get('n')) for s in _meta_pins)}), and its figures "
-              "were never reconciled. Run source_ledger.py build on the supplied page "
-              "and resolve every row with the user first.")
         return 5
 
     meta_path = _p.meta_json(out_dir)
@@ -1221,6 +1242,9 @@ def main() -> int:
         render_fail=render_fail,
         failures="\n".join(failures) if failures else "(none)",
         period_fixes="\n".join(period_lines) if period_lines else "(none)",
+        agents=(f"- {_agents_note}" if _agents_note
+                else "- no change to the agent files was recorded during the build"),
+        copied=_copied_pages_note(out_dir),
     )
     compiled_md = out_dir / "COMPILED.md"
     compiled_md.write_text(content, encoding="utf-8")

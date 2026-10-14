@@ -1758,6 +1758,47 @@ def write_meta_json(
     return meta_path
 
 
+def record_prep_with_notice(out_dir, deck_hash: str, step: str) -> None:
+    """Record this prep step in the build state, and say so plainly when the
+    agent files Claude Code runs are not the ones the build's previous step
+    used. Before 2026-10-13 a --slide or --insert after an install silently
+    re-stamped the record, so slides from two agent versions passed as one;
+    now every step is kept and compile judges them all (owner's decision)."""
+    changed = _state.record_prep(out_dir, deck_hash, out_dir, step=step)
+    if not changed:
+        return
+    import _install
+    ok, why, note = _install.versions_compatible(_state.read_state(out_dir))
+    print()
+    print(f"NOTE: the agent files Claude Code runs changed since this build's last step "
+          f"({', '.join(changed)}). This {step} is recorded with the new files; the "
+          "earlier slides were built with the old ones.")
+    if ok:
+        print(f"  Every version used is on main, so the build carries on: {note}.")
+        print("  Compile writes this into COMPILED.md. Start a new Claude session before "
+              "the next round so every worker runs the new files.")
+    else:
+        print("  Compile will refuse this build: " + why)
+    print("  Do not copy or restore agent files from this session.")
+
+
+def pinned_pages_note(slides) -> list[str]:
+    """The prep note for slides that copy a supplied page (owner's decision,
+    2026-10-13). No stop: their figures are checked after the picks, on the
+    finished slides, and shown on FINAL-CHECK.html for the user to answer."""
+    pinned = [s for s in slides if (s.get("pinned_source_page") or "").strip()]
+    if not pinned:
+        return []
+    return ["",
+            f"{len(pinned)} slide(s) copy a supplied page: slide "
+            + ", ".join(str(s.get("slide_n")) for s in pinned) + ".",
+            "  Their figures are checked after the user picks: finalize lists every "
+            "number that came from the copied page onto the picked design (numbers "
+            "that match the brief are only counted), and FINAL-CHECK.html shows them "
+            "in one table for the user to keep or replace. Compile waits for that "
+            "answer. The pins stay; never remove one to get past the check."]
+
+
 def review_sequence_lines(out_dir, template, slide_n=None) -> list[str]:
     """The steps after the workers, in order. ONE copy, printed by every exit of
     prep and pointed at by the docs. Rebuild, insert, full build and 6b each used
@@ -2821,7 +2862,7 @@ def main() -> int:
               f"{rb_dir / '_context.md'} then {rb_dir / '_prompt.md'}):")
         for _ln in review_sequence_lines(args.out, args.template, rebuild_slide_n):
             print(_ln)
-        _state.record_prep(args.out, _deck_hash, args.out)
+        record_prep_with_notice(args.out, _deck_hash, "rebuild")
         return 0
 
     # Insert mode: dirs + picks were already shifted; splice the new slide's entry
@@ -2859,7 +2900,7 @@ def main() -> int:
         print(f"  Note: the deck-level RESULT.md still shows the pre-insert numbering — it")
         print(f"  refreshes on the next FULL finalize (finalize_deck.py --out <out> with no")
         print(f"  --slide). The single-slide finalize in step b writes RESULT-slide-{insert_slide_n:02d}.md.")
-        _state.record_prep(args.out, _deck_hash, args.out)
+        record_prep_with_notice(args.out, _deck_hash, "insert")
         return 0
 
     # Deck manifest (_meta.json) — single source of truth for downstream
@@ -2928,7 +2969,9 @@ def main() -> int:
     print("Next (each worker reads _context.md first, then _prompt.md, in its slide_NN/):")
     for _ln in review_sequence_lines(args.out, args.template):
         print(_ln)
-    _state.record_prep(args.out, _deck_hash, args.out)
+    for _ln in pinned_pages_note(slides):
+        print(_ln)
+    record_prep_with_notice(args.out, _deck_hash, "prep")
     return 0
 
 

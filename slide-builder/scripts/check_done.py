@@ -247,16 +247,18 @@ def main(argv=None) -> int:
                           "(a Critical cannot be kept).")
 
     # 6b. The agent files Claude Code runs are the ones this build was prepared with.
-    _agents = _install.changed_since_prep(state)
-    if _agents:
+    #     Two versions that are both on main are accepted, with a line below.
+    _agents_ok, _agents, _agents_note = _install.versions_compatible(state)
+    if not _agents_ok:
         problems.append(_agents)
 
-    # 8. Supplied-page figures.
+    # 8. Every slide that copies a supplied page is settled: its own check,
+    #    made from the picked design, every figure answered (2026-10-13; this
+    #    used to read one count from the last ledger run).
     sl = state.get("source_ledger") or {}
-    if int(sl.get("unresolved") or 0) > 0:
-        problems.append(
-            f"{sl['unresolved']} figure(s) on a supplied/replicated page are "
-            "unreconciled; resolve every row in source_ledger.json")
+    ok_l, why_l = _state.check_ledger(state, args.out)
+    if not ok_l:
+        problems.append(why_l)
 
     # 9. Every comment the user made on a pick was applied (never dropped).
     pend = _state.pending_comments(state)
@@ -317,6 +319,8 @@ def main(argv=None) -> int:
     line = supplied_page_line(sl)
     if line:
         print(line)
+    if _agents_note:
+        print(f"  agent files   : {_agents_note}. Mention it when you deliver.")
     return 0
 
 
@@ -408,6 +412,22 @@ def supplied_page_line(sl: dict) -> str:
     trust rather than verified. Empty when no page was pinned."""
     if not sl:
         return ""
+    by = sl.get("by_slide")
+    if by:
+        out = [f"  copied pages  : {len(by)} slide(s) copy a supplied page:"]
+        for sid, c in sorted(by.items()):
+            n = int(sid.split("_")[-1])
+            if c.get("visual_only"):
+                out.append(f"                  - slide {n} ({c.get('source')}): a PDF page "
+                           "or picture, CHECKED BY EYE ONLY (the vision pass); no figure on "
+                           "it was machine-checked. Tell the user.")
+            else:
+                out.append(f"                  - slide {n} ({c.get('source')}): "
+                           f"{c.get('kept', 0)} figure(s) from the copied page kept on the "
+                           f"final check, {c.get('brief_matches', 0)} match the brief, "
+                           f"{c.get('unreachable', 0)} surface(s) unreadable and covered "
+                           "only by the vision pass")
+        return "\n".join(out)
     if sl.get("visual_only"):
         return ("  supplied page : a PDF page or picture, CHECKED BY EYE ONLY (the "
                 "vision pass); no figure on it was machine-checked against the brief. "

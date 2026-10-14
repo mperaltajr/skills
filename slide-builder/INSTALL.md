@@ -187,7 +187,7 @@ Expected: `True`. The four greps prove the installed translator understands the 
   - `__template_fields__` — emits the structured comment header `finalize_deck.py` reads for placeholder population
   - `EDITABILITY_VIOLATION` — implements the R4.7 Critical editability self-check
 
-**Without this file**, picked sketch-path slides cannot be translated and finalize halts. The shipped default routing (`auto`) sends visually structured slides down the sketch path, so most decks need it. Direct-path slides do not. Prep (`build_deck.py`) checks that both agent files in `~/.claude/agents/` match this repo's copies and stops with the copy command if they don't, so re-copy them after every update.
+**Without this file**, picked sketch-path slides cannot be translated and finalize halts. The shipped default routing (`auto`) sends visually structured slides down the sketch path, so most decks need it. Direct-path slides do not. Prep (`build_deck.py`) checks that both agent files in `~/.claude/agents/` match this repo's copies and stops with the fix command (`doctor.py fix`, which backs the installed files up first) if they don't, so run it after every update.
 
 ## Verification step
 

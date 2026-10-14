@@ -63,24 +63,65 @@ def deck_content_hash(brief_text: str, template: str, pattern: str) -> str:
     return h.hexdigest()
 
 
-def record_prep(out_dir, content_hash: str, canonical_out: str) -> None:
+def record_prep(out_dir, content_hash: str, canonical_out: str, step: str = "prep") -> list:
     """Prep ran: set the content-hash + canonical out, stamp the prep stage, and
-    INVALIDATE any prior review approval (a (re)build must be re-reviewed)."""
+    INVALIDATE any prior review approval (a (re)build must be re-reviewed).
+
+    `step` is "prep", "rebuild" (--slide N) or "insert" (--insert N). Returns
+    the agent names whose installed file differs from the previous entry of
+    the build's agent history (see record_agents)."""
     state = read_state(out_dir)
     state["content_hash"] = content_hash
     state["canonical_out"] = str(Path(canonical_out).resolve())
     state.setdefault("stages", {})["prep"] = {"at": _now(), "rev": _bump(state)}
     state.pop("review", None)       # any (re)prep invalidates prior approval
     state.pop("final_check", None)  # ...and the final look at the finished picks
-    # The agent files Claude Code runs right now (prep has just checked they
-    # are the repo's). compile and check_done compare against this and stop
-    # when they changed mid-build (owner-approved fix, 2026-10-09).
+    changed = _append_agents(state, step)
+    _write(out_dir, state)
+    return changed
+
+
+def _append_agents(state: dict, step: str) -> list:
+    """Add the installed agent files (md5 and git blob id) to the build's
+    agent history. The first entry is the pin; it is never rewritten.
+
+    Before 2026-10-13 every build_deck run (prep, --slide, --insert) replaced
+    the record, so after an install the next insert silently re-stamped it
+    and slides from two agent versions passed as one. Now each step adds an
+    entry, and compile/check_done judge the whole history
+    (_install.versions_compatible). An older md5-only record is kept as the
+    first entry, with no blob ids, so it stays strict."""
     try:
         import _install
-        state["agents"] = {"at": _now(), "installed": _install.installed_fingerprints()}
+        now = _install.installed_versions()
     except Exception:
-        pass
+        return []
+    ag = dict(state.get("agents") or {})
+    hist = list(ag.get("history") or [])
+    if not hist and ag.get("installed"):
+        hist = [{"at": ag.get("at", ""), "step": "prep", "md5": dict(ag["installed"]),
+                 "blob": None}]
+    md5 = {n: v["md5"] for n, v in now.items()}
+    prev = (hist[-1].get("md5") or {}) if hist else None
+    changed = sorted(n for n in md5 if prev is not None and prev.get(n, "") != md5[n])
+    hist.append({"at": _now(), "step": step, "md5": md5,
+                 "blob": {n: v["blob"] for n, v in now.items()}})
+    # "installed" stays the pin (the first entry) for older readers.
+    state["agents"] = {"at": hist[0].get("at") or _now(), "installed": dict(hist[0]["md5"]),
+                       "history": hist}
+    return changed
+
+
+def record_agents(out_dir, step: str) -> list:
+    """A step that dispatches agents outside build_deck (record_picks.py
+    --edits-done): add the installed agent files to the history. Returns the
+    agents that differ from the previous entry."""
+    state = read_state(out_dir)
+    if not state:
+        return []
+    changed = _append_agents(state, step)
     _write(out_dir, state)
+    return changed
 
 
 def record_review(out_dir) -> str:
@@ -342,20 +383,28 @@ def direct_path_letter(slide_dir, letter: str) -> bool:
     return (sd / f"option_{letter}.py").is_file() and not (sd / f"option_{letter}.html").exists()
 
 
-def record_final_check(out_dir, digests: dict) -> str:
+def record_final_check(out_dir, digests: dict, ledger: dict | None = None) -> str:
     """The final-check page was built over these finished files. Returns the
     token its Build command carries; compile refuses unless the files still have
-    these exact bytes."""
+    these exact bytes.
+
+    `ledger` is the copied-page table the page showed ({"rows": [row ids],
+    "fingerprints": {slide_NN: design fingerprint}}): approving this final
+    check answers those rows (source_ledger.resolve_by_final_check)."""
     state = read_state(out_dir)
     fc = state.get("final_check") or {}
+    ledger = dict(ledger or {})
     # Same files, same content: keep the token, so rebuilding the page does not
     # void a Build command the user already copied.
     if (fc.get("token") and fc.get("digests") == dict(digests)
-            and fc.get("content_hash") == state.get("content_hash")):
+            and fc.get("content_hash") == state.get("content_hash")
+            and (fc.get("ledger") or {}) == ledger):
         return fc["token"]
     token = secrets.token_hex(8)
     state["final_check"] = {"token": token, "digests": dict(digests), "at": _now(),
                             "content_hash": state.get("content_hash")}
+    if ledger:
+        state["final_check"]["ledger"] = ledger
     _write(out_dir, state)
     return token
 
@@ -588,7 +637,8 @@ def check_options_finalized(state: dict, option_keys) -> tuple[bool, str]:
 
 
 def record_source_ledger(out_dir, unresolved: int, keep_source: int = 0,
-                         unreachable: int = 0, visual_only: bool = False) -> None:
+                         unreachable: int = 0, visual_only: bool = False,
+                         by_slide: dict | None = None) -> None:
     """Record reconciliation state for a SUPPLIED page that is being replicated.
 
     Deliberately records only what the machine owns: how many figure-bearing
@@ -598,6 +648,9 @@ def record_source_ledger(out_dir, unresolved: int, keep_source: int = 0,
     `keep_source` and `unreachable` are carried so delivery can state how much was
     taken on trust rather than checked. `visual_only` marks a supplied PDF page
     or picture: nothing on it was machine-read, it is checked by eye only.
+    `by_slide` (since 2026-10-13) holds the same counts per pinned slide; the
+    totals are kept for older readers. The gates do not trust these counts:
+    they read source_ledger.json per pinned slide (source_ledger.gate_problems).
     """
     state = read_state(out_dir)
     state["source_ledger"] = {"unresolved": int(unresolved or 0),
@@ -605,6 +658,8 @@ def record_source_ledger(out_dir, unresolved: int, keep_source: int = 0,
                               "unreachable": int(unreachable or 0),
                               "visual_only": bool(visual_only),
                               "at": _now()}
+    if by_slide is not None:
+        state["source_ledger"]["by_slide"] = dict(by_slide)
     _write(out_dir, state)
 
 
@@ -740,19 +795,43 @@ def check_compile_allowed(out_dir, final_token: str, themed_path_for=None) -> tu
             return False, (f"{len(changed)} finished slide(s) changed after the final "
                            f"check ({', '.join(changed[:4])}). The user approved "
                            "different files. Run build_review.py --final again.")
-    ok, why = check_ledger(state)
+    # The user approved this final check, with its copied-page table on it:
+    # that approval answers every figure the table showed (owner's decision,
+    # 2026-10-13). Then every pinned slide must be settled.
+    try:
+        import source_ledger
+        source_ledger.resolve_by_final_check(out_dir, state)
+    except Exception:
+        pass
+    ok, why = check_ledger(read_state(out_dir), out_dir)
     if not ok:
         return False, why
     return True, "ok"
 
 
-def check_ledger(state: dict) -> tuple[bool, str]:
-    """A replicated supplied page has every figure-bearing slot resolved."""
+def check_ledger(state: dict, out_dir=None) -> tuple[bool, str]:
+    """Every slide that copies a supplied page is settled.
+
+    With out_dir (what compile and check_done use): EVERY pinned slide that
+    ships needs its own section in source_ledger.json, made from the design
+    picked now, with no figure left unanswered. Before 2026-10-13 this read
+    one count from the last ledger run, so with several pinned slides the
+    others passed unchecked. Without out_dir: the old count only."""
+    if out_dir is not None:
+        try:
+            import source_ledger
+            probs = source_ledger.gate_problems(out_dir, state)
+        except Exception as exc:
+            return False, (f"the copied-page check could not be read ({type(exc).__name__}: "
+                           f"{exc}). Run source_ledger.py status --out <out>.")
+        if probs:
+            return False, source_ledger.gate_message(out_dir, probs)
+        return True, "ok"
     sl = state.get("source_ledger") or {}
     if int(sl.get("unresolved") or 0) > 0:
-        return False, (f"{sl['unresolved']} figure(s) on the supplied page are "
-                       "unreconciled. Every row in source_ledger.json needs a "
-                       "resolution (bind_from_brief / keep_source / replace_with).")
+        return False, (f"{sl['unresolved']} figure(s) from a copied page are not answered "
+                       "yet. Every row in source_ledger.json needs an answer (keep or "
+                       "replace, on FINAL-CHECK.html).")
     return True, "ok"
 
 

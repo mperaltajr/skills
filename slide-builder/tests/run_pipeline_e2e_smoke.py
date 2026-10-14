@@ -367,15 +367,26 @@ def main() -> int:
         html = _review(out) and (out / "REVIEW.html").read_text(encoding="utf-8")
         assert "reproduces the page you supplied" in html
         assert _record(out, {"slide_01": "A"}).returncode == 0
-        assert H.finalize(out).returncode == 0
+        # The pinned page is missing: finalize says so, the final check waits.
+        r = H.finalize(out)
+        assert r.returncode == 0 and "was not found" in r.stdout, r.stdout[-800:]
+        r, tok = _final(out)
+        assert r.returncode == 5 and "copied page, slide 1" in r.stderr, r.stderr
+        # A count in the build record no longer stands in for the check.
+        _state.record_source_ledger(out, unresolved=0, keep_source=1)
+        from pptx import Presentation
+        prs = Presentation()
+        prs.slides.add_slide(prs.slide_layouts[6]).shapes.add_textbox(
+            0, 0, 914400, 914400).text_frame.text = "Prepared for the committee"
+        prs.save(str(tmp / "client_onepager.pptx"))
         r, tok = _final(out)
         assert r.returncode == 0, r.stderr
-        r = _compile(out, tok)
-        assert r.returncode == 5 and "never reconciled" in r.stdout, r.stdout[-600:]
-        _state.record_source_ledger(out, unresolved=0, keep_source=1)
+        assert "Numbers copied from your pages" in (out / "FINAL-CHECK.html").read_text(
+            encoding="utf-8")
         r = _compile(out, tok)
         assert r.returncode == 0, r.stdout[-1200:]
-        print("    ok: in _meta, in the prompt, on the review page; compile waits for the ledger")
+        print("    ok: in _meta, in the prompt, on the review page; the final check waits "
+              "for the copied-page check")
     finally:
         H.cleanup(tmp)
 

@@ -29,6 +29,19 @@ Since 2026-10-09 (validated fix, Kinfield v3.1 session report):
     files, and a swap-and-restore around prep made the prep check certify
     something that was not true.
 
+Since 2026-10-13 (owner-approved, Leo narrative session report item 4):
+  - prep, --slide, --insert and record_picks --edits-done each add an entry
+    (time, step, md5 and git blob id of each installed agent file) to the
+    build's agent history; the first entry is the pin.
+  - when the files differ across that history, compile and check_done look
+    every version up in git (classify_blob): if all of them are on main the
+    build carries on, with one line in COMPILED.md and at delivery ("built
+    with slide-builder-worker from main 9e81cf4 and 1ea67d5"); a version only
+    on a branch, never committed, missing, or one git cannot place is
+    refused, and so is an old build that recorded md5s only.
+  - a build session never copies or restores agent files, not even when the
+    user says it is fine. Developer installs go through doctor.py fix only.
+
 Agent files load when a Claude session starts: after installing, start a new
 Claude session.
 """
@@ -137,6 +150,14 @@ def which_version(path: Path) -> dict | None:
             on_main = [c for c in commits if _on(c, main)]
             if on_main:
                 c = on_main[0]
+                if _on(c, "HEAD") and _main_tip_blob(path, main) == blob:
+                    return {"kind": "main_current", "commit": c, "branch": main,
+                            "text": f"it is the current {main} version (commit "
+                                    f"{_short(c)}); this checkout's copy is the one "
+                                    "that differs (a branch or a local edit)",
+                            "do": "leave the installed file as it is and build from a "
+                                  f"checkout of {main}; only the main session installs, "
+                                  "after a merge"}
                 if not _on(c, "HEAD"):
                     return {"kind": "main_newer", "commit": c, "branch": main,
                             "text": f"it is a newer version from {main} (commit "
@@ -157,6 +178,18 @@ def which_version(path: Path) -> dict | None:
                       "the merge)"}
     except Exception:
         return None
+
+
+def _main_tip_blob(path: Path, main: str) -> str:
+    """The blob id of the agent file with this name on the tip of main
+    ('' when unknown). A probe file with another name is looked up as the
+    worker."""
+    name = Path(path).name
+    if name[:-3] not in AGENT_NAMES:
+        name = "slide-builder-worker.md"
+    rc, out = _git("rev-parse", "--verify", "--quiet",
+                   f"{main}:{SKILL_ROOT.name}/agents/{name}")
+    return out.strip() if rc == 0 else ""
 
 
 def repo_copy_unmerged(src: Path) -> bool:
@@ -224,20 +257,16 @@ def backup_installed(dest: Path | None = None) -> Path | None:
 
 
 def copy_command() -> str:
-    """The commands that fix it, for the refusal message: back up, then copy."""
-    dest = installed_agents_dir()
-    src = SKILL_ROOT / "agents"
-    bdir = dest / f"_backup_{datetime.now().strftime('%Y-%m-%d')}"
+    """The one command that fixes it, for the refusal message. Installs go
+    through doctor.py fix only (it backs the installed files up into
+    _backup_<date> first, then copies). There is no copy-by-hand route any
+    more: on 2026-10-13 a hand copy right after a merge skipped the backup and
+    the checks, and a build session then restored the old files by hand."""
     doctor = SKILL_ROOT / "scripts" / "doctor.py"
-    lines = [f'  py -3 "{doctor}" fix      (backs up the installed files first, then copies)',
-             "  or by hand, backing up first:",
-             f'  mkdir "{bdir}"']
-    for n in AGENT_NAMES:
-        if (dest / f"{n}.md").exists():
-            lines.append(f'  copy "{dest / (n + ".md")}" "{bdir / (n + ".md.bak")}"')
-    for n in AGENT_NAMES:
-        lines.append(f'  copy "{src / (n + ".md")}" "{dest / (n + ".md")}"')
-    return "\n".join(lines)
+    return (f'  py -3 "{doctor}" fix      (backs up the installed files into _backup_<date> '
+            "first, then copies)\n"
+            "  Run it in the main Slide Lab session, from a checkout of main, never from a "
+            "build session.")
 
 
 # ---------------------------------------------------------------- per build
@@ -254,21 +283,147 @@ def installed_fingerprints() -> dict:
     return out
 
 
+def installed_versions() -> dict:
+    """{agent name: {"md5": ..., "blob": git blob id}} of the installed files;
+    both "" when a file is missing. The blob id is computed here, so it works
+    without git; looking it up (classify_blob) needs git."""
+    dest = installed_agents_dir()
+    out = {}
+    for name in AGENT_NAMES:
+        p = dest / f"{name}.md"
+        try:
+            out[name] = ({"md5": _digest(p), "blob": git_blob_hash(p)} if p.exists()
+                         else {"md5": "", "blob": ""})
+        except OSError:
+            out[name] = {"md5": "", "blob": ""}
+    return out
+
+
+def classify_blob(blob: str) -> dict | None:
+    """Where this version of an agent file lives in git.
+
+    {"kind": "main" | "branch" | "uncommitted" | "missing", "commit", "branch",
+     "label": short plain words, e.g. "main 9e81cf4"}. None when git is
+    missing or cannot answer (callers refuse: a version nobody can place is
+    not accepted)."""
+    if not blob:
+        return {"kind": "missing", "commit": "", "branch": "", "label": "not installed"}
+    try:
+        main = _main_ref()
+        commits = _commits_with_blob(blob)
+        if not commits:
+            return {"kind": "uncommitted", "commit": "", "branch": "",
+                    "label": "a version never committed (local edits)"}
+        if main:
+            on_main = [c for c in commits if _on(c, main)]
+            if on_main:
+                c = on_main[-1]          # git lists newest first: the first to write it
+                return {"kind": "main", "commit": c, "branch": main,
+                        "label": f"{main} {_short(c).split(' ')[0]}"}
+        c = commits[0]
+        branches = [b for b in _branches_with(c) if b not in ("main", "origin/main")]
+        name = branches[0] if branches else "(a branch that no longer exists)"
+        return {"kind": "branch", "commit": c, "branch": name,
+                "label": f"branch {name} {_short(c).split(' ')[0]} (not on {main or 'main'})"}
+    except Exception:
+        return None
+
+
+def agent_history(state: dict) -> list:
+    """The build's agent history, oldest first; the first entry is the pin.
+    An older build recorded only md5s at prep: that reads as one entry with
+    no blob ids (blob None)."""
+    ag = state.get("agents") or {}
+    hist = ag.get("history")
+    if hist:
+        return list(hist)
+    if ag.get("installed"):
+        return [{"at": ag.get("at", ""), "step": "prep", "md5": dict(ag["installed"]),
+                 "blob": None}]
+    return []
+
+
+def differing_agents(state: dict, now: dict | None = None) -> list:
+    """Agent names whose installed file is not the same across the build's
+    history and what is installed now."""
+    hist = agent_history(state)
+    if not hist:
+        return []
+    now = now or installed_versions()
+    out = []
+    for name in AGENT_NAMES:
+        seen = {(e.get("md5") or {}).get(name, "") for e in hist}
+        seen.add(now[name]["md5"])
+        if len(seen) > 1:
+            out.append(name)
+    return out
+
+
+def versions_compatible(state: dict) -> tuple[bool, str, str]:
+    """(ok, refusal, note) for the agent files this build was made with.
+
+    ok, no note: every step used the files installed now (or the build has no
+    record). ok with a note: the files differ, but every version is on main
+    (two reviewed main versions), so the build carries on; the note goes into
+    COMPILED.md and the delivery report. Not ok: a version only on a branch,
+    never committed, missing, one git cannot place, or an old build that
+    recorded md5s only (owner's decisions A to D, 2026-10-13)."""
+    hist = agent_history(state)
+    now = installed_versions()
+    differing = differing_agents(state, now)
+    if not differing:
+        return True, "", ""
+    where = f"at {installed_agents_dir()}"
+    if any(e.get("blob") is None for e in hist):
+        return False, (
+            "the agent files Claude Code runs changed after this build was prepared ("
+            + ", ".join(differing) + f", {where}). This build recorded only file "
+            "fingerprints at prep, so their versions cannot be looked up, and slides "
+            "built before and after the change cannot be checked as one. Do not copy "
+            "or restore agent files from this session, even if the user says it is "
+            "fine. Start a new Claude session and prepare the build again with "
+            "build_deck.py. " + NEW_SESSION), ""
+    bad, notes, current_bad = [], [], False
+    for name in differing:
+        blobs = []
+        for e in hist + [{"blob": {name: now[name]["blob"]}}]:
+            b = (e.get("blob") or {}).get(name, "")
+            if b not in blobs:
+                blobs.append(b)
+        infos = [classify_blob(b) for b in blobs]
+        if any(i is None for i in infos):
+            bad.append(f"{name}: git could not look its versions up")
+            current_bad = True
+            continue
+        not_main = [i for i in infos if i["kind"] != "main"]
+        if not_main:
+            bad.append(f"{name}: " + "; ".join(i["label"] for i in not_main))
+            if infos[-1]["kind"] != "main":
+                current_bad = True
+            continue
+        shorts = []
+        for i in infos:
+            sh = i["label"].split(" ", 1)[-1]
+            if sh not in shorts:
+                shorts.append(sh)
+        notes.append(f"{name} from main {' and '.join(shorts)}")
+    if bad:
+        todo = ("The files installed now are not a version from main: the main Slide "
+                "Lab session installs main with doctor.py fix (after merging). "
+                if current_bad else "")
+        return False, (
+            "the agent files Claude Code runs changed after this build was prepared, and not every "
+            "version is on main (" + "; ".join(bad) + f"; {where}). A slide built by "
+            "an agent file that is only on a branch, or was never committed, cannot "
+            "ship. " + todo + "Do not copy or restore agent files from this session, "
+            "even if the user says it is fine. Start a new Claude session and prepare "
+            "the build again with build_deck.py. " + NEW_SESSION), ""
+    return True, "", ("built with " + "; ".join(notes)
+                      + " (every version used is on main, so the build carries on)")
+
+
 def changed_since_prep(state: dict) -> str:
-    """'' when the installed agent files are the ones recorded at prep (or
-    the build predates the record); otherwise the plain refusal."""
-    rec = (state.get("agents") or {}).get("installed")
-    if not rec:
-        return ""
-    now = installed_fingerprints()
-    changed = [n for n in AGENT_NAMES if rec.get(n, "") != now.get(n, "")]
-    if not changed:
-        return ""
-    return (
-        "the agent files Claude Code runs changed after this build was prepared ("
-        + ", ".join(changed) + f", at {installed_agents_dir()}). Slides built before "
-        "and after the change came from different agent files, so this build "
-        "cannot be checked as one. Either put back the files that were installed "
-        "at prep (doctor.py keeps backups in _backup_<date> there), or start a new "
-        "Claude session and prepare the build again with build_deck.py. "
-        + NEW_SESSION)
+    """'' when the build may carry on (the same agent files throughout, the
+    build predates the record, or every version used is on main); otherwise
+    the plain refusal. versions_compatible() also gives the note to record."""
+    return versions_compatible(state)[1]

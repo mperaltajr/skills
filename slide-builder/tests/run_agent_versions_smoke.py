@@ -15,7 +15,15 @@ agent.
   2. doctor.py fix and the printed command back up the installed files to
      _backup_<date>/ (as .md.bak, never loaded as agents) and keep the last few
   3. prep records the installed fingerprints; compile (exit 7) and check_done
-     stop when they changed, and say to start a new Claude session
+     stop when they changed to a version that is not on main, and say to
+     start a new Claude session
+  4. (2026-10-13, Leo narrative report item 4) every step adds an entry to
+     the build's agent history (md5 + git blob id; the first is the pin);
+     two versions that are both on main are accepted with one line (compile
+     prints it, COMPILED.md and check_done carry it); a branch-only, never
+     committed or unplaceable version, or an old md5-only record, is
+     refused; a --slide after an install prints a notice; which_version
+     names "the current main version"; the fix command is doctor.py fix only
 
 Never touches the real ~/.claude/agents: every step points SLIDE_LAB_AGENTS_DIR
 at a temp folder, and the git cases run in a temp repository.
@@ -26,7 +34,9 @@ from __future__ import annotations
 
 import _test_temp  # noqa: F401,E402  (temp folders under the scratch root, deleted at exit)
 import contextlib
+import hashlib
 import io
+import json
 import os
 import shutil
 import subprocess
@@ -156,9 +166,10 @@ def main() -> int:
             rc = build_deck.stage1_sanity_check(Path("not-a-registered-template.pptx"))
         e = err.getvalue()
         assert rc == 7 and "local edits" in e and "start a new Claude session" in e, e
-        assert e.index("_backup_") < e.rindex("slide-builder-translator.md\""), \
-            "the printed command must back up before it copies"
-        print("    ok: exit 7, says which version, backs up before copying")
+        assert "doctor.py\" fix" in e and "_backup_" in e, e
+        assert "copy \"" not in e and "mkdir" not in e, "no copy-by-hand route any more"
+        assert "never from a build session" in e, e
+        print("    ok: exit 7, says which version, one command: doctor.py fix (backs up first)")
 
         print("2. doctor fix backs up first, as .md.bak in a subfolder, keeps the last few")
         for i in range(1, 8):
@@ -203,6 +214,8 @@ def main() -> int:
                            capture_output=True, text=True, env=env)
         assert r.returncode == 1 and "changed after this build was prepared" in r.stdout, r.stdout
         print("    ok: compile exit 7, check_done refuses, both say start a new session")
+
+        _history_and_main_versions(tmp, agents)
     finally:
         if old_env is None:
             os.environ.pop("SLIDE_LAB_AGENTS_DIR", None)
@@ -212,6 +225,141 @@ def main() -> int:
     assert _real_snapshot() == before, "the real ~/.claude/agents folder must never change"
     print("\nSMOKE PASSED.")
     return 0
+
+
+def _history_and_main_versions(tmp: Path, agents: Path) -> None:
+    print("4a. in a temp repository: main-to-main accepted, everything else refused")
+    repo = tmp / "repo4"
+    (repo / "slide-builder" / "agents").mkdir(parents=True)
+    _git(repo, "init", "-q", "-b", "main")
+    _git(repo, "config", "user.email", "t@example.com")
+    _git(repo, "config", "user.name", "t")
+    w = repo / "slide-builder" / "agents" / "slide-builder-worker.md"
+    t = repo / "slide-builder" / "agents" / "slide-builder-translator.md"
+    w.write_text("w1\n", encoding="utf-8"); t.write_text("t1\n", encoding="utf-8")
+    _git(repo, "add", "-A"); _git(repo, "commit", "-q", "-m", "w1")
+    c1 = _git(repo, "rev-parse", "--short", "HEAD")
+    w.write_text("w2\n", encoding="utf-8")
+    _git(repo, "commit", "-q", "-am", "w2")
+    c2 = _git(repo, "rev-parse", "--short", "HEAD")
+    _git(repo, "checkout", "-q", "-b", "feature-y")
+    w.write_text("w3 unmerged\n", encoding="utf-8")
+    _git(repo, "commit", "-q", "-am", "w3")
+    _git(repo, "checkout", "-q", "main")
+    inst = tmp / "agents4"
+    inst.mkdir()
+    saved = (_install.REPO_ROOT, _install.SKILL_ROOT, os.environ["SLIDE_LAB_AGENTS_DIR"])
+    _install.REPO_ROOT, _install.SKILL_ROOT = repo, repo / "slide-builder"
+    os.environ["SLIDE_LAB_AGENTS_DIR"] = str(inst)
+    iw, it = inst / "slide-builder-worker.md", inst / "slide-builder-translator.md"
+    try:
+        iw.write_text("w1\n", encoding="utf-8"); it.write_text("t1\n", encoding="utf-8")
+        out = tmp / "build4"; out.mkdir()
+        assert _state.record_prep(out, "h", out) == []
+        hist = _state.read_state(out)["agents"]["history"]
+        assert len(hist) == 1 and hist[0]["step"] == "prep" and hist[0]["blob"], hist
+        assert _install.versions_compatible(_state.read_state(out)) == (True, "", "")
+
+        iw.write_text("w2\n", encoding="utf-8")                   # main installed mid-build
+        ok, why, note = _install.versions_compatible(_state.read_state(out))
+        assert ok and not why, why
+        assert note.startswith("built with slide-builder-worker from main ") and \
+            c1 in note and c2 in note and " and " in note, note
+        changed = _state.record_prep(out, "h", out, step="rebuild")
+        assert changed == ["slide-builder-worker"], changed
+        st = _state.read_state(out)
+        assert [e["step"] for e in st["agents"]["history"]] == ["prep", "rebuild"]
+        assert st["agents"]["installed"] == hist[0]["md5"], "the pin is never rewritten"
+        assert _state.record_agents(out, "edits-done") == []
+        assert len(_state.read_state(out)["agents"]["history"]) == 3
+        print(f"    ok: {note}")
+
+        iw.write_text("w3 unmerged\n", encoding="utf-8")         # a branch-only install
+        ok, why, _ = _install.versions_compatible(_state.read_state(out))
+        assert not ok and "branch feature-y" in why and "Do not copy or restore" in why, why
+        assert "doctor.py fix" in why and "even if the user says it is fine" in why, why
+        iw.write_text("a hand edit\n", encoding="utf-8")
+        ok, why, _ = _install.versions_compatible(_state.read_state(out))
+        assert not ok and "never committed" in why, why
+        iw.write_text("w2\n", encoding="utf-8")
+        real_git = _install._git
+
+        def _no_git(*a, **k):
+            raise FileNotFoundError("git")
+        _install._git = _no_git
+        try:
+            ok, why, _ = _install.versions_compatible(_state.read_state(out))
+            assert not ok and "git could not" in why, why
+        finally:
+            _install._git = real_git
+        print("    ok: branch-only, never committed, and no git are refused")
+
+        print("4b. an old md5-only record stays strict")
+        old = tmp / "build4_old"; old.mkdir()
+        (old / "_state.json").write_text(json.dumps({"agents": {
+            "at": "2026-10-12T08:00:00",
+            "installed": {"slide-builder-worker": hashlib.md5(b"w1\n").hexdigest(),
+                          "slide-builder-translator": hashlib.md5(b"t1\n").hexdigest()}}}),
+            encoding="utf-8")
+        ok, why, _ = _install.versions_compatible(_state.read_state(old))
+        assert not ok and "only file fingerprints" in why, why
+        _state.record_agents(old, "rebuild")
+        hist = _state.read_state(old)["agents"]["history"]
+        assert hist[0]["blob"] is None and len(hist) == 2, hist
+        assert not _install.versions_compatible(_state.read_state(old))[0]
+        print("    ok")
+
+        print("4c. which_version says 'the current main version' on a branch checkout")
+        _git(repo, "checkout", "-q", "feature-y")
+        v = _install.which_version(iw)                            # w2 = main's tip
+        assert v["kind"] == "main_current" and "current main version" in v["text"], v
+        _git(repo, "checkout", "-q", "main")
+        print("    ok:", v["text"][:90])
+
+        print("4d. a --slide after an install prints a notice")
+        out5 = tmp / "build5"; out5.mkdir()
+        iw.write_text("w1\n", encoding="utf-8")
+        _state.record_prep(out5, "h", out5)
+        iw.write_text("w2\n", encoding="utf-8")
+        import build_deck
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            build_deck.record_prep_with_notice(out5, "h", "rebuild")
+        o = buf.getvalue()
+        assert "NOTE: the agent files Claude Code runs changed" in o and "carries on" in o, o
+        assert "Do not copy or restore agent files" in o, o
+        print("    ok")
+    finally:
+        _install.REPO_ROOT, _install.SKILL_ROOT = saved[0], saved[1]
+        os.environ["SLIDE_LAB_AGENTS_DIR"] = saved[2]
+
+    print("4e. compile prints the main-to-main line (this repo's own history)")
+    repo_root = SKILL.parent
+    rel = "slide-builder/agents/slide-builder-worker.md"
+    cur = _install.git_blob_hash(SKILL / "agents" / "slide-builder-worker.md")
+    if _install.repo_copy_unmerged(SKILL / "agents" / "slide-builder-worker.md"):
+        print("    (skipped: this checkout's worker file is not on main)")
+        return
+    hist = _git(repo_root, "log", "--format=%H", "main", "--", rel).splitlines()
+    older = next((c for c in hist[1:]
+                  if _git(repo_root, "rev-parse", f"{c}:{rel}") != cur), None)
+    if not older:
+        print("    (skipped: the worker file has one version on main)")
+        return
+    data = subprocess.run(["git", "-C", str(repo_root), "show", f"{older}:{rel}"],
+                          capture_output=True).stdout
+    for n in _install.AGENT_NAMES:
+        shutil.copy(SKILL / "agents" / f"{n}.md", agents / f"{n}.md")
+    (agents / "slide-builder-worker.md").write_bytes(data)
+    out6 = tmp / "build6"; out6.mkdir()
+    _state.record_prep(out6, "h", out6)
+    shutil.copy(SKILL / "agents" / "slide-builder-worker.md", agents / "slide-builder-worker.md")
+    env = {**os.environ, "SLIDE_LAB_AGENTS_DIR": str(agents), "SLIDE_LAB_NO_OPEN": "1"}
+    r = subprocess.run([sys.executable, str(SCRIPTS / "compile_picks.py"), "--out", str(out6)],
+                       capture_output=True, text=True, env=env)
+    assert r.returncode != 7 and "NOTE: agent files: built with slide-builder-worker from main" \
+        in r.stdout, r.stdout[-800:]
+    print("    ok: not refused for the agent files; the line is printed")
 
 
 if __name__ == "__main__":

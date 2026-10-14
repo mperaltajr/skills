@@ -2821,7 +2821,26 @@ def _run_and_record(args) -> int:
                         "" if rc == 0 else f"exit {rc}")
     if rc != 0:
         _print_refused(rc)
+    else:
+        _auto_source_ledger(args)
     return rc
+
+
+def _auto_source_ledger(args) -> None:
+    """Once the user has picked, check every slide that copies a supplied
+    page against its picked, finished design (owner's decision, 2026-10-13).
+    The figures that came through land in FINAL-CHECK.html's table. Never
+    fails finalize: a pin it cannot read is printed, and compile refuses."""
+    try:
+        import source_ledger
+        lines = source_ledger.auto_after_finalize(args.out, slide=args.slide)
+    except Exception as exc:                       # never fail a good finalize
+        lines = [f"  ERROR: the copied-page check could not run ({type(exc).__name__}: "
+                 f"{exc}). Run source_ledger.py build --out <out> --all-picked."]
+    if lines:
+        print("\n[7] Copied pages: figures that came through onto the picked designs")
+        for ln in lines:
+            print(ln)
 
 
 def _print_refused(rc: int) -> None:

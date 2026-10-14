@@ -2,6 +2,61 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## 2026-10-13: every copied page is checked; agent versions per build step
+
+Leo narrative session report, items 3 and 4. Owner approved the recommended
+option on every decision.
+
+**Copied pages (item 3, the lighter check).** A build pinned 15 slides to
+pages of two earlier decks. Each `source_ledger.py build` overwrote the one
+ledger file, and compile and delivery read one count from the last run, so
+answering the last page's rows would have shipped the other 14 unchecked (a
+silent false pass). The pins were then removed to get the deck out.
+- `source_ledger.json` holds one section per pinned slide (`pages.slide_NN`:
+  source page and slide, time, the fingerprint of the picked, finished
+  design it was made from, rows, unreadable surfaces). A build replaces only
+  its own section. The old one-page file is still read (as that slide's
+  section, older than any pick).
+- Rows only for figures that are on both the copied page and the picked
+  design. Slide numbers, Source/Note lines, footers, dates and years are
+  skipped; a figure that appears in the brief word for word is counted
+  ("12 match the brief"), not listed, and never answered automatically.
+- `finalize_deck.py` runs it for every pinned slide once the user has
+  picked (`source_ledger.py build --all-picked`; a pin that cannot be read or
+  found is a plain error).
+- FINAL-CHECK.html shows one table, "Numbers copied from your pages" (slide,
+  figure, where it was, the closest brief line, Keep / Replace). Build it
+  waits until every row is answered; a Replace becomes a fix request. The
+  final-check approval (Build it, or "build it" in chat with the page open)
+  answers every row it showed; compile records each as kept on the final
+  check.
+- Compile and `check_done.py` check every pinned slide that ships: no
+  section, a section older than the pick, or an open row refuses, naming the
+  slides and the one command. The build state keeps the counts per slide;
+  COMPILED.md and delivery list each copied page.
+- Prep prints a note naming the pinned slides (no stop). Pins are never
+  dropped automatically.
+
+**Agent files mid-build (item 4).**
+- Prep, `--slide`, `--insert` and `record_picks.py --edits-done` each add an
+  entry (time, step, md5 and git blob id of each installed agent file) to
+  the build's agent history; the first is the pin. A `--slide` or
+  `--insert` no longer re-stamps the record silently: it prints a notice
+  when the files changed.
+- When the files differ across the history, compile and `check_done.py` look
+  each version up in git (`_install.installed_versions`, `classify_blob`,
+  `versions_compatible`). All on main: the build carries on, with one line
+  printed, in COMPILED.md and at delivery ("built with slide-builder-worker
+  from main 9e81cf4 and 1ea67d5"). A version only on a branch, never
+  committed, missing, one git cannot look up, or an old build that recorded
+  md5s only: refused, with the next steps.
+- `which_version` names "the current main version" when the installed file
+  is main's and this checkout is a branch.
+- The fix command is `doctor.py fix` only (it backs up first); the
+  copy-by-hand lines are gone. A build session never copies, installs or
+  restores agent files, even when the user says it is fine (slide-lab and
+  slide-builder SKILL.md, TROUBLESHOOTING, INSTALL, update.py's restart line).
+
 ## 2026-10-13: chart unit without brackets
 
 Owner's correction to the 2026-10-09 chart header rule. "[Unit]" in the
