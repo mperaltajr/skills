@@ -342,6 +342,36 @@ def check_type_scale(slide, slide_num: int, slide_h: int) -> list[dict]:
     return out
 
 
+def check_line_spacing(slide, slide_num: int) -> list[dict]:
+    """Exact line spacing tighter than the font needs
+    (slide-builder/scripts/type_scale.py line_spacing_slide, 2026-10-14): lines
+    whose letters meet are Major (category line-spacing, fixed automatically
+    as an overlap); capitals reaching above a top-anchored box, seen only when
+    the box is selected, are Advisory."""
+    try:
+        sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]
+                               / "slide-builder" / "scripts"))
+        import type_scale
+        r = type_scale.line_spacing_slide(slide)
+    except Exception:
+        return []
+    out = [{
+        "slide": slide_num,
+        "severity": "Major",
+        "category": "line-spacing",
+        "issue": (f"Slide {slide_num}: {p}. Set the line spacing to at least the font's "
+                  f"need (or 1.0 x the size), or give the text more room."),
+    } for p in type_scale.line_spacing_problems(r)]
+    out += [{
+        "slide": slide_num,
+        "severity": "Advisory",
+        "category": "line-spacing",
+        "issue": (f"Slide {slide_num}: {n}. Recompile with the current converter, which "
+                  f"gives such boxes a top inset; the text does not move."),
+    } for n in type_scale.line_spacing_notes(r)]
+    return out
+
+
 def check_title_load(prs) -> list[dict]:
     """The owner's rule (2026-10-08): each of the title, the takeaway under it
     and a bottom takeaway band must add something the others do not say. A
@@ -508,6 +538,7 @@ def run_all_checks(pptx_path: pathlib.Path) -> dict:
         violations.extend(check_template_sample_text(slide, i))
         violations.extend(check_banned_words(slide, i))
         violations.extend(check_type_scale(slide, i, prs.slide_height))
+        violations.extend(check_line_spacing(slide, i))
         violations.extend(check_speaker_notes(slide, i))
         violations.extend(check_page_number_fields(slide, i))
 

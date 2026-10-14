@@ -467,6 +467,8 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
     footer_detail = ""
     body_ok = True
     body_offenders: list = []
+    ls_probs: list = []   # line spacing tighter than the font needs (type_scale)
+    ls_notes: list = []
     soft_floor_suppressed = 0  # runs in non-body roles between 8.0 and 10.5pt
     sizes_locked_ok = True
     offgrid_offenders: list = []  # runs whose size isn't a PowerPoint default
@@ -546,6 +548,15 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
         if _ts_probs:
             body_ok = False
             body_offenders.extend(_ts_probs)
+        # Exact line spacing tighter than the font needs (2026-10-14, the same
+        # rule slide-qc's hygiene check runs): lines whose letters meet are a
+        # Major; capitals above a top-anchored box are a note.
+        try:
+            _ls = _ts.line_spacing_slide(slide)
+            ls_probs += _ts.line_spacing_problems(_ls)
+            ls_notes += _ts.line_spacing_notes(_ls)
+        except Exception:
+            pass
         if 5 <= shape_count <= 80:
             shape_count_ok = True
             shape_count_detail = f"{shape_count} shapes"
@@ -585,6 +596,16 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
         "plain": ([] if body_ok else
                   ["Text size: " + p + ". Fix it, or give a reason to keep it"
                    for p in body_offenders]),
+    })
+    # Line spacing (2026-10-14): a Major when lines touch, like a type-scale
+    # break (fix it, or give a reason); capitals above the box only a note.
+    checks.append({
+        "check": "line_spacing", "pass": not ls_probs, "severity": "warn",
+        "major": bool(ls_probs), "category": "overlap",
+        "detail": ("; ".join(ls_probs + ls_notes) if (ls_probs or ls_notes)
+                   else "exact line spacing leaves room for the font"),
+        "plain": ["Line spacing: " + p + ". Fix it, or give a reason to keep it"
+                  for p in ls_probs],
     })
     checks.append({
         "check": "font_size_locked", "pass": sizes_locked_ok, "severity": "warn",

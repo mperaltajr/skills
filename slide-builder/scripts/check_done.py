@@ -29,7 +29,9 @@ So this checks one unbroken chain of recorded facts, each tied to the last:
       page findings do); a Major the user kept, with their exact words
       recorded (record_vision_qc.py --keep-file-check), does not block and is
       listed at delivery. A Critical cannot be kept. Advisory never blocks.
-  7b. the agent files Claude Code runs are the ones recorded at prep
+  7b. the agent files the build's steps ran with are all one version, or
+      all on main (a file installed after the last agent step only warns,
+      2026-10-14)
   8. every figure on a replicated supplied page was reconciled
   9. every comment the user made on a pick was applied (none pending)
 
@@ -257,11 +259,17 @@ def main(argv=None) -> int:
                           "--out <build> --keep-file-check KEY --user-words \"...\" "
                           "(a Critical cannot be kept).")
 
-    # 6b. The agent files Claude Code runs are the ones this build was prepared with.
-    #     Two versions that are both on main are accepted, with a line below.
-    _agents_ok, _agents, _agents_note = _install.versions_compatible(state)
+    # 6b. The agent files the build's steps ran with: two versions that are both
+    #     on main are accepted, with a line below. Since 2026-10-14 (owner's
+    #     decision, speed verdict Q2 item 7) a file installed AFTER the last
+    #     agent step is a warning, not a refusal: every agent of this build has
+    #     finished, so no page was made with it.
+    _agents_ok, _agents, _agents_note = _install.versions_compatible(state, include_now=False)
     if not _agents_ok:
         problems.append(_agents)
+    _agents_later = _install.installed_changed_after_last_step(state)
+    if _agents_later:
+        print(f"WARNING: {_agents_later}.")
 
     # 8. Every slide that copies a supplied page is settled: its own check,
     #    made from the picked design, every figure answered (2026-10-13; this
@@ -332,6 +340,8 @@ def main(argv=None) -> int:
         print(line)
     if _agents_note:
         print(f"  agent files   : {_agents_note}. Mention it when you deliver.")
+    if _agents_later:
+        print(f"  agent files   : warning only: {_agents_later}.")
     return 0
 
 

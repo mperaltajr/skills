@@ -755,7 +755,17 @@ def main(argv=None) -> int:
     print(f"  fill in       : {qc / NOTES}")
     print("Each picture carries a check code in the band under it; the record needs "
           "every code, plus a short quote of each page's own text.")
-    print(f"Then: record_vision_qc.py --out \"{args.out}\"")
+    # The reading goes to a fresh reader agent with this brief (owner's
+    # decision 2026-10-14, speed verdict Q2 C); the proof is unchanged.
+    try:
+        import qc_reader
+        _dest = qc_reader.write(args.out, args.deck or _state.compiled_deck(args.out), plan)
+        for _ln in qc_reader.handoff_lines(_dest):
+            print(_ln)
+    except Exception as exc:  # the brief is a help, never a reason to fail the plan
+        print(f"  (could not write the reader brief: {type(exc).__name__}: {exc}; read the "
+              "pages as slide-qc Step 4 says)")
+    print(f"Then (the reader agent runs it): record_vision_qc.py --out \"{args.out}\"")
     return 0
 
 

@@ -24,6 +24,9 @@ agent.
      committed or unplaceable version, or an old md5-only record, is
      refused; a --slide after an install prints a notice; which_version
      names "the current main version"; the fix command is doctor.py fix only
+  5. (2026-10-14, speed verdict Q2 item 7) compile judges only the
+     translator file; check_done judges the versions the steps ran with and
+     only warns about a file installed after the last agent step
 
 Never touches the real ~/.claude/agents: every step points SLIDE_LAB_AGENTS_DIR
 at a temp folder, and the git cases run in a temp repository.
@@ -197,9 +200,19 @@ def main() -> int:
         why = _install.changed_since_prep(_state.read_state(out))
         assert "slide-builder-worker" in why and "start a new Claude session" in why, why
         env = {**os.environ, "SLIDE_LAB_AGENTS_DIR": str(agents), "SLIDE_LAB_NO_OPEN": "1"}
+        # 2026-10-14: compile judges only the translator file (the workers
+        # have finished); a worker swapped after the last step does not stop it.
         r = subprocess.run([sys.executable, str(SCRIPTS / "compile_picks.py"), "--out", str(out)],
                            capture_output=True, text=True, env=env)
-        assert r.returncode == 7 and "changed after this build was prepared" in r.stdout, \
+        assert r.returncode != 7 and "changed after this build was prepared" not in r.stdout, \
+            r.stdout[-800:] + r.stderr[-800:]
+        with (agents / "slide-builder-translator.md").open("a", encoding="utf-8") as fh:
+            fh.write("\n<!-- swapped mid-build -->\n")
+        r = subprocess.run([sys.executable, str(SCRIPTS / "compile_picks.py"), "--out", str(out)],
+                           capture_output=True, text=True, env=env)
+        assert r.returncode == 7 and "changed after this build was prepared" in r.stdout \
+            and "slide-builder-translator" in r.stdout \
+            and "slide-builder-worker" not in r.stdout.split("REFUSED", 1)[-1], \
             r.stdout[-800:] + r.stderr[-800:]
         r = subprocess.run([sys.executable, str(SCRIPTS / "check_done.py"), "--out", str(out)],
                            capture_output=True, text=True, env=env)
@@ -210,10 +223,20 @@ def main() -> int:
         p = Presentation(); p.slides.add_slide(p.slide_layouts[6]); p.save(str(deck))
         _state.begin_finalize(out); _state.end_finalize(out, "ok")
         _state.record_compile(out, output=deck, slides=1)
+        # Files changed after the last agent step: a warning, not a refusal.
+        r = subprocess.run([sys.executable, str(SCRIPTS / "check_done.py"), "--out", str(out)],
+                           capture_output=True, text=True, env=env)
+        assert r.returncode == 1 and "changed after this build was prepared" not in r.stdout, r.stdout
+        assert "WARNING: the agent files installed now changed after this build's last " \
+               "agent step" in r.stdout and "not affected" in r.stdout, r.stdout
+        # A step that ran agents with the swapped files: now part of the build.
+        _state.record_agents(out, "edits-done")
         r = subprocess.run([sys.executable, str(SCRIPTS / "check_done.py"), "--out", str(out)],
                            capture_output=True, text=True, env=env)
         assert r.returncode == 1 and "changed after this build was prepared" in r.stdout, r.stdout
-        print("    ok: compile exit 7, check_done refuses, both say start a new session")
+        assert "WARNING: the agent files installed now" not in r.stdout, r.stdout
+        print("    ok: compile stops only on the translator (exit 7); check_done warns on a "
+              "file installed after the last agent step and refuses one an agent ran with")
 
         _history_and_main_versions(tmp, agents)
     finally:
@@ -294,6 +317,20 @@ def _history_and_main_versions(tmp: Path, agents: Path) -> None:
             _install._git = real_git
         print("    ok: branch-only, never committed, and no git are refused")
 
+        print("4a2. (2026-10-14) names= and include_now= limit what is judged")
+        iw.write_text("w3 unmerged\n", encoding="utf-8")         # worker branch install
+        st = _state.read_state(out)
+        assert _install.versions_compatible(st, names=("slide-builder-translator",)) == \
+            (True, "", ""), "compile judges the translator only"
+        ok, why, note = _install.versions_compatible(st, include_now=False)
+        assert ok and not why, why                                # the steps used w1, w2
+        warn = _install.installed_changed_after_last_step(st)
+        assert "slide-builder-worker" in warn and "branch feature-y" in warn \
+            and "not affected" in warn, warn
+        iw.write_text("w2\n", encoding="utf-8")
+        assert _install.installed_changed_after_last_step(_state.read_state(out)) == ""
+        print("    ok")
+
         print("4b. an old md5-only record stays strict")
         old = tmp / "build4_old"; old.mkdir()
         (old / "_state.json").write_text(json.dumps({"agents": {
@@ -357,9 +394,13 @@ def _history_and_main_versions(tmp: Path, agents: Path) -> None:
     env = {**os.environ, "SLIDE_LAB_AGENTS_DIR": str(agents), "SLIDE_LAB_NO_OPEN": "1"}
     r = subprocess.run([sys.executable, str(SCRIPTS / "compile_picks.py"), "--out", str(out6)],
                        capture_output=True, text=True, env=env)
-    assert r.returncode != 7 and "NOTE: agent files: built with slide-builder-worker from main" \
-        in r.stdout, r.stdout[-800:]
-    print("    ok: not refused for the agent files; the line is printed")
+    # 2026-10-14: compile judges only the translator, so a worker change
+    # prints nothing there; check_done judges the worker versions the steps used.
+    assert r.returncode != 7 and "slide-builder-worker" not in r.stdout, r.stdout[-800:]
+    _state.record_agents(out6, "edits-done")
+    ok, why, note = _install.versions_compatible(_state.read_state(out6), include_now=False)
+    assert ok and note.startswith("built with slide-builder-worker from main"), (why, note)
+    print("    ok: compile not refused; the main-to-main line comes from the recorded steps")
 
 
 if __name__ == "__main__":

@@ -107,6 +107,8 @@ ALIASES: dict[str, str] = {
     "placeholder_prompt": "sample_text",
     "placeholder_residue": "sample_text",
     "buzzword": "buzzwords",
+    # lines set so tight their letters meet (type_scale.line_spacing_slide)
+    "line_spacing": "overlap",
 }
 
 CONTENT_FIRST = [k for k, v in CATEGORIES.items() if v[0] == "ask"]
