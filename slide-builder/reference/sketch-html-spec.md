@@ -309,7 +309,8 @@ Every sketch-path worker HTML file follows this exact structure:
 <body>
 <div class="slide-canvas" data-visual-form="cards">
 
-  <!-- Chrome top: title bar (style approximates template; actual title text re-used as data field for placeholder population) -->
+  <!-- Chrome top: title and takeaway. Mark them, don't style them: Slide Lab adds slide_NN/_chrome.css
+       last when it draws the picture (the template's real title, takeaway and section tag) -->
   <div class="chrome-top" style="position: absolute; top: 0; left: 0; right: 0; height: var(--body-top);">
     <h1 class="slide-title" data-template-field="title">[Slide title text]</h1>
     <p class="slide-subtitle" data-template-field="subtitle">[So-what text]</p>
@@ -339,7 +340,9 @@ Supported field names:
 - `footer` → template footer placeholder (the template's Source slot when it has one). Put the brief's **Source:** line here word for word, without a "Source:" label (finalize writes "Source: " in front once, not before a "Note" or "Illustrative data" line, and names the slot `source`; 2026-10-13); prep passes it in `_prompt.md` § 1 and records it in `_meta.json` (`source`). The review card flags a sketch whose brief gives a source but which has no footer element (`SOURCE_LINE_MISSING`)
 - `page_number` → template page-number placeholder
 
-The brief's **Section tag:** reaches the worker as text only. Slide Lab draws it; do not draw it. Finalize puts it just above the title in the template's accent color and fixed style (2026-10-09). Do not mark it as a template field either: only `title`, `subtitle`, `footer` and `page_number` are fields, and the converter warns about (and leaves out) any other `data-template-field`.
+**The title, takeaway and section tag are styled by the pipeline; mark, don't style** (owner's decision, 2026-10-13). Prep writes `slide_NN/_chrome.css` from the values finalize uses on this layout (`twins/chrome_rules.chrome_style`: the template's title box, title size, weight and color, bottom-aligned; the takeaway's place, size and text color; the section tag) and lists them in plain words in `_context.md` § 3. `scripts/render_html.py` adds that sheet last, with `!important`, just before the screenshot, so every sketch picture shows the real title, takeaway and section tag whatever the design's own CSS says. The HTML file is not changed, and the converter reads it without the sheet. So: put the title on `data-template-field="title"` and the takeaway on `data-template-field="subtitle"`, give them no font, size, color or position rules, and design the body from `--body-top` down. The render then checks the picture against the template and writes `option_X.sketch.chrome.json`; the review card shows a Major note when the title takes 3 or more lines (`TITLE_TOO_LONG`) or a body shape sits under the title or takeaway (`BODY_UNDER_CHROME`).
+
+The brief's **Section tag:** reaches the worker as text only. Slide Lab draws it; do not draw it. Finalize puts it just above the title in the template's accent color and fixed style (2026-10-09), and the sketch picture shows it in the same place (drawn by `_chrome.css` at render time only, never in the HTML). Do not mark it as a template field either: only `title`, `subtitle`, `footer` and `page_number` are fields, and the converter warns about (and leaves out) any other `data-template-field`.
 
 Reserved shape ids (2026-10-09): `subtitle` is the takeaway under the title, `source-...` the source line and `footnote-...` a footnote; Slide Lab moves and restyles those (a `source-...` / `footnote-...` box only when it sits in the bottom quarter of the page or its text starts "Source", "Note", "1." or "*"). Name a bottom band or so-what card `band-...` or `so-what-...`, never `takeaway-...`.
 

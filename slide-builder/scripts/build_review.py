@@ -316,6 +316,44 @@ _ICON_RE = re.compile(r"""data-icon-name\s*=\s*["']([^"']*)["']|"""
 _FOOTER_RE = re.compile(r"""data-template-field\s*=\s*["']footer["']""", re.I)
 
 
+TITLE_MAX_LINES = 2
+
+
+def chrome_fit_notes(html_path: Path) -> list:
+    """Major notes from the sketch render's check of the template's title and
+    takeaway (render_html.py writes option_X.sketch.chrome.json after adding
+    the slide's _chrome.css, 2026-10-13). Measured against the template's own
+    values, never against what other pages do:
+      TITLE_TOO_LONG     the title takes 3 or more lines in the template's
+                         title style (the box holds 2)
+      BODY_UNDER_CHROME  a body shape sits under the title or takeaway as
+                         the template draws them (above --body-top)"""
+    check = html_path.with_name(html_path.stem + ".sketch.chrome.json")
+    try:
+        data = json.loads(check.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    notes = []
+    lines = int(data.get("title_lines") or 0)
+    if lines > TITLE_MAX_LINES:
+        notes.append({"severity": "Major", "code": "TITLE_TOO_LONG",
+                      "detail": f"in the template's title style the title takes {lines} lines; "
+                                f"the title box holds {TITLE_MAX_LINES}. Shorten the title (ask "
+                                "the user before changing the brief's wording), then re-render "
+                                "the sketch"})
+    covered = data.get("covered") or []
+    if covered:
+        ids = ", ".join(sorted({str(c.get("id")) for c in covered})[:6])
+        by = " and ".join(sorted({str(c.get("by")) for c in covered}))
+        top = data.get("body_top")
+        where = f" ({int(top)} px from the top)" if top else ""
+        notes.append({"severity": "Major", "code": "BODY_UNDER_CHROME",
+                      "detail": f"body shape(s) {ids} sit under the template's {by}; move them "
+                                f"down to --body-top{where} or lower (Replace with a note), "
+                                "or shorten the title"})
+    return notes
+
+
 def sketch_facts(html_path: Path, slide_meta: Optional[dict]) -> tuple[Optional[str], list]:
     """(visual form the sketch declares or None, notes for its card).
 
@@ -340,6 +378,7 @@ def sketch_facts(html_path: Path, slide_meta: Optional[dict]) -> tuple[Optional[
                 notes.append({"severity": sev, "code": w["code"], "detail": w["detail"]})
     except Exception:
         pass
+    notes += chrome_fit_notes(html_path)
     src = ((slide_meta or {}).get("source") or "").strip()
     if src and not _FOOTER_RE.search(text):
         notes.append({"severity": "Major", "code": "SOURCE_LINE_MISSING",
