@@ -44,8 +44,9 @@ did not keep (2026-10-09).
 
 --edited-by-parent "<what changed>" (with --approved): the main session made
 the edit itself (a color, a font size, or the user's exact words) in the
-picked option_X.py of a direct-path page. Refused for a sketch page. Recorded,
-and check_done lists it at delivery as "edited by parent".
+picked option_X.py of a direct-path page, or the picked option_X.html of a
+sketch page (owner's decision, 2026-10-13), which is then converted again.
+Recorded, and check_done lists it at delivery as "edited by parent".
 
 It
   1. refuses unless a deck was already compiled from this build (a first build
@@ -405,14 +406,9 @@ def main(argv=None) -> int:
             if L != "-" and L not in _letters(out / k):
                 print(f"REFUSED: {k} no longer has option {L}; pick in REVIEW.html.")
                 return 5
-    if args.edited_by_parent is not None:
-        sketch = [f"{n}{L}" for n, L in to_convert
-                  if not _state.direct_path_letter(out / _p.slide_key(n), L)]
-        if sketch:
-            print(f"REFUSED: --edited-by-parent is for direct-path pages only (the picked "
-                  f"option_X.py); {', '.join(sketch)} is a sketch page. Sketch pages keep "
-                  "the worker route (edit option_X.html, then convert).")
-            return 5
+    # --edited-by-parent on a sketch page is allowed since 2026-10-13 (owner's
+    # decision D2): the edited option_X.html is converted again below
+    # (translate_html.refresh_stale) and its new picture is looked at.
 
     _state.record_review(out)                 # a review token for the current content
     _state.record_picks(out, picks, all_options=all_options,

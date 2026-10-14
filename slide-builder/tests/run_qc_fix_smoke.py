@@ -10,7 +10,8 @@
   4. it refuses a fixed slide that has more than one option the user has not
      chosen between (the user picks)
   5-6. a slide the translator agent finished is kept; a changed design is
-     converted again
+     converted again, keeping the agent's drawing while its element is
+     unchanged, and back to the agent (old drawing pasted in) once it changed
   7. on a slide where the user kept two options (B and C), "--slides 1B"
      rebuilds B only, keeps C byte-identical, and compiles the labeled deck
   8. on an all-options deck where slide 1 keeps only A of A, B, C: A edited
@@ -70,11 +71,14 @@ def _agent_part_survives() -> None:
         tok = _state.read_state(out)["final_check"]["token"]
         assert H.run("compile_picks.py", "--out", out, "--final-token", tok).returncode == 0
 
-        # the QC fix: a new design for slide 2, with a part only the agent draws
+        # the QC fix: a new design for slide 2; the part only the agent draws
+        # is unchanged, so its drawing is kept (2026-10-13)
         H.write_sketch(out, 2, "A", text="The fixed note.")
         r = H.run("apply_qc_fix.py", "--out", out, "--slides", "2", "--approved", "fix slide 2")
-        assert r.returncode == 3 and "option_A_native.py" in r.stdout, r.stdout[-1500:]
-        finished = H.agent_finishes(native)
+        assert r.returncode == 0, f"exit {r.returncode}\n{r.stdout[-1500:]}"
+        assert "drawing is kept" in r.stdout, r.stdout[-1500:]
+        finished = native.read_text(encoding="utf-8")
+        assert "agent-drawn-mark" in finished and "# FALLBACK_DONE:" in finished
         r = H.run("apply_qc_fix.py", "--out", out, "--slides", "2", "--approved", "fix slide 2")
         assert r.returncode == 0, (
             f"exit {r.returncode}: the finished slide was converted again "
@@ -85,16 +89,17 @@ def _agent_part_survives() -> None:
         deck = Presentation(str(_state.compiled_deck(out)))
         names = {sh.name for sh in deck.slides[1].shapes}
         assert "agent-drawn-mark" in names, f"the agent's shape is not in the deck: {names}"
-        print("    ok: second run exit 0, the agent's part byte-identical and in the deck")
+        print("    ok: the fix kept the agent's part; second run exit 0, byte-identical, in the deck")
 
-        print("[6] a design changed after the conversion is converted again")
-        H.write_sketch(out, 2, "A", text="A second fix to the note.")
+        print("[6] the agent's element changed in the design: back to the agent, old drawing pasted")
+        H.write_sketch(out, 2, "A", text="A second fix to the note.", tag="Turned tag")
         r = H.run("apply_qc_fix.py", "--out", out, "--slides", "2", "--approved", "fix it again")
         assert r.returncode == 3, r.stdout[-1500:]
-        assert "# FALLBACK_PENDING:" in native.read_text(encoding="utf-8")
+        src = native.read_text(encoding="utf-8")
+        assert "# FALLBACK_PENDING:" in src and "# --- PREVIOUS DRAWING" in src
         assert "The fixed note" not in (sd / "option_A_native.plan.json").read_text(
             encoding="utf-8"), "the plan was not redrawn from the new design"
-        print("    ok: re-converted, waiting on the agent for the new design")
+        print("    ok: re-converted, waiting on the agent with its previous drawing to adapt")
     finally:
         if saved is None:
             os.environ.pop("SLIDE_LAB_TRANSLATOR", None)
@@ -142,7 +147,8 @@ def _kept_options_fix() -> None:
         assert r.returncode == 5 and "not A" in r.stdout, r.stdout
         print("    ok: a plain slide number and an option the user did not keep are refused")
 
-        H.write_sketch(out, 1, "B", text="The fixed design B.")
+        # the fix changes the element the agent drew too, so B goes back to it
+        H.write_sketch(out, 1, "B", text="The fixed design B.", tag="Fixed tag")
         r = H.run("apply_qc_fix.py", "--out", out, "--slides", "1B", "--approved", "fix B")
         assert r.returncode == 3 and "option_B_native.py" in r.stdout, r.stdout[-1500:]
         assert "option_C_native.py" not in r.stdout, "C was sent to the agent again"

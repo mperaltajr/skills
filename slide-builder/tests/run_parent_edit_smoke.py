@@ -2,8 +2,8 @@
 """Smoke test: the parent's direct edit (owner's decision, 2026-10-09).
 
 For a color, a font size or wording the user gave word for word, on a
-direct-path page (the picked option_X.py), the main session may edit the
-script itself, no worker. It is recorded and listed at delivery.
+direct-path page (the picked option_X.py) or, since 2026-10-13, a sketch
+page (converted again), the main session may edit it itself, no worker. It is recorded and listed at delivery.
 
   1. before compile: record_picks.py --edits-done --edited-by-parent "2: ..."
      refuses an unchanged design and a slide not waiting on an edit; after the
@@ -11,7 +11,8 @@ script itself, no worker. It is recorded and listed at delivery.
      prints the look-at-the-picture reminder
   2. after compile: apply_qc_fix.py --approved ... --edited-by-parent "..."
      compiles, records the edit and lists the new pictures to look at; it is
-     refused with --auto, and for a sketch page (the worker route stays)
+     refused with --auto (a sketch page is accepted since 2026-10-13 and
+     converted again)
   3. check_done lists every edit as "edited by parent"
 
 Run:  py -3 slide-builder/tests/run_parent_edit_smoke.py
@@ -76,8 +77,10 @@ def main() -> int:
         assert r.returncode == 5 and "not waiting on an edit" in r.stdout, r.stdout[-800:]
         r = H.run("record_picks.py", "--out", out, "--edited-by-parent", "2: x")
         assert r.returncode == 2, r.stdout[-800:]
+        # a sketch page may be edited by the parent too (owner's decision D2,
+        # 2026-10-13); it is converted again
         got, why = RP._parent_edits(out, ["3: bar color"], ["slide_03"], picks)
-        assert got is None and "sketch pages keep the worker" in why, why
+        assert got == {"slide_03": "bar color"}, why
         r = H.run("record_picks.py", "--out", out, "--edits-done",
                   "--edited-by-parent", "2: body text to 16 pt, as the user wrote")
         assert r.returncode == 0, r.stdout[-1500:] + r.stderr[-800:]
@@ -87,7 +90,7 @@ def main() -> int:
         assert len(pe) == 1 and pe[0]["slides"] == "slide_02" and "16 pt" in pe[0]["what"], pe
         c = st["comments"][0]
         assert c["status"] == "applied" and "by the parent" in c["applied_how"], c
-        print("    ok: refused unchanged / not waiting / sketch; recorded after the edit")
+        print("    ok: refused unchanged / not waiting; sketch accepted; recorded after the edit")
 
         assert H.finalize(out).returncode == 0
         assert H.run("build_review.py", "--out", out, "--final").returncode == 0
@@ -99,9 +102,6 @@ def main() -> int:
         r = H.run("apply_qc_fix.py", "--out", out, "--slides", "1", "--auto",
                   "slide 1 [text_size] Major: x", "--edited-by-parent", "title 28 pt")
         assert r.returncode == 2, r.stdout[-800:]
-        r = H.run("apply_qc_fix.py", "--out", out, "--slides", "3",
-                  "--approved", "make the bar teal", "--edited-by-parent", "bar to brand Teal")
-        assert r.returncode == 5 and "sketch page" in r.stdout, r.stdout[-800:]
         _edit(out, 1, 14)
         r = H.run("apply_qc_fix.py", "--out", out, "--slides", "1",
                   "--approved", "make the body 14 pt", "--edited-by-parent", "body text to 14 pt")
@@ -111,7 +111,7 @@ def main() -> int:
         pe = st.get("parent_edits") or []
         assert len(pe) == 2 and pe[1]["slides"] == "1" and \
             pe[1]["words"] == "make the body 14 pt", pe
-        print("    ok: refused with --auto and on a sketch page; recorded and compiled")
+        print("    ok: refused with --auto; recorded and compiled")
 
         print("[3] the delivery list")
         lines = "\n".join(check_done.parent_edit_lines(pe))

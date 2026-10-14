@@ -376,6 +376,38 @@ def record_parent_edit(out_dir, slides: str, what: str, via: str, words: str = "
     return entry
 
 
+def design_fingerprint(slide_dir, letter: str) -> str:
+    """The option's design file as a fingerprint: sha256 of option_X.html (a
+    sketch; the same value its translation report keeps as html_sha256) or
+    of option_X.py (a direct-path page). '' when neither exists. finalize
+    records it per option; compile refuses an option whose design changed
+    after it was finalized (2026-10-13)."""
+    sd = Path(slide_dir)
+    for name in (f"option_{letter}.html", f"option_{letter}.py"):
+        f = sd / name
+        if f.is_file():
+            try:
+                return hashlib.sha256(f.read_bytes()).hexdigest()
+            except OSError:
+                return ""
+    return ""
+
+
+def designs_changed_since_finalize(state: dict, out_dir, option_keys) -> list[str]:
+    """Options about to ship whose design file changed after finalize
+    recorded it (records from before 2026-10-13 carry none and pass)."""
+    by = (state.get("qc") or {}).get("by_option") or {}
+    hits = []
+    for k in option_keys:
+        rec = by.get(k) or {}
+        if not rec.get("design_sha"):
+            continue
+        slide, letter = k.split("/")
+        if rec["design_sha"] != design_fingerprint(Path(out_dir) / slide, letter):
+            hits.append(k)
+    return hits
+
+
 def direct_path_letter(slide_dir, letter: str) -> bool:
     """A direct-path option: its design is option_X.py, with no sketch
     (option_X.html) behind it. Only these may be edited by the parent."""

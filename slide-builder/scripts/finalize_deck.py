@@ -2819,6 +2819,48 @@ EXIT_TEXT_FIT = 17            # a word breaks mid-word, or a table runs into con
 EXIT_SKIP_RENDER_PICKED = 18  # --skip-render asked on a slide the user already picked
 
 
+def _refresh_picked(args) -> list:
+    """Convert again every picked sketch design that changed since it was
+    converted, or was never converted (translate_html.refresh_stale): a, b and
+    c are automatic; d keeps the agent's drawing only when nothing it draws
+    changed, else the option waits on the agent and the missing-output check
+    below names it with the FALLBACK MODE step. Slides whose comments still
+    wait on an edit are left alone. Returns the (slide, letter) converted."""
+    import _state  # noqa: E402
+    import translate_html  # noqa: E402
+    st = _state.read_state(args.out)
+    picks = ((st.get("review") or {}).get("picks")) or {}
+    if not picks:
+        return []
+    held = {c.get("slide") for c in _state.pending_comments(st, "edit")}
+    items = []
+    for sid, v in sorted(picks.items()):
+        try:
+            n = int(str(sid).split("_")[1])
+        except (IndexError, ValueError):
+            continue
+        if sid in held or (args.slide is not None and n != args.slide):
+            continue
+        for L in (v if isinstance(v, list) else [v]):
+            if not L or L == "-":
+                continue
+            sd = _p.slide_dir(args.out, n)
+            html = sd / f"option_{L}.html"
+            if html.exists() and translate_html.needs_conversion(html, sd, L):
+                items.append((n, L))
+    if not items:
+        return []
+    names = ", ".join(f"slide {n} option {L}" for n, L in items)
+    if _p.translator_mode() != "script":
+        print(f"  NOTE: {len(items)} picked design(s) changed since they were converted "
+              f"({names}). Dispatch slide-builder-translator on each before shipping.")
+        return []
+    print(f"\n[0] {len(items)} picked design(s) changed since they were converted ({names}); "
+          "converting them again")
+    translate_html.refresh_stale(args.out, items, quiet=True)
+    return items
+
+
 def _run_and_record(args) -> int:
     """Run finalize and record how it ended, whatever happens.
 
@@ -3059,7 +3101,16 @@ def _run(args) -> int:
             )
         return lc
 
+    # Picked sketch designs that changed since they were converted are
+    # converted again first (owner's decision D1, 2026-10-13); what the
+    # translator agent drew is kept when nothing it draws changed, else the
+    # option waits on the agent and is named below like any other.
+    _refresh_picked(args)
     statuses = discover_options(args.out, expected=expected_pairs)
+    import _state  # noqa: E402
+    _design_fps = {_state.option_key(s.slide_n, s.letter):
+                   _state.design_fingerprint(_p.slide_dir(args.out, s.slide_n), s.letter)
+                   for s in statuses}
     # Rebuild mode: process only the target slide. Other slides keep their
     # existing themed output on disk, which compile_picks.py reuses.
     if args.slide is not None:
@@ -3611,6 +3662,11 @@ def _run(args) -> int:
     print(f"  QC totals: all-ok={qc_counts['all_ok']}  warn-only={qc_counts['warn_only']}  block={qc_counts['block']}")
     # Record per option. compile refuses any option it is about to ship that has
     # blocks, or has no record at all.
+    # The design each option was built from: compile refuses an option whose
+    # design changed after this (an edit after finalize never reached the deck).
+    for _k, _v in option_results.items():
+        _sd, _L = _k.split("/")
+        _v["design_sha"] = _design_fps.get(_k) or _state.design_fingerprint(args.out / _sd, _L)
     _state.record_option_qc(args.out, option_results)
     n_blocked_opts = sum(1 for v in option_results.values() if v["blocks"])
     if n_blocked_opts:

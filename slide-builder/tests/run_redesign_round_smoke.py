@@ -114,7 +114,9 @@ def _agent_part_survives() -> None:
 
         r = H.run("redesign_round.py", "start", "--out", out, "--slides", "2", "--keep-previous")
         assert r.returncode == 0, r.stdout
-        H.write_sketch(out, 2, "A", text="The redesigned note.")
+        # the redesign changes the element the agent draws too, so it goes
+        # back to the agent (an unchanged one would keep its drawing)
+        H.write_sketch(out, 2, "A", text="The redesigned note.", tag="Redesigned tag")
         r = H.run("redesign_round.py", "finish", "--out", out)
         assert r.returncode == 3, r.stdout[-1500:]
         finished = H.agent_finishes(native)

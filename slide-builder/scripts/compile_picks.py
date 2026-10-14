@@ -943,6 +943,18 @@ def main() -> int:
     if not ok:
         print("REFUSED: will not compile.\n  " + reason)
         return 5
+    # A design edited after finalize never reached the finished slide: the
+    # deck would ship the old one (2026-10-13).
+    _moved = _state.designs_changed_since_finalize(_state.read_state(out_dir), out_dir, _ship)
+    if _moved:
+        _tpl = meta.get("template") or "<template>"
+        print(f"REFUSED: will not compile. The design of {len(_moved)} option(s) changed after "
+              f"finalize built it: {', '.join(_moved[:8])}. The finished slide is the old one.")
+        print(f"  Run: py -3 scripts/finalize_deck.py --out \"{out_dir}\" --template \"{_tpl}\"")
+        print("  (it converts the changed designs again and keeps what the translator agent "
+              "drew when nothing it draws changed), then py -3 scripts/build_review.py --out "
+              f"\"{out_dir}\" --final --open and wait for the user's Build it again.")
+        return 5
     # The finished files must be the ones the user looked at in the final check,
     # and every shipped option must have been in it.
     _fc = (_state.read_state(out_dir).get("final_check") or {}).get("digests") or {}

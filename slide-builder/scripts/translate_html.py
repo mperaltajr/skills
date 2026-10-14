@@ -22,6 +22,12 @@ in the report as fallback elements and the script is marked FALLBACK_PENDING;
 finalize refuses it until the slide-builder-translator agent has drawn just
 those elements (see the agent's "Fallback mode").
 
+Converting again after the design changed (refresh_stale, which
+record_picks.py and finalize_deck.py call) keeps what the agent drew only when
+every element it draws is unchanged; otherwise the script waits on the agent
+with the old drawing pasted in to adapt. A hand run over a script the agent
+has drawn in is refused unless --force.
+
 Run:
   py -3 scripts/translate_html.py --out <out_dir> --slide 4 --letter B
   py -3 scripts/translate_html.py --html <file.html> --emit <dir>   (standalone)
@@ -278,11 +284,11 @@ EXTRACT_JS = r"""
     }
 
     if (isRotated(cs)) {
-      out.fallbacks.push({kind: 'rotated', reason: 'rotated or skewed element', id: sid, ...R(r), g: grp(el), order: order++});
+      out.fallbacks.push({kind: 'rotated', reason: 'rotated or skewed element', id: sid, ...R(r), g: grp(el), html: el.outerHTML, order: order++});
       markSubtree(el); continue;
     }
     if (cs.writingMode && cs.writingMode !== 'horizontal-tb') {
-      out.fallbacks.push({kind: 'vertical-text', reason: 'vertical writing mode', id: sid, ...R(r), g: grp(el), order: order++});
+      out.fallbacks.push({kind: 'vertical-text', reason: 'vertical writing mode', id: sid, ...R(r), g: grp(el), html: el.outerHTML, order: order++});
       markSubtree(el); continue;
     }
     if (tag === 'img') {
@@ -312,14 +318,14 @@ EXTRACT_JS = r"""
       if (!why) {
         out.pictures.push({...R(r), src, nw: el.naturalWidth, nh: el.naturalHeight, fit: cs.objectFit,
           pos: cs.objectPosition, radii: [cs.borderTopLeftRadius, cs.borderTopRightRadius, cs.borderBottomRightRadius, cs.borderBottomLeftRadius],
-          shadow: cs.boxShadow !== 'none', id: sid, g: grp(el), order: order++});
+          shadow: cs.boxShadow !== 'none', id: sid, g: grp(el), html: el.outerHTML, order: order++});
       } else {
-        out.fallbacks.push({kind: tag, reason: 'img element (' + why + ')', id: sid, ...R(r), g: grp(el), order: order++});
+        out.fallbacks.push({kind: tag, reason: 'img element (' + why + ')', id: sid, ...R(r), g: grp(el), html: el.outerHTML, order: order++});
       }
       markSubtree(el); continue;
     }
     if (tag === 'canvas' || tag === 'video' || tag === 'iframe' || tag === 'picture') {
-      out.fallbacks.push({kind: tag, reason: tag + ' element', id: sid, ...R(r), g: grp(el), order: order++});
+      out.fallbacks.push({kind: tag, reason: tag + ' element', id: sid, ...R(r), g: grp(el), html: el.outerHTML, order: order++});
       markSubtree(el); continue;
     }
     if (tag === 'svg') {
@@ -333,7 +339,8 @@ EXTRACT_JS = r"""
     const inline = cs.display === 'inline';
     const bgimg = cs.backgroundImage;
     if (bgimg && bgimg !== 'none' && /url\(/.test(bgimg)) {
-      out.fallbacks.push({kind: 'background-image', reason: 'background image', id: sid, ...R(r), g: grp(el), order: order++});
+      out.fallbacks.push({kind: 'background-image', reason: 'background image', id: sid, ...R(r), g: grp(el),
+        html: el.cloneNode(false).outerHTML + ' ' + bgimg + ' ' + cs.backgroundSize + ' ' + cs.backgroundPosition, order: order++});
     }
     const hasBg = !transparent(cs.backgroundColor) || (bgimg && /gradient/.test(bgimg));
     if ((hasBg || liveSides.length) && r.width >= 0 && r.height >= 0 && el !== canvas || (el === canvas && hasBg)) {
@@ -489,7 +496,8 @@ EXTRACT_JS = r"""
 
   function readSvg(svg, sid) {
     const r = svg.getBoundingClientRect();
-    const res = {id: sid, ...R(r), order: order++, items: [], unsupported: [], arrows: [], rects: []};
+    const res = {id: sid, ...R(r), order: order++, items: [], unsupported: [], arrows: [], rects: [],
+                 html: svg.outerHTML};
     const pt = (el, x, y) => { const m = el.getScreenCTM(); const p = new DOMPoint(x, y).matrixTransform(m); return [p.x - ox, p.y - oy]; };
     for (const el of svg.querySelectorAll('*')) {
       const tag = el.tagName.toLowerCase();
@@ -1605,7 +1613,8 @@ def _plan_picture(plan: "Plan", pc: dict) -> None:
 
     def agent(why):
         plan.fallbacks.append({"kind": "img", "id": pc.get("id") or "", "x": x, "y": y, "w": w,
-                               "h": h, "reason": f"img element ({why})", "_order": pc["order"]})
+                               "h": h, "reason": f"img element ({why})", "_order": pc["order"],
+                               "_html": pc.get("html")})
     if w < 1 or h < 1:
         return
     path = _file_path(pc.get("src") or "")
@@ -1721,7 +1730,8 @@ def _plan_svg(plan: Plan, s: dict) -> None:
         plan.fallbacks.append({"kind": "svg", "id": s.get("id") or "", "x": s["x"], "y": s["y"],
                                "w": s["w"], "h": s["h"],
                                "reason": "svg with " + ", ".join(sorted(set(s["unsupported"]))),
-                               "_order": s["order"], "_rects": s.get("rects") or None})
+                               "_order": s["order"], "_rects": s.get("rects") or None,
+                               "_html": s.get("html")})
         return
     for i, it in enumerate(s["items"]):
         k = s["order"] + 0.0001 * (i + 1)
@@ -2783,7 +2793,7 @@ def plan_from_extract(data: dict, subtitle_as_shape: bool,
         plan.warn(w["code"], w["detail"])
     for f in data["fallbacks"]:
         plan.fallbacks.append(dict({k: f.get(k) for k in ("kind", "id", "x", "y", "w", "h", "reason")},
-                                   _order=f.get("order")))
+                                   _order=f.get("order"), _html=f.get("html")))
     for _, kind, it in sorted(items, key=lambda z: z[0]):
         n0 = len(plan.ops)
         _plan_item(plan, kind, it, subtitle_as_shape)
@@ -2889,25 +2899,254 @@ def _fields_block(fields: dict) -> str:
     return "\n".join(lines)
 
 
+# ---------------------------------------------------------------------------
+# Converting a design again (item 8 step 5 and item 7, 2026-10-13). The agent's
+# drawing (the code between the FALLBACK markers) is kept only when every
+# element it draws is unchanged: the same elements, each with the same
+# fingerprint (its HTML, its box, the bytes of any picture it shows), and the
+# kept code still runs and names a shape after each element. Anything else and
+# the slide waits on the agent again, with its previous drawing pasted into the
+# block as comments to adapt. All or nothing: no element is kept on its own.
+# The old script, plan and report are copied to slide_NN/_prev_translation/
+# <time>/ first, every time (not slide_NN/_prev/, which means "an earlier
+# design" to apply_qc_fix).
+# ---------------------------------------------------------------------------
+
+PREV_TRANSLATION_DIR = "_prev_translation"
+_BLOCK_RE = re.compile(r"^[ \t]*# --- FALLBACK ELEMENTS[^\n]*\n(.*?)^[ \t]*# --- END FALLBACK ELEMENTS ---",
+                       re.M | re.S)
+PREV_OPEN = ("    # --- PREVIOUS DRAWING: the design changed after the agent drew this. Adapt it "
+             "to the new design above this section, then delete the section ---\n")
+PREV_CLOSE = "    # --- END PREVIOUS DRAWING ---\n"
+_PREV_RE = re.compile(r"^[ \t]*# --- PREVIOUS DRAWING[^\n]*\n(.*?)^[ \t]*# --- END PREVIOUS DRAWING ---[^\n]*\n",
+                      re.M | re.S)
+PENDING_PREV_NOTE = (". The design changed after the agent drew it: its previous drawing is "
+                     "pasted in the fallback block as comments; adapt it")
+
+
+def _referenced_files(src: str, html: Path) -> list[Path]:
+    """Local files an element's HTML points at (src, href, url(...))."""
+    from urllib.parse import unquote
+    refs = re.findall(r"""(?:src|href)\s*=\s*["']([^"']+)["']""", src or "", re.I)
+    refs += re.findall(r"""url\(\s*["']?([^"')]+)["']?\s*\)""", src or "", re.I)
+    out = []
+    for ref in refs:
+        ref = ref.strip().replace("&amp;", "&")
+        if not ref or ref.startswith("#") or re.match(r"(?:https?|data):", ref, re.I):
+            continue
+        path = (_file_path(ref) if ref.lower().startswith("file:")
+                else Path(html).parent / unquote(ref.split("?")[0]))
+        try:
+            if path is not None and path.is_file():
+                out.append(path)
+        except OSError:
+            pass
+    return out
+
+
+def _fallback_fp(f: dict, html: Path) -> str:
+    """One element left to the agent, as a fingerprint: what it is in the
+    design (its HTML; for an element the self-check handed over, the plan
+    step the design gave it), its box to the pixel, and the bytes of every
+    picture it shows. A design-wide element (kind "canvas") is the whole file."""
+    import hashlib
+    h = hashlib.sha256(f"{f.get('kind')}|{f.get('id')}|".encode())
+    if f.get("kind") != "self-check":
+        # (a self-check entry's box is where the render differed: not used)
+        h.update(",".join(str(round(float(f.get(k) or 0))) for k in ("x", "y", "w", "h")).encode())
+    src = f.get("_html")
+    if f.get("kind") == "canvas" or not src:
+        h.update(_sha256(html).encode())
+    else:
+        h.update(re.sub(r"\s+", " ", src).strip().encode("utf-8", "replace"))
+        for ref in _referenced_files(src, html):
+            try:
+                h.update(hashlib.sha256(ref.read_bytes()).hexdigest().encode())
+            except OSError:
+                pass
+    return h.hexdigest()[:20]
+
+
+def _drawing_lines(block: str) -> list[str]:
+    """The agent's code in a fallback block (not the placeholder, not a
+    pasted previous drawing)."""
+    block = _PREV_RE.sub("", block or "")
+    return [ln for ln in block.splitlines() if ln.strip() and not ln.strip().startswith("#")]
+
+
+def _old_translation(emit_dir: Path, letter: str) -> dict | None:
+    """What the last conversion of this option left: its script, plan, report,
+    the agent's drawing in it (if any) and any previous drawing pasted in."""
+    native = Path(emit_dir) / f"option_{letter}_native.py"
+    if not native.exists():
+        return None
+    text = native.read_text(encoding="utf-8", errors="replace")
+    old = {"text": text, "plan": None, "report": {}}
+    for k, name in (("plan", f"option_{letter}_native.plan.json"),
+                    ("report", f"option_{letter}_translation_report.json")):
+        try:
+            old[k] = json.loads((Path(emit_dir) / name).read_text(encoding="utf-8"))
+        except Exception:
+            pass
+    m = _BLOCK_RE.search(text)
+    block = m.group(1) if m else ""
+    done = re.search(r"^# FALLBACK_DONE:.*$", text, re.M)
+    old["block"] = block
+    old["done_line"] = done.group(0) if done else ""
+    old["drawn"] = bool(done) and bool(_drawing_lines(block))
+    pm = _PREV_RE.search(block)
+    old["prev_section"] = pm.group(0) if pm else ""
+    return old
+
+
+def _snapshot_translation(emit_dir: Path, letter: str) -> Path | None:
+    """Copy the option's script, plan and report to _prev_translation/<time>/."""
+    import shutil
+    from datetime import datetime
+    names = [f"option_{letter}_native.py", f"option_{letter}_native.plan.json",
+             f"option_{letter}_translation_report.json"]
+    have = [Path(emit_dir) / n for n in names if (Path(emit_dir) / n).exists()]
+    if not have:
+        return None
+    base = Path(emit_dir) / PREV_TRANSLATION_DIR
+    stamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+    dest, k = base / stamp, 1
+    while (dest / names[0]).exists():
+        dest, k = base / f"{stamp}-{k}", k + 1
+    try:
+        dest.mkdir(parents=True, exist_ok=True)
+        for f in have:
+            shutil.copy2(f, dest / f.name)
+    except OSError:
+        return None
+    return dest
+
+
+def _as_previous(block: str) -> str:
+    """The agent's old code as a commented section to adapt."""
+    lines = []
+    for ln in (block or "").splitlines():
+        if ln.strip() == "# (none)":
+            continue
+        lines.append("    # | " + (ln[4:] if ln.startswith("    ") else ln.lstrip()))
+    return PREV_OPEN + "\n".join(lines) + ("\n" if lines else "") + PREV_CLOSE
+
+
+def _kept_drawing_check(native: Path, fallbacks: list[dict]) -> str:
+    """Run the script with the kept drawing. '' when it runs and (with more
+    than one element) names a shape after every element; else why not."""
+    import subprocess
+    try:
+        r = subprocess.run([sys.executable, str(native)], cwd=str(native.parent),
+                           capture_output=True, text=True, timeout=300)
+    except Exception as exc:
+        return f"it could not be run ({type(exc).__name__})"
+    if r.returncode != 0:
+        tail = [ln for ln in (r.stderr or r.stdout or "").strip().splitlines() if ln.strip()]
+        return "it no longer runs (" + (tail[-1][:200] if tail else f"exit {r.returncode}") + ")"
+    if len(fallbacks) > 1:
+        try:
+            from pptx import Presentation
+            names = [sh.name for sh in
+                     Presentation(str(native.with_suffix(".pptx"))).slides[0].shapes]
+        except Exception as exc:
+            return f"its slide could not be read ({type(exc).__name__})"
+        miss = [f["id"] for f in fallbacks
+                if not any(n == f["id"] or n.startswith(f["id"] + "-") for n in names)]
+        if miss:
+            return "no shape is named after " + ", ".join(miss)
+    return ""
+
+
+def _drawing_decision(old: dict, plan: "Plan") -> str:
+    """'' when the agent's old drawing can be kept for this plan, else why not."""
+    old_fp = {f.get("id"): f.get("fp") for f in (old["report"] or {}).get("fallback") or []}
+    new_fp = {f["id"]: f["fp"] for f in plan.fallbacks}
+    if set(old_fp) != set(new_fp):
+        new, gone = sorted(set(new_fp) - set(old_fp)), sorted(set(old_fp) - set(new_fp))
+        return "; ".join(x for x in (
+            ("new element(s) for the agent: " + ", ".join(new)) if new else "",
+            ("no longer left to the agent: " + ", ".join(gone)) if gone else "") if x)
+    if not all(old_fp.values()):
+        return "the earlier conversion did not record what each element looked like"
+    changed = sorted(k for k in new_fp if new_fp[k] != old_fp[k])
+    return ("changed in the design: " + ", ".join(changed)) if changed else ""
+
+
 def write_outputs(html: Path, emit_dir: Path, letter: str, plan: Plan, fields: dict,
                   visible_text: str) -> dict:
     stem = f"option_{letter}_native"
     plan_name = f"{stem}.plan.json"
-    (emit_dir / plan_name).write_text(json.dumps(_public_plan(plan), indent=1), encoding="utf-8")
-    fb = ""
+    native = emit_dir / f"{stem}.py"
+    old = _old_translation(emit_dir, letter)
+    snap = _snapshot_translation(emit_dir, letter) if old else None
     if plan.fallbacks:
         _fallback_stacking(plan)
-        fb = (f"# FALLBACK_PENDING: {len(plan.fallbacks)} element(s) need the "
-              f"slide-builder-translator agent; see option_{letter}_translation_report.json\n")
         for f in plan.fallbacks:
-            where = (f"stacked under {f['draw_under']!r}" if f.get("draw_under")
-                     else f"stacked after plan step {f['draw_after_n']}"
-                     if f.get("draw_after_n") is not None else "on top of everything")
-            fb += (f"#   {f['id']}: name its shapes {f['id']}, {f['id']}-1, {f['id']}-2 ...; "
-                   f"{where} (set for you)\n")
-    (emit_dir / f"{stem}.py").write_text(NATIVE_TEMPLATE.format(
-        name=f"{stem}.py", version=TRANSLATOR_VERSION, plan_name=plan_name,
-        fields_block=_fields_block(fields), fallback_line=fb, skill=str(SKILL)), encoding="utf-8")
+            f["fp"] = _fallback_fp(f, html)
+    pub = _public_plan(plan)
+    (emit_dir / plan_name).write_text(json.dumps(pub, indent=1), encoding="utf-8")
+    id_lines = ""
+    for f in plan.fallbacks:
+        where = (f"stacked under {f['draw_under']!r}" if f.get("draw_under")
+                 else f"stacked after plan step {f['draw_after_n']}"
+                 if f.get("draw_after_n") is not None else "on top of everything")
+        id_lines += (f"#   {f['id']}: name its shapes {f['id']}, {f['id']}-1, {f['id']}-2 ...; "
+                     f"{where} (set for you)\n")
+    pending = (f"# FALLBACK_PENDING: {len(plan.fallbacks)} element(s) need the "
+               f"slide-builder-translator agent; see option_{letter}_translation_report.json")
+
+    def _write(fb: str, block: str | None = None) -> None:
+        text = NATIVE_TEMPLATE.format(
+            name=f"{stem}.py", version=TRANSLATOR_VERSION, plan_name=plan_name,
+            fields_block=_fields_block(fields), fallback_line=fb, skill=str(SKILL))
+        if block is not None:
+            text = text.replace("    # (none)\n", block, 1)
+        native.write_text(text, encoding="utf-8")
+
+    def _write_with_previous(section: str) -> None:
+        _write(pending + PENDING_PREV_NOTE + "\n" + id_lines, "    # (none)\n" + section)
+
+    kept = False
+    re_info = None
+    if old is None:
+        _write(pending + "\n" + id_lines if plan.fallbacks else "")
+    else:
+        try:
+            body_same = old["plan"] == json.loads(json.dumps(pub))
+        except Exception:
+            body_same = False
+        fields_same = (old["report"] or {}).get("template_fields") == fields
+        # a: converts the same; b: only the title / takeaway / footer text the
+        # template draws changed; c: the body changed; d: c where the agent drew
+        case = "a" if body_same and fields_same else "b" if body_same else "c"
+        re_info = {"case": case, "drawing": None, "why": "",
+                   "snapshot": str(snap) if snap else ""}
+        if old["drawn"] and plan.fallbacks:
+            if case == "c":
+                re_info["case"] = "d"
+            why = _drawing_decision(old, plan)
+            if not why:
+                # The drawing as the agent wrote it, under the new header and
+                # plan; the template's restack_fallbacks call stays after it.
+                _write(old["done_line"] + "\n" + id_lines, old["block"])
+                why = _kept_drawing_check(native, plan.fallbacks)
+                kept = not why
+            re_info.update(drawing="kept" if kept else "pending", why=why)
+            if not kept:
+                _write_with_previous(_as_previous(old["block"]))
+        elif old["drawn"]:
+            re_info.update(drawing="not needed",
+                           why="the script now draws everything the agent drew")
+            _write("")
+        elif plan.fallbacks and old["prev_section"]:
+            # Still waiting on the agent from an earlier change: the pasted
+            # previous drawing stays with it.
+            re_info.update(drawing="pending", carried=True,
+                           why="the agent had not adapted its previous drawing yet")
+            _write_with_previous(old["prev_section"])
+        else:
+            _write(pending + "\n" + id_lines if plan.fallbacks else "")
     plan.counts.update(native_counts(plan))
     try:
         from twins.html_emit import build as _build
@@ -2925,11 +3164,13 @@ def write_outputs(html: Path, emit_dir: Path, letter: str, plan: Plan, fields: d
         "counts": plan.counts,
         "fallback": _public_fallbacks(plan),
         "self_check": plan.self_check,
-        "needs_agent": bool(plan.fallbacks),
+        "needs_agent": bool(plan.fallbacks) and not kept,
         "html_sha256": _sha256(html),
         "template_fields": fields,
         "visible_text_chars": len(re.sub(r"\s+", "", visible_text or "")),
     }
+    if re_info:
+        report["retranslation"] = re_info
     (emit_dir / f"option_{letter}_translation_report.json").write_text(
         json.dumps(report, indent=1), encoding="utf-8")
     return report
@@ -2979,13 +3220,62 @@ def needs_conversion(html: Path, emit_dir: Path, letter: str) -> bool:
     return Path(html).stat().st_mtime > native.stat().st_mtime
 
 
-def convert_picked(out: Path, items: list[tuple[int, str]]) -> list[Path]:
-    """Convert the picked sketch options that need it; keep the rest as they are.
+def refresh_line(rep: dict) -> str:
+    """One plain line for a converted option: what happened and why."""
+    h = Path(rep["html"])
+    m = re.match(r"slide_(\d+)", h.parent.name)
+    who = (f"slide {int(m.group(1))} option {h.stem.split('_')[-1]}" if m
+           else f"{h.parent.name}/{h.name}")
+    ri = rep.get("retranslation")
+    n_fb = len(rep.get("fallback") or [])
+    wait = (f"; {n_fb} element(s) wait on the translator agent (FALLBACK MODE)"
+            if rep.get("needs_agent") else "")
+    if not ri:
+        return f"[ok] {who}: converted{wait}"
+    d, why = ri.get("drawing"), ri.get("why") or ""
+    if d == "kept":
+        head = {"a": "the design file changed but converts the same",
+                "b": "only the title or takeaway text changed; script header updated",
+                "d": "the design changed; converted again"}.get(ri["case"], "converted again")
+        return (f"[ok] {who}: {head}; the translator agent's drawing is kept (every element "
+                "it draws is unchanged and it still runs)")
+    if d == "pending" and ri.get("carried"):
+        return (f"[!!] {who}: the design changed again before the translator agent adapted "
+                "its previous drawing; converted again, and it still waits on the agent "
+                "(FALLBACK MODE) with that drawing pasted in")
+    if d == "pending":
+        return (f"[!!] {who}: the design changed where the translator agent drew ({why}); "
+                "converted again, and it waits on the agent (FALLBACK MODE) with its previous "
+                "drawing pasted in to adapt")
+    if d == "not needed":
+        return (f"[ok] {who}: the design changed; converted again, and the agent's earlier "
+                "drawing is no longer needed (the script draws it all now)" + wait)
+    head = {"a": "the design file changed but converts the same",
+            "b": "only the title or takeaway text changed; converted again",
+            "c": "the design changed; converted again"}.get(ri["case"], "converted again")
+    return f"[ok] {who}: {head}{wait}"
 
-    items: (slide number, letter). Returns the option_X_native.py files that
-    still wait on the translator agent (fallback mode): the ones just
-    converted with elements left over, and the ones kept whose agent part is
-    not drawn yet. Prints one line per option kept as is.
+
+def refresh_stale(out: Path, items: list[tuple[int, str]], quiet: bool = False) -> list[Path]:
+    """Bring the picked sketch options up to date with their designs.
+
+    items: (slide number, letter). An option whose design (option_X.html) is
+    the one it was converted from is kept as it is. One that changed, or was
+    never converted, is converted again in one call (one browser, one
+    self-check pass), and write_outputs decides what happens to what the
+    translator agent drew:
+      a  converts the same: script kept, fingerprint updated
+      b  only the template's text (title, takeaway, footer) changed: the
+         script's __template_fields__ header is rewritten, drawing kept
+      c  the body changed and the agent drew nothing: replaced
+      d  the body changed and the agent drew: its drawing is kept only when
+         every element it draws is unchanged and the script still runs; else
+         the option waits on the agent with the old drawing pasted in
+    The old script is copied to slide_NN/_prev_translation/<time>/ first.
+    Prints one line per option (quiet=True: only the ones converted).
+    Returns the option_X_native.py files that wait on the translator agent:
+    the ones just converted with elements left over, and the ones kept whose
+    agent part is not drawn yet.
     """
     jobs, waiting = [], []
     for n, letter in items:
@@ -2999,15 +3289,36 @@ def convert_picked(out: Path, items: list[tuple[int, str]]) -> list[Path]:
             continue
         if fallback_pending(native):
             waiting.append(native)
-        else:
+            if not quiet:
+                print(f"[..] slide {n} option {letter}: converted from the current design; "
+                      "still waits on the translator agent (FALLBACK MODE)")
+        elif not quiet:
             print(f"[ok] slide {n} option {letter}: already converted from the current "
                   "design; kept as is (nothing the translator agent drew is redone)")
     if jobs:
         for r in translate_many(jobs):
+            print(refresh_line(r))
             if r["needs_agent"]:
                 h = Path(r["html"])
                 waiting.append(h.with_name(h.stem + "_native.py"))
     return waiting
+
+
+def convert_picked(out: Path, items: list[tuple[int, str]]) -> list[Path]:
+    """The picked sketch options brought up to date (refresh_stale)."""
+    return refresh_stale(out, items)
+
+
+def drawn_by_agent(native_py: Path) -> bool:
+    """True when the translator agent has drawn in this script (FALLBACK_DONE
+    and code between the markers)."""
+    try:
+        text = Path(native_py).read_text(encoding="utf-8")
+    except OSError:
+        return False
+    m = _BLOCK_RE.search(text)
+    return bool(re.search(r"^# FALLBACK_DONE:", text, re.M)) and bool(
+        _drawing_lines(m.group(1) if m else ""))
 
 
 def _subtitle_as_shape(out: Path, slide_n: int) -> bool:
@@ -3327,7 +3638,12 @@ def self_check(items: list[tuple["Plan", dict]], engine: str = "auto",
                         "x": x0, "y": y0, "w": x1 - x0, "h": y1 - y0,
                         "reason": "came out looking different from the design ("
                                   + ", ".join(sorted({w for r in rs for w in r["fired"]})) + ")",
-                        "_order": o.get("_order")})
+                        "_order": o.get("_order"),
+                        # what the element is, for _fallback_fp: the plan step
+                        # the design gave it (not where the render put it)
+                        "_html": json.dumps({k: v for k, v in o.items()
+                                             if not k.startswith("_")}, sort_keys=True,
+                                            default=str)})
                 gone = {id(o) for o, _ in handed}
                 plan.ops = [o for o in plan.ops if id(o) not in gone]
                 plan.counts["self_check_handed_over"] += len(handed)
@@ -3381,6 +3697,10 @@ def main(argv=None) -> int:
     ap.add_argument("--emit", type=Path, help="Standalone: where to write the outputs.")
     ap.add_argument("--no-self-check", action="store_true",
                     help="Skip rendering and comparing with the design (debugging only).")
+    ap.add_argument("--force", action="store_true",
+                    help="Convert again even though the translator agent has drawn in this "
+                         "option's script (its drawing is kept only if every element it draws "
+                         "is unchanged; else it is pasted back as the previous drawing).")
     args = ap.parse_args(argv)
     if args.html:
         emit = args.emit or args.html.parent
@@ -3396,11 +3716,32 @@ def main(argv=None) -> int:
         jobs = [job_for(args.out, args.slide, args.letter)]
     else:
         ap.error("give --out/--slide/--letter, or --html")
+    # A hand run over a script the agent has drawn in (2026-10-13): it used to
+    # rewrite the script from scratch and the drawing was lost for good.
+    html0, emit0, letter0 = jobs[0][0], jobs[0][1], jobs[0][2]
+    native0 = Path(emit0) / f"option_{letter0}_native.py"
+    if not args.force and drawn_by_agent(native0):
+        same = not needs_conversion(Path(html0), Path(emit0), letter0)
+        print(f"REFUSED: {native0} has the translator agent's drawing in it (FALLBACK_DONE). "
+              + ("It is already converted from the current design: nothing to do."
+                 if same else
+                 "The design changed since. Bring it up to date with "
+                 + (f"py -3 scripts/record_picks.py --out \"{args.out}\" --edits-done "
+                    "(it converts what changed and keeps the drawing when the elements it "
+                    "draws are unchanged), or finalize_deck.py, which does the same."
+                    if args.out else "--force.")))
+        print("  Add --force to convert anyway: the drawing is kept only if every element it "
+              "draws is unchanged; else the script waits on the agent with the old drawing "
+              "pasted in. The old script is copied to _prev_translation\\ first.")
+        return 5
     for rep in translate_many(jobs, check=not args.no_self_check):
         c = rep["counts"]
         print(f"[ok] {Path(rep['html']).parent.name}/{Path(rep['html']).name}: "
               f"{c['shapes']} shapes, {c['texts']} text boxes, {c['svg_items']} drawing items"
-              + (f"; {len(rep['fallback'])} element(s) need the agent" if rep["fallback"] else ""))
+              + (f"; {len(rep['fallback'])} element(s) need the agent" if rep["needs_agent"]
+                 else ""))
+        if rep.get("retranslation"):
+            print("  " + refresh_line(rep))
     return 0
 
 
