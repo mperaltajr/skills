@@ -194,6 +194,181 @@ def notes(result: dict) -> list[str]:
             f"({sizes} pt), e.g. \"{bd[0][1][:50]}\""]
 
 
+# ---------------------------------------------------------------- line spacing
+# Exact line spacing ("exactly N pt", a:spcPts) tighter than the font needs
+# (2026-10-13 report item 10: 439 of 545 paragraphs on 23 of 30 pages, and it
+# did not show in the pictures). Two checks, in px at 96 dpi:
+#   - lines touch: a paragraph that can show more than one line, at a pitch
+#     smaller than the font's capital height plus its descent, so the letters
+#     of one line meet the next line's. Major (layout, fixed automatically as
+#     an overlap).
+#   - capitals above the box: the first line of a top-anchored box sits so
+#     high that its capitals reach more than CAPS_ABOVE_PX above the box (its
+#     frame when selected). Advisory: only visible when the box is selected.
+# The converter's own one-line boxes (spacing 0.8 x size, translate_html
+# TIGHT_SINGLE) are drawn higher with a top inset since 2026-10-13
+# (top_pad_px), so they pass both: one line cannot touch another, and the
+# inset covers the capitals.
+CAPS_ABOVE_PX = 1.0
+TOUCH_MARGIN_PX = 0.5
+_ARIAL = (0.905, 0.212, 0.716)   # ascent, descent, capital height (em)
+
+
+def _font_metrics(face: str, bold: bool):
+    """(ascent, descent, capital height) in em, and PowerPoint's first
+    baseline function, from translate_html; Arial's values without it."""
+    try:
+        import translate_html as _T
+        asc, desc, _n = _T.vertical_metrics(face, bold)
+        return (asc, desc, _T.cap_height(face, bold)), _T.ppt_first_baseline
+    except Exception:
+        return _ARIAL, None
+
+
+def _first_baseline_fallback(L: float, S: float, asc: float, desc: float) -> float:
+    """translate_html.ppt_first_baseline, when it cannot be imported."""
+    import math
+    Lr = round(L * 0.75) / 0.75
+    if round(L * 0.75) > math.floor(1.2 * S * 0.75 + 1e-6):
+        return 0.75 * Lr
+    return max(0.75 * Lr, Lr - 1.2 * S * desc / (asc + desc))
+
+
+def _theme_faces(slide) -> dict:
+    """{"+mn-lt": minor latin face, "+mj-lt": major latin face} of the
+    slide's theme; {} when it cannot be read."""
+    try:
+        master = slide.slide_layout.slide_master
+        for rel in master.part.rels.values():
+            if rel.reltype.endswith("/theme"):
+                from lxml import etree
+                root = etree.fromstring(rel.target_part.blob)
+                out = {}
+                for tag, key in (("minorFont", "+mn-lt"), ("majorFont", "+mj-lt")):
+                    el = root.find(".//" + _A + tag + "/" + _A + "latin")
+                    if el is not None and el.get("typeface"):
+                        out[key] = el.get("typeface")
+                return out
+    except Exception:
+        pass
+    return {}
+
+
+def _face(run, faces: dict) -> str:
+    name = run.font.name or "+mn-lt"
+    return faces.get(name, "Arial") if name.startswith("+") else name
+
+
+def _wraps(runs, para, inner_w: float, faces: dict) -> bool:
+    """Does this paragraph wrap onto a second line in its box? Measured with
+    the real font files (translate_html._wrapped_lines, as PowerPoint sets
+    the text); without them, at an average letter width of half the size."""
+    rs = [{"t": r.text, "font": _face(r, faces), "bold": bool(r.font.bold),
+           "size_px": (_size(r, para) or 12) / 0.75} for r in runs]
+    try:
+        import translate_html as _T
+        n = _T._wrapped_lines([rs], max(1.0, inner_w))
+        if n is not None:
+            return n > 1
+    except Exception:
+        pass
+    return sum(len(r["t"]) * 0.5 * r["size_px"] for r in rs) > inner_w
+
+
+def _para_space(p, tag: str, L: float | None) -> float:
+    """Space before or after a paragraph (a:spcBef / a:spcAft), in px. A
+    percentage is of the line (L px); 0 when there is none."""
+    el = p._p.find(_A + "pPr/" + _A + tag)
+    if el is None:
+        return 0.0
+    pts = el.find(_A + "spcPts")
+    if pts is not None:
+        return int(pts.get("val") or 0) / 100 / 0.75
+    pct = el.find(_A + "spcPct")
+    if pct is not None and L:
+        return int(pct.get("val") or 0) / 100000 * L
+    return 0.0
+
+
+def line_spacing_slide(slide) -> dict:
+    """{'touch': [(spacing pt, size pt, text)], 'caps_above': [(px, text)]}
+    for paragraphs with exact line spacing (see above)."""
+    touch, caps = [], []
+    faces = None
+    for sh in _shapes(slide.shapes):
+        if not (getattr(sh, "has_text_frame", False) and sh.has_text_frame):
+            continue
+        tf = sh.text_frame
+        body = tf._txBody.find(_A + "bodyPr")
+        anchor = body.get("anchor") if body is not None else None
+        if anchor is None and getattr(sh, "is_placeholder", False):
+            anchor = "inherited"            # the layout decides; not known here
+        anchor = anchor or "t"
+
+        def _ins(attr, default):
+            v = body.get(attr) if body is not None else None
+            return (int(v) if v is not None else default) / 9525
+        tins, bins = _ins("tIns", 45720), _ins("bIns", 45720)
+        inner_h = ((sh.height or 0) / 9525) - tins - bins
+        inner_w = ((sh.width or 0) / 9525) - _ins("lIns", 91440) - _ins("rIns", 91440)
+        wrap = (body.get("wrap") if body is not None else None) != "none"
+        if faces is None:
+            faces = _theme_faces(slide)
+        paras =[p for p in tf.paragraphs if "".join(r.text for r in p.runs).strip()]
+        prev_after = None              # px after the previous paragraph; None = first
+        for i, p in enumerate(paras):
+            spc = p._p.find(_A + "pPr/" + _A + "lnSpc/" + _A + "spcPts")
+            runs = [r for r in p.runs if r.text.strip()]
+            sizes = [(_size(r, p), r) for r in runs]
+            sizes = [(s, r) for s, r in sizes if s]
+            if spc is None or not sizes:
+                prev_after = _para_space(p, "spcAft", None)
+                continue
+            S_pt, big = max(sizes, key=lambda t: t[0])
+            S, L = S_pt / 0.75, int(spc.get("val")) / 100 / 0.75
+            (asc, desc, cap), fb = _font_metrics(_face(big, faces), bool(big.font.bold))
+            need = (cap + desc) * S - TOUCH_MARGIN_PX
+            text = "".join(r.text for r in p.runs).strip()
+            # Lines touch only where a line sits above this one: inside the
+            # paragraph (a line break, or text that wraps in the box) at pitch
+            # L, or the previous paragraph's last line, at L plus the space
+            # after it and before this one.
+            inside = (p._p.find(_A + "br") is not None
+                      or (wrap and _wraps(runs, p, inner_w, faces)))
+            between = (prev_after is not None
+                       and L + prev_after + _para_space(p, "spcBef", L) < need)
+            if (inside and L < need) or between:
+                touch.append((round(L * 0.75, 1), S_pt, text))
+            prev_after = _para_space(p, "spcAft", L)
+            if i == 0 and anchor == "t":
+                above = cap * S - (tins + (fb or _first_baseline_fallback)(L, S, asc, desc))
+                if above > CAPS_ABOVE_PX:
+                    caps.append((round(above, 1), text))
+    return {"touch": touch, "caps_above": caps}
+
+
+def line_spacing_problems(result: dict) -> list[str]:
+    """Major: lines set so tight their letters meet."""
+    t = result.get("touch") or []
+    if not t:
+        return []
+    L, S, text = t[0]
+    return [f"{len(t)} paragraph(s) with exact line spacing tighter than the font needs, so "
+            f"the letters of one line meet the next (e.g. {L:g} pt spacing on {S:g} pt text, "
+            f"\"{text[:50]}\")"]
+
+
+def line_spacing_notes(result: dict) -> list[str]:
+    """Advisory: capitals above the text box (seen only when it is selected)."""
+    c = result.get("caps_above") or []
+    if not c:
+        return []
+    px, text = max(c, key=lambda t: t[0])
+    return [f"{len(c)} text box(es) whose first line is set so tight that the capitals reach "
+            f"above the box (up to {px:g} px; shows only when the box is selected), e.g. "
+            f"\"{text[:50]}\""]
+
+
 def check_pptx(path: Path, with_notes: bool = False):
     """[(slide n, problems)], or [(slide n, problems, notes)] with_notes."""
     from pptx import Presentation

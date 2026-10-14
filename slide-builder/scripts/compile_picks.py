@@ -814,8 +814,12 @@ def main() -> int:
     # made the prep check certify slides built by an unmerged agent.
     # Since 2026-10-13 a difference between two versions that are both on main
     # is accepted, with one line here and in COMPILED.md; anything else stops.
+    # Since 2026-10-14 compile judges only the translator file: it is the one
+    # agent that can still run after compile (FALLBACK MODE for a QC fix). The
+    # workers have finished; check_done judges the versions they ran with.
     import _install
-    _agents_ok, _agents, _agents_note = _install.versions_compatible(_state.read_state(out_dir))
+    _agents_ok, _agents, _agents_note = _install.versions_compatible(
+        _state.read_state(out_dir), names=("slide-builder-translator",))
     if not _agents_ok:
         print("REFUSED: will not compile.\n  " + _agents)
         return 7

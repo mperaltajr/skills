@@ -2,6 +2,54 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## 2026-10-14: QC reading in a reader agent, content reviews on picked pages, line-spacing check, agent-file warning, number-check tagging
+
+From the speed verdict Q2 (owner approved every recommendation, 2026-10-14).
+
+- **QC page reading moves to a fresh reader agent.** `qc_pages.py plan`
+  now also writes `_qc/reader_brief.md` (new `scripts/qc_reader.py`, from the
+  template `slide-qc/READER_BRIEF.md`) and prints the hand-off: dispatch one
+  agent with "Read <brief> and do exactly what it says". The brief carries
+  the round's pages, the notes file, the record command, every page's
+  approved headline (never reworded; only a title that differs is flagged),
+  no person attribution, the type rules and the deck's rulings file
+  (`_session/rulings.md`) when there is one. The reader fills
+  `page_notes.json`, runs `record_vision_qc.py` itself (the proof is
+  unchanged) and hands back only open Critical and Major findings, one line
+  each. The main chat keeps fixes, approvals and check_done. About 11-14M
+  tokens less per round on a 30-60 page deck.
+- **Content reviews: one fact check of the brief's numbers before the
+  designers start; the content committee after the picks, on the picked
+  pages only** (slide-lab and slide-builder § "Content reviews and number
+  checks"). On the Leo deck only 37% of 285 fix edits landed on the option
+  that shipped.
+- **Line-spacing file check** (`type_scale.line_spacing_slide`, run by
+  finalize as check `line_spacing` and by slide-qc's hygiene check as
+  category `line-spacing`): exact line spacing so tight that one line's
+  letters meet the next (a wrapped line, a line break, or the next paragraph
+  with its space before and after) is a Major, fixed automatically as an
+  overlap (`qc_fix_policy` alias `line_spacing` = `overlap`); capitals
+  reaching above a top-anchored box are an Advisory (the same rule as the
+  converter's `TEXT_ABOVE_FRAME`). Calibrated on the converter's own output:
+  its one-line boxes (0.8 x the size, with their top inset) do not fire. On
+  the 10/12 Leo deck (66 pages): 0 Major, 3 Advisory; the 10/08 FULL deck: 0
+  and 1; v3.1 (71 pages): 0 and 0. Wrapping is measured with the real font
+  files (theme fonts resolved).
+- **Agent-file check:** compile judges only the translator file (the workers
+  have finished by then; the translator can still run for a QC fix);
+  check_done judges the versions the build's steps ran with, and a file
+  installed after the last agent step is a WARNING, not a refusal
+  (`_install.versions_compatible(names=, include_now=)`,
+  `installed_changed_after_last_step`).
+- **Number-check rounds are tagged** (new `scripts/number_check.py`): `start
+  --round N` before the checkers keeps each page's text and picture
+  fingerprint; `record --round N --findings <file>` tags every finding with
+  `page_changed_since_round_1` (page numbers ignored) and prints the tally;
+  `tally` shows every round. Round 2 stays on every page until two decks
+  show whether any finding lands on an unchanged page.
+- Tests: `run_line_spacing_check_smoke.py`, `run_number_check_rounds_smoke.py`,
+  `run_qc_reader_brief_smoke.py`, `run_agent_versions_smoke.py` (updated).
+
 ## 2026-10-13: edits after conversion reach the deck; the agent's drawing survives (items 7 and 8 steps 5-6)
 
 From the 10/12 Leo deck report: 11 picked slides shipped from plans older

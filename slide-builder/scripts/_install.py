@@ -42,6 +42,14 @@ Since 2026-10-13 (owner-approved, Leo narrative session report item 4):
   - a build session never copies or restores agent files, not even when the
     user says it is fine. Developer installs go through doctor.py fix only.
 
+Since 2026-10-14 (owner-approved, speed verdict Q2 item 7):
+  - compile judges only the translator file, the one agent that can still
+    run after compile (FALLBACK MODE for a QC fix). The workers have all
+    finished by then; check_done judges the versions they ran with.
+  - check_done judges the versions the build's steps ran with. A file
+    installed after the last agent step is a warning there, not a refusal:
+    no page was made with it.
+
 Agent files load when a Claude session starts: after installing, start a new
 Claude session.
 """
@@ -343,23 +351,26 @@ def agent_history(state: dict) -> list:
     return []
 
 
-def differing_agents(state: dict, now: dict | None = None) -> list:
-    """Agent names whose installed file is not the same across the build's
-    history and what is installed now."""
+def differing_agents(state: dict, now: dict | None = None, names=AGENT_NAMES,
+                     include_now: bool = True) -> list:
+    """Agent names (of `names`) whose installed file is not the same across
+    the build's history and (with include_now) what is installed now."""
     hist = agent_history(state)
     if not hist:
         return []
     now = now or installed_versions()
     out = []
-    for name in AGENT_NAMES:
+    for name in names:
         seen = {(e.get("md5") or {}).get(name, "") for e in hist}
-        seen.add(now[name]["md5"])
+        if include_now:
+            seen.add(now[name]["md5"])
         if len(seen) > 1:
             out.append(name)
     return out
 
 
-def versions_compatible(state: dict) -> tuple[bool, str, str]:
+def versions_compatible(state: dict, names=AGENT_NAMES,
+                        include_now: bool = True) -> tuple[bool, str, str]:
     """(ok, refusal, note) for the agent files this build was made with.
 
     ok, no note: every step used the files installed now (or the build has no
@@ -367,10 +378,17 @@ def versions_compatible(state: dict) -> tuple[bool, str, str]:
     (two reviewed main versions), so the build carries on; the note goes into
     COMPILED.md and the delivery report. Not ok: a version only on a branch,
     never committed, missing, one git cannot place, or an old build that
-    recorded md5s only (owner's decisions A to D, 2026-10-13)."""
+    recorded md5s only (owner's decisions A to D, 2026-10-13).
+
+    `names` limits the check to some agents (compile: the translator only,
+    the one agent that can still run after compile). include_now=False
+    judges only the versions the build's steps ran with, not what is
+    installed now (check_done: every agent has finished by then, so a later
+    install touched no page; installed_changed_after_last_step() gives the
+    warning). Owner's decision 2026-10-14 (speed verdict Q2 item 7)."""
     hist = agent_history(state)
     now = installed_versions()
-    differing = differing_agents(state, now)
+    differing = differing_agents(state, now, names, include_now)
     if not differing:
         return True, "", ""
     where = f"at {installed_agents_dir()}"
@@ -386,7 +404,7 @@ def versions_compatible(state: dict) -> tuple[bool, str, str]:
     bad, notes, current_bad = [], [], False
     for name in differing:
         blobs = []
-        for e in hist + [{"blob": {name: now[name]["blob"]}}]:
+        for e in hist + ([{"blob": {name: now[name]["blob"]}}] if include_now else []):
             b = (e.get("blob") or {}).get(name, "")
             if b not in blobs:
                 blobs.append(b)
@@ -410,7 +428,7 @@ def versions_compatible(state: dict) -> tuple[bool, str, str]:
     if bad:
         todo = ("The files installed now are not a version from main: the main Slide "
                 "Lab session installs main with doctor.py fix (after merging). "
-                if current_bad else "")
+                if current_bad and include_now else "")
         return False, (
             "the agent files Claude Code runs changed after this build was prepared, and not every "
             "version is on main (" + "; ".join(bad) + f"; {where}). A slide built by "
@@ -420,6 +438,29 @@ def versions_compatible(state: dict) -> tuple[bool, str, str]:
             "the build again with build_deck.py. " + NEW_SESSION), ""
     return True, "", ("built with " + "; ".join(notes)
                       + " (every version used is on main, so the build carries on)")
+
+
+def installed_changed_after_last_step(state: dict) -> str:
+    """'' when the agent files installed now are the ones the build's last
+    recorded step ran with; otherwise one plain warning naming them.
+    check_done shows it as a warning, not a refusal: no agent of this build
+    ran with the new files (owner's decision 2026-10-14)."""
+    hist = agent_history(state)
+    if not hist:
+        return ""
+    last = hist[-1].get("md5") or {}
+    now = installed_versions()
+    changed = [n for n in AGENT_NAMES if last.get(n, "") != now[n]["md5"]]
+    if not changed:
+        return ""
+    labels = []
+    for n in changed:
+        info = classify_blob(now[n]["blob"])
+        labels.append(f"{n} ({info['label'] if info else 'version unknown'})")
+    return ("the agent files installed now changed after this build's last agent step ("
+            + ", ".join(labels) + "). No page of this deck was made with them, so the "
+            "deck is not affected. Do not copy or restore agent files from this session; "
+            "start a new Claude session before the next build or round of fixes")
 
 
 def changed_since_prep(state: dict) -> str:
