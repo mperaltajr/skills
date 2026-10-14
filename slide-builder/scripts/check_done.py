@@ -75,6 +75,11 @@ def main(argv=None) -> int:
                          "successful compile recorded. A different path is accepted "
                          "only if it is byte-identical to that file.")
     args = ap.parse_args(argv)
+    try:  # prints RULINGS: <path> when the script ends (2026-10-14)
+        import _rulings
+        _rulings.announce(out=args.out)
+    except Exception:
+        pass
 
     if not args.out.exists():
         print(f"ERROR: out dir not found: {args.out}")

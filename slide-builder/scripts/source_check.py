@@ -14,6 +14,9 @@ deck sees exactly what to verify. It never blocks: a derived number (a total,
 a ratio) can be right without appearing in the brief. The point is that
 nobody has to hunt for it.
 
+A number found in a source the user marked validated (deck_sources.py), or in
+the deck's number trail, counts as sourced and is not listed (2026-10-14).
+
   py -3 scripts/source_check.py --out <out_dir>     (prints the same list)
 """
 from __future__ import annotations
@@ -77,8 +80,33 @@ def _money_values(text: str) -> dict[float, set[str]]:
     return vals
 
 
+def _validated_text(out_dir: Path) -> str:
+    """Text of every source the user validated (deck_sources.py) plus the
+    deck's number trail: a figure found there is "from a validated source",
+    not "not in the brief" (2026-10-14). Never raises."""
+    try:
+        import _rulings
+        import _context_pack
+        import deck_sources
+        sd = _rulings.session_dir(out=out_dir)
+        parts = [t.get("figure", "") for t in
+                 (_context_pack.load_sources(sd).get("trail") or [])]
+        for s in deck_sources.validated_sources(sd):
+            p = Path(s.get("path") or "")
+            if p.suffix.lower() == ".pptx" and p.is_file():
+                parts.append(_slide_text(p))
+            elif p.suffix.lower() in (".md", ".txt", ".csv") and p.is_file():
+                parts.append(p.read_text(encoding="utf-8", errors="replace"))
+        return "\n".join(parts)
+    except Exception:
+        return ""
+
+
 def check(out_dir: Path, ships: list[tuple[str, Path]]) -> dict:
     brief = _brief_text(out_dir)
+    vtext = _validated_text(out_dir)
+    if vtext:
+        brief = brief + "\n" + vtext
     brief_nums = {_norm_num(m.group(0)) for m in NUM_RE.finditer(brief)}
     brief_plain = {re.sub(r"[^\d.]", "", n) for n in brief_nums}
     brief_lower = brief.lower()

@@ -239,6 +239,11 @@ def main(argv=None) -> int:
                          "option_X.py itself (a color, a font size or the user's exact words; "
                          "direct-path pages only). Say what changed; check_done lists it.")
     args = ap.parse_args(argv)
+    try:  # prints RULINGS: <path> when the script ends (2026-10-14)
+        import _rulings
+        _rulings.announce(out=args.out)
+    except Exception:
+        pass
     out = args.out
 
     modes = sum(bool(x) for x in (args.auto is not None, args.snapshot, args.undo is not None))

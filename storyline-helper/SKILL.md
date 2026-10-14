@@ -23,6 +23,8 @@ Storyline Helper produces a **narrative brief**: a sequenced outline where each 
 
 4. **You pick the narrative spine; the user pushes back if wrong.** Asking the user to pick from 2–3 narrative frameworks is fake choice — they almost always pick the obvious one, and the other options read as filler. In the Diagnosis stage you select one spine (SCR / Pyramid / MECE / etc.) based on the deck type, the input, and the audience, then explain *why this one* and *which one you rejected and why*. The user can disagree, but you don't offload the judgment by handing them a menu. The exception: **strategic analysis frameworks** (Rumelt, Porter, Lafley & Martin, Blue Ocean, Christensen, 7 Powers) — these are content-development tools and are explicitly suggested, not imposed, because the user owns whether they want to think *through* a framework at all. Never switch to framework-teaching mode silently.
 
+5. **Read the rulings before every storyline revision, and record each new one in the user's words** (owner's decision, 2026-10-14). About a third of the user's steers land on the storyline, before any slide exists ("lead with one revenue area", "keep the v3.1 financials", "remove slide 4"), and three of them were lost and had to be said again. Before you revise the dot-dash or the brief, read `_session\rulings.md` in the session folder (every Slide Lab script prints its path as `RULINGS: <path>`). The moment the user gives a ruling, record it: `py -3 <skills>\slide-builder\scripts\add_ruling.py --brief <brief path> --id deck --topic "<short topic>" --quote "<their words, exactly>" --reading "<what you understood>"` (before the storyline is approved the slides have no ids yet, so use `--id deck` and name the slide in `--reading`; after it, use the slide's id). It refuses words the user did not type; never paraphrase into the quote. A newer ruling on the same topic replaces the older one (both stay visible), so a reversal is recorded, not resolved silently.
+
 ## Why the brief is long
 
 Each slide captures four fields (governing thought, takeaway, editorial emphasis, what-this-is-NOT) plus evidence — typically 20–30 lines per slide. This is deliberate: Slide Builder's intake stage design thinking needs the takeaway and editorial emphasis to produce slides with real judgment, not template-filled layouts. A thin brief produces thin slides.
@@ -837,6 +839,11 @@ This produces **two** files at the session root — a one-line-per-slide project
 
 **No designer wording in the brief's bullets** (owner's decision, 2026-10-13). `emit_dot_dash.py` and `seal_brief.py` refuse a slide bullet with "Supporting points:" or a plain ALL CAPS label and a dash or colon ("SECTION LIST - show all six sections"): those are notes for the designer and they showed up in the storyline the user read. Write the bullet as a plain sentence, give it a **bold label** (that form is fine), or move the note into the slide's **Editorial emphasis:** field.
 
+**The emitter also closes the storyline stage** (owner's decisions, 2026-10-14):
+- It gives every slide its fixed `**Slide id:** <short name>` line (`slide-builder/scripts/slide_ids.py`; ids are never renumbered or reused, and the seal does not count these lines, so the brief stays sealed). From now on rulings, the page map and the review page name slides by id ("Slide 18 (risks)").
+- If the user has earlier decks whose pages should be reused (a draft, a v2 deck), map them now, before the build: `py -3 <skills>\slide-builder\scripts\map_source_pages.py propose --brief <brief> --from <earlier deck>` prints every slide with its proposed page (and the page's picture, drawn into `_session\page_map\`). Show the whole list in one message with the pictures (no separate page to open; the review page shows it later under the storyline), wait, apply their changes with `set`, and record their approval with `approve --approved-in-chat "<their words>"`. Do not write "layout inspiration only" or "do not copy" lines about earlier decks into the brief or its design notes: a page is pinned (copied as option A) or it is not.
+- It prints a suggestion to compact the chat (it saves tokens on every later turn, and the rulings, the page map and the brief are all in files). Pass it on with the exact command it prints (`/compact keep the path to <...>\_session\rulings.md and the page map`).
+
 After running the script, **do not** ask the user to read the dot-dash. Instead, print a tight inline executive summary in chat:
 
 ```
@@ -894,6 +901,8 @@ Slide Builder reads the narrative brief from the session folder, builds each sli
 ## Narrative brief format
 
 Saved as `_session/narrative-brief-[topic].md` inside the session folder (established in the Commit & emit stage). The companion `dot-dash-[topic].md` at the session root is generated from this file via `emit_dot_dash.py`:
+
+Two slide lines are added after the gate: `**Slide id:** <short name>` right under each slide header (slide_ids.py, run by `emit_dot_dash.py` when the storyline is approved; never typed or changed by hand), and `**Pinned source page:** <file> slide N` (map_source_pages.py writes them after the user approves the page map; one page the user hands over can be pinned by hand, see slide-builder's "Replicating a supplied page"). The seal does not count either.
 
 **The brief MUST start with YAML front-matter** so slide-builder can read the client template path and deck type without re-asking the user. The front-matter is everything between the two `---` fences at the very top of the file.
 

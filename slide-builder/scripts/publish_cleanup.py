@@ -89,7 +89,7 @@ ROOT_DELETE_FILES = ("REVIEW.html", "GATE3-PREVIEW.html")
 SESSION_DELETE_DIRS = ("old-decks", "__pycache__")
 # Never kept in a slide folder, even when a kept script names them.
 SLIDE_ALWAYS_DELETE = {"_prev", "_raw", "_render_tmp", "__pycache__", "_prompt.md",
-                       "_context.md", "_context_ack.txt"}
+                       "_context.md", "_context_ack.txt", "_steer_answers.txt"}
 SLIDE_KEEP_FILES = ("_prior_feedback.md",)
 NOTE_SUFFIXES = (".md", ".txt", ".json")
 # Temporary render folders compile removes on its own (no say-so needed).
