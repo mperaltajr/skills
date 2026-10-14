@@ -5,6 +5,8 @@ description: "Default build layer of Slide Lab and the ONLY sanctioned way to bu
 
 # Slide Lab — slide-builder
 
+> **Updates first (once a day).** If this skill was started directly, not through slide-lab, run `py -3 <skills folder>/slide-builder/scripts/update.py check` before anything else and follow slide-lab SKILL.md's "Start of every Slide Lab session: updates" steps (UP TO DATE or SKIPPED: say nothing; UPDATE AVAILABLE: tell the user in plain words and ask before installing; during a build, offer it after the deck is done). It changes no files on its own.
+
 The build layer of Slide Lab. The split is the spec.
 
 > **Running the commands in this skill — Windows vs macOS/Linux.** Every `py -3 …`

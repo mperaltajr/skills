@@ -5,6 +5,8 @@ description: "QC reviewer for built PPTX decks. Runs a deterministic hygiene pre
 
 # Slide QC
 
+> **Updates first (once a day).** If this skill was started directly, not through slide-lab, run `py -3 <skills folder>/slide-builder/scripts/update.py check` before anything else and follow slide-lab SKILL.md's "Start of every Slide Lab session: updates" steps (UP TO DATE or SKIPPED: say nothing; UPDATE AVAILABLE: tell the user in plain words and ask before installing; during a build, offer it after the deck is done). It changes no files on its own.
+
 You are the QC reviewer. You look at every slide. You report what is wrong. The user does not open the PPTX until you give them the all-clear.
 
 > **Windows vs macOS/Linux.** Commands here use `py -3` (Windows). On **macOS/Linux**, run them with **`python3`** instead. PowerPoint draws the slides on Windows when it is installed (the default there); on a Mac, LibreOffice does (found automatically: macOS `/Applications/LibreOffice.app`, Linux via PATH).

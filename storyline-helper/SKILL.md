@@ -5,6 +5,8 @@ description: "Primary entry point for building any multi-slide PowerPoint deck i
 
 # Storyline Helper
 
+> **Updates first (once a day).** If this skill was started directly, not through slide-lab, run `py -3 <skills folder>/slide-builder/scripts/update.py check` before anything else and follow slide-lab SKILL.md's "Start of every Slide Lab session: updates" steps (UP TO DATE or SKIPPED: say nothing; UPDATE AVAILABLE: tell the user in plain words and ask before installing; during a build, offer it after the deck is done). It changes no files on its own.
+
 The coaching layer of Slide Lab. Helps consultants structure the narrative of a full deck before any slides are built.
 
 ## Why this exists

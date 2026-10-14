@@ -5,6 +5,8 @@ description: "Coaching skill for RFP and proposal responses. Fundamentally diffe
 
 # RFP Helper
 
+> **Updates first (once a day).** If this skill was started directly, not through slide-lab, run `py -3 <skills folder>/slide-builder/scripts/update.py check` before anything else and follow slide-lab SKILL.md's "Start of every Slide Lab session: updates" steps (UP TO DATE or SKIPPED: say nothing; UPDATE AVAILABLE: tell the user in plain words and ask before installing; during a build, offer it after the deck is done). It changes no files on its own.
+
 Coaching layer for RFP and competitive proposal responses. The rules here are different from an insight-driven consulting deck — understand those differences before coaching anything.
 
 ## Why this is a separate skill
