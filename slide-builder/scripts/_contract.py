@@ -938,21 +938,13 @@ def check_chrome_field_single_source() -> list[str]:
 # disk scan catches drift against real templates.
 
 def _registered_template_search_roots() -> tuple[Path, ...]:
-    """Best-effort locations where registered client templates may live.
-
-    Discovered generically — no client or organization names are hardcoded, so
-    this works for any user. The scanner rglobs each root (bounded depth) for
-    `chrome.yml`, so any `<client>/_templates/<stem>/chrome.yml` beneath these
-    parents is found. Non-existent roots are skipped harmlessly.
+    """Where registered templates live: the local Slide Lab templates folder
+    (`<home>/Slide Lab/templates/<Client>/<stem>.pptx`, settings in
+    `<stem>/`). Owner's rule 2026-10-14: every template is kept there, on the
+    local drive, never in OneDrive or Documents, so the pick-list only
+    rediscovers templates from that one folder. A missing root is skipped.
     """
-    home = Path.home()
-    roots: list[Path] = [home / "Documents"]
-    # Any OneDrive root, whether personal ("OneDrive") or org-branded
-    # ("OneDrive - <Org>"). Templates typically sit under a project parent.
-    for onedrive in sorted(home.glob("OneDrive*")):
-        roots.append(onedrive / "Claude Projects")
-        roots.append(onedrive / "Library")
-    return tuple(roots)
+    return (Path.home() / "Slide Lab" / "templates",)
 
 
 def _opportunistic_chrome_yml_pairs(cap: int = 8,

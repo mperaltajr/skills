@@ -18,7 +18,7 @@ The tables below list the exit codes each script returns. If you see a code in a
 |---|---|---|
 | 1  | Brief file unreadable OR brief unparseable (no front-matter, malformed YAML) | Check the `--brief` path and that the file starts with `---` YAML front-matter ending with `---`. |
 | 2  | No parseable slides found in the brief | Slide headers must match `## Slide N — Title` or `### Slide N — Title` (title is optional but recommended). Open the brief and confirm headers. |
-| 3  | `--template` doesn't exist | Verify the `--template` path. Templates typically live under `OneDrive\Claude Projects\_templates\` or `<Client>\_templates\`. |
+| 3  | `--template` doesn't exist | Verify the `--template` path. Templates live in the local Slide Lab folder: `C:\Users\<you>\Slide Lab\templates\<Client>\`. |
 | 4  | `prompt.md` template missing from the skill | The skill directory is incomplete. Re-clone or re-extract the skill. |
 | 5  | Brief load error (filesystem / encoding) | Check the brief file is readable + UTF-8 encoded. |
 | 7  | Stage-1 sanity check failed — the installed worker/translator agents differ from the repo's, brand sidecar missing/stale, malformed `brand.yml`, `chrome.yml` missing or unloadable, or the `slide-qc` sibling skill isn't installed | For the agents: run `doctor.py fix` (it backs the installed files up first; the message prints the command), from a checkout of main and never from a build session, then start a new session. Otherwise re-register the template via `propose` → `commit`, or install `slide-qc` (INSTALL.md Step 5). The message names which one fired. |
