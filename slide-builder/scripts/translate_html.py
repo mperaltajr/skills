@@ -1273,6 +1273,91 @@ def place_first_line(ink_top: float, first_h: float, run: dict | None, lh_px: fl
     return base - b, L, lo_first_baseline(L, S) - b
 
 
+_CAP_CACHE: dict = {}
+PAD_STEP_EMU = 360          # the top inset is written in whole steps of this
+
+
+def cap_height(face: str, bold: bool) -> float:
+    """Capital-letter height in em: the font's OS/2 sCapHeight, else Arial's 0.716."""
+    key = (face.lower(), bold)
+    if key not in _CAP_CACHE:
+        got = 0.716
+        path = _face_path(face, bold)
+        if path:
+            try:
+                from fontTools.ttLib import TTFont
+                f = TTFont(path, lazy=True)
+                cap = getattr(f["OS/2"], "sCapHeight", 0) or 0
+                if cap > 0:
+                    got = cap / f["head"].unitsPerEm
+            except Exception:
+                pass
+        _CAP_CACHE[key] = got
+    return _CAP_CACHE[key]
+
+
+def top_pad_px(run: dict | None, L: float) -> float:
+    """How far the capitals of a top-anchored text box (top inset 0, exact
+    line spacing L px) reach above the box in PowerPoint, rounded up to whole
+    PAD_STEP_EMU; 0 when they don't.
+
+    One-line boxes get spacing 0.8 x size (TIGHT_SINGLE), which puts the
+    first baseline 0.6 x size below the box top, so capitals (~0.72 x size)
+    stuck out above the box and its selection frame looked wrong
+    (2026-10-13). The box is then drawn this much higher and taller with
+    this much top inset (html_emit._text): the text itself stays put."""
+    if not run:
+        return 0.0
+    asc, desc, _n = vertical_metrics(run["font"], run["bold"])
+    S = _snapped_px(run["size_px"])
+    k = cap_height(run["font"], run["bold"]) * S - ppt_first_baseline(L, S, asc, desc)
+    if k <= 0:
+        return 0.0
+    return math.ceil(k * 9525 / PAD_STEP_EMU - 1e-9) * PAD_STEP_EMU / 9525
+
+
+CAPS_ABOVE_LIMIT_PX = 1.0
+
+
+def caps_above_frame(slide) -> list[dict]:
+    """Advisory check on a built slide: top-anchored text boxes with exact
+    line spacing whose capitals reach more than CAPS_ABOVE_LIMIT_PX above the
+    box (where PowerPoint draws its selection frame). Each finding: {"shape",
+    "text", "above_px"}. Fired on 427 boxes of the 10/12 deck; boxes drawn
+    with top_pad_px don't fire."""
+    from pptx.oxml.ns import qn
+    out = []
+
+    def walk(shapes):
+        for sh in shapes:
+            if getattr(sh, "shape_type", None) == 6:
+                yield from walk(sh.shapes)
+            else:
+                yield sh
+    for sh in walk(slide.shapes):
+        if not getattr(sh, "has_text_frame", False) or not sh.text_frame.text.strip():
+            continue
+        body = sh._element.find(".//" + qn("a:bodyPr"))
+        if body is None or (body.get("anchor") or "t") != "t":
+            continue
+        tins = int(body.get("tIns") if body.get("tIns") is not None else 45720) / 9525
+        p0 = sh.text_frame.paragraphs[0]
+        spc = p0._p.find(qn("a:pPr") + "/" + qn("a:lnSpc") + "/" + qn("a:spcPts"))
+        runs = [r for r in p0.runs if r.text.strip() and r.font.size]
+        if spc is None or not runs:
+            continue
+        big = max(runs, key=lambda r: r.font.size)
+        S_px = big.font.size.pt / 0.75
+        L_px = int(spc.get("val")) / 100 / 0.75
+        face = big.font.name or "Arial"
+        bold = bool(big.font.bold)
+        asc, desc, _n = vertical_metrics(face, bold)
+        above = cap_height(face, bold) * S_px - (tins + ppt_first_baseline(L_px, S_px, asc, desc))
+        if above > CAPS_ABOVE_LIMIT_PX:
+            out.append({"shape": sh.name, "text": sh.text_frame.text[:40], "above_px": round(above, 1)})
+    return out
+
+
 def _snapped_px(size_px: float) -> float:
     from twins.helpers import snap_font_pt
     return snap_font_pt(size_px * 0.75) / 0.75
@@ -1474,6 +1559,9 @@ def _plan_text(plan: Plan, t: dict, order_key, name=None) -> None:
                      "_ink": (ink["x"], ink["y"], ink["w"], ink["h"]), "_single": single,
                      "_lines": lines, "_id": t.get("id") or "", "_glyphs": t.get("glyphs") or [],
                      "_design_px": design_px, "_cased": cased, "_dy_lo": dy_lo})
+    pad = top_pad_px(big, L)
+    if pad:
+        plan.ops[-1]["pad_top_px"] = pad
     plan.counts["texts"] += 1
 
 
@@ -1699,6 +1787,9 @@ def _plan_svg(plan: Plan, s: dict) -> None:
             plan.ops.append({"op": "text", "x": it["x"], "y": ty, "w": it["w"] + 4, "h": it["h"],
                              "align": align, "line_height_px": L, "_lh_design": it["h"],
                              "wrap": False, "paragraphs": [[run]], "_order": k, "_dy_lo": dy_lo})
+            pad = top_pad_px(run, L)
+            if pad:
+                plan.ops[-1]["pad_top_px"] = pad
         plan.counts["svg_items"] += 1
 
 
@@ -2431,7 +2522,8 @@ def _list_op(name: str, blocks: list, order) -> dict | None:
             "_glyphs": [q for b in blocks for q in (b[2].get("_glyphs") or [])],
             "_design_px": max(b[2].get("_design_px") or 0 for b in blocks),
             "_cased": any(b[2].get("_cased") for b in blocks), "_list": True,
-            "_dy_lo": first_op.get("_dy_lo") or 0.0}
+            "_dy_lo": first_op.get("_dy_lo") or 0.0,
+            **({"pad_top_px": first_op["pad_top_px"]} if first_op.get("pad_top_px") else {})}
 
 
 def _list_group(plan: "Plan", L: dict, data: dict):
@@ -2817,6 +2909,14 @@ def write_outputs(html: Path, emit_dir: Path, letter: str, plan: Plan, fields: d
         name=f"{stem}.py", version=TRANSLATOR_VERSION, plan_name=plan_name,
         fields_block=_fields_block(fields), fallback_line=fb, skill=str(SKILL)), encoding="utf-8")
     plan.counts.update(native_counts(plan))
+    try:
+        from twins.html_emit import build as _build
+        _prs, _sl = _build(_public_plan(plan))
+        for hit in caps_above_frame(_sl):
+            plan.warn("TEXT_ABOVE_FRAME", f"{hit['shape']}: capitals reach {hit['above_px']} px "
+                      "above the text box (its frame when selected); advisory")
+    except Exception:
+        pass
     report = {
         "translator": TRANSLATOR_VERSION,
         "html": str(html),

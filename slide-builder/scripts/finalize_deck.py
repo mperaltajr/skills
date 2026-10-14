@@ -715,6 +715,13 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
                     h_px = 0.0
                 bottom_px = top_px + h_px
                 if shape.has_text_frame and (shape.text_frame.text or "").strip():
+                    # A text box's top inset is room for its capitals
+                    # (html_emit pad_top_px, 2026-10-13), not content: judge
+                    # where the text starts.
+                    try:
+                        top_px += int(shape.text_frame.margin_top or 0) / 9525.0
+                    except Exception:
+                        pass
                     # Inherited template placeholders ARE the chrome (title,
                     # page number, footer). Flagging them made this check fire on
                     # every option of every slide, so it carried no signal and was

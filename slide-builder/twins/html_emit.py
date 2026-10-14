@@ -278,11 +278,20 @@ def _paragraphs(tf, op, default_lh_px: float, end_size: bool = False) -> None:
 
 
 def _text(slide, op) -> None:
-    tb = slide.shapes.add_textbox(E(op["x"]), E(op["y"]), E(max(op["w"], 1)), E(max(op["h"], 1)))
+    # pad_top_px: the box starts this much higher, is this much taller and
+    # has this much top inset, so the capitals sit inside the box (its
+    # selection frame) while the text stays exactly where it was placed
+    # (translate_html.top_pad_px). Only top-anchored text boxes, which all of
+    # these are; tables are not touched.
+    pad = Emu(int(round(float(op.get("pad_top_px") or 0) * 9525)))
+    tb = slide.shapes.add_textbox(E(op["x"]), Emu(E(op["y"]) - pad), E(max(op["w"], 1)),
+                                  Emu(E(max(op["h"], 1)) + pad))
     if op.get("name"):
         tb.name = op["name"]
     tf = tb.text_frame
     tf.margin_left = tf.margin_right = tf.margin_top = tf.margin_bottom = 0
+    if pad:
+        tf.margin_top = pad
     tf.vertical_anchor = MSO_ANCHOR.TOP
     tf.auto_size = MSO_AUTO_SIZE.NONE
     # One-line text never wraps. PowerPoint and LibreOffice set a font slightly
