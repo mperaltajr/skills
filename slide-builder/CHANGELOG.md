@@ -2,6 +2,34 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## 2026-10-14: the section tag goes into the template's own Breadcrumb slot, and is never too pale to read
+
+On the new Kinfield template the registered highlight is pollen #FFFB89, so
+the section tag (drawn in the highlight color above the title) was pale
+yellow on white: 1.08 to 1, where readable text needs 4.5 to 1. The template
+has its own "Breadcrumb" text slot (10 pt bold gray) on every content layout,
+which Slide Lab deleted as an empty slot. Approved by the owner 2026-10-14.
+
+- **Registration** records a layout's own section-tag slot in chrome.yml as
+  `section_tag_placeholder_idx`: a text (BODY) slot named "Breadcrumb",
+  "Section", "Section tag", "Section name" or "Tracker"
+  (`_chrome_schema.is_section_tag_slot_name`), starting in the top 20% of the
+  page and above the title (`register_template._section_tag_slot_idx`).
+  Older chrome.yml files have no field and keep the loose tag.
+- **Finalize** (`chrome_rules.place_section_tag`) writes the tag into that
+  slot, inheriting the template's place, size, weight and color; it is named
+  "section-tag", so a second finalize still leaves one. A dark version of a
+  light layout gets white text. Small caps are not added (the template's
+  style wins).
+- **Loose tag** (no slot): the highlight color only when it reads against the
+  page background at 4.5 to 1 or more (`chrome_rules.readable_tag_color`,
+  `_chrome_schema.contrast_ratio`); otherwise the main text color.
+- **Review sketches** (`chrome_style` / `chrome_css` / `_context.md`) show
+  the tag the same way: the slot's own place and style, or the readable color.
+- **Registration mock slide** now carries a sample section tag ("The
+  market") and fails when a registered slot does not receive it.
+- New test `tests/run_section_tag_slot_smoke.py`.
+
 ## 2026-10-14: registration finds Office cloud fonts (Aptos) and dark theme-color layouts
 
 Registering the Kinfield template printed "brand title font not resolved on
