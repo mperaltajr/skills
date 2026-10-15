@@ -3473,6 +3473,41 @@ def _named_body_slots(layout, title_box) -> dict:
     return out
 
 
+def _section_tag_slot_idx(layout) -> int | None:
+    """idx of the layout's own section-tag slot: a BODY placeholder named like
+    one (_chrome_schema.is_section_tag_slot_name: "Breadcrumb", "Section",
+    "Tracker") that starts in the top band of the page and above the title.
+    None when there is none (finalize then draws the loose tag above the
+    title)."""
+    from _chrome_schema import SECTION_TAG_SLOT_MAX_TOP_SHARE, is_section_tag_slot_name
+    slide_h = _slide_height_px(layout)
+    title_top = None
+    for ph in layout.placeholders:
+        try:
+            if int(ph.placeholder_format.type) in (1, 3) and ph.top is not None:
+                title_top = _emu_to_px(int(ph.top))
+                break
+        except Exception:
+            continue
+    hits = []
+    for ph in layout.placeholders:
+        try:
+            if int(ph.placeholder_format.type) not in (2, 7):      # BODY, OBJECT
+                continue
+            if not is_section_tag_slot_name(ph.name) or ph.top is None:
+                continue
+            top = _emu_to_px(int(ph.top))
+            idx = int(ph.placeholder_format.idx)
+        except Exception:
+            continue
+        if top > SECTION_TAG_SLOT_MAX_TOP_SHARE * slide_h:
+            continue
+        if title_top is not None and top >= title_top:
+            continue
+        hits.append((top, idx))
+    return sorted(hits)[0][1] if hits else None
+
+
 def _extract_body_zone_for_canonical(layout) -> dict:
     """For a body-canonical layout, return inheritance fields:
        title_placeholder_idx, subtitle_placeholder_idx, body_top_y_px,
@@ -3677,6 +3712,7 @@ def _propose_layout_chromes(prs, classifications_override: dict[str, str] | None
                 title_box_width_px=inherit_fields.get("title_box_width_px"),
                 title_box_height_px=inherit_fields.get("title_box_height_px"),
                 source_placeholder_idx=inherit_fields.get("source_placeholder_idx"),
+                section_tag_placeholder_idx=_section_tag_slot_idx(layout),
                 background_hex=_bg.get("hex"),
                 background_kind=_bg.get("kind"),
                 body_left_px=_margins[0] if _margins else None,
@@ -4392,6 +4428,7 @@ def _render_mock_page_selftest(tpl: Path) -> tuple[list[str], list[str]]:
            "remember, long enough to exercise the takeaway line on this layout.")
     FOOTNOTE = "Figures are unaudited and subject to revision."
     SOURCE = "Company filings, analyst estimates, and Slide Lab analysis, 2026"
+    SECTION_TAG = "The market"
     try:
         # Mirror a real build: finalize populates the title (+ any subtitle/footer
         # placeholders that exist) via _populate_layout_placeholders, then draws
@@ -4437,6 +4474,22 @@ def _render_mock_page_selftest(tpl: Path) -> tuple[list[str], list[str]]:
     # body finishing), so do the same: otherwise the mock shows an empty
     # 'Click to add text' box over the takeaway that no built slide has.
     remove_empty_placeholders(slide)
+    # The section tag, as finalize draws it after the body finishing: into the
+    # layout's own section-tag slot when it has one, else the loose label
+    # above the title (in the highlight color, or the text color when the
+    # highlight is too pale to read on the page).
+    from twins.chrome_rules import place_section_tag, SectionTagNoRoomError
+    tag_idx = getattr(lc, "section_tag_placeholder_idx", None)
+    try:
+        import yaml as _yaml
+        _brand = _yaml.safe_load(_p.brand_yml(tpl).read_text(encoding="utf-8")) or {}
+    except Exception:  # noqa: BLE001
+        _brand = {}
+    try:
+        place_section_tag(slide, lc, SECTION_TAG,
+                          accent_hex=str(_brand.get("accent_hex") or ""))
+    except SectionTagNoRoomError as exc:
+        infos.append(f"no section tag on the mock slide: {str(exc).splitlines()[0]}")
 
     def _has_shape(prefix: str) -> bool:
         return any((getattr(sh, "name", "") or "").lower().startswith(prefix)
@@ -4458,6 +4511,15 @@ def _render_mock_page_selftest(tpl: Path) -> tuple[list[str], list[str]]:
         if source_idx is not None and not found.get("footer"):
             fails.append(f"the source line did NOT land in the layout's source slot "
                          f"(idx {source_idx}) on {layout_name!r}.")
+        if tag_idx is not None:
+            _tag = next((sh for sh in slide.shapes
+                         if (getattr(sh, "name", "") or "") == "section-tag"), None)
+            if _tag is None or not getattr(_tag, "is_placeholder", False)                     or int(_tag.placeholder_format.idx) != int(tag_idx):
+                fails.append(f"the section tag did NOT land in the layout's section-tag "
+                             f"slot (idx {tag_idx}) on {layout_name!r}.")
+            else:
+                infos.append(f"section tag goes into the template's own slot (idx "
+                             f"{tag_idx}) on {layout_name!r}, in the template's style.")
         if subtitle_idx is not None and not found.get("subtitle"):
             fails.append(f"the takeaway line did NOT land in the layout's subtitle slot "
                          f"(idx {subtitle_idx}) on {layout_name!r}.")

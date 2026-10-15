@@ -26,7 +26,11 @@ counts only in the bottom 25% of the page or when its text starts like a
 source or note. A shape that matches nothing is not moved.
 
 place_section_tag() draws the brief's section tag (the small label above the
-title) in one fixed style per template (owner's decision, 2026-10-09).
+title) in one fixed style per template (owner's decision, 2026-10-09). When
+the layout has its own section-tag slot ("Breadcrumb", registered as
+section_tag_placeholder_idx) the tag goes into that slot in the template's
+own style; a loose tag never uses a highlight color too pale to read on the
+page (2026-10-14).
 """
 from __future__ import annotations
 
@@ -437,8 +441,12 @@ def place_section_tag(slide, layout_chrome, text: str | None, *, accent_hex: str
     text = " ".join((text or "").split())
     if not text or text.lower() in ("(none)", "none") or _no_tag_page(layout_chrome, page_type):
         return False
+    layout_dark = getattr(layout_chrome, "text_role", "dark_on_light") == "light_on_dark"
     if on_dark is None:
-        on_dark = getattr(layout_chrome, "text_role", "dark_on_light") == "light_on_dark"
+        on_dark = layout_dark
+    if _write_tag_into_slot(slide, layout_chrome, text,
+                            force_white=bool(on_dark and not layout_dark)):
+        return True
     text_left, text_right, title_top, _bottom = _title_frame(slide, layout_chrome)
     h = CS.SECTION_TAG_H_PX * _EMU_PX
     top = section_tag_top_emu(title_top)
@@ -468,7 +476,14 @@ def place_section_tag(slide, layout_chrome, text: str | None, *, accent_hex: str
     rpr.set("b", "1")
     rpr.set("cap", "small")
     fill = rpr.makeelement(qn("a:solidFill"), {})
-    color = "FFFFFF" if on_dark else (accent_hex or "").lstrip("#").upper()[:6]
+    if on_dark:
+        color = "FFFFFF"
+    else:
+        try:
+            color = readable_tag_color(accent_hex, _theme_of(slide.slide_layout.slide_master),
+                                       getattr(layout_chrome, "background_hex", None))
+        except Exception:
+            color = (accent_hex or "").lstrip("#").upper()[:6]
     if len(color) == 6:
         fill.append(fill.makeelement(qn("a:srgbClr"), {"val": color}))
     else:
@@ -477,6 +492,101 @@ def place_section_tag(slide, layout_chrome, text: str | None, *, accent_hex: str
     rpr.append(rpr.makeelement(qn("a:latin"), {"typeface": "+mn-lt"}))
     return True
 
+
+
+def readable_tag_color(accent_hex: str, theme: dict, background_hex: str | None = None) -> str:
+    """'RRGGBB' for a loose section tag on a light page: the highlight color
+    when it reads against the page background (contrast at least
+    CS.SECTION_TAG_MIN_CONTRAST), else the template's main text color. A
+    pale highlight (Kinfield's pollen yellow on white is 1.08 to 1) is never
+    used for text."""
+    accent = (accent_hex or "").lstrip("#").upper()[:6] or (scheme_hex("accent1", theme) or "")
+    bg = (background_hex or "").lstrip("#").upper()[:6] or scheme_hex("bg1", theme) or "FFFFFF"
+    ratio = CS.contrast_ratio(accent, bg)
+    if ratio is not None and ratio >= CS.SECTION_TAG_MIN_CONTRAST:
+        return accent
+    text = scheme_hex("tx1", theme) or "000000"
+    if (CS.contrast_ratio(text, bg) or 0) < CS.SECTION_TAG_MIN_CONTRAST:
+        on_black = CS.contrast_ratio("000000", bg) or 0
+        on_white = CS.contrast_ratio("FFFFFF", bg) or 0
+        text = "000000" if on_black >= on_white else "FFFFFF"
+    return text
+
+
+def _layout_tag_slot(layout, layout_chrome):
+    """The layout's registered section-tag slot (a placeholder), or None."""
+    idx = getattr(layout_chrome, "section_tag_placeholder_idx", None) if layout_chrome else None
+    if idx is None or layout is None:
+        return None
+    return next((ph for ph in layout.placeholders if _ph_idx(ph) == int(idx)), None)
+
+
+def _write_tag_into_slot(slide, layout_chrome, text: str, *, force_white: bool) -> bool:
+    """Write the section tag into the layout's own section-tag slot; True when
+    done. The slot inherits everything (place, size, weight, color) from the
+    layout; only a dark version of a light layout gets white text. Finalize
+    has already removed the empty slot from the slide, so it is added back
+    here, named "section-tag" so the next finalize replaces it."""
+    try:
+        lph = _layout_tag_slot(slide.slide_layout, layout_chrome)
+    except Exception:
+        lph = None
+    if lph is None:
+        return False
+    idx = _ph_idx(lph)
+    for sh in list(slide.shapes):         # never two shapes on one slot
+        if _ph_idx(sh) == idx:
+            sh._element.getparent().remove(sh._element)
+    from lxml import etree
+    ph_type = lph._element.find(".//" + qn("p:ph")).get("type") or "body"
+    xml = (
+        '<p:sp xmlns:p="http://schemas.openxmlformats.org/presentationml/2006/main" '
+        'xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main">'
+        f'<p:nvSpPr><p:cNvPr id="{slide.shapes._next_shape_id}" name="{CS.SECTION_TAG_NAME}"/>'
+        '<p:cNvSpPr><a:spLocks noGrp="1"/></p:cNvSpPr>'
+        f'<p:nvPr><p:ph type="{ph_type}" idx="{idx}"/></p:nvPr></p:nvSpPr>'
+        '<p:spPr/><p:txBody><a:bodyPr/><a:lstStyle/><a:p><a:r><a:rPr lang="en-US"/>'
+        '<a:t></a:t></a:r></a:p></p:txBody></p:sp>')
+    sp = etree.fromstring(xml)
+    sp.find(".//" + qn("a:t")).text = text
+    if force_white:
+        rpr = sp.find(".//" + qn("a:rPr"))
+        fill = rpr.makeelement(qn("a:solidFill"), {})
+        fill.append(fill.makeelement(qn("a:srgbClr"), {"val": "FFFFFF"}))
+        rpr.append(fill)
+    slide.shapes._spTree.append(sp)
+    return True
+
+
+def _slot_tag_style(slot, theme: dict) -> dict:
+    """{size_pt, bold, caps, color, font} of a section-tag slot's own text
+    style (the layout slot, then the master's body text style)."""
+    chain = []
+    lst = slot._element.find(".//" + qn("a:lstStyle"))
+    if lst is not None:
+        chain.append(lst.find(qn("a:lvl1pPr")))
+    try:
+        ts = slot.part.slide_master._element.find(qn("p:txStyles"))
+        if ts is not None:
+            chain.append(ts.find(qn("p:bodyStyle") + "/" + qn("a:lvl1pPr")))
+    except Exception:
+        pass
+    st = {"size_pt": None, "bold": None, "caps": None, "color": None, "font": None}
+    for ppr in chain:
+        d = ppr.find(qn("a:defRPr")) if ppr is not None else None
+        if d is None:
+            continue
+        if st["size_pt"] is None and d.get("sz"):
+            st["size_pt"] = int(d.get("sz")) / 100
+        if st["bold"] is None and d.get("b") is not None:
+            st["bold"] = d.get("b") in ("1", "true")
+        if st["caps"] is None and d.get("cap"):
+            st["caps"] = d.get("cap")
+        if st["color"] is None:
+            st["color"] = _resolve_color(d, theme)
+        if st["font"] is None:
+            st["font"] = _resolve_font(d, theme)
+    return st
 
 
 # ---------------------------------------------------------------------------
@@ -726,19 +836,38 @@ def chrome_style(layout_chrome, prs, accent_hex: str = "", *, on_dark: bool | No
         tag_note = "the brief gives this page no section tag"
     elif _no_tag_page(layout_chrome, page_type):
         tag_note = "no section tag on a cover, divider or closing page"
+    elif getattr(_layout_tag_slot(layout, layout_chrome), "top", None) is not None:
+        slot = _layout_tag_slot(layout, layout_chrome)
+        ss = _slot_tag_style(slot, theme)
+        if on_dark and not layout_dark:
+            color = "FFFFFF"
+        else:
+            color = (ss["color"] or scheme_hex("bg1" if on_dark else "tx1", theme)
+                     or ("FFFFFF" if on_dark else "000000"))
+        s_il = _bp_inset(slot, "lIns", _DEFAULT_INSET_EMU)
+        s_ir = _bp_inset(slot, "rIns", _DEFAULT_INSET_EMU)
+        s_w = max(_EMU_PX * 40, int(slot.width or 0) - s_il - s_ir)
+        tag = {"text": text, "left": round((int(slot.left or 0) + s_il) / px, 1),
+               "top": round(int(slot.top) / px, 1), "width": round(s_w / px, 1),
+               "height": round(int(slot.height or CS.SECTION_TAG_H_PX * _EMU_PX) / px, 1),
+               "size_pt": float(ss["size_pt"] or CS.SECTION_TAG_FONT_PT),
+               "bold": True if ss["bold"] is None else bool(ss["bold"]),
+               "small_caps": ss["caps"] == "small", "all_caps": ss["caps"] == "all",
+               "color": color, "font": ss["font"] or theme.get("minor") or "",
+               "from_slot": True}
     else:
         top = section_tag_top_emu(bt)
         if top < 0:
             tag_note = ("the title box sits too close to the top of the page for the section "
                         "tag; finalize will stop and ask where it goes")
         else:
-            color = "FFFFFF" if on_dark else ((accent_hex or "").lstrip("#").upper()[:6]
-                                              or scheme_hex("accent1", theme) or "000000")
+            color = "FFFFFF" if on_dark else readable_tag_color(
+                accent_hex, theme, getattr(layout_chrome, "background_hex", None))
             tag = {"text": text, "left": round(text_left / px, 1), "top": round(top / px, 1),
                    "width": round(text_w / px, 1),
                    "height": float(CS.SECTION_TAG_H_PX), "size_pt": float(CS.SECTION_TAG_FONT_PT),
-                   "bold": True, "small_caps": True, "color": color,
-                   "font": theme.get("minor") or ""}
+                   "bold": True, "small_caps": True, "all_caps": False, "color": color,
+                   "font": theme.get("minor") or "", "from_slot": False}
     try:
         from twins.helpers import body_zone_for_chrome
         body_top = int(body_zone_for_chrome(layout_chrome)[0])
@@ -858,8 +987,11 @@ def chrome_css(style: dict) -> str:
             "  margin: 0 !important; padding: 0 !important; overflow: visible !important;",
             f"  font-family: {_css_font(g['font'], '--brand-body-font')} !important;",
             f"  font-size: {_css_px(g['size_pt'] * pt_px)} !important;",
-            "  font-weight: 700 !important; font-style: normal !important;",
-            "  font-variant: small-caps !important; line-height: 1.2 !important;",
+            f"  font-weight: {700 if g.get('bold', True) else 400} !important; "
+            "font-style: normal !important;",
+            f"  font-variant: {'small-caps' if g.get('small_caps', True) else 'normal'} !important;",
+            f"  text-transform: {'uppercase' if g.get('all_caps') else 'none'} !important;",
+            "  line-height: 1.2 !important;",
             f"  color: #{g['color']} !important; white-space: nowrap !important;",
             "  background: transparent !important; z-index: 2147483000 !important;",
             "  pointer-events: none !important;",
@@ -888,8 +1020,13 @@ def chrome_plain_words(style: dict) -> str:
         f"a line.",
     ]
     if g:
-        out.append(f"- **Section tag:** \"{g['text']}\", {g['size_pt']:g} pt bold small "
-                   f"capitals, color #{g['color']}, just above the title (top {g['top']:g} px). "
+        look = ("bold" if g.get("bold", True) else "regular") + (
+            " small capitals" if g.get("small_caps", True) else
+            " capitals" if g.get("all_caps") else "")
+        where = ("in the template's own section-tag slot" if g.get("from_slot")
+                 else "just above the title")
+        out.append(f"- **Section tag:** \"{g['text']}\", {g['size_pt']:g} pt {look}, "
+                   f"color #{g['color']}, {where} (top {g['top']:g} px). "
                    f"Slide Lab draws it; do not draw it or mark it.")
     else:
         out.append(f"- **Section tag:** none on this page ({style.get('section_tag_note') or 'none'}).")

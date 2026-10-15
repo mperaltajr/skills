@@ -159,8 +159,10 @@ CHROME_PAGE_NUMBER_GAP_PX: int = 8
 # Section tag (owner's decision, 2026-10-09): the brief's small label above
 # the title ("THE MARKET"), drawn by Slide Lab, never by the designer. Left at
 # the title's text edge, its box bottom this gap above the title box top, in
-# the template's accent color (white on a dark slide), bold small caps, the
-# template's body font. A template with no room above its title box stops the
+# the template's accent color (white on a dark slide; the main text color when
+# the accent reads under SECTION_TAG_MIN_CONTRAST on the page), bold small
+# caps, the template's body font. A layout with its own section-tag slot gets
+# the tag in that slot instead (see SECTION_TAG_SLOT_NAMES). A template with no room above its title box stops the
 # build with a plain message instead of guessing a place.
 SECTION_TAG_NAME: str = "section-tag"
 SECTION_TAG_FONT_PT: float = 10.5
@@ -170,6 +172,49 @@ SECTION_TAG_GAP_PX: int = 6
 # number, which are covers and dividers).
 SECTION_TAG_SKIP_PAGE_TYPES: tuple[str, ...] = (
     "cover", "divider", "section-divider", "section", "closing", "end", "back-cover")
+# A template's own section-tag slot (2026-10-14): a BODY placeholder named
+# like one of these in the top band of the page. When a layout has one,
+# registration records it (LayoutChrome.section_tag_placeholder_idx) and
+# finalize writes the tag into it in the template's own style instead of
+# drawing a loose box. The Kinfield template's "Breadcrumb" slot is the case
+# that started it: its loose tag was drawn in pale pollen yellow on white.
+SECTION_TAG_SLOT_NAMES: tuple[str, ...] = (
+    "breadcrumb", "bread crumb", "section tag", "section-tag", "section name",
+    "section", "tracker")
+# The slot counts only when it starts in this top share of the page.
+SECTION_TAG_SLOT_MAX_TOP_SHARE: float = 0.2
+# Readable text (WCAG AA for normal text). A loose tag in a highlight color
+# below this against the page background uses the main text color instead.
+SECTION_TAG_MIN_CONTRAST: float = 4.5
+
+
+def is_section_tag_slot_name(name: str | None) -> bool:
+    """True for a placeholder NAME that says it holds the section tag
+    ("Breadcrumb", "Section tag 3", "Tracker"). PowerPoint's own numbering
+    suffix is ignored."""
+    import re as _re
+    n = _re.sub(r"\s+\d+$", "", (name or "").strip().lower())
+    n = _re.sub(r"\s+placeholder$", "", n)
+    return n in SECTION_TAG_SLOT_NAMES
+
+
+def contrast_ratio(hex_a: str, hex_b: str) -> float | None:
+    """WCAG contrast ratio of two 'RRGGBB' colors (1.0 to 21.0); None when
+    either is not a 6-digit hex color."""
+    def _lum(h):
+        h = (h or "").lstrip("#")
+        if len(h) != 6:
+            return None
+        try:
+            c = [int(h[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+        except ValueError:
+            return None
+        c = [x / 12.92 if x <= 0.03928 else ((x + 0.055) / 1.055) ** 2.4 for x in c]
+        return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+    la, lb = _lum(hex_a), _lum(hex_b)
+    if la is None or lb is None:
+        return None
+    return (max(la, lb) + 0.05) / (min(la, lb) + 0.05)
 
 CANONICAL_BODY_TOP_Y: int = 110
 CANONICAL_BODY_BOTTOM_Y: int = 660
@@ -1248,6 +1293,12 @@ class LayoutChrome(BaseModel):
     # sketch's source line (template field 'footer') into this idx first.
     # Older chrome.yml files omit it -> None -> footer placeholder only.
     source_placeholder_idx: int | None = None
+    # The layout's own section-tag slot: a BODY placeholder named "Breadcrumb"
+    # / "Section" / "Tracker" (_chrome_schema.SECTION_TAG_SLOT_NAMES) in the
+    # top band of the page. finalize writes the brief's section tag into it,
+    # in the template's own style (2026-10-14). Older chrome.yml files omit
+    # it -> None -> the loose section-tag box above the title.
+    section_tag_placeholder_idx: int | None = None
     # What the layout really looks like behind the body (scripts/_template_bg):
     # its background color ('RRGGBB'; the first color for a gradient, None for a
     # picture) and kind (solid / gradient / picture / pattern / theme-style),
