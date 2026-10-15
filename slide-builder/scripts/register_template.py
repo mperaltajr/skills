@@ -2966,6 +2966,28 @@ def _bg_is_dark(element) -> bool | None:
     return lum < 128.0
 
 
+def _theme_bg_is_dark(element, layout) -> bool | None:
+    """Like _bg_is_dark, for a background set as a theme color (schemeClr
+    tx1 and the like) or a theme background style, which _bg_is_dark cannot
+    read. Resolved through the theme and color map by _template_bg, the same
+    resolver that records background_hex in chrome.yml. Kinfield's four
+    near-black layouts (schemeClr tx1) were all called dark_on_light while
+    chrome.yml recorded their hex as 0A0011 (2026-10-14). None when the
+    element sets no background or its color can't be resolved (a picture)."""
+    try:
+        import _template_bg as _tbg
+        got = _tbg._bg_of(element, layout)
+    except Exception:
+        return None
+    hex_val = (got or {}).get("hex")
+    if not hex_val:
+        return None
+    lum = _luminance_from_hex(hex_val)
+    if lum != lum:  # NaN
+        return None
+    return lum < 128.0
+
+
 def _scan_full_bleed_dark_shape(layout_or_master, slide_w_emu: int,
                                  slide_h_emu: int) -> bool | None:
     """Walk shapes for a full-bleed
@@ -3037,7 +3059,11 @@ def _detect_text_role_for_layout(layout) -> tuple[str, str]:
     Defaults to dark_on_light only when no signal anywhere returns dark.
     """
     layout_dark = _bg_is_dark(layout.element)
+    if layout_dark is None:
+        layout_dark = _theme_bg_is_dark(layout.element, layout)
     master_dark = _bg_is_dark(layout.slide_master.element)
+    if master_dark is None:
+        master_dark = _theme_bg_is_dark(layout.slide_master.element, layout)
     is_dark = layout_dark if layout_dark is not None else master_dark
     if is_dark is None:
         # Fall back to full-bleed shape scan.

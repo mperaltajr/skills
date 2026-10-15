@@ -415,7 +415,29 @@ def _font_index() -> dict[str, str]:
         for root, _dirs, files in os.walk(d):
             for fn in files:
                 idx.setdefault(fn.lower(), os.path.join(root, fn))
+    # Office cloud fonts (Aptos, Aptos Display, ...) are downloaded on demand
+    # into FontCache\<n>\CloudFonts\<Family>\<number>.ttf and never appear in
+    # the Windows font folders, so Aptos templates skipped the title-fit check
+    # (2026-10-14). File names are numbers: keyed by family folder + file so
+    # they never shadow one another; font_faces() matches them by name table.
+    for cloud in _cloud_font_dirs():
+        for root, _dirs, files in os.walk(cloud):
+            fam = os.path.basename(root).lower()
+            for fn in files:
+                idx.setdefault(f"cloudfonts/{fam}/{fn.lower()}", os.path.join(root, fn))
     return idx
+
+
+def _cloud_font_dirs() -> list[str]:
+    """Every %LOCALAPPDATA%\\Microsoft\\FontCache\\<n>\\CloudFonts folder."""
+    import glob
+    import os
+    base = os.environ.get("LOCALAPPDATA")
+    if not base:
+        return []
+    return sorted(d for d in glob.glob(os.path.join(base, "Microsoft", "FontCache",
+                                                    "*", "CloudFonts"))
+                  if os.path.isdir(d))
 
 
 def _find_brand_ttf(font_name: str | None = None) -> str | None:
@@ -588,10 +610,17 @@ def pick_family_faces(family: str, dirs: list | tuple | None = None) -> dict:
         s = f["style"].strip().lower()
         return 0 if s in ("regular", "normal", "book", "roman") else 1
 
-    regular = min(pool, key=lambda f: (abs(f["weight"] - 400), _style_rank(f), f["path"]))
+    # On a tie, a face whose own (legacy) family is exactly the name asked for
+    # wins: Aptos Display's faces also call their typographic family "Aptos",
+    # and the file path alone picked Aptos Display for "Aptos" (2026-10-14).
+    def _other_family(f):
+        return 0 if f["family"].strip().lower() == want else 1
+
+    regular = min(pool, key=lambda f: (abs(f["weight"] - 400), _style_rank(f),
+                                       _other_family(f), f["path"]))
     heavy = [f for f in pool if f["weight"] >= 600 or f["bold"]]
     bold = min(heavy, key=lambda f: (abs(f["weight"] - 700), 0 if f["bold"] else 1,
-                                     f["path"])) if heavy else None
+                                     _other_family(f), f["path"])) if heavy else None
     out.update(regular=regular["path"], regular_face=regular,
                bold=bold["path"] if bold else None, bold_face=bold)
     return out
@@ -614,12 +643,16 @@ def bold_ttf_for(ttf: str | None) -> str | None:
     if me is not None:
         here = os.path.normcase(os.path.dirname(os.path.abspath(path)))
         installed_dirs = {os.path.normcase(os.path.dirname(p)) for p in _font_index().values()}
+        # The face's own family first ("Aptos Display" finds Aptos Display
+        # Bold), then its typographic family ("Aptos" for that same face).
+        families = list(dict.fromkeys(n for n in (me["family"], me["typo_family"]) if n))
         for dirs in (([os.path.dirname(path)],) if here not in installed_dirs else ()) + (None,):
-            hit = pick_family_faces(me["typo_family"], dirs)
-            bf = hit.get("bold_face")
-            if bf and os.path.normcase(bf["path"]) != os.path.normcase(path) \
-                    and bf["width"] == me["width"]:
-                return bf["path"]
+            for fam_name in families:
+                hit = pick_family_faces(fam_name, dirs)
+                bf = hit.get("bold_face")
+                if bf and os.path.normcase(bf["path"]) != os.path.normcase(path) \
+                        and bf["width"] == me["width"]:
+                    return bf["path"]
     idx = _font_index()
     name = os.path.basename(path).lower()
     stem, ext = os.path.splitext(name)

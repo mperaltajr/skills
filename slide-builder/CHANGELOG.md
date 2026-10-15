@@ -2,6 +2,36 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## 2026-10-14: registration finds Office cloud fonts (Aptos) and dark theme-color layouts
+
+Registering the Kinfield template printed "brand title font not resolved on
+this machine; title-fit measurement skipped" and called all 18 layouts light,
+though four have a near-black background. Both fixes help every Aptos-based
+or theme-colored template.
+
+- **Office cloud fonts are found.** Aptos, Aptos Display and the other fonts
+  Office downloads on demand live in
+  `%LOCALAPPDATA%\Microsoft\FontCache\<n>\CloudFonts\<Family>\<number>.ttf`,
+  not in the Windows font folders. `_font_index()` now walks those folders
+  too (after the normal ones, so an installed copy still wins); faces are
+  matched by the family name inside each file, so the numbered file names do
+  not matter. Titles on Aptos templates are measured again, and sketches can
+  draw in real Aptos.
+- **"Aptos" no longer picks Aptos Display.** Aptos Display's files also give
+  "Aptos" as their typographic family, and a file-path tie picked them for
+  "Aptos". On a tie, `pick_family_faces()` now prefers the face whose own
+  family is exactly the name asked for, and `bold_ttf_for()` looks for the
+  bold face under the face's own family first (Aptos Display Regular finds
+  Aptos Display Bold).
+- **Dark layouts set with a theme color are dark.** The dark-background check
+  read only plain hex colors, so a layout background of `schemeClr tx1`
+  (Kinfield's covers, dividers, Q&A and dark chart) fell back to the light
+  master. When no plain hex is found it now resolves the theme color (the
+  same resolver that writes `background_hex` to chrome.yml) and uses the same
+  brightness cutoff. Re-registering Kinfield gives a chrome.yml identical to
+  the hand-edited one.
+- Tests: `run_cloud_fonts_smoke.py`, `run_theme_color_background_smoke.py`.
+
 ## 2026-10-14: render slots, one browser run per worker, rolling pool and --pending (speed Q1, Q2 item 4)
 
 Twenty workers rendering at once crowded the computer (single renders took a
