@@ -1925,12 +1925,35 @@ function plainPicks(body) {
     return "Picks: " + parts.join(" ") + " (check " + approvalCheck(body) + ")";
 }
 
+// Copy that also works inside the one Slide Lab page (2026-10-16): the designs
+// and final-check tabs sit in an embedded frame, where the browser often
+// refuses navigator.clipboard. The older copy command still works there on a
+// click, so try it before falling back to the select-and-Ctrl+C box.
+function slCopyLegacy(text) {
+    const ta = document.createElement("textarea");
+    ta.value = text; ta.setAttribute("readonly", "");
+    ta.style.position = "fixed"; ta.style.left = "-9999px"; ta.style.top = "0";
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    let ok = false;
+    try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    return ok;
+}
+async function slCopy(text) {
+    try {
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            await navigator.clipboard.writeText(text); return true;
+        }
+    } catch (e) { /* blocked in a frame: try the older way */ }
+    return slCopyLegacy(text);
+}
+
 async function copyOut(cmd, label, heading) {
     // The one Slide Lab page's header line comes first (2026-10-16): the
     // recording script refuses a message from another deck or an older page.
     if (window.__HEADER__) cmd = window.__HEADER__ + "\n" + cmd;
-    try { await navigator.clipboard.writeText(cmd); showToast(label); }
-    catch (e) { showDialog(cmd, heading + ": if nothing was copied, click in the box, Ctrl+A, Ctrl+C"); }
+    if (await slCopy(cmd)) showToast(label);
+    else showDialog(cmd, heading + ": if nothing was copied, click in the box, Ctrl+A, Ctrl+C");
 }
 
 async function buildDeck() {
@@ -2068,7 +2091,7 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("btn-clear").addEventListener("click", clearAll);
     document.getElementById("btn-dlg-copy").addEventListener("click", async () => {
         const txt = document.getElementById("picks-dlg-body").textContent;
-        try { await navigator.clipboard.writeText(txt); showToast("Copied."); } catch (e) {}
+        if (await slCopy(txt)) showToast("Copied.");
     });
     document.getElementById("btn-dlg-close").addEventListener("click", () => {
         document.getElementById("picks-dialog").close();
@@ -2390,9 +2413,12 @@ function toast(m) {{ const t = document.getElementById("toast"); t.textContent =
 async function copy(text, label) {{
   if (HEADER) text = HEADER + "\n" + text;
   const box = document.getElementById("copybox"), ta = document.getElementById("copytext");
-  ta.value = text; box.style.display = "block"; ta.focus(); ta.select();
-  try {{ await navigator.clipboard.writeText(text); toast(label); }}
-  catch (e) {{ toast("Copy blocked: press Ctrl+C in the box."); }} }}
+  ta.value = text;
+  let ok = false;
+  try {{ await navigator.clipboard.writeText(text); ok = true; }} catch (e) {{}}
+  if (!ok) {{ ta.focus(); ta.select(); try {{ ok = document.execCommand("copy"); }} catch (e) {{}} }}
+  if (ok) {{ box.style.display = "none"; toast(label); }}
+  else {{ box.style.display = "block"; ta.focus(); ta.select(); toast("Copy blocked: press Ctrl+C in the box."); }} }}
 {_COPIED_PAGE_JS}
 document.getElementById("btn-go").onclick = () => {{
   const cp = cpAnswers();
