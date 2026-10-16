@@ -2,6 +2,62 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## 2026-10-16: custom text boxes are fitted to their text, with proof that no text moved
+
+Mario: "many times the text boxes are too large that it is difficult to
+click on." A one-line label in a full-width card came out as a full-width
+box. Built in the safer form the review settled on, with the owner's
+decisions of 2026-10-16.
+
+- **New `scripts/fit_boxes.py`**, run by `compile_picks.py` right after the
+  deck is saved and de-duplicated, before the opens-cleanly check and the QC
+  render (so every recompile and QC fix fits again, with the same result; a
+  splice-back fits only the spliced pages). PowerPoint measures each custom
+  text box through `ppt_safe` (read-only, no window, a local copy) and the box
+  shrinks around its text, anchored edge and aligned side fixed: a wrapping
+  box keeps its width unless at least 1 character or 10% stays spare; a
+  one-line box gets its text plus 1 character.
+- **Left, right and bottom margins become 0** on those custom boxes, before
+  the fit (owner: "Why does Right margin have 0.54" when everything else is
+  0? Can all just be 0?"). The margin turns into box size: the left edge
+  moves right by the left margin, the width loses both side margins, the
+  height loses the bottom margin, so the text and its line breaks stay put;
+  a right margin used to force wrapping (a hand edit in the Leo deck v4.2)
+  becomes a narrower box. The top margin is kept (the top padding that keeps
+  capitals inside the selection frame). Same proof as the fit.
+- **Nothing from the template changes, not even its height** (owner:
+  "Everything pre-template does not need to adjust. It's just these custom
+  text boxes that cause issues"): placeholders (title, subtitle, body, page
+  number, date, footer, any layout slot) and the fixed slots (takeaway,
+  footnote, source, section tag) keep their size. Also never fitted: boxes
+  with a field, a visible fill or outline (own, layout, master or theme
+  style), shrink-text-on-overflow, justified, rotated, flipped, vertical or
+  multi-column text, non-rectangles, shapes a connector is attached to, and
+  anything in a table, chart, SmartArt or group.
+- **Proof inside the script**: measure before and after (bounds within 0.6 pt
+  and a working line count; the earlier method's line count was always
+  empty), then draw the fitted pages before and after and compare pixels (a
+  page with more than 30 changed pixels gets every box back), up to 3
+  rounds. The fitted deck is kept only at 0 moved and 0 changed pages.
+- **Recorded** as `box_fit` in the compile record, a "Text boxes fitted to
+  their text" section in COMPILED.md, and a `check_done.py` link (a failed
+  fit refuses with the recompile step; a compile from before this change
+  only prints a line). Without PowerPoint the step is skipped with a note;
+  `SLIDE_LAB_NO_BOX_FIT=1` turns it off, recorded and shown at delivery.
+- **Command line** for decks Slide Lab did not build: `fit_boxes.py "<deck>"
+  --pages 3,7-9` (only the pages Slide Lab changed), writing
+  `<name>_fitted.pptx`, never the original. New decks only: no older deck is
+  changed.
+- New test `tests/run_box_fit_smoke.py` (page reorder keeps page numbers on
+  one line, one more word wraps as before, field / fill / outline /
+  shrink-to-fit / placeholder geometry byte-identical, a 0.54" right margin
+  comes out 0 with a narrower box and the same lines, the proof loop reverts
+  by itself). PowerPoint "busy" answers are retried, never read as a moved
+  box.
+- Follow-up, not in this change: make the converter (`translate_html.py`)
+  give one-line text its own width plus 1 character at the source; it needs a
+  `translate_gonogo` re-run first.
+
 ## 2026-10-14: the section tag goes into the template's own Breadcrumb slot, and is never too pale to read
 
 On the new Kinfield template the registered highlight is pollen #FFFB89, so

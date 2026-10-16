@@ -24,6 +24,12 @@ What it does:
      (twins.composer.copy_shape_with_parts: each shape with the pictures,
      charts, workbooks and media it points at).
   4. Save to --final.
+     Right after the save, fit_boxes.py fits each custom text box (one the
+     designers or the converter added) to its text (PowerPoint measures;
+     boxes whose text would move go back). Nothing from the template is
+     changed: placeholders, page numbers and fixed slots keep their size.
+     On a splice, only the spliced pages. Without PowerPoint the step is
+     skipped with a note.
      Before it replaces the previous deck, the saved file must pass the
      offline integrity checks AND PowerPoint's own opens-cleanly check
      (opened read-only without a window: no repair question, same slide
@@ -177,6 +183,38 @@ def _report_powerpoint_opens(path: Path) -> int:
     print("  The offline checks passed, so this is a defect they do not know yet.\n"
           "  Rebuild through the pipeline; do not deliver this file.")
     return 6
+
+
+def _fit_text_boxes(path: Path, pages=None) -> dict:
+    """Fit each custom text box to its text (fit_boxes.py, owner's request
+    2026-10-16; placeholders and anything else from the template are never
+    changed), right after the save and de-duplication, so the opens-cleanly
+    check, the QC render and check_done all see the fitted file. Every
+    compile starts again from the unfitted option files, so a recompile
+    fits again and gives the same result. Never fails a compile: a failure
+    is recorded, and check_done says what to do."""
+    print("\n[3b] Fit text boxes to their text (PowerPoint measures; the proof "
+          "puts back any box whose text would move)")
+    try:
+        import fit_boxes
+        rec = fit_boxes.fit_deck(path, pages=pages, log=lambda s: print("  " + s))
+        lines = fit_boxes.summary_lines(rec)
+    except Exception as exc:  # noqa: BLE001
+        rec = {"status": "error", "note": f"{type(exc).__name__}: {exc}"}
+        lines = [f"- FAILED: {rec['note']}"]
+    if rec.get("status") == "fitted":
+        _dedupe_zip_entries(path)
+    for ln in lines:
+        print("  " + ln)
+    return rec
+
+
+def _box_fit_note(rec: Optional[dict]) -> str:
+    try:
+        import fit_boxes
+        return "\n".join(fit_boxes.summary_lines(rec))
+    except Exception:
+        return f"- {rec}"
 
 
 def parse_picks(arg: Optional[str], out_dir: Path) -> dict[str, str]:
@@ -533,6 +571,10 @@ No text item ends with a period (owner's rule, 2026-10-09); finalize removed the
 ## Copied pages
 
 {copied}
+
+## Text boxes fitted to their text
+
+{box_fit}
 """
 
 
@@ -664,6 +706,8 @@ def run_splice(out_dir: Path, meta: dict, picks: dict, template_path: Path,
               f"(is it open in PowerPoint?)")
         return 3
     _dedupe_zip_entries(out)
+    # An external deck: fit only the pages Slide Lab put back.
+    _box_fit = _fit_text_boxes(out, pages=set(spliced))
     _rc = _report_integrity(out) or _report_powerpoint_opens(out)
     if _rc:
         return _rc
@@ -688,7 +732,8 @@ def run_splice(out_dir: Path, meta: dict, picks: dict, template_path: Path,
         _state.record_compile(out_dir, kind="splice", output=out, slides=final_count,
                               options=[_state.option_key(int(k.split("_")[1]), v)
                                        for k, v in picks.items()
-                                       if v and str(v).lower() != "none"])
+                                       if v and str(v).lower() != "none"],
+                              box_fit=_box_fit)
     return 0 if (ok and not failures) else 1
 
 
@@ -1146,6 +1191,7 @@ def main() -> int:
     # as corrupt. Run an unconditional zip rewrite that keeps the LAST
     # occurrence of each name. Cheap on size, unbreakable for downstream readers.
     _dedupe_zip_entries(incoming)
+    _box_fit = _fit_text_boxes(incoming)
     _rc = _report_integrity(incoming) or _report_powerpoint_opens(incoming)
     # A rejected deck keeps one fixed name (final_deck.REJECTED.pptx for the
     # final deck), so a later compile that passes finds it and removes it.
@@ -1261,6 +1307,7 @@ def main() -> int:
         agents=(f"- {_agents_note}" if _agents_note
                 else "- no change to the agent files was recorded during the build"),
         copied=_copied_pages_note(out_dir),
+        box_fit=_box_fit_note(_box_fit),
     )
     compiled_md = out_dir / "COMPILED.md"
     compiled_md.write_text(content, encoding="utf-8")
@@ -1273,6 +1320,8 @@ def main() -> int:
     print(f"  Slides  : {slide_count}")
     print(f"  Renders : {render_ok} / {render_total}")
     print(f"  Periods : {len(period_lines)} final period(s) removed (listed in COMPILED.md)")
+    print(f"  Boxes   : text-box fit {_box_fit.get('status')}, "
+          f"{_box_fit.get('fitted', 0)} fitted (details in COMPILED.md)")
     print(f"  Report  : {compiled_md}")
     print(f"  Deck    : {final_path}")
     print("=" * 72)
@@ -1297,7 +1346,7 @@ def main() -> int:
     if rc == 0:
         _state.record_compile(
             out_dir, kind="all_variations" if args.all_variations else "picks",
-            output=final_path, slides=slide_count, options=_ship)
+            output=final_path, slides=slide_count, options=_ship, box_fit=_box_fit)
         # The picked cover, contents and executive summary are kept for the
         # template; the next deck on it fills them by script (clone_pages.py,
         # owner's decision 2026-10-14). Never fails a good compile.
