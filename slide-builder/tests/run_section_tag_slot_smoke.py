@@ -34,6 +34,8 @@ import sys
 from pathlib import Path
 from types import SimpleNamespace
 
+import _test_temp  # noqa: F401,E402  (temp folders under the scratch root, deleted at exit)
+
 HERE = Path(__file__).resolve().parent
 SKILL = HERE.parent
 sys.path.insert(0, str(SKILL))
