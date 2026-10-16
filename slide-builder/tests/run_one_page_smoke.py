@@ -127,7 +127,7 @@ def message(out: Path, edits=(), comments=None, visuals=None, deck=None, code=No
     lines.append("Visuals:")
     for n, (name, lock) in (visuals or {}).items():
         lines.append(f"  slide {n}: {name} ({lock})")
-    lines.append('(Claude: record it with record_storyline.py --out <Folder> --message "<this whole message>")')
+    lines.append(f'(Claude: record it with record_storyline.py --out "{out}" --message "<this whole message>")')
     return "\n".join(lines)
 
 
@@ -179,6 +179,8 @@ def main() -> int:
         assert "Slide Lab, Older GPUs test deck, Storyline, code " in txt
         assert "Pages you gave us" not in txt, "no pages supplied, no block"
         assert 'id="mix"' in txt, "6 slides with a visual: the mix box shows"
+        assert "What to do on this tab" in txt and "has only your prose" in txt
+        assert "--out <Folder>" not in txt, "the Done message names the real folder"
         code1 = SP.stage_code(out, "storyline")
         print(f"    ok: {page.name}, code {code1}, no prompts")
 

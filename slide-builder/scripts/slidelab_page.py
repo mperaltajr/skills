@@ -607,7 +607,7 @@ function collect(pickAll){
       out.push("  slide " + el.dataset.n + ": " + v + " (" + lock + ")" + start + (note && !pickAll ? "; note: " + note : ""));
     });
   }
-  out.push("(Claude: record it with record_storyline.py --out <Folder> --message \"<this whole message>\")");
+  out.push("(Claude: record it with record_storyline.py --out \"" + D.folder + "\" --message \"<this whole message>\")");
   return out.join("\n");
 }
 function show(t){
