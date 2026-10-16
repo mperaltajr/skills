@@ -21,6 +21,7 @@ Placeholders rendered by `build_deck.py`:
 | `{{SOURCE_LINE}}` | The brief's `**Source:**` line for this page, or `(none in the brief)`. It goes in the footer / Source slot. |
 | `{{SECTION_TAG}}` | The brief's `**Section tag:**` for this page, or `(none)`. Slide Lab draws it; do not draw it. The finishing step puts it just above the title in the template's fixed style (2026-10-09); a drawn copy, or one marked as a template field, is not used. |
 | `{{MANDATORY_SHAPE}}` | Optional steering: a layout shape the brief requires (e.g. `two-column`, `three-column`). When set, the picked pattern MUST satisfy it. |
+| `{{VISUAL}}` | The slide's visual from the Storyline tab of the Slide Lab page: a plain visual name with "MUST USE" (every option is that kind, checked after design) or "suggestion" (use it unless you have a better reason, and say why), or Designer's choice. |
 | `{{FORBIDDEN_PATTERNS}}` | Optional steering: pattern stems the brief excludes. Do NOT pick any pattern named here. |
 | `{{ACCENT_PLACEMENT}}` | Optional steering: where the accent color should land on this slide. Honor it when set. |
 | `{{DECK_LEVEL_DESIGN_NOTES}}` | Deck-level constraints from the brief (binding on every slide) |
@@ -87,6 +88,7 @@ For your information only: Slide Lab draws it; do not draw it. Finalize puts it 
 
 - **Visual rhythm:** {{VISUAL_RHYTHM}}
 - **Mandatory shape:** {{MANDATORY_SHAPE}} — when this names a shape, the pattern you pick MUST satisfy it.
+- **Visual (chosen with the user on the Storyline tab):** {{VISUAL}}
 - **Supplied page to reproduce:** {{PINNED_SOURCE_PAGE}} — when this names a page, **option A reproduces that page**: its structure, sections and wording, rebuilt on the client template. Do not summarize it or replace it with your own design; any other options may reinterpret it. Its figures are reconciled against the brief separately (the source ledger), so where the brief gives a number, use the brief's.
 - **Forbidden patterns:** {{FORBIDDEN_PATTERNS}} — never pick a pattern named here.
 - **Accent placement:** {{ACCENT_PLACEMENT}}
@@ -326,6 +328,7 @@ Each `option_X.py` is a **standalone runnable Python script** that:
 # Slide {{SLIDE_N}} option <A|B|C> — pattern: <picked pattern name>
 # Variant: <one-line description of the variant chosen, e.g., "dark canvas, oversized typography, left-anchored">
 # Brief fidelity check: <one-line statement that every visible word traces to brief or documented chrome>
+# Visual: <the main visual you drew, one of the names below>
 import sys
 from pathlib import Path
 sys.path.insert(0, r"{{HELPERS_MODULE_PATH}}")
@@ -356,6 +359,8 @@ sys.exit(0)
 finalize_deck.py reads line 1. Token prefix decides routing:
 - `# SKELETON_REJECTED:` → rejection surfaces in REVIEW.html for user resolution (brief/pattern disagreement OR unsupported curved-container under the direct path).
 <!-- /only -->
+**Tag the main visual (every option, both paths; owner's decision 2026-10-16).** Name the main visual you actually drew with one of these exact names: `Bar chart over time`, `Bar chart, each bar split into parts`, `Line chart`, `Table`, `Boxes side by side, one per point`, `Steps connected by arrows`, `Grid comparing options against criteria`, `Two to four large figures`, `Short points with icons or numbers`, `Photo with text`, `Map by region`. Sketch path: `data-visual="<name>"` on the `.slide-canvas` element; direct path: the header line `# Visual: <name>`. When the slide's **Visual** (§ 1 steering) is a suggestion and you drew something else, give the reason in one line: `data-visual-why="<reason>"` on the canvas, or `# Visual why: <reason>` in the header. A slide marked MUST USE is checked after design (the tag and the page itself: a table needs a `<table>`, a chart an `<svg>`, a photo an `<img>`), and a design of another kind is sent back before the user sees it. Tag what you drew, never what was asked.
+
 <!-- only:sketch -->
 **Visual form (sketch path, every option).** Put `data-visual-form="FORM"` on the `.slide-canvas` element, naming the page's main visual form: one of `cards`, `table`, `chart`, `flow`, `timeline`, `matrix`, `hero-number`, `diagram`, `comparison`, `text`, `quote`, `image`, `map`. The review page counts them across the deck and warns when most pages share one form or three neighbors repeat; a sketch without it shows as "unknown". Say the form you actually drew, not the one you wish it were.
 

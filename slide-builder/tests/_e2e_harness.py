@@ -78,6 +78,8 @@ def env(**extra) -> dict:
     e = {**os.environ, "PYTHONIOENCODING": "utf-8",
          "SLIDE_LAB_OPTIONS_PER_SLIDE": "1",
          "SLIDE_LAB_NO_OPEN": "1",
+         # the Storyline tab waits for the user; these suites test what follows
+         "SLIDE_LAB_STORYLINE_TAB": os.environ.get("SLIDE_LAB_STORYLINE_TAB", "0"),
          # Never let a test write into the user's real template pick-list.
          "SLIDE_LAB_REGISTRY": str(Path(tempfile.gettempdir()) / "slidelab_test_registry.json"),
          # Designs kept for a template (clone_pages.py) go to this run's own

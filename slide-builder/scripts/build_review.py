@@ -879,6 +879,8 @@ QUICK_FEEDBACK = [
     "Too dense, simplify",
     "Content overlaps / cut off",
     "Wrong layout / structure",
+    # owner's decision 2026-10-16: counted, so the wrong-visual rate can be measured
+    "Wrong kind of visual",
     "Change the accent color",
     "Title too long, reword",
     "Fix a number / wording",
@@ -891,6 +893,9 @@ QUICK_FEEDBACK = [
 # Pages rarely numbered their steps or used shape markers unless told to in
 # words every time, so that chip carries the full direction.
 QUICK_FEEDBACK_EXPANDED = {
+    "Wrong kind of visual": (
+        "The kind of visual is wrong: redesign the slide with the visual chosen on the "
+        "Storyline tab, or the one named in the notes."),
     "Add process structure: numbers, icons": (
         "Make the structure visible: number the steps or items (01, 02, 03 or "
         "numbers in circles), give each one a simple shape marker or icon drawn "
@@ -1274,6 +1279,7 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
   {render_sketch_notes(slide)}
   {context_chip}
   {render_steer_receipt(slide)}
+  {('<div class="content-line visual-line">' + html.escape(slide["visual_line"]) + '</div>') if slide.get("visual_line") else ""}
   {('<div class="redo-note" style="display:block;">&#128204; <strong>Option A reproduces the page you supplied</strong> (' + html.escape(slide["pinned"]) + '). Its figures are checked against the brief before anything compiles.</div>') if slide.get("pinned") else ""}
   {_page_copy_note(slide)}
 
@@ -1920,8 +1926,11 @@ function plainPicks(body) {
 }
 
 async function copyOut(cmd, label, heading) {
+    // The one Slide Lab page's header line comes first (2026-10-16): the
+    // recording script refuses a message from another deck or an older page.
+    if (window.__HEADER__) cmd = window.__HEADER__ + "\n" + cmd;
     try { await navigator.clipboard.writeText(cmd); showToast(label); }
-    catch (e) { showDialog(cmd, heading); }
+    catch (e) { showDialog(cmd, heading + ": if nothing was copied, click in the box, Ctrl+A, Ctrl+C"); }
 }
 
 async function buildDeck() {
@@ -2031,6 +2040,11 @@ function showDialog(text, heading) {
     document.getElementById("picks-dlg-body").textContent = text;
     if (typeof dlg.showModal === "function") dlg.showModal();
     else dlg.setAttribute("open", "");
+    try {  // select the text, so Ctrl+C copies it when the clipboard is blocked
+        const r = document.createRange();
+        r.selectNodeContents(document.getElementById("picks-dlg-body"));
+        const s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+    } catch (e) {}
 }
 function showToast(msg) {
     const t = document.getElementById("toast");
@@ -2176,6 +2190,7 @@ def build_html(out_dir: Path, meta: Optional[dict], slides: list, storyline: dic
         f"window.__OUT_DIR__ = {json.dumps(str(out_dir.resolve()))};\n"
         f"window.__SCRIPTS_DIR__ = {json.dumps(str(Path(__file__).resolve().parent))};\n"
         f"window.__REVIEW_TOKEN__ = {json.dumps(review_token)};\n"
+        f"window.__HEADER__ = {json.dumps(_one_page_header(out_dir, 'designs', review_token))};\n"
     )
 
     return (
@@ -2357,6 +2372,9 @@ in the box instead.</p></header>
 {src_block}
 {ts_block}
 <div class="grid">{tiles}</div>
+<div id="copybox" style="display:none;position:fixed;left:32px;right:32px;bottom:110px;background:#fff;border:1px solid var(--accent);border-radius:6px;padding:10px;z-index:50;">
+<div style="font-size:13px;margin-bottom:6px;">If nothing was copied: click in the box, press Ctrl+A then Ctrl+C, and paste it into the chat.</div>
+<textarea id="copytext" readonly style="width:100%;min-height:120px;"></textarea></div>
 <footer>
 <textarea id="fix" placeholder="Something needs fixing? Say which slide and what."></textarea>
 <button class="fix" id="btn-fix">Send fixes</button>
@@ -2366,11 +2384,15 @@ in the box instead.</p></header>
 const OUT = {json.dumps(str(out_dir))};
 const TOKEN = {json.dumps(token)};
 const EXTRA = {json.dumps(extra_lines)};
+const HEADER = {json.dumps(_one_page_header(out_dir, "final", token))};
 function toast(m) {{ const t = document.getElementById("toast"); t.textContent = m;
   t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 1800); }}
 async function copy(text, label) {{
+  if (HEADER) text = HEADER + "\n" + text;
+  const box = document.getElementById("copybox"), ta = document.getElementById("copytext");
+  ta.value = text; box.style.display = "block"; ta.focus(); ta.select();
   try {{ await navigator.clipboard.writeText(text); toast(label); }}
-  catch (e) {{ prompt("Copy this:", text); }} }}
+  catch (e) {{ toast("Copy blocked: press Ctrl+C in the box."); }} }}
 {_COPIED_PAGE_JS}
 document.getElementById("btn-go").onclick = () => {{
   const cp = cpAnswers();
@@ -2393,8 +2415,10 @@ document.getElementById("btn-fix").onclick = () => {{
 }};
 </script></body></html>"""
     dest = out_dir / "FINAL-CHECK.html"
-    dest.write_text(page, encoding="utf-8")
+    one = _one_page_write(out_dir, page, dest, "final")
     print(f"FINAL-CHECK.html written: {dest}")
+    if one:
+        print(f"Slide Lab page (one file for the whole build, tab 3 Final check): {one}")
     print(f"  {len(ship)} finished option(s). Show it to the user (--open) and wait "
           "for the Build it message it copies, or for the user to say \"build it\" in "
           "chat once it is open (compile_picks.py --approved-in-chat).")
@@ -2527,14 +2551,53 @@ def main(argv: list[str]) -> int:
     if args.final:
         rc = build_final_check(out_dir, meta)
         if rc == 0 and args.open:
-            how = _open_page(out_dir / "FINAL-CHECK.html")
+            try:
+                import slidelab_page
+                _target = slidelab_page.page_path(out_dir)
+                if not _target.exists():
+                    _target = out_dir / "FINAL-CHECK.html"
+            except Exception:
+                _target = out_dir / "FINAL-CHECK.html"
+            how = _open_page(_target)
             if how:
                 # The page is in front of the user: their "build it" in chat
                 # now counts (compile_picks.py --approved-in-chat).
                 _state.record_page_opened(out_dir, "final_check", how)
         return rc
 
+    # The Storyline tab comes first (owner's decision 2026-10-16): while it
+    # waits for the user, there are no designs to show.
+    _sp = (_state.read_state(out_dir).get("storyline_page") or {})
+    if _sp.get("status") in ("waiting", "comments"):
+        import slidelab_page
+        print(f"STOPPED: the Storyline tab of {slidelab_page.page_path(out_dir)} is still "
+              "waiting for the user (" + ("their Done message" if _sp.get("status") == "waiting"
+                                          else "the chat to apply their comments") + "). No "
+              "design should have been made yet.")
+        print("Next: record the user's Storyline message with record_storyline.py --out "
+              f"\"{out_dir}\" --message \"<the whole message>\", prep again, then the workers.")
+        return 9
+    # A Must use visual that came back as another kind is redone before the
+    # user sees it (owner's decision 2026-10-16). Once per slide.
+    _vres = {}
+    try:
+        import check_visual_type
+        _vres = {e["n"]: e for e in check_visual_type.check(out_dir, meta)}
+    except Exception as exc:
+        print(f"     (the visual check did not run: {type(exc).__name__}: {exc})")
+    _redo = [e for n, e in sorted(_vres.items()) if e["mismatch"] and n in slide_metas]
+    if _redo:
+        rc = _redo_wrong_visuals(out_dir, meta, _redo)
+        if rc:
+            return rc
+
     slides = [scan_slide(out_dir, n, slide_metas.get(n)) for n in slide_nums]
+    for s in slides:
+        try:
+            import check_visual_type
+            s["visual_line"] = check_visual_type.card_line(_vres.get(s["n"]))
+        except Exception:
+            pass
     # An adopted external deck rebuilds only some of its slides; the rest stay
     # as they are in the original and are not up for review.
     if meta and meta.get("adopted_source"):
@@ -2591,14 +2654,90 @@ def main(argv: list[str]) -> int:
                   "brief's front matter at the storyline the user approved), prep again "
                   "(build_deck.py records it), then run build_review.py again.")
         return 6
+    one = _one_page_write(out_dir, review_path.read_text(encoding="utf-8"), review_path, "designs")
+    if one:
+        print(f"     Slide Lab page (one file for the whole build, tab 2 Slide designs): {one}")
     if args.open:
-        how = _open_page(review_path)
+        how = _open_page(one or review_path)
         if how:
             # Picks typed in chat now count (record_picks.py --approved-in-chat),
             # as long as no slide's options change before they are recorded.
             _state.record_page_opened(out_dir, "review", how,
                                       stamps={s["slide_id"]: s.get("stamp", "") for s in slides})
     return 0
+
+
+def _one_page_header(out_dir: Path, stage: str, token: str) -> str:
+    """The first line of every message the page copies (slidelab_page.py)."""
+    try:
+        import slidelab_page
+        return slidelab_page.header(out_dir, stage, token)
+    except Exception:
+        return ""
+
+
+def _one_page_write(out_dir: Path, page: str, dest: Path, stage: str):
+    """Write REVIEW.html / FINAL-CHECK.html (kept for one release, with a
+    redirect to the one page) and the one Slide Lab page with it as tab 2
+    or 3. Returns the one page's path, or None."""
+    try:
+        import slidelab_page
+        dest.write_text(slidelab_page.add_redirect(page, out_dir, stage), encoding="utf-8")
+        slidelab_page.mark_part_ready(out_dir, stage)
+        return slidelab_page.write(out_dir, stage)
+    except Exception as exc:
+        dest.write_text(page, encoding="utf-8")
+        print(f"     (the Slide Lab page was not written: {type(exc).__name__}: {exc})")
+        return None
+
+
+def _redo_wrong_visuals(out_dir: Path, meta: Optional[dict], entries: list) -> int:
+    """Prep again each Must use slide whose design is another kind of visual
+    (once per slide; a second miss is shown on its card). Returns 8 when the
+    parent must send workers first, else 0."""
+    import subprocess
+    import check_visual_type
+    state = _state.read_state(out_dir)
+    done = state.setdefault("visual_redo", {})
+    todo = [e for e in entries if not done.get(str(e["n"]))]
+    if not todo:
+        for e in entries:
+            print(f"     WARNING: slide {e['n']} was redone once and still is not "
+                  f"{e['wanted']} (Must use): {check_visual_type.card_line(e)} It is shown on "
+                  "its card; tell the user.")
+        return 0
+    tpl = (meta or {}).get("template") or ""
+    redone = []
+    for e in todo:
+        check_visual_type.write_redo_feedback(out_dir, e)
+        n_opts = len(e["options"]) or 1
+        cmd = [sys.executable, str(Path(__file__).resolve().parent / "build_deck.py"),
+               "--slide", str(e["n"]), "--out", str(out_dir), "--template", tpl,
+               "--options", str(min(3, n_opts))]
+        r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
+        if r.returncode != 0:
+            print(f"     WARNING: slide {e['n']} could not be prepped again for its visual "
+                  f"(exit {r.returncode}): {(r.stderr or r.stdout).strip()[-300:]}")
+            continue
+        state = _state.read_state(out_dir)
+        state.setdefault("visual_redo", {})[str(e["n"])] = {
+            "at": datetime.now().isoformat(timespec="seconds"), "wanted": e["wanted"],
+            "was": [o["reason"] for o in e["options"]]}
+        _state._write(out_dir, state)
+        redone.append(e)
+    if not redone:
+        return 0
+    print("STOPPED before the designs tab: a slide marked Must use came back as another "
+          "kind of visual, so it was prepped again (the reason is in its _prior_feedback.md):")
+    for e in redone:
+        print(f"  slide {e['n']}: wanted {e['wanted']}; "
+              + "; ".join(f"option {o['letter']}: {o['reason']}" for o in e["options"]
+                          if o["follows"] is False))
+    nums = ", ".join(str(e["n"]) for e in redone)
+    print(f"Send one slide-builder-worker per slide ({nums}) on its slide_NN/_prompt.md, render "
+          "its sketch (render_html.py), then run build_review.py again.")
+    print(f"Next: py -3 \"{Path(__file__).resolve()}\" --out \"{out_dir}\" --open")
+    return 8
 
 
 def _open_page(path: Path) -> str:

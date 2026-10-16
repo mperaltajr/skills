@@ -169,6 +169,10 @@ def check(brief_path: Path) -> list[dict]:
                 if m and not re.search(r"\d", text[m.end():m.end() + 40]):
                     add(n, field, f'"{w}" with no number next to it: say how much, or cut it',
                         m.group(0))
+        # The Storyline tab's **Visual:** line (2026-10-16): a known name and lock.
+        import _visuals
+        for q in _visuals.problems(s.get("visual") or ""):
+            add(n, "visual", q, s.get("visual") or "")
         if not cover and take and not re.search(r"\d", take):
             add(n, "takeaway", "no number: state what the page's facts mean, with one of its numbers "
                                "(or give the reason there is none)", take)

@@ -86,6 +86,9 @@ PLAIN_RE = re.compile(r"Picks:\s*(.+?)\s*\(check\s+([0-9a-fA-F]{8})\)", re.I)
 # different design rather than an edit of this one. Those comments are a
 # Replace request (owner's decision, 2026-10-08), not an edit in place.
 REDESIGN_CHIP = "Wrong layout / structure"
+# The chip that says the design is the wrong kind of visual (owner's decision
+# 2026-10-16): also a Replace request, and counted so it can be measured.
+VISUAL_CHIP = "Wrong kind of visual"
 REDESIGN_RE = re.compile(
     r"\b(?:"
     r"try (?:a|an|another|some)\b[^.;]*\binstead"
@@ -143,7 +146,7 @@ def comment_text(fields: dict) -> str:
 
 def asks_for_redesign(fields: dict) -> bool:
     chips = [c.strip() for c in (fields.get("quick") or "").split(";")]
-    if any(c.startswith(REDESIGN_CHIP) for c in chips):
+    if any(c.startswith(REDESIGN_CHIP) or c.startswith(VISUAL_CHIP) for c in chips):
         return True
     typed = " ".join(v for k, v in fields.items() if k != "quick")
     return bool(REDESIGN_RE.search(typed))
@@ -328,6 +331,13 @@ def main(argv=None) -> int:
         chat_bound = {"page": "REVIEW.html", "review_token": review["token"],
                       "stamps": stamps_now, "picks": body}
     else:
+        # The one Slide Lab page's header line (2026-10-16): a message from
+        # another deck, another tab or an older page is refused here.
+        import slidelab_page
+        ok_h, why_h = slidelab_page.check_header(out, args.approved or "", "designs")
+        if not ok_h:
+            print("REFUSED: " + why_h)
+            return 5
         m = LINE_RE.search(args.approved or "")
         plain = None if m else _from_plain(args.approved)
         if not m and not plain:
@@ -508,6 +518,13 @@ def main(argv=None) -> int:
                  "redesign": "asks for a different design: a Replace request",
                  "left_out": "on a slide left out; nothing to apply"}[c["kind"]]
         print(f"  comment on {c['slide']}: {label}: {c['text'][:160]}")
+    # The one Slide Lab page: the designs tab is done (read only); the final
+    # check is next. Never fails the recording.
+    try:
+        import slidelab_page
+        slidelab_page.write(out, "final" if not (redesign_sids or edit_sids) else "designs")
+    except Exception:
+        pass
     print("\nNext:")
     step = _convert_and_list(out, to_translate)
     if redesign_sids or edit_sids:

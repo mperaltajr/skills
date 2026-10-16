@@ -62,6 +62,10 @@ os.environ["SLIDE_LAB_SCRATCH_ROOT"] = str(SCRATCH)
 # not change what a test sees: tests run on the published settings.json. A
 # test that wants a local file points this at its own.
 os.environ.setdefault("SLIDE_LAB_SETTINGS_LOCAL", "none")
+# The Storyline tab of the one Slide Lab page (2026-10-16) waits for the user
+# before any prompt is written. The older suites test what comes after it, so
+# it is off for them; run_one_page_smoke.py turns it on.
+os.environ.setdefault("SLIDE_LAB_STORYLINE_TAB", "0")
 
 
 def _writable_retry(func, path, *_exc) -> None:

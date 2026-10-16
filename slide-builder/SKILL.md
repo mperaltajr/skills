@@ -138,6 +138,19 @@ A live working example is at [examples/quickstart-brief.md](examples/quickstart-
 
 ---
 
+## One Slide Lab page per deck (owner's decision, 2026-10-16)
+
+The user never opens several HTML files. Each build has ONE file, `<deck topic> - Slide Lab.html`, in the build folder (`scripts/slidelab_page.py`), rewritten in place at every stage. Every script that writes it prints its path; `slidelab_page.py show --out <build>` prints it and the stage.
+
+- **Three tabs.** 1 Storyline (the approved storyline, editable in place: changed lines turn yellow; "+ Comment on this slide"; a gray visual box per slide; the mix box from 6 slides; "Pages you gave us" and a per-slide "Start from" only when pages were supplied), 2 Slide designs (everything REVIEW.html does, plus "You picked: <visual> (<lock>). Design follows it / does not" on each card and the "Wrong kind of visual" chip), 3 Final check (everything FINAL-CHECK.html does, the copied-pages table included). A tab not reached yet is gray with a note; a finished tab is read only; only the current stage's Done button works.
+- **One message per Done, with a header.** Its first line is `Slide Lab, <deck>, <tab>, code <XXXX>`. The code is tied to this build and this stage, so `record_storyline.py` and `record_picks.py` refuse a message from another deck, another tab or an older page (a message with no header, from a page made before this, is still accepted by record_picks). When the browser blocks the clipboard, the message shows in a box: click in it, Ctrl+A, Ctrl+C.
+- **The Storyline tab comes first on a full build.** Prep (`build_deck.py`) opens it and STOPS: it writes no slide prompts, so there is nothing to dispatch. Tell the user the page is open and wait for the message its Done button copies, then `py -3 scripts/record_storyline.py --out <build> --message "<the whole message, exactly as pasted>"`. It applies the wording changes to the brief (only inside that slide, keeping its labels) and writes the dot-dash .md, .html and Word file again (prose only), re-seals a sealed brief (the user's own words), and writes `**Visual:** <name> | suggestion` (or `| must use`), `**Visual note:**` and `**Reuse:**` into each slide (the seal does not count them; "Start from: keep as is" pins the supplied page). Then prep again (the command is printed): the prompts carry the visual. Comments: the chat changes the storyline from them (read the rulings first, record each with add_ruling.py, re-seal), then prep again and the tab opens for another look. With only one or two slides that need a visual, prep asks one chat question instead; record the answer with `record_storyline.py --approved-in-chat "<their words>" --visual "N=<visual>|must use"` (or `--designers-pick-all`). A rebuild, an insert, a template fill and a rebuild slice have no Storyline tab.
+- **The visual names** (with small sketches; never "cards" or "text only"): Bar chart over time; Bar chart, each bar split into parts; Line chart; Table; Boxes side by side, one per point; Steps connected by arrows; Grid comparing options against criteria; Two to four large figures; Short points with icons or numbers; Photo with text; Map by region; Designer's choice (`scripts/_visuals.py`). Each slide is a **Suggestion** by default (the designer may do better and says why); **Must use** makes it firm (it becomes the slide's mandatory shape).
+- **Too many tables and boxes.** When tables plus side-by-side boxes are more than a third of the slides (6 or more slides with a visual) and some of them are only suggestions, `record_storyline.py` refuses and opens the tab again with the warning, and prep refuses a brief like that (exit 13). Two neighbors with the same visual are only flagged.
+- **A Must use slide that comes back as another kind of visual is redone before the designs tab opens.** Designers tag each design (`data-visual="<name>"` on the sketch canvas, `# Visual: <name>` in a script). `build_review.py` runs `scripts/check_visual_type.py` first: the tag, and simple signals (a table needs a `<table>`, a chart an `<svg>`, a photo an `<img>`). A mismatch is prepped again (`build_deck.py --slide N`, the reason in `_prior_feedback.md`) and build_review exits 8: send that slide's worker, render it, run build_review again. Once per slide; a second miss is shown on its card. build_review also refuses (exit 9) while the Storyline tab still waits.
+- **REVIEW.html and FINAL-CHECK.html** are still written for one release, so in-flight builds and older commands keep working. Opened on their own they jump to the one page's tab. `build_review.py --open` (and `--final --open`) open the one page.
+- **The shared storyline stays prose only.** The dot-dash Word, .md and .html files never get the visual boxes, comments or highlights.
+
 ## Register a new client template
 
 The chat-driven flow replaces the legacy PowerShell TTY flow (still available as `register_template.py interactive`).
@@ -249,6 +262,12 @@ Full reference (one paragraph + one PNG per pattern) lives at `reference/layouts
 N parallel agents per deck, **the option count per slide comes from settings: 1 out of the box** (`settings.json::options_per_slide`; one computer can set 3 in its own `slide-builder/settings.local.json`, never published). Three only when the user asks in chat (`--options 3` for those slides) or clicks **+3 designs** on a slide's card in REVIEW.html; do not ask. Never tell a worker a different count than its `_prompt.md` says. The per-slide prompt injects the option count + the 14-pattern reference + 5 hardline rules + anti-pattern library.
 
 ```
+STAGE 0.5 · STORYLINE TAB (HUMAN GATE, full builds) build_deck.py opens tab 1 of
+                          <deck> - Slide Lab.html and STOPS (no prompts). The
+                          user edits the wording and picks each slide's visual;
+                          record_storyline.py records the Done message; prep
+                          again. See "One Slide Lab page per deck".
+
 STAGE 1 · PREP            build_deck.py
                           Reads narrative brief + client template.
                           For each slide, renders prompt.md (the current template)
@@ -283,7 +302,7 @@ STAGE 2.6 · FINALIZE      finalize_deck.py, before the review. Puts the
                           Sketch options are not converted yet; finalize says
                           they are waiting for a pick, not missing.
 
-STAGE 3 · REVIEW          build_review.py -> REVIEW.html
+STAGE 3 · REVIEW          build_review.py -> tab 2 of the Slide Lab page (REVIEW.html too)
    (HUMAN GATE)           Sketch options show as sketches (labeled), direct
                           options as finished slides. The user picks an option
                           for EVERY slide, marks it "Replace these" for new
@@ -323,7 +342,7 @@ STAGE 4 · FINALIZE        finalize_deck.py again. Executes option_X.py (direct)
                           each onto its layout, themes, renders, and records a
                           QC result per option. Picks survive a re-finalize.
 
-STAGE 4.5 · FINAL CHECK   build_review.py --final -> FINAL-CHECK.html
+STAGE 4.5 · FINAL CHECK   build_review.py --final -> tab 3 (FINAL-CHECK.html too)
    (HUMAN GATE)           Every pick, finished, on the template: the real
                           title, takeaway and page number the sketches did not
                           have. SHOW it (--open) and WAIT. Its "Build it"

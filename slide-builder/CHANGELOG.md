@@ -2,6 +2,45 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## 2026-10-16: one Slide Lab page per deck, and each slide's visual chosen before design
+
+The user opened several HTML files per build (the storyline, REVIEW.html,
+FINAL-CHECK.html), and about one comment in ten said the slide was the wrong
+kind of visual. Approved by the owner 2026-10-14 to 2026-10-16.
+
+- **One file**, `<deck topic> - Slide Lab.html`, in the build folder
+  (`scripts/slidelab_page.py`), rewritten at each stage, with tabs
+  Storyline, Slide designs and Final check. Tabs not reached are gray, a
+  finished tab is read only, only the current Done button works. REVIEW.html
+  and FINAL-CHECK.html are still written for one release and jump to the
+  page's tab when opened on their own; `--open` opens the one page.
+- **Header code.** Every Done message starts `Slide Lab, <deck>, <tab>, code
+  XXXX`, tied to the build and the stage; `record_storyline.py` and
+  `record_picks.py` refuse another deck's, another tab's or an older page's
+  message. A box shows the message when the clipboard is blocked.
+- **Storyline tab** (full builds): prep opens it and writes no prompts.
+  Wording is edited in place (yellow), comments per slide, a visual per slide
+  from plain names with small sketches (Suggestion by default, Must use),
+  the mix box from 6 slides, "Pages you gave us" and "Start from" only when
+  pages were supplied, and a "Let the designers pick all" button. With one or
+  two slides needing a visual, one chat question instead.
+- **`scripts/record_storyline.py`** (new): applies the wording changes to the
+  brief (inside the slide only) and the dot-dash files (prose only), re-seals,
+  writes `**Visual:**`, `**Visual note:**`, `**Reuse:**` (not counted by the
+  seal), pins or unpins a supplied page, and refuses tables plus boxes over a
+  third of the slides while some are suggestions (the tab opens again).
+- **Prep** reads the visual into `_prompt.md` / `_context.md` (Must use is the
+  mandatory shape), records it in `_meta.json`, and refuses a brief over the
+  cap (exit 13). `brief_check.py` checks the visual names.
+- **`scripts/check_visual_type.py`** (new): reads each design's `data-visual`
+  tag (`# Visual:` in a script) and simple signals (table, chart svg, image).
+  `build_review.py` redoes a Must use slide that came back as another kind,
+  once, before the designs tab opens (exit 8), refuses while the Storyline tab
+  waits (exit 9), and shows "You picked: ... Design follows it / does not" on
+  each card. New "Wrong kind of visual" chip (a Replace request, counted).
+- Worker agent file and `prompt.md`: tag the main visual; follow Must use.
+  The installed agent file changes only after the merge (main session).
+
 ## 2026-10-14: the section tag goes into the template's own Breadcrumb slot, and is never too pale to read
 
 On the new Kinfield template the registered highlight is pollen #FFFB89, so

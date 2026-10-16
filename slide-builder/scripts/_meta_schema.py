@@ -104,6 +104,11 @@ class SlideMeta(BaseModel):
     # {kind, role: master|copy|pinned, master, values, ...}. None for a page
     # with its own designer.
     page_copy: Optional[dict[str, Any]] = None
+    # The visual chosen on the Storyline tab (record_storyline.py, 2026-10-16):
+    # {name, lock: "suggestion" | "must use", note}; and where the slide
+    # starts from when pages were supplied ("<file> page N, keep as is").
+    visual: Optional[dict[str, Any]] = None
+    reuse: Optional[str] = None
 
 
 class DeckMeta(BaseModel):
