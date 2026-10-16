@@ -53,8 +53,12 @@ FINGERPRINT_IGNORES = GATE_KEYS + POINTER_KEYS
 # approves the page map in one answer). Counting them would break the seal each
 # time the build adds them. Runs of blank lines count as one, so taking a line
 # out leaves the same text.
+# The Storyline tab's choices (record_storyline.py, owner's decision 2026-10-16)
+# are not counted either: `**Visual:**`, `**Visual note:**`, `**Visual shows:**`
+# and `**Reuse:**`. They say how a slide looks, not what it says.
 SCRIPT_LINE_RE = re.compile(
-    r"^\s*\*\*(?:slide id|pinned source page|supplied page)\s*:?\s*\*\*", re.I)
+    r"^\s*\*\*(?:slide id|pinned source page|supplied page|visual|visual note|visual shows|reuse)"
+    r"\s*:?\s*\*\*", re.I)
 
 
 def brief_fingerprint(front_matter: dict, body: str, legacy: bool = False) -> str:

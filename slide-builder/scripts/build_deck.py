@@ -102,7 +102,8 @@ except ImportError as _imp_exc:
     raise
 
 
-import _paths as _p  # noqa: E402
+import _paths as _p
+import _visuals  # noqa: E402
 import _state  # noqa: E402  (build state manifest: prep record + review invalidation)
 from _meta_schema import MetaJson, META_SCHEMA_VERSION_CURRENT  # noqa: E402
 from _chrome_schema import (  # noqa: E402
@@ -197,6 +198,14 @@ FIELD_LABELS = {
     # A section divider's one line (clone_pages.py, 2026-10-14). Optional: the
     # takeaway or the first bullet stands in when it is absent.
     "section_description": ("section description",),
+    # The slide's visual, chosen on the Storyline tab of the Slide Lab page
+    # (record_storyline.py; owner's decision 2026-10-16): "<name> | suggestion"
+    # or "<name> | must use", the user's note on it, the chat's one line on
+    # what it shows, and where the slide starts from when pages were supplied.
+    "visual":              ("visual",),
+    "visual_note":         ("visual note",),
+    "visual_shows":        ("visual shows",),
+    "reuse":               ("reuse",),
 }
 
 # Bold labels a slide block may carry that prep knows but does not pass on as
@@ -668,6 +677,10 @@ def parse_brief(brief_path: Path, bypass_gate: bool = False) -> dict[str, Any]:
             "slide_id": extract_field(block, FIELD_LABELS["slide_id"]).strip("` ").lower(),
             "section_description": " ".join(
                 extract_field(block, FIELD_LABELS["section_description"]).split()),
+            "visual": " ".join(extract_field(block, FIELD_LABELS["visual"]).split()),
+            "visual_note": " ".join(extract_field(block, FIELD_LABELS["visual_note"]).split()),
+            "visual_shows": " ".join(extract_field(block, FIELD_LABELS["visual_shows"]).split()),
+            "reuse": " ".join(extract_field(block, FIELD_LABELS["reuse"]).split()),
         }
         slides.append(slide)
     _dupes = sorted({s["slide_id"] for s in slides if s["slide_id"]
@@ -1442,6 +1455,10 @@ def write_slide_context_md(slide: dict, brand: dict, slide_dir: Path,
         prior_feedback=_load_prior_feedback_for_slide(slide_dir),
     )
     content = _add_context_pack(content, slide, slide_dir, deck)
+    if (slide.get("visual") or slide.get("reuse") or "").strip():
+        # The user's visual choice from the Storyline tab (2026-10-16).
+        content += ("\n\n## The visual the user chose (Storyline tab)\n\n"
+                    + visual_directive(slide) + "\n")
     ctx_path = slide_dir / "_context.md"
     ctx_path.write_text(content, encoding="utf-8")
     return ctx_path
@@ -1508,6 +1525,39 @@ def density_directive(front_matter: dict[str, Any]) -> str:
     )
 
 
+def visual_mandatory(slide: dict[str, Any]) -> str:
+    """A Must use visual is a required shape, like **Mandatory shape:**."""
+    v = _visuals.parse_visual(slide.get("visual") or "")
+    if v and v["lock"] == "must use" and v["name"] != _visuals.ANY:
+        return f"{v['name']} (the user chose it on the Storyline tab: Must use)"
+    return ""
+
+
+def visual_directive(slide: dict[str, Any]) -> str:
+    """The prompt's **Visual:** line (owner's decision 2026-10-16)."""
+    v = _visuals.parse_visual(slide.get("visual") or "")
+    reuse = (slide.get("reuse") or "").strip()
+    start = ""
+    if reuse and not reuse.lower().startswith("new design"):
+        start = (f" Start from: {reuse}."
+                 + (" Keep its structure and wording and redraw it cleanly on the template."
+                    if "clean" in reuse.lower() else ""))
+    if not v or v["name"] == _visuals.ANY:
+        return ("Designer's choice: pick the visual that proves the point best, and tag what "
+                "you drew (see \"Tag the main visual\" below)." + start)
+    note = (slide.get("visual_note") or "").strip()
+    shows = (slide.get("visual_shows") or "").strip()
+    extra = (f" What it shows: {shows}." if shows else "") + (f" The user's note: {note}." if note else "")
+    if v["lock"] == "must use":
+        return (f"{v['name']} (MUST USE: the user chose it on the Storyline tab). Every option "
+                "is this kind of visual; a design that comes back as another kind is sent back "
+                "before the user sees it." + extra + start)
+    return (f"{v['name']} (suggestion). Use it unless you have a better reason; if you draw "
+            "something else, tag what you drew and give the reason in one line (see \"Tag the "
+            "main visual\" below). With three options, use at least two different kinds of "
+            "visual." + extra + start)
+
+
 def build_placeholders(
     slide: dict[str, Any],
     slide_total: int,
@@ -1558,7 +1608,9 @@ def build_placeholders(
         "CHART_DATA":              slide.get("chart_data", "") or "(no chart data provided)",
         "NOT_THIS_SLIDE":          slide.get("not_this_slide", "") or "(none)",
         "VISUAL_RHYTHM":           slide.get("visual_rhythm", "") or "(worker's judgment)",
-        "MANDATORY_SHAPE":         slide.get("mandatory_shape", "") or "(none — worker's judgment)",
+        "MANDATORY_SHAPE":         (slide.get("mandatory_shape", "") or visual_mandatory(slide)
+                                    or "(none — worker's judgment)"),
+        "VISUAL":                  visual_directive(slide),
         "PINNED_SOURCE_PAGE":      slide.get("pinned_source_page", "") or "(none)",
         "SOURCE_LINE":             slide.get("source", "") or "(none in the brief)",
         "SECTION_TAG":             slide.get("section_tag", "") or "(none)",
@@ -1890,6 +1942,16 @@ def _build_slide_meta_entry(slide: dict[str, Any], forecast: str,
         _v = (slide.get(_k) or "").strip()
         if _v:
             entry[_k] = _v
+    # The visual chosen on the Storyline tab (record_storyline.py): the
+    # review card says whether the design follows it, and a Must use slide
+    # that comes back another way is redone (check_visual_type.py).
+    _vis = _visuals.parse_visual(slide.get("visual") or "")
+    if _vis:
+        entry["visual"] = {"name": _vis["name"], "lock": _vis["lock"]}
+        if (slide.get("visual_note") or "").strip():
+            entry["visual"]["note"] = slide["visual_note"].strip()
+    if (slide.get("reuse") or "").strip():
+        entry["reuse"] = slide["reuse"].strip()
     # Only populate build-path fields when the classifier produced routing for
     # this slide. Empty pattern_per_slide (legacy mode) leaves the shape unchanged.
     if str(slide_n) in pattern_per_slide:
@@ -1993,6 +2055,18 @@ def record_prep_with_notice(out_dir, deck_hash: str, step: str) -> None:
     else:
         print("  Compile will refuse this build: " + why)
     print("  Do not copy or restore agent files from this session.")
+
+
+def _one_page_after_prep(out_dir: Path):
+    """After a prep: the one Slide Lab page shows the storyline (read only)
+    and "the designers are working" on tab 2. Never fails the prep."""
+    try:
+        import slidelab_page
+        slidelab_page.forget_parts(out_dir)
+        return slidelab_page.write(out_dir, "designs")
+    except Exception as exc:  # pragma: no cover
+        print(f"  (the Slide Lab page was not written: {type(exc).__name__}: {exc})")
+        return None
 
 
 def pinned_pages_note(slides) -> list[str]:
@@ -3285,6 +3359,43 @@ def main() -> int:
             sys.stderr.write(f"ERROR: could not shift build for insert: {exc}\n")
             return 5
 
+    # 4.9 The Storyline tab of the one Slide Lab page (owner's decision
+    # 2026-10-16): on a full build the user edits the storyline wording and
+    # picks each slide's visual before any designer starts. While it waits,
+    # prep writes no slide prompts (nothing to dispatch by mistake).
+    _storyline_wait: list[str] = []
+    _storyline_lines: list[str] = []
+    if not single_slide_mode:
+        import record_storyline as _rs
+        _skip_tab = _mode in ("template-fill", "rebuild-slice")
+        _gate, _lines = _rs.prep_gate(args.out.resolve(), args.brief.resolve(), args.template,
+                                      full_build=not _skip_tab)
+        if _gate == "wait":
+            _storyline_wait = _lines
+        else:
+            _storyline_lines = _lines
+            # Tables plus side-by-side boxes over a third of the slides, while
+            # some are only suggestions: refused (the user marks the ones they
+            # want as Must use, or changes some).
+            _mix = _visuals.mix([
+                (s["slide_n"], _v["name"], _v["lock"]) for s in slides
+                for _v in [_visuals.parse_visual(s.get("visual") or "")]
+                if _v and not _v.get("unknown")])
+            if _mix["refuse"]:
+                sys.stderr.write(
+                    "ERROR: " + _visuals.cap_message(_mix) + " Some of them are only "
+                    "suggestions, so prep stopped before any designer started.\n"
+                    "  Change some visuals on the Storyline tab, or mark the ones the user wants "
+                    "as Must use (their words), then prep again.\n"
+                    f"  The Storyline tab: py -3 \"{Path(__file__).resolve().parent / 'slidelab_page.py'}\" "
+                    f"show --out \"{args.out}\"\n")
+                return 13
+            _bad = [(s["slide_n"], _q) for s in slides
+                    for _q in _visuals.problems(s.get("visual") or "")]
+            for _n, _q in _bad:
+                print(f"WARNING (brief): slide {_n} **Visual:** {_q}; the designer gets "
+                      "Designer's choice.")
+
     # 5. Render per-slide prompts. In single-slide modes, render only the target
     # slide and leave every other slide's prompt/context/meta untouched.
     target_slide_n = rebuild_slide_n if rebuild_slide_n is not None else insert_slide_n
@@ -3293,6 +3404,8 @@ def main() -> int:
         (slide, seeds) for slide, seeds in zip(slides, seeds_by_slide)
         if target_slide_n is None or slide["slide_n"] == target_slide_n
     ]
+    if _storyline_wait:
+        render_targets = []  # the Storyline tab is open: no prompts yet
     for slide, seeds in render_targets:
         slide_n = slide["slide_n"]
         slide_dir = _p.slide_dir(args.out, slide_n)
@@ -3359,6 +3472,7 @@ def main() -> int:
         for _ln in page_copy_target_lines(copy_plan, rebuild_slide_n, args.out):
             print(_ln)
         record_prep_with_notice(args.out, _deck_hash, "rebuild")
+        _one_page_after_prep(args.out)
         _sl = record_storyline(args.out, args.brief, getattr(args, "storyline", None))
         if _sl:
             print(_sl)
@@ -3415,6 +3529,7 @@ def main() -> int:
         for _ln in page_copy_target_lines(copy_plan, insert_slide_n, args.out):
             print(_ln)
         record_prep_with_notice(args.out, _deck_hash, "insert")
+        _one_page_after_prep(args.out)
         _sl = record_storyline(args.out, args.brief, getattr(args, "storyline", None))
         if _sl:
             print(_sl)
@@ -3435,6 +3550,19 @@ def main() -> int:
         pattern_per_slide=pattern_per_slide,
     )
     record_page_copies(meta_path, copy_plan)
+
+    if _storyline_wait:
+        record_prep_with_notice(args.out, _deck_hash, "prep")
+        _sl = record_storyline(args.out, args.brief, getattr(args, "storyline", None))
+        # the page needs the manifest: write it again now that it exists
+        import record_storyline as _rs
+        _rs.open_stage(args.out.resolve(), args.brief.resolve())
+        print(f"Prepped {slide_total} slides at:")
+        print(f"  {args.out.resolve()}")
+        print()
+        for _ln in _storyline_wait:
+            print(_ln)
+        return 0
 
     # Dispatch plan
     plan_path = write_dispatch_plan(
@@ -3496,6 +3624,11 @@ def main() -> int:
     _sl = record_storyline(args.out, args.brief, getattr(args, "storyline", None))
     if _sl:
         print(_sl)
+    _pg = _one_page_after_prep(args.out)
+    for _ln in _storyline_lines:
+        print(_ln)
+    if _pg:
+        print(f"Slide Lab page (one file for the whole build): {_pg}")
     return 0
 
 

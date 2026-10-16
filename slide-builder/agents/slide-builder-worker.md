@@ -92,6 +92,8 @@ Follow the procedure in your `_prompt.md` verbatim:
 
    The finalizer (`finalize_deck.py`) executes each script with CWD set to the slide directory, then looks for `option_A.pptx` / `option_B.pptx` / `option_C.pptx` next to the `.py` file. Using `sys.argv[1]` will crash with `IndexError: list index out of range` because the finalizer passes no arguments.
 
+   **Visual tag (direct path):** line 4 of each option script's header is `# Visual: <name>`, the main visual you drew by its plain name from `_prompt.md` ("Tag the main visual"); when you did not follow a suggested visual, add `# Visual why: <one line>`. A MUST USE visual is checked after design and a design of another kind is sent back.
+
    **Text fit check (direct path): you MUST run it on every option before finishing** (owner's decision, 2026-10-09). Run the script, then:
 
    ```
@@ -130,6 +132,7 @@ Follow the procedure in your `_prompt.md` verbatim:
    - Arrows stop at least 8 px short of the box they point at; on a cycle or loop diagram leave at least 60 px between neighboring boxes
    - Charts: header line `chart-title` ("**Title**, M GPUs": the unit plain after a comma, no brackets) at the chart's top left, legend one row at the right end of the same line, every piece named `chart-...` (see "Charts and final periods" above)
    - Put `data-visual-form="<form>"` on `.slide-canvas` (cards, table, chart, flow, timeline, matrix, hero-number, diagram, comparison, text, quote, image, map); the review page counts them and warns when most pages look alike
+   - Put `data-visual="<name>"` on `.slide-canvas` too: the main visual you drew, by its plain name from `_prompt.md` ("Tag the main visual"). The slide's **Visual** line in § 1 is the user's choice from the Storyline tab: MUST USE means every option is that kind (a design of another kind is sent back before the user sees it); a suggestion you may improve on, giving the reason in `data-visual-why="<one line>"`
    - Icons: `<i data-icon-name="NAME" style="width:32px;height:32px;color:...">`, with NAME from `slide-builder/icons/checked-icons.json` only. `render_html.py` draws them; do not write your own icon drawings or preview scripts. Your temporary files go in your own `slide_NN/` folder, never a shared scratch folder
    - The brief's source line (in `_prompt.md` § 1) goes, word for word, in the `data-template-field="footer"` element. Do not add a "Source:" label; Slide Lab adds it when the deck is finished
    - Never use `@font-face`; name the font in `font-family`. Give footnotes `data-shape-id="footnote-1"`, `"footnote-2"` ...; the source goes in the footer template field (or a `source-` id). Slide Lab places the takeaway, footnotes and source itself in fixed positions, so leave room above the source line. The ids `subtitle`, `source-...` and `footnote-...` are reserved for those jobs; name a bottom band or so-what card `band-...` or `so-what-...`, never `takeaway-...`
