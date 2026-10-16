@@ -1933,10 +1933,13 @@ function slCopyLegacy(text) {
     const ta = document.createElement("textarea");
     ta.value = text; ta.setAttribute("readonly", "");
     ta.style.position = "fixed"; ta.style.left = "-9999px"; ta.style.top = "0";
-    document.body.appendChild(ta); ta.focus(); ta.select();
+    // While the copy box is open (a modal dialog) the rest of the page cannot
+    // take focus, so a textarea outside it copied nothing: put it in the box.
+    const host = document.querySelector("dialog[open]") || document.body;
+    host.appendChild(ta); ta.focus(); ta.select();
     let ok = false;
     try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
-    document.body.removeChild(ta);
+    host.removeChild(ta);
     return ok;
 }
 async function slCopy(text) {
@@ -2410,13 +2413,29 @@ const EXTRA = {json.dumps(extra_lines)};
 const HEADER = {json.dumps(_one_page_header(out_dir, "final", token))};
 function toast(m) {{ const t = document.getElementById("toast"); t.textContent = m;
   t.classList.add("show"); setTimeout(() => t.classList.remove("show"), 1800); }}
+// The older copy command, on a textarea that is on the page (a hidden box
+// cannot be selected, so copying from it copied nothing).
+function copyLegacy(text) {{
+  const t = document.createElement("textarea");
+  t.value = text; t.setAttribute("readonly", "");
+  t.style.position = "fixed"; t.style.left = "-9999px"; t.style.top = "0";
+  document.body.appendChild(t); t.focus(); t.select();
+  let ok = false;
+  try {{ ok = document.execCommand("copy"); }} catch (e) {{ ok = false; }}
+  document.body.removeChild(t);
+  return ok;
+}}
 async function copy(text, label) {{
-  if (HEADER) text = HEADER + "\n" + text;
+  // "\\n" here: a plain newline inside this Python string broke the whole
+  // script, so Build it and Send fixes did nothing (2026-10-16).
+  if (HEADER) text = HEADER + "\\n" + text;
   const box = document.getElementById("copybox"), ta = document.getElementById("copytext");
   ta.value = text;
   let ok = false;
-  try {{ await navigator.clipboard.writeText(text); ok = true; }} catch (e) {{}}
-  if (!ok) {{ ta.focus(); ta.select(); try {{ ok = document.execCommand("copy"); }} catch (e) {{}} }}
+  try {{ if (navigator.clipboard && navigator.clipboard.writeText) {{
+    await navigator.clipboard.writeText(text); ok = true; }} }} catch (e) {{}}
+  if (!ok) ok = copyLegacy(text);
+  window.__slidelabLastCopy = {{ text: text, ok: ok }};
   if (ok) {{ box.style.display = "none"; toast(label); }}
   else {{ box.style.display = "block"; ta.focus(); ta.select(); toast("Copy blocked: press Ctrl+C in the box."); }} }}
 {_COPIED_PAGE_JS}

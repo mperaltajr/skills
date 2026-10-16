@@ -2,7 +2,27 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
-<<<<<<< HEAD
+## 2026-10-16: every button of the one Slide Lab page works, with a click test
+
+The owner reported that Build it and Send fixes on the final check did
+nothing. Every control on every tab was clicked in Edge on a real build.
+
+- **Final check: Build it, Send fixes and the copied-pages table were dead**,
+  in the one page and in FINAL-CHECK.html on its own. A newline written
+  inside the page's script (from the header line added with the one page)
+  broke the whole script, so no button had a handler. Fixed. Its copy also
+  tried to copy from a hidden box, which copies nothing; it now uses a
+  textarea that is on the page, and the box still opens when copying is
+  truly blocked.
+- **Slide designs: Copy in the copy box copied nothing.** While that box is
+  open, the rest of the page cannot take focus, so the copy is now made
+  inside the box.
+- **`tests/run_page_clicks_smoke.py`** (new): builds a small deck to each
+  stage, opens the page from disk in headless Edge (its own browser) and
+  clicks every control on every tab, the finished tabs (read only), and
+  REVIEW.html / FINAL-CHECK.html on their own. Each copy is checked by
+  pasting the clipboard back; a dead button or a script error fails it.
+
 ## 2026-10-16: one Slide Lab page per deck, and each slide's visual chosen before design
 
 The user opened several HTML files per build (the storyline, REVIEW.html,
@@ -41,7 +61,6 @@ kind of visual. Approved by the owner 2026-10-14 to 2026-10-16.
   each card. New "Wrong kind of visual" chip (a Replace request, counted).
 - Worker agent file and `prompt.md`: tag the main visual; follow Must use.
   The installed agent file changes only after the merge (main session).
-=======
 ## 2026-10-16: custom text boxes are fitted to their text, with proof that no text moved
 
 Mario: "many times the text boxes are too large that it is difficult to
@@ -97,7 +116,6 @@ decisions of 2026-10-16.
 - Follow-up, not in this change: make the converter (`translate_html.py`)
   give one-line text its own width plus 1 character at the source; it needs a
   `translate_gonogo` re-run first.
->>>>>>> worktree-agent-aea3748579f3d8489
 
 ## 2026-10-14: the section tag goes into the template's own Breadcrumb slot, and is never too pale to read
 
