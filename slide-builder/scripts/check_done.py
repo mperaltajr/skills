@@ -14,6 +14,10 @@ So this checks one unbroken chain of recorded facts, each tied to the last:
   2. the deck being checked IS that file, byte for byte
   3. it was built from the CURRENT brief (nothing re-prepped since)
   4. it opens, and has no structure PowerPoint refuses
+  4b. its text-box fit (fit_boxes.py, 2026-10-16) passed its own proof, found
+      nothing to fit, or was skipped without PowerPoint (a failed fit
+      refuses, with the recompile step; a compile from before the step only
+      prints a line)
   5. every option in it was finalized with no blocking findings
   6. every page's REVIEWED image is that page's image in the current render
      of this exact deck (render_manifest.json in <out>/_qc, bound to the
@@ -172,6 +176,25 @@ def main(argv=None) -> int:
             problems.append(f"the deck has {n_deck} slides; the compile produced "
                             f"{comp['slides']}")
 
+    # 4b. The text-box fit (2026-10-16): the compile record shows it passed its
+    #     own proof (0 boxes moved, 0 pages changed), found nothing to fit,
+    #     or was skipped because PowerPoint is not on this computer. A deck
+    #     compiled before the step existed has no record; that only prints.
+    bf = comp.get("box_fit")
+    if bf:
+        if bf.get("status") == "error":
+            problems.append(
+                f"the text-box fit failed when the deck was compiled ({bf.get('note')}), "
+                "so its text boxes are still larger than their text. Recompile "
+                "(compile_picks.py, the same command as before). If PowerPoint keeps "
+                "failing there, compile with SLIDE_LAB_NO_BOX_FIT=1 and tell the user "
+                "the boxes were not fitted.")
+        elif bf.get("status") == "fitted" and (bf.get("moved") or bf.get("pixel_pages_changed")):
+            problems.append(
+                f"the text-box fit record says {bf.get('moved')} box(es) moved and "
+                f"{bf.get('pixel_pages_changed')} page(s) look different; a fitted deck is "
+                "kept only with 0 and 0. Recompile.")
+
     # 5. Every shipped option finalized clean (a re-finalize after compile can
     # record new blocks against options already in the deck).
     shipped = comp.get("options") or []
@@ -296,6 +319,14 @@ def main(argv=None) -> int:
              "splice": "spliced deck"}.get(kind, kind)
     print(f"DELIVERABLE ({label}): {deck}")
     print(f"  compiled at   : {comp.get('at')}  ({n_deck} slides)")
+    try:
+        import fit_boxes
+        _bf = fit_boxes.summary_lines(comp.get("box_fit"))
+        print(f"  text boxes    : {_bf[0][2:]}")
+        for _ln in _bf[1:]:
+            print(f"                  {_ln[2:]}")
+    except Exception:
+        pass
     cnt = qc_pages.open_counts(state)
     print(f"  vision pass   : all {n_deck} page(s) reviewed as they look in this deck "
           f"({vq.get('slides_reviewed')} read in the last round, {vq.get('carried', 0)} "

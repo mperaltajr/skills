@@ -740,12 +740,14 @@ def record_vision_qc(out_dir, deck: str, slides_reviewed: int, findings: int = 0
 
 
 def record_compile(out_dir, kind: str = "picks", output=None, slides: int = 0,
-                   options=None) -> None:
+                   options=None, box_fit=None) -> None:
     """A deck was compiled. Records what came out, so check_done can verify
     the file it is shown is that file, unchanged, built from current content.
 
     kind: 'picks' (the final deck), 'all_variations' (every option, for
     comparison) or 'splice' (rebuilt slides put back into an external deck).
+    box_fit: fit_boxes.fit_deck's record (fitted, skipped by rule, put back,
+    engine, proof), 2026-10-16.
     """
     state = read_state(out_dir)
     state.setdefault("stages", {})["compile"] = {
@@ -755,6 +757,8 @@ def record_compile(out_dir, kind: str = "picks", output=None, slides: int = 0,
         "content_hash": state.get("content_hash"),
         "slides": int(slides or 0),
         "options": list(options or [])}
+    if box_fit is not None:
+        state["stages"]["compile"]["box_fit"] = dict(box_fit)
     _write(out_dir, state)
 
 
