@@ -191,11 +191,11 @@ def check_pipeline_imports() -> list[str]:
     targets = [
         "_paths", "_meta_schema", "_chrome_schema", "_log", "_contract",
         "build_deck", "finalize_deck", "compile_picks",
-        "build_review", "build_gate_preview",
+        "build_review",
         "register_template", "clean", "diagnostic",
         # "render_mermaid" was removed from this list along with
         # scripts/render_mermaid.py; the sketch path supersedes it.
-        "icon_helper", "migrate_brief_to_v3",
+        "icon_helper",
     ]
     imported = 0
     for name in targets:
@@ -605,11 +605,11 @@ def check_type_hints_resolve() -> list[str]:
     targets = [
         "_paths", "_meta_schema", "_chrome_schema", "_log",
         "build_deck", "finalize_deck", "compile_picks",
-        "build_review", "build_gate_preview",
+        "build_review",
         "register_template", "clean", "diagnostic",
         # "render_mermaid" was removed from this list along with
         # scripts/render_mermaid.py; the sketch path supersedes it.
-        "icon_helper", "migrate_brief_to_v3",
+        "icon_helper",
     ]
     callables_checked = 0
     for mod_name in targets:

@@ -12,7 +12,7 @@ agent.
 build_deck.py calls check_installed_agents() before any agent is dispatched and
 refuses to prep on a mismatch; doctor.py shows the same check.
 
-Since 2026-10-09 (validated fix, Kinfield v3.1 session report):
+Since 2026-10-09 (validated fix from a session report):
   - the refusal says WHICH version is installed, by looking the installed
     file up in the repo's git history: an older version from main (copy the
     repo version over), an unmerged branch (merge that branch first), or no
@@ -29,7 +29,7 @@ Since 2026-10-09 (validated fix, Kinfield v3.1 session report):
     files, and a swap-and-restore around prep made the prep check certify
     something that was not true.
 
-Since 2026-10-13 (owner-approved, Leo narrative session report item 4):
+Since 2026-10-13 (owner-approved, session report item 4):
   - prep, --slide, --insert and record_picks --edits-done each add an entry
     (time, step, md5 and git blob id of each installed agent file) to the
     build's agent history; the first entry is the pin.

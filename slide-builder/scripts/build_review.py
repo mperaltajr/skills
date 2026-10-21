@@ -1338,7 +1338,7 @@ CSS = """
   --panel-2: #EEF1F6;     /* insets: option tiles, textareas, buttons, chips */
   --text: #17202E;        /* primary near-black slate (~14:1 on white) */
   --text-dim: #475569;    /* secondary text / labels (7.4:1 on white) */
-  --accent: #A100FF;      /* Accenture purple — UNCHANGED */
+  --accent: #A100FF;      /* bright purple — UNCHANGED */
   --accent-soft: #7A0FB8; /* darkened purple — used as text/marks on light bg */
   --approve: #15803D;     /* green-700 — readable as text on white */
   --tweak: #B45309;       /* amber-700 — readable as text on white */

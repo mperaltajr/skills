@@ -5,7 +5,7 @@
 # Then:           py -3 -m playwright install chromium          (or python3 -m ...)
 #
 # These cover all skill folders (slide-builder, slide-qc, storyline-helper,
-# rfp-helper, slidelab-log, docx, pptx, xlsx) plus the cross-skill glue.
+# rfp-helper, slidelab-log) plus the cross-skill glue.
 
 # Core PPTX construction + manipulation
 python-pptx>=0.6.21
@@ -23,7 +23,7 @@ Pillow>=10.0
 # Numbers for the translator's self-check
 numpy>=1.24
 
-# XLSX read/write (xlsx skill + chart-data ingestion)
+# XLSX read/write (chart-data export and ingestion)
 openpyxl>=3.1
 
 # Windows-only — needed for PowerPoint COM "high-fidelity" rendering path.
@@ -41,6 +41,6 @@ playwright>=1.40,<2.0
 # Font metrics for the script translator (translate_html.py)
 fonttools>=4.40
 
-# Word output: the storyline's .docx version and the docx skill
+# Word output: the storyline's .docx version
 python-docx>=1.1
 defusedxml>=0.7

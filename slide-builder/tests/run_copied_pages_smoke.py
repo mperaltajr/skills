@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Smoke test: several slides copy supplied pages, and every one is checked.
 
-Leo narrative session report, item 3 (owner's decision 2026-10-13, the
+Session report, item 3 (owner's decision 2026-10-13, the
 lighter check). A build pinned 15 slides to pages of two earlier decks. Each
 `source_ledger.py build` overwrote the one ledger file, and the gates read one
 count from the last run: resolving the last page's rows would have shipped the

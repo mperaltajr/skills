@@ -555,7 +555,7 @@ Master switch is `settings.json::enable_sketch` (shipped `true`). Set it to `fal
 Owner's decisions of 2026-10-14 (speed verdict Q2, decisions B and D). They matter most with three designs per slide; with one design (the default) the picked pages are all the pages.
 
 1. **One fact check of the brief's numbers, before the designers start** (after prep, before Stage 2). One reviewer agent compares every figure in the brief (and the storyline it came from) with its source: the model, the research, the user's files. Number errors live in the text, so this catches each one once, instead of once in every option. Fix the brief (or ask the user), re-run prep if the brief changed, then dispatch the workers.
-2. **The content committee runs after the picks, on the picked pages only.** Once `record_picks.py` has recorded the picks, the reviewers (the several agents that read the deck's content, wording and logic) read only each slide's picked option (`slide_NN/option_<pick>.sketch.png` or its render, and FINAL-CHECK.html), never the options the user did not pick. On the Leo deck 285 edits went into 134 fixes, and only 37% of them landed on the option that shipped. Give the reviewers the deck's rulings file (`_session\rulings.md`) so they do not reopen what the user settled.
+2. **The content committee runs after the picks, on the picked pages only.** Once `record_picks.py` has recorded the picks, the reviewers (the several agents that read the deck's content, wording and logic) read only each slide's picked option (`slide_NN/option_<pick>.sketch.png` or its render, and FINAL-CHECK.html), never the options the user did not pick. On one client deck 285 edits went into 134 fixes, and only 37% of them landed on the option that shipped. Give the reviewers the deck's rulings file (`_session\rulings.md`) so they do not reopen what the user settled.
 3. **The number-check rounds on the finished deck stay on every page**, and each round is recorded so the second round can be measured:
    - before a round's checkers start: `py -3 scripts/number_check.py start --out <out> --round N`
    - after it: `py -3 scripts/number_check.py record --out <out> --round N --findings <file>` (one `slide N: issue` line per finding, or a JSON list). Every round-2 finding is tagged with whether its page changed since round 1 (page numbers ignored, so an inserted page does not make the later pages look changed); the script prints the tally, and `number_check.py tally --out <out>` shows every round.
@@ -596,7 +596,7 @@ Under **the direct path**, curved containers route to `# SKELETON_REJECTED:` —
 **Scratch files: one place.** Put any scratch files (copies, renders, checks) under C:\Temp\slidelab\<session>\ (scripts/_scratch.py); never invent new folders in C:\Temp. `py -3 scripts/_scratch.py --session "<session folder>"` prints (and makes) the session's folder; on a Mac it is the system temp folder plus `slidelab/`. Slide Lab's own scripts already put their temporary folders, browser profiles and LibreOffice profiles there and delete them after use (owner's decision 2026-10-09). "The deck is good" (publish_cleanup.py) deletes the session's scratch folder too.
 
 ```
-Skill root:        C:\Users\m.a.peralta\.claude\skills\slide-builder\
+Skill root:        <skills folder>\slide-builder\   (usually C:\Users\<you>\.claude\skills)
 
 This file:         slide-builder\SKILL.md
 Layout reference:  slide-builder\reference\layouts.md

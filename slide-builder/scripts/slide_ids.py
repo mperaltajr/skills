@@ -2,7 +2,7 @@
 """slide_ids.py: give every slide of a brief a fixed id (`**Slide id:** risks`).
 
 Slide numbers move: a divider is inserted, a slide is cut, and "slide 18" is a
-different page. On the Leo deck, folder slide_25 held the brief's Slide 18 and
+different page. On one client deck, folder slide_25 held the brief's Slide 18 and
 the user's comments landed on the wrong page. A slide id never changes and is
 never reused, so rulings, picks and the source-page map stay on the right page
 (owner's decision, 2026-10-14).

@@ -258,7 +258,7 @@ def unit() -> None:
     assert items[0] == {"label": "01 THE GPU ECONOMY, PAGES 4 TO 7",
                         "text": "AI demand is large", "points": ["first point"]}, items
     assert items[1]["label"] == "" and items[1]["text"] == "plain line, wrapped onto two lines"
-    # A Leo-style divider: the line is in its first bullet, after a bold label
+    # A client-style divider: the line is in its first bullet, after a bold label
     # and a repeat of the title.
     d = {"slide_n": 4, "title": "The GPU Economy", "archetype": "Section divider",
          "so_what": "none, no line under the headline on this page",

@@ -498,7 +498,7 @@ def readable_tag_color(accent_hex: str, theme: dict, background_hex: str | None 
     """'RRGGBB' for a loose section tag on a light page: the highlight color
     when it reads against the page background (contrast at least
     CS.SECTION_TAG_MIN_CONTRAST), else the template's main text color. A
-    pale highlight (Kinfield's pollen yellow on white is 1.08 to 1) is never
+    pale highlight (a pale yellow on white at 1.08 to 1) is never
     used for text."""
     accent = (accent_hex or "").lstrip("#").upper()[:6] or (scheme_hex("accent1", theme) or "")
     bg = (background_hex or "").lstrip("#").upper()[:6] or scheme_hex("bg1", theme) or "FFFFFF"

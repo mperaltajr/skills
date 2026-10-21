@@ -83,7 +83,7 @@ def part1() -> None:
         assert Path(real) == Path(tempfile.gettempdir()) / "slidelab", real
 
     sessions = _test_temp.RUN_DIR / "sessions"
-    a = _session(sessions / "Kinfield", "2026-10-09 Board Deck")
+    a = _session(sessions / "Meridian", "2026-10-09 Board Deck")
     b = _session(sessions / "Other", "2026-10-09 Board Deck")      # same folder name
     sa = _scratch.session_scratch(a)
     assert sa == root / "2026-10-09 Board Deck" and sa.is_dir(), sa

@@ -20,8 +20,8 @@ This file used to host the legacy chassis-vocabulary skill's full
 `_PATTERN_LAYOUT_HINTS`, `_apply_overrides`, and ~25 supporting helpers — all
 dependent on `twins.selector.load_catalog` and `twins.overrides_resolver`,
 modules that no longer exist. v0.1 never reaches those code paths; v0.1 audit
-(2026-05-26) flagged them as dead-broken imports (T1.4 in
-`_decisions/v0.1-audit-handover-2026-05-26.md`). Deleted in this pass to
+(2026-05-26) flagged them as dead-broken imports (item T1.4 of the owner's
+private audit notes). Deleted in this pass to
 prevent future changes reaching them from exploding with ImportError.
 The legacy chassis-vocabulary composer was archived and removed from disk
 during Path D consolidation; if anyone needs to reference the full v1

@@ -157,7 +157,7 @@ def build_deck(path: Path) -> None:
         c.begin_connect(g, 3)
         _box(s, "justified", 9.0, 1.2, 4.0, 0.7, "Justified text box",
              align=PP_ALIGN.JUSTIFY, wrap=True)
-        # A right margin of 0.54" used to force wrapping (Leo deck v4.2 hand edit)
+        # A right margin of 0.54" used to force wrapping (a client deck's hand edit)
         iw = _box(s, "inset-wrap", 9.0, 2.7, 4.0, 1.4,
                   "Revenue from the new region grows faster than the core business",
                   wrap=True)

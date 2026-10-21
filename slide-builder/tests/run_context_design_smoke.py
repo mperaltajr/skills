@@ -251,7 +251,7 @@ def main() -> int:
         '<div class="card">The window is now for buyers.</div>'
         '<div class="chart-title">Revenue, [$B]</div>'
         '<div class="so-what band">Revenue grows fast takeaway with 12 units</div>'
-        '<div class="footnote">SpaceX buys GPUs</div><p class="card">Tesla too</p>'
+        '<div class="footnote">Globex buys GPUs</div><p class="card">Initech too</p>'
         '</body></html>', encoding="utf-8")
     import steer_checks
     found = steer_checks.run_slide(out, 1)
@@ -261,7 +261,7 @@ def main() -> int:
     r = run(sc, "propose", "--out", out, "--kind", "banned_phrases",
             "--param", "phrases=the window is now", "--because", "R5", env=env)
     assert r.returncode == 0 and "P1" in r.stdout, r.stdout
-    r = run(sc, "propose", "--out", out, "--kind", "footnote_only", "--param", "terms=SpaceX|Tesla", env=env)
+    r = run(sc, "propose", "--out", out, "--kind", "footnote_only", "--param", "terms=Globex|Initech", env=env)
     r = run(sc, "propose", "--out", out, "--kind", "preferred_terms", "--param", "terms=buyers:customers", env=env)
     assert not any("banned_phrases" in f for f in steer_checks.run_slide(out, 1))
     r = run(sc, "approve", "--out", out, "--proposal", "P1,P2,P3",
@@ -274,7 +274,7 @@ def main() -> int:
     assert any("banned_phrases" in f for f in found), found
     assert any("preferred_terms" in f and "customers" in f for f in found), found
     ft = [f for f in found if "footnote_only" in f]
-    assert len(ft) == 1 and "Tesla" in ft[0], ft
+    assert len(ft) == 1 and "Initech" in ft[0], ft
     meta = json.loads((out / "_meta.json").read_text(encoding="utf-8"))
     meta["slides"][2]["pinned_source_page"] = "x.pptx slide 1"
     (out / "_meta.json").write_text(json.dumps(meta), encoding="utf-8")

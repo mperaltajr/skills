@@ -2,7 +2,7 @@
 """Smoke test: the agent-file check says WHICH version is installed, installs
 back up first, and a build stops when the agent files change mid-build.
 
-Validated fix from the Kinfield v3.1 session report (item 5, approved
+Validated fix from a session report (item 5, approved
 2026-10-09). Worktree builders had copied unmerged agent files into the shared
 ~/.claude/agents folder; the refusal only said "differs", and a swap and
 restore around prep made the prep check certify slides built by an unmerged
@@ -17,7 +17,7 @@ agent.
   3. prep records the installed fingerprints; compile (exit 7) and check_done
      stop when they changed to a version that is not on main, and say to
      start a new Claude session
-  4. (2026-10-13, Leo narrative report item 4) every step adds an entry to
+  4. (2026-10-13, session report item 4) every step adds an entry to
      the build's agent history (md5 + git blob id; the first is the pin);
      two versions that are both on main are accepted with one line (compile
      prints it, COMPILED.md and check_done carry it); a branch-only, never

@@ -113,7 +113,7 @@ def _source_slots(td: Path) -> None:
         layout = prs.slide_layouts[1]          # Title and Content: idx 1 body slot
         lph = [p for p in layout.placeholders if p.placeholder_format.idx == 1][0]
         lph.name = slot_name
-        cases = [("Kinfield model, 10/08 build", 9), ("Kinfield model, 10/08 build", 8)]
+        cases = [("Meridian model, 10/08 build", 9), ("Meridian model, 10/08 build", 8)]
         for text, pt in cases:
             s = prs.slides.add_slide(layout)
             ph = [p for p in s.placeholders if p.placeholder_format.idx == 1][0]

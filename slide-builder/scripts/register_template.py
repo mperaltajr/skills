@@ -309,7 +309,7 @@ def _is_visually_similar(hex_a: str, hex_b: str,
     """True if two hexes are close enough in HSV that swatch labels alone may
     not visually disambiguate them.
 
-    Defaults are tuned for the ACN case: #460073 (deep purple) vs #A100FF
+    Defaults are tuned for a real case: #460073 (deep purple) vs #A100FF
     (bright purple) — same hue family (~270°), saturations 1.0 vs 1.0,
     values 0.45 vs 1.0. Hue_diff ~ 6° → similar. Value_diff 0.55 → still
     flagged since both purple. We trip on hue+sat ONLY (value can vary).
@@ -2970,8 +2970,8 @@ def _theme_bg_is_dark(element, layout) -> bool | None:
     """Like _bg_is_dark, for a background set as a theme color (schemeClr
     tx1 and the like) or a theme background style, which _bg_is_dark cannot
     read. Resolved through the theme and color map by _template_bg, the same
-    resolver that records background_hex in chrome.yml. Kinfield's four
-    near-black layouts (schemeClr tx1) were all called dark_on_light while
+    resolver that records background_hex in chrome.yml. One client template's
+    four near-black layouts (schemeClr tx1) were all called dark_on_light while
     chrome.yml recorded their hex as 0A0011 (2026-10-14). None when the
     element sets no background or its color can't be resolved (a picture)."""
     try:

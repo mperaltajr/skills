@@ -20,8 +20,8 @@ user approved them for this deck:
                      appendix slides
   banned_phrases     phrases never used ("the window is now")
   preferred_terms    a term always written another way ("buyers" -> "customers",
-                     "Flux" -> "Kinfield")
-  footnote_only      names allowed only in a footnote or source line ("SpaceX")
+                     "Project X" -> "Acme")
+  footnote_only      names allowed only in a footnote or source line ("Globex")
 
 A new check is never turned on by the chat. When the user repeats a ruling
 (add_ruling.py says REPEAT), the chat PROPOSES one and the user approves it in

@@ -34,7 +34,6 @@ Content:
   add_comparison_table(slide, left_heading, right_heading, rows, ...) -> shape
   insert_icon(slide, icon_name, x_in, y_in, size_in, accent_hex) -> bool
 
-Trigger catalogue: see CATALOGUE.md
 """
 
 from __future__ import annotations
@@ -81,8 +80,8 @@ PML = "http://schemas.openxmlformats.org/presentationml/2006/main"
 # ---------------------------------------------------------------------------
 #
 # CRITICAL: python-pptx's `prs.slide_layouts` only exposes layouts on slide
-# master 0. Corporate templates routinely have multiple masters — a client
-# "Moving Forward" template has 12 masters and 178 layouts; its actual "1_Blank"
+# master 0. Corporate templates routinely have multiple masters — one client
+# template has 12 masters and 178 layouts; its actual "1_Blank"
 # layout is at prs.slide_masters[11].slide_layouts[0], invisible to the shortcut.
 #
 # Every helper below iterates ALL masters. Never use `prs.slide_layouts` for

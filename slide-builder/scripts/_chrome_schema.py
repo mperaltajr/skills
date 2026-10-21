@@ -176,8 +176,8 @@ SECTION_TAG_SKIP_PAGE_TYPES: tuple[str, ...] = (
 # like one of these in the top band of the page. When a layout has one,
 # registration records it (LayoutChrome.section_tag_placeholder_idx) and
 # finalize writes the tag into it in the template's own style instead of
-# drawing a loose box. The Kinfield template's "Breadcrumb" slot is the case
-# that started it: its loose tag was drawn in pale pollen yellow on white.
+# drawing a loose box. One client template's "Breadcrumb" slot is the case
+# that started it: its loose tag was drawn in a pale yellow on white.
 SECTION_TAG_SLOT_NAMES: tuple[str, ...] = (
     "breadcrumb", "bread crumb", "section tag", "section-tag", "section name",
     "section", "tracker")
@@ -835,7 +835,7 @@ def count_wrapped_lines(text: str, ttf_path: str | None,
 # But the slide 38 page that shipped wrapped had "FY2 H1" at 14 pt bold in a
 # 68 px room: 63.3 px by these widths (93%), and PowerPoint still wrapped it.
 # So one-line text is flagged from 92% (the owner's number; 95% would miss
-# that page). On the 71-slide Kinfield v3.1 deck that flags about 90 one-line
+# that page). On a 71-slide client deck that flags about 90 one-line
 # texts (spot-checked in PowerPoint pictures: they fit), so a near-limit line
 # is an Advisory flag, never a Major and never fixed automatically. The last
 # line of text that already wraps counts only from 98% (at 92% it added

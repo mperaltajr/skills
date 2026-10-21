@@ -15,7 +15,7 @@ On a COPY of the bundled test template (the fixture is never changed):
      "Source": the line appears as a shape named 'source' at the template's
      source position, and a warning names the slide and the layout
   3. the same BODY "Source" slot registered in chrome.yml as the source slot
-     (as on the Kinfield template): the line goes into the slot, the slot
+     (as on one client template): the line goes into the slot, the slot
      shape is named "source", the brief's unlabeled line reads "Source: ..."
      once, and the type-scale check takes its 9 pt as a source (2026-10-13)
   4. the "Source: " label is added once: never twice, never before a "Note"
@@ -142,8 +142,8 @@ def main() -> int:
         print("    ok")
 
         print("[4] the 'Source: ' label is added once, never before a note")
-        cases = {"Kinfield model": "Source: Kinfield model",
-                 "Source: Kinfield model": "Source: Kinfield model",
+        cases = {"Meridian model": "Source: Meridian model",
+                 "Source: Meridian model": "Source: Meridian model",
                  "Sources: filings; model": "Sources: filings; model",
                  "Note: rounded": "Note: rounded",
                  "Notes - rounded": "Notes - rounded",

@@ -2,6 +2,36 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## 2026-10-21: the public repository holds only what users need
+
+Owner's decisions 10/21 on the repository clean-up. Nothing changes in how a
+deck is built.
+
+- **Removed (dead or replaced):** the old preview page script
+  `build_gate_preview.py` (REVIEW.html and FINAL-CHECK.html replaced it; old
+  GATE3-PREVIEW.html files are still cleaned up), the one-off brief upgrade
+  `migrate_brief_to_v3.py`, the two old image-similarity baseline tests (and
+  the scikit-image note), slide-qc's unused vision protocol file, the old
+  slide-builder README and VERSION files, the unused full icon index, the
+  retired patches catalogue, and the issue template that asked for client
+  detail on a public tracker. The contract test, the file manifest in
+  `_paths.py`, TROUBLESHOOTING.md and INSTALL.md no longer name them.
+- **No longer published, kept on the owner's computer:** the docx and xlsx
+  folders (Claude already ships both skills), the folder's Claude settings
+  file, the owner's converter check (four tools that need the owner's own
+  session folders) and a token measurement tool. Comments and notes that
+  pointed at those tools now say "the Slide Lab owner's converter check".
+- **Client and people names taken out** of code comments, tests (each test's
+  text and its check changed together, using the fictional Meridian name),
+  docs and this change log, including older entries. A Windows user path and
+  palette comments that named a company template are now neutral; the
+  palette itself is unchanged. 15 picture links in `reference/layouts.md`
+  pointed at files that are not published and are removed.
+- **The root `.gitignore` is now an allow list:** everything at the top of
+  the folder is ignored, then only the published Slide Lab folders and root
+  files are let back in, so anything else kept in the skills folder stays
+  private by default.
+
 ## 2026-10-16: every button of the one Slide Lab page works, with a click test
 
 The owner reported that Build it and Send fixes on the final check did
@@ -81,7 +111,7 @@ decisions of 2026-10-16.
   0? Can all just be 0?"). The margin turns into box size: the left edge
   moves right by the left margin, the width loses both side margins, the
   height loses the bottom margin, so the text and its line breaks stay put;
-  a right margin used to force wrapping (a hand edit in the Leo deck v4.2)
+  a right margin used to force wrapping (a hand edit in a client deck)
   becomes a narrower box. The top margin is kept (the top padding that keeps
   capitals inside the selection frame). Same proof as the fit.
 - **Nothing from the template changes, not even its height** (owner:
@@ -115,11 +145,11 @@ decisions of 2026-10-16.
   box.
 - Follow-up, not in this change: make the converter (`translate_html.py`)
   give one-line text its own width plus 1 character at the source; it needs a
-  `translate_gonogo` re-run first.
+  re-run of the owner's converter check first.
 
 ## 2026-10-14: the section tag goes into the template's own Breadcrumb slot, and is never too pale to read
 
-On the new Kinfield template the registered highlight is pollen #FFFB89, so
+On a new client template the registered highlight is a pale yellow #FFFB89, so
 the section tag (drawn in the highlight color above the title) was pale
 yellow on white: 1.08 to 1, where readable text needs 4.5 to 1. The template
 has its own "Breadcrumb" text slot (10 pt bold gray) on every content layout,
@@ -147,7 +177,7 @@ which Slide Lab deleted as an empty slot. Approved by the owner 2026-10-14.
 
 ## 2026-10-14: registration finds Office cloud fonts (Aptos) and dark theme-color layouts
 
-Registering the Kinfield template printed "brand title font not resolved on
+Registering a client template printed "brand title font not resolved on
 this machine; title-fit measurement skipped" and called all 18 layouts light,
 though four have a near-black background. Both fixes help every Aptos-based
 or theme-colored template.
@@ -168,10 +198,10 @@ or theme-colored template.
   Aptos Display Bold).
 - **Dark layouts set with a theme color are dark.** The dark-background check
   read only plain hex colors, so a layout background of `schemeClr tx1`
-  (Kinfield's covers, dividers, Q&A and dark chart) fell back to the light
+  (that template's covers, dividers, Q&A and dark chart) fell back to the light
   master. When no plain hex is found it now resolves the theme color (the
   same resolver that writes `background_hex` to chrome.yml) and uses the same
-  brightness cutoff. Re-registering Kinfield gives a chrome.yml identical to
+  brightness cutoff. Re-registering that template gives a chrome.yml identical to
   the hand-edited one.
 - Tests: `run_cloud_fonts_smoke.py`, `run_theme_color_background_smoke.py`.
 
@@ -231,7 +261,7 @@ without a word because only 20 agents run at once.
 
 ## 2026-10-14: repeated pages are designed once and copied by script (speed verdict Q3)
 
-Owner's decision 10/14. On the Leo deck 9 of 30 pages were the same page
+Owner's decision 10/14. On a client deck 9 of 30 pages were the same page
 repeated (cover, executive summary, contents, six dividers), and 10 or more
 "copy slide N from v2" pages each cost a full design run. Content pages stay
 with designers: no script tables, charts, risk or sources-and-uses pages.
@@ -265,8 +295,8 @@ with designers: no script tables, charts, risk or sources-and-uses pages.
   pins are unchanged.
 - These pages are always on the direct path (prep says when it moves one).
   New brief field `**Section description:**` (optional).
-- **Measurement for the next deck with sections:** `scripts/measure_page_tokens.py
-  --out <build> --transcripts <session subagents folder>` prints builder
+- **Measurement for the next deck with sections:** an owner-only
+  measurement tool (not shipped) prints builder
   tokens (common unit: cache read x0.1, cache write x1.25, output x5) and time
   per page, split designed / copied. Target: at least 20% fewer builder tokens,
   and no new QC finding on the copied pages.
@@ -295,7 +325,7 @@ From the speed verdict Q2 (owner approved every recommendation, 2026-10-14).
 - **Content reviews: one fact check of the brief's numbers before the
   designers start; the content committee after the picks, on the picked
   pages only** (slide-lab and slide-builder § "Content reviews and number
-  checks"). On the Leo deck only 37% of 285 fix edits landed on the option
+  checks"). On a client deck only 37% of 285 fix edits landed on the option
   that shipped.
 - **Line-spacing file check** (`type_scale.line_spacing_slide`, run by
   finalize as check `line_spacing` and by slide-qc's hygiene check as
@@ -306,7 +336,7 @@ From the speed verdict Q2 (owner approved every recommendation, 2026-10-14).
   reaching above a top-anchored box are an Advisory (the same rule as the
   converter's `TEXT_ABOVE_FRAME`). Calibrated on the converter's own output:
   its one-line boxes (0.8 x the size, with their top inset) do not fire. On
-  the 10/12 Leo deck (66 pages): 0 Major, 3 Advisory; the 10/08 FULL deck: 0
+  the 10/12 client deck (66 pages): 0 Major, 3 Advisory; the 10/08 FULL deck: 0
   and 1; v3.1 (71 pages): 0 and 0. Wrapping is measured with the real font
   files (theme fonts resolved).
 - **Agent-file check:** compile judges only the translator file (the workers
@@ -369,7 +399,7 @@ and the chat's own retelling of three of them was wrong.
   writes the pin lines. The map is data (`_session\page_map.json`), with no
   page of its own: `render_section()` gives the "Pages you gave us" section
   REVIEW.html shows under the storyline (each supplied page, its picture, the
-  slide it goes to or "not used"). On the Leo brief before its pins it proposed 9 of the 10 pages
+  slide it goes to or "not used"). On a client brief before its pins it proposed 9 of the 10 pages
   the one-off pin script pinned (slide 21 missed), plus 9 slides the user then marks new.
 - **`RULINGS: <path>`** is printed when every pipeline script ends (via
   `_log.attach` and in record_picks, redesign_round, apply_qc_fix,
@@ -387,7 +417,7 @@ and the chat's own retelling of three of them was wrong.
 
 ## 2026-10-13: edits after conversion reach the deck; the agent's drawing survives (items 7 and 8 steps 5-6)
 
-From the 10/12 Leo deck report: 11 picked slides shipped from plans older
+From the 10/12 client deck report: 11 picked slides shipped from plans older
 than their designs, chat edits were never converted, and converting again
 erased what the translator agent drew (it was not even kept in `_prev`).
 
@@ -433,8 +463,8 @@ erased what the translator agent drew (it was not even kept in `_prev`).
 
 ## 2026-10-13: converter round (fewer agent hand-overs, stacking, bullets, line breaks, text box tops)
 
-From the 10/12 Leo deck report. Measured on the 263-option replay
-(`tests/translate_gonogo.py`, LibreOffice) before and after; see the
+From the 10/12 client deck report. Measured on 263 past options
+(the owner's converter check, LibreOffice) before and after; see the
 builder's report for the numbers.
 
 - **The self-check leaves out what the agent draws.** Pictures, drawings,
@@ -491,7 +521,7 @@ builder's report for the numbers.
 
 ## 2026-10-13: render time limit, locked folders, one design by default, QC steps, the approved storyline on the review page
 
-From the Leo-narrative session report (items 5, 6, 14 and 16; owner's
+From a client narrative session report (items 5, 6, 14 and 16; owner's
 decisions of 2026-10-13).
 
 - **Renders stop themselves** (item 5). `_browser.render_deadline()` gives
@@ -561,7 +591,7 @@ decisions of 2026-10-13).
 
 ## 2026-10-13: sketch titles match the deck, source lines, preview page numbers
 
-From the 10/13 feedback report on the Kinfield Leo deck. New decks only;
+From the 10/13 feedback report on a client deck. New decks only;
 built decks are not touched.
 
 - **Sketch pictures show the template's real title, takeaway and section
@@ -587,7 +617,7 @@ built decks are not touched.
 - **A source line in the template's Source slot is a source.** The
   type-scale check read the 9 pt source in a BODY slot named "Text
   Placeholder 4" as body text under the 10.5 pt floor (20 false Majors on
-  the Leo deck). `type_scale.py` now looks up the layout slot the
+  a client deck). `type_scale.py` now looks up the layout slot the
   placeholder fills and, when it is named like a source ("Source",
   "Foot Note", by registration's `slot_role_from_name`), applies the 9 pt
   source floor. Text counts as a source by its words only with a colon
@@ -609,7 +639,7 @@ built decks are not touched.
 
 ## 2026-10-13: every copied page is checked; agent versions per build step
 
-Leo narrative session report, items 3 and 4. Owner approved the recommended
+A client narrative session report, items 3 and 4. Owner approved the recommended
 option on every decision.
 
 **Copied pages (item 3, the lighter check).** A build pinned 15 slides to
@@ -666,7 +696,7 @@ silent false pass). The pins were then removed to get the deck out.
 
 Owner's correction to the 2026-10-09 chart header rule. "[Unit]" in the
 owner's reference image was a placeholder, not brackets to type. The unit is
-written plainly after a comma, in regular weight: "NVIDIA GPUs retiring each
+written plainly after a comma, in regular weight: "GPUs retiring each
 year, by generation, M GPUs" or "Who owns the GPUs that retire, M GPUs" (the
 title bold, ", M GPUs" not bold). No square brackets and no parentheses
 around the unit.
@@ -692,8 +722,8 @@ around the unit.
 
 ## 2026-10-12: page numbers are real fields
 
-Owner's rule: page numbers are never hardcoded. Every page of the Kinfield
-v3.1 all-options deck (71 slides, 60 with a page number) had a typed "5" or
+Owner's rule: page numbers are never hardcoded. Every page of a client's
+all-options deck (71 slides, 60 with a page number) had a typed "5" or
 "30" in its Slide Number box instead of a slide-number field, so moving,
 adding or deleting a slide in PowerPoint left every later number wrong.
 Cause: finalize's graft (`twins/composer.py` `_populate_layout_placeholders`
@@ -730,7 +760,7 @@ text).
   `run_page_number_smoke.py`, `run_page_number_format_smoke.py` and
   `run_insert_slice_smoke.py`, which asserted typed numbers.
 
-## 2026-10-09: validated fixes from the Kinfield v3.1 session report
+## 2026-10-09: validated fixes from a client deck's session report
 
 ### Agent files and quality-check records
 
@@ -811,7 +841,7 @@ item 7: a session recorded 71 pages reviewed after opening about 9).
   `run_powerpoint_e2e_smoke.py` use the new record.
 ### Finalize, chrome and checks
 
-Owner-approved recommendations from the validation of the Kinfield v3.1
+Owner-approved recommendations from the validation of a client deck's
 session report (items 2, 4a, 4b, 6, 9 and 10).
 
 - **One rule for which shape is the page takeaway, the source line or a
@@ -838,7 +868,7 @@ session report (items 2, 4a, 4b, 6, 9 and 10).
   shape named exactly `section-tag` is deleted first, then one is drawn, so a
   second finalize still leaves one. Position from the template's title box:
   left at the title's text edge, its bottom 6 px above the title box (a title
-  box at y=34, like Kinfield's, puts the tag 8 px from the top). Style: the
+  box at y=34, like that template's, puts the tag 8 px from the top). Style: the
   template's accent color (white on a dark slide), 10.5 pt bold small caps,
   the template's body font. A template with no room above its title box stops
   finalize with a plain message instead of guessing a place. The converter
@@ -848,7 +878,7 @@ session report (items 2, 4a, 4b, 6, 9 and 10).
   `reference/sketch-html-spec.md`).
 - **Soft accents are themed as accents again.** `CARD_BORDER` /
   `SLIDE_LAB_CARD_BORDER_1` is now `C2A3FE` (looks the same in a raw script)
-  so `C2A3FF` maps only to the accent tint: on Kinfield, soft accents became
+  so `C2A3FF` maps only to the accent tint: on that template, soft accents became
   the border gray `DADDE0` instead of the light blue `B0C5DB`. The overwrite
   and its comments are gone (`twins/client_theme.py`, `twins/helpers.py`).
 - **Checks with signal.** The palette check accepts every color written in
@@ -1269,10 +1299,9 @@ Three owner-approved rules, with the guidance, an automatic fix and QC checks.
   the folder given plus `slide_NN/option_X`, so given a client folder every
   session's `slide_01/option_A` shared one folder and only 101 of 263
   options were scored. They are now named after the option's whole path
-  (session folder included). `translate_gonogo.py --engine` defaults to the
-  default renderer; `translate_alarm_seeded.py` gains `--engine`.
-- **Measured, 263 past options** (`translate_replay.py` +
-  `translate_gonogo.py`; bars: 0 open failures, no lost text, at least 98%
+  (session folder included). The owner's converter check now defaults to the
+  default renderer and its planted-defect check can pick the renderer too.
+- **Measured, 263 past options** (the owner's converter check, not shipped; bars: 0 open failures, no lost text, at least 98%
   same lines, at most 15% need the agent):
 
   | | LibreOffice before | LibreOffice after | PowerPoint before | PowerPoint after |
@@ -1287,7 +1316,7 @@ Three owner-approved rules, with the guidance, an automatic fix and QC checks.
 
   The one option with lost text is unchanged (87 characters in an element
   left to the agent, known since 2026-10-08). Planted defects
-  (`translate_alarm_seeded.py`, 526 planted, 467 visible): caught 96.8% on
+  (the owner's converter check, 526 planted, 467 visible): caught 96.8% on
   PowerPoint and 97.2% on LibreOffice leaving out bold flipped (bar 95%),
   with the limits unchanged.
 - **Open:** LibreOffice pictures (the Mac renderer and the backup) now show
@@ -1325,7 +1354,7 @@ Three owner-approved rules, with the guidance, an automatic fix and QC checks.
   render folders (written notes kept), `_session/old-decks/`, a rejected or
   half-written deck, and a `final_deck.pptx` that is a byte-identical copy of
   the topic-named deck (the records are pointed at that deck first). On a
-  copy of the 2-slide FedEx session: 130.7 MB to 19.2 MB, and the trimmed
+  copy of a 2-slide client session: 130.7 MB to 19.2 MB, and the trimmed
   folder rebuilt (finalize, final check, compile) into the same deck as an
   untrimmed rebuild (ids and timestamps aside).
 - Tests: `run_one_deck_smoke.py` (new), `run_publish_cleanup_smoke.py`
@@ -1400,8 +1429,8 @@ Three owner-approved rules, with the guidance, an automatic fix and QC checks.
   the old shapes in LibreOffice (mean pixel difference table 2.55 vs 3.33,
   lists 11.08 vs 12.02 of 255) and in PowerPoint (5.10 vs 6.41, 13.71 vs
   14.57), planted defects step down with warnings, no text lost.
-- Go/no-go replay (263 past translated options, `tests/translate_replay.py`
-  + `tests/translate_gonogo.py`, which now runs the converter's own
+- Go/no-go replay (263 past translated options, the owner's
+  converter check (not shipped), which now runs the converter's own
   self-check including the step-downs and counts table cells as text):
   open failures 0 -> 0; options with lost text 1 -> 1 (the same 87
   characters in an element left to the agent, unchanged); options needing
@@ -1887,7 +1916,7 @@ From a three-auditor review of download, install, operation and output.
 ### Added
 - `scripts/_browser.py`: design sketches render with Playwright's Chromium,
   falling back to Microsoft Edge, then Google Chrome, when the Chromium
-  download is blocked (it times out on the Accenture network). Edge gave
+  download is blocked (it times out on the company network). Edge gave
   identical translator go/no-go results on all 207 replayed options.
 - `scripts/doctor.py`: setup check (Python, packages, browser, LibreOffice
   converting a test slide, agent files, settings, local work folder) with a
@@ -1947,11 +1976,11 @@ From a three-auditor review of download, install, operation and output.
 
 ### Added — Pattern B HTML-first build path (M1 – M5)
 - **M1** (`3fed1ee`): `--pattern {auto,B,C,legacy}` CLI flag on `build_deck.py`; per-slide classifier `_classify_slide_pattern`; `_meta.json` schema-v3 extension with optional Pattern B fields (`pattern_default`, `pattern_per_slide`, `html_render_canvas`, `translator_dispatched`, `translation_reports`, per-slide `pattern` / `artifacts`); shipped `settings.json` with `default_pattern: legacy` + `enable_pattern_b: false` master switch.
-- **M2** (`def2a07`): SSIM regression-test harness (`tests/capture_baseline.py` + `tests/regression_check.py`); `scikit-image>=0.21,<1.0` dep.
+- **M2** (`def2a07`): SSIM regression-test harness (two baseline scripts, removed 2026-10-21); `scikit-image>=0.21,<1.0` dep.
 - **M3** (`eae0a05`): `scripts/render_html.py` Playwright wrapper (headless Chromium → 1280×720 PNG); public color helpers in `twins/client_theme.py` (`hex_to_rgbcolor`, `css_color_to_rgbcolor`, `resolve_css_var`, `wcag_contrast`, public `mix_hex`); `EMU_PER_PX_AT_1280` + `emu_to_px` / `px_to_emu` / `_emu_to_px_dict` in `scripts/_chrome_schema.py`; `write_brand_css()` in `register_template.py` (emits `brand.css` sidecar at registration); WCAG AA contrast warning at register time; `playwright>=1.40,<2.0` dep + INSTALL.md Step 1.5.
 - **M4** (`d7e8326`): NEW `agents/slide-builder-translator.md` (~350 lines, per Spec 4); Pattern B branch added to `agents/slide-builder-worker.md`; INSTALL.md Step 7 for translator agent install + verify.
 - **M5** (`72aa7d0`): `build_deck.py` emits `PATTERN: B|C` into per-slide `_prompt.md` via `_classify_all_slides()` + `build_placeholders()`; `finalize_deck.py` discovers `option_X_native.py` (translator output), classifies it as `pattern_b_translated`, parses `__template_fields__` header for placeholder population, threads through `_apply_body_canonical_finishing()` with new `template_fields_override` kwarg.
-- **M6** (`392ea2d`): R4.1 – R4.8 QC rules in `finalize_deck.py::_check_r4_rules_for_pattern_b()` (3 Critical / 4 Major / 1 Advisory per Spec 6); REVIEW.html surfaces per-zone SSIM + R4 severity chips via `build_review.py::render_pattern_b_qc_section()`; new `slide-qc/VISION_QC_PROTOCOL.md` documents R1 – R8 with severity table.
+- **M6** (`392ea2d`): R4.1 – R4.8 QC rules in `finalize_deck.py::_check_r4_rules_for_pattern_b()` (3 Critical / 4 Major / 1 Advisory per Spec 6); REVIEW.html surfaces per-zone SSIM + R4 severity chips via `build_review.py::render_pattern_b_qc_section()`; new slide-qc vision protocol file (removed 2026-10-21) documents R1 – R8 with severity table.
 
 ### Removed — M7 Mermaid retirement (2026-06-17, Decision 6 locked)
 - `scripts/render_mermaid.py` — Mermaid CLI wrapper deleted. Pattern B HTML→PNG replaces it for curved-container diagrams.
@@ -1970,7 +1999,7 @@ Stale builds that carry `# FALLBACK_MERMAID:` line-1 markers will now fall throu
 A client deck's slide 16 strikethrough defect (forensic entry in private `SLIDE_LAB_FEEDBACK_LOG.md` 2026-06-16) is closed as `resolved-by-pattern-b-superseding`. M4 demonstrated Pattern B rebuilds slide 16 cleanly. The actual root cause was confirmed in PowerPoint: overlapping textbox content from undersized description boxes — a geometry-cascade in the python-pptx layer, not a font-decoration bug. No inline patch to `option_A_native.py` is required because Pattern B replaces the rendering path wholesale.
 
 ### Deferred (M7 scope, not flipped)
-Production defaults remain `enable_pattern_b: false` + `default_pattern: legacy`. Flipping the master switch requires a separate gating task — Mario validates Pattern B end-to-end on a real (non-test) deck before cutover. See plan at `C:\Users\m.a.peralta\.claude\plans\stop-telling-me-to-indexed-puzzle.md`.
+Production defaults remain `enable_pattern_b: false` + `default_pattern: legacy`. Flipping the master switch requires a separate gating task — the owner validates Pattern B end-to-end on a real (non-test) deck before cutover.
 
 ---
 
@@ -1998,7 +2027,7 @@ The taxonomy now consolidates to 7 + 1 edge:
 - `storyline-helper/SKILL.md` § Step 7 Part 5 (line ~505) — 9-row gate-check table → 7-row.
 - `storyline-helper/SKILL.md` § Part 7 + Part 8 — updated absorbed-type references.
 - `storyline-helper/SKILL.md` § Brief format spec (line ~778, 785) — "16 types" → "7 canonical + Training edge."
-- `storyline-helper/_decisions/v0.2-improvements-queue.md` — Business Case gate sharpening + Workshop Design gate-bypass decision still parked.
+- The owner's private improvements queue: Business Case gate sharpening + Workshop Design gate-bypass decision still parked.
 
 Existing briefs with old type names (e.g., `deck_type: Executive Briefing`) continue to work — `slide-builder` treats `deck_type` as free-text metadata, no code key on the string.
 
@@ -2006,7 +2035,7 @@ Existing briefs with old type names (e.g., `deck_type: Executive Briefing`) cont
 
 ## [Unreleased] — v0.1 hardening pass (2026-05-26 post-tag)
 
-Behavioral guardrails + Tier 1 install/safety blockers + Tier 2 production-readiness fixes from the v0.1 audit handover (`_decisions/v0.1-audit-handover-2026-05-26.md`) and the follow-up 4-agent regression audit.
+Behavioral guardrails + Tier 1 install/safety blockers + Tier 2 production-readiness fixes from the v0.1 audit handover (owner's private notes) and the follow-up 4-agent regression audit.
 
 ### Added
 
@@ -2059,7 +2088,7 @@ Behavioral guardrails + Tier 1 install/safety blockers + Tier 2 production-readi
 
 ## [v0.1] — 2026-05-26
 
-First release after the Path D consolidation (v1 retired, v2 wins). See `_decisions/cleanup-plan-master-2026-05-26.md` for the full 8-phase cleanup log.
+First release after the Path D consolidation (v1 retired, v2 wins). The full 8-phase cleanup log is in the owner's private notes.
 
 ### Added
 
@@ -2092,9 +2121,9 @@ First release after the Path D consolidation (v1 retired, v2 wins). See `_decisi
 - **`scripts/_verify_critical_fixes.py`** (one-off scaffold).
 - **12 already-decisioned v1 `dont/` slugs** (`b-bridge`, `b-framing`, etc.).
 - **40 legacy process-artifact files** at the archived skill's `exemplars/` root (`_fix_report_*`, `_qc_report_*`, `_reverify_report_*`, `_phase3_*`).
-- **NFL scope** — explicitly out of scope for v0.1.
+- **Sports-league template scope** — explicitly out of scope for v0.1.
 
 ### Notes
 
-- Phase 7 (bloat archive) reclaimed approximately 1.26 GB across OneDrive, Documents, and Downloads — see `_decisions/cleanup-plan-master-2026-05-26.md` Phase 7 status log for the file-by-file accounting.
+- Phase 7 (bloat archive) reclaimed approximately 1.26 GB across OneDrive, Documents, and Downloads (the file-by-file accounting is in the owner's private notes).
 - Phase 8 archived the legacy chassis-vocabulary skill (since removed from disk) and consolidated the surviving skill at `slide-builder/`. All internal references, the storyline-helper handoff, and memory files were updated in the same pass.

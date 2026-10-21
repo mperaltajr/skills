@@ -85,7 +85,7 @@ POLICY_CASES = [
     ("slide 4 [title-load] Advisory: a 2-line title, a takeaway and a band", "ask",
      "title_load"),
     ("slide 4 [Overflow] MAJOR: text cut off", "auto", "overflow"),
-    # the real retry from the Kinfield v3.1 session
+    # the real retry from a client session
     ("slide 38 [text_size] Major: 4 body text sizes (10.5, 12, 14, 16 pt) on option A",
      "auto", "text_size"),
     # unknown tag, no severity in its place: never automatic
