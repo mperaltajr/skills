@@ -7,11 +7,10 @@ All notable changes to this skill. Versioning follows [Semantic Versioning](http
 Owner's decisions 10/21 on the repository clean-up. Nothing changes in how a
 deck is built.
 
-- **Removed (dead or replaced):** the old preview page script
-  `build_gate_preview.py` (REVIEW.html and FINAL-CHECK.html replaced it; old
-  GATE3-PREVIEW.html files are still cleaned up), the one-off brief upgrade
-  `migrate_brief_to_v3.py`, the two old image-similarity baseline tests (and
-  the scikit-image note), slide-qc's unused vision protocol file, the old
+- **Removed (dead or replaced):** the old preview page script (REVIEW.html
+  and FINAL-CHECK.html replaced it; old GATE3-PREVIEW.html files are still
+  cleaned up), the one-off upgrade script for version 0.1 briefs, the two
+  old image-similarity baseline tests (and the scikit-image note), slide-qc's unused vision protocol file, the old
   slide-builder README and VERSION files, the unused full icon index, the
   retired patches catalogue, and the issue template that asked for client
   detail on a public tracker. The contract test, the file manifest in
