@@ -4,8 +4,8 @@ Client theme — brand.yml / theme.json sidecar reader.
 Theme detection used to live here as a stack of HSV-saturation heuristics
 (`_pick_brand_colors`, `_pick_primary_mid`, `_pick_accent_soft`, `is_branded`,
 slot-position fallbacks). Those were retired in the 2026-05 rewrite because
-they produced wrong colors on real templates — most visible: NFL stadium
-photos bleeding through finalized decks, ACN deep purple being passed over
+they produced wrong colors on real templates — most visible: stadium
+photos bleeding through finalized decks, a deep purple being passed over
 in favor of bright purple, an orange/purple swap on one client template.
 
 The new contract:
@@ -546,7 +546,7 @@ class ClientTheme:
 
         # Neutrals derived from dk1+lt1 — independent of brand colors so they
         # stay readable regardless of how the client structured their accents.
-        # (ACN accent6 is #05F2DB teal; using accents for card_bg was a bug.)
+        # (one template's accent6 is #05F2DB teal; using accents for card_bg was a bug.)
         text_mid = _mix_hex(self.dk1, self.lt1, 0.45)        # ~55% dark
         text_faint = _mix_hex(self.dk1, self.lt1, 0.65)      # ~35% dark
         border_neutral = _mix_hex(self.dk1, self.lt1, 0.88)  # very light grey
@@ -841,7 +841,7 @@ def strip_master_layout_backgrounds(prs) -> int:
 
     Placeholders (title, body, footer) are kept — only visual chrome goes.
     Used when brand.yml has `strip_master_backgrounds: true` (default for
-    new registrations; especially load-bearing for NFL whose masters bake
+    new registrations; especially load-bearing for a client template whose masters bake
     full-bleed stadium photos into 8 of 12 layouts).
     """
     from lxml import etree

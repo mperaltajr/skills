@@ -56,7 +56,7 @@ HTML_STORY = """<!doctype html><html><head><title>Tab title</title>
 <h1>The investor storyline</h1>
 <p class="dot">1. Demand for compute is outrunning supply</p>
 <p class="note" onclick="steal()">Buyers wait six to twelve months for new hardware.</p>
-<p class="dot">2. Kinfield buys what others cannot use</p>
+<p class="dot">2. Meridian buys what others cannot use</p>
 <ul><li>Used GPUs at scale</li><li>A tested standard</li></ul>
 <p class="dot">3. Revenue reaches 26% of Year 5 revenue</p>
 <p class="dot">4. A brand new idea nobody built</p>
@@ -66,7 +66,7 @@ HTML_STORY = """<!doctype html><html><head><title>Tab title</title>
 HTML_TEXT = ["The investor storyline",
              "1. Demand for compute is outrunning supply",
              "Buyers wait six to twelve months for new hardware.",
-             "2. Kinfield buys what others cannot use",
+             "2. Meridian buys what others cannot use",
              "Used GPUs at scale", "A tested standard",
              "3. Revenue reaches 26% of Year 5 revenue",
              "4. A brand new idea nobody built"]
@@ -78,14 +78,14 @@ MD_STORY = """# The storyline
 - Buyers wait six to twelve months.
 - Prices hold.
 
-**2. Kinfield buys what others cannot use**
+**2. Meridian buys what others cannot use**
 
 A short paragraph of *plain* prose.
 """
 
 CARDS = [{"n": 1, "title": "Cover"},
          {"n": 2, "title": "Demand for compute is outrunning supply"},
-         {"n": 3, "title": "Kinfield buys what other buyers cannot use"},
+         {"n": 3, "title": "Meridian buys what other buyers cannot use"},
          {"n": 4, "title": "Revenue reaches 26% of revenue by Year 5"}]
 
 
@@ -123,7 +123,7 @@ def main() -> int:
         assert "<em>plain</em>" in p2["html"]
         assert words(p2["expected"]) == words(
             "The storyline 1. Demand for compute is outrunning supply Buyers wait six to "
-            "twelve months. Prices hold. 2. Kinfield buys what others cannot use A short "
+            "twelve months. Prices hold. 2. Meridian buys what others cannot use A short "
             "paragraph of plain prose."), p2["expected"]
         print("    ok")
 

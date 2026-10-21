@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Smoke test: the owner's definition of done for the quality check (item 8,
-Kinfield v3.1 session report, approved 2026-10-09), and proof of reading.
+session report, approved 2026-10-09), and proof of reading.
 
   1. one render, reused: a folder holding a render of these exact deck bytes
      by the same program at the same dpi is reused (nothing drawn again); a

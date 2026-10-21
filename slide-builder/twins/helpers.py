@@ -57,7 +57,7 @@ from _chrome_schema import (  # noqa: E402
 # body a visible gutter rather than butting straight against the takeaway.
 SUBTITLE_BODY_GUTTER_PX = 16
 
-# --- Brand palette (Accenture Graphik template — ACN Graphik Template.md) ---
+# --- Default brand palette (a purple-accent template; used when no client theme is loaded) ---
 # lt2  = #460073  Deep Purple     — dark backgrounds, primary dark fills
 BRAND_PRIMARY     = RGBColor(0x46, 0x00, 0x73)
 # accent1 = #7500C0  Medium Purple — mid-weight fills, sidebar panels
@@ -88,7 +88,7 @@ CARD_BORDER       = RGBColor(0xC2, 0xA3, 0xFE)
 DRAFT_BG          = RGBColor(0xFF, 0xD6, 0x00)
 DRAFT_TEXT        = RGBColor(0xB7, 0x1C, 0x1C)
 WHITE             = RGBColor(0xFF, 0xFF, 0xFF)
-# Additional Accenture Graphik accent colors (available but not required on every slide)
+# Additional accent colors of the default palette (available but not required on every slide)
 ACCENT_PINK       = RGBColor(0xFF, 0x50, 0xA0)   # accent4 #FF50A0
 ACCENT_BLUE       = RGBColor(0x22, 0x4B, 0xFF)   # accent5 #224BFF
 ACCENT_TEAL       = RGBColor(0x05, 0xF2, 0xDB)   # accent6 #05F2DB

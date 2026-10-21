@@ -66,8 +66,6 @@ The vocabulary is intentionally bounded: the list is capped at 7 verbs and inven
 
 ## 1 — Full canvas
 
-![Full canvas](../_decisions/gallery/gallery1-full-canvas.png)
-
 A single dominant zone. The slide is one composition — hero claim, statement, divider, or quote — typeset against an unbroken canvas. Asymmetric left-aligned typography breathes against the whitespace and lets the claim land without competing elements. Light canvas is the default; dark canvas (brand-primary fill) is the variant for cover slides, section dividers, and high-emphasis statements.
 
 **Use when:** the brief is one sentence carrying the slide alone · the slide is a section divider or cover · a single dominant quote or claim · a sparse "so what" statement after an evidence-heavy slide. **Not** a way to render a content slide sparse: if the brief supplies real evidence for this slide, pick a pattern that renders it fully (see the binding Content-density directive) — Full canvas is only for slides that are genuinely a single idea.
@@ -79,8 +77,6 @@ A single dominant zone. The slide is one composition — hero claim, statement, 
 ---
 
 ## 2 — 50/50 vertical
-
-![50/50 vertical](../_decisions/gallery/gallery2-50-50-vertical.png)
 
 Two equal vertical zones separated by a thin rule. Both sides carry parallel structure — eyebrow + headline + 3–4 bullets each — so the eye reads left-to-right and the comparison emerges from the shape itself. The two side-heads can differ in color (e.g., gray for "current," brand-primary for "after") to telegraph which side is the recommended state without extra graphics.
 
@@ -94,8 +90,6 @@ Two equal vertical zones separated by a thin rule. Both sides carry parallel str
 
 ## 3 — Asymmetric vertical (75/25)
 
-![Asymmetric 75/25](../_decisions/gallery/gallery3-asymmetric-75-25.png)
-
 A dominant content panel and an anchor panel in roughly 75/25 proportion. The anchor panel typically carries a dark brand-primary fill with eyebrow, takeaway, and a hero metric; the content panel sits in light fill with the supporting evidence laid out as cards. The metric on the anchor pairs with the evidence on the body to telegraph the takeaway before the reader processes the supporting detail.
 
 **Use when:** "headline finding + supporting evidence" structure · a hero metric anchoring multiple supporting cards · the brief has one dominant takeaway and 2–4 pieces of evidence.
@@ -107,8 +101,6 @@ A dominant content panel and an anchor panel in roughly 75/25 proportion. The an
 ---
 
 ## 4 — Top band + body
-
-![Top band + body](../_decisions/gallery/gallery4-top-band-body.png)
 
 A dark brand-primary band across the top carries the headline finding; the body beneath carries parallel evidence cards. The band is the figure, the cards are the ground. Each card typically has a brand-accent numeral, an evidence statement, and an italic implication.
 
@@ -122,8 +114,6 @@ A dark brand-primary band across the top carries the headline finding; the body 
 
 ## 5 — N-column row (3–9)
 
-![N-column row](../_decisions/gallery/gallery5-n-column-row.png)
-
 A horizontal row of N columns, each anchored by a number, icon, or label, connected optionally by a brand-accent track. Each column carries: anchor + name + short qualifier (month range, owner, status) + summary + bullets. The shape is parallel: every column has the same elements in the same place.
 
 **Use when:** parallel principles, options, phases, journey stages, or workstreams (3–9 items) · roadmap with sequential phases · multi-option comparison with equal editorial weight · capability inventory.
@@ -135,8 +125,6 @@ A horizontal row of N columns, each anchored by a number, icon, or label, connec
 ---
 
 ## 6 — Vertical N-row stack
-
-![Vertical N-row stack](../_decisions/gallery/gallery6-vertical-n-row-stack.png)
 
 A vertical stack of N anchored rows, each row laid out as: big numeral (or icon) + vertical accent line + heading + body. The card-bg tint keeps rows readable without heavy borders. The shape implies a list with editorial weight rather than a parallel grid.
 
@@ -150,8 +138,6 @@ A vertical stack of N anchored rows, each row laid out as: big numeral (or icon)
 
 ## 7 — Dense grid (2..5 × 2..5)
 
-![Dense grid](../_decisions/gallery/gallery7-dense-grid.png)
-
 A grid of tiles, 2×2 to 5×5, each tile carrying: label + value + delta with arrow + vs-plan reference + status indicator. Color-coded indicators (green for on-plan, red for watch) are explicit. The densest layout in the catalog and the right shape for any KPI scorecard or dashboard view.
 
 **Use when:** KPI scorecards · dashboard-style summaries · 4+ parallel metrics with the same shape · status-by-domain or status-by-workstream views.
@@ -164,8 +150,6 @@ A grid of tiles, 2×2 to 5×5, each tile carrying: label + value + delta with ar
 
 ## 8 — Left rail + body
 
-![Left rail + body](../_decisions/gallery/gallery8-left-rail-body.png)
-
 A narrow dark left rail carries chrome (section letters running vertically, pagination "02 / 05") and the main body carries the slide content — eyebrow, big title, narrative paragraph, vertical metric tiles, optional "so what" band. The rail signals that the slide belongs to a structured section of the deck.
 
 **Use when:** chaptered sections of a longer deck · slides that should signal "this is part 2 of 5" or "DIAGNOSE phase" · structured workstream views where the rail labels the workstream.
@@ -177,8 +161,6 @@ A narrow dark left rail carries chrome (section letters running vertically, pagi
 ---
 
 ## 9 — Horizontal bands
-
-![Horizontal bands](../_decisions/gallery/gallery9-horizontal-bands.png)
 
 Two full-width horizontal rows, typically a light "today" band above and a dark brand-primary "future" band below, separated by a downward arrow or thin rule. Each band carries eyebrow + headline + 3 bullets. The visual contrast between bands carries the before/after argument without needing extra graphics.
 
@@ -196,8 +178,6 @@ Empirically validated as renderable cleanly in native python-pptx. All three use
 
 ## 10 — Org chart (hierarchical)
 
-![Org chart](../_decisions/diagram-test/diagram1-orgchart.png)
-
 A 3-level hierarchy with rectangles at each level and orthogonal connectors between them. Works for org charts, capability trees, hierarchical breakdowns of a category, taxonomy diagrams. Connectors run vertically from parent to a horizontal trunk, then vertically to each child.
 
 **Use when:** hierarchical structures · org charts · capability/sub-capability trees · taxonomies · breakdown structures.
@@ -210,8 +190,6 @@ A 3-level hierarchy with rectangles at each level and orthogonal connectors betw
 
 ## 11 — Swimlane (cross-functional process)
 
-![Swimlane](../_decisions/diagram-test/diagram2-swimlane.png)
-
 Horizontal lanes representing functions, with sequential steps inside each lane and hand-off arrows between lanes. The shape makes cross-functional process visible — who hands what to whom, in what order. Works for RACI-as-flow, customer journey with handoffs, end-to-end process diagrams.
 
 **Use when:** cross-functional processes · journeys with hand-offs between roles · sequential workflows where the actor matters as much as the step · process diagrams that explicitly call out who does each step.
@@ -223,8 +201,6 @@ Horizontal lanes representing functions, with sequential steps inside each lane 
 ---
 
 ## 12 — Decision tree (branching)
-
-![Decision tree](../_decisions/diagram-test/diagram4-decisiontree.png)
 
 A root question branches to leaf outcomes through diagonal connectors with edge labels (Yes/No, conditions, criteria). The recommended path can be highlighted via brand-accent fill on the connectors and leaf node. Works for routing rules, qualification logic, eligibility flows.
 
@@ -242,8 +218,6 @@ First-class helpers with their own plumbing. Hardline Rule #1: charts and tables
 
 ## 13 — Chart (with quadrant mode)
 
-![Chart with quadrant mode](../_decisions/gallery/gallery10-chart-quadrant.png)
-
 Axes plus items in 2D space plus a takeaway. The `chart_type` parameter governs the variant: `scatter`, `line`, `bar`, `waterfall`, `donut`, `quadrant`. **Quadrant mode absorbs the old 2×2 matrix** — growth-share matrix, Magic Quadrant, Eisenhower, all render here via `quadrants: [name×4]`. The example PNG shows a growth-share matrix: brand-primary axes, quadrant labels in the four corners, product bubbles at correct fractional coordinates, right-side "Recommended moves" legend. (The example predates the 2026-10-09 chart rules below: today its legend would be one row at the right end of the chart's header line, and the chart would carry a "Chart title, Unit" header.)
 
 **Use when:** any 2-axis chart (scatter, line, bar, waterfall, donut) · 2×2 matrix frameworks (growth-share matrix, Magic Quadrant, Eisenhower, prioritization matrices) · charts where the data is the slide's center of gravity.
@@ -254,7 +228,7 @@ Axes plus items in 2D space plus a takeaway. The `chart_type` parameter governs 
 
 **Convention rules:**
 - For growth-share matrix quadrants: STARS top-right, CASH COWS bottom-right, QUESTION MARKS top-left, DOGS bottom-left. Never swap these positions.
-- **Header line (owner's rule, 2026-10-09).** Every chart has one line along its top. On the left, starting at the chart's left edge: "Chart title, Unit", the title in bold, then a comma and the unit written plainly in regular weight (not bold), e.g. "NVIDIA GPUs retiring each year, by generation, M GPUs" (corrected 2026-10-13: no square brackets, no parentheses around the unit; QC flags "Title, [M GPUs]" and "Title (M GPUs)"), with an optional footnote mark right after the title as a superscript digit (¹ ² ³). Name it `chart-title` (`chart-title-2` for a second chart). Axis titles go on each axis that carries a unit (`chart-axis-title-x`, `chart-axis-title-y`). The chart's footnote ("1. Footnote") goes above the source line at the bottom left of the slide.
+- **Header line (owner's rule, 2026-10-09).** Every chart has one line along its top. On the left, starting at the chart's left edge: "Chart title, Unit", the title in bold, then a comma and the unit written plainly in regular weight (not bold), e.g. "GPUs retiring each year, by generation, M GPUs" (corrected 2026-10-13: no square brackets, no parentheses around the unit; QC flags "Title, [M GPUs]" and "Title (M GPUs)"), with an optional footnote mark right after the title as a superscript digit (¹ ² ³). Name it `chart-title` (`chart-title-2` for a second chart). Axis titles go on each axis that carries a unit (`chart-axis-title-x`, `chart-axis-title-y`). The chart's footnote ("1. Footnote") goes above the source line at the bottom left of the slide.
 - **Legend (owner's rule, 2026-10-09).** One row at the far right of that same header line, right-aligned to the chart's right edge: a small swatch and a label per series, side by side ("● AA ● BB"). Never under the chart, never stacked at the side, never under the takeaway. Name the labels `chart-legend-<series>` and the swatches `chart-legend-swatch-<series>`. A chart with one series has no legend.
 - **Names.** Every other chart piece is named `chart-...` too (`chart-bar-...`, `chart-line-...`, `chart-dot-...`, `chart-ylab-...` for value-axis ticks, `chart-grid-...`). The QC check (`scripts/chart_rules.py`) finds a chart, its header and its legend by these names; a missing header line, a value axis without a unit, or a legend anywhere but one row at the top right is a layout Major, fixed automatically.
 - **Native PowerPoint charts** (only in an external deck; Slide Lab draws its charts from shapes): the chart's own title or a text box just above it is the header line; the legend is at the top (`XL_LEGEND_POSITION.TOP` with a manual layout that moves it to the right, `include_in_layout = False`) or drawn as shapes on the header line.
@@ -262,8 +236,6 @@ Axes plus items in 2D space plus a takeaway. The `chart_type` parameter governs 
 ---
 
 ## 14 — Table
-
-![Table](../_decisions/gallery/gallery11-table.png)
 
 Banded rows with a brand-primary header row. Comparison tables, decision matrices, option scoring. The recommended row gets a brand-accent-soft fill plus a left-edge accent stripe. A first column with bold labels anchors the rows; subsequent columns carry the attributes being compared.
 
@@ -278,8 +250,6 @@ For the recommended-row indicator, use an accent stripe — not a stacked badge.
 ---
 
 # Fallback path (1) — HTML→PNG screenshot
-
-![Hub-spoke failure example](../_decisions/diagram-test/diagram3-hubspoke.png)
 
 **This is what NOT to build natively.** Text inside circles wraps badly because python-pptx cannot shape-fit text to ovals. For any brief that implies a hub-and-spoke, Porter's Five Forces, fishbone, ecosystem map, or free-form network: the agent emits `SKELETON_REJECTED` for the native path and the build script routes the slide through the HTML→PNG fallback.
 

@@ -181,8 +181,8 @@ def _kept_options_fix() -> None:
 
 
 def _one_kept_of_several() -> None:
-    """[8] the user kept one option of several on an all-options deck (Kinfield
-    v3.1, 2026-10-09: 13 of 49 slides kept only A next to B and C, and
+    """[8] the user kept one option of several on an all-options deck (a client
+    deck, 2026-10-09: 13 of 49 slides kept only A next to B and C, and
     apply_qc_fix refused every fix to them, with a message saying the user had
     not chosen)."""
     import shutil

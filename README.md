@@ -25,8 +25,6 @@ Claude Slide Lab is a collection of Claude Code skills that turn a narrative bri
 | `storyline-helper` | Coaches your deck narrative (governing thought, audience, per-slide story) before any slides are built |
 | `slide-builder` | Builds a PowerPoint deck from a narrative brief via parallel agent fanout: prep → per-slide workers produce three design options each on the first round (one on a redesign), image-first, then converted to native PowerPoint → finalize → REVIEW.html → pick → compile. Brand colors + fonts + layouts come from your registered client template. Also handles small edits to an **existing** `.pptx` Slide Lab didn't build (text/shape tweaks, extraction). |
 | `slide-qc` | Renders every slide to PNG (through PowerPoint on Windows, safe with your decks open; LibreOffice on a Mac) and reviews them with vision, then produces a per-slide Critical / Major / Advisory report before you open the deck |
-| `docx` | Word document generation: reports, memos, letters with proper formatting |
-| `xlsx` | Spreadsheet creation, editing, and cleaning for any `.xlsx` / `.csv` task |
 | `slidelab-log` | Generates a structured session report when something goes wrong: Claude writes the technical details, you send the file privately to Mario Peralta (Teams or email), never to GitHub |
 | `rfp-helper` | RFP / proposal response coaching: win themes, scoring criteria, section-by-section structure; produces a proposal brief that slide-builder can build from |
 

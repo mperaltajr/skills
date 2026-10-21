@@ -1,7 +1,7 @@
 """_paths.py — single source of truth for every pipeline artifact filename.
 
 Every Slide Lab pipeline script (build_deck.py, finalize_deck.py,
-build_gate_preview.py, compile_picks.py, build_review.py, register_template.py)
+compile_picks.py, build_review.py, register_template.py)
 imports from here instead of hardcoding filename strings. This keeps writers
 and readers in lockstep: renaming an artifact is a one-line change.
 
@@ -195,7 +195,7 @@ def dispatch_plan_md(out_dir: Path) -> Path:
 
 
 def gate3_preview_html(out_dir: Path) -> Path:
-    """<out>/GATE3-PREVIEW.html — visual sanity gate. Writer: build_gate_preview.py."""
+    """<out>/GATE3-PREVIEW.html: retired page, no longer written. Kept so clean.py and publish_cleanup.py can delete old copies."""
     return out_dir / "GATE3-PREVIEW.html"
 
 
@@ -470,22 +470,22 @@ def detect_legacy_template_layout(template_pptx: Path) -> bool:
 
 ARTIFACT_MANIFEST: list[dict] = [
     # Top-level deck
-    {"name": "meta_json",          "writer": "build_deck.py",         "readers": ["finalize_deck.py", "compile_picks.py", "build_review.py", "build_gate_preview.py"]},
+    {"name": "meta_json",          "writer": "build_deck.py",         "readers": ["finalize_deck.py", "compile_picks.py", "build_review.py"]},
     {"name": "finalize_meta_json", "writer": "finalize_deck.py",      "readers": ["build_review.py"]},
     {"name": "dispatch_plan_md",   "writer": "build_deck.py",         "readers": [], "accepted": True, "reason": "Consumed by parent chat session, not a pipeline script"},
-    {"name": "gate3_preview_html", "writer": "build_gate_preview.py", "readers": [], "accepted": True, "reason": "Terminal artifact — opened by user in browser"},
+    {"name": "gate3_preview_html", "writer": "(retired)",             "readers": [], "accepted": True, "reason": "Retired page, no longer written; clean.py and publish_cleanup.py delete old copies"},
     {"name": "review_html",        "writer": "build_review.py",       "readers": [], "accepted": True, "reason": "Terminal artifact — opened by user in browser"},
     {"name": "picks_json",         "writer": "chat orchestrator",     "readers": ["compile_picks.py"], "accepted": True, "reason": "Written by chat session, not by a pipeline script"},
     {"name": "brief_qc_json",      "writer": "(unbuilt)",             "readers": ["build_review.py"], "accepted": True, "reason": "Accepted orphan. build_review.py renders a graceful 'not found' banner when the file is absent. The build does not yet emit brief_qc.json; keep reader, defer writer until brief-time QC becomes a feature."},
 
     # Per-slide
-    {"name": "prompt_md",          "writer": "build_deck.py",         "readers": ["build_gate_preview.py", "build_review.py", "finalize_deck.py"]},
-    {"name": "pattern_pick_md",    "writer": "per-slide agent",       "readers": ["build_gate_preview.py"], "accepted": True, "reason": "Written by per-slide worker agent, not by a pipeline script"},
+    {"name": "prompt_md",          "writer": "build_deck.py",         "readers": ["build_review.py", "finalize_deck.py"]},
+    {"name": "pattern_pick_md",    "writer": "per-slide agent",       "readers": [], "accepted": True, "reason": "Written by per-slide worker agent, not by a pipeline script"},
 
     # Per-option
-    {"name": "option_py",          "writer": "per-slide agent",       "readers": ["finalize_deck.py", "build_gate_preview.py", "build_review.py"], "accepted": True, "reason": "Written by per-slide worker agent"},
+    {"name": "option_py",          "writer": "per-slide agent",       "readers": ["finalize_deck.py", "build_review.py"], "accepted": True, "reason": "Written by per-slide worker agent"},
     {"name": "option_pptx",        "writer": "finalize_deck.py",      "readers": ["compile_picks.py", "build_review.py"]},
-    {"name": "option_png",         "writer": "finalize_deck.py",      "readers": ["build_gate_preview.py", "build_review.py"]},
+    {"name": "option_png",         "writer": "finalize_deck.py",      "readers": ["build_review.py"]},
     # `option_mmd` and `option_mermaid_png`
     # are no longer produced by any code path. The path helpers
     # `option_mmd_name` / `option_mermaid_png_name` / `option_mmd` /

@@ -219,7 +219,7 @@ def main() -> int:
         print("[3] a correct drawn chart passes")
         p2 = chart_rules.chart_problems(prs.slides[1])
         assert p2 == [], p2
-        for t in ("NVIDIA GPUs retiring each year, by generation, M GPUs",
+        for t in ("GPUs retiring each year, by generation, M GPUs",
                   "Who owns the GPUs that retire, M GPUs", "Revenue, $B", "Share, %"):
             assert chart_rules.UNIT_IN_TEXT.search(t), t
             assert chart_rules.bracketed_unit(t) == "", t

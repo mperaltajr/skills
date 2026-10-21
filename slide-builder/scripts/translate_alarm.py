@@ -17,8 +17,8 @@ just above it catches real defects. An element that trips the alarm is taken
 out of the script's drawing and handed to the agent (fallback mode), which
 redraws only those elements.
 
-Thresholds are calibrated on real translations; see
-tests/translate_alarm_calibrate.py and tests/translate_alarm_seeded.py.
+Thresholds are calibrated on real translations with the Slide Lab owner's
+converter check (owner tools, not shipped in this repository).
 
 The same limits hold on both renderers (2026-10-09) once three measured
 differences between them are taken out, none of them a defect in the deck:
@@ -50,9 +50,9 @@ PAD = 3
 INK_DIST = 60          # a pixel is "ink" when this far (RGB distance) from the background
 
 # Limits, set just above the noise between Chrome and LibreOffice on ~3,000
-# real elements (tests/translate_alarm_calibrate.py) and checked against
-# planted defects (tests/translate_alarm_seeded.py); re-checked on PowerPoint
-# renders of the 263-option replay and the planted defects, 2026-10-09.
+# real elements and checked against planted defects with the Slide Lab
+# owner's converter check (not shipped); re-checked on PowerPoint renders of
+# 263 past options and the planted defects, 2026-10-09.
 # Text, from where its letters landed:
 SCALE_LIMIT = 0.04        # letters 4% wider/narrower than designed (size, spacing)
 HEIGHT_LIMIT = 0.15       # letters 15% taller/shorter (size, on short labels)

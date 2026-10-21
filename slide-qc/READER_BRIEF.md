@@ -45,7 +45,7 @@ close, kill or touch the user's apps (PowerPoint, Edge, Chrome, Word, Excel).
   category `headline`), or one cut off or overlapping (layout).
 {{headlines}}
 - **No person attribution.** No quote or attribution to a named person on a
-  slide ("In Leo's words", "as the CEO puts it", a named quote), unless the
+  slide ("In Dana's words", "as the CEO puts it", a named quote), unless the
   brief's text for that slide has it word for word. One is a Major (category
   `rewrite`).
 - **Type rules.** Body text 12 pt by default, 10.5 pt at the lowest; at most 3

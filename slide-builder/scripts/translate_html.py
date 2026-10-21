@@ -3566,7 +3566,7 @@ def self_check(items: list[tuple["Plan", dict]], engine: str = "auto",
     installed, else LibreOffice; slide-builder/settings.json "renderer"),
     "libreoffice" or "powerpoint". Each round renders all its slides as ONE
     deck (translate_alarm.render_full); a later round renders only the slides
-    that changed. hand_over=False (the go/no-go harness) keeps fired elements
+    that changed. hand_over=False (the owner's converter check) keeps fired elements
     in the plan and only records them.
     A slide that does not render gets a SELF_CHECK_SKIPPED warning (with the
     reason) and keeps all its elements; the other slides are still checked.

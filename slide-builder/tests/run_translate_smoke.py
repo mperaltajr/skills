@@ -346,7 +346,7 @@ def main() -> int:
     _placement_rules()
 
     # alarm limits are the calibrated ones (a change here needs a re-run of
-    # translate_alarm_calibrate.py and translate_alarm_seeded.py)
+    # the Slide Lab owner's converter check, which is not shipped)
     assert A.SCALE_LIMIT == 0.04 and A.TEXT_SHIFT_X == 3.0 and A.TEXT_SHIFT_Y == 4.0
 
     print("SMOKE PASSED.")

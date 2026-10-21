@@ -485,7 +485,7 @@ def restack_fallbacks(slide, plan: dict) -> list[str]:
     translate_html._fallback_stacking writes them.
 
     A shape belongs to an element when it is named after it: the element's id,
-    or the id followed by "-" and anything ("leo-photo", "leo-photo-1").
+    or the id followed by "-" and anything ("ceo-photo", "ceo-photo-1").
     With one element, every new shape is that element's. Shapes of an element
     on top of everything are left where they are. Running it again changes
     nothing. Placeholders and finalize's chrome shapes are never moved.

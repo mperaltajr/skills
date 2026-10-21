@@ -34,7 +34,7 @@ Usage
     py -3 slide-builder/scripts/migrate_template_layout.py <templates_dir>
 
 `<templates_dir>` is the directory holding the .pptx files (e.g.
-`C:/.../OneDrive - Accenture/Claude Projects/_templates`).
+`C:/.../Claude Projects/_templates`).
 
 Behavior
 --------

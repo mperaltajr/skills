@@ -7,7 +7,7 @@ takeaway band is too much. A subtitle is recommended only when the title is
 one line (a recommendation, not a hard stop). Each line must add something the
 others do not say.
 
-Why: on the Flux investor deck, 18 of 33 slides had a two-line title (98 to
+Why: on a client investor deck, 18 of 33 slides had a two-line title (98 to
 117 characters), a takeaway under it and the template's bottom takeaway band,
 all saying roughly the same thing (the band reused up to 73% of the title's
 content words).

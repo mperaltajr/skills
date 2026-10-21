@@ -2,7 +2,7 @@
 
 Single source of truth for the deck manifest. Writer (build_deck.py::write_meta_json)
 constructs and validates a MetaJson model before serialising. Readers
-(finalize_deck.py, compile_picks.py, build_review.py, build_gate_preview.py)
+(finalize_deck.py, compile_picks.py, build_review.py)
 parse the JSON through `load_meta_json(out_dir)` which validates on the way in
 and raises with a precise field-level error message if the shape drifts.
 

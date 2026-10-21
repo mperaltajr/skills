@@ -36,9 +36,9 @@ from pptx.util import Inches, Pt  # noqa: E402
 
 import title_load as T  # noqa: E402
 
-LONG_TITLE = ("Demand for AI compute outruns new supply, and every NVIDIA refresh widens "
+LONG_TITLE = ("Demand for AI compute outruns new supply, and every vendor refresh widens "
               "the gap that retired GPUs can fill for locked-out buyers")
-REPEAT_BAND = "Every NVIDIA refresh widens the gap retired GPUs can fill for locked-out buyers"
+REPEAT_BAND = "Every vendor refresh widens the gap retired GPUs can fill for locked-out buyers"
 NEW_SUB = "About 8.4M GPUs retire over five years while 30% of demand goes unmet"
 
 
@@ -75,9 +75,9 @@ def main() -> int:
     prs = Presentation()
     prs.slide_width, prs.slide_height = Inches(13.333), Inches(7.5)
     _slide(prs, LONG_TITLE, subtitle=NEW_SUB, band=REPEAT_BAND)             # 1: Major + Advisory
-    _slide(prs, "Kinfield is profitable from Year 1", subtitle=NEW_SUB)      # 2: nothing
+    _slide(prs, "Meridian is profitable from Year 1", subtitle=NEW_SUB)      # 2: nothing
     _slide(prs, LONG_TITLE, subtitle=NEW_SUB,                                # 3: footnote, not a band
-           footnote="* Every NVIDIA refresh widens the gap retired GPUs can fill for buyers")
+           footnote="* Every vendor refresh widens the gap retired GPUs can fill for buyers")
     with tempfile.TemporaryDirectory() as td:
         p = Path(td) / "deck.pptx"
         prs.save(str(p))
@@ -106,10 +106,10 @@ def main() -> int:
             "---\ndeck_type: client-pitch\naudience: \"Test\"\n"
             "governing_thought: \"Test.\"\nstoryline_gate_passed: true\n---\n\n# Title load test\n\n"
             "## Governing thought (the whole deck)\nTest.\n\n"
-            "### Slide 1 — Every NVIDIA refresh widens the gap retired GPUs can fill\n\n"
+            "### Slide 1 — Every vendor refresh widens the gap retired GPUs can fill\n\n"
             "**Slide type:** Content\n"
-            "**Governing thought (the claim):** Every NVIDIA refresh widens the gap retired GPUs can fill.\n"
-            "**The takeaway:** Each NVIDIA refresh widens the gap that retired GPUs fill, 30% of demand.\n"
+            "**Governing thought (the claim):** Every vendor refresh widens the gap retired GPUs can fill.\n"
+            "**The takeaway:** Each vendor refresh widens the gap that retired GPUs fill, 30% of demand.\n"
             "**Evidence / content:**\n- Point one\n- Point two\n", encoding="utf-8")
         issues = brief_check.check(brief)
     finally:

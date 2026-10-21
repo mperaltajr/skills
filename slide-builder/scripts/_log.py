@@ -1,11 +1,11 @@
 """_log.py — tee pipeline-script stdout/stderr to <out>/build.log.
 
-Every pipeline script (build_deck, finalize_deck, compile_picks, build_review,
-build_gate_preview) calls `attach(out_dir, script_name)` at the start of main()
+Every pipeline script (build_deck, finalize_deck, compile_picks, build_review)
+calls `attach(out_dir, script_name)` at the start of main()
 to mirror its console output into a single per-build log file.
 
 The log is append-only across multiple script invocations in the same out_dir,
-so a typical build (build_deck → finalize_deck → build_gate_preview → ...) lands
+so a typical build (build_deck → finalize_deck → build_review → ...) lands
 in one file with section banners.
 """
 from __future__ import annotations

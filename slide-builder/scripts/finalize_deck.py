@@ -259,7 +259,7 @@ _FONT_HARD_FLOOR_PT = 8.0
 def _template_own_colors(template_path) -> set:
     """Every color written in the template's own slide masters and layouts
     (its page-number gray, rules, bands). A slide that inherits or repeats
-    them is on-palette: on the Kinfield v3.1 deck the template's page-number
+    them is on-palette: on a 71-slide client deck the template's page-number
     gray 8A93A0 alone made 107 of 119 options fail the palette check, so the
     check carried no signal (2026-10-09)."""
     out: set = set()
@@ -865,7 +865,7 @@ def run_option_qc(themed_pptx_path: Path, png_path: Path, expected_palette: set,
     # .fit_findings, run on the grafted slide). A word broken in the middle or
     # a table running into other content stops finalize (block); a wrapped
     # short label or a growing table row is a Major flag; text close to its
-    # box edge is an Advisory flag (measured on the Kinfield v3.1 deck, nearly
+    # box edge is an Advisory flag (measured on a 71-slide client deck, nearly
     # all such lines still fit in PowerPoint, so it is never fixed
     # automatically and does not count as a Major).
     fit_list = list((fit or {}).get("findings") or [])
@@ -3759,7 +3759,7 @@ def _run(args) -> int:
 
     # GATE3-PREVIEW.html is no longer written: REVIEW.html and FINAL-CHECK.html
     # are the two pages the user looks at, and the extra file only cluttered
-    # the session folder (build_gate_preview.py still runs on its own if needed).
+    # the session folder. The old preview script has been removed.
 
     # No approval bookkeeping here any more. Picks survive a re-finalize (it is
     # how picked sketches get converted), and any finished file finalize writes

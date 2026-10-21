@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """qc_pages.py — which pages the quality check must read, and proof it read them.
 
-The owner's definition of done (approved 2026-10-09, Kinfield v3.1 session
+The owner's definition of done (approved 2026-10-09, session
 report, item 8): a deck is done when EVERY page's reviewed image is the image
 of that page in the current render of this exact deck, a deck-wide look was
 recorded for this exact deck, and no Critical or Major finding is open.

@@ -2,8 +2,8 @@
 """Smoke test: the section tag goes into the template's own slot, and is never
 drawn in a highlight color too pale to read.
 
-Owner's approval (2026-10-14): the Kinfield template's highlight is pollen
-#FFFB89, so the loose section tag above the title came out pale yellow on
+Owner's approval (2026-10-14): a client template's highlight is a pale
+yellow #FFFB89, so the loose section tag above the title came out pale yellow on
 white (1.08 to 1). The template has its own "Breadcrumb" text slot where the
 tag goes. Now:
 
@@ -68,7 +68,7 @@ SLOT_XML = (
 
 def _template(slot_y_px: int | None = 43, name: str = "Breadcrumb") -> Presentation:
     """python-pptx's default deck, widescreen, with a Breadcrumb slot on the
-    'Title Only' layout and the title moved down to y=69 px (as on Kinfield)."""
+    'Title Only' layout and the title moved down to y=69 px (as on that client template)."""
     prs = Presentation()
     prs.slide_width, prs.slide_height = 12192000, 6858000
     layout = prs.slide_layouts[5]
@@ -195,7 +195,7 @@ def main() -> int:
             assert val != "FFFB89" and CS.contrast_ratio(val, "FFFFFF") >= 4.5, val
         else:
             assert val == want, val
-    print("    ok: pollen falls back to the text color, a dark blue is kept")
+    print("    ok: the pale yellow falls back to the text color, a dark blue is kept")
 
     print("[6] the review sketch shows the slot's own style")
     prs = _template()

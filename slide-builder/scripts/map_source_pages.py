@@ -2,7 +2,7 @@
 """map_source_pages.py: map every slide to an earlier deck's page, approved once.
 
 The biggest single cause of repeated steers on two decks (about 35 of them)
-was "use the page you already have": the draft, the v2 deck, the NVIDIA deck.
+was "use the page you already have": the draft, the v2 deck, an older source deck.
 The chat had the files; a listing did not help. A pinned page did: after the
 one-off pin_v2.py there was one re-steer. This makes that mapping a standard
 step, before the build, approved in ONE answer per deck (owner's decisions,
@@ -55,8 +55,8 @@ MAP_JSON = "page_map.json"
 PIC_DIR = "page_map"
 PIN_LINE_RE = re.compile(r"^\*\*(?:Pinned source page|Supplied page):?\*\*.*$", re.M | re.I)
 PICTURE_SUFFIXES = {".png", ".jpg", ".jpeg", ".gif", ".bmp", ".webp"}
-MIN_SCORE = 0.12       # below this a slide is proposed as a new design (tuned on the Leo deck)
-STOP = slide_ids.STOP | set("""slide page source note notes kinfield deck chart total year
+MIN_SCORE = 0.12       # below this a slide is proposed as a new design (tuned on a real client deck)
+STOP = slide_ids.STOP | set("""slide page source note notes deck chart total year
 years percent million billion share""".split())
 
 

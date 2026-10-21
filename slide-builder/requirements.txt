@@ -2,5 +2,3 @@
 # This file used to pin exact versions that cannot install on Python 3.14.
 -r ../requirements.txt
 
-# Only the image-similarity regression tests (tests/regression_check.py) need this:
-# scikit-image>=0.21,<1.0

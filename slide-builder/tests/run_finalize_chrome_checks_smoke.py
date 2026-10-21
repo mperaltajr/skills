@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Smoke test: finalize's chrome roles, section tag, palette codes and checks.
 
-The validated fixes from the Kinfield v3.1 session report (2026-10-09):
+The validated fixes from a session report (2026-10-09):
 
   1. One "page takeaway" rule (_chrome_schema.is_page_takeaway): a SUBTITLE
      placeholder, a box named exactly "subtitle" anywhere, "subtitle-..." only
@@ -15,7 +15,7 @@ The validated fixes from the Kinfield v3.1 session report (2026-10-09):
      none on a cover or divider, 8 px from the top for a title box at y=34,
      in the template's accent color, and a plain stop when there is no room.
   3. Palette codes: no two Slide Lab palette roles share a color code, and on
-     a Kinfield-like theme the soft accent C2A3FF becomes the light blue
+     a Meridian-like theme the soft accent C2A3FF becomes the light blue
      B0C5DB while the card border C2A3FE stays a gray.
   4. Checks: the template's own master and layout colors are on-palette; the
      repeated-subtitle finding is a content Major (asked, never fixed); type
@@ -190,16 +190,16 @@ def phase_section_tag() -> None:
     assert not CR.place_section_tag(slide, lc, "The market", accent_hex="3A6EA5", page_type="cover")
     ok("no tag on a cover, a divider or a page typed cover")
 
-    # Kinfield's title box sits at x=53, y=34: the tag lands ~8 px from the top
+    # A client template's title box sits at x=53, y=34: the tag lands ~8 px from the top
     prs, slide = HP.new_slide()
-    kin = SimpleNamespace(name="Kinfield Content", layout_class="body-canonical",
+    kin = SimpleNamespace(name="Meridian Content", layout_class="body-canonical",
                           text_role="dark_on_light", has_page_number=True,
                           title_placeholder_idx=None, title_box_x_px=53,
                           title_box_width_px=1100, title_box_y_px=34, title_box_height_px=60)
     CR.place_section_tag(slide, kin, "The market", accent_hex="3A6EA5")
     t = _tags(slide)[0]
     assert abs(int(t.top) / EMU - 8) < 0.6, int(t.top) / EMU
-    ok(f"Kinfield-like title box at y=34: tag top at {int(t.top) / EMU:.0f} px")
+    ok(f"Meridian-like title box at y=34: tag top at {int(t.top) / EMU:.0f} px")
     tight = SimpleNamespace(**{**kin.__dict__, "title_box_y_px": 10})
     prs, slide = HP.new_slide()
     try:
@@ -239,7 +239,7 @@ def phase_palette() -> None:
     assert cm["C2A3FE"] == CT._mix_hex(th.dk1, th.lt1, 0.85), cm["C2A3FE"]
     assert cm["C2A3FF"] != cm["C2A3FE"]
     assert cm["460073"] == "0B1F33" and cm["A100FF"] == "3A6EA5"
-    ok(f"Kinfield-like theme: soft accent C2A3FF -> {cm['C2A3FF']}, card border C2A3FE -> {cm['C2A3FE']}")
+    ok(f"Meridian-like theme: soft accent C2A3FF -> {cm['C2A3FF']}, card border C2A3FE -> {cm['C2A3FE']}")
 
 
 # ---------------------------------------------------------------------------

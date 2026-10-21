@@ -7,7 +7,7 @@ assignees: mperaltajr
 ---
 
 ## Which skill
-<!-- storyline-helper | slide-builder | pptx | docx | xlsx | cross-skill -->
+<!-- slide-lab | storyline-helper | slide-builder | slide-qc | rfp-helper | slidelab-log | cross-skill -->
 
 ## The problem
 <!-- What situation caused the confusion or failure — be specific about which step or section -->

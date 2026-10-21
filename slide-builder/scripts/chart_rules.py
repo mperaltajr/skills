@@ -6,7 +6,7 @@
      on the chart's header line, right-aligned to the chart's right edge. A
      chart with one series has no legend.
   2. Chart header: every chart has a header line "Chart title, Unit" at the
-     chart's top left, e.g. "NVIDIA GPUs retiring each year, by generation,
+     chart's top left, e.g. "GPUs retiring each year, by generation,
      M GPUs": the title bold, the unit written plainly after a comma in
      regular weight (no square brackets, no parentheses), an optional
      superscript footnote mark after the title. Axis titles where an axis

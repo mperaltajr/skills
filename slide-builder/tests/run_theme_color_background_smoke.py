@@ -2,7 +2,7 @@
 """Smoke test: a layout whose background is a THEME color is classified by it.
 
 Registration's dark-background check only read plain hex colors (srgbClr).
-Kinfield's four near-black layouts set their background as schemeClr tx1, so
+One client template's four near-black layouts set their background as schemeClr tx1, so
 the check saw nothing, fell back to the light master and called all four
 dark_on_light, while chrome.yml recorded their background_hex as 0A0011
 (2026-10-14).
@@ -75,7 +75,7 @@ def main() -> None:
     layouts = list(master.slide_layouts)
     assert len(layouts) >= 2, "fixture needs two layouts"
     lay = layouts[0]
-    # A light master, as Kinfield's is, so a missed layout color falls to light.
+    # A light master, as that client template's is, so a missed layout color falls to light.
     _set_bg(master.element, srgb="FFFFFF")
 
     _set_bg(lay.element, scheme="tx1")

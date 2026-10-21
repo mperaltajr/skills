@@ -1,11 +1,36 @@
+# ── Allow list: only the folders and files below are published ──
+# Everything at the top level is ignored first, then the published Slide Lab
+# folders and root files are let back in one by one. Anything else someone
+# keeps in this folder (other skills, notes, scratch files) stays private by
+# default; never add its name here.
+/*
+!/.gitignore
+!/.github/
+!/slide-builder/
+!/slide-lab/
+!/slide-qc/
+!/storyline-helper/
+!/rfp-helper/
+!/slidelab-log/
+!/docs/
+!/README.md
+!/SECURITY.md
+!/LICENSE
+!/requirements.txt
+!/Slide-Lab-Example-Deck.pptx
+!/Slide-Lab-Example-Review.html
+!/Slide-Lab-Example-Storyline.html
+!/Slide-Lab-Tutorial.html
+!/Slide-Lab-Install-Guide.docx
+
 # ── Claude Code local settings (machine-specific, never share) ──
 .claude/settings.local.json
 .claude/launch.json
 .claude/worktrees/
+.claude/scheduled_tasks.lock
 
 # ── Client / project-specific files (never commit these) ──
 # Template configs live in the client's Claude Project folder, not in the skill.
-# Run: setup_template.py <pptx> <name> --output "<Claude Projects\Client>"
 slide-builder/clients/
 *.pptx
 *.docx
@@ -15,32 +40,15 @@ slide-builder/clients/
 *.jpg
 *.jpeg
 
-# ── Twin PPTX corpus — the curated, hand-built single-slide reference files
-# in slide-builder/_renders/twins/ DO ship. They're tiny (~12 MB across
-# ~430 files) and the composer needs them to produce output. Render-time
-# artifacts (PNG caches, _pngs_themed, *_render folders) stay ignored.
-!slide-builder/_renders/twins/*.pptx
-# Render caches inside the twins dir stay ignored regardless.
-slide-builder/_renders/twins/_pngs_themed/
-slide-builder/_renders/twins/*_render/
-slide-builder/_renders/twins/_pngs/
-
-# Reference PPTX templates (used by smoke_test.py + as design exemplars) ship too.
-!references/PPT Files/*.pptx
-
-# ── Slide Lab anti-exemplar PNGs — the 9 ported Tier-1 failure-mode images
-# ship as part of the visual reference library. Each `reference/anti-patterns/
-# <slug>/exemplar.png` pairs with a `WHY.md`. Without the PNG the library
-# is text-only. ~30 KB each, 9 files total. Override the *.png rule above.
+# ── Slide Lab anti-exemplar PNGs: the 9 failure-mode images ship as part of
+# the visual reference library. Each `reference/anti-patterns/<slug>/
+# exemplar.png` pairs with a `WHY.md`. Override the *.png rule above.
 !slide-builder/reference/anti-patterns/*/exemplar.png
 
-# Icon-helper work artifacts from a parallel chat — audit screenshots and
-# backups of pre-fix icon XML. Not load-bearing for the skill.
+# Icon-helper work artifacts: audit screenshots and backups of pre-fix icon
+# XML. Not load-bearing for the skill.
 slide-builder/icons/_audit/
 slide-builder/icons/_backup/
-
-# Per-build runtime lock from scheduled-tasks tooling — not part of the skill.
-.claude/scheduled_tasks.lock
 
 # ── Session working files ──
 _session/
@@ -69,25 +77,21 @@ desktop.ini
 # Onboarding files (tutorial, install guide, examples) are tracked so every
 # install gets current copies; the examples are regenerated with
 # slide-builder/examples/showcase/make_showcase.py, never hand-edited.
-Slide-Lab-Example-Registration.html
-!Slide-Lab-Example-Deck.pptx
-!Slide-Lab-Install-Guide.docx
+!/Slide-Lab-Example-Deck.pptx
+!/Slide-Lab-Install-Guide.docx
 !docs/tutorial/*.png
 
-# Personal, engagement-specific skill (not part of the shared repo)
-financial-session-deck/
-
-# Never publish: internal decision notes (they name client work), the licensed
-# reference template pack, and other engagements' material kept in this folder
-# (those folder names are listed in .git/info/exclude, which is never published).
+# Never publish: internal decision notes (they name client work).
 slide-builder/_decisions/
 storyline-helper/_decisions/
-references/
-excel-model/
-financial-session-deck/
-blk2.js
-err.txt
-docx/gen_jv.js
+
+# Owner-only tools (the converter check and a token measurement). They need
+# the owner's own session folders, so they stay on the owner's computer.
+slide-builder/tests/translate_replay.py
+slide-builder/tests/translate_gonogo.py
+slide-builder/tests/translate_alarm_calibrate.py
+slide-builder/tests/translate_alarm_seeded.py
+slide-builder/scripts/measure_page_tokens.py
 
 # One computer's own Slide Lab choices (for example three designs per slide); never published
 slide-builder/settings.local.json

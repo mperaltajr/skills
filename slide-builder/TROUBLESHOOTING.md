@@ -64,13 +64,6 @@ The tables below list the exit codes each script returns. If you see a code in a
 | 2  | `--out` missing or not a directory | Pass the build's output dir. |
 | 3  | No slides discoverable in `--out` (no `slide_NN/` subdirs) | Run `build_deck.py` then `finalize_deck.py` first. |
 
-### `build_gate_preview.py`
-
-| Code | Meaning | Fix |
-|---|---|---|
-| 1  | `--out` not a directory | Pass an existing build output dir. |
-| 2  | No `slide_NN/` directories found in `--out` | `build_deck.py` hasn't run yet, or `clean.py --deep` wiped the dispatch outputs. |
-
 ### `register_template.py`
 
 | Code | Meaning | Fix |
@@ -123,7 +116,7 @@ LibreOffice isn't installed, or `soffice.exe` isn't at the expected Windows path
 Either you're running a newer `build_deck.py` against an older output dir, or vice versa. Re-run `build_deck.py` to regenerate `_meta.json` at the current schema version.
 
 ### "_meta.json schema validation: ..." (reader-side warning, not a hard error)
-A reader (`finalize_deck`, `compile_picks`, `build_review`, `build_gate_preview`) loaded a `_meta.json` that didn't fully match the pydantic schema. The reader continues with degraded behavior. If the warning persists across re-runs, re-generate `_meta.json` via `build_deck.py`.
+A reader (`finalize_deck`, `compile_picks`, `build_review`) loaded a `_meta.json` that didn't fully match the pydantic schema. The reader continues with degraded behavior. If the warning persists across re-runs, re-generate `_meta.json` via `build_deck.py`.
 
 ### "PNG too small (XXX bytes; floor 12KB)"
 A rendered option thumbnail is smaller than expected — usually means the LibreOffice render produced a near-blank canvas. Open the corresponding `option_X.pptx` directly in PowerPoint to confirm whether the slide is actually empty. If the slide is intentionally minimal (cover with one line), the floor was lowered to 12KB — but a sub-12KB PNG is almost always a render failure.
