@@ -596,6 +596,28 @@ def chart_problems(slide) -> list[dict]:
     return out
 
 
+def chart_areas(slide) -> list[tuple]:
+    """The box (x0, y0, x1, y1 in EMU) of every chart on the slide: each
+    drawn chart's marks, gridlines and value ticks, and each native chart
+    object. slide-qc uses it to flag an icon drawn inside a chart (owner's
+    rule 2026-10-21: no icons inside charts)."""
+    boxes: list[tuple] = []
+    pieces = []
+    for sh, box in _walk(slide.shapes):
+        if getattr(sh, "has_chart", False) and sh.has_chart:
+            boxes.append(box)
+            continue
+        role = _role(getattr(sh, "name", "") or "")
+        if role in ("mark", "grid", "tick"):
+            pieces.append((sh, box, role))
+    for g in _cluster(pieces, GROUP_GAP_IN * EMU_PER_IN):
+        n_marks = sum(1 for p in g if p[2] == "mark")
+        n_ticks = sum(1 for p in g if p[2] == "tick")
+        if n_marks >= 2 or n_ticks >= 3:
+            boxes.append(_union([p[1] for p in g]))
+    return boxes
+
+
 # ---------------------------------------------------------------------------
 # slide-qc findings
 # ---------------------------------------------------------------------------

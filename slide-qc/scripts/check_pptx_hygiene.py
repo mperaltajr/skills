@@ -23,6 +23,10 @@ Detects:
     ("Final_final_v3.pptx", "Copy of...", "deck (3).pptx")
   - A page number typed as plain text instead of a slide-number field
     (Major, fixed automatically; owner's rule 2026-10-12: never hardcoded)
+  - Icons (owner's rules 2026-10-21): an icon inside a chart (Major); more
+    than 6 icons on a page, icons on more than a third of the pages, or one
+    icon on 3 or more pages (Advisory). Icons are found by the alt text
+    "Icon: <name>" or the shape name icon-<name> that slide-builder gives them.
 
 Footer / page-number presence is NOT detected here — it lives in the
 visual QC pass instead, because most decks inherit those from the
@@ -517,6 +521,111 @@ def check_page_number_fields(slide, slide_num: int) -> list[dict]:
 
 # ---------------------------------------------------------------------------
 # Entry
+ICON_CAP = 6
+
+
+def _icon_name(sh) -> str:
+    """The plain icon name of a Slide Lab icon shape, or ''."""
+    try:
+        c_nv = sh._element.xpath("./*[1]/p:cNvPr")
+        descr = (c_nv[0].get("descr") or "") if c_nv else ""
+    except Exception:
+        descr = ""
+    if descr.startswith("Icon: "):
+        return descr[6:].strip()
+    name = (getattr(sh, "name", "") or "").strip()
+    if name.lower().startswith("icon-"):
+        return name[5:].strip()
+    return ""
+
+
+def _icons_on(shapes, off=(0, 0, 1.0, 1.0)):
+    """(name, box in EMU) for every icon on a slide, including icons inside
+    groups (mapped through the group's child coordinates)."""
+    ox, oy, sx, sy = off
+    for sh in shapes:
+        try:
+            x0 = ox + (sh.left or 0) * sx
+            y0 = oy + (sh.top or 0) * sy
+            x1 = x0 + (sh.width or 0) * sx
+            y1 = y0 + (sh.height or 0) * sy
+        except Exception:
+            continue
+        name = _icon_name(sh)
+        if name:
+            yield name, (x0, y0, x1, y1)
+            continue
+        if getattr(sh, "shape_type", None) == 6:
+            try:
+                ns = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
+                xfrm = sh._element.grpSpPr.find(ns + "xfrm")
+                ch_off, ch_ext = xfrm.find(ns + "chOff"), xfrm.find(ns + "chExt")
+                cx, cy = int(ch_off.get("x")), int(ch_off.get("y"))
+                cw, chh = int(ch_ext.get("cx")) or 1, int(ch_ext.get("cy")) or 1
+                gsx, gsy = (x1 - x0) / cw, (y1 - y0) / chh
+                yield from _icons_on(sh.shapes, (x0 - cx * gsx, y0 - cy * gsy, gsx, gsy))
+            except Exception:
+                yield from _icons_on(sh.shapes, off)
+
+
+def check_icons(prs) -> list[dict]:
+    """Owner's icon rules (2026-10-21): an icon inside a chart is Major
+    (category icon_in_chart); more than 6 icons on a page, icons on more than
+    a third of the pages, or one icon on 3 or more pages are Advisory notes
+    (category icon_use)."""
+    try:
+        sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]
+                               / "slide-builder" / "scripts"))
+        import chart_rules
+    except Exception:
+        chart_rules = None
+    out: list[dict] = []
+    pages_with: list[int] = []
+    pages_of: dict[str, list[int]] = {}
+    total = len(prs.slides)
+    for i, slide in enumerate(prs.slides, start=1):
+        found = list(_icons_on(slide.shapes))
+        if not found:
+            continue
+        pages_with.append(i)
+        for name, _box in found:
+            pages_of.setdefault(name, [])
+            if i not in pages_of[name]:
+                pages_of[name].append(i)
+        if len(found) > ICON_CAP:
+            out.append({"slide": i, "severity": "Advisory", "category": "icon_use",
+                        "issue": (f"Slide {i}: {len(found)} icons on one page; the limit is "
+                                  f"{ICON_CAP}. Keep the icons whose picture adds meaning and use "
+                                  f"numbers or plain shapes for the rest.")})
+        areas = []
+        if chart_rules is not None:
+            try:
+                areas = chart_rules.chart_areas(slide)
+            except Exception:
+                areas = []
+        for name, (x0, y0, x1, y1) in found:
+            mx, my = (x0 + x1) / 2, (y0 + y1) / 2
+            if any(a[0] <= mx <= a[2] and a[1] <= my <= a[3] for a in areas):
+                out.append({"slide": i, "severity": "Major", "category": "icon_in_chart",
+                            "auto_fix": True,
+                            "issue": (f"Slide {i}: icon '{name}' sits inside a chart. Charts carry "
+                                      f"no icons: remove it, or move it out of the chart and "
+                                      f"label the point in words.")})
+    if total >= 3 and len(pages_with) * 3 > total:
+        out.append({"slide": None, "severity": "Advisory", "category": "icon_use",
+                    "issue": (f"Icons on {len(pages_with)} of {total} pages (more than a third: "
+                              f"pages {', '.join(map(str, pages_with))}). Use numbers or plain "
+                              f"shapes as markers; keep icons for pages where the picture adds "
+                              f"meaning.")})
+    for name, pages in sorted(pages_of.items()):
+        if len(pages) >= 3:
+            out.append({"slide": None, "severity": "Advisory", "category": "icon_use",
+                        "issue": (f"Icon '{name}' is on {len(pages)} pages "
+                                  f"({', '.join(map(str, pages))}). The same picture on many "
+                                  f"pages stops meaning anything: keep it where it adds the most.")})
+    return out
+
+
 # ---------------------------------------------------------------------------
 
 def run_all_checks(pptx_path: pathlib.Path) -> dict:
@@ -532,6 +641,7 @@ def run_all_checks(pptx_path: pathlib.Path) -> dict:
     violations.extend(check_openability(prs, pptx_path))
     violations.extend(check_title_load(prs))
     violations.extend(check_chart_and_period_rules(prs))
+    violations.extend(check_icons(prs))
 
     for i, slide in enumerate(prs.slides, start=1):
         violations.extend(check_placeholders_in_text(slide, i))

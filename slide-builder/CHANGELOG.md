@@ -2,6 +2,59 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## 2026-10-21: one allowed icon list of 238, one lookup, icon rules
+
+Owner's decisions 10/21 on the icon verdict (A: trim to about 240; B: keep
+rocket and lightbulb, marked use sparingly; C: at most 6 icons on a page; D:
+new GPU card, data-center hall and lease icons later). Evidence: 289 of 704
+designs since 10/08 used icons, 14 with 8 or more, because the prompt made an
+icon the first-choice list marker; about 20 of 48 placements outside the old
+list showed the wrong picture; `icon_helper.py` defaulted to a purple accent.
+
+- **`icons/checked-icons.json` rewritten in place:** 238 icons, each with a
+  plain `name` that says what the picture is, the `file` it draws from, a
+  `topic` (21 topics), what it `shows`, its `old_names`, `min_px` 32 where it
+  blurs smaller, and a use-sparingly `note` for rocket and lightbulb. Started
+  from the adjudicator's 283 and trimmed by looking at the pictures at 24 px:
+  20 that blur at 24 px (kept only `currency-exchange`, `server-cost`,
+  `time-is-money` and `person-search`, the only icons for their topic, marked
+  32 px+), 19 near-twins (the clearer one stays), 6 second-tier extras (shop,
+  medical, extra person variants). Every topic still has icons. No icon file
+  was deleted from the library.
+- **One lookup, `scripts/icon_names.py`,** used by `icon_helper.py`,
+  `icon_svg.py`, `translate_html.py` and `build_deck.py`. A plain name opens
+  its file; an old name of an allowed icon (its file name, such as `gear`, or
+  `team-35` to `org-chart`, `mobile-100` to `mobile-data`, `search-31` to
+  `person-search`) works and prints its plain name; any other name stops the
+  direct-path build (`UnknownIcon`, with the next step) and, on the sketch
+  path, is Critical on the review card ("Needs a fix"). `py -3
+  scripts/icon_names.py --topics` lists the icons; `icon_svg.py --sheet
+  out.html --names allowed --px 24` (or `topic:finance`) draws a sheet.
+- **The prompt offers 2 to 4 topics per page** (picked from the page's
+  words) plus the status group, in a `{{ICON_TOPICS}}` block that
+  `build_deck.py` fills. New marker rule: numbers for real sequences,
+  otherwise a plain circle or square, an icon only when the picture adds
+  meaning; at most 6 icons on a page; never an icon and a number on one item;
+  none in the headline or inside a chart; in a table only as row labels,
+  counted in the 6. Worker agent file (repo copy), `twins/helpers.py`,
+  `reference/sketch-html-spec.md`, `icons/README.md` and SKILL.md say the
+  same. Missing pictures: `microchip` for a chip, `server-rack` for installed
+  GPUs, `site-pin` for a site, `sign-here` or `handshake` for a lease.
+- **Default icon color = the template's dark text color** (TEXT_DARK,
+  #000000, which the theme step turns into the template's own), not
+  `#A100FF`. The accent only when asked; a light accent only on a dark area.
+  Each icon gets the alt text `Icon: <name>`.
+- **slide-qc:** an icon inside a chart is Major (`icon_in_chart`, fixed
+  automatically); more than 6 icons on a page, icons on more than a third of
+  the pages, or one icon on 3 or more pages are Advisory (`icon_use`).
+  `chart_rules.chart_areas()` gives the chart boxes.
+- **Tests:** `tests/run_icons_smoke.py` now also checks that every name
+  opens exactly one file, no two names share a file, no two allowed files
+  are the same drawing, unknown names are refused, old names map right, the
+  default color is TEXT_DARK, the prompt shows only the offered topics, and
+  the QC flags fire. `run_visual_form_smoke.py`: an unknown icon is Critical
+  and blocks the card.
+
 ## 2026-10-21: the public repository holds only what users need
 
 Owner's decisions 10/21 on the repository clean-up. Nothing changes in how a

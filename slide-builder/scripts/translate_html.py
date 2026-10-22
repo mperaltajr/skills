@@ -1673,10 +1673,16 @@ def _plan_picture(plan: "Plan", pc: dict) -> None:
 def _plan_icon(plan: Plan, ic: dict) -> None:
     """One library icon: inserted at the same spot and color as the sketch
     drew it (the picture fitted into its box, keeping its shape, as the
-    browser did). An unknown name keeps its step: icon_helper draws a labeled
-    placeholder there, and the warning comes from icon_svg.draw_icons."""
+    browser did). The name goes through icon_names, the one lookup: an old
+    name becomes its plain name; an unknown name keeps its step as a labeled
+    placeholder, and its ICON_UNKNOWN warning (from icon_svg.draw_icons)
+    blocks the review card."""
     import icon_svg
+    import icon_names
     name = ic.get("name") or ""
+    known = icon_names.lookup(name)
+    if known is not None and known["name"] != name.strip():
+        name = known["name"]
     x, y, w, h = ic["x"], ic["y"], ic["w"], ic["h"]
     if w < 1 or h < 1:
         plan.warn("ICON_NO_SIZE", f'icon "{name}" has no size on the page; not inserted')
