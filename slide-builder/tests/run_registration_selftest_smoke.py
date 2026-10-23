@@ -34,7 +34,7 @@ from pptx import Presentation
 from pptx.oxml.ns import qn
 
 LAYOUT = "body_canonical_light"
-_TITLE_TYPES = {1, 13}
+_TITLE_TYPES = {1, 3}   # TITLE, CENTER_TITLE (13 is the slide number, now on the mock)
 
 
 def _set_default_layout(tpl: Path, name: str) -> None:
@@ -91,6 +91,12 @@ def main() -> int:
         assert "takeaway" in texts, f"takeaway line missing from mock: {texts[:200]}"
         assert "unaudited" in texts, f"footnote missing from mock: {texts[:200]}"
         assert "source:" in texts, f"source missing from mock: {texts[:200]}"
+        # Page number (2026-10-23): add_slide skips the slide-number box, so the
+        # self-test clones it; the mock must carry it with its slide-number field.
+        from twins.composer import is_page_number_shape, has_slidenum_field
+        assert any(is_page_number_shape(sh) and has_slidenum_field(sh)
+                   for sh in mprs.slides[0].shapes), "mock slide has no page number"
+        assert any(i.startswith("page number shows") for i in infos), infos
 
         # Title renders at the controlled 28pt; takeaway spans the title width.
         from _chrome_schema import load_chrome_yml
