@@ -80,6 +80,13 @@ CATEGORIES: dict[str, tuple[str, str, tuple[str, ...]]] = {
     "legend_position": ("auto", "Chart legend not one row at the chart's top right",
                         ("legend",)),
     "palette": ("auto", "Color palette drift", ("palette", "off-brand color", "off-brand colour")),
+    # Owner's icon rules (2026-10-21; slide-qc/scripts/check_pptx_hygiene.py).
+    # icon_use findings are Advisory, so never fixed automatically.
+    "icon_in_chart": ("auto", "An icon inside a chart", ("icon inside a chart", "icon in a chart",
+                                                         "sits inside a chart")),
+    "icon_use": ("auto", "Too many icons: more than 6 on a page, icons on more than a third "
+                         "of the pages, or one icon on 3 or more pages",
+                 ("icons on one page", "icons on", "same picture on many pages")),
     # content: asked, in one table with proposed fixes
     "number_not_in_brief": ("ask", "A number or label that is not in the brief",
                             ("not in the brief", "not in brief", "unsourced number",

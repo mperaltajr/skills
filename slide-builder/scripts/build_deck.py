@@ -104,6 +104,7 @@ except ImportError as _imp_exc:
 
 import _paths as _p
 import _visuals  # noqa: E402
+import icon_names  # noqa: E402  (the one icon lookup; topics offered per slide)
 import _state  # noqa: E402  (build state manifest: prep record + review invalidation)
 from _meta_schema import MetaJson, META_SCHEMA_VERSION_CURRENT  # noqa: E402
 from _chrome_schema import (  # noqa: E402
@@ -1611,6 +1612,12 @@ def build_placeholders(
         "MANDATORY_SHAPE":         (slide.get("mandatory_shape", "") or visual_mandatory(slide)
                                     or "(none — worker's judgment)"),
         "VISUAL":                  visual_directive(slide),
+        # 2 to 4 icon topics picked from the slide's own words, plus the
+        # status group (owner's decision 2026-10-21).
+        "ICON_TOPICS":             icon_names.topic_block(" ".join(
+                                       str(slide.get(k) or "") for k in
+                                       ("title", "governing_thought", "so_what",
+                                        "editorial_emphasis", "evidence_content"))),
         "PINNED_SOURCE_PAGE":      slide.get("pinned_source_page", "") or "(none)",
         "SOURCE_LINE":             slide.get("source", "") or "(none in the brief)",
         "SECTION_TAG":             slide.get("section_tag", "") or "(none)",

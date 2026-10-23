@@ -14,12 +14,11 @@ preview is the picture that lands in the deck. Every filled shape is drawn in
 `currentColor`, so the designer's CSS color carries through, as the icon is
 tinted with one color on the slide too.
 
-It also owns the names designers may use:
-  icons/checked-icons.json   the short list of names whose pictures were
-                             checked by eye to match the name. About half of
-                             the library's names do not match their pictures
-                             (the names were assigned by position in the
-                             source deck), so designers pick from this list.
+Which names designers may use is decided by `icon_names.py` (the one
+lookup, reading icons/checked-icons.json): a plain name or an old name of an
+allowed icon draws its picture; any other name gets a labeled placeholder and
+an ICON_UNKNOWN warning, which blocks the review card (owner's decisions
+2026-10-21).
 
 Used by:
   render_html.py     draws icons into the sketch before the screenshot
@@ -30,12 +29,13 @@ Used by:
 Run:
   py -3 scripts/icon_svg.py --build            (re)write icons/svg/*.svg
   py -3 scripts/icon_svg.py --sheet out.html   a picture sheet of every icon
-  py -3 scripts/icon_svg.py --sheet out.html --names gear,globe
+  py -3 scripts/icon_svg.py --sheet out.html --names gear-refresh,globe
+  py -3 scripts/icon_svg.py --sheet out.html --names allowed      every allowed icon
+  py -3 scripts/icon_svg.py --sheet out.html --names topic:finance one topic
 """
 from __future__ import annotations
 
 import argparse
-import json
 import math
 import sys
 from pathlib import Path
@@ -44,6 +44,10 @@ HERE = Path(__file__).resolve().parent
 ICONS = HERE.parent / "icons"
 SVG_DIR = ICONS / "svg"
 CHECKED_JSON = ICONS / "checked-icons.json"
+
+if str(HERE) not in sys.path:
+    sys.path.insert(0, str(HERE))
+import icon_names  # noqa: E402
 
 _A = "{http://schemas.openxmlformats.org/drawingml/2006/main}"
 _P = "{http://schemas.openxmlformats.org/presentationml/2006/main}"
@@ -232,53 +236,54 @@ def xml_to_svg(xml_path: Path) -> str | None:
 # ---------------------------------------------------------------------------
 
 _SVG_CACHE: dict[str, str | None] = {}
-_CHECKED: dict | None = None
 
 
 def library_names() -> list[str]:
+    """Every file in the library (allowed or not)."""
     return sorted(p.stem for p in ICONS.glob("*.xml"))
 
 
 def exists(name: str) -> bool:
-    return bool(name) and (ICONS / f"{name}.xml").exists()
+    """Is `name` an allowed icon (plain name or old name) whose file exists?"""
+    f = icon_names.file_for(name)
+    return bool(f) and (ICONS / f"{f}.xml").exists()
 
 
-def svg_for(name: str) -> str | None:
-    """The shipped preview SVG for a library icon, or None (unknown name, or
-    an icon that has no preview)."""
-    if name in _SVG_CACHE:
-        return _SVG_CACHE[name]
-    p = SVG_DIR / f"{name}.svg"
-    val = p.read_text(encoding="utf-8") if (name and p.exists()) else None
-    _SVG_CACHE[name] = val
+def file_svg(stem: str) -> str | None:
+    """The shipped preview of one library FILE, allowed or not (for tools)."""
+    if stem in _SVG_CACHE:
+        return _SVG_CACHE[stem]
+    p = SVG_DIR / f"{stem}.svg"
+    val = p.read_text(encoding="utf-8") if (stem and p.exists()) else None
+    _SVG_CACHE[stem] = val
     return val
 
 
+def svg_for(name: str) -> str | None:
+    """The preview SVG for an allowed icon name (or old name), or None: an
+    unknown name, or an icon that has no preview."""
+    f = icon_names.file_for(name)
+    return file_svg(f) if f else None
+
+
 def checked() -> dict:
-    """{name: {"shows": ..., "use_for": ...}} for the eye-checked names."""
-    global _CHECKED
-    if _CHECKED is None:
-        try:
-            data = json.loads(CHECKED_JSON.read_text(encoding="utf-8"))
-            _CHECKED = {d["name"]: d for d in data.get("icons", [])}
-        except (OSError, ValueError, KeyError):
-            _CHECKED = {}
-    return _CHECKED
+    """{plain name: icon record} for the allowed icons."""
+    return {ic["name"]: ic for ic in icon_names.icons()}
 
 
 def status(name: str) -> str:
-    """'checked' | 'unchecked' (in the library, picture not checked against
-    its name) | 'no-preview' | 'unknown'."""
+    """'checked' (a plain allowed name) | 'old-name' (works, prints its plain
+    name) | 'no-preview' | 'unknown' (refused)."""
     if not exists(name):
         return "unknown"
     if svg_for(name) is None:
         return "no-preview"
-    return "checked" if name in checked() else "unchecked"
+    return "old-name" if icon_names.is_old_name(name) else "checked"
 
 
 def manifest(names) -> dict:
-    """{name: svg text or None} for the names a page uses, for the browser."""
-    return {n: svg_for(n) if exists(n) else None for n in sorted(set(names)) if n}
+    """{name as written: svg text or None} for the names a page uses."""
+    return {n: svg_for(n) for n in sorted(set(names)) if n}
 
 
 # ---------------------------------------------------------------------------
@@ -367,21 +372,20 @@ def draw_icons(page) -> list[dict]:
 
 
 def warning_for(name: str) -> dict | None:
+    """None for a plain allowed name; otherwise {"code", "name", "detail"}.
+    ICON_OLD_NAME is a note (the icon draws); ICON_UNKNOWN and ICON_NO_PREVIEW
+    mean a placeholder ships, so the review card blocks the option."""
     st = status(name)
     if st == "checked":
         return None
+    if st == "old-name":
+        return {"code": "ICON_OLD_NAME", "name": name, "detail": icon_names.old_name_note(name)}
     if st == "unknown":
         return {"code": "ICON_UNKNOWN", "name": name,
-                "detail": f'icon "{name}" is not in the icon library; a labeled placeholder '
-                          "is drawn instead. Use a name from icons/checked-icons.json."}
-    if st == "no-preview":
-        return {"code": "ICON_NO_PREVIEW", "name": name,
-                "detail": f'icon "{name}" has no picture that can be drawn; a labeled '
-                          "placeholder is drawn instead. Use a name from icons/checked-icons.json."}
-    return {"code": "ICON_NOT_CHECKED", "name": name,
-            "detail": f'icon "{name}" is in the library but not on the checked list, so its '
-                      "picture may not match its name (about half the names do not). Look at "
-                      "the sketch, or use a name from icons/checked-icons.json."}
+                "detail": icon_names.refusal(name) + " A labeled placeholder is drawn in its place."}
+    return {"code": "ICON_NO_PREVIEW", "name": name,
+            "detail": f'icon "{name}" has no picture that can be drawn; a labeled '
+                      "placeholder is drawn instead. Use another name from icons/checked-icons.json."}
 
 
 # ---------------------------------------------------------------------------
@@ -408,19 +412,30 @@ def build_all() -> tuple[int, int, int]:
     return made, skipped, total
 
 
-def sheet_html(names: list[str], cols: int = 10, color: str = "#1F3A93") -> str:
+def sheet_html(names: list[str], cols: int = 10, color: str = "#1F3A93", px: int = 64) -> str:
+    """A labeled picture sheet. Each cell shows the name as written, what it
+    opens when it is an old name, and its minimum size when that is 32 px."""
     cells = []
     for n in names:
-        svg = svg_for(n) or ""
+        svg = svg_for(n) or file_svg(n) or ""
+        ic = icon_names.lookup(n)
         st = status(n)
-        mark = {"checked": "&#10003; ", "unchecked": "", "no-preview": "(no preview) ",
-                "unknown": "(unknown) "}[st]
+        if st == "unknown" and svg:
+            mark = "(not allowed) "
+        else:
+            mark = {"checked": "", "old-name": "(old name) ", "no-preview": "(no preview) ",
+                    "unknown": "(unknown) "}[st]
+        extra = ""
+        if ic and ic["name"] != n:
+            extra = f" = {ic['name']}"
+        if ic and (ic.get("min_px") or 0) > 24:
+            extra += f" ({ic['min_px']} px+)"
         cells.append(f'<div class="c"><i data-icon-name="{n}" style="color:{color}">{svg}</i>'
-                     f'<div class="n">{mark}{n}</div></div>')
+                     f'<div class="n">{mark}{n}{extra}</div></div>')
     return ("<!DOCTYPE html><html><head><meta charset='utf-8'><style>"
             "body{font:12px Arial,sans-serif;margin:16px}"
             f".g{{display:grid;grid-template-columns:repeat({cols},1fr);gap:12px}}"
-            ".c{text-align:center}.c i{display:block;width:64px;height:64px;margin:0 auto}"
+            f".c{{text-align:center}}.c i{{display:block;width:{px}px;height:{px}px;margin:0 auto}}"
             ".c i svg{width:100%;height:100%}.n{margin-top:4px;word-break:break-all}"
             "</style></head><body><div class='g'>" + "".join(cells) + "</div></body></html>")
 
@@ -429,21 +444,25 @@ def main(argv=None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--build", action="store_true", help="(re)write icons/svg/*.svg")
     ap.add_argument("--sheet", type=Path, help="write a picture sheet (HTML) of the icons")
-    ap.add_argument("--names", help="comma-separated names for --sheet (default: all; "
-                                    "'checked' for the checked list)")
+    ap.add_argument("--names", help="comma-separated names for --sheet (default: every "
+                                    "library file; 'allowed' for the allowed list; "
+                                    "'topic:<topic>' for one topic)")
+    ap.add_argument("--px", type=int, default=64, help="icon size on the sheet (24 = true size)")
     args = ap.parse_args(argv)
     if args.build:
         made, skipped, total = build_all()
         print(f"[ok] wrote {made} previews to {SVG_DIR} ({total / 1e6:.1f} MB); "
               f"{skipped} icon(s) have no preview")
     if args.sheet:
-        if args.names == "checked":
-            names = sorted(checked())
+        if args.names in ("allowed", "checked"):
+            names = icon_names.names()
+        elif args.names and args.names.startswith("topic:"):
+            names = [ic["name"] for ic in icon_names.by_topic(args.names[6:])]
         elif args.names:
             names = [n.strip() for n in args.names.split(",") if n.strip()]
         else:
             names = library_names()
-        args.sheet.write_text(sheet_html(names), encoding="utf-8")
+        args.sheet.write_text(sheet_html(names, px=args.px), encoding="utf-8")
         print(f"[ok] sheet of {len(names)} icon(s): {args.sheet}")
     if not (args.build or args.sheet):
         ap.print_help()

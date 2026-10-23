@@ -820,7 +820,8 @@ def insert_icon(
     Returns True on success, False if placeholder was inserted.
 
     Trigger: brief mentions a concept that maps to an icon in the icon vocabulary.
-    Available icons: any filename (without extension) under <skill>/icons/*.xml.
+    Available icons: the plain names in <skill>/icons/checked-icons.json (an
+    unknown name stops the build; see scripts/icon_names.py).
     """
     try:
         from icon_helper import insert_icon as _insert_icon

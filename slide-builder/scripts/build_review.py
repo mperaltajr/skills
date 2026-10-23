@@ -359,10 +359,11 @@ def chrome_fit_notes(html_path: Path) -> list:
 def sketch_facts(html_path: Path, slide_meta: Optional[dict]) -> tuple[Optional[str], list]:
     """(visual form the sketch declares or None, notes for its card).
 
-    Notes are {severity, code, detail}: an icon name not in the library
-    (Major: a placeholder will ship in its place), one in the library but not
-    on the checked list (Advisory: its picture may not match its name), and a
-    brief source line the sketch left out of its footer (Major)."""
+    Notes are {severity, code, detail}: an icon name not on the allowed list
+    (Critical: a placeholder would ship in its place, so the option is blocked
+    until the designer uses an allowed name; owner's decision 2026-10-21), an
+    old name of an allowed icon (Advisory: it works, the note gives its plain
+    name), and a brief source line the sketch left out of its footer (Major)."""
     try:
         text = html_path.read_text(encoding="utf-8", errors="replace")
     except OSError:
@@ -376,7 +377,7 @@ def sketch_facts(html_path: Path, slide_meta: Optional[dict]) -> tuple[Optional[
         for name in names:
             w = icon_svg.warning_for(name)
             if w:
-                sev = "Advisory" if w["code"] == "ICON_NOT_CHECKED" else "Major"
+                sev = "Advisory" if w["code"] == "ICON_OLD_NAME" else "Critical"
                 notes.append({"severity": sev, "code": w["code"], "detail": w["detail"]})
     except Exception:
         pass
@@ -597,7 +598,8 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
                         continue
                     code = (w.get("code") or w.get("id") or "").upper()
                     detail = w.get("detail") or w.get("message") or ""
-                    if "CRITICAL" in code or code in ("EDITABILITY_VIOLATION", "TRANSLATOR_BLOCKED"):
+                    if "CRITICAL" in code or code in ("EDITABILITY_VIOLATION", "TRANSLATOR_BLOCKED",
+                                                      "ICON_UNKNOWN", "ICON_NO_PREVIEW"):
                         sev = "Critical"
                     elif "MAJOR" in code or "MISMATCH" in code or "BELOW_MAJOR" in code \
                             or code == "WRAP_RISK":     # text may run onto an extra line
@@ -612,6 +614,13 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
         sketch_html = src_dir / f"option_{letter}.html"
         visual_form, sketch_notes = (sketch_facts(sketch_html, slide_meta)
                                      if sketch_html.exists() else (None, []))
+        # A Critical sketch note (an icon that is not on the allowed list)
+        # blocks the option: its card says "Needs a fix" (2026-10-21).
+        crit = [n for n in sketch_notes if n.get("severity") == "Critical"]
+        if crit:
+            qc_summary = dict(qc_summary or {})
+            qc_summary["block"] = int(qc_summary.get("block", 0) or 0) + len(crit)
+            qc_failed_checks = [f"{n['code']} [Critical]: {n['detail']}" for n in crit] + qc_failed_checks
 
         options.append({
             "letter": letter,

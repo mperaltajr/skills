@@ -185,22 +185,23 @@ Font sizes are specified in pixels at the 1280×720 canvas scale. They convert t
 
 ## 6. Icon handling
 
-Icons stay on the existing icon library (`slide-builder/scripts/icon_helper.py` + `slide-builder/icons/`). The worker references icons in HTML by name, **using only a name from `slide-builder/icons/checked-icons.json`** (each entry says what the picture `shows` and what it suits). About half of the library's other names do not match their pictures, so they are not offered:
+Icons stay on the existing icon library (`slide-builder/scripts/icon_helper.py` + `slide-builder/icons/`). The worker references icons in HTML by name, **using only a plain name from `slide-builder/icons/checked-icons.json`** (238 icons checked by eye at 24 px; each slide's `_prompt.md` offers 2 to 4 topics of them plus the status group). About half of the library's file names do not match their pictures, so they are refused. Rules (owner's, 2026-10-21): the default list marker is a number for a real sequence, otherwise a plain circle or square; an icon only when its picture adds meaning; at most 6 on a page; never an icon and a number on one item; none in the headline or inside a chart; in a table only as row labels (counted in the 6):
 
 ```html
-<i class="icon" data-icon-name="clipboard-check" style="width:32px;height:32px;color:var(--brand-primary)"></i>
+<i class="icon" data-icon-name="clipboard-check" style="width:32px;height:32px;color:var(--brand-text-primary)"></i>
 <!-- also accepted: -->
 <img src="icons/clipboard-check.svg" class="icon" style="width:32px;height:32px" alt="">
 ```
 
 - **Size** comes from the element's width and height (24 px when it has none). The picture keeps its shape and is centered in the box.
-- **Color** is the element's CSS `color` (so `currentColor` cascades), or `data-icon-color="#RRGGBB"` when set. On a dark panel set a light color.
+- **Color** is the element's CSS `color` (so `currentColor` cascades), or `data-icon-color="#RRGGBB"` when set. Default: the template's dark text color (the body text color in `_context.md`). The accent only when the brief asks; a light accent (such as a pale yellow) or white only on a dark panel.
 - **Sketch render:** `scripts/render_html.py` draws each icon from its shipped SVG preview (`icons/svg/<name>.svg`, made from the icon's own DrawingML by `scripts/icon_svg.py --build`), so the review page shows what the slide will get.
 - **Finished slide:** `scripts/translate_html.py` turns each icon into an `icon` step, and the slide gets the real, editable vector icon (`icon_helper.insert_icon`) at the same box and color, as a group named `icon-<name>`.
-- **Unknown name:** a labeled dashed placeholder on the sketch and the slide, an `ICON_UNKNOWN` warning on the render and the review card. A name in the library but not on the checked list draws, with an advisory that its picture may not match its name. Never a silent gap.
+- **Old name** of an allowed icon (its file name, such as `gear`): drawn, and the slide uses its plain name (an `ICON_OLD_NAME` note gives it).
+- **Unknown name:** a labeled dashed placeholder on the sketch and the slide, and an `ICON_UNKNOWN` warning on the render; on the review card it is Critical and the option is marked "Needs a fix". Never a silent gap.
 - The worker does NOT draw icons from its own SVG paths or write preview tools; it references the library.
 
-A picture sheet of any icons: `py -3 scripts/icon_svg.py --sheet sheet.html --names checked` (or a comma list, or no `--names` for all).
+A picture sheet: `py -3 scripts/icon_svg.py --sheet sheet.html --names allowed --px 24` (or `--names topic:finance`, or a comma list). The list by topic: `py -3 scripts/icon_names.py --topics`.
 
 Standard icon sizes:
 - Anchor icons (recommendation indicator, status glyph): `24px–32px`

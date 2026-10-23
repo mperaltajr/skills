@@ -369,38 +369,36 @@ def add_icon_from_library(slide, shape_id, x_px, y_px, size_px, name, *,
                           color=None):
     """Insert a real vector icon from the Slide Lab icon library.
 
-    PREFER THIS over `add_icon(...glyph=...)` whenever the slide calls for an icon
-    (process / data / people / risk / decision / etc.). The library ships 1,143
-    pre-extracted icons. Generic Unicode glyphs (☰ ✦ →) are a last resort only.
+    An icon only when the picture adds meaning (owner's rules, 2026-10-21):
+    the default list marker is a number for a real sequence, otherwise a plain
+    circle or square. At most 6 icons on a page, never an icon and a number on
+    the same item, none in the headline or inside a chart; in a table only as
+    row labels (counted in the 6).
 
-    Use ONLY names from icons/checked-icons.json: each was checked by eye to
-    match its picture, and its "shows" field says what the picture is. About
-    half of the library's other names do not match their pictures (e.g.
-    "shield-warning" is a vault, "chip" a head with binary digits, "speech" a
-    podium), so they are not offered. A few checked names:
-      gear            — process / operations (cog with circular arrows)
-      people          — team / organization (org chart of people)
-      chart-bar       — data / results (rising bars)
-      compass         — strategy / direction (compass rose)
-      calendar        — timeline / schedule
-      coins           — cost / budget
-      lightbulb       — insight / idea
-      globe           — global / market
-      clipboard-check — compliance / audit / done
-      package         — delivery / output (3D box)
+    Use ONLY plain names from icons/checked-icons.json (238 icons, each
+    checked by eye at 24 px); your _prompt.md offers 2 to 4 topics of them
+    plus the status group. An unknown name stops the build with the next
+    step; an old name (an allowed icon's file name, e.g. "gear") still works
+    and prints its plain name. Names marked 32 px+ blur when smaller. A few:
+      gear-refresh    process / operations (cog with circular arrows)
+      org-chart       team / organization
+      server-rack     servers, installed GPUs, GPU capacity
+      microchip       a chip (there is no GPU card icon yet)
+      cooling         cooling (thermometer with a snowflake)
+      power-lines     power supply
+      coins           cost / budget
+      sign-here       signing a lease or contract
+      clipboard-check compliance / audit / done
+      calendar        timeline / schedule
 
-    The icon is tinted with `color` (defaults to BRAND_ACCENT). After the theme
-    graft pipeline runs, BRAND_ACCENT gets remapped to the client's accent — so
-    icons inherit client brand automatically.
+    Color: `color` defaults to TEXT_DARK, which the theme step turns into the
+    template's dark text color. Use the accent only when the user asks; a
+    light accent (such as a pale yellow) only on a dark area.
 
     Example:
         add_icon_from_library(slide, "think-icon",
-                              x_px=200, y_px=300, size_px=64,
-                              name="lightbulb")
-
-    Falls back to a labeled dashed-border placeholder if the named icon's XML
-    doesn't exist in slide-builder/icons/ — the build never errors. v0.1
-    ships pre-extracted icons; there is no live extraction step.
+                              x_px=200, y_px=300, size_px=32,
+                              name="compass")
     """
     import sys
     from pathlib import Path as _Path
@@ -410,7 +408,7 @@ def add_icon_from_library(slide, shape_id, x_px, y_px, size_px, name, *,
     from icon_helper import insert_icon
 
     if color is None:
-        color = BRAND_ACCENT
+        color = TEXT_DARK
     # RGBColor -> hex string for icon_helper
     if hasattr(color, "_RGBColor__valstr"):
         hex_color = "#" + color._RGBColor__valstr.upper()
@@ -418,7 +416,7 @@ def add_icon_from_library(slide, shape_id, x_px, y_px, size_px, name, *,
         try:
             hex_color = "#{:02X}{:02X}{:02X}".format(*color)
         except Exception:
-            hex_color = "#A100FF"
+            hex_color = "#000000"
     insert_icon(
         icon_name=name,
         target_slide=slide,
@@ -450,7 +448,7 @@ def add_circle(slide, shape_id, x_px, y_px, diameter_px, fill_color, *,
         add_circle(slide, "think-bg", cx - d//2, cy - d//2, d, BRAND_PRIMARY)
         add_icon_from_library(slide, "think-icon",
                               cx - 24, cy - 24, 48,
-                              name="lightbulb", color=WHITE)
+                              name="compass", color=WHITE)
     """
     shape = slide.shapes.add_shape(
         MSO_SHAPE.OVAL,

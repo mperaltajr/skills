@@ -5,25 +5,28 @@ Reads pre-extracted icon XML files from icons/<name>.xml and injects the vector
 shape directly into the target slide's spTree. No PPTX opening, no COM, no
 file format conversion — just XML read + inject.
 
-v0.1 ships icons pre-extracted under slide-builder/icons/; there is no live
-extraction step. Missing names fall through to a labeled dashed-border
-placeholder. See slide-builder/icons/README.md for the vocabulary + fallback.
+Names go through icon_names.py, the one lookup (owner's decisions 2026-10-21):
+a plain name from icons/checked-icons.json opens its file; an old name of an
+allowed icon (its file name, e.g. "gear") still works and prints the plain
+name; any other name raises icon_names.UnknownIcon, which stops the build with
+the next step. The default color is the template's dark text color (TEXT_DARK,
+#000000, which the theme step turns into the template's own); pass the accent
+only when the user asked for it.
 
 Usage:
     from icon_helper import insert_icon
 
     insert_icon(
-        icon_name="gear",
+        icon_name="gear-refresh",
         target_slide=slide,       # python-pptx Slide object
         left_emu=914400,
         top_emu=1143000,
         width_emu=457200,
-        height_emu=457200,
-        accent_color="#A100FF"    # template accent1 hex
+        height_emu=457200,        # color: template dark text unless asked
     )
 
-If the .xml file is missing, inserts a labeled dashed-border placeholder
-and prints a warning — does not raise an exception.
+An allowed name whose .xml file is missing inserts a labeled dashed-border
+placeholder and prints a warning. An unknown name raises UnknownIcon.
 """
 
 from __future__ import annotations
@@ -39,6 +42,12 @@ _PATCHES_DIR = pathlib.Path(__file__).resolve().parent.parent / "patches"
 if str(_PATCHES_DIR) not in sys.path:
     sys.path.insert(0, str(_PATCHES_DIR))
 from patches import get_blank_layout
+
+_SCRIPTS_DIR = pathlib.Path(__file__).resolve().parent
+if str(_SCRIPTS_DIR) not in sys.path:
+    sys.path.insert(0, str(_SCRIPTS_DIR))
+import icon_names  # noqa: E402
+from icon_names import UnknownIcon, DEFAULT_COLOR  # noqa: E402,F401
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -197,12 +206,15 @@ def insert_icon(
     top_emu: int,
     width_emu: int,
     height_emu: int,
-    accent_color: str = "#A100FF",
+    accent_color: str | None = None,
 ) -> bool:
     """
     Insert a pre-extracted icon into target_slide at the given bounding box.
 
-    Reads icons/<icon_name>.xml, tints with accent_color, repositions to
+    Looks the name up (icon_names.resolve: an unknown name raises
+    UnknownIcon, an old name prints its plain name), reads the icon's file
+    icons/<file>.xml, tints it with accent_color (default: the template's dark
+    text color, DEFAULT_COLOR), repositions to
     (left_emu, top_emu, width_emu, height_emu), and injects into the slide's
     spTree. No PPTX opening, no COM — just XML read + inject.
 
@@ -213,7 +225,11 @@ def insert_icon(
     slide-builder/icons/*.xml; missing names fall through to a labeled
     dashed-border placeholder (no extraction step in the v0.1 pipeline).
     """
-    xml_path = _ICONS_DIR / f"{icon_name}.xml"
+    icon = icon_names.resolve(icon_name)
+    icon_name = icon["name"]
+    if not accent_color:
+        accent_color = DEFAULT_COLOR
+    xml_path = _ICONS_DIR / f"{icon['file']}.xml"
 
     if not xml_path.exists():
         print(f"  [icon] WARNING: {xml_path.name} not found in slide-builder/icons/ - inserting labeled placeholder.")
@@ -264,6 +280,9 @@ def insert_icon(
         next_id += 1
         if k == 0:
             c_nv.set("name", f"icon-{icon_name}")
+            # Alt text, and how slide-qc counts icons even after a script
+            # renames the shape.
+            c_nv.set("descr", f"Icon: {icon_name}")
     sp_tree.append(elem)
     return True
 
@@ -278,9 +297,10 @@ if __name__ == "__main__":
     from pptx.util import Emu
 
     parser = argparse.ArgumentParser(description="Verify an icon by building a test PPTX")
-    parser.add_argument("icon_name", help="Icon name (e.g. gear, lightbulb)")
+    parser.add_argument("icon_name", help="Icon name from icons/checked-icons.json (e.g. gear-refresh)")
     parser.add_argument("output", help="Output PPTX path")
-    parser.add_argument("--color", default="#A100FF", help="Accent color hex")
+    parser.add_argument("--color", default=DEFAULT_COLOR,
+                        help="Color hex (default: the template's dark text color)")
     args = parser.parse_args()
 
     prs = Presentation()

@@ -83,7 +83,9 @@ def main() -> int:
                       extra={1: '<i data-icon-name="no-such-icon"></i>'},
                       metas={2: {"source": "Fictional survey 2026"}})
         n1 = slides[0]["options"][0]["sketch_notes"]
-        assert any(n["code"] == "ICON_UNKNOWN" and n["severity"] == "Major" for n in n1), n1
+        assert any(n["code"] == "ICON_UNKNOWN" and n["severity"] == "Critical" for n in n1), n1
+        # A Critical icon note marks the option "Needs a fix" (2026-10-21).
+        assert (slides[0]["options"][0]["qc_summary"] or {}).get("block", 0) >= 1, slides[0]["options"][0]
         # Slide 2 has a footer element, so a source is there: no note.
         assert not slides[1]["options"][0]["sketch_notes"]
         sd = tmp / "nofoot" / "slide_01"
