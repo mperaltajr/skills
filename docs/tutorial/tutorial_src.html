@@ -16,12 +16,13 @@
   "as_of": "6 Oct 2026",
   "version": "ae5b113",
   "measured": "Timings measured on one 10-slide build, 5 Oct 2026 (3 options per slide, session folder on the local drive, designs by Claude Opus 5.5). Rows marked Estimate were not timed on that build.",
-  "options_per_slide": 3,
+  "options_per_slide": 1,
   "options_per_slide_revision": 1,
   "max_at_once": 20,
   "chips_total": 9,
   "type": {"body_pt": 12, "floor_pt": 10.5, "small_pt": 9, "max_sizes": 3, "hero_pt": 24},
   "labels": [
+    "+3 DESIGNS",
     "PICK A",
     "PICK B",
     "PICK C",
@@ -636,7 +637,7 @@
 
   <div class="example"><span class="lbl">The running example</span>Throughout this guide we follow one real Slide Lab build: a 10-slide deck called "Meridian: Southeast Asia entry". Meridian is a made-up company; its template and every number are invented. The timings in this guide were measured on that build. (For this example, Claude made the picks at the owner's request; in real use you pick.) Its files are built into this guide, so they open even if this page was emailed on its own:
     <a href="Slide-Lab-Example-Storyline.html">the storyline</a>,
-    <a href="Slide-Lab-Example-Review.html">the review page</a> (the real first-round page, <span data-f="options_per_slide"></span> options per slide) and
+    <a href="Slide-Lab-Example-Review.html">the review page</a> (a real first-round page, built with 3 options per slide) and
     <a href="Slide-Lab-Example-Deck.pptx">the finished deck</a>.</div>
 </section>
 
@@ -764,7 +765,7 @@
     <span class="pill claude">Claude works, you can do other work</span>
     <span class="pill"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="8" cy="8" r="6.2"/><path d="M8 4.6V8l2.4 1.6"/></svg><span data-f="t.s_designs"></span></span>
   </p>
-  <p>Claude designs every slide at the same time (up to <span data-f="max_at_once"></span> at once), <span data-f="options_per_slide"></span> genuinely different design options per slide, not just color swaps. Then it draws a preview of every option, makes the <b>review page</b> and opens it in your browser. While you wait: <a href="#rules">the rules every design follows</a>.</p>
+  <p>Claude designs every slide at the same time (up to <span data-f="max_at_once"></span> at once), <span data-f="options_per_slide"></span> design per slide by default (ask for 3 if you want genuinely different options to compare; they take longer and use more tokens). Then it draws a preview of every option, makes the <b>review page</b> and opens it in your browser. While you wait: <a href="#rules">the rules every design follows</a>.</p>
   <div class="see"><span class="lbl">You'll see</span>Progress messages in the chat, then the review page's path (a file called REVIEW.html in the session folder). <a href="#times">Full timings</a></div>
   <details class="more trouble" id="step-4-trouble">
     <summary>If something goes wrong</summary>
@@ -793,12 +794,12 @@
       <div class="bar"><i></i><i></i><i></i><span class="fn">REVIEW.html</span><button type="button" class="enlarge">View full size</button></div>
       <img src="data:image/jpeg;base64,{{IMG_REVIEW}}" alt="Screenshot of one slide on the review page: three design options side by side, the decision buttons PICK A, PICK B, PICK C, REPLACE THESE and LEAVE OUT, the quick-feedback buttons and the optional note boxes">
     </div>
-    <figcaption>One slide on the review page (slide 4 of the Meridian example, first round, <span data-f="options_per_slide"></span> options). Captured 5 Oct 2026; the page may look slightly different in later versions. Click the picture to see it full size.</figcaption>
+    <figcaption>One slide on the review page (slide 4 of the Meridian example, first round, built with 3 options). Captured 5 Oct 2026; the page may look slightly different in later versions. Click the picture to see it full size.</figcaption>
   </figure>
 
   <ol class="do">
     <li>Look at the review page Claude opened. Closed it? Paste its path into your browser's address bar, or double-click REVIEW.html in the session folder.
-      <div class="see"><span class="lbl">You'll see</span>One card per slide, with its <span data-f="options_per_slide"></span> options side by side.</div></li>
+      <div class="see"><span class="lbl">You'll see</span>One card per slide, with its design (or its options side by side, when you asked for more than one).</div></li>
     <li>For each slide, click <span class="ui">PICK A</span>, <span class="ui">PICK B</span> or <span class="ui">PICK C</span>. Click <span class="ui">REPLACE THESE</span> to get a new design for that slide, or <span class="ui">LEAVE OUT</span> to drop it from the deck.
       <div class="see"><span class="lbl">You'll see</span>A "PICKED" mark on the chosen option, and the counts at the top go up.</div></li>
     <li>Optional: click any of the <span data-f="chips_total"></span> quick-feedback buttons, such as <span class="ui">Too sparse, add detail</span> or <span class="ui">Add process structure: numbers, icons</span> (the page lists the rest), or type a note under <span class="ui">More detail (optional)</span>. Notes travel with your choices, so a pick plus a quick-feedback button asks for a small change without a new design: Claude applies your comments to the design you picked (same layout, same letter) <b>before</b> turning it into PowerPoint. <span class="ui">Wrong layout / structure</span>, or a note asking for a different design ("try a chart instead"), gets new designs instead: Claude asks whether you want one or three (three is the default). Every comment is listed with how it was applied when the deck is delivered. The rules behind those two buttons: <a href="#r-full-page">a full page</a>, <a href="#r-structure">visible structure</a>.</li>
@@ -1593,7 +1594,7 @@
     <tbody>
       <tr><td data-label="Cause">Session folder in OneDrive, Dropbox or another synced folder</td><td data-label="Effect">Noticeably slower builds; previews can time out</td><td data-label="What to do">Use <code class="path">C:\Users\&lt;you&gt;\Slide Lab\sessions\</code> and copy the finished deck to OneDrive or SharePoint</td></tr>
       <tr><td data-label="Cause">More than <span data-f="max_at_once"></span> slides</td><td data-label="Effect">Slides are designed in groups of <span data-f="max_at_once"></span>, so the design step takes longer</td><td data-label="What to do">Start with 5 to 15 slides while you learn</td></tr>
-      <tr><td data-label="Cause">Three options instead of one</td><td data-label="Effect">The first round always makes <span data-f="options_per_slide"></span> per slide; a redesign makes <span data-f="options_per_slide_revision"></span> unless you ask for more</td><td data-label="What to do">Ask for 3 on a redesign only when you really want alternatives</td></tr>
+      <tr><td data-label="Cause">Three options instead of one</td><td data-label="Effect">Each slide gets <span data-f="options_per_slide"></span> design by default and a redesign <span data-f="options_per_slide_revision"></span>; three come only when you ask for them or click +3 designs on a slide's card</td><td data-label="What to do">Ask for 3 (or click +3 designs) only when you really want alternatives</td></tr>
       <tr><td data-label="Cause">Slides with curved diagrams, rotated text or images</td><td data-label="Effect" data-f="t.hand_drawing"></td><td data-label="What to do">Nothing; it is expected</td></tr>
       <tr><td data-label="Cause">A template used for the first time</td><td data-label="Effect">Adds <span data-f="t.template"></span></td><td data-label="What to do">Register it before the day you need the deck</td></tr>
       <tr><td data-label="Cause">First install on a company network</td><td data-label="Effect">Software approvals and certificate errors can stretch <span data-f="t.install"></span></td><td data-label="What to do">Request LibreOffice from the software portal on day one; it can need approval. On Windows, PowerPoint stands in until it arrives (a little slower)</td></tr>
@@ -1609,7 +1610,7 @@
     <thead><tr><th>You say</th><th>What happens</th></tr></thead>
     <tbody>
       <tr><td data-label="You say"><span class="say"><code>Rebuild slide 3</code><button type="button">Copy</button></span></td><td data-label="What happens">Only that slide is redesigned (<span data-f="options_per_slide_revision"></span> design; say "with 3 options" for alternatives). With one design it goes straight to the final check page, then the quality check; with alternatives you pick on the review page first. Every other slide keeps its pick<span class="why">Time: <span data-f="t.rebuild_one"></span></span></td></tr>
-      <tr><td data-label="You say"><span class="say"><code>Insert a slide after slide 4</code><button type="button">Copy</button></span></td><td data-label="What happens">Tell Claude what the new slide should say. It designs <span data-f="options_per_slide"></span> options for it and takes it through the review page, the final check page and the quality check; the other slides are untouched<span class="why">Time: <span data-f="t.not_timed"></span></span></td></tr>
+      <tr><td data-label="You say"><span class="say"><code>Insert a slide after slide 4</code><button type="button">Copy</button></span></td><td data-label="What happens">Tell Claude what the new slide should say. It designs <span data-f="options_per_slide"></span> design for it (3 if you ask) and takes it through the review page, the final check page and the quality check; the other slides are untouched<span class="why">Time: <span data-f="t.not_timed"></span></span></td></tr>
       <tr><td data-label="You say"><span class="say"><code>Export the chart data to Excel</code><button type="button">Copy</button></span></td><td data-label="What happens">One sheet per chart slide, ready to paste into think-cell or a normal PowerPoint chart<span class="why">Time: <span data-f="t.not_timed"></span></span></td></tr>
       <tr><td data-label="You say">A deck Slide Lab did not build: "fix the text on slide 6"</td><td data-label="What happens">Changes words or numbers, keeps the design, saves a new copy<span class="why">Time: <span data-f="t.not_timed"></span></span></td></tr>
       <tr><td data-label="You say">A deck Slide Lab did not build: "redesign slide 6"</td><td data-label="What happens">Rebuilds that slide on the deck's own template and drops it back into a copy of your deck, every other slide untouched; then a quality check<span class="why">Time: <span data-f="t.not_timed"></span></span></td></tr>
@@ -1690,7 +1691,7 @@
   <div class="faq">
     <details class="more"><summary>Do I need to know how to code or design?</summary><div class="body"><p>No. You talk to Claude in plain English and click buttons on two web pages. Claude asks before it runs anything on your computer; click Allow when it does.</p></div></details>
     <details class="more"><summary>Why did Claude stop and wait?</summary><div class="body"><p>Slide Lab is built to stop at certain points and wait for your answer. A stop is not a bug: Claude is asking for something only you can decide. Nothing moves on until you answer.</p><p>If you do not answer: nothing is built, saved or deleted. Answer in the chat, or click the button on the page it opened.</p></div></details>
-    <details class="more"><summary>What if I don't like any of the designs for a slide?</summary><div class="body"><p>Click <span class="ui">REPLACE THESE</span> and say in the notes what you want different. You get <span data-f="options_per_slide_revision"></span> new design by default; say "with 3 options" if you want alternatives. For a small change, pick the closest option and add a quick-feedback button or a note instead.</p></div></details>
+    <details class="more"><summary>What if I don't like any of the designs for a slide?</summary><div class="body"><p>Click <span class="ui">REPLACE THESE</span> and say in the notes what you want different. You get <span data-f="options_per_slide_revision"></span> new design by default; click <span class="ui">+3 DESIGNS</span> instead (or say "with 3 options") if you want alternatives. Three take longer and use more tokens. For a small change, pick the closest option and add a quick-feedback button or a note instead.</p></div></details>
     <details class="more"><summary>Can I get every option in one PowerPoint file?</summary><div class="body"><p>Yes. <span class="ui">All options in one deck</span> on the review page builds every option, not just your picks, into one deck for side-by-side comparison, each slide labeled with its option letter. The first click puts a switch on every option, <span class="ui">Kept in the all-options deck</span>; click it to leave that option out (for example keep B and C of slide 1, not A). Click the button again to copy the message. It costs several times more than a normal build, so the page warns you and asks before it copies anything. Use it rarely.</p></div></details>
     <details class="more"><summary>Why do I paste a message back into Claude?</summary><div class="body"><p>The review pages are files on your computer and cannot talk to Claude directly. The copied message carries your exact choices with a check code, so nothing is retyped or misread. Paste it unchanged. You can also just say it in the chat while the page is open ("build it", "use 1B 2C"): Claude records your words with the page you saw.</p></div></details>
     <details class="more"><summary>Can I keep my work in OneDrive?</summary><div class="body"><p>Keep the session folder on your computer's own drive (<code class="path">C:\Users\&lt;you&gt;\Slide Lab\sessions\</code>). In OneDrive, builds are noticeably slower and previews can time out. Copy the finished deck to OneDrive or SharePoint afterward. The template itself can live anywhere.</p></div></details>

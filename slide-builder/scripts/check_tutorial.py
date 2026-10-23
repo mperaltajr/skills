@@ -28,6 +28,11 @@ Run it whenever build_review.py, register_template.py, publish_cleanup.py,
 check_done.py, type_scale.py, banned-words.md or settings.json change, and
 before sharing the tutorial.
 
+The option counts are compared with the published settings.json only, never
+with this computer's settings.local.json (the tutorial is public; the owner's
+local file keeps three designs per slide). SLIDE_LAB_SETTINGS_LOCAL is set to
+"none" here so nothing this check reads can pick the local file up.
+
 Run:  py -3 scripts/check_tutorial.py [--tutorial <path>]
 Exit: 0 pass | 1 problems found (listed) | 2 a file is missing or unreadable
 """
@@ -36,9 +41,13 @@ from __future__ import annotations
 import argparse
 import html
 import json
+import os
 import re
 import sys
 from pathlib import Path
+
+# Published settings only (see above).
+os.environ["SLIDE_LAB_SETTINGS_LOCAL"] = "none"
 
 HERE = Path(__file__).resolve().parent
 SKILL = HERE.parent                      # slide-builder/

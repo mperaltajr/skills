@@ -14,21 +14,35 @@
      page script opens or downloads the embedded copy.
   5. Writes <skills folder>/Slide-Lab-Tutorial.html and runs check_tutorial.py.
 
-Run:  py -3 docs/tutorial/assemble.py
+The tutorial is public, so it is built from the published
+slide-builder/settings.json only: this computer's settings.local.json (say,
+three designs per slide) is ignored (SLIDE_LAB_SETTINGS_LOCAL=none, also for
+the check it runs). Never edit the built file by hand: change
+tutorial_src.html and run this. slide-builder/tests/run_tutorial_build_smoke.py
+fails when this script's output differs from the committed
+Slide-Lab-Tutorial.html.
+
+Run:  py -3 docs/tutorial/assemble.py [--out <path>]
+      (--out writes the page somewhere else, for the test)
 Exit: 0 written and check passed | 1 check failed or a fact is missing
 """
 from __future__ import annotations
 
+import argparse
 import base64
 import html
 import io
 import json
+import os
 import re
 import subprocess
 import sys
 from pathlib import Path
 
 from PIL import Image
+
+# Published settings only, for this script and the check it starts.
+os.environ["SLIDE_LAB_SETTINGS_LOCAL"] = "none"
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]                      # the skills folder
@@ -69,6 +83,9 @@ def _jpeg_b64(png: Path) -> str:
 
 
 def main() -> int:
+    ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
+    ap.add_argument("--out", type=Path, default=OUT)
+    out = ap.parse_args().out
     page = SRC.read_text(encoding="utf-8")
     facts = json.loads(FACTS_RE.search(page).group(1))
 
@@ -112,9 +129,9 @@ def main() -> int:
                       f'data-type="{mime}">data:{mime};base64,{data}</script>')
     page = page.replace("</body>", "\n".join(blocks) + "\n</body>", 1)
 
-    OUT.write_text(page, encoding="utf-8", newline="\n")
-    print(f"Written: {OUT}")
-    return subprocess.call([sys.executable, str(CHECK), "--tutorial", str(OUT)])
+    out.write_text(page, encoding="utf-8", newline="\n")
+    print(f"Written: {out}")
+    return subprocess.call([sys.executable, str(CHECK), "--tutorial", str(out)])
 
 
 if __name__ == "__main__":
