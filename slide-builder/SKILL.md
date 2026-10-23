@@ -188,7 +188,9 @@ The chat-driven flow replaces the legacy PowerShell TTY flow (still available as
    ```
    This writes `<stem>/brand.yml` + `<stem>/theme.json` + `<stem>/chrome.yml`. Optional flags: `--cover-bg-slot`, `--cover-bg-hex`, `--dark-bg-slot`, `--dark-bg-hex`, `--cover-layout NAME`, `--reference-slide N`, `--strip-master-backgrounds`, and repeatable `--layout-class "NAME=body-canonical|bespoke"`. Layout names are checked against the template; a wrong name stops the commit with the list of real names.
 
-4. **The sample slide is the final check.** Tell the user that the sample slide (`<stem>/selftest/mock.pptx`) is where a swapped main and highlight color would show, have them open it, and run `confirm` only when they say it looks right. Builds refuse unconfirmed templates.
+4. **The sample slide is the final check.** Tell the user that the sample slide (`<stem>/selftest/mock.pptx`) is where a swapped main and highlight color would show, have them open it, and run `confirm` only when they say it looks right. Builds refuse unconfirmed templates. The sample slide carries the page number (the layout's slide-number box with its slide-number field); the self-test fails if it is missing.
+
+5. **Page numbers on pages added in PowerPoint.** A template whose slide master and layouts have no header/footer setting (`<p:hf>`) makes PowerPoint add new slides with the page number turned off, even when every layout has a working slide-number box. Registration adds `<p:hf hdr="0" ftr="0" dt="0"/>` (page number on, header, footer and date off) to `build-template.pptx` and prints a `NOTE (page numbers)` with a one-line offer. Ask the user that one line; only on a yes run `py -3 scripts/register_template.py add-page-numbers "<template>"` (it changes only the master and layout parts of the original), then register again with the command it prints. Never change the original without that yes.
 
 **What registration reads from each layout (chrome.yml), beyond the title box:**
 

@@ -81,8 +81,17 @@ Six CLI subcommands:
   py -3 scripts/register_template.py confirm <template.pptx>
       Records confirmed=true in theme.json (survives reconcile) after the
       user has opened selftest/mock.pptx in PowerPoint and verified the
-      title/subtitle land. Until confirmed, the pick-list shows the template
+      title/subtitle land and the page number shows. Until confirmed, the pick-list shows the template
       as '(needs review)' and builds warn.
+
+  add-page-numbers  (only when the user said yes)
+  -----------------------------------------------------------------------
+  py -3 scripts/register_template.py add-page-numbers <template.pptx>
+      A template whose master and layouts have no page-number setting
+      (<p:hf>) makes PowerPoint add new slides without a page number.
+      Registration always adds the setting to build-template.pptx and asks
+      the user whether to fix the original too; this command does that (only
+      the master and layout parts change), then says to register again.
 
 Picks JSON shape (consumed by `commit`):
 
@@ -2701,6 +2710,123 @@ def _repair_empty_layout_placeholders(prs) -> int:
     return repaired
 
 
+# The slide master's and each layout's header/footer setting (<p:hf>). Without
+# it PowerPoint adds new slides with slide numbering turned off
+# (HeadersFooters.SlideNumber.Visible = 0), so a page added in PowerPoint has
+# no page number even though the layout has a working slide-number box (seen
+# on a client template, 2026-10-23). hdr/ftr/dt off, sldNum left at its
+# default (on): new slides get the page number and nothing else.
+_HF_ATTRS = {"hdr": "0", "ftr": "0", "dt": "0"}
+_PML_NS = "http://schemas.openxmlformats.org/presentationml/2006/main"
+
+
+def _ensure_hf(el, *, is_master: bool) -> bool:
+    """Add <p:hf hdr="0" ftr="0" dt="0"/> to a master or layout root element
+    when it has none, in schema order (master: before txStyles, else extLst;
+    layout: before extLst; else at the end). An existing <p:hf> is left as it
+    is (the template's own choice). Returns True when one was added."""
+    if el.find(f"{{{_PML_NS}}}hf") is not None:
+        return False
+    hf = el.makeelement(f"{{{_PML_NS}}}hf", dict(_HF_ATTRS))
+    anchors = ("txStyles", "extLst") if is_master else ("extLst",)
+    for tag in anchors:
+        anchor = el.find(f"{{{_PML_NS}}}{tag}")
+        if anchor is not None:
+            anchor.addprevious(hf)
+            return True
+    el.append(hf)
+    return True
+
+
+def _add_missing_hf(prs) -> tuple[int, int]:
+    """Give the master and every layout of `prs` a header/footer setting where
+    it has none. Returns (number added, number of masters + layouts)."""
+    added = total = 0
+    for master in prs.slide_masters:
+        total += 1
+        added += _ensure_hf(master._element, is_master=True)
+        for layout in master.slide_layouts:
+            total += 1
+            added += _ensure_hf(layout._element, is_master=False)
+    return added, total
+
+
+def _hf_missing_count(tpl: Path) -> int:
+    """How many of the template's masters and layouts have no <p:hf>."""
+    prs = Presentation(str(tpl))
+    n = 0
+    for master in prs.slide_masters:
+        n += master._element.find(f"{{{_PML_NS}}}hf") is None
+        for layout in master.slide_layouts:
+            n += layout._element.find(f"{{{_PML_NS}}}hf") is None
+    return n
+
+
+def _print_hf_offer(tpl: Path, n_missing: int) -> None:
+    print(f"  NOTE (page numbers): your original template has no page-number "
+          f"setting ({n_missing} of its masters and layouts), so a page you add "
+          f"in PowerPoint comes in without a page number. Slide Lab added the "
+          f"setting to its own build copy; your original file was not changed.")
+    print(f"  Ask the user, in one line: \"Your template's new pages come in "
+          f"without a page number. Want me to fix that in your original file "
+          f"too?\" Only on a yes, run:")
+    print(f"    py -3 scripts/register_template.py add-page-numbers \"{tpl}\"")
+
+
+def _main_add_page_numbers(args) -> int:
+    """Add the page-number setting to the user's ORIGINAL template, only when
+    the user asked for it. Edits just the master and layout parts inside the
+    file (every other part is copied unchanged), then says to register again,
+    because the file changed."""
+    sys.stdout.reconfigure(encoding="utf-8")
+    tpl = args.template.resolve()
+    if not tpl.exists():
+        print(f"ERROR: template not found: {tpl}")
+        return 2
+    from lxml import etree
+    part_re = re.compile(r"^ppt/(slideMasters/slideMaster|slideLayouts/slideLayout)\d+\.xml$")
+    added = 0
+    tmp = tpl.with_name(tpl.stem + ".page-numbers.tmp")
+    try:
+        with zipfile.ZipFile(tpl) as zin, zipfile.ZipFile(tmp, "w") as zout:
+            for info in zin.infolist():
+                data = zin.read(info.filename)
+                m = part_re.match(info.filename)
+                if m:
+                    root = etree.fromstring(data)
+                    if _ensure_hf(root, is_master=m.group(1).startswith("slideMasters")):
+                        added += 1
+                        data = etree.tostring(root, xml_declaration=True,
+                                              encoding="UTF-8", standalone=True)
+                zout.writestr(info, data)
+        if not added:
+            tmp.unlink()
+            print(f"  Nothing to do: every master and layout in {tpl.name} already "
+                  f"has the page-number setting.")
+            return 0
+        os.replace(tmp, tpl)
+    except PermissionError:
+        tmp.unlink(missing_ok=True)
+        print(f"ERROR: could not write {tpl.name}; it is probably open in "
+              f"PowerPoint. Ask the user to close it, then run this again.")
+        return 2
+    except Exception:
+        tmp.unlink(missing_ok=True)
+        raise
+    print(f"  Added the page-number setting to {added} master(s) and layout(s) in "
+          f"your original template: {tpl}")
+    print(f"  New pages added in PowerPoint now come in with a page number.")
+    picks = _p.register_picks_json(tpl)
+    if picks.exists():
+        print(f"  The file changed, so register it again with the same answers:")
+        print(f"    py -3 scripts/register_template.py commit \"{tpl}\" "
+              f"--picks \"{picks}\"")
+    else:
+        print(f"  The file changed: register it (again) before building on it:")
+        print(f"    py -3 scripts/register_template.py propose \"{tpl}\"")
+    return 0
+
+
 def _write_build_template_copy(tpl: Path) -> tuple[Path, str]:
     """Produce the normalized build copy at ``<stem>/build-template.pptx`` and
     return (path, sha256-of-copy).
@@ -2728,9 +2854,13 @@ def _write_build_template_copy(tpl: Path) -> tuple[Path, str]:
         prs = Presentation(str(build_tpl))
         _clear_existing_slides(prs)  # sample slides + <p:sectionLst>
         n_repaired = _repair_empty_layout_placeholders(prs)
+        n_hf, _n_parts = _add_missing_hf(prs)
         prs.save(str(build_tpl))
         print(f"  normalized copy: stripped sample slides + sections, "
-              f"repaired {n_repaired} empty placeholder(s)")
+              f"repaired {n_repaired} empty placeholder(s), added the page-number "
+              f"setting to {n_hf} of {_n_parts} master(s) and layout(s)")
+        if n_hf:
+            _print_hf_offer(tpl, n_hf)
     except Exception as exc:  # noqa: BLE001 — never fail registration on normalize
         print(f"  WARNING: normalize step skipped ({type(exc).__name__}: {exc}); "
               f"the build copy is a plain duplicate of the original.")
@@ -4365,8 +4495,9 @@ def _commit_from_picks_dict(tpl: Path, picks: dict, *, source: str) -> int:
     if _mock_pptx.exists():
         print("  A real mock slide was built on your default layout. OPEN IT IN")
         print("  POWERPOINT and confirm the TITLE and SUBTITLE appear correctly")
-        print("  and fit (PowerPoint is the real check — the automated self-test")
-        print("  can pass when something is still off):")
+        print("  and fit, and the PAGE NUMBER shows (PowerPoint is the real")
+        print("  check: the automated self-test can pass when something is")
+        print("  still off):")
         print(f"    {_mock_pptx}")
         if _mock_png.exists():
             print(f"  (quick preview image: {_mock_png})")
@@ -4376,6 +4507,12 @@ def _commit_from_picks_dict(tpl: Path, picks: dict, *, source: str) -> int:
     print("  When it looks right in PowerPoint, mark it confirmed:")
     print(f"    py -3 scripts/register_template.py confirm \"{tpl}\"")
     print("  Until confirmed, the pick-list shows it as '(needs review)'.")
+    try:
+        _n_hf = _hf_missing_count(tpl)
+    except Exception:  # noqa: BLE001 (an offer, never a reason to fail)
+        _n_hf = 0
+    if _n_hf:
+        _print_hf_offer(tpl, _n_hf)
     print("=" * 70)
     return 0
 
@@ -4445,6 +4582,17 @@ def _render_mock_page_selftest(tpl: Path) -> tuple[list[str], list[str]]:
                  f"copy — pick a different default layout and re-register."], infos)
     _clear_existing_slides(prs)
     slide = prs.slides.add_slide(layout)
+    # python-pptx's add_slide skips the layout's slide-number box, so the mock
+    # page had no page number. Clone it (with the layout's slide-number field)
+    # the way finalize does for a built page, so the mock shows what the user
+    # gets. Bespoke layouts get the page number from add_footer below.
+    from twins.composer import (clone_missing_chrome_placeholders,
+                                is_page_number_shape, has_slidenum_field)
+    _layout_has_num = any(ph.placeholder_format.type is not None
+                          and int(ph.placeholder_format.type) == 13
+                          for ph in layout.placeholders)
+    if lc is None or getattr(lc, "layout_class", "") == "body-canonical":
+        clone_missing_chrome_placeholders(slide, layout)
 
     # Worst-case realistic content: a long two-clause title + full-sentence
     # takeaway + footnote + source + a two-digit page number.
@@ -4549,6 +4697,25 @@ def _render_mock_page_selftest(tpl: Path) -> tuple[list[str], list[str]]:
         if subtitle_idx is not None and not found.get("subtitle"):
             fails.append(f"the takeaway line did NOT land in the layout's subtitle slot "
                          f"(idx {subtitle_idx}) on {layout_name!r}.")
+    # Page number: a slide-number box holding a slide-number field, whenever
+    # the layout has a slide-number box (or Slide Lab draws its own on it).
+    _draws_own_num = (lc is not None and getattr(lc, "has_page_number", False)
+                      and not (getattr(lc, "layout_class", "") == "body-canonical"
+                               and title_idx is not None))
+    _num_ok = any(is_page_number_shape(sh) and has_slidenum_field(sh)
+                  for sh in slide.shapes)
+    if _layout_has_num or _draws_own_num:
+        if not _num_ok:
+            fails.append(f"the page number did NOT show on layout {layout_name!r} "
+                         f"(no slide-number box with a page-number field on the "
+                         f"mock slide).")
+        else:
+            infos.append(f"page number shows on {layout_name!r} (a slide-number "
+                         f"field, so PowerPoint renumbers it when pages move).")
+    else:
+        infos.append(f"layout {layout_name!r} has no slide-number box, so its "
+                     f"pages have no page number. If they should, add one to the "
+                     f"layout in PowerPoint and register again.")
     if _slide_has_prompt_text(slide):
         fails.append(f"placeholder prompt text ('Click to add…') is still visible "
                      f"on layout {layout_name!r} after populating.")
@@ -4767,7 +4934,9 @@ def _post_commit_smoke(tpl: Path) -> bool:
             print(f"  info: {i}")
         fails.extend(mock_fails)
         if not mock_fails:
-            print(f"  ok: mock page — title, takeaway, footnote + source all render")
+            _num = any(i.startswith("page number shows") for i in mock_infos)
+            print(f"  ok: mock page: title, takeaway, footnote + source all render"
+                  + (", and the page number shows" if _num else ""))
     except Exception as exc:  # noqa: BLE001 — never let the self-test itself crash commit
         print(f"  warn: mock-page self-test could not run "
               f"({type(exc).__name__}: {exc}); skipped.")
@@ -5032,8 +5201,14 @@ def main() -> int:
     p_conf = sub.add_parser("confirm",
         help="Mark a registered template as human-confirmed, after you've opened "
              "its mock slide (<stem>/selftest/mock.pptx) in PowerPoint and the "
-             "title/subtitle look right.")
+             "title/subtitle look right and the page number shows.")
     p_conf.add_argument("template", type=Path, help="Path to the registered .pptx/.potx")
+
+    p_hf = sub.add_parser("add-page-numbers",
+        help="Only when the user said yes: add the page-number setting to the "
+             "ORIGINAL template so pages added in PowerPoint get a page number. "
+             "Registration already adds it to the build copy; register again after.")
+    p_hf.add_argument("template", type=Path, help="Path to the original .pptx/.potx")
 
     args = ap.parse_args()
     if args.cmd == "propose":
@@ -5050,6 +5225,8 @@ def main() -> int:
         return 0
     if args.cmd == "confirm":
         return _main_confirm(args)
+    if args.cmd == "add-page-numbers":
+        return _main_add_page_numbers(args)
     ap.print_help()
     return 2
 

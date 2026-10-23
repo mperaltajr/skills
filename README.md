@@ -133,7 +133,7 @@ Register each template once (5 to 10 minutes). In Claude, say:
 Register my template at C:\path\to\client-template.pptx
 ```
 
-Claude shows you the colors it found and asks which is the main brand color, which is the highlight color and what the cover background should be, then which layouts to use for content slides and for the cover. Then it builds one sample slide: open it in PowerPoint, check the title, takeaway, footnote and source look right, and tell Claude it is fine. Your original file is never changed. Optional but recommended: give Claude 3 or 4 good pages from a real deck on that template, so designs match the client's look.
+Claude shows you the colors it found and asks which is the main brand color, which is the highlight color and what the cover background should be, then which layouts to use for content slides and for the cover. Then it builds one sample slide: open it in PowerPoint, check the title, takeaway, footnote, source and page number look right, and tell Claude it is fine. Your original file is never changed. Optional but recommended: give Claude 3 or 4 good pages from a real deck on that template, so designs match the client's look.
 
 Registered templates join a pick-list, so next time you just choose from it.
 

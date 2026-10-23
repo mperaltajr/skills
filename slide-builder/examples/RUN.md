@@ -24,7 +24,7 @@ Claude shows you the colors it found (with a plain name, the color code, and whe
 
 Claude never pre-picks the colors: the automatic guess was wrong on every template registered so far (often the main and highlight colors swapped).
 
-Then **confirm** it. Registration builds a mock slide (`<stem>/selftest/mock.pptx`); open it in PowerPoint and check that the title, takeaway, footnote and source land where they should. Once a person has looked:
+Then **confirm** it. Registration builds a mock slide (`<stem>/selftest/mock.pptx`); open it in PowerPoint and check that the title, takeaway, footnote, source and page number land where they should. Once a person has looked:
 
 ```powershell
 py -3 "$env:USERPROFILE\.claude\skills\slide-builder\scripts\register_template.py" confirm `

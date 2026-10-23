@@ -2,6 +2,34 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## 2026-10-23: pages added in PowerPoint get a page number; the sample slide shows one
+
+Two gaps found on a client template.
+
+- **Pages added in PowerPoint had no page number.** The template's slide
+  master and layouts had no header/footer setting (`<p:hf>`), so PowerPoint
+  added every new slide with the page number turned off, although each
+  layout had a working slide-number box. Registration now checks the master
+  and every layout and, where the setting is missing, adds
+  `<p:hf hdr="0" ftr="0" dt="0"/>` (page number on; header, footer and date
+  off) to `build-template.pptx`, in the order the file format requires
+  (before `txStyles` on the master, before `extLst` on a layout). It prints
+  a `NOTE (page numbers)` saying the original lacks it and a one-line offer
+  to fix the original too. The original is never changed on its own: only
+  on the user's yes, `register_template.py add-page-numbers <template>`
+  adds the setting to the original (only its master and layout parts
+  change), then prints the command to register it again.
+- **The sample slide had no page number.** python-pptx's `add_slide` skips
+  the layout's slide-number box. The self-test now copies it onto the
+  sample slide with its slide-number field (as finalize does for a built
+  page), checks it is there ("page number shows"), and the confirm message
+  asks the user to check the page number too.
+- New test `tests/run_template_page_number_smoke.py` (generated template
+  without `<p:hf>`; with PowerPoint installed, a page added on the build
+  copy gets a visible number). `run_registration_selftest_smoke.py` checks
+  the sample slide's page number; its title check counted the slide-number
+  box as a title (type 13) and now looks at title types only.
+
 ## 2026-10-21: one allowed icon list of 238, one lookup, icon rules
 
 Owner's decisions 10/21 on the icon verdict (A: trim to about 240; B: keep

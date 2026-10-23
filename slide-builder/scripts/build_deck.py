@@ -2892,7 +2892,7 @@ def stage1_sanity_check(template_path: Path, allow_unconfirmed: bool = False) ->
                 sys.stderr.write(
                     "\nBuild stopped. Ask the user to open the mock slide above in "
                     "PowerPoint. Record the confirmation only after they say the "
-                    "title, takeaway, footnote and source look right; never confirm "
+                    "title, takeaway, footnote, source and page number look right; never confirm "
                     "it yourself to get past this. If the user tells you to build "
                     "anyway, use --allow-unconfirmed: it is recorded and shown to "
                     "them when the deck is delivered.\n")
