@@ -79,7 +79,7 @@ def _state_of(pg) -> dict:
 
 def _round2_checks(st: dict, local_note: bool) -> None:
     for sid in ("slide_01", "slide_02", "slide_04", "slide_05"):
-        assert st[sid]["badge"] == "Picked A", (sid, st[sid])
+        assert st[sid]["badge"] == "Using this design", (sid, st[sid])  # one design each
         assert st[sid]["kept"].startswith("Kept from last round"), (sid, st[sid])
     for sid in ("slide_01", "slide_02"):
         assert "edited from your comments" in st[sid]["kept"], (sid, st[sid])
@@ -124,8 +124,14 @@ def main() -> int:
                 pg.evaluate("() => localStorage.clear()")
                 pg.reload()
                 _hook(pg)
+                # Slides 1, 2, 4 and 5 have one design: already chosen, no
+                # PICK button (2026-10-27). Slide 3 has two: pick A.
                 for sid in SLIDES:
-                    pg.click(f'#card-{sid} .decision-buttons button.pick[data-letter="A"]')
+                    if sid == "slide_03":
+                        pg.click(f'#card-{sid} .decision-buttons button.pick[data-letter="A"]')
+                    else:
+                        assert pg.locator(f'#card-{sid} button.pick:not(.leave)').count() == 0
+                        assert pg.evaluate(f"pickForSlide('{sid}')") == "A", sid
                 pg.click('.chip[data-slide="slide_01"][data-chip="Too dense, simplify"]')
                 pg.fill("#fb-slide_02-headline", "Shorter title")
                 pg.click("#btn-build")

@@ -237,14 +237,25 @@ them as a table and as bullets (owner's decision, 2026-10-08):
   drawn with `li::before` becomes a bullet character in that color. A column
   of separate text blocks can be marked `data-native="list"` (each child is
   one item).
-- What stays separate shapes (with a `TABLE_KEPT_AS_SHAPES` /
-  `LIST_KEPT_AS_SEPARATE_BOXES` note in the translation report, never lost
-  text): tables with rounded corners, spaced-apart cells, or pieces of text
-  side by side in one cell; lists whose items are cards or panels. A pill or
+- **A `<table>` is always a native PowerPoint table** (owner's decision,
+  2026-10-27). It is never turned into separate shapes. What a PowerPoint
+  table can't hold is handled inside the native table, each with a plain
+  `TABLE_NOTE` in the translation report: rounded corners are drawn square;
+  spaced-apart cells get thin empty rows or columns between them; a
+  gradient background becomes the cell's solid color; text that can't sit
+  in its cell as designed (pieces of text side by side, a caption outside
+  the cells) stays its own text box on top of the native cell. A pill or
   badge inside a cell stays its own shape on top of the native table.
-- The converter checks its own render: a table or list that comes out
-  looking different from the sketch falls back to separate shapes
-  (`TABLE_NOT_NATIVE`, `LIST_MARKERS_AS_SHAPES`, `LIST_NOT_SINGLE_BOX`).
+  Whether content should be a table at all is the designer's call: use a
+  `<table>` when the content is a table.
+- The converter checks its own render. A table that still comes out looking
+  different from the sketch stays a native table, with the difference
+  written as a `TABLE_NOTE` in the translation report (never a fallback to
+  shapes, never handed to the agent). A list that comes out different steps
+  down: markers drawn as shapes, then one text box per item
+  (`LIST_MARKERS_AS_SHAPES`, `LIST_NOT_SINGLE_BOX`); a list whose items are
+  cards or panels stays separate boxes (`LIST_KEPT_AS_SEPARATE_BOXES`).
+  Text is never lost.
 
 ## 7. CSS feature kill-list
 

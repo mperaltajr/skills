@@ -217,6 +217,15 @@ def main() -> int:
                             " for (const k in SERVER_PICKS) delete SERVER_PICKS[k];"
                             " navigator.clipboard.writeText = t => {"
                             " window.__copied = t; return Promise.resolve(); }; }")
+                # Both slides have one design: already chosen (2026-10-27), so
+                # Build copies with no click at all.
+                pg.evaluate("() => buildDeck()")
+                pg.wait_for_function("() => window.__copied")
+                assert "Picks: 1A 2A (check " in pg.evaluate("() => window.__copied"), (
+                    "one-design slides should build without a pick")
+                # Treat slide 2 as a slide with several designs from here on, so
+                # the pending refusal and the stamp check still run.
+                pg.evaluate("() => { window.__copied = null; delete window.__SOLO__['slide_02']; }")
                 pg.click('#card-slide_01 .option[data-letter="A"] img, '
                          '#card-slide_01 .option[data-letter="A"]')
                 pg.evaluate("() => buildDeck()")

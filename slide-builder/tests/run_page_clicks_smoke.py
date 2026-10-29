@@ -11,7 +11,10 @@ tab:
 
   Storyline     the tabs, edit a line, + Comment, every visual box,
                 Suggestion / Must use, Done, Let the designers pick all
-  Slide designs Pick A/B/C, the picture itself, Replace these, +3 designs,
+  Slide designs a one-design slide (set up for three, one built: finalize
+                passes, already chosen with no PICK button, its note goes
+                as an edit, New design instead makes a replace request),
+                Pick A/B/C, the picture itself, New design instead, +3 designs,
                 Leave out, every quick-feedback chip, the text boxes, Clear,
                 All options in one deck (keep switch, Back), Build my deck
                 (not ready, redesign, build), the copy box's Copy and Close,
@@ -81,10 +84,20 @@ def build_main(root: Path) -> dict:
          "record_storyline")
     must(H.run("build_deck.py", "--brief", brief, "--template", H.TEMPLATE, "--out", out,
                "--pattern", "direct", "--confirm-template", **OPT3), "prep with visuals")
+    # Slide 7 was set up for three designs and its worker built one (the
+    # 2026-10-26 report): finalize uses what was built (no exit 11), and the
+    # page shows it as already chosen.
     for n in range(1, 8):
-        for L in "ABC":
+        for L in ("A" if n == 7 else "ABC"):
             H.write_option(out, n, L)
-    must(H.run("finalize_deck.py", "--out", out, "--template", H.TEMPLATE, **OPT3), "finalize")
+    r = H.run("finalize_deck.py", "--out", out, "--template", H.TEMPLATE, **OPT3)
+    must(r, "finalize (slide 7: 1 of 3 designs built)")
+    assert "slide 7: set up for 3 design(s) (ABC), 1 built (A); using what was built" \
+        in r.stdout, r.stdout[-1500:]
+    import json
+    m7 = next(s for s in json.loads((out / "_meta.json").read_text(encoding="utf-8"))["slides"]
+              if s["n"] == 7)
+    assert m7["options"] == ["A", "B", "C"], ("finalize must not need _meta.json edited", m7)
     must(H.run("build_review.py", "--out", out, "--open", **OPT3), "build_review")
     snaps["designs"] = out / "stage_designs.html"
     shutil.copy2(page, snaps["designs"])
@@ -293,6 +306,29 @@ def check_designs(browser, url: str, where: str, shots: Path | None) -> None:
         pg.close()
         return
     ev = f.evaluate
+    # Slide 7 has one design: already chosen, no PICK button, notes edit it.
+    c7 = "#card-slide_07"
+    badge7 = ev("document.getElementById('badge-slide_07').textContent")
+    hint7 = f.locator(f"{c7} .decision-buttons + .hint-text").inner_text()
+    pick7 = ev("pickForSlide('slide_07')")
+    n_pick7 = f.locator(f"{c7} button.pick:not(.leave)").count()
+    rec(T, "one design: already chosen", pick7 == "A" and badge7 == "Using this design"
+        and n_pick7 == 0 and "it's applied to this design" in hint7,
+        f"pick {pick7!r}, badge {badge7!r}, {n_pick7} PICK button(s)")
+    rec(T, "several designs: notes apply to the pick",
+        "apply to the one you pick" in f.locator("#card-slide_01 .decision-buttons + .hint-text")
+        .inner_text(), "hint says so")
+    f.click(f"{c7} .option .option-frame")
+    rec(T, "one design: clicking the picture keeps it", ev("pickForSlide('slide_07')") == "A",
+        "still chosen")
+    f.click(f"{c7} button.pick.leave")
+    lo = ev("pickForSlide('slide_07')")
+    f.click(f"{c7} button.pick.leave")
+    rec(T, "one design: Leave out and back", lo == "-" and ev("pickForSlide('slide_07')") == "A",
+        f"left out ({lo!r}), then chosen again")
+    if shots and not where:
+        f.locator(c7).screenshot(path=str(shots / "M_card_one_design.png"))
+        f.locator("#card-slide_06").screenshot(path=str(shots / "M_card_three_designs.png"))
     for L in "ABC":
         f.click(f'#card-slide_01 button.pick[data-letter="{L}"]')
         rec(T, f"Pick {L}", ev("pickForSlide('slide_01')") == L,
@@ -302,7 +338,7 @@ def check_designs(browser, url: str, where: str, shots: Path | None) -> None:
     f.click('#card-slide_01 .option[data-letter="B"] .option-frame')
     rec(T, "click the design picture", ev("pickForSlide('slide_01')") == "B", "picture picks it")
     f.click("#card-slide_02 button.none:not(.three)")
-    rec(T, "Replace these", ev("isReplace('slide_02') && !isThree('slide_02')")
+    rec(T, "New design instead", ev("isReplace('slide_02') && !isThree('slide_02')")
         and f.is_visible("#regen-slide_02"), "marked to replace, note shows")
     f.click("#card-slide_03 button.none.three")
     rec(T, "+3 designs", ev("isThree('slide_03')"), "three new designs asked")
@@ -330,20 +366,30 @@ def check_designs(browser, url: str, where: str, shots: Path | None) -> None:
     pg.p.wait_for_timeout(200)
     toast = ev("document.getElementById('toast').textContent")
     rec(T, "Build my deck (slides not decided)", "still need a pick" in toast, f"note: {toast[:60]}")
-    for n in range(5, 8):
+    for n in range(5, 7):
         f.click(f'#card-slide_0{n} button.pick[data-letter="A"]')
+    # Slide 7 (one design): New design instead makes a replace request.
+    f.click(f"{c7} button.none:not(.three)")
+    b7 = ev("document.getElementById('badge-slide_07').textContent")
+    rec(T, "one design: New design instead", ev("isReplace('slide_07') && !isThree('slide_07')")
+        and not ev("pickForSlide('slide_07')") and b7 == "One new design requested",
+        f"badge {b7!r}")
     ok, why = copied(pg, lambda: f.click("#btn-build"), "Slide designs, code",
-                     "Redesign some slides", "New designs for: slide 2, slide 3",
+                     "Redesign some slides", "New designs for: slide 2, slide 3, slide 7",
                      "Three designs for: slide 3", "note 0 from the test")
-    rec(T, "Build my deck (with Replace: redesign message)",
+    rec(T, "Build my deck (with New design instead: redesign message)",
         ok and not ev("document.getElementById('picks-dialog').open"), why)
+    # Clicking the one design again takes it back; its note goes as an edit.
+    f.click(f"{c7} .option .option-frame")
+    f.locator(f"{c7} textarea[data-field]").first.fill("make the title shorter")
     f.click("#card-slide_02 button.pick[data-letter='A']")
     f.click("#card-slide_03 button.pick[data-letter='A']")
     ok, why = copied(pg, lambda: f.click("#btn-build"), "Slide designs, code",
-                     "Build my Slide Lab deck.", "Picks: 1B 2A 3A 4- 5A 6A 7A (check ")
+                     "Build my Slide Lab deck.", "Picks: 1B 2A 3A 4- 5A 6A 7A (check ",
+                     "slide_07:", "make the title shorter")
     dlg_open = ev("document.getElementById('picks-dialog').open")
-    rec(T, "Build my deck", ok and not dlg_open,
-        why + ("" if not dlg_open else "; the copy box opened anyway"))
+    rec(T, "Build my deck (one-design slide built without a pick, its note as an edit)",
+        ok and not dlg_open, why + ("" if not dlg_open else "; the copy box opened anyway"))
     if shots and not where:
         p.screenshot(path=str(shots / "M_clicks_designs.png"))
     f.click("#btn-all")
@@ -381,7 +427,8 @@ def check_designs(browser, url: str, where: str, shots: Path | None) -> None:
     rec(T, "storyline panel open / close", o1 and not o2, "opens and closes")
     f.click("#btn-clear")
     pg.p.wait_for_timeout(200)
-    cleared = ev("SLIDE_IDS.every(s => !pickForSlide(s) && !isReplace(s))") and \
+    # Cleared: no picks, except a one-design slide, which stays chosen.
+    cleared = ev("SLIDE_IDS.every(s => (pickForSlide(s) || '') === soloLetter(s) && !isReplace(s))") and \
         f.locator(".chip.selected").count() == 0
     rec(T, "Clear", cleared, "picks, replace requests and notes cleared")
     rec(T, "no script errors", not pg.errors, "; ".join(pg.errors[:3]))

@@ -466,6 +466,16 @@ def undo(out: Path, n: int, words, state: dict, picks: dict) -> int:
     if not entry:
         print(f"REFUSED: slide {n} has no automatic fix to undo.")
         return 5
+    if entry.get("before_renumber"):
+        # A slide was inserted or deleted after this fix (2026-10-27): the
+        # kept design and the deck kept with it are under the old page
+        # numbers, so "slide N" there is another page now.
+        print(f"REFUSED: this automatic fix was made before the slides were renumbered "
+              f"({entry['before_renumber']}), so its kept design is under the old page "
+              f"numbers and would restore the wrong page. Kept design: "
+              f"{(entry.get('before') or {}).get(sid, {}).get('dir', '?')}. Tell the user, "
+              "and redesign the page instead (build_deck.py --slide N) if they want it changed.")
+        return 5
     before = entry["before"][sid]
     snap = Path(before["dir"])
     if not snap.is_dir() or not any(snap.glob("option_*")):

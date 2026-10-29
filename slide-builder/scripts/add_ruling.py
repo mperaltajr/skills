@@ -15,6 +15,19 @@ one; both stay in the file, the older one struck out (owner's decision,
   py -3 scripts/add_ruling.py --out <deck folder> --id deck --topic "source pages" --quote "..."
   py -3 scripts/add_ruling.py --out <deck folder> --list
 
+A ruling's reading never narrows or widens its quote (2026-10-27: "fix those"
+over a list of ten notes was recorded as "fix the layout notes, the headline
+wording stays", and the user had to say "i just said fix it all?").
+
+When a slide is removed (build_deck.py --delete N), its rulings are listed,
+never re-tagged. The user says where each goes:
+
+  py -3 scripts/add_ruling.py --out <deck folder> --move 24 --to input --user-said "<their words>"
+  py -3 scripts/add_ruling.py --out <deck folder> --retire 45 --user-said "<their words>"
+
+--move copies R24's quote and reading, unchanged, onto slide id `input` and
+strikes out R24; --retire keeps R45 in the file, struck out, never active.
+
 --id is the slide's fixed id (`**Slide id:**` in the brief; slide_ids.py adds
 them) or `deck` for a ruling on every slide. Before the build exists, pass
 --brief instead of --out. Join separate pieces of one message with "...".
@@ -63,8 +76,55 @@ def list_rulings(sd: Path) -> int:
         print("No rulings recorded yet.")
         return 0
     for r in rs:
-        mark = f"  (replaced by R{r['replaced_by']})" if r.get("replaced_by") else ""
+        mark = (f"  (replaced by R{r['replaced_by']})" if r.get("replaced_by") else
+                "  (retired)" if r.get("retired") else "")
         print(f"R{r['n']} [{r['id']}] {r.get('topic', '')}: \"{r['quote']}\"{mark}")
+    return 0
+
+
+def move_or_retire(args, sd: Path) -> int:
+    """--move R --to ID, or --retire R: only on the user's words."""
+    if args.move is not None and args.retire is not None:
+        print("ERROR: use --move or --retire, not both.")
+        return 2
+    n = args.move if args.move is not None else args.retire
+    data = _rulings.load(sd)
+    r = next((x for x in data["rulings"] if x["n"] == n), None)
+    if r is None:
+        print(f"REFUSED: there is no ruling R{n}.")
+        return 3
+    if r.get("replaced_by") or r.get("retired"):
+        print(f"REFUSED: R{n} is no longer active (replaced or retired already).")
+        return 3
+    words = args.user_said.strip()
+    if _rulings.quote_too_short(words):
+        print("REFUSED: --user-said needs the user's words saying where the ruling goes "
+              "(at least two words, exactly as typed). Ask them; never decide it.")
+        return 3
+    ok, why, where = _rulings.check_users_words(words, args.transcript)
+    if not ok:
+        print(f"REFUSED: {why}")
+        print("Nothing was changed.")
+        return 4
+    if args.retire is not None:
+        _rulings.retire(sd, n, "slide removed" if r["id"] != _rulings.DECK_ID else "retired",
+                        words, where)
+        print(f"[ok] R{n} retired (kept in the file, struck out): \"{r['quote']}\"")
+        print(f"Rulings file: {_rulings.rulings_md(sd)}")
+        return 0
+    to = args.to.strip().strip("`").lower()
+    brief = args.brief or _rulings.find_brief(sd, args.out)
+    ids = _known_ids(brief)
+    if not to or (to != _rulings.DECK_ID and to not in ids.values()):
+        print(f"REFUSED: --to needs a slide id in the brief, or deck. The ids are: "
+              + ", ".join(f"{v} (slide {k})" for k, v in sorted(ids.items())) + ", or deck.")
+        return 3
+    entry, _old = _rulings.move(sd, n, to, words, where)
+    print(f"[ok] R{n} moved to {to} as R{entry['n']}, quote unchanged: \"{entry['quote']}\"")
+    changed = _refresh_packs(args.out, to)
+    if changed:
+        print(f"     refreshed the rulings pack in {len(changed)} designer file(s).")
+    print(f"Rulings file: {_rulings.rulings_md(sd)}")
     return 0
 
 
@@ -76,7 +136,18 @@ def main(argv=None) -> int:
     ap.add_argument("--topic", default="", help="A short topic; a newer ruling on the same "
                                                 "topic for the same slide replaces the older.")
     ap.add_argument("--quote", default="", help="The user's words, exactly as typed.")
-    ap.add_argument("--reading", default="", help="What the chat understood (its own line).")
+    ap.add_argument("--reading", default="", help="What the chat understood (its own line). "
+                                                  "A ruling's reading never narrows or widens "
+                                                  "its quote.")
+    ap.add_argument("--move", type=int, default=None, metavar="R",
+                    help="Move ruling R<n> to another slide id (--to), quote unchanged: the "
+                         "user's answer after its slide was removed.")
+    ap.add_argument("--to", default="", help="With --move: the slide id it now belongs to.")
+    ap.add_argument("--retire", type=int, default=None, metavar="R",
+                    help="Retire ruling R<n> (kept, struck out, never active): the user's "
+                         "answer after its slide was removed.")
+    ap.add_argument("--user-said", default="", dest="user_said",
+                    help="With --move or --retire: the user's words saying so, as typed.")
     ap.add_argument("--replaces", type=int, action="append", default=[],
                     help="Also strike out ruling R<n> (the user reversed it on another topic).")
     ap.add_argument("--list", action="store_true", help="List the rulings and stop.")
@@ -89,6 +160,8 @@ def main(argv=None) -> int:
     _rulings.announce(out=args.out, brief=args.brief)
     if args.list:
         return list_rulings(sd)
+    if args.move is not None or args.retire is not None:
+        return move_or_retire(args, sd)
     sid = args.slide_id.strip().strip("`").lower()
     if not sid or not args.quote.strip() or not args.topic.strip():
         print("ERROR: --id, --topic and --quote are all needed (--reading is strongly "

@@ -154,7 +154,7 @@ Here are my notes: ...
 |---|---|---|
 | Storyline | Answer Claude's questions; it writes a one-line-per-slide storyline and asks whether to build slides | 10 to 30 min |
 | Designs | Wait. Claude designs every slide at the same time | 5 to 15 min for 10 to 20 slides (longer on OneDrive) |
-| Review page | Open REVIEW.html. For each slide: **Pick** one of three designs, **Replace these** (redesign it, about 5 min), or **Leave out**. One-click feedback buttons cover common asks. Click **Build my deck** and paste the command into Claude | As long as you like |
+| Review page | Open REVIEW.html. For each slide: **Pick** one of its designs (a slide with one design is already chosen; your notes edit it), **New design instead** (redesign it, about 5 min), or **Leave out**. One-click feedback buttons cover common asks. Click **Build my deck** and paste the command into Claude | As long as you like |
 | Final check page | Open FINAL-CHECK.html: every pick on your real template. Click **Build** | A few minutes |
 | Quality check | Wait. Claude reviews every slide and fixes anything serious | 5 to 10 min |
 

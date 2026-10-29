@@ -17,8 +17,9 @@ dot-dash storyline files (.md, .html, .docx) and every slide's designs
 edited: a changed design is converted again by the pipeline. In HTML only the
 text is changed, never tags or class names. Whole words only, unless
 --anywhere; case counts, unless --ignore-case. Use it only for wording the
-user gave word for word; it prints the steps that follow (re-seal, re-render,
-record the edit).
+user gave word for word, or new words a QC list showed (old -> new) that the
+user approved ("fix those"); it prints the steps that follow (re-seal,
+re-render, record the edit).
 """
 from __future__ import annotations
 

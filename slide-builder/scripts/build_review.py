@@ -426,7 +426,7 @@ def compute_form_warnings(slides: list) -> Optional[dict]:
         if k * 2 >= len(pages):
             warnings.append(f"{k} of {len(pages)} pages use the same visual form "
                             f"({form}). Ask for a different form on some of them "
-                            f"(Replace these, with a note), or confirm it is intended.")
+                            f"(New design instead, with a note), or confirm it is intended.")
     i = 0
     while i < len(pages):
         j = i
@@ -624,6 +624,7 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
 
         options.append({
             "letter": letter,
+            "built": _option_built(letter),
             "is_sketch": sketch_html.exists(),
             "visual_form": visual_form,
             "sketch_notes": sketch_notes,
@@ -701,6 +702,9 @@ def scan_slide(out_dir: Path, slide_num: int, slide_meta: Optional[dict]) -> dic
         "prompt_path": src_dir / _p.PROMPT_MD,
         "prompt_found": prompt.get("found", False),
         "options": options,
+        # One design built for this slide: it is already the choice, and the
+        # notes edit it (owner's decision, 2026-10-27). No Pick button for it.
+        "solo": (options[0]["letter"] if len(options) == 1 and options[0]["built"] else ""),
         "content_lines": slide_content_lines,
         "stamp": slide_stamp,
         "pinned": (slide_meta or {}).get("pinned_source_page") or "",
@@ -877,7 +881,7 @@ FEEDBACK_FIELDS = [
     ("layout",     "Layout / structure",       "Spacing, hierarchy, layout choice: what to change?"),
     ("content",    "Content / data accuracy",  "Wrong number, missing nuance, wording: what to fix?"),
     ("visual",     "Visual polish",            "Colors, alignment, type: anything off?"),
-    ("other",      "Other notes",              "Anything else for the redesign?"),
+    ("other",      "Other notes",              "Anything else to change?"),
 ]
 
 # One-click feedback so the reviewer doesn't have to type the common notes.
@@ -1223,19 +1227,25 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
     )
 
     letters = [o["letter"] for o in slide["options"]]
-    pick_buttons = "".join(
+    solo = slide.get("solo") or ""
+    # A slide with one built design has nothing to pick between: it is already
+    # chosen, so it has no PICK button and its notes edit that design (owner's
+    # decision, 2026-10-27: "you're forced to pick slides to copy and paste
+    # edits ... It's not clear").
+    pick_buttons = "" if solo else "".join(
         f'<button class="pick" data-letter="{letter}" '
         f'onclick="pickOption(\'{sid}\', \'{letter}\')">PICK {letter}</button>'
         for letter in letters
     )
-    # "Replace these" throws this slide's options away and designs new ones
-    # (owner's decision, 2026-09-30). It replaced a "+1/+2/+3 more" picker that
-    # had nothing behind it: no step added options to one slide, and the page
-    # then hid whatever did get built.
+    # "New design instead" (named "Replace these" until 2026-10-27) throws this
+    # slide's designs away and makes one new one from scratch (owner's
+    # decision, 2026-09-30). It replaced a "+1/+2/+3 more" picker that had
+    # nothing behind it: no step added options to one slide, and the page then
+    # hid whatever did get built.
     none_btn = (
         f'<button class="none" onclick="pickNone(\'{sid}\')" '
-        f'title="Discard these options and design one new one for this slide">'
-        '&#8635; REPLACE THESE</button>'
+        f'title="Throw away the design(s) shown and make one new design for this slide, from scratch">'
+        '&#8635; NEW DESIGN INSTEAD</button>'
         # One new design by default; "+3 designs" asks three for this slide
         # only (owner's decision 2026-10-13). The page's message carries a
         # "Three designs for:" line that redesign_round.py start --three records.
@@ -1257,6 +1267,25 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
         for x in slide.get("content_lines") or [])
     n_opts = len(slide["options"])
     layout = "solo" if n_opts == 1 else "multi"
+    solo_attr = ' data-solo="1"' if solo else ""
+    if solo:
+        decision_hint = ("This slide has one design, so it is already chosen. Write what to "
+                         "change below; it's applied to this design. New design instead redoes "
+                         "it from scratch (one new design); +3 designs gets three new designs to "
+                         "choose from, which takes longer and uses more tokens.")
+        chips_hint = ("Click any that apply. No typing needed. They are applied to this design "
+                      "before it is converted; \"Wrong layout / structure\" or asking for a "
+                      "different design gets a new design instead.")
+        badge_html = '<div class="status-badge picked" id="badge-' + sid + '">Using this design</div>'
+    else:
+        decision_hint = ("Pick an option; the notes below apply to the one you pick. New design "
+                         "instead gets one new design for this slide, from scratch. +3 designs "
+                         "gets three new designs to choose from instead; it takes longer and "
+                         "uses more tokens.")
+        chips_hint = ("Click any that apply. No typing needed. On a picked slide they are "
+                      "applied to that design before it is converted; \"Wrong layout / "
+                      "structure\" or asking for a different design gets new designs instead.")
+        badge_html = '<div class="status-badge pending" id="badge-' + sid + '">Not decided yet</div>'
     # per-card inline rule: multi mode uses one column per option
     row_style = "" if layout == "solo" else f' style="grid-template-columns: repeat({n_opts}, 1fr);"'
     chips_html = "".join(
@@ -1273,14 +1302,14 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
         for (key, label, placeholder) in FEEDBACK_FIELDS
     )
     return f"""
-<div class="card" id="card-{sid}" data-slide="{sid}" data-stamp="{slide.get('stamp', '')}" data-layout="{layout}" data-count="{n_opts}">
+<div class="card" id="card-{sid}" data-slide="{sid}" data-stamp="{slide.get('stamp', '')}" data-layout="{layout}" data-count="{n_opts}"{solo_attr}>
   <div class="card-header-row">
     <div style="flex:1;">
       <div class="card-num">SLIDE {n}{(' (' + html.escape(slide['fixed_id']) + ')') if slide.get('fixed_id') else ''}</div>
       <div class="card-name">{title}</div>
     </div>
     <div class="kept-mark" id="kept-{sid}" style="display:none;">Kept from last round</div>
-    <div class="status-badge pending" id="badge-{sid}">Not decided yet</div>
+    {badge_html}
   </div>
 
   {adjacency_banner}
@@ -1305,7 +1334,7 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
         {pick_buttons}
         {none_btn}
       </div>
-      <div class="hint-text">Pick an option, or Replace these to get one new design for this slide. +3 designs gets three new designs to choose from instead; it takes longer and uses more tokens.</div>
+      <div class="hint-text">{decision_hint}</div>
       {more_picker}
 
       <div class="redo-note" id="regen-{sid}" style="display:none;">
@@ -1317,9 +1346,7 @@ def render_card(slide: dict, adjacency_warnings: Optional[dict] = None) -> str:
     <div>
       <div class="quick-fb">
         <div class="field-label">Quick feedback</div>
-        <div class="hint-text">Click any that apply. No typing needed. On a picked slide they are
-        applied to that design before it is converted; "Wrong layout / structure" or asking for
-        a different design gets new designs instead.</div>
+        <div class="hint-text">{chips_hint}</div>
         <div class="chip-row">
           {chips_html}
         </div>
@@ -1508,7 +1535,9 @@ code { font-family: Consolas, monospace; font-size: 12px; color: var(--text-dim)
 .option { background: var(--panel-2); border: 2px solid var(--border); border-radius: 6px; overflow: hidden; cursor: pointer; transition: transform 0.12s, box-shadow 0.12s, border-color 0.12s; }
 .option:hover { transform: translateY(-2px); box-shadow: 0 8px 18px var(--shadow-strong); border-color: var(--accent); }
 .option.picked { border-color: var(--approve); background: var(--approve-tint); box-shadow: 0 0 0 3px var(--approve-tint), 0 8px 20px var(--shadow-strong); }
-.option.picked .option-frame::after { content: "\2713  PICKED"; position: absolute; top: 8px; left: 8px; z-index: 3; background: var(--approve); color: #fff; font-size: 11px; font-weight: 800; letter-spacing: 0.5px; padding: 4px 9px; border-radius: 6px; box-shadow: 0 2px 6px var(--shadow-strong); }
+.option.picked .option-frame::after { content: "\\2713  PICKED"; position: absolute; top: 8px; left: 8px; z-index: 3; background: var(--approve); color: #fff; font-size: 11px; font-weight: 800; letter-spacing: 0.5px; padding: 4px 9px; border-radius: 6px; box-shadow: 0 2px 6px var(--shadow-strong); }
+/* A one-design slide is already chosen: its tile says so (2026-10-27). */
+.card[data-solo] .option.picked .option-frame::after { content: "\\2713  USING THIS DESIGN"; }
 /* Once a pick exists on a multi-option card, fade the non-picked tiles. */
 .card.has-pick .options-row[data-count="2"] .option:not(.picked),
 .card.has-pick .options-row[data-count="3"] .option:not(.picked) { opacity: 0.5; }
@@ -1672,8 +1701,17 @@ function pickForSlide(sid) {
     // A rebuilt slide gets a new stamp, so its old pick falls away and the
     // reviewer has to look at the new design; every other slide keeps its pick.
     const v = loadPicks()[sid];
-    if (v && typeof v === "object" && v.s === STAMPS[sid]) return v.l || null;  // null: cleared here
+    if (v && typeof v === "object" && v.s === STAMPS[sid] && v.l) return v.l;
+    // Cleared here (l: null) on a slide with several designs: no pick.
+    if (v && typeof v === "object" && v.s === STAMPS[sid] && !soloLetter(sid)) return null;
+    // A slide with ONE design is already chosen, unless it is marked for a
+    // new design (owner's decision, 2026-10-27: no PICK A to click).
+    if (soloLetter(sid)) return isReplace(sid) ? null : (keptPick(sid) || soloLetter(sid));
     return keptPick(sid);
+}
+function soloLetter(sid) {
+    // The one built design's letter, or "" when the slide has several.
+    return (window.__SOLO__ || {})[sid] || "";
 }
 function keptPick(sid) {
     // A pick carried over from the last round (server record), single letter only.
@@ -1723,7 +1761,9 @@ function renderSlideState(sid) {
 
     const badge = document.getElementById("badge-" + sid);
     badge.classList.remove("pending", "picked", "none");
-    if (letter) { badge.classList.add("picked"); badge.textContent = letter === "-" ? "Left out" : "Picked " + letter; }
+    if (letter) { badge.classList.add("picked");
+                  badge.textContent = letter === "-" ? "Left out"
+                                    : soloLetter(sid) ? "Using this design" : "Picked " + letter; }
     else if (isNone) { badge.classList.add("none");
                        badge.textContent = isThree(sid) ? "Three new designs requested"
                                                         : "One new design requested"; }
@@ -1844,7 +1884,7 @@ function pickOption(sid, letter) {
 }
 
 function pickNone(sid) {
-    // Replace these: ONE new design (the default). From "+3 designs" it
+    // New design instead: ONE new design (the default). From "+3 designs" it
     // switches back to one; clicked again it clears the request.
     const regens = loadRegens();
     const threes = loadThrees();
@@ -1977,7 +2017,7 @@ async function buildDeck() {
     // Every slide needs a decision. A partial pick list used to compile into a
     // shorter deck with nothing saying so.
     if (pending.length) {
-        showToast(pending.length + " slide(s) still need a pick or Replace these: " +
+        showToast(pending.length + " slide(s) still need a pick or New design instead: " +
                   pending.join(", "));
         return;
     }
@@ -2167,7 +2207,7 @@ def build_html(out_dir: Path, meta: Optional[dict], slides: list, storyline: dic
 <div class="topbar">
   <div>
     <div class="title">{html.escape(deck_topic)}: pick a design for each slide ({slide_count} slides)</div>
-    <div class="title-sub">{html.escape(deck_type)} &middot; Pick an option for every slide, or Replace these to get new designs.</div>
+    <div class="title-sub">{html.escape(deck_type)} &middot; Pick a design on every slide that has several (a slide with one design is already chosen), or ask for a new design instead.</div>
     <div class="topbar-meta">
       <div class="k">Generated</div><div class="v">{html.escape(generated)}</div>
       <div class="k">Brief</div><div class="v"><code>{html.escape(brief_path)}</code></div>
@@ -2221,6 +2261,7 @@ def build_html(out_dir: Path, meta: Optional[dict], slides: list, storyline: dic
         f"window.__SLIDE_IDS__ = {json.dumps(slide_ids)};\n"
         f"window.__QUICK_EXPANDED__ = {json.dumps(QUICK_FEEDBACK_EXPANDED, ensure_ascii=False)};\n"
         f"window.__SLIDE_MAP__ = {json.dumps(slide_map)};\n"
+        f"window.__SOLO__ = {json.dumps({s['slide_id']: s['solo'] for s in slides if s.get('solo')})};\n"
         f"window.__STAMPS__ = {json.dumps({s['slide_id']: s.get('stamp', '') for s in slides})};\n"
         f"window.__OUT_DIR__ = {json.dumps(str(out_dir.resolve()))};\n"
         f"window.__SCRIPTS_DIR__ = {json.dumps(str(Path(__file__).resolve().parent))};\n"

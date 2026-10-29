@@ -677,7 +677,7 @@ def write(out_dir: Path, stage: str | None = None) -> Path:
     review = _p.review_html(out_dir)
     if stage == "storyline":
         t2 = ('<div class="wrap"><div class="box later-note">This tab is the slide design review: '
-              "pick a design per slide, Replace, +3 designs, comments. It opens once tab 1 is "
+              "pick a design per slide (one design is already chosen), New design instead, +3 designs, comments. It opens once tab 1 is "
               "done and the designs are ready.</div></div>")
         panes.append(f'<div class="pane scroll" id="designs">{t2}</div>')
     elif review.exists() and one.get("designs_ready"):

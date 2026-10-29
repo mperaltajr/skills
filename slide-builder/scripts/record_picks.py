@@ -387,7 +387,8 @@ def main(argv=None) -> int:
         if missing:
             print(f"REFUSED: {len(missing)} slide(s) have no pick: "
                   f"{', '.join(str(n) for n in missing)}. Every slide needs a pick "
-                  "(or 'Replace these', which rebuilds it before anything compiles).")
+                  "(or 'New design instead', which rebuilds it before anything compiles; "
+                  "on the page a slide with one design is already picked).")
             return 5
         for k, v in raw.items():
             if v == "-":

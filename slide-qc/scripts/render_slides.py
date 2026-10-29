@@ -55,7 +55,38 @@ def _off(var: str) -> bool:
     return os.environ.get(var, "").strip().lower() in ("1", "true", "yes")
 
 
+_SOFFICE_RUNS: dict = {}  # path -> True/False, checked once per run
+
+
+def _soffice_runs(path: str) -> bool:
+    """True when this computer lets LibreOffice start. Some company computers
+    block it ("Access is denied"); a blocked copy counts as not installed, so
+    PowerPoint does every render and nothing falls back to LibreOffice."""
+    if path not in _SOFFICE_RUNS:
+        try:
+            r = subprocess.run([path, "--headless", "--version"],
+                               capture_output=True, timeout=60)
+            _SOFFICE_RUNS[path] = r.returncode == 0
+        except subprocess.TimeoutExpired:
+            _SOFFICE_RUNS[path] = True   # slow to start is not blocked
+        except OSError:
+            _SOFFICE_RUNS[path] = False  # blocked or broken
+    return _SOFFICE_RUNS[path]
+
+
 def _resolve_soffice() -> str:
+    return _checked_soffice(_find_soffice())
+
+
+def _checked_soffice(path: str) -> str:
+    if not _soffice_runs(path):
+        raise RuntimeError(
+            f"LibreOffice is installed ({path}) but this computer does not let it "
+            "start (blocked or broken), so Slide Lab treats it as not installed.")
+    return path
+
+
+def _find_soffice() -> str:
     """Locate the LibreOffice headless executable.
 
     Resolution order:

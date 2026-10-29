@@ -39,10 +39,13 @@ close, kill or touch the user's apps (PowerPoint, Edge, Chrome, Word, Excel).
 
 ## The user's rules (apply them; do not flag what they settle)
 
-- **Approved headlines are not reworded.** Each page's headline below was
-  approved by the user. Never propose new wording for it. Flag only a page
-  whose title in the picture differs from its approved headline (Major,
-  category `headline`), or one cut off or overlapping (layout).
+- **Approved headlines are not reworded unasked.** Each page's headline below
+  was approved by the user. Flag a page whose title in the picture differs
+  from its approved headline (Major, category `headline`), or one cut off or
+  overlapping (layout). When an approved headline wraps badly, flag it
+  Advisory: propose a layout fix that keeps the words first; if only
+  rewording fixes it, give the shortest rewording that keeps the claim and
+  every number, in quotes, marked "rewording".
 {{headlines}}
 - **No person attribution.** No quote or attribution to a named person on a
   slide ("In Dana's words", "as the CEO puts it", a named quote), unless the

@@ -594,25 +594,327 @@ def begin_finalize(out_dir, slide=None) -> None:
 
 
 def shift_option_records(out_dir, insert_n: int) -> None:
-    """An insert at N moved slide folders >= N up by one; move their records too.
+    """Older name, kept for callers outside this repo: an insert at N."""
+    shift_slide_records(out_dir, insert_n, +1)
 
-    The new slide N has no record (nothing has been finalized for it), so it
-    cannot be shipped until it is.
-    """
-    state = read_state(out_dir)
-    qc = state.get("qc") or {}
-    by = qc.get("by_option") or {}
-    shifted = {}
-    for key, val in by.items():
-        try:
-            slide, letter = key.split("/")
-            n = int(slide.split("_")[1])
-        except (ValueError, IndexError):
-            shifted[key] = val
+
+# ---------------------------------------------------------------------------
+# Renumbering (2026-10-27). An insert at N moves slides >= N up one; a delete
+# of N removes slide N and moves the later slides down one. Every record
+# keyed by a slide NUMBER has to move with the folders, or a slide inherits
+# its neighbor's record: a blocked slide picked up a clean QC record, an
+# approval for "8" approved a different page, a pick landed on the wrong
+# slide. Before this, the insert shifted only the per-option QC records and
+# a slide delete was a hand-written script that missed most of the rest.
+# ONE function covers every slide-numbered record, for both directions.
+# Records the user made about a removed slide are returned (and archived by
+# the caller), never silently dropped.
+# ---------------------------------------------------------------------------
+
+_SID_RE = re.compile(r"^slide_(\d+)$")
+
+
+def _new_n(n: int, at: int, delta: int):
+    """The slide's number after the shift, or None for the removed slide."""
+    if delta > 0:
+        return n + 1 if n >= at else n
+    if n == at:
+        return None
+    return n - 1 if n > at else n
+
+
+def _new_sid(sid, at: int, delta: int):
+    """'slide_08' -> 'slide_07' (a delete at 7 gives None for 'slide_07').
+    Anything that is not a slide key comes back unchanged."""
+    m = _SID_RE.match(str(sid))
+    if not m:
+        return sid
+    n = _new_n(int(m.group(1)), at, delta)
+    return None if n is None else f"slide_{n:02d}"
+
+
+def _shift_keys(d, at: int, delta: int, kind: str = "sid"):
+    """(shifted dict, {old key: value} removed). kind: 'sid' (slide_NN),
+    'int' ('7'), or 'opt' (slide_NN/A)."""
+    if not isinstance(d, dict):
+        return d, {}
+    out, gone = {}, {}
+    for k, v in d.items():
+        if kind == "int":
+            try:
+                n = _new_n(int(k), at, delta)
+            except (TypeError, ValueError):
+                out[k] = v
+                continue
+            nk = None if n is None else str(n)
+        elif kind == "opt":
+            slide, _, letter = str(k).partition("/")
+            ns = _new_sid(slide, at, delta)
+            nk = None if ns is None else (f"{ns}/{letter}" if letter else ns)
+        else:
+            nk = _new_sid(k, at, delta)
+        if nk is None:
+            gone[k] = v
+        else:
+            out[nk] = v
+    return out, gone
+
+
+def _shift_ints(lst, at: int, delta: int):
+    if not isinstance(lst, list):
+        return lst
+    out = []
+    for v in lst:
+        if isinstance(v, int) and not isinstance(v, bool):
+            n = _new_n(v, at, delta)
+            if n is not None:
+                out.append(n)
+        else:
+            out.append(v)
+    return out
+
+
+def _shift_slide_list_text(text, at: int, delta: int):
+    """'3,4,5,7,8' or '1B, 3' -> the same list renumbered (a removed slide
+    is left out). Anything that is not such a list comes back unchanged."""
+    if not isinstance(text, str) or not re.fullmatch(r"[\s,0-9A-F]*", text) or not text.strip():
+        return text
+    parts = []
+    for tok in re.split(r"\s*,\s*", text.strip()):
+        m = re.fullmatch(r"(\d+)([A-F]*)", tok)
+        if not m:
+            parts.append(tok)
             continue
-        shifted[option_key(n + 1, letter) if n >= insert_n else key] = val
-    qc["by_option"] = shifted
-    state["qc"] = qc
+        n = _new_n(int(m.group(1)), at, delta)
+        if n is not None:
+            parts.append(f"{n}{m.group(2)}")
+    return ",".join(parts)
+
+
+def _shift_meta(meta: dict, at: int, delta: int, removed: dict) -> None:
+    """_meta.json: slide entries, the routing map, translation reports, the
+    copied-page links and the slide count."""
+    keep = []
+    for e in meta.get("slides") or []:
+        n = e.get("n")
+        if not isinstance(n, int):
+            keep.append(e)
+            continue
+        nn = _new_n(n, at, delta)
+        if nn is None:
+            removed["meta_entry"] = e
+            continue
+        e["n"] = nn
+        keep.append(e)
+    for e in keep:
+        pc = e.get("page_copy")
+        if not isinstance(pc, dict):
+            continue
+        if isinstance(pc.get("master"), int) and not isinstance(pc.get("master"), bool):
+            nm = _new_n(pc["master"], at, delta)
+            if nm is None:
+                # Its master page was the removed slide: it is no longer a copy
+                # of anything. It is listed for the user; prep it again to give
+                # it a design (build_deck.py --slide N).
+                removed.setdefault("orphan_copies", []).append(e.get("n"))
+                e.pop("page_copy", None)
+                continue
+            pc["master"] = nm
+        if isinstance(pc.get("copies"), list):
+            pc["copies"] = _shift_ints(pc["copies"], at, delta)
+    meta["slides"] = sorted(keep, key=lambda e: e.get("n", 0))
+    for key in ("pattern_per_slide", "translation_reports"):
+        if isinstance(meta.get(key), dict):
+            meta[key], gone = _shift_keys(meta[key], at, delta, "int")
+            if gone:
+                removed.setdefault("meta_" + key, {}).update(gone)
+    if isinstance(meta.get("slide_count"), int):
+        meta["slide_count"] = max(0, meta["slide_count"] + (1 if delta > 0 else -1))
+
+
+def _shift_ledger_file(out_dir, at: int, delta: int, removed: dict, note: str) -> None:
+    """source_ledger.json: one section per pinned slide (keyed slide_NN), its
+    rows carry the slide number and an id that starts with the key. A removed
+    slide's section is archived under "removed", never deleted."""
+    p = Path(out_dir) / "source_ledger.json"
+    if not p.exists():
+        return
+    try:
+        led = json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return
+    pages = led.get("pages") if isinstance(led, dict) else None
+    if not isinstance(pages, dict):
+        return
+    new_pages = {}
+    for sid, sec in pages.items():
+        nsid = _new_sid(sid, at, delta)
+        if nsid is None:
+            led.setdefault("removed", []).append({"was": sid, "removed": note,
+                                                  "at": _now(), "section": sec})
+            removed["source_ledger_section"] = sec
+            continue
+        if nsid != sid and isinstance(sec, dict):
+            m = _SID_RE.match(nsid)
+            nn = int(m.group(1)) if m else None
+            if nn is not None:
+                sec["slide"] = nn
+            for r in sec.get("rows") or []:
+                if isinstance(r.get("id"), str) and r["id"].startswith(sid + ":"):
+                    r["id"] = nsid + r["id"][len(sid):]
+                if isinstance(r.get("slide"), int) and nn is not None:
+                    r["slide"] = nn
+            for r in sec.get("unreachable") or []:
+                if isinstance(r, dict) and isinstance(r.get("slide"), int) and nn is not None:
+                    r["slide"] = nn
+        new_pages[nsid] = sec
+    led["pages"] = new_pages
+    p.write_text(json.dumps(led, indent=2, ensure_ascii=False), encoding="utf-8")
+
+
+def shift_slide_records(out_dir, at: int, delta: int, note: str = "") -> dict:
+    """Renumber every slide-numbered record of a build: an insert at `at`
+    (delta +1: slides >= at move up one) or a delete of `at` (delta -1: slide
+    `at` goes, later slides move down one). Folders are moved by the caller.
+
+    Covers picks.json; in _state.json the per-option QC records (and the
+    blocking count), pick_memory, comments, the review picks and the stamps
+    the page was opened with, chat approvals' slide lists, redesign_round,
+    visual_redo, the Storyline tab's visuals and the copied-page counts; in
+    _meta.json the slide entries, pattern_per_slide, translation_reports,
+    page_copy links and slide_count; and source_ledger.json. The final check
+    is cleared (the deck changed), the next QC reads every page again, and
+    automatic-fix snapshots from before the renumbering are marked so
+    apply_qc_fix.py refuses to undo with them (their page numbers are old).
+
+    Returns what belonged to a removed slide: {"picks", "pick_memory",
+    "qc", "comments", "meta_entry", "source_ledger_section",
+    "orphan_copies", ...}."""
+    if delta not in (1, -1):
+        raise ValueError("delta must be +1 (insert) or -1 (delete)")
+    at = int(at)
+    out = Path(out_dir)
+    note = note or (f"slide {at} inserted" if delta > 0 else f"slide {at} removed")
+    removed: dict = {}
+
+    pp = out / "picks.json"
+    if pp.exists():
+        try:
+            picks = json.loads(pp.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            picks = None
+        if isinstance(picks, dict):
+            picks, gone = _shift_keys(picks, at, delta)
+            if gone:
+                removed["picks"] = gone
+            pp.write_text(json.dumps(picks, indent=2), encoding="utf-8")
+
+    mp = out / "_meta.json"
+    if mp.exists():
+        try:
+            meta = json.loads(mp.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            meta = None
+        if isinstance(meta, dict):
+            _shift_meta(meta, at, delta, removed)
+            mp.write_text(json.dumps(meta, indent=2), encoding="utf-8")
+
+    _shift_ledger_file(out, at, delta, removed, note)
+
+    state = read_state(out)
+    if not state:
+        return removed
+    qc = state.get("qc")
+    if isinstance(qc, dict) and isinstance(qc.get("by_option"), dict):
+        qc["by_option"], gone = _shift_keys(qc["by_option"], at, delta, "opt")
+        if gone:
+            removed["qc"] = gone
+        qc["blocks"] = sum(int((v or {}).get("blocks") or 0) for v in qc["by_option"].values())
+        blocked = sorted(k for k, v in qc["by_option"].items() if int((v or {}).get("blocks") or 0) > 0)
+        if "detail" in qc:
+            qc["detail"] = (f"blocked: {', '.join(blocked[:6])}"
+                            + (" ..." if len(blocked) > 6 else "")) if blocked else ""
+    if isinstance(state.get("pick_memory"), dict):
+        state["pick_memory"], gone = _shift_keys(state["pick_memory"], at, delta)
+        if gone:
+            removed["pick_memory"] = gone
+    for c in state.get("comments") or []:
+        ns = _new_sid(c.get("slide"), at, delta)
+        if ns is None:
+            removed.setdefault("comments", []).append(dict(c))
+            c["slide"] = f"removed:{c.get('slide')}"
+            if c.get("status") == "pending":
+                c.update({"status": "not_needed", "applied_at": _now(),
+                          "applied_how": "not needed: the slide was removed from the deck"})
+        else:
+            c["slide"] = ns
+    rv = state.get("review")
+    if isinstance(rv, dict):
+        if isinstance(rv.get("picks"), dict):
+            rv["picks"], _g = _shift_keys(rv["picks"], at, delta)
+        op = rv.get("opened")
+        if isinstance(op, dict) and isinstance(op.get("stamps"), dict):
+            op["stamps"], _g = _shift_keys(op["stamps"], at, delta)
+    for a in state.get("chat_approvals") or []:
+        b = a.get("bound")
+        if not isinstance(b, dict):
+            continue
+        if "slides" in b:
+            b["slides"] = _shift_slide_list_text(b["slides"], at, delta)
+        if isinstance(b.get("slide"), str):
+            ns = _new_sid(b["slide"], at, delta)
+            b["slide"] = ns if ns is not None else f"removed:{b['slide']}"
+    rr = state.get("redesign_round")
+    if isinstance(rr, dict):
+        for k in ("slides", "three"):
+            if isinstance(rr.get(k), list):
+                rr[k] = _shift_ints(rr[k], at, delta)
+        if isinstance(rr.get("kept"), dict):
+            rr["kept"], _g = _shift_keys(rr["kept"], at, delta)
+    if isinstance(state.get("visual_redo"), dict):
+        state["visual_redo"], _g = _shift_keys(state["visual_redo"], at, delta, "int")
+    sp = state.get("storyline_page")
+    if isinstance(sp, dict) and isinstance(sp.get("visuals"), dict):
+        sp["visuals"], _g = _shift_keys(sp["visuals"], at, delta, "int")
+    sl = state.get("source_ledger")
+    if isinstance(sl, dict) and isinstance(sl.get("by_slide"), dict):
+        sl["by_slide"], _g = _shift_keys(sl["by_slide"], at, delta)
+    # The deck changed: the final look is void, and every page is read again.
+    state.pop("final_check", None)
+    state.pop("vision_plan", None)
+    if isinstance(state.get("vision_pages"), dict):
+        state["vision_pages"]["renumbered"] = f"{note} ({_now()})"
+    # Undo snapshots taken before this hold the old page numbers.
+    for e in state.get("auto_fixes") or []:
+        e.setdefault("before_renumber", note)
+    aq = state.get("auto_qc")
+    if isinstance(aq, dict) and aq.get("snapshots"):
+        aq.setdefault("snapshots_before_renumber", []).append(
+            {"note": note, "at": _now(), "snapshots": aq.pop("snapshots")})
+    state.setdefault("renumbered", []).append({"note": note, "at": _now(),
+                                               "slide": at, "delta": delta})
+    _write(out, state)
+    return removed
+
+
+def record_delete(out_dir, content_hash: str, slide_n: int, slide_id: str = "") -> None:
+    """A slide was deleted (build_deck.py --delete N). The other slides' picks
+    still stand, so the review approval is kept (renumbered by
+    shift_slide_records, re-bound here to the new content); the final check
+    was cleared, so FINAL-CHECK.html and a compile come next. Stamped as a
+    prep step so an older compile never counts as current."""
+    state = read_state(out_dir)
+    state["content_hash"] = content_hash
+    state.setdefault("stages", {})["prep"] = {"at": _now(), "rev": _bump(state),
+                                              "step": "delete"}
+    rv = state.get("review")
+    if isinstance(rv, dict) and rv.get("token"):
+        rv["content_hash"] = content_hash
+        rv["renumbered_at"] = _now()
+    state.pop("final_check", None)
+    state.setdefault("deleted_slides", []).append(
+        {"slide": int(slide_n), "id": slide_id, "at": _now()})
+    # No agent ran, so the agent history gets no entry.
     _write(out_dir, state)
 
 

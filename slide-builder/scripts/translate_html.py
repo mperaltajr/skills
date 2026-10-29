@@ -117,8 +117,8 @@ EXTRACT_JS = r"""
 
   // 1b. Tables and lists (2026-10-08). Each one is marked, so every box and
   //     text read below says which table cell or list item it belongs to. The
-  //     planner builds one native PowerPoint table (or one text box with real
-  //     bullets) from them, and keeps the separate shapes as the fallback.
+  //     planner builds one native PowerPoint table (always) or one text box
+  //     with real bullets (separate boxes kept as the list's fallback).
   const sidesOf = (s) => ['Top','Right','Bottom','Left'].map(n => ({w: parseFloat(s['border'+n+'Width']) || 0, c: s['border'+n+'Color'], s: s['border'+n+'Style']}));
   const radiusOf = (s) => Math.max(...[s.borderTopLeftRadius, s.borderTopRightRadius, s.borderBottomRightRadius, s.borderBottomLeftRadius].map(v => parseFloat(v) || 0));
   const inField = (el) => !!el.closest('[data-template-field]');
@@ -1425,7 +1425,10 @@ def _plan_text(plan: Plan, t: dict, order_key, name=None) -> None:
             continue
         txt = r["t"]
         if not pre:
-            txt = re.sub(r"\s+", " ", txt)
+            # CSS collapses spaces, tabs and line breaks, never a no-break
+            # space: "1&nbsp; Destination" keeps its wider gap (Python's \s
+            # also matched the no-break space, 2026-10-27)
+            txt = re.sub(r"[ \t\n\r\f]+", " ", txt)
         # Side-by-side pieces with a visible gap but no space between them
         # ("$1.2B" and "to" set as separate spans with a margin): keep the gap.
         if prev_last and r.get("first") and paras[-1] and not paras[-1][-1]["t"].endswith(" ") \
@@ -1463,9 +1466,23 @@ def _plan_text(plan: Plan, t: dict, order_key, name=None) -> None:
         if p:
             p[0]["t"] = p[0]["t"].lstrip()
             p[-1]["t"] = p[-1]["t"].rstrip()
-    paras = [p for p in paras if "".join(x["t"] for x in p).strip()] or []
-    if not paras:
+    # Blank lines before the first and after the last line of text are
+    # dropped; a blank line between two lines (<br><br>) is kept as an empty
+    # paragraph, in the size of the text around it, so the gap the design
+    # shows stays (5 quotes set with <br><br> in a table cell came out packed
+    # together, 2026-10-27).
+    filled = [bool("".join(x["t"] for x in p).strip()) for p in paras]
+    if not any(filled):
         return
+    a_, b_ = filled.index(True), len(filled) - 1 - filled[::-1].index(True)
+    out_p, last_run = [], None
+    for p, f_ in zip(paras[a_:b_ + 1], filled[a_:b_ + 1]):
+        if f_:
+            out_p.append(p)
+            last_run = p[-1]
+        else:
+            out_p.append([dict(last_run, t="")])
+    paras = out_p
     if t.get("listItem"):
         paras[0].insert(0, dict(paras[0][0], t="• "))
 
@@ -1477,7 +1494,9 @@ def _plan_text(plan: Plan, t: dict, order_key, name=None) -> None:
         # "normal" is the face's own line height (1.15 em for Arial, 1.33 for
         # Segoe UI), not a fixed 1.15
         lh = fs * (vertical_metrics(r0["font"], r0["bold"])[2] if r0 else 1.15)
-    lines = max(1, t["lines"])
+    # the browser counts lines from where letters landed: a kept blank line
+    # has none, so it is added here
+    lines = max(1, t["lines"]) + sum(1 for p in paras if not "".join(x["t"] for x in p))
     ink, cont = t["ink"], t["content"]
     align = t["align"] if t["align"] in ("left", "center", "right", "justify") else \
         {"start": "left", "end": "right"}.get(t["align"], "left")
@@ -1923,7 +1942,8 @@ def _apply_clearance(plan: Plan) -> None:
 # box per cell or per line. Each is a "group" with a chain of versions, best
 # first; the self-check moves a group one step down its chain when the
 # version on the slide renders differently from the design:
-#   table: native table -> separate shapes (as before)
+#   table: native table only, never separate shapes (owner's decision,
+#          2026-10-27); what still differs is a plain note (TABLE_NOTE)
 #   list:  one box with bullets -> one box, markers drawn as shapes
 #          -> one text box per item (as before)
 # Text is never lost on the way: every version holds all of it.
@@ -2000,8 +2020,19 @@ def _resolve_edge(cands):
 
 
 def _table_group(plan: "Plan", tb: dict, data: dict):
-    """(table op, the ops it replaces) or (None, reason it stays shapes)."""
+    """(table op, the ops it replaces, notes) or (None, None, notes) when
+    there is no table to draw (no cells, nothing in it drawn).
+
+    A table the design drew is always a native table (owner's decision,
+    2026-10-27): what PowerPoint's table can't hold is handled cell by cell
+    instead of turning the whole table into separate shapes. A cell whose
+    text can't sit in the cell exactly as designed keeps its text as its own
+    text box over the (native) cell; rounded corners are drawn square; a
+    see-through table keeps its see-through fills; a gradient or picture
+    background becomes the cell's solid color; gaps between cells become thin
+    empty rows or columns. Each is a plain note in the report."""
     k = str(tb["k"])
+    notes: list[str] = []
     name = tb.get("id") or f"table-{tb['k'] + 1}"
     # What sits on top of a cell (a pill, a numbered badge, an icon, a small
     # drawing) stays its own shape, drawn over the native table, exactly as
@@ -2021,26 +2052,34 @@ def _table_group(plan: "Plan", tb: dict, data: dict):
         ix, iy, iw, ih = t["ink"]["x"], t["ink"]["y"], t["ink"]["w"], t["ink"]["h"]
         return ix < b["x"] + b["w"] - 1 and b["x"] < ix + iw - 1 and \
             iy < b["y"] + b["h"] - 1 and b["y"] < iy + ih - 1
-    if any(_overlaps(t, b) for t in texts for b in decos):
-        return None, "a cell's text runs through its own badge or band"
-    others =(data.get("svgs") or []) + (data.get("icons") or [])
-    keep = {x["order"] for x in decos + deco_texts + others if _g(x).get("tbl") == k}
-    alt = [o for o in plan.ops if _g(o).get("tbl") == k and o.get("_src") not in keep]
-    if any(not _g(t).get("cell") for t in texts):
-        return None, "text in the table sits outside its cells (a caption)"
+    # Text that runs through a badge or band on top of a cell, and text
+    # outside every cell (a caption): its own text box, as before.
+    loose = [t for t in texts if not _g(t).get("cell") or any(_overlaps(t, b) for b in decos)]
+    if any(not _g(t).get("cell") for t in loose):
+        notes.append("text outside its cells (a caption) is its own text box")
+    if any(_g(t).get("cell") for t in loose):
+        notes.append("text that runs through a badge on a cell is its own text box")
+    texts = [t for t in texts if not any(t is q for q in loose)]
+    others = (data.get("svgs") or []) + (data.get("icons") or [])
+    keep = {x["order"] for x in decos + deco_texts + others + loose if _g(x).get("tbl") == k}
     cells = tb.get("cells") or []
     if not cells:
-        return None, "it has no cells"
-    if tb.get("opacity", 1) < 0.99 or any(c.get("opacity", 1) < 0.99 for c in cells):
-        return None, "it is see-through"
+        return None, None, notes
+    if not [o for o in plan.ops if _g(o).get("tbl") == k and o.get("_src") not in keep]:
+        return None, None, notes
+    opac = tb.get("opacity", 1)
+    if opac < 0.99 or any(c.get("opacity", 1) < 0.99 for c in cells):
+        notes.append("it is see-through: the cells' fills keep the see-through look")
     if tb.get("radius", 0) > TABLE_MAX_RADIUS or any(c.get("radius", 0) > TABLE_MAX_RADIUS for c in cells):
-        return None, "it has rounded corners"
+        notes.append("its rounded corners are drawn square (a PowerPoint table has square corners)")
     if any("gradient" in (c.get("bgimg") or "") or "url(" in (c.get("bgimg") or "") for c in cells):
-        return None, "a cell has a gradient or picture background"
-    if not alt:
-        return None, "nothing in it is drawn"
+        notes.append("a cell's gradient or picture background is drawn as the cell's solid color")
 
     fills = {c["i"]: _compose_fill(c["bg"]) for c in cells}
+    for c in cells:
+        a_ = (opac if opac < 0.99 else 1.0) * (c.get("opacity", 1) if c.get("opacity", 1) < 0.99 else 1.0)
+        if a_ < 0.99 and fills[c["i"]]:
+            fills[c["i"]] = (fills[c["i"]][0], fills[c["i"]][1] * a_)
     has_lines = any(_live_side(s) not in (None, "hidden") for c in cells for s in c["sides"])
 
     def lines_and_gaps(pairs):
@@ -2057,31 +2096,52 @@ def _table_group(plan: "Plan", tb: dict, data: dict):
     xs, gx = lines_and_gaps([(c["x"], c["x"] + c["w"]) for c in cells])
     ys, gy = lines_and_gaps([(c["y"], c["y"] + c["h"]) for c in cells])
     tol = GRID_TOL
+    spaced = False
     for lines, gaps in ((xs, gx), (ys, gy)):
         if not gaps:
             continue
         widest = max(lines[j + 1] - lines[j] for j in gaps)
         if widest > GRID_TOL and (any(fills.values()) or has_lines):
-            return None, "its cells are spaced apart"
+            # Cells spaced apart: each gap stays as a thin empty row or
+            # column of the native table, so the cells land where designed.
+            spaced = True
+            continue
         tol = max(tol, widest + GRID_TOL)
         for j in sorted(gaps, reverse=True):
             del lines[j + 1]
+    if spaced:
+        notes.append("the gaps between its cells are thin empty rows or columns of the table")
     if len(xs) < 2 or len(ys) < 2:
-        return None, "its cells don't form a grid"
+        return None, None, notes + ["its cells have no width or height, so there is no table to draw"]
     nr, nc = len(ys) - 1, len(xs) - 1
     own = [[None] * nc for _ in range(nr)]
     span = {}
+    over = set()          # cells that overlap an earlier one: their text on top
+    off_grid = False
     for c in cells:
         (c0, e0), (c1, e1) = _nearest(xs, c["x"]), _nearest(xs, c["x"] + c["w"])
         (r0, e2), (r1, e3) = _nearest(ys, c["y"]), _nearest(ys, c["y"] + c["h"])
-        if max(e0, e1, e2, e3) > tol or c1 <= c0 or r1 <= r0:
-            return None, "its cells don't form a grid"
+        if max(e0, e1, e2, e3) > tol:
+            off_grid = True          # snapped to the nearest grid line
+        if c1 <= c0:
+            c0, c1 = min(c0, nc - 1), min(c0, nc - 1) + 1
+        if r1 <= r0:
+            r0, r1 = min(r0, nr - 1), min(r0, nr - 1) + 1
+        if any(own[r][cc] is not None for r in range(r0, r1) for cc in range(c0, c1)):
+            over.add(c["i"])
+            continue
         for r in range(r0, r1):
             for cc in range(c0, c1):
-                if own[r][cc] is not None:
-                    return None, "its cells overlap"
                 own[r][cc] = c["i"]
         span[c["i"]] = (r0, r1, c0, c1)
+    if off_grid:
+        notes.append("cells off its grid by a few pixels are snapped to the nearest grid line")
+    if over:
+        notes.append("cells that overlap another cell keep their text as its own text box")
+    over_texts = [t for t in texts if any(_g(t).get("cell") == f"{k}:{i}" for i in over)]
+    keep |= {t["order"] for t in over_texts}
+    texts = [t for t in texts if not any(t is q for q in over_texts)]
+    cells = [c for c in cells if c["i"] not in over]
 
     # Borders, one per grid edge. In CSS's collapsed model the widest border
     # wins and a cell's own beats its row's, then its group's, then the table's.
@@ -2160,63 +2220,16 @@ def _table_group(plan: "Plan", tb: dict, data: dict):
         rec = {"r": r0, "c": c0, "rs": r1 - r0, "cs": c1 - c0, "paragraphs": [],
                "mar": [0, 0, 0, 0], "align": "left", "line_height_px": 0}
         label = f"{name} r{r0 + 1}c{c0 + 1}"
-        if blocks:
-            for p_, q_ in zip(blocks, blocks[1:]):
-                if q_["_ink"][1] < p_["_ink"][1] + p_["_ink"][3] - 2:
-                    return None, "a cell holds pieces of text side by side"
-            aligns = {o["align"] for o in blocks}
-            if len(aligns) > 1:
-                return None, "a cell mixes text alignments"
-            align = aligns.pop()
-            wrap = any(o["wrap"] for o in blocks)
-            x = min(o["x"] for o in blocks)
-            w = max(o["x"] + o["w"] for o in blocks) - x
-            if not wrap:
-                # one line each: give the text all the room the cell has, so a
-                # renderer that sets the font a hair wider doesn't break a line
-                if align == "right":
-                    mar_l, mar_r = 0.0, X1 - (x + w)
-                elif align == "center":
-                    cx = x + w / 2
-                    half = min(cx - X0, X1 - cx)
-                    mar_l, mar_r = cx - half - X0, X1 - cx - half
-                else:
-                    mar_l, mar_r = x - X0, 0.0
-            else:
-                mar_l, mar_r = x - X0, X1 - (x + w)
-            mar_t = blocks[0]["y"] - Y0
-            if min(mar_l, mar_r) < -2:
-                return None, "text runs past the edge of its cell"
-            if mar_t < -3:
-                return None, "text sits too close to the top of its cell"
-            mar_l, mar_r, mar_t = max(0.0, mar_l), max(0.0, mar_r), max(0.0, mar_t)
-            paragraphs, props, prev = [], [], None
-            for o in blocks:
-                spc = 0.0 if prev is None else \
-                    o["y"] - (prev["y"] + max(1, prev.get("_lines") or 1) * prev["line_height_px"])
-                if spc < -2:
-                    return None, "a cell's lines of text overlap"
-                ml = (o["x"] - x) if align in ("left", "justify") else 0.0
-                mr = (x + w - o["x"] - o["w"]) if (align == "right" or (wrap and align != "center")) else 0.0
-                avail = X1 - X0 - mar_l - mar_r - ml - mr
-                pred = _wrapped_lines(o["paragraphs"], avail)
-                want = max(1, o.get("_lines") or 1) if o["wrap"] else len(o["paragraphs"])
-                if pred is not None and pred > want:
-                    return None, "cell text would break onto more lines than in the design"
-                for pi, para in enumerate(o["paragraphs"]):
-                    paragraphs.append(para)
-                    props.append({"line_height_px": o["line_height_px"], "marL_px": ml,
-                                  "marR_px": mr, "indent_px": 0.0,
-                                  "space_before_px": max(0.0, spc) if pi == 0 else 0.0})
-                prev = o
-            total = blocks[-1]["y"] + max(1, blocks[-1].get("_lines") or 1) * \
-                blocks[-1]["line_height_px"] - blocks[0]["y"]
-            if mar_t + total > (Y1 - Y0) + 1.0:
-                return None, "cell text is taller than its row"
-            rec.update(paragraphs=paragraphs, mar=[mar_l, mar_t, mar_r, 0.0], align=align,
-                       line_height_px=blocks[0]["line_height_px"])
-            if len(blocks) > 1:
-                rec["para"] = props
+        why = _cell_text(rec, blocks, X0, X1, Y0, Y1) if blocks else None
+        if why:
+            # The text can't sit in the cell as designed: it stays its own
+            # text box over the native cell, exactly where the design has it.
+            notes.append(f"the text of row {r0 + 1}, column {c0 + 1} is its own text box "
+                         f"over the cell because {why}")
+            keep |= {t["order"] for t in texts_by.get(f"{k}:{c['i']}", [])}
+            rec = {"r": r0, "c": c0, "rs": r1 - r0, "cs": c1 - c0, "paragraphs": [],
+                   "mar": [0, 0, 0, 0], "align": "left", "line_height_px": 0}
+        elif blocks:
             for n_, o in enumerate(blocks):
                 cmp_ops.append(dict(o, name=label + (f" text {n_ + 1}" if len(blocks) > 1 else "")))
         out_cells.append(rec)
@@ -2224,6 +2237,9 @@ def _table_group(plan: "Plan", tb: dict, data: dict):
         cmp_ops.append({"op": "shape", "kind": "rect", "x": X0, "y": Y0, "w": X1 - X0,
                         "h": Y1 - Y0, "fill": f[0] if f else None, "name": label + " cell",
                         "_filled": bool(f), "_cell": True})
+    alt = [o for o in plan.ops if _g(o).get("tbl") == k and o.get("_src") not in keep]
+    if not alt:
+        return None, None, notes
     x0, y0 = xs[0], ys[0]
     op = {"op": "table", "x": x0, "y": y0, "w": xs[-1] - x0, "h": ys[-1] - y0,
           "cols": [xs[j + 1] - xs[j] for j in range(nc)],
@@ -2231,7 +2247,87 @@ def _table_group(plan: "Plan", tb: dict, data: dict):
           "slots": slots, "cells": out_cells, "name": name,
           "_order": min(o["_order"] for o in alt), "_box": (x0, y0, xs[-1] - x0, ys[-1] - y0),
           "_filled": any(fills.values()), "_cmp": cmp_ops}
-    return op, alt
+    return op, alt, notes
+
+
+def _cell_text(rec: dict, blocks: list, X0: float, X1: float, Y0: float, Y1: float):
+    """Set rec (one native table cell) to hold the text blocks as designed:
+    paragraphs, inner margins, alignment. Returns None, or why the text can't
+    sit in the cell as designed (the caller then keeps it as its own text box)."""
+    for p_, q_ in zip(blocks, blocks[1:]):
+        if q_["_ink"][1] < p_["_ink"][1] + p_["_ink"][3] - 2:
+            return "a cell holds pieces of text side by side"
+    aligns = {o["align"] for o in blocks}
+    if len(aligns) > 1:
+        return "a cell mixes text alignments"
+    align = aligns.pop()
+    wrap = any(o["wrap"] for o in blocks)
+    x = min(o["x"] for o in blocks)
+    w = max(o["x"] + o["w"] for o in blocks) - x
+    if not wrap:
+        # one line each: give the text all the room the cell has, so a
+        # renderer that sets the font a hair wider doesn't break a line
+        if align == "right":
+            mar_l, mar_r = 0.0, X1 - (x + w)
+        elif align == "center":
+            cx = x + w / 2
+            half = min(cx - X0, X1 - cx)
+            mar_l, mar_r = cx - half - X0, X1 - cx - half
+        else:
+            mar_l, mar_r = x - X0, 0.0
+    else:
+        mar_l, mar_r = x - X0, X1 - (x + w)
+    mar_t = blocks[0]["y"] - Y0
+    if min(mar_l, mar_r) < -2:
+        return "text runs past the edge of its cell"
+    if mar_t < -3:
+        return "text sits too close to the top of its cell"
+    mar_l, mar_r, mar_t = max(0.0, mar_l), max(0.0, mar_r), max(0.0, mar_t)
+    paragraphs, props, prev = [], [], None
+    for o in blocks:
+        spc = 0.0 if prev is None else \
+            o["y"] - (prev["y"] + max(1, prev.get("_lines") or 1) * prev["line_height_px"])
+        if spc < -2:
+            return "a cell's lines of text overlap"
+        ml = (o["x"] - x) if align in ("left", "justify") else 0.0
+        mr = (x + w - o["x"] - o["w"]) if (align == "right" or (wrap and align != "center")) else 0.0
+        avail = X1 - X0 - mar_l - mar_r - ml - mr
+        pred = _wrapped_lines(o["paragraphs"], avail)
+        want = max(1, o.get("_lines") or 1) if o["wrap"] else len(o["paragraphs"])
+        if pred is not None and pred > want:
+            return "cell text would break onto more lines than in the design"
+        for pi, para in enumerate(o["paragraphs"]):
+            paragraphs.append(para)
+            props.append({"line_height_px": o["line_height_px"], "marL_px": ml,
+                          "marR_px": mr, "indent_px": 0.0,
+                          "space_before_px": max(0.0, spc) if pi == 0 else 0.0})
+        prev = o
+    total = blocks[-1]["y"] + max(1, blocks[-1].get("_lines") or 1) * \
+        blocks[-1]["line_height_px"] - blocks[0]["y"]
+    if mar_t + total > (Y1 - Y0) + 1.0:
+        return "cell text is taller than its row"
+    rec.update(paragraphs=paragraphs, mar=[mar_l, mar_t, mar_r, 0.0], align=align,
+               line_height_px=blocks[0]["line_height_px"])
+    if rec["rs"] > 1:
+        # A cell spanning rows: PowerPoint grows its first row to hold a
+        # large top margin, and its last row to hold a large bottom margin
+        # (text in the middle of a cell spanning 3 rows, set with a top
+        # margin: the first row came out 42px taller; centered with a large
+        # bottom margin: the last row 10px taller; measured 2026-10-27). So
+        # the text is anchored top, middle or bottom, whichever needs the
+        # smallest margin to put it where the design has it.
+        free = (Y1 - Y0) - total
+        off = mar_t - free / 2
+        best = min((mar_t, "t"), (2 * abs(off), "ctr"), (max(0.0, free - mar_t), "b"))[1]
+        if best == "ctr":
+            rec["mar"] = [mar_l, max(0.0, 2 * off), mar_r, max(0.0, -2 * off)]
+            rec["anchor"] = "ctr"
+        elif best == "b":
+            rec["mar"] = [mar_l, 0.0, mar_r, max(0.0, free - mar_t)]
+            rec["anchor"] = "b"
+    if len(blocks) > 1:
+        rec["para"] = props
+    return None
 
 
 def _strip_marker_runs(t: dict) -> dict:
@@ -2629,27 +2725,32 @@ def _list_group(plan: "Plan", L: dict, data: dict):
     return chain, None
 
 
-def _register_group(plan: "Plan", kind: str, name: str, chain: list) -> None:
+def _register_group(plan: "Plan", kind: str, name: str, chain: list,
+                    shapes: list | None = None) -> None:
+    """shapes: the ops a one-version group (a table) replaces on the slide."""
     gid = len(plan.groups)
     for v, ops in enumerate(chain):
         for o in ops:
             o["_gid"], o["_gv"] = gid, v
     plan.groups[gid] = {"kind": kind, "name": name, "chain": chain, "cur": 0}
-    drop = {id(o) for o in chain[-1]}
+    if shapes is not None:
+        plan.groups[gid]["shapes"] = shapes
+    drop = {id(o) for o in (shapes if shapes is not None else chain[-1])}
     plan.ops = [o for o in plan.ops if id(o) not in drop] + list(chain[0])
 
 
 def _plan_native_groups(plan: "Plan", data: dict) -> None:
     for tb in data.get("tables") or []:
-        op, alt_or_why = _table_group(plan, tb, data)
+        op, alt, notes = _table_group(plan, tb, data)
         name = tb.get("id") or f"table-{tb['k'] + 1}"
+        for n_ in notes:
+            plan.warn("TABLE_NOTE", f"{name}: {n_}")
         if op is None:
-            if any(_g(o).get("tbl") == str(tb["k"]) for o in plan.ops):
-                plan.warn("TABLE_KEPT_AS_SHAPES",
-                          f"{name}: not drawn as a native table because {alt_or_why}; "
-                          "drawn as separate shapes as before")
             continue
-        _register_group(plan, "table", name, [[op], alt_or_why])
+        # One version only: a table the design drew is always a native table
+        # (owner's decision, 2026-10-27), never separate shapes. "shapes" is
+        # kept for comparisons in the tests only.
+        _register_group(plan, "table", name, [[op]], shapes=alt)
     for L in data.get("lists") or []:
         chain, why = _list_group(plan, L, data)
         name = L.get("id") or f"list-{L['k'] + 1}"
@@ -2664,8 +2765,6 @@ def _plan_native_groups(plan: "Plan", data: dict) -> None:
 
 
 _STEP_WARN = {
-    "table": ("TABLE_NOT_NATIVE", "the native table rendered differently from the design "
-              "({why}); drawn as separate shapes as before"),
     "list1": ("LIST_MARKERS_AS_SHAPES", "the bullets rendered differently from the design's "
               "markers ({why}); the text stays one box and the markers are drawn as shapes"),
     "list2": ("LIST_NOT_SINGLE_BOX", "the one-box list rendered differently from the design "
@@ -2683,14 +2782,14 @@ def _step_group(plan: "Plan", gid: int, why: str) -> list[dict]:
     plan.ops += list(new)
     plan.ops.sort(key=lambda o: o["_order"])
     last = grp["cur"] == len(grp["chain"]) - 1
-    key = "table" if grp["kind"] == "table" else ("list2" if last else "list1")
+    key = "list2" if last else "list1"
     code, text = _STEP_WARN[key]
     plan.warn(code, f"{grp['name']}: " + text.format(why=why))
     return list(new)
 
 
 def native_counts(plan: "Plan") -> dict:
-    n_tables = sum(1 for g_ in plan.groups.values() if g_["kind"] == "table" and g_["cur"] == 0)
+    n_tables = sum(1 for g_ in plan.groups.values() if g_["kind"] == "table")
     n_lists = sum(1 for g_ in plan.groups.values()
                   if g_["kind"] == "list" and g_["cur"] < len(g_["chain"]) - 1)
     return {"native_tables": n_tables, "single_box_lists": n_lists}
@@ -3562,10 +3661,12 @@ def self_check(items: list[tuple["Plan", dict]], engine: str = "auto",
     """Render every translated slide and hand any element that came out
     looking different from the design to the agent (scripts/translate_alarm.py).
 
-    A native table or a one-box list that comes out different is not handed
-    over: it steps down to its next version (see _plan_native_groups) and
-    that slide is rendered again, judging only what was swapped in. Text is
-    never dropped on the way.
+    A one-box list that comes out different is not handed over: it steps
+    down to its next version (see _plan_native_groups) and that slide is
+    rendered again, judging only what was swapped in. Text is never dropped
+    on the way. A native table that comes out different is neither handed
+    over nor stepped down: it stays a native table and the difference is a
+    plain note in the report (TABLE_NOTE; owner's decision, 2026-10-27).
 
     items: (plan, extracted data) pairs; plans are changed in place.
     engine: "auto" (the default renderer: PowerPoint on Windows when it is
@@ -3624,6 +3725,12 @@ def self_check(items: list[tuple["Plan", dict]], engine: str = "auto",
                 o = plan.ops[i]
                 gid = o.get("_gid")
                 grp = plan.groups.get(gid) if gid is not None else None
+                if grp and grp["kind"] == "table":
+                    # Always a native table (owner's decision, 2026-10-27):
+                    # never handed over or turned into shapes. What still
+                    # differs after the converter's fixes is a plain note.
+                    _table_note(plan, grp["name"], rs)
+                    continue
                 if grp and grp["cur"] < len(grp["chain"]) - 1 and not last_round:
                     if gid not in stepped:
                         stepped.add(gid)
@@ -3660,6 +3767,26 @@ def self_check(items: list[tuple["Plan", dict]], engine: str = "auto",
                 judge[k] = new_ids
                 nxt.append(k)
         todo = nxt
+
+
+def _table_note(plan: "Plan", name: str, rows: list) -> None:
+    """Record, as a plain note, where a native table still renders differently
+    from the design. The table stays on the slide as it is."""
+    what = sorted({w for r in rows for w in r["fired"]})
+    def _plain(n):
+        n = re.sub(r"^" + re.escape(name) + r"\s*", "", n).strip() or n
+        m = re.match(r"r(\d+)c(\d+)\s*(cell|text)?(.*)$", n)
+        if not m:
+            return n
+        return f"row {m.group(1)}, column {m.group(2)}" + (" (its text)" if m.group(3) == "text" else "")
+    parts = sorted({_plain(r["name"]) for r in rows})
+    shown = ", ".join(parts[:6]) + (f" and {len(parts) - 6} more" if len(parts) > 6 else "")
+    plan.warn("TABLE_NOTE",
+              f"{name}: kept as a native PowerPoint table; the self-check still sees a "
+              f"difference from the design ({', '.join(what)}) in {shown}. Look at it on the "
+              "rendered page")
+    plan.self_check.setdefault("table_notes", []).extend(
+        {"element": r["name"], "what": r["fired"]} for r in rows)
 
 
 def translate_many(jobs: list[tuple], check: bool = True) -> list[dict]:

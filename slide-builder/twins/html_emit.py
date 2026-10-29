@@ -353,6 +353,15 @@ def _table(slide, op) -> None:
             cell = tbl.cell(i, j)
             slot = op["slots"][i][j]
             c = by_pos.get((i, j))
+            if c and (c["rs"] > 1 or c["cs"] > 1):
+                # PowerPoint draws a merged cell's borders from its first
+                # (top-left) cell only: give that cell the merged area's own
+                # bottom and right edges, from the bottom row's and the right
+                # column's slots. Without this the black line under a cell
+                # spanning two rows was lost (10/26 deck, page 2, 2026-10-26).
+                slot = dict(slot,
+                            B=op["slots"][i + c["rs"] - 1][j].get("B"),
+                            R=op["slots"][i][j + c["cs"] - 1].get("R"))
             tc = cell._tc
             tcPr = tc.get_or_add_tcPr()
             for child in list(tcPr):
@@ -360,7 +369,7 @@ def _table(slide, op) -> None:
             mar = (c or {}).get("mar") or [0, 0, 0, 0]
             for attr, v in zip(("marL", "marT", "marR", "marB"), mar):
                 tcPr.set(attr, str(int(round(max(0.0, v) * 9525))))
-            tcPr.set("anchor", "t")
+            tcPr.set("anchor", (c or {}).get("anchor") or "t")
             for key, tag in _EDGES:
                 _edge(tcPr, tag, slot.get(key))
             if slot.get("fill"):

@@ -25,7 +25,7 @@
     "PICK A",
     "PICK B",
     "PICK C",
-    "REPLACE THESE",
+    "NEW DESIGN INSTEAD",
     "LEAVE OUT",
     "Build my deck",
     "All options in one deck",
@@ -791,7 +791,7 @@
   <figure class="shot">
     <div class="frame">
       <div class="bar"><i></i><i></i><i></i><span class="fn">REVIEW.html</span><button type="button" class="enlarge">View full size</button></div>
-      <img src="data:image/jpeg;base64,{{IMG_REVIEW}}" alt="Screenshot of one slide on the review page: three design options side by side, the decision buttons PICK A, PICK B, PICK C, REPLACE THESE and LEAVE OUT, the quick-feedback buttons and the optional note boxes">
+      <img src="data:image/jpeg;base64,{{IMG_REVIEW}}" alt="Screenshot of one slide on the review page: three design options side by side, the decision buttons PICK A, PICK B, PICK C, NEW DESIGN INSTEAD and LEAVE OUT, the quick-feedback buttons and the optional note boxes">
     </div>
     <figcaption>One slide on the review page (slide 4 of the Meridian example, first round, <span data-f="options_per_slide"></span> options). Captured 5 Oct 2026; the page may look slightly different in later versions. Click the picture to see it full size.</figcaption>
   </figure>
@@ -799,7 +799,7 @@
   <ol class="do">
     <li>Look at the review page Claude opened. Closed it? Paste its path into your browser's address bar, or double-click REVIEW.html in the session folder.
       <div class="see"><span class="lbl">You'll see</span>One card per slide, with its <span data-f="options_per_slide"></span> options side by side.</div></li>
-    <li>For each slide, click <span class="ui">PICK A</span>, <span class="ui">PICK B</span> or <span class="ui">PICK C</span>. Click <span class="ui">REPLACE THESE</span> to get a new design for that slide, or <span class="ui">LEAVE OUT</span> to drop it from the deck.
+    <li>For each slide, click <span class="ui">PICK A</span>, <span class="ui">PICK B</span> or <span class="ui">PICK C</span>; your notes apply to the one you pick. A slide with one design has no pick button: it is already chosen ("Using this design"), and your notes edit it. Click <span class="ui">NEW DESIGN INSTEAD</span> to get a new design for that slide, or <span class="ui">LEAVE OUT</span> to drop it from the deck.
       <div class="see"><span class="lbl">You'll see</span>A "PICKED" mark on the chosen option, and the counts at the top go up.</div></li>
     <li>Optional: click any of the <span data-f="chips_total"></span> quick-feedback buttons, such as <span class="ui">Too sparse, add detail</span> or <span class="ui">Add process structure: numbers, icons</span> (the page lists the rest), or type a note under <span class="ui">More detail (optional)</span>. Notes travel with your choices, so a pick plus a quick-feedback button asks for a small change without a new design: Claude applies your comments to the design you picked (same layout, same letter) <b>before</b> turning it into PowerPoint. <span class="ui">Wrong layout / structure</span>, or a note asking for a different design ("try a chart instead"), gets new designs instead: Claude asks whether you want one or three (three is the default). Every comment is listed with how it was applied when the deck is delivered. The rules behind those two buttons: <a href="#r-full-page">a full page</a>, <a href="#r-structure">visible structure</a>.</li>
     <li>Click <span class="ui">Build my deck</span>, then paste the message it copies into Claude, unchanged. It reads like <code class="msg">Picks: 1B 2C 3A ... (check 1a2b3c4d)</code>, followed by your feedback when you gave some.
@@ -812,7 +812,7 @@
   <p class="example"><span class="lbl">Meridian example</span>Open <a href="Slide-Lab-Example-Review.html">the example review page</a> to click around. The buttons work and copy a message, but there is no build behind it, so there is nothing to paste it into.</p>
 
   <details class="more">
-    <summary><span>You marked a slide <span class="ui">REPLACE THESE</span>: what happens next</span></summary>
+    <summary><span>You marked a slide <span class="ui">NEW DESIGN INSTEAD</span>: what happens next</span></summary>
     <div class="body">
       <p><span class="ui">Build my deck</span> copies a request for new designs instead. Paste it into Claude, and say what you want different in the notes or in the chat.</p>
       <p>Claude redesigns only the slides you marked, <span data-f="options_per_slide_revision"></span> new design each by default, using your notes, and keeps every other pick. With one design there is nothing to pick, so it goes straight on to the final check page (step 6). Time: <span data-f="t.replace_round"></span>. Still not right? Say so on the final check page and it redesigns again.</p>
@@ -1576,7 +1576,7 @@
       <tr><td data-label="Step">Step 4: designs<span class="why">You can walk away</span></td><td data-label="How long"><span data-f="t.designs"></span><span class="why" data-f="t.designs_b"></span></td><td data-label="Whose time"><span class="pill claude">Waiting</span></td></tr>
       <tr><td data-label="Step">Step 4: previews and the review page</td><td data-label="How long"><span data-f="t.review_prep"></span><span class="why" data-f="t.review_prep_b"></span></td><td data-label="Whose time"><span class="pill claude">Waiting</span></td></tr>
       <tr><td data-label="Step">Step 5: your review</td><td data-label="How long"><span data-f="t.review"></span><span class="why" data-f="t.review_b"></span></td><td data-label="Whose time"><span class="pill you">Yours</span></td></tr>
-      <tr><td data-label="Step">Step 5: a "Replace these" round (only if you ask for one)</td><td data-label="How long"><span data-f="t.replace_round"></span><span class="why" data-f="t.replace_round_b"></span></td><td data-label="Whose time"><span class="pill claude">Waiting</span></td></tr>
+      <tr><td data-label="Step">Step 5: a "New design instead" round (only if you ask for one)</td><td data-label="How long"><span data-f="t.replace_round"></span><span class="why" data-f="t.replace_round_b"></span></td><td data-label="Whose time"><span class="pill claude">Waiting</span></td></tr>
       <tr><td data-label="Step">Step 6: your picks become editable PowerPoint</td><td data-label="How long"><span data-f="t.convert"></span>; <span data-f="t.hand_drawing"></span><span class="why"><span data-f="t.convert_b"></span>. Extra per slide: <span data-f="t.hand_drawing_b"></span></span></td><td data-label="Whose time"><span class="pill claude">Waiting</span></td></tr>
       <tr><td data-label="Step">Step 6: the final check page is ready</td><td data-label="How long"><span data-f="t.final_prep"></span><span class="why" data-f="t.final_prep_b"></span></td><td data-label="Whose time"><span class="pill claude">Waiting</span></td></tr>
       <tr><td data-label="Step">Step 6: your final check</td><td data-label="How long"><span data-f="t.final_check"></span><span class="why" data-f="t.final_check_b"></span></td><td data-label="Whose time"><span class="pill you">Yours</span></td></tr>
@@ -1690,7 +1690,7 @@
   <div class="faq">
     <details class="more"><summary>Do I need to know how to code or design?</summary><div class="body"><p>No. You talk to Claude in plain English and click buttons on two web pages. Claude asks before it runs anything on your computer; click Allow when it does.</p></div></details>
     <details class="more"><summary>Why did Claude stop and wait?</summary><div class="body"><p>Slide Lab is built to stop at certain points and wait for your answer. A stop is not a bug: Claude is asking for something only you can decide. Nothing moves on until you answer.</p><p>If you do not answer: nothing is built, saved or deleted. Answer in the chat, or click the button on the page it opened.</p></div></details>
-    <details class="more"><summary>What if I don't like any of the designs for a slide?</summary><div class="body"><p>Click <span class="ui">REPLACE THESE</span> and say in the notes what you want different. You get <span data-f="options_per_slide_revision"></span> new design by default; say "with 3 options" if you want alternatives. For a small change, pick the closest option and add a quick-feedback button or a note instead.</p></div></details>
+    <details class="more"><summary>What if I don't like any of the designs for a slide?</summary><div class="body"><p>Click <span class="ui">NEW DESIGN INSTEAD</span> and say in the notes what you want different. You get <span data-f="options_per_slide_revision"></span> new design by default; say "with 3 options" if you want alternatives. For a small change, pick the closest option and add a quick-feedback button or a note instead.</p></div></details>
     <details class="more"><summary>Can I get every option in one PowerPoint file?</summary><div class="body"><p>Yes. <span class="ui">All options in one deck</span> on the review page builds every option, not just your picks, into one deck for side-by-side comparison, each slide labeled with its option letter. The first click puts a switch on every option, <span class="ui">Kept in the all-options deck</span>; click it to leave that option out (for example keep B and C of slide 1, not A). Click the button again to copy the message. It costs several times more than a normal build, so the page warns you and asks before it copies anything. Use it rarely.</p></div></details>
     <details class="more"><summary>Why do I paste a message back into Claude?</summary><div class="body"><p>The review pages are files on your computer and cannot talk to Claude directly. The copied message carries your exact choices with a check code, so nothing is retyped or misread. Paste it unchanged. You can also just say it in the chat while the page is open ("build it", "use 1B 2C"): Claude records your words with the page you saw.</p></div></details>
     <details class="more"><summary>Can I keep my work in OneDrive?</summary><div class="body"><p>Keep the session folder on your computer's own drive (<code class="path">C:\Users\&lt;you&gt;\Slide Lab\sessions\</code>). In OneDrive, builds are noticeably slower and previews can time out. Copy the finished deck to OneDrive or SharePoint afterward. The template itself can live anywhere.</p></div></details>

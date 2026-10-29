@@ -42,7 +42,9 @@ The `_prompt.md` contains:
 - The full picking procedure (signals scoring → directive verb → tiebreak → adjacency check → fallback trigger → brief/pattern agreement)
 - The closed 7-verb directive vocabulary
 - The 5 hardline rules
-- The output contract (the exact option file(s) the prompt lists — `.py` for the direct path, `.html` for the sketch path per the dispatch's PATTERN field; the prompt states how many; the shipped default is three)
+- The output contract (the exact option file(s) the prompt lists — `.py` for the direct path, `.html` for the sketch path per the dispatch's PATTERN field; the prompt states how many: one as shipped, three when the user asked or a computer's settings say three)
+
+**`_prompt.md`'s count wins.** If the dispatch message names a different count or different files than `_prompt.md`, build what `_prompt.md` says and say so on the first line of your reply (for example: "Mismatch: the dispatch said 1 design, _prompt.md says 3; built option_A/B/C.html as _prompt.md says").
 - Anti-pattern cross-check matrix
 - Per-option variant seeds + pattern-pick seed
 

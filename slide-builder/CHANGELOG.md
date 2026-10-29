@@ -2,6 +2,204 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## 2026-10-29: a LibreOffice the computer blocks counts as not installed
+
+Some company computers now block LibreOffice from starting ("Access is
+denied"). `slide-qc/scripts/render_slides.py` used to find soffice.exe on
+disk and count it as available, so a failed PowerPoint render fell back to
+a program that could not run, and the LibreOffice checks in the tests
+failed. LibreOffice now counts as installed only when it actually starts
+(`soffice --headless --version`, checked once per run). Where it is blocked,
+PowerPoint does every render with no fallback, template setup and the
+doctor say PowerPoint is the renderer, and the tests skip their LibreOffice
+half.
+
+## 2026-10-27: a table is always a native table; merged-cell lines and short arrows fixed
+
+From the 10/26 session feedback (page 2's table came out as separate shapes;
+page 7's arrows went to the translator agent every round), checked by a
+confirm / challenge / adjudicate trio that reproduced both under PowerPoint.
+Owner's decisions 10/27: anything designed as an HTML `<table>` always
+becomes a native PowerPoint table ("if you made a table before, it stays as
+a table"); PowerPoint's slightly larger arrowhead is accepted.
+
+- **No table fallback to shapes.** `translate_html.py` no longer turns a
+  table into separate shapes, neither when planning (`TABLE_KEPT_AS_SHAPES`
+  is gone) nor after the self-check (`TABLE_NOT_NATIVE` is gone), and never
+  hands a table to the agent. What a PowerPoint table can't hold is handled
+  inside the native table, each with a plain `TABLE_NOTE` in the report:
+  rounded corners drawn square; spaced-apart cells get thin empty rows or
+  columns between them; a see-through table keeps see-through fills; a
+  gradient background becomes the cell's solid color; text that can't sit
+  in its cell as designed (pieces side by side, a caption, text through a
+  badge) stays its own text box on top of the native cell; cells a pixel
+  or two off the grid are snapped to it. When the native table's render
+  still differs from the design, the table stays and the difference is a
+  `TABLE_NOTE` naming the cells. Lists are unchanged (they still step down).
+- **Merged cells keep their bottom and right lines** (`twins/html_emit.py`).
+  PowerPoint draws a merged cell's borders from its first cell, which had
+  no bottom line: the black group line under "Scenarios" and "Core models"
+  was missing on page 2. The first cell now carries the merged area's
+  bottom and right edges.
+- **Cells spanning rows keep their row heights** (`translate_html.py`,
+  `twins/html_emit.py`). PowerPoint grows a merged cell's first row to hold
+  a large top margin, and its last row to hold a large bottom margin (text
+  centered in a cell spanning 3 rows came out with its first row 42px
+  taller). A cell spanning rows is now anchored top, middle or bottom,
+  whichever needs the smallest margin to put its text where the design has
+  it (found while checking the past designs below).
+- **Blank lines and no-break spaces kept** (`translate_html.py`, all text).
+  A blank line between two lines (`<br><br>`) was dropped, so 5 quotes set
+  one blank line apart came out packed together; it is now an empty
+  paragraph in the text's size (blank lines before the first or after the
+  last line are still dropped). A no-break space (`1&nbsp; Step`) was
+  collapsed with the space after it, as Python's `\s` matches it; only the
+  spaces CSS collapses are collapsed now.
+- **Table lines are weighed fairly** (`translate_alarm.py`). PowerPoint
+  draws a 1px black line as two mid-gray pixels where Chrome draws one
+  black one; on the clipped 0..255 scale the native line counted 1.7 times
+  the design's, so correct cells fired "ink". Table cells only are now
+  weighed on the full RGB distance range (`CELL_INK_SCALE`, 441.7); every
+  other element keeps the clipped scale its limits were tuned on.
+- **Short arrows stay native** (`translate_alarm.py`). A line or arrow
+  whose own color matches the design (within `LINE_OWN_COLOR_LIMIT`, 10)
+  and passes the ink, shape and position checks no longer fires "color"
+  because its small box's average moved (PowerPoint's head is about 12px
+  where the design has 10px). A recolored arrow still fires.
+- Docs: `reference/sketch-html-spec.md` § 6b, `SKILL.md` and
+  `agents/slide-builder-translator.md` no longer describe a table fallback
+  to shapes; the translator never redraws a native table.
+- Tests: `run_native_tables_lists_smoke.py` (a rounded table is native with
+  a note; cells spanning 2 and 3 rows with 1.5px black group lines inside
+  1px light gray rows come out native with no note, and fail without the
+  ink fix; one group line deleted is still noted with the table native and
+  nothing handed over; planted wrong fills keep the native table, never the
+  agent). `run_native_pictures_arrows_smoke.py` [5]: five 15 to 44px arrows
+  with 10px heads on a 2px line, rendered, none handed over (fails with
+  the new limit off); one recolored still fires "color".
+- Proof on past designs (scratch copies, PowerPoint self-check, before =
+  main aea89d3): 252 distinct past designs holding 287 tables. Native
+  tables 236 before, 287 after (every table native). Elements handed to the
+  translator agent on those pages: 437 before, 48 after, none new. The 49
+  pages whose tables changed, and every page with merged cells, were
+  rendered in PowerPoint and checked by eye against the design. Past arrow
+  designs (107): no arrow newly handed over; page 7's 5 short arrows (all 6
+  saved versions) no longer go to the agent.
+- Also `run_native_tables_lists_smoke.py`: a blank line (`<br><br>`) in a
+  cell and a no-break space are kept.
+
+## 2026-10-27: a slide with one design is already chosen; finalize uses the designs that were built
+
+Owner's decision (10/27), from the 10/26 report: an inserted slide was set up
+for three designs, its worker built one, finalize refused (exit 11), and the
+session edited `_meta.json` by hand. The owner's real complaint: "The issue
+with setting a slide to one design is that you're forced to pick slides to
+copy and paste edits to claude. What do you pick, replace these, or pick a
+slide? It's not clear." No set-options command was added.
+
+- **Review page (`build_review.py`, also tab 2 of the one Slide Lab page).**
+  A slide with ONE built design is already chosen: no PICK button, the badge
+  and the tile read "Using this design", and the hint says "Write what to
+  change below; it's applied to this design." Its notes and quick-feedback
+  chips go with its letter on the Picks line, so `record_picks.py` treats
+  them like any picked slide's comments (edit first, then convert). Build my
+  deck no longer counts it as waiting for a decision. Leave out still works
+  on it, and clicking its picture after a new-design request takes it back.
+  On a slide with several designs the user still picks one; the hint now
+  says the notes apply to the picked one.
+- **"Replace these" is renamed "New design instead"** (one new design, from
+  scratch); "+3 designs" stays beside it. Docs, the tutorial and the
+  examples use the new name.
+- **The tile's "PICKED" mark showed "¹3 PICKED"**: the check mark's CSS
+  escape was read by Python as an octal escape. Fixed.
+- **`finalize_deck.py` uses what was built.** A slide whose `_meta.json`
+  lists more designs than exist on disk is a slide with the designs that
+  were built: finalize prints "slide N: set up for 3 design(s) (ABC), 1
+  built (A); using what was built" and goes on (no exit 11, no exit 15 for
+  designs that never existed). `_meta.json` is not changed. Still refused: a
+  slide with no design at all, and a picked letter that is not on disk. The
+  old "prep it again with --options 1" advice (which moved option A aside)
+  is gone.
+- **Worker rule (`agents/slide-builder-worker.md`).** `_prompt.md`'s count
+  wins: if the dispatch message names a different count or different files,
+  the worker builds what `_prompt.md` says and reports the mismatch on the
+  first line of its reply. The stale "the shipped default is three" is fixed
+  (one as shipped).
+- Tests: `run_page_clicks_smoke.py` builds a deck whose slide 7 was set up
+  for three designs with one built (finalize passes, `_meta.json` untouched)
+  and clicks it: already chosen with no PICK button, Leave out and back, New
+  design instead makes a replace request, and Build my deck copies
+  `7A` with its note as an edit. `run_insert_options_smoke.py` step 3: no
+  design is still exit 11; A of A, B, C built is exit 0.
+  `run_picks_kept_smoke.py` and `run_review_gate_smoke.py` follow the new
+  page.
+
+## 2026-10-27: build_deck.py --delete N; "fix those" means fix all of them
+
+From the 2026-10-26 report on a 10/26 deck: slide 7 was removed with a
+hand-written script that left most records on the old page numbers, and a
+"fix those" over ten QC notes was applied to the layout notes only.
+
+- **`build_deck.py --delete N`, the reverse of `--insert`.** The brief must
+  already have slide N taken out (one slide fewer, numbered 1..N-1, and the
+  slide missing is the one at N by slide id, or by title without ids). A
+  sealed brief is sealed again first (keeping the user's accepted reasons);
+  if the seal refuses, nothing in the build changes. The folder and its
+  `RESULT-slide-NN.md` move to `_session/removed_slides/<NN>_<id>_<time>/`
+  with a `removed_records.json`, never deleted; later folders and reports
+  are renamed down one. A folder Windows will not rename is tried again,
+  then the delete stops with every move undone (exit 5), as the insert does.
+  The slide id is retired in `slide_ids.json`. Rulings on it are listed for
+  the user to move or retire, never re-tagged; rulings that name a page
+  number that moved, and "slide N"/"page N" mentions in the brief and
+  storyline, are listed too. The other picks and the review approval stay
+  (re-bound to the new content); the final check is cleared and the next QC
+  reads every page. Copying a page from the removed page needs no special
+  handling (owner, 2026-10-27): a copy of it loses its link and is listed.
+- **One renumbering helper for insert and delete:
+  `_state.shift_slide_records(out, at, delta)`.** It covers picks.json,
+  `_meta.json` (slides, pattern_per_slide, translation_reports, page_copy
+  links, slide_count), source_ledger.json (sections, row ids and slide
+  numbers; a removed section is archived under `removed`), and in
+  `_state.json` the per-option QC records and blocking count, pick_memory,
+  comments, review picks and opened stamps, chat approvals' slide lists,
+  redesign_round, visual_redo, the Storyline tab's visuals and the
+  copied-page counts. The insert used to move only picks and the QC records;
+  it now uses this helper and also moves `RESULT-slide-NN.md`.
+  `shift_option_records` stays as a thin wrapper.
+- **Undo after renumbering.** Automatic-fix records from before an insert or
+  delete are marked `before_renumber`, and `apply_qc_fix.py --undo` refuses
+  them (their kept design is under the old page numbers). Snapshots for
+  `--auto` from before are set aside, and `_autofix_prev/BEFORE_RENUMBER.txt`
+  names the whole-deck copies with the old page count.
+- **QC reads every page after renumbering:** `qc_pages.py` treats
+  `vision_pages.renumbered` as a reason for a full read.
+- **`add_ruling.py --move R --to <id>` and `--retire R`,** each only with
+  `--user-said "<their words>"` found in the transcript. A move copies the
+  quote and reading unchanged; a retired ruling stays in the file, struck
+  out, and is never active. rulings.md marks a removed slide's section
+  "(slide removed <date>)". New rule in its help and in slide-lab: "A
+  ruling's reading never narrows or widens its quote."
+- **"Fix those" approves the whole list** (owner, 2026-10-27: "People ask
+  you to fix stuff because it's broken. Fix it"). slide-qc: every Advisory
+  row carries a proposed fix, with old -> new for wording; a plain "fix
+  those" approves every row, approved headlines included, applied in one
+  pass; small new problems the fixes cause are fixed in the same pass within
+  the two-round cap and not sent back for approval; a headline change goes
+  through replace_phrase.py, seal_brief.py, add_ruling.py and
+  apply_qc_fix.py, with "undo page N" offered. The Advisory-only template
+  is now a table with a proposed-fix column and "Reply fix those". The QC
+  reader brief proposes a layout fix first for a badly wrapping approved
+  headline, else the shortest rewording that keeps the claim and every
+  number. slide-builder SKILL: new words a QC list showed and the user
+  approved count as the user's own wording.
+- New test `tests/run_delete_slide_smoke.py`: insert 2 then delete 2 on a
+  4-slide build gives picks.json back byte for byte and the same `_meta.json`
+  slides and `_state.json` slide records; refusals change nothing; a locked
+  folder stops the delete with nothing changed; the folder is kept, the id
+  retired, rulings untouched, the brief sealed again, an older undo refused;
+  `--move`/`--retire` need the user's words.
+
 ## 2026-10-23: pages added in PowerPoint get a page number; the sample slide shows one
 
 Two gaps found on a client template.

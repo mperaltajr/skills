@@ -11,7 +11,7 @@ Verifies, at the level of the recorded state:
      nothing changed (a fresh token per rebuild voided commands already copied)
   3. record_picks accepts the page's line and refuses an edited, forged,
      partial or stale one
-  4. the page keys picks to a per-slide stamp, offers Replace these (not the old
+  4. the page keys picks to a per-slide stamp, offers New design instead (not the old
      +more picker) and an All options button that warns about cost
   5. a missing preview is called out on the page
   6. a re-prep clears the review, the picks and the final check
@@ -113,11 +113,11 @@ def main() -> int:
         assert _state.read_state(out)["review"]["picks"] == both
         print("    ok: edited / forged / partial / nonexistent refused; real line recorded")
 
-        print("[4] the page: stamped picks, Replace these, All options with a warning")
+        print("[4] the page: stamped picks, New design instead, All options with a warning")
         assert "{ l: letter, s: STAMPS[sid] }" in html, "picks are not stamped"
         assert "window.__STAMPS__" in html
-        assert "REPLACE THESE" in html and "more-opt" not in html.split("<script>")[0], \
-            "Replace these missing, or the old +more picker still rendered"
+        assert "NEW DESIGN INSTEAD" in html and "more-opt" not in html.split("<script>")[0], \
+            "New design instead missing, or the old +more picker still rendered"
         assert 'id="btn-all"' in html and "the conversion cost" in html, \
             "All options button or its cost warning is missing"
         print("    ok")

@@ -209,6 +209,10 @@ def assess(state: dict, man: dict) -> dict:
             reasons.append(f"the dpi changed ({prior.get('dpi')} -> {man.get('dpi')})")
         if prior.get("template_fp") != man.get("template_fp"):
             reasons.append("the template (slide master or theme) changed")
+        if prior.get("renumbered"):
+            # An insert or a delete (_state.shift_slide_records): the earlier
+            # page records are under the old page numbers.
+            reasons.append(f"the slides were renumbered: {prior['renumbered']}")
     if reasons:
         return {"full": True, "reasons": reasons, "changed": pages, "carried": []}
     by = prior.get("pages") or {}
@@ -690,7 +694,8 @@ def unreviewed_pages(state: dict, man: dict) -> list[int]:
     if (vp.get("renderer") != man.get("renderer")
             or int(vp.get("dpi") or 0) != int(man.get("dpi") or 0)
             or int(vp.get("slides") or 0) != int(man.get("slides") or 0)
-            or vp.get("template_fp") != man.get("template_fp")):
+            or vp.get("template_fp") != man.get("template_fp")
+            or vp.get("renumbered")):
         # The same cases in which plan makes every page be read again.
         return [int(p["page"]) for p in man.get("pages") or []]
     by = vp.get("pages") or {}

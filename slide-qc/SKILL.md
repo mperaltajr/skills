@@ -238,7 +238,9 @@ Sort the rows: page number ascending; if a single page has multiple issues, Crit
 - **Asked, in ONE table with proposed fixes and one reply:** findings in the content group, **whatever their severity** (a Critical content finding is asked too): `number_not_in_brief` (a number or label not in the brief), `buzzwords` (buzzwords, hedging), `headline` (not a fact, or a topic label), `repeats_title` (a takeaway or band that repeats the title), `title_load` (a long title with a takeaway and a band), `bullets_parallel`, `missing_source` (a source expected and missing), `rewrite` (anything that rewrites the user's words or numbers). A finding that fits no key is asked.
 - **Tags the checks write map onto these keys** (lowercase, `-` and spaces read as `_`): `text-size` / `text size` = `text_size`, `template-sample-text`, `placeholder-prompt` and `placeholder-residue` = `sample_text`, `buzzword` = `buzzwords`, `repeats-title` = `repeats_title`, `title-load` = `title_load`, `line-spacing` = `overlap`. Keep this list in step with `ALIASES` in `qc_fix_policy.py`.
 - **How to write a finding for `apply_qc_fix.py --auto`:** `slide N [key] Severity: finding`, one per slide and key. The severity counts only in its place right after the tag (the word "critical" in the text means nothing); a finding with no tag or a tag that is not a key is never fixed automatically; a layout tag on text that reads like content (a number, a headline label, a rewrite) is asked. Findings are split only where `;` or a new line is followed by `slide N`, so fix detail after a `;` stays with its finding (it is read too: "reword the headline" in it makes the finding a question).
-- **Advisory:** never fixed automatically; listed for the user's judgment.
+- **Advisory:** never fixed automatically. List each as a row with a concrete proposed fix; when the fix changes words (a headline, label, footnote or tagline), put the exact new words in the row (old -> new). For an approved headline that wraps badly, propose a layout fix first; if only rewording fixes it, give the shortest rewording that keeps the claim and every number. A plain reply over the list ("fix those", "fix them", "fix it all", "yes, fix") approves every row as proposed, wording and approved headlines included: apply them all in one pass and do not ask again. Leave out only the rows the user names. A note that is not a defect (text at exactly 10.5pt, which the rules allow) is said in one line, not listed as needing a call. (Owner, 2026-10-27: "People ask you to fix stuff because it's broken. Fix it.")
+- **Small new problems the fixes cause** (a gap that opens on page 3 after a box is shortened, a panel that now runs into the source line) are fixed in the same pass, inside the existing two-round cap (Step 7), and are NOT reported back for approval: the user's "fix those" covers them. Show them in the after-report as old -> new like the rest. A finding the fixes did not cause goes in a new list, with its proposed fix, for one more "fix those".
+- **A headline change, approved this way,** goes through the tools so the brief, storyline and design agree: `replace_phrase.py --find "<old>" --replace "<new>" --apply`, then `seal_brief.py` to re-seal the brief, `add_ruling.py` with the user's words ("fix those") as the quote and the new headline in `--reading`, then `apply_qc_fix.py --slides N --approved "<their words>"`. Show old -> new per page in the same reply, ending "say undo page N to get the old wording back". An "undo page N" runs the same four steps with old and new swapped. Never edit only the HTML (the brief and storyline keep the old headline, the headline check flags it, and the next rebuild puts it back).
 
 Do not send the report to the user and wait when it has automatic findings: go to Step 7 and fix them first (at most two rounds). The user gets ONE message after that:
 
@@ -276,7 +278,13 @@ When a reason is given, record it alongside the QC report in `_session/_qc/qc-fl
 ```
 ✓ No Critical or Major issues. Deck is shippable.
 
-[If advisories exist:] [N] advisory items flagged — judgment calls, not blocking. Want to look at them, or are we done?
+[If advisories exist:] [N] small notes, none blocking:
+
+| # | Slide | Note | Proposed fix (old -> new for wording) |
+|---|-------|------|---------------------------------------|
+| 1 | 8 | headline wraps onto a third line | box 0.4 in wider; if that is not enough: "Old headline words" -> "Shorter words, same claim and numbers" |
+
+Reply **fix those** to apply all of them as written, or name the ones to leave.
 [If clean:] All clear.
 ```
 

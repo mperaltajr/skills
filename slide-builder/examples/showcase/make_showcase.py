@@ -82,7 +82,7 @@ def _banner() -> str:
         '<div style="font-size:16px;font-weight:bold;margin-bottom:6px">'
         'Example: the review page Slide Lab wrote for this run</div>'
         '<p style="margin:0 0 8px">This is where you choose. For each slide, '
-        '<b>Pick</b> one of three designs, <b>Replace these</b> to get a new design, '
+        '<b>Pick</b> one of three designs, <b>New design instead</b> to get a new design, '
         'or <b>Leave out</b>. The one-click feedback buttons cover common asks. In '
         'this shared copy your clicks are saved only in your own browser, and '
         '<b>Build my deck</b> copies a message that works only inside a real '

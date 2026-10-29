@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""redesign_round.py — a "Replace these" round with one new design per slide
+"""redesign_round.py — a "New design instead" round (once "Replace these") with one new design per slide
 goes straight to the final check (owner's decision, 2026-10-05).
 
 Picking the only option on a second review page added nothing, so:

@@ -27,10 +27,19 @@ Usage:
         --out <output_directory> \\
         [--client-name <override>]
 
+Remove a slide (the reverse of --insert; take it out of the brief and
+renumber the later slides first):
+    py -3 build_deck.py --delete N --out <output_directory> [--brief <brief.md>]
+  The folder and its records go to _session/removed_slides/ (never deleted),
+  every slide-numbered record is renumbered, the slide id is retired, the
+  user's rulings on it are listed for them to move or retire, the final check
+  is cleared and the next QC reads every page. Exit 3: a sealed brief could
+  not be sealed again; exit 5: a folder in use (nothing was changed).
+
 Exit codes:
     0  Success.
     1  Brief file missing, unreadable, or empty.
-    2  Brief has no parseable slides (or an invalid --slide/--insert request).
+    2  Brief has no parseable slides (or an invalid --slide/--insert/--delete request).
     3  Client template missing.
     4  prompt.md template missing or malformed.
     5  Output directory cannot be created.
@@ -2379,9 +2388,10 @@ def read_text_safe(p: Path) -> str:
 def _shift_build_for_insert(out_dir: Path, insert_n: int, old_count: int) -> None:
     """Make room at position `insert_n` for a new slide by shifting slides
     >= insert_n up by one on disk: rename `slide_NN/` dirs (highest first, so
-    each destination is free before the rename) and shift `picks.json` keys.
-    `_meta.json` is updated separately by update_meta_for_insert. No-op tail when
-    inserting at the end (insert_n == old_count + 1).
+    each destination is free before the rename), then renumber every
+    slide-numbered record (_state.shift_slide_records: picks.json, _meta.json,
+    _state.json, source_ledger.json). update_meta_for_insert then adds the new
+    slide's entry. No-op tail when inserting at the end (insert_n == old_count + 1).
 
     Self-reversing: if any rename fails partway, the renames already done are
     undone before re-raising, so the build is never left half-shifted.
@@ -2401,26 +2411,21 @@ def _shift_build_for_insert(out_dir: Path, insert_n: int, old_count: int) -> Non
                 _rename_with_retry(src, dst)
                 renamed.append((dst, src))
 
-        picks_path = out_dir / "picks.json"
-        if picks_path.exists():
-            try:
-                picks = json.loads(picks_path.read_text(encoding="utf-8"))
-            except (OSError, ValueError):
-                picks = None
-            if isinstance(picks, dict):
-                shifted: dict[str, Any] = {}
-                for key, val in picks.items():
-                    m = re.fullmatch(r"slide_(\d+)", key)
-                    if m and int(m.group(1)) >= insert_n:
-                        shifted[_p.slide_key(int(m.group(1)) + 1)] = val
-                    else:
-                        shifted[key] = val
-                picks_path.write_text(json.dumps(shifted, indent=2), encoding="utf-8")
-        # The per-option QC records describe the files in each folder, so they
-        # move with the folders. Left unshifted, a slide inherited its
-        # neighbor's record: a slide blocked for placeholder text moved up one
-        # and picked up a clean record, and a verifier shipped it as DELIVERABLE.
-        _state.shift_option_records(out_dir, insert_n)
+        # Per-slide reports in the build folder move with their slides.
+        for k in range(old_count, insert_n - 1, -1):
+            src = out_dir / f"RESULT-slide-{k:02d}.md"
+            dst = out_dir / f"RESULT-slide-{k + 1:02d}.md"
+            if src.exists() and not dst.exists():
+                _rename_with_retry(src, dst)
+                renamed.append((dst, src))
+        # Every record keyed by a slide number moves with the folders (one
+        # helper for insert and delete, 2026-10-27). Left unshifted, a slide
+        # inherited its neighbor's record: a slide blocked for placeholder
+        # text moved up one and picked up a clean record, and a verifier
+        # shipped it as DELIVERABLE.
+        _state.shift_slide_records(out_dir, insert_n, +1,
+                                   note=f"slide {insert_n} inserted")
+        _mark_fix_snapshots(out_dir, f"slide {insert_n} inserted")
     except OSError:
         # Undo the dir renames we managed so the build isn't half-shifted. A
         # failed undo used to pass silently; say which folder is out of place.
@@ -2462,12 +2467,14 @@ def _rename_with_retry(src: Path, dst: Path, tries: int = 4) -> None:
             _time.sleep(0.5 * (i + 1))
 
 
-def locked_folder_message(out_dir: Path, folder: Path, argv: list[str]) -> list[str]:
+def locked_folder_message(out_dir: Path, folder: Path, argv: list[str],
+                          op: str = "insert") -> list[str]:
     """The plain stop message for a folder in use: what holds it (read-only)
-    and what to do. Nothing is ended here (owner's decision 2026-10-13)."""
+    and what to do. Nothing is ended here (owner's decision 2026-10-13).
+    `op` is "insert" or "delete"."""
     here = Path(__file__).resolve().parent
     lines = [
-        "ERROR: the insert stopped because Windows would not rename the folder",
+        f"ERROR: the {op} stopped because Windows would not rename the folder",
         f"  {folder}",
         "  A program or File Explorer window is sitting in this folder (for example an",
         "  agent's shell that ran cd into it, a render, or an Explorer window open on it).",
@@ -2501,9 +2508,332 @@ def locked_folder_message(out_dir: Path, folder: Path, argv: list[str]) -> list[
     else:
         lines.append("  1. Ask the user to close any File Explorer window or program open in "
                      "that folder.")
-    lines.append("  2. Then run the same insert again:")
+    lines.append(f"  2. Then run the same {op} again:")
     lines.append("     py -3 " + " ".join(f'"{a}"' if " " in a else a for a in argv))
     return lines
+
+
+def _mark_fix_snapshots(out_dir: Path, note: str) -> None:
+    """The whole-deck copies apply_qc_fix.py keeps (_autofix_prev/deck_before_*)
+    have the old page count after an insert or a delete. Say so beside them;
+    apply_qc_fix.py refuses to undo a fix made before the renumbering."""
+    d = Path(out_dir) / "_autofix_prev"
+    if not d.is_dir():
+        return
+    olds = sorted(p.name for p in d.glob("deck_before_*"))
+    if not olds:
+        return
+    try:
+        with open(d / "BEFORE_RENUMBER.txt", "a", encoding="utf-8") as fh:
+            fh.write(f"{datetime.now().isoformat(timespec='seconds')}: {note}. These decks "
+                     "have the old page numbers; never restore a page from them:\n")
+            fh.writelines(f"  {n}\n" for n in olds)
+    except OSError:
+        pass
+
+
+# ----------------------------------------------------------------------
+# build_deck.py --delete N (2026-10-27): the reverse of --insert. Before it,
+# a slide was removed with a hand-written script that moved the folders and
+# a few records and left the rest pointing at the wrong pages.
+# ----------------------------------------------------------------------
+
+_MENTION_RE = re.compile(r"\b(slides?|pages?)\s+(\d+)\b", re.I)
+
+
+def _number_mentions(text: str, at: int) -> list[tuple[int, str]]:
+    """Lines naming 'slide N' or 'page N' with N >= at: after the delete they
+    point at another page (or at the removed one)."""
+    hits = []
+    for i, line in enumerate((text or "").replace("\r\n", "\n").split("\n"), 1):
+        if any(int(m.group(2)) >= at for m in _MENTION_RE.finditer(line)):
+            hits.append((i, line.strip()[:160]))
+    return hits
+
+
+def _move_with_retry(src: Path, dst: Path) -> None:
+    """Rename (retrying while the folder is in use); a move to another drive
+    falls back to a copy-and-remove move."""
+    try:
+        _rename_with_retry(src, dst)
+    except FolderLocked:
+        raise
+    except OSError as exc:
+        if getattr(exc, "winerror", None) == 17 or getattr(exc, "errno", None) == 18:
+            import shutil as _sh
+            _sh.move(str(src), str(dst))
+        else:
+            raise
+
+
+def _shift_build_for_delete(out_dir: Path, n: int, count: int, archive: Path) -> None:
+    """Move slide_NN/ and RESULT-slide-NN.md into `archive`, then rename the
+    later folders and reports down one, lowest first. Self-reversing: a folder
+    Windows will not rename stops it with every move undone."""
+    done: list[tuple[Path, Path]] = []      # (now at, was at)
+    archive_made = not archive.exists()
+    archive.mkdir(parents=True, exist_ok=True)
+    try:
+        src = _p.slide_dir(out_dir, n)
+        if src.exists():
+            _move_with_retry(src, archive / src.name)
+            done.append((archive / src.name, src))
+        for k in range(n + 1, count + 1):
+            s, d = _p.slide_dir(out_dir, k), _p.slide_dir(out_dir, k - 1)
+            if s.exists():
+                if d.exists():
+                    raise OSError(f"delete shift collision: {d} already exists")
+                _rename_with_retry(s, d)
+                done.append((d, s))
+        rs = out_dir / f"RESULT-slide-{n:02d}.md"
+        if rs.exists():
+            _move_with_retry(rs, archive / rs.name)
+            done.append((archive / rs.name, rs))
+        for k in range(n + 1, count + 1):
+            s, d = out_dir / f"RESULT-slide-{k:02d}.md", out_dir / f"RESULT-slide-{k - 1:02d}.md"
+            if s.exists() and not d.exists():
+                _rename_with_retry(s, d)
+                done.append((d, s))
+    except OSError:
+        for now_at, was_at in reversed(done):
+            try:
+                _move_with_retry(now_at, was_at)
+            except OSError as undo_exc:
+                sys.stderr.write(
+                    f"  ERROR: could not move {now_at} back to {was_at} ({undo_exc}). Move it "
+                    "back by hand once the folder is free, before any other step.\n")
+        if archive_made:
+            try:
+                archive.rmdir()
+                if not any(archive.parent.iterdir()):
+                    archive.parent.rmdir()
+            except OSError:
+                pass
+        raise
+
+
+def _retire_slide_id(brief: Path, slide_id: str, n: int) -> Optional[Path]:
+    """Mark the id retired in _session/slide_ids.json. It is never handed out
+    again (slide_ids.py skips every id in the file), so a re-insert of the
+    page gets a new id unless the user gives it this one back by hand."""
+    if not slide_id:
+        return None
+    try:
+        import slide_ids
+        reg = slide_ids.load_registry(brief)
+        ent = reg.setdefault("ids", {}).setdefault(slide_id, {"first_title": "", "at": ""})
+        ent["retired"] = {"at": datetime.now().isoformat(timespec="seconds"),
+                          "why": f"slide {n} removed from the deck"}
+        p = slide_ids.registry_path(brief)
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_text(json.dumps(reg, indent=2, ensure_ascii=False), encoding="utf-8")
+        return p
+    except Exception as exc:
+        sys.stderr.write(f"  WARN: could not mark the id {slide_id!r} retired: {exc}\n")
+        return None
+
+
+def _reseal_if_sealed(brief_path: Path) -> int:
+    """A sealed brief with the slide taken out no longer matches its seal:
+    seal it again (keeping the user's earlier accepted reasons). 0 when sealed
+    or never sealed; seal_brief.py's exit code when it refused."""
+    text = read_text_safe(brief_path)
+    fm, _body = extract_front_matter(text)
+    sha = str((fm or {}).get("storyline_gate_sha") or "").strip()
+    if not sha:
+        return 0
+    import seal_brief
+    try:
+        if seal_brief._fingerprint_as_prep_reads(text) == sha:
+            return 0
+    except Exception:
+        pass
+    acc = str((fm or {}).get("storyline_gate_accepted") or "").strip().strip('"')
+    acc = re.sub(r"^\d+ issue\(s\) kept:\s*", "", acc)
+    argv = ["--brief", str(brief_path)] + (["--accepted", acc] if acc else [])
+    print("The brief was sealed; sealing it again with the slide taken out:")
+    return seal_brief.main(argv)
+
+
+def delete_main(argv: list) -> int:
+    """build_deck.py --delete N --out <out> [--brief <brief>] [--template <tpl>]."""
+    ap = argparse.ArgumentParser(
+        prog="build_deck.py --delete",
+        description="Remove slide N from an existing build: the reverse of --insert.")
+    ap.add_argument("--delete", required=True, type=int)
+    ap.add_argument("--out", required=True, type=Path)
+    ap.add_argument("--brief", type=Path, default=None,
+                    help="The brief with slide N already taken out and the later slides "
+                         "renumbered (default: the brief recorded in _meta.json).")
+    ap.add_argument("--template", type=Path, default=None,
+                    help="Accepted for symmetry with --insert; read from _meta.json.")
+    ap.add_argument("--confirm-template", action="store_true", help=argparse.SUPPRESS)
+    args = ap.parse_args(argv)
+    out, n = args.out, args.delete
+    meta_path = _p.meta_json(out)
+    try:
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        sys.stderr.write(f"ERROR: --delete {n} needs an existing build at {out} "
+                         f"(no readable _meta.json: {exc}).\n")
+        return 2
+    count = int(meta.get("slide_count", 0) or 0)
+    if count < 2 or not 1 <= n <= count:
+        sys.stderr.write(f"ERROR: --delete {n} out of range; the build has {count} slide(s), "
+                         "so a slide 1.." + str(count) + " can be removed (never the last one "
+                         "left).\n")
+        return 2
+    brief_path = args.brief or Path(meta.get("brief") or "")
+    if not brief_path or not Path(brief_path).is_file():
+        sys.stderr.write(f"ERROR: no brief at {brief_path}; pass --brief.\n")
+        return 2
+    try:
+        import _rulings
+        _rulings.announce(out=out)
+    except Exception:
+        _rulings = None
+    from _log import attach as _log_attach  # noqa: E402
+    _log_attach(out, "build_deck.py")
+
+    # 1. The brief first: one slide fewer, numbered 1..count-1, and the slide
+    #    missing from it is the one at N (by its fixed id).
+    brief = parse_brief(Path(brief_path), bypass_gate=True)
+    bslides = sorted(brief["slides"], key=lambda s: s["slide_n"])
+    if [s["slide_n"] for s in bslides] != list(range(1, count)):
+        sys.stderr.write(
+            f"ERROR: --delete expects the brief to have exactly one slide fewer than the build "
+            f"({count - 1}), numbered 1..{count - 1} with no gaps; it has "
+            f"{[s['slide_n'] for s in bslides]}. Take slide {n} out of the brief, renumber the "
+            "later slides, then run this again. Nothing was changed.\n")
+        return 2
+    mslides = sorted(meta.get("slides") or [], key=lambda e: e.get("n", 0))
+    gone = next((e for e in mslides if e.get("n") == n), {}) or {}
+    gone_id = (gone.get("slide_id") or "").strip().lower()
+    rest = [e for e in mslides if e.get("n") != n]
+    if gone_id and all(e.get("slide_id") for e in rest) and all(s.get("slide_id") for s in bslides):
+        want = [e["slide_id"].lower() for e in rest]
+        have = [s["slide_id"].lower() for s in bslides]
+        if have != want:
+            sys.stderr.write(
+                f"ERROR: the brief's slides are not the build's slides with slide {n} "
+                f"({gone_id}) taken out. By slide id the brief has {have}; it should have "
+                f"{want}. Fix the brief (or delete the slide that is actually missing), then "
+                "run this again. Nothing was changed.\n")
+            return 2
+    else:
+        want = [(e.get("title") or "").strip() for e in rest]
+        have = [(s.get("title") or "").strip() for s in bslides]
+        if have != want:
+            sys.stderr.write(
+                f"ERROR: the slides have no fixed ids to match on, and the brief's titles are "
+                f"not the build's titles with slide {n} taken out ({have} vs {want}). Add the "
+                f"ids (py -3 scripts/slide_ids.py --brief \"{brief_path}\") or make the other "
+                "titles match the build, delete, then make other edits. Nothing was changed.\n")
+            return 2
+
+    # Mentions of page numbers that moved (listed, never edited).
+    mentions = [("brief", ln, t) for ln, t in _number_mentions(read_text_safe(Path(brief_path)), n)]
+    sl_path = Path(((meta.get("storyline") or {}).get("path")) or "")
+    if sl_path.suffix.lower() in (".md", ".html", ".htm", ".txt") and sl_path.is_file():
+        mentions += [(sl_path.name, ln, t) for ln, t in
+                     _number_mentions(read_text_safe(sl_path), n)]
+
+    # 2. Re-seal a sealed brief (before anything on disk moves).
+    rc = _reseal_if_sealed(Path(brief_path))
+    if rc:
+        sys.stderr.write("ERROR: the brief could not be sealed again (above), so the slide "
+                         "was not removed. Nothing in the build was changed.\n")
+        return 3
+    brief = parse_brief(Path(brief_path), bypass_gate=True)
+
+    # 3. Folders: slide N to _session/removed_slides/, later ones down one.
+    sd = _rulings.session_dir(out=out) if _rulings else out / "_session"
+    stamp = datetime.now().strftime("%Y%m%dT%H%M%S")
+    archive = sd / "removed_slides" / f"{n:02d}_{gone_id or 'slide'}_{stamp}"
+    try:
+        _shift_build_for_delete(out, n, count, archive)
+    except FolderLocked as exc:
+        for _ln in locked_folder_message(out, exc.folder,
+                                         [str(Path(sys.argv[0]).resolve())] + list(argv),
+                                         op="delete"):
+            sys.stderr.write(_ln + "\n")
+        return 5
+    except OSError as exc:
+        sys.stderr.write(f"ERROR: could not move the slide folders for the delete: {exc}. "
+                         "Every folder is back where it was.\n")
+        return 5
+
+    # 4. Every slide-numbered record, in one helper (shared with --insert).
+    note = f"slide {n}" + (f" ({gone_id})" if gone_id else "") + " removed"
+    removed = _state.shift_slide_records(out, n, -1, note=note)
+    removed.setdefault("meta_entry", gone)
+    (archive / "removed_records.json").write_text(
+        json.dumps({"slide": n, "id": gone_id, "title": gone.get("title", ""),
+                    "removed_at": datetime.now().isoformat(timespec="seconds"),
+                    "records": removed}, indent=2, ensure_ascii=False, default=str),
+        encoding="utf-8")
+    _mark_fix_snapshots(out, note)
+    reg = _retire_slide_id(Path(brief_path), gone_id, n)
+    tpl = args.template or Path(meta.get("template") or "")
+    deck_hash = _state.deck_content_hash(json.dumps(brief, sort_keys=True, default=str),
+                                         str(tpl), _resolve_effective_pattern(None))
+    _state.record_delete(out, deck_hash, n, gone_id)
+    plan_path = regenerate_dispatch_plan_from_meta(out)
+
+    # 5. What changed, and what the user decides.
+    moved = (f"; slides {n + 1}..{count} are now {n}..{count - 1}" if n < count else "")
+    print(f"Deleted slide {n}" + (f" ({gone_id})" if gone_id else "")
+          + f": the build now has {count - 1} slides{moved}.")
+    print("  Kept, not deleted (its designs, picks and records):")
+    print(f"    {archive}")
+    if reg:
+        print(f"  The id {gone_id!r} is retired in {reg}: it is never handed out again.")
+    if plan_path is not None:
+        print(f"  Renumbered dispatch plan: {plan_path}")
+    if removed.get("orphan_copies"):
+        print("  These slides were copies of the removed page and now have no design of "
+              "their own: " + ", ".join(map(str, removed["orphan_copies"]))
+              + ". Prep each again (build_deck.py --slide N).")
+    if _rulings:
+        data = _rulings.load(sd)
+        mine = _rulings.active(data, gone_id) if gone_id else []
+        named = [r for r in _rulings.active(data)
+                 if r not in mine and any(int(m.group(2)) >= n
+                                          for m in _MENTION_RE.finditer(r.get("quote", "")))]
+        if mine:
+            print()
+            print(f"RULINGS on the removed slide ({gone_id}): never re-tagged or deleted by "
+                  "this command. Ask the user, for each, whether it now belongs to another "
+                  "slide or is retired, then run what they say:")
+            for r in mine:
+                print(f"  R{r['n']} {r.get('topic', '')}: \"{r['quote']}\"")
+            here = Path(__file__).resolve().parent
+            print(f"  move:   py -3 \"{here / 'add_ruling.py'}\" --out \"{out}\" --move <R> --to "
+                  "<slide id> --user-said \"<their words>\"")
+            print(f"  retire: py -3 \"{here / 'add_ruling.py'}\" --out \"{out}\" --retire <R> "
+                  "--user-said \"<their words>\"")
+        if named:
+            print()
+            print("RULINGS that name a page number which moved (their words are kept as "
+                  "typed; read them with the new numbering):")
+            for r in named:
+                print(f"  R{r['n']} [{r['id']}]: \"{r['quote']}\"")
+    if mentions:
+        print()
+        print(f"PAGE NUMBERS in the brief or storyline at or after {n} (they now point at "
+              "another page; fix them in the words, then re-seal a sealed brief):")
+        for where, ln, t in mentions[:20]:
+            print(f"  {where} line {ln}: {t}")
+    o = f'"{out}"'
+    print()
+    print("Next (the other slides keep their picks and finished designs; the final check "
+          "and the page-by-page QC start again):")
+    print(f"  a. py -3 scripts/build_review.py --out {o} --final")
+    print("     SHOW the user FINAL-CHECK.html and WAIT for its Build command")
+    print("     (compile_picks.py ... --final-token <t>). Run it as pasted.")
+    print("  b. slide-qc on the deck (every page is read again: the pages were renumbered),")
+    print("     record_vision_qc.py, then check_done.py.")
+    return 0
 
 
 def update_meta_for_insert(
@@ -2516,10 +2846,10 @@ def update_meta_for_insert(
 ) -> Optional[Path]:
     """Splice a newly inserted slide's entry into `_meta.json`.
 
-    Assumes `_shift_build_for_insert` already moved the on-disk dirs + picks.
-    Shifts existing `_meta` entries (and the pattern map) with n >= insert_n up by
-    one, inserts the new slide's entry at insert_n (recomputed with the shared
-    builder), bumps slide_count, and re-validates before writing. Other slides'
+    Assumes `_shift_build_for_insert` already moved the on-disk dirs and
+    renumbered the existing `_meta` entries (and the pattern map). Inserts the
+    new slide's entry at insert_n (recomputed with the shared builder), sets
+    slide_count, and re-validates before writing. Other slides'
     entries are preserved verbatim apart from their renumbered `n`."""
     pattern_per_slide = pattern_per_slide or {}
     meta_path = _p.meta_json(out_dir)
@@ -2529,24 +2859,8 @@ def update_meta_for_insert(
         sys.stderr.write(f"ERROR: cannot read {meta_path} for insert: {exc}\n")
         return None
 
-    # Shift existing per-slide entries up by one for n >= insert_n.
-    for entry in meta.get("slides", []):
-        if entry.get("n", 0) >= insert_n:
-            entry["n"] = entry["n"] + 1
-
-    # Shift the per-slide routing map's (string) keys the same way.
-    existing_pps = meta.get("pattern_per_slide")
-    if isinstance(existing_pps, dict):
-        shifted_pps: dict[str, str] = {}
-        for k, v in existing_pps.items():
-            try:
-                kn = int(k)
-            except (TypeError, ValueError):
-                shifted_pps[k] = v
-                continue
-            shifted_pps[str(kn + 1 if kn >= insert_n else kn)] = v
-        meta["pattern_per_slide"] = shifted_pps
-
+    # The existing entries and the routing map were already renumbered by
+    # _state.shift_slide_records (in _shift_build_for_insert).
     # Build + insert the new slide's entry from the brief.
     idx = next(
         (i for i, s in enumerate(brief["slides"]) if s["slide_n"] == insert_n),
@@ -2995,6 +3309,10 @@ def main() -> int:
     # no brief; owner's decision 2026-10-14).
     if "--pending" in sys.argv[1:]:
         return pending_main(sys.argv[1:])
+    # --delete N --out <out>: remove a slide, the reverse of --insert
+    # (2026-10-27).
+    if "--delete" in sys.argv[1:]:
+        return delete_main(sys.argv[1:])
     parser = argparse.ArgumentParser(
         description="Prep a narrative brief for parallel-agent fanout.",
         formatter_class=argparse.RawDescriptionHelpFormatter,

@@ -3105,6 +3105,12 @@ def _run(args) -> int:
         meta_dict = json.loads(_p.meta_json(args.out).read_text(encoding="utf-8"))
         from _meta_schema import validate_warn
         validate_warn(meta_dict, source="finalize_deck:expected_pairs")
+        try:
+            import _state as _st_pairs  # noqa: E402
+            _picks_now = ((_st_pairs.read_state(args.out).get("review") or {})
+                          .get("picks")) or {}
+        except Exception:
+            _picks_now = {}
         for s in meta_dict.get("slides", []):
             n = s.get("n")
             if isinstance(n, int):
@@ -3112,7 +3118,28 @@ def _run(args) -> int:
                 # fall back to the live count only for legacy metas that predate
                 # the `options` field. This keeps the gate honest if
                 # options_per_slide changed after the build.
-                letters = s.get("options") or _p.option_letters()
+                letters = list(s.get("options") or _p.option_letters())
+                # The built designs are the options (owner's decision,
+                # 2026-10-27): a slide set up for three whose worker built
+                # one is a one-design slide, not a missing output. On 10/26
+                # finalize refused here (exit 11) and _meta.json was edited
+                # by hand. A slide with NO design at all, or a picked letter
+                # that is not there, is still missing.
+                _sd = _p.slide_dir(args.out, n)
+                built = [L for L in letters
+                         if any((_sd / f"option_{L}{ext}").exists()
+                                for ext in (".html", ".py", "_native.py"))]
+                if built and len(built) < len(letters):
+                    _pv = _picks_now.get(_p.slide_key(n))
+                    _pv = _pv if isinstance(_pv, list) else [_pv]
+                    keep = [L for L in letters if L in built or L in _pv]
+                    if keep != letters:
+                        print(f"  slide {n}: set up for {len(letters)} design(s) "
+                              f"({''.join(letters)}), {len(built)} built "
+                              f"({''.join(built)}); using what was built. If the "
+                              "worker is still running, wait for it and run "
+                              "finalize again.")
+                    letters = keep
                 for letter in letters:
                     expected_pairs.add((n, letter))
     except Exception:
@@ -3305,28 +3332,9 @@ def _run(args) -> int:
                     "otherwise re-dispatch slide-builder-worker with that slide's "
                     "_prompt.md:\n"
                     + "".join(f"  {t}\n" for t in needs_worker))
-                # Option A is there and only B/C are missing: the slide was set
-                # up for more designs than its worker built (2026-10-13: workers
-                # told "option A only" against their _prompt.md). Say how to
-                # make it a one-design slide, and what that costs.
-                _only_bc: list[int] = []
-                for _n in sorted({int(t[6:8]) for t in needs_worker}):
-                    _sd = _p.slide_dir(args.out, _n)
-                    _miss = set(missing_groups.get(_n, []))
-                    if "A" not in _miss and ((_sd / "option_A.html").exists()
-                                             or (_sd / "option_A.py").exists()):
-                        _only_bc.append(_n)
-                if _only_bc:
-                    sys.stderr.write(
-                        "\nOption A exists but the other designs this slide was set up for "
-                        "do not (slide " + ", ".join(str(n) for n in _only_bc) + "). Either "
-                        "dispatch the worker again for the missing designs, or, if the user "
-                        "wants one design for this slide, prep it again for one:\n"
-                        + "".join(f"  py -3 scripts/build_deck.py --template \"{args.template}\" "
-                                  f"--out \"{args.out}\" --slide {n} --options 1\n"
-                                  for n in _only_bc)
-                        + "  WARNING: that moves the existing option A files to "
-                        "slide_NN\\_prev\\<time>\\ and the worker then builds one new design.\n")
+                # A slide with some designs built no longer lands here: the
+                # built designs are its options (owner's decision, 2026-10-27).
+                # Only a slide with none, or a picked letter not on disk, does.
             sys.stderr.write(
                 f"\nThen re-run finalize_deck.py. Override with --allow-missing to "
                 f"proceed with gaps (those options are recorded as blocked, and "

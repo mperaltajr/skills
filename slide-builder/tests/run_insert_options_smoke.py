@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Smoke test: an insert says how many designs it was set up for, a locked
-slide folder stops it with a plain message, and finalize says how to make a
-half-built slide a one-design slide (items 5 and 6 of the 2026-10-13 report).
+slide folder stops it with a plain message, and finalize uses what was built on a
+half-built slide (items 5 and 6 of the 2026-10-13 report; 2026-10-27 decision).
 
   0. the design count comes from settings: 1 in the published settings.json,
      3 from a settings.local.json, the env var over both; a default full
@@ -12,9 +12,9 @@ half-built slide a one-design slide (items 5 and 6 of the 2026-10-13 report).
      is inside it): the insert retries, then exits 5 with "Windows would not
      rename", lists that process read-only (its PID), ends nothing, and
      leaves every folder where it was; once it is gone, the insert works
-  3. finalize_deck.py exits 11 for a slide with option A but not B and C, and
-     prints the exact `build_deck.py --slide N --options 1` command with the
-     warning that it moves option A aside
+  3. finalize_deck.py exits 11 for a three-design slide with no design at
+     all; once option A alone is built it uses what was built (owner's
+     decision, 2026-10-27): exit 0, a note, and _meta.json unchanged
   4. REVIEW.html has a "+3 designs" control whose message carries a "Three
      designs for:" line; redesign_round.py start --three N records it, and
      build_deck.py --slide N then builds three (a plain Replace builds one)
@@ -149,18 +149,26 @@ def main() -> int:
         else:
             print("    skipped (Windows only: folders lock only there)")
 
-        print("[3] finalize: option A without B and C names the one-design command")
+        print("[3] finalize: option A without B and C uses what was built")
         n3 = 6 if sys.platform == "win32" else 5      # the three-design slide, after [2]
         sd = out / f"slide_{n3:02d}"
+        meta_before = (out / "_meta.json").read_bytes()
+        r = _run("finalize_deck.py", "--out", str(out), "--template", str(tpl),
+                 "--slide", str(n3), env=env3)
+        assert r.returncode == 11, ("no design at all is still missing",
+                                    r.returncode, r.stdout[-800:], r.stderr[-800:])
         (sd / "option_A.html").write_text(
             "<html><body><div data-template-field='title'>X</div></body></html>",
             encoding="utf-8")
         r = _run("finalize_deck.py", "--out", str(out), "--template", str(tpl),
                  "--slide", str(n3), env=env3)
-        assert r.returncode == 11, (r.returncode, r.stdout[-800:], r.stderr[-800:])
-        assert f"--slide {n3} --options 1" in r.stderr, r.stderr
-        assert "moves the existing option A files" in r.stderr, r.stderr
-        print("    ok: exit 11 with the exact re-prep command and its warning")
+        assert r.returncode == 0, (r.returncode, r.stdout[-800:], r.stderr[-800:])
+        assert f"slide {n3}: set up for 3 design(s) (ABC), 1 built (A); using what was built" \
+            in r.stdout, r.stdout
+        assert "--options 1" not in r.stdout + r.stderr, "no re-prep advice for a built slide"
+        assert (out / "_meta.json").read_bytes() == meta_before, "_meta.json must not change"
+        print("    ok: no design is exit 11; one of three built is a one-design slide "
+              "(exit 0, _meta.json untouched)")
 
         print("[4] +3 designs in review: three new designs next round; plain Replace: one")
         page = (out / "REVIEW.html")

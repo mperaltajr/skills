@@ -19,6 +19,9 @@ itself. Made-up content throughout.
      color, or on a curve, stays with the agent
   4. thin letters: a lighter render of the same color passes, another
      color still fails
+  5. short arrows (15 px, 10 px heads, 2 px line; 10/26 deck, page 7) rendered
+     with the default renderer: native, none handed to the agent; one
+     recolored in the slide still fires "color"
 
 Needs Playwright's Chromium and LibreOffice (the self-check renders with
 LibreOffice here).
@@ -172,6 +175,55 @@ def main() -> int:
         masks = T._agent_masks(plan)
         assert any(m[0] <= 416 and m[2] >= 516 for m in masks), masks
         print("    ok: nothing handed over; agent areas", len(masks))
+
+        print("[5] short arrows (10/26 deck, page 7, 2026-10-26)")
+        # 15 px arrows with 10 px heads on a 2 px line: PowerPoint's large
+        # head draws a little bigger (accepted, owner 2026-10-27), which moved
+        # the small box's average color past the limit while the arrow's own
+        # color matched. Rendered with the default renderer (PowerPoint on
+        # Windows when installed).
+        lines = "".join(
+            f'<line x1="{x}" y1="316" x2="{x + 15}" y2="316" stroke="#1A1A1A" stroke-width="2" '
+            'marker-end="url(#ah)"/>' for x in (412, 710, 965))
+        lines += ('<line x1="293" y1="461" x2="293" y2="428" stroke="#1A1A1A" stroke-width="2" '
+                  'marker-end="url(#ah)"/>'
+                  '<line x1="849" y1="546" x2="805" y2="546" stroke="#1A1A1A" stroke-width="2" '
+                  'marker-end="url(#ah)"/>')
+        # as on the page: steps (white, 1px gray border) on a gray lane, the
+        # short arrows in the 15 px gaps between them
+        step = ('<div class="a" data-shape-id="step-{n}" style="left:{x}px;top:290px;width:{w}px;'
+                'height:52px;background:#fff;border:1px solid #8C8C8C;box-sizing:border-box"></div>')
+        short = (
+            '<div class="a" data-shape-id="lane" style="left:167px;top:262px;width:1059px;height:108px;'
+            'background:#E6E6E6"></div>'
+            + "".join(step.format(n=n, x=x, w=w) for n, (x, w) in
+                      enumerate(((172, 240), (427, 283), (725, 240), (980, 240))))
+            + '<div class="a" data-shape-id="lane-2" style="left:167px;top:400px;width:1059px;'
+            'height:180px;background:#E6E6E6"></div>'
+            + '<svg class="a" data-shape-id="flow-arrows" style="left:0;top:0" width="1280" height="720" '
+            'viewBox="0 0 1280 720"><defs><marker id="ah" markerUnits="userSpaceOnUse" markerWidth="10" '
+            'markerHeight="10" refX="10" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 Z" '
+            'fill="#1A1A1A"/></marker></defs>' + lines + '</svg>')
+        html7 = td / "s7" / "option_A.html"
+        html7.parent.mkdir()
+        html7.write_text(HEAD + short + TAIL, encoding="utf-8")
+        data7 = _extract(html7)
+        plan7, _ = T.plan_from_extract(data7, True)
+        assert plan7.counts.get("native_arrowheads") == 5, plan7.counts
+        assert not plan7.fallbacks, plan7.fallbacks
+        T.self_check([(plan7, data7)])
+        assert plan7.self_check["ran"], plan7.warnings
+        assert not plan7.fallbacks, (plan7.fallbacks, plan7.self_check)
+        assert sum(1 for o in plan7.ops if o["op"] == "connector") == 5
+        print("    ok: 5 short native arrows, none handed to the agent")
+        # one arrow recolored in the slide (planted): still caught
+        plan8, _ = T.plan_from_extract(data7, True)
+        cons = [o for o in plan8.ops if o["op"] == "connector"]
+        cons[1]["line"] = dict(cons[1]["line"], color="C00000")
+        T.self_check([(plan8, data7)], hand_over=False)
+        fired = [f for f in plan8.self_check["fired"] if "color" in f["what"]]
+        assert len(fired) == 1, plan8.self_check
+        print("    ok: one arrow recolored red: its color still fires")
 
     print("[4] thin letters")
     bg = np.array([255.0, 255.0, 255.0])

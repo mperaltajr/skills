@@ -66,6 +66,20 @@ INK_REL_LIMIT = 0.3       # relative change in how much is marked ...
 INK_ABS_LIMIT = 0.02      # ... and at least this much (fully dark px per box px)
 SHIFT_LIMIT = 4.0         # px the render must move to line up with the design
 RESIDUAL_LIMIT = 0.3      # share of the (softened) marks still different once lined up
+# A table cell's ink is weighed on the full RGB distance range (black on
+# white = 441.7), without the clip at 255 every other element uses. A 1px
+# black table line is drawn by Chrome as one black pixel and by PowerPoint as
+# two mid-gray pixels; on the clipped scale the black pixel counts 1.0 and
+# each gray one 0.87, so a correct native line weighed 1.7x the design's and
+# a merged-cell table fell back to shapes (10/26 deck, page 2, 2026-10-26). Only
+# cells: every other limit was tuned on the clipped scale.
+CELL_INK_SCALE = 441.7
+# A line or arrow whose own (core) color is this close to the design's is not
+# "a different color" because its box average moved: PowerPoint's large
+# arrowhead draws about 12px where the design has 10px, and in a short
+# arrow's small box the extra ink moved the average past COLOR_LIMIT on 5 of
+# 7 correct arrows (10/26 deck, page 7, 2026-10-26). A recolored line still fires.
+LINE_OWN_COLOR_LIMIT = 10.0
 
 
 def load_rgb(src) -> np.ndarray:
@@ -490,8 +504,13 @@ def _name(o: dict, i: int) -> str:
 SEARCH = 14            # px searched in each direction for a better fit
 
 
-def _weights(img: np.ndarray, bg: np.ndarray) -> np.ndarray:
-    """0..1 per pixel: how strongly it differs from the background."""
+def _weights(img: np.ndarray, bg: np.ndarray, full_scale: bool = False) -> np.ndarray:
+    """0..1 per pixel: how strongly it differs from the background.
+
+    full_scale: measure on the whole RGB distance range (0 to 441.7) instead
+    of clipping at 255. Used for table cells only (see CELL_INK_SCALE)."""
+    if full_scale:
+        return np.clip(np.linalg.norm(img - bg, axis=2) / CELL_INK_SCALE, 0, 1)
     return np.clip(np.linalg.norm(img - bg, axis=2) / 255.0, 0, 1)
 
 
@@ -762,8 +781,9 @@ def _compare_flat(ops: list[dict], design: np.ndarray, native: np.ndarray,
         cD = cN = ink_rel = 0.0
         if pixels:
             color = float(np.linalg.norm(D[mask].mean(0) - N[mask].mean(0)))
-            wD = _weights(D, bg) * mask
-            wN = _weights(N, bg) * mask
+            full = bool(o.get("_cell"))
+            wD = _weights(D, bg, full) * mask
+            wN = _weights(N, bg, full) * mask
             n = mask.sum()
             cD, cN = wD.sum() / n, wN.sum() / n
             ink_rel = abs(cD - cN) / max(cD, cN, 1e-6)
@@ -822,14 +842,16 @@ def _compare_flat(ops: list[dict], design: np.ndarray, native: np.ndarray,
             if cD > 0 or cN > 0:
                 shift = max(shift, _align(soft, native, r, bg, mask, edges=True)[0])
             row.update(shift=round(shift, 2), residual=round(res, 3))
-            if color > COLOR_LIMIT and not o.get("_flattened"):
-                reasons.append("color")
             if ink_rel > INK_REL_LIMIT and abs(cD - cN) > INK_ABS_LIMIT:
                 reasons.append("ink")
             if shift > SHIFT_LIMIT:
                 reasons.append("position")
             if res > RESIDUAL_LIMIT and max(cD, cN) > INK_ABS_LIMIT:
                 reasons.append("shape")
+            is_line = o["op"] == "connector" or (o["op"] == "freeform" and not o.get("closed"))
+            own_color_ok = is_line and ink_color < LINE_OWN_COLOR_LIMIT and not reasons
+            if color > COLOR_LIMIT and not o.get("_flattened") and not own_color_ok:
+                reasons.insert(0, "color")
         row["fired"] = reasons
         rows.append(row)
     return rows

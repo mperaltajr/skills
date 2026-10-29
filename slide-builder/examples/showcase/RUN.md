@@ -44,7 +44,7 @@ Never use a client template or client content here.
    It refuses if a local path is left in the shared files.
 6. **Release scrub.** Open the review page and the deck. Check: every source line
    reads "Illustrative data, not real"; no real publisher is named; no retired
-   buttons ("NONE", "+1 / +2 / +3"); the current buttons ("Replace these",
+   buttons ("NONE", "+1 / +2 / +3"); the current buttons ("New design instead",
    "Leave out", the feedback chips) are present; the deck's File > Info shows
    "Slide Lab example", not a person's name.
 

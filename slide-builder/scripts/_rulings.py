@@ -96,7 +96,8 @@ def load(sd: Path) -> dict:
 
 
 def active(data: dict, slide_id: str | None = None) -> list[dict]:
-    rs = [r for r in data.get("rulings", []) if not r.get("replaced_by")]
+    rs = [r for r in data.get("rulings", [])
+          if not r.get("replaced_by") and not r.get("retired")]
     if slide_id is not None:
         rs = [r for r in rs if r.get("id") == slide_id]
     return rs
@@ -114,10 +115,15 @@ def save(sd: Path, data: dict) -> None:
 
 
 def _entry_md(r: dict) -> list[str]:
-    struck = bool(r.get("replaced_by"))
+    struck = bool(r.get("replaced_by") or r.get("retired"))
     s = (lambda t: f"~~{t}~~") if struck else (lambda t: t)
     head = f"R{r['n']} · topic: {r.get('topic') or '(none)'} · {r.get('at', '')[:16].replace('T', ' ')}"
-    lines = [f"### {s(head)}" + (f" (replaced by R{r['replaced_by']})" if struck else "")]
+    why = (f" (replaced by R{r['replaced_by']})" if r.get("replaced_by") else
+           f" (retired: {r['retired'].get('why', '')})" if r.get("retired") else "")
+    lines = [f"### {s(head)}" + why]
+    if r.get("moved_from"):
+        lines.append(f"(moved from R{r['moved_from']['n']} on slide id "
+                     f"{r['moved_from']['id']}, at the user's word)")
     lines.append(s(f"**The user's words:** \"{r['quote']}\""))
     if r.get("reading"):
         lines.append(s(f"**Chat's reading:** {r['reading']}"))
@@ -137,17 +143,71 @@ def render_md(data: dict, sd: Path) -> str:
            "here struck out.", "",
            f"This file: {rulings_md(sd)}", ""]
     ids = [DECK_ID] + sorted({r["id"] for r in rs if r["id"] != DECK_ID})
+    retired_ids = _retired_ids(sd)
     for sid in ids:
         mine = [r for r in rs if r["id"] == sid]
         if not mine and sid != DECK_ID:
             continue
-        out.append("## Whole deck" if sid == DECK_ID else f"## Slide id: {sid}")
+        gone = retired_ids.get(sid)
+        out.append("## Whole deck" if sid == DECK_ID else f"## Slide id: {sid}"
+                   + (f" ({gone})" if gone else ""))
         out.append("")
         if not mine:
             out += ["(none yet)", ""]
         for r in mine:
             out += _entry_md(r)
     return "\n".join(out).rstrip() + "\n"
+
+
+def _retired_ids(sd: Path) -> dict:
+    """{slide id: 'slide removed <date>'} from _session/slide_ids.json
+    (build_deck.py --delete retires the removed slide's id there)."""
+    try:
+        reg = json.loads((Path(sd) / "slide_ids.json").read_text(encoding="utf-8"))
+    except Exception:
+        return {}
+    out = {}
+    for sid, ent in (reg.get("ids") or {}).items():
+        ret = ent.get("retired") if isinstance(ent, dict) else None
+        if ret:
+            out[sid] = f"slide removed {str(ret.get('at', ''))[:10]}".strip()
+    return out
+
+
+def retire(sd: Path, n: int, why: str, words: str, where=None) -> dict:
+    """The user retired ruling R<n> (its slide was removed, or it no longer
+    applies). Kept in the file, struck out; never active again."""
+    data = load(sd)
+    r = next((x for x in data["rulings"] if x["n"] == n), None)
+    if r is None:
+        raise KeyError(n)
+    r["retired"] = {"why": why.strip() or "retired", "words": words.strip(),
+                    "at": datetime.now().isoformat(timespec="seconds"),
+                    "transcript_file": where[0] if where else "",
+                    "transcript_line": where[1] if where else None}
+    save(sd, data)
+    return r
+
+
+def move(sd: Path, n: int, new_id: str, words: str, where=None) -> tuple[dict, dict]:
+    """The user said ruling R<n> belongs to another slide. A new entry with
+    the same quote and reading on `new_id`; the old one is struck out as
+    replaced. The quote is never changed."""
+    data = load(sd)
+    old = next((x for x in data["rulings"] if x["n"] == n), None)
+    if old is None:
+        raise KeyError(n)
+    m = 1 + max([x["n"] for x in data["rulings"]] or [0])
+    entry = {k: old.get(k) for k in ("topic", "quote", "reading", "transcript_file",
+                                      "transcript_line")}
+    entry.update({"n": m, "id": new_id, "at": datetime.now().isoformat(timespec="seconds"),
+                  "moved_from": {"n": n, "id": old["id"], "words": words.strip(),
+                                 "transcript_file": where[0] if where else "",
+                                 "transcript_line": where[1] if where else None}})
+    old["replaced_by"] = m
+    data["rulings"].append(entry)
+    save(sd, data)
+    return entry, old
 
 
 def add(sd: Path, slide_id: str, quote: str, reading: str, topic: str,

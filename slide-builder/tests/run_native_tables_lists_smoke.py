@@ -21,9 +21,15 @@ Checks:
   - renders close to the sketch in LibreOffice and, on Windows with
     PowerPoint, in PowerPoint too (the safe way: our file only, read-only,
     the user's presentations untouched)
-  - fallbacks: a native table / list that renders differently steps down
-    with a warning and keeps every character; a table that can't be a
-    native table (rounded corners) stays shapes with a warning
+  - a table is ALWAYS a native table (owner's decision, 2026-10-27): one
+    with rounded corners is native (corners square, a TABLE_NOTE); one whose
+    render differs (planted wrong fills) stays native with a TABLE_NOTE and
+    is never handed to the agent; a list that renders differently steps
+    down with a warning and keeps every character
+  - groups (10/26 deck, page 2, 2026-10-26): cells spanning 2 and 3 rows with a
+    black 1px line under each group, light gray 1px lines inside, come out
+    native with no note; with one black group line deleted from the native
+    table, the self-check still notes it (the table stays native)
 
 Needs Playwright's Chromium and LibreOffice (PowerPoint part skipped
 without it, or with SLIDE_LAB_SKIP_POWERPOINT=1).
@@ -49,6 +55,7 @@ sys.path.insert(0, str(SKILL / "scripts"))
 sys.path.insert(0, str(SKILL.parent / "slide-qc" / "scripts"))
 
 import numpy as np  # noqa: E402
+from lxml import etree  # noqa: E402
 import translate_html as T  # noqa: E402
 import translate_alarm as A  # noqa: E402
 
@@ -113,6 +120,47 @@ ul.sq li::before { content: ''; position: absolute; left: 0; top: 8px; width: 7p
 </ul>
 </div></body></html>"""
 
+GROUPS = """<!doctype html><html><head><meta charset="utf-8"><style>""" + BASE + """
+*, *::before, *::after { box-sizing: border-box; }
+table.g { position: absolute; left: 55px; top: 212px; width: 1171px; border-collapse: collapse;
+  table-layout: fixed; font-family: "Segoe UI", Arial, sans-serif; font-size: 16px;
+  line-height: 1.25; }
+.g thead tr { background: #000; }
+.g th { color: #fff; font-weight: 700; text-align: left; padding: 0 12px; height: 40px; }
+.g td { padding: 4px 12px; height: 50px; border-bottom: 1px solid #D3D1C7; vertical-align: middle; }
+.g tr.end td { border-bottom: 1.5px solid #000; }
+.g td.grp { font-weight: 700; vertical-align: top; padding-top: 14px; background: #F2F2F2;
+  border-bottom: 1.5px solid #000; }
+.g td.nm { font-weight: 700; }
+</style></head><body><div class="slide-canvas">
+<div class="title" data-template-field="title">Six planning tools grouped by purpose</div>
+<table class="g" data-shape-id="groups-table">
+<colgroup><col style="width:150px"><col style="width:290px"><col style="width:511px"><col style="width:220px"></colgroup>
+<thead><tr><th>Group</th><th>Name</th><th>What it is for</th><th>Owner</th></tr></thead>
+<tbody>
+<tr class="end"><td class="grp">Sizing</td><td class="nm">Market sizing (by region)</td><td>Size of the opportunity in each market*</td><td>Research and Insight</td></tr>
+<tr><td class="grp" rowspan="2">Scenarios</td><td class="nm">Business scenarios and ranges</td><td>Tests the plan's most important drivers</td><td>Planning and Finance</td></tr>
+<tr class="end"><td class="nm">Regional policy scenarios</td><td>Regional policy scenarios on the market sizing and plan inputs</td><td>Policy and Partners</td></tr>
+<tr><td class="grp" rowspan="3">Core tools</td><td class="nm">Long-range financial model</td><td>Value, revenue and returns for the long-range plan</td><td>Planning and Finance</td></tr>
+<tr><td class="nm">Operating financial model</td><td>Runs the business: P&amp;L, monthly forecast, impact of operating changes</td><td>Planning and Finance</td></tr>
+<tr class="end"><td class="nm">Pricing tool</td><td>Price and margin for each deal</td><td>Planning and Finance</td></tr>
+</tbody></table>
+</div></body></html>"""
+
+BLANK = """<!doctype html><html><head><meta charset="utf-8"><style>""" + BASE + """
+table.b { position: absolute; left: 55px; top: 200px; width: 900px; border-collapse: collapse;
+  table-layout: fixed; font-size: 16px; line-height: 24px; }
+.b td { padding: 14px 16px; height: 52px; border-bottom: 1px solid #ddd; vertical-align: top; }
+.b td.q { background: #f4f4f4; font-size: 18px; }
+</style></head><body><div class="slide-canvas">
+<table class="b" data-shape-id="bar-table"><colgroup><col style="width:450px"><col style="width:450px"></colgroup>
+<tbody>
+<tr><td>1&nbsp; Format</td><td class="q" rowspan="3">"Demand may fall"<br><br>"Risk went up"<br><br>"Watch this"</td></tr>
+<tr><td>2&nbsp; Timing</td></tr>
+<tr><td>3&nbsp; Owner</td></tr>
+</tbody></table>
+</div></body></html>"""
+
 ROUNDED = TABLE.replace("border-collapse: collapse;", "border-collapse: separate; border-spacing: 0;"
                         " border-radius: 12px; overflow: hidden;").replace(
     ".t thead th {", ".t thead th { border-radius: 12px 12px 0 0;")
@@ -170,14 +218,16 @@ def main() -> int:
     with tempfile.TemporaryDirectory() as td:
         td = Path(td)
         dirs = {}
-        for name, html in (("table", TABLE), ("list", LIST), ("rounded", ROUNDED)):
+        for name, html in (("table", TABLE), ("list", LIST), ("rounded", ROUNDED),
+                           ("groups", GROUPS)):
             d = td / name
             d.mkdir()
             (d / "option_A.html").write_text(html, encoding="utf-8")
             dirs[name] = d
+        names = ("table", "list", "rounded", "groups")
         reports = T.translate_many([(dirs[n] / "option_A.html", dirs[n], "A", True)
-                                    for n in ("table", "list", "rounded")])
-        rep = dict(zip(("table", "list", "rounded"), reports))
+                                    for n in names])
+        rep = dict(zip(names, reports))
 
         # ---- table -----------------------------------------------------------
         r = rep["table"]
@@ -277,7 +327,13 @@ def main() -> int:
         for nm, data in (("table", data_t), ("list", data_l)):
             lp, _ = T.plan_from_extract(data, True)
             for gid in list(lp.groups):
-                while lp.groups[gid]["cur"] < len(lp.groups[gid]["chain"]) - 1:
+                g_ = lp.groups[gid]
+                if g_["kind"] == "table":       # one version only: swap in its shapes by hand
+                    cur = {id(o) for o in g_["chain"][0]}
+                    lp.ops = [o for o in lp.ops if id(o) not in cur] + list(g_["shapes"])
+                    lp.ops.sort(key=lambda o: o["_order"])
+                    continue
+                while g_["cur"] < len(g_["chain"]) - 1:
                     T._step_group(lp, gid, "comparison")
             prs_old, _ = _build(T._public_plan(lp))
             f = td / f"legacy_{nm}.pptx"
@@ -308,14 +364,83 @@ def main() -> int:
                   f"vs {ol:.2f} of 255)"
                   + ("; the user's PowerPoint presentations untouched" if before is not None else ""))
 
-        # ---- fallbacks ---------------------------------------------------------
+        # ---- always a native table ----------------------------------------------
         r = rep["rounded"]
-        assert r["counts"]["native_tables"] == 0
-        assert any(w["code"] == "TABLE_KEPT_AS_SHAPES" for w in r["warnings"]), r["warnings"]
+        assert r["counts"]["native_tables"] == 1, (r["counts"], r["warnings"])
+        notes = [w["detail"] for w in r["warnings"] if w["code"] == "TABLE_NOTE"]
+        assert any("rounded corners are drawn square" in n for n in notes), r["warnings"]
+        assert not any(w["code"] in ("TABLE_KEPT_AS_SHAPES", "TABLE_NOT_NATIVE")
+                       for w in r["warnings"]), r["warnings"]
+        assert not [f for f in r["fallback"] if (f.get("id") or "").startswith("volume-table")], \
+            r["fallback"]
         pp_r = build_native(dirs["rounded"])
+        prs_r = Presentation(str(pp_r))
+        assert sum(1 for s_ in prs_r.slides[0].shapes if getattr(s_, "has_table", False)
+                   and s_.has_table) == 1
         assert not (design_text - chars(pptx_text(pp_r)))
-        print("  ok: a table with rounded corners stays separate shapes, with a warning, "
-              "keeping every character")
+        print("  ok: a table with rounded corners is a native table (corners square, with a "
+              "note), keeping every character")
+
+        # ---- groups: merged cells with black group lines (10/26 deck, page 2) ----------
+        r = rep["groups"]
+        assert r["self_check"]["ran"], r["warnings"]
+        assert r["counts"]["native_tables"] == 1, r["counts"]
+        assert not [w for w in r["warnings"] if w["code"].startswith("TABLE")], r["warnings"]
+        assert not r["fallback"], r["fallback"]
+        assert not r["self_check"]["fired"], r["self_check"]
+        plan_g = json.loads((dirs["groups"] / "option_A_native.plan.json").read_text(encoding="utf-8"))
+        tg = next(o for o in plan_g["ops"] if o["op"] == "table")
+        assert sorted(c["rs"] for c in tg["cells"] if c["rs"] > 1) == [2, 3], tg["cells"]
+        pp_g = build_native(dirs["groups"])
+        prs_g = Presentation(str(pp_g))
+        tbl_g = next(s_ for s_ in prs_g.slides[0].shapes if getattr(s_, "has_table", False)
+                     and s_.has_table).table
+        # PowerPoint draws a merged cell's borders from its first cell: the
+        # group's black bottom line is written there
+        for r0 in (2, 4):
+            tcPr = tbl_g.cell(r0, 0)._tc.tcPr
+            lnB = tcPr.find("{http://schemas.openxmlformats.org/drawingml/2006/main}lnB")
+            assert lnB is not None and 'val="000000"' in etree.tostring(lnB).decode(), r0
+        print("  ok: cells spanning 2 and 3 rows with black 1px group lines and light gray "
+              "1px lines inside are one native table, no note (merged cell carries its "
+              "bottom line)")
+
+        # a deleted group line is still noticed, and the table stays native
+        with sync_playwright() as pw:
+            from _browser import launch
+            br = launch(pw)
+            page = br.new_page(viewport={"width": 1280, "height": 720})
+            data_g = T.extract(page, dirs["groups"] / "option_A.html", True)
+            bdir = td / "blank"
+            bdir.mkdir()
+            (bdir / "option_A.html").write_text(BLANK, encoding="utf-8")
+            data_b = T.extract(page, bdir / "option_A.html", True)
+            br.close()
+        # a blank line between lines (<br><br>) stays, as an empty paragraph,
+        # in a table cell; a no-break space is not collapsed (2026-10-27)
+        plan_b, _ = T.plan_from_extract(data_b, True)
+        tb_b = next(o for o in plan_b.ops if o["op"] == "table")
+        q = next(c for c in tb_b["cells"] if c["rs"] == 3)
+        assert ["".join(r["t"] for r in p) for p in q["paragraphs"]] == \
+            ['"Demand may fall"', "", '"Risk went up"', "", '"Watch this"'], q["paragraphs"]
+        first = "".join(r["t"] for r in tb_b["cells"][0]["paragraphs"][0])
+        assert first == "1  Format", repr(first)
+        print("  ok: a blank line set with <br><br> in a cell is kept; a no-break space is kept")
+        plan_d, _ = T.plan_from_extract(data_g, True)
+        top_d = next(o for o in plan_d.ops if o["op"] == "table")
+        for s_ in top_d["slots"][3]:                    # planted: the Scenarios group's
+            s_["B"] = None                               # black line deleted
+        for s_ in top_d["slots"][4]:
+            s_["T"] = None
+        T.self_check([(plan_d, data_g)])                 # hand_over=True, as in a build
+        codes_d = [w["code"] for w in plan_d.warnings]
+        assert "TABLE_NOTE" in codes_d, plan_d.warnings
+        assert any(o["op"] == "table" for o in plan_d.ops), [o["op"] for o in plan_d.ops]
+        assert not [f for f in plan_d.fallbacks if (f.get("id") or "").startswith("groups-table")], \
+            plan_d.fallbacks
+        assert "TABLE_NOT_NATIVE" not in codes_d and not plan_d.self_check["fired"], codes_d
+        print("  ok: one black group line deleted: the self-check notes it, the table stays "
+              "native and nothing is handed to the agent")
 
         # a native table and lists that render differently step down
         plan_t, _ = T.plan_from_extract(data_t, True)
@@ -334,7 +459,10 @@ def main() -> int:
         T.self_check([(plan_t, data_t), (plan_l, data_l)], hand_over=False)
         codes_t = [w["code"] for w in plan_t.warnings]
         codes_l = [w["code"] for w in plan_l.warnings]
-        assert "TABLE_NOT_NATIVE" in codes_t and not any(o["op"] == "table" for o in plan_t.ops), codes_t
+        # a table whose render can't match stays a native table, with a note
+        assert "TABLE_NOTE" in codes_t and "TABLE_NOT_NATIVE" not in codes_t, codes_t
+        assert any(o["op"] == "table" for o in plan_t.ops), [o["op"] for o in plan_t.ops]
+        assert T.native_counts(plan_t)["native_tables"] == 1
         assert "LIST_NOT_SINGLE_BOX" in codes_l, codes_l          # disc list: straight to items
         assert "LIST_MARKERS_AS_SHAPES" in codes_l, codes_l       # square markers: shapes, one box
         with tempfile.TemporaryDirectory() as t2:
@@ -345,8 +473,18 @@ def main() -> int:
                 prs2.save(str(f))
                 want = design_text if nm == "t" else chars(lt)
                 assert not (want - chars(pptx_text(f))), (nm, want - chars(pptx_text(f)))
-        print("  ok: a table / list that renders differently steps down with a warning "
-              "(native table -> shapes; bullets -> marker shapes -> item boxes), no text lost")
+        # and, as in a build (hand_over=True), the table is never handed to the agent
+        plan_t2, _ = T.plan_from_extract(data_t, True)
+        for row in next(o for o in plan_t2.ops if o["op"] == "table")["slots"]:
+            for s in row:
+                s["fill"] = "00AA00"
+        T.self_check([(plan_t2, data_t)])
+        assert any(o["op"] == "table" for o in plan_t2.ops)
+        assert not [f for f in plan_t2.fallbacks if (f.get("id") or "").startswith("volume-table")], \
+            plan_t2.fallbacks
+        print("  ok: a table whose render can't match stays a native table with a note "
+              "(never shapes, never the agent); a list steps down with a warning "
+              "(bullets -> marker shapes -> item boxes), no text lost")
     print("SMOKE PASSED.")
     return 0
 
