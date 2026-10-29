@@ -2,6 +2,27 @@
 
 All notable changes to this skill. Versioning follows [Semantic Versioning](https://semver.org/) loosely: major bumps signal architectural changes, minor bumps signal feature additions, patch bumps signal fixes.
 
+## 2026-10-23: the tutorial is built from its source again, from published settings only
+
+- **The tutorial source was out of date.** Several builders had edited
+  `Slide-Lab-Tutorial.html` directly, so running `docs/tutorial/assemble.py`
+  undid their work: it brought back "3 options per slide" and dropped the
+  "+3 DESIGNS" label and the "1 design per slide by default" wording. All 8
+  newer edits are now in `docs/tutorial/tutorial_src.html` (its facts block
+  says 1 design per slide and lists "+3 DESIGNS"); a rebuild now gives a
+  page byte-identical to the published one.
+- **Published settings only.** The stale "3" came from the source's own
+  facts block, not from a settings file, but the tutorial is public, so
+  `assemble.py` and `scripts/check_tutorial.py` now set
+  `SLIDE_LAB_SETTINGS_LOCAL=none`: this computer's `settings.local.json`
+  (the owner's three designs per slide) can never reach them.
+  `assemble.py --out <path>` writes the page somewhere else (for the test).
+- New test `tests/run_tutorial_build_smoke.py`: a rebuild must equal the
+  committed tutorial byte for byte (with a local file saying 3 designs in
+  place); the check passes with and without that file; a page whose facts
+  say 3 fails the check. A hand edit to the built page fails the test,
+  naming the line and the fix.
+
 ## 2026-10-29: a LibreOffice the computer blocks counts as not installed
 
 Some company computers now block LibreOffice from starting ("Access is
